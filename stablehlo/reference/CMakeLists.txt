@@ -76,12 +76,14 @@ add_mlir_library(StablehloReferenceInterpreterApi
 
   LINK_LIBS PUBLIC
   MLIRIR
+  MLIRSupport
   InterpreterOps
   StablehloReferenceErrors
+  StablehloReferenceInterpreterValue
+  StablehloReferenceNumPy
   StablehloReferenceProcess
-  StablehloRegister
+  StablehloReferenceOps
   StablehloReferenceScope
-  StablehloReferenceTensor
 )
 
 add_mlir_library(StablehloReferenceInterpreterValue

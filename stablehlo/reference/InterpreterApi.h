@@ -29,7 +29,6 @@ namespace stablehlo {
 
 class InterpreterFallback;
 struct InterpreterConfiguration {
- public:
   InterpreterConfiguration()
       : fallback(std::make_unique<InterpreterFallback>()) {}
 

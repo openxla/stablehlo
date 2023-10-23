@@ -18,14 +18,10 @@ limitations under the License.
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
-#include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Support/DebugStringHelper.h"
-#include "stablehlo/dialect/Register.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/NumPy.h"
@@ -77,22 +73,6 @@ llvm::Error InterpreterFallback::handleOp(Operation &op, Process *process,
                                           Scope &scope) {
   return stablehlo::invalidArgument("Unsupported op: %s",
                                     debugString(op).c_str());
-}
-
-llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
-    const std::string &mlir, ArrayRef<InterpreterValue> inputs,
-    const InterpreterConfiguration &config) {
-  llvm::SourceMgr source_mgr;
-  source_mgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(mlir),
-                                llvm::SMLoc());
-
-  DialectRegistry registry;
-  registry.insert<func::FuncDialect>();
-  registerAllDialects(registry);
-  MLIRContext context(registry);
-  OwningOpRef<ModuleOp> module(parseSourceFile<ModuleOp>(source_mgr, &context));
-
-  return runInterpreter(module.get(), inputs, config);
 }
 
 llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
