@@ -157,6 +157,12 @@ func.func @attr_custom_call_api_version_status_returning_unified(%arg0: tensor<f
 }
 // CHECK-LABEL: "attr_custom_call_api_version_status_returning_unified"
 
+// CHECK: #vhlo.dict_v1<{#vhlo.string_v1<"attr1"> = #vhlo.integer_v1<1 : i32>, #vhlo.string_v1<"attr2"> = #vhlo.integer_v1<2 : i32>}
+func.func @attr_dict() attributes {stablehlo.attr = {attr1 = 1 : i32, attr2 = 2 : i32}} {
+  return
+}
+// CHECK-LABEL: "attr_dict"
+
 // DotDimensionNumbers aka #stablehlo.dot is covered below.
 
 func.func @attr_fft_type_fft(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>> {
