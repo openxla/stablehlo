@@ -407,13 +407,17 @@ cc_library(
     deps = [
         ":interpreter_ops",
         ":reference_errors",
+        ":reference_interpretervalue",
+        ":reference_numpy",
         ":reference_ops",
         ":reference_process",
         ":reference_scope",
         ":reference_tensor",
         ":register",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
     ],
 )
 
