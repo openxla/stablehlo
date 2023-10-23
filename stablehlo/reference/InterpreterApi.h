@@ -82,14 +82,6 @@ class InterpreterFallback {
   llvm::StringMap<int32_t> instrumentedTensors;
 };
 
-/// Invoke the StableHLO reference interpreter with the given unparsed MLIR
-/// module input and provided inputs. Returns a list of interpreter outputs.
-/// Can optionally pass a fallback interpreter callback which executes when no
-/// builtin kernels are matched.
-llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
-    const std::string &mlir, ArrayRef<InterpreterValue> inputs,
-    const InterpreterConfiguration &config);
-
 /// Invoke the StableHLO reference interpreter with the given parsed MLIR
 /// module input and provided inputs. Returns a list of interpreter outputs.
 /// Can optionally pass a fallback interpreter callback which executes when no

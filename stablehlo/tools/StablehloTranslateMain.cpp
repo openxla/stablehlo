@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <memory>
+
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -159,7 +161,7 @@ TranslateFromMLIRRegistration interpretRegistration(
       DefaultInterpreterFallback fallback;
       stablehlo::InterpreterConfiguration config;
       config.probeInstrumentationDir = probeOutputDir.getValue();
-      config.fallback = &fallback;
+      config.fallback = std::make_unique<DefaultInterpreterFallback>();
       config.stream = &os;
 
       return success(runInterpreter(module, /*inputs=*/{}, config).getError());
