@@ -9,7 +9,7 @@ Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/1809)
 
 StableHLO currently has [five collective communication primitives](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#collective-ops): `collective_permute`, `all_gather`, `all_to_all`, `all_reduce`, and `reduce_scatter`. However, one of the major collective communication primitives, `broadcast`, is missing from this list. This primitive allows for a one-to-many replication of a tensor to many devices efficiently. `broadcast` is a primitive in [MPI](https://www.open-mpi.org/doc/v4.1/man3/MPI_Bcast.3.php), [NCCL](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#c.ncclBroadcast), and [PyTorch](https://pytorch.org/docs/stable/distributed.html#torch.distributed.broadcast). From here on out, we will refer to this operation as `collective_broadcast` for reasons discussed later.
 
-While it technically would be possible to replicate a broadcast with a conditional mask and a `psum`, that reduces to an `all_reduce` communication primitive, which is significantly more expensive than a simple `collective_broadcast`. Additionally, when dealing with network-switch environments, the explicit use of `collective_broadcast` allows the switch to greatly optimize it's throughput when replicating to many targets simultaneously. However, XLA currently has no ability to lower directly to a mesh's `collective_broadcast` primitive, so a lot of that optimization is left on the table. 
+While it technically would be possible to replicate a broadcast with a conditional mask and a `psum`, that reduces to an `all_reduce` communication primitive, which is significantly more expensive than a simple `collective_broadcast`. Additionally, when dealing with network-switch environments, the explicit use of `collective_broadcast` allows the switch to greatly optimize it's throughput when replicating to many targets simultaneously. However, XLA currently has no ability to lower directly to a mesh's `collective_broadcast` primitive, so a lot of that optimization is left on the table.
 
 Additionally, a new compiler pass that detects usage of the old `psum` hack and replaces it with a `collective_broadcast` could be implemented only once and forever be supported by all hardware, future and current. This could have positive knock-on effects for users who don't even realize they're using it!
 
@@ -31,8 +31,8 @@ Unfortunately, the op name `broadcast` is already taken by [an op in XLA proper]
 Within each process group in the StableHLO process grid, send the value of the
 `operand` tensor from the source process to the target processes and produce a
 `result` tensor. The first process in each of the `replica_groups` is treated as the 
-source process. For any process `n` not in any replica group, an additional replica 
-group `[n]` will be implied. 
+source process. For any process `n` not in any replica group, that process will just return 
+zeros.
 
 The operation splits the StableHLO process grid into `process_groups` which is
 defined as follows:
@@ -78,12 +78,13 @@ Afterwards, within each `process_group`:
 
 ```mlir
 // num_replicas: 1
-// num_partitions: 3
+// num_partitions: 4
 // %operand@(0, 0): [[1, 2]]
 // %operand@(0, 1): [[3, 4]]
 // %operand@(0, 2): [[5, 6]]
+// %operand@(0, 3): [[7, 8]]
 %result = "stablehlo.collective_broadcast"(%operand) {
-  replica_groups = [[2, 0], [1]]
+  replica_groups = dense<[[2, 0], [1, 3]]> : tensor<2x2xi64>,
   // channel_id = 0
   channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
   // use_global_device_ids = false
@@ -91,4 +92,25 @@ Afterwards, within each `process_group`:
 // %result@(0, 0): [[5, 6]]
 // %result@(0, 1): [[3, 4]]
 // %result@(0, 2): [[5, 6]]
+// %result@(0, 4): [[3, 4]]
+```
+
+Example with missing processes
+```mlir
+// num_replicas: 1
+// num_partitions: 4
+// %operand@(0, 0): [[1, 2]]
+// %operand@(0, 1): [[3, 4]]
+// %operand@(0, 2): [[5, 6]]
+// %operand@(0, 3): [[7, 8]]
+%result = "stablehlo.collective_broadcast"(%operand) {
+  replica_groups = dense<[[2, 1]]> : tensor<1x2xi64>,
+  // channel_id = 0
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  // use_global_device_ids = false
+} : (tensor1x2xi64>) -> tensor<1x2xi64>
+// %result@(0, 0): [[0, 0]]
+// %result@(0, 1): [[5, 6]]
+// %result@(0, 2): [[5, 6]]
+// %result@(0, 4): [[0, 0]]
 ```
