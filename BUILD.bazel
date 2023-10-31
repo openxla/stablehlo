@@ -1311,3 +1311,12 @@ gentbl_cc_library(
         ":vhlo_ops_td_files",
     ],
 )
+
+test_suite(
+    name = "stablehlo_ci_tests",
+    tests = [
+        "//stablehlo/tests:stablehlo_tests",
+        "//stablehlo/testdata:stablehlo_testdata_tests",
+        "//stablehlo/conversions/tosa/tests:stablehlo_tosa_tests"
+    ],
+)
