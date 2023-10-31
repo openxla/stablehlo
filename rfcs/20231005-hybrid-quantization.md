@@ -2,7 +2,7 @@
 
 Status: Review<br/>
 Initial version: 10/05/2023<br/>
-Last updated: 10/17/2023<br/>
+Last updated: 10/31/2023<br/>
 
 ## Version log
 
@@ -58,29 +58,29 @@ We propose to modify operation semantics and a few constraints on quantized
 convolution and dot_general to represent weight-only quantization using hybrid
 op.
 
-### dequantize_op semantics
+### hybrid_dequantize_then_op semantics
 
-We propose to define `dequantize_op` semantics as part of quantization
+We propose to define `hybrid_dequantize_then_op` semantics as part of quantization
 computations. 
 
-* `dequantize_op` is used to specify weight-only quantization for hybrid op
-which accepts lhs in float and rhs in quantized types. It dequantizes quantized
-inputs into their expressed types and performs computation in float. Element
-type of float lhs tensor and expressed type of quantized rhs tensor should be
-identical.
+* `hybrid_dequantize_then_op` is used to specify weight-only quantization for
+hybrid op which accepts lhs in float and rhs in quantized types. It dequantizes
+quantized inputs into their expressed types and performs computation in float.
+Element type of float lhs tensor and expressed type of quantized rhs tensor
+should be identical.
 
 ```python
-def dequantize_op(op, float_lhs, quantized_rhs):
-  float_rhs = dequantize(quantized_rhs)
-  return op(float_lhs, float_rhs)
+def hybrid_dequantize_then_op(op, *inputs):
+  float_inputs = map(lambda input: input if is_float(element_type(type(input))) else dequantize(input) , inputs)
+  return op(*float_inputs)
 ```
 
 ### convolution
 
 #### Operation semantics for hybrid op
 
-For hybrid quantized types, performs `dequantize_op( lambda lhs, rhs: 
-convolution(lhs, rhs, window_strides, padding, lhs_dilation, rhs_dilation,
+For hybrid quantized types, performs `hybrid_dequantize_then_op( lambda lhs,
+rhs: convolution(lhs, rhs, window_strides, padding, lhs_dilation, rhs_dilation,
 window_reversal, input_batch_dimension, input_feature_dimension,
 input_spatial_dimensions, kernel_input_feature_dimension,
 kernel_output_feature_dimension, kernel_spatial_dimensions,
@@ -121,8 +121,8 @@ feature_group_count, batch_group_count, precision_config), lhs, rhs)`.
 
 #### Operation semantics for hybrid op
 
-For hybrid quantized types, performs `dequantize_op( lambda lhs, rhs:
-dot_general(lhs, rhs, lhs_batching_dimensions, rhs_batching_dimensions,
+For hybrid quantized types, performs `hybrid_dequantize_then_op( lambda lhs,
+rhs: dot_general(lhs, rhs, lhs_batching_dimensions, rhs_batching_dimensions,
 lhs_contracting_dimensions, rhs_contracting_dimensions, precision_config), lhs,
 rhs)`.
 
