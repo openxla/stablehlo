@@ -33,26 +33,6 @@ The main requirement for the interpreter is to have 1:1 correspondence with the
 spec. The spec allows standardization of the interpreter across similar ops that
 lead to modular, high quality implementation of the interpreter.
 
-## Verification
-
-<!-- markdownlint-disable line-length -->
-We carefully reviewed the spec and made sure that every constraint has a
-corresponding test. We also marked every test with the constraint number that it
-covers (see [ops_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir)).
-This helped us to remove duplicate tests, identify missing ones, and make the
-test suite easy to maintain.
-<!-- markdownlint-enable line-length -->
-
-## Type Inference
-
-<!-- markdownlint-disable line-length -->
-The interpreter results are populated by indexing over the result type, so some
-development went into augmenting the type inference [implementation](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/TypeInference.cpp)
-to position the interpreter to have more modular code. This allowed several
-complex ops like Convolution, Gather/Scatter, and ReduceWindow to be implemented
-nearly identical to how it is written in the spec.
-<!-- markdownlint-enable line-length -->
-
 ## Special Cases
 
 ### Miscellaneous
@@ -80,8 +60,9 @@ interpreter supports resides in [hlo_expand_main.cc](https://github.com/openxla/
 
 ### Not in HLO
 
-Apart from the specced ops, this category consists of 10 unspecced ops (as they
-plan to be moved out of StableHLO), some of which have existing passes in
+Apart from the specced ops, this category consists of 10 unspecced ops (see
+[StableHLO Ops Categories](#stablehlo-ops-categories)) which are planed to be
+moved out of StableHLO. Some of these ops have existing passes in
 [mhlo](https://github.com/openxla/xla/tree/main/xla/mlir_hlo/mhlo/transforms) to
 convert them to StableHLO equivalent ops. There are three ops the interpreter
 does not support because there are no existing decompositions to StableHLO ops:
