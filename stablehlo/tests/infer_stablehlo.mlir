@@ -732,7 +732,7 @@ func.func @while_c3(%arg0: tensor<4xf32>, %arg1: tensor<f32>, %arg2: tensor<f32>
 //===----------------------------------------------------------------------===//
 
 #CSR = #sparse_tensor.encoding<{
-  lvlTypes = ["dense", "compressed"]
+  map = (d0, d1) -> (d0 : dense, d1 : compressed)
 }>
 
 // CHECK-LABEL: @tanh_sparsity
@@ -746,7 +746,7 @@ func.func @tanh_sparsity(%arg0: tensor<10x10xf32, #CSR>) -> tensor<10x10xindex> 
 // -----
 
 #CSR = #sparse_tensor.encoding<{
-  lvlTypes = ["dense", "compressed"]
+  map = (d0, d1) -> (d0 : dense, d1 : compressed)
 }>
 
 // CHECK-LABEL: @abs_sparsity
@@ -760,7 +760,7 @@ func.func @abs_sparsity(%arg0: tensor<10x10xf32, #CSR>) -> tensor<10x10xindex> {
 // -----
 
 #CSR = #sparse_tensor.encoding<{
-  lvlTypes = ["dense", "compressed"]
+  map = (d0, d1) -> (d0 : dense, d1 : compressed)
 }>
 
 // CHECK-LABEL: @real_sparsity
@@ -774,7 +774,7 @@ func.func @real_sparsity(%arg0: tensor<10x10xcomplex<f32>, #CSR>) -> tensor<10x1
 // -----
 
 #CSR = #sparse_tensor.encoding<{
-  lvlTypes = ["dense", "compressed"]
+  map = (d0, d1) -> (d0 : dense, d1 : compressed)
 }>
 
 // CHECK-LABEL: @imag_sparsity
@@ -788,7 +788,7 @@ func.func @imag_sparsity(%arg0: tensor<10x10xcomplex<f32>, #CSR>) -> tensor<10x1
 // -----
 
 #CSR = #sparse_tensor.encoding<{
-  lvlTypes = ["dense", "compressed"]
+  map = (d0, d1) -> (d0 : dense, d1 : compressed)
 }>
 
 // CHECK-LABEL: @complex_sparsity

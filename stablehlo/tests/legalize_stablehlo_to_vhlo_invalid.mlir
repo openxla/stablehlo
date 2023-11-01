@@ -14,9 +14,9 @@ func.func @string_with_type(%arg0: tensor<f32>) -> tensor<f32> {
 // GH Issue: https://github.com/openxla/stablehlo/issues/907
 
 // expected-error @+1 {{failed to legalize operation 'func.func' that was explicitly marked illegal}}
-func.func @type_sparsity(%arg0: tensor<16xf32, #sparse_tensor.encoding<{ lvlTypes = [ "compressed" ] }>>) -> tensor<16xf32> {
-  // CHECK_DISABLED: "vhlo.abs"(%arg0) : (tensor<16xf32, #sparse_tensor.encoding<{ lvlTypes = [ "compressed" ] }>>) -> !vhlo.tensor<tensor<16xf32>>
-  %0 = "stablehlo.abs"(%arg0) : (tensor<16xf32, #sparse_tensor.encoding<{ lvlTypes = [ "compressed" ] }>>) -> tensor<16xf32>
+func.func @type_sparsity(%arg0: tensor<16xf32, #sparse_tensor.encoding<{ map = (d0) -> (d0 : compressed) }>>) -> tensor<16xf32> {
+  // CHECK_DISABLED: "vhlo.abs"(%arg0) : (tensor<16xf32, #sparse_tensor.encoding<{ map = (d0) -> (d0 : compressed) }>>) -> !vhlo.tensor<tensor<16xf32>>
+  %0 = "stablehlo.abs"(%arg0) : (tensor<16xf32, #sparse_tensor.encoding<{ map = (d0) -> (d0 : compressed) }>>) -> tensor<16xf32>
   func.return %0 : tensor<16xf32>
 }
 // CHECK-DISABLED-LABEL: "type_sparsity"
