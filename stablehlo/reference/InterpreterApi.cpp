@@ -44,15 +44,16 @@ func::FuncOp getMainFunction(ModuleOp module, StringRef mainName) {
 }
 }  // namespace
 
-llvm::Error InterpreterFallback::operator()(Operation &op, Process *process,
-                                            Scope &scope) {
+llvm::Error InterpreterFallback::operator()(
+    const InterpreterConfiguration &config, Operation &op, Scope &scope,
+    Process *process) {
   llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
 
   if (auto probeOp = dyn_cast<stablehlo::interpreter::ProbeOp>(op)) {
     auto input =
         stablehlo::InterpreterValue(scope.findTensor(probeOp.getOperand()));
     auto status = stablehlo::interpreter::evalProbeOp(
-        input, probeOp.getProbeId(), config->probeInstrumentationDir,
+        input, probeOp.getProbeId(), config.probeInstrumentationDir,
         instrumentedTensors);
     scope.add(probeOp.getResult(), input);
     return wrapFallbackStatus(std::move(status), funcName, "interpreter.probe");
@@ -80,11 +81,12 @@ llvm::Error InterpreterFallback::operator()(Operation &op, Process *process,
                               "interpreter.run_parallel");
   }
 
-  return handleOp(op, process, scope);
+  return handleOp(config, op, scope, process);
 }
 
-llvm::Error InterpreterFallback::handleOp(Operation &op, Process *process,
-                                          Scope &scope) {
+llvm::Error InterpreterFallback::handleOp(
+    const InterpreterConfiguration &config, Operation &op, Scope &scope,
+    Process *process) {
   return stablehlo::invalidArgument("Unsupported op: %s",
                                     debugString(op).c_str());
 }
@@ -105,9 +107,7 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
           "Failed to remove existing instrumentation metadata file.");
   }
 
-  config.fallback->setConfig(config);
-  return stablehlo::eval(mainFunc.getBody(), inputs, /*process=*/nullptr,
-                         /*parent=*/nullptr, *config.fallback);
+  return stablehlo::eval(mainFunc.getBody(), inputs, &config);
 }
 
 }  // namespace stablehlo

@@ -88,8 +88,9 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
 /// and module instrumentation.
 class StablehloTranslateInterpreterFallback
     : public stablehlo::InterpreterFallback {
-  virtual llvm::Error handleOp(Operation &op, stablehlo::Process *process,
-                               stablehlo::Scope &scope) final {
+  virtual llvm::Error handleOp(
+      const stablehlo::InterpreterConfiguration &config, Operation &op,
+      stablehlo::Scope &scope, stablehlo::Process *process) final {
     llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
     if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
       if (customCall.getCallTargetName() == "check.eq") {
@@ -144,7 +145,7 @@ class StablehloTranslateInterpreterFallback
           scope.findTensor(expectSerializedEqOp.getExpected());
       auto status = stablehlo::check::evalExpectSerializedEqOp(
           runtimeOperand, expectSerializedEqOp.getProbeId(),
-          config->probeInstrumentationDir, expectSerializedEqOp.getIteration());
+          config.probeInstrumentationDir, expectSerializedEqOp.getIteration());
       return stablehlo::wrapFallbackStatus(std::move(status), funcName,
                                            "check.expect_serialized_eq");
     }

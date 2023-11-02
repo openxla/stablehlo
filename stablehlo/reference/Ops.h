@@ -19,6 +19,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Axes.h"
+#include "stablehlo/reference/InterpreterApi.h"
 #include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/ProcessGrid.h"
@@ -195,8 +196,7 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
 Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType);
 SmallVector<InterpreterValue> evalWhileOp(
     SmallVector<InterpreterValue> operand, Region &cond, Region &body,
-    Process *process, Scope &scope,
-    llvm::function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback);
+    Process *process, Scope &scope, const InterpreterConfiguration *config);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 
 /// Evaluates an mlir::Region `region` using the runtime values `args`
@@ -206,10 +206,9 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 /// used for evaluating ops which are not supported by the interpreter.
 /// Assumes that `region` has only one block.
 SmallVector<InterpreterValue> eval(
-    Region &region, ArrayRef<InterpreterValue> args, Process *process = nullptr,
-    Scope *parent = nullptr,
-    function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback =
-        nullptr);
+    Region &region, ArrayRef<InterpreterValue> args,
+    const InterpreterConfiguration *config = nullptr,
+    Process *process = nullptr, Scope *parent = nullptr);
 
 }  // namespace stablehlo
 }  // namespace mlir

@@ -49,22 +49,16 @@ struct InterpreterConfiguration {
 /// are found for a given StableHLO operation.
 class InterpreterFallback {
  public:
-  llvm::Error operator()(Operation &op, Process *process, Scope &scope);
+  llvm::Error operator()(const InterpreterConfiguration &config, Operation &op,
+                         Scope &scope, Process *process);
 
   virtual ~InterpreterFallback() = default;
-
-  /// Set the user provided interpreter configuration.
-  void setConfig(const InterpreterConfiguration &config) {
-    this->config = &config;
-  }
 
  protected:
   /// Custom op kernels for any user specified ops not found in the StableHLO
   /// op dialect or StableHLO interpreter dialect.
-  virtual llvm::Error handleOp(Operation &op, Process *process, Scope &scope);
-
-  /// The user provided interpreter configuration.
-  const InterpreterConfiguration *config;
+  virtual llvm::Error handleOp(const InterpreterConfiguration &config,
+                               Operation &op, Scope &scope, Process *process);
 
  private:
   /// If the input StableHLO program has been instrumented, keep track of how
