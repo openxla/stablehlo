@@ -33,7 +33,7 @@ inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
 /// Wrapper error handing function for StableHLO. Creates an invalid argument
 /// error using the specified function name and fallback name as error text.
 llvm::Error wrapFallbackStatus(llvm::Error status, llvm::StringRef funcName,
-                       llvm::StringRef fallbackName);
+                               llvm::StringRef fallbackName);
 
 }  // namespace stablehlo
 }  // namespace mlir

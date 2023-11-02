@@ -21,7 +21,7 @@ namespace mlir {
 namespace stablehlo {
 
 llvm::Error wrapFallbackStatus(llvm::Error status, llvm::StringRef funcName,
-                       llvm::StringRef fallbackName) {
+                               llvm::StringRef fallbackName) {
   if (status)
     return stablehlo::invalidArgument(
         "Error evaluating function: %s. \n\tFallback for %s failed: %s",
