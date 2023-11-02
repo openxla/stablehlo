@@ -25,13 +25,28 @@ limitations under the License.
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
-
 namespace mlir {
 namespace stablehlo {
+namespace {
+func::FuncOp getMainFunction(ModuleOp module, StringRef mainName) {
+  auto functions = module.getOps<func::FuncOp>();
+
+  // If the module has 1 function only, use it as the main function.
+  if (std::distance(functions.begin(), functions.end()) == 1) {
+    return *functions.begin();
+  }
+
+  for (auto funcOp : functions) {
+    if (funcOp.getSymName().equals(mainName)) return funcOp;
+  }
+
+  return {};
+}
+}  // namespace
 
 llvm::Error InterpreterFallback::operator()(Operation &op, Process *process,
                                             Scope &scope) {
-  llvm::StringRef funcName = currentFunction.getSymName();
+  llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
 
   if (auto probeOp = dyn_cast<stablehlo::interpreter::ProbeOp>(op)) {
     auto input =
@@ -40,7 +55,7 @@ llvm::Error InterpreterFallback::operator()(Operation &op, Process *process,
         input, probeOp.getProbeId(), config->probeInstrumentationDir,
         instrumentedTensors);
     scope.add(probeOp.getResult(), input);
-    return wrapStatus(std::move(status), funcName, "interpreter.probe");
+    return wrapFallbackStatus(std::move(status), funcName, "interpreter.probe");
   }
 
   if (auto runParallelOp =
@@ -61,8 +76,8 @@ llvm::Error InterpreterFallback::operator()(Operation &op, Process *process,
     auto results = stablehlo::interpreter::evalRunParallelOp(
         runtimeOperands, infeed, programs, symbolTable);
     scope.add(runParallelOp.getResults(), results);
-    return wrapStatus(llvm::Error::success(), funcName,
-                      "interpreter.run_parallel");
+    return wrapFallbackStatus(llvm::Error::success(), funcName,
+                              "interpreter.run_parallel");
   }
 
   return handleOp(op, process, scope);
@@ -74,20 +89,11 @@ llvm::Error InterpreterFallback::handleOp(Operation &op, Process *process,
                                     debugString(op).c_str());
 }
 
-llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
+llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
     const InterpreterConfiguration &config) {
-  auto numFuncs = 0;
-  bool hasMain = false;
-
-  assert(!config.mainFunction.empty() && "Main function name cannot be empty");
-  module.walk([&](func::FuncOp funcOp) {
-    if (funcOp.getSymName() == config.mainFunction) hasMain = true;
-    numFuncs++;
-  });
-
-  if (numFuncs > 1 && !hasMain)
-    llvm::report_fatal_error("Requested main function not found.");
+  auto mainFunc = getMainFunction(module, config.mainFunction);
+  if (!mainFunc) llvm::report_fatal_error("Requested main function not found.");
 
   if (!config.probeInstrumentationDir.empty()) {
     llvm::SmallString<128> instrumentationMetadataFile(
@@ -99,27 +105,9 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
           "Failed to remove existing instrumentation metadata file.");
   }
 
-  SmallVector<InterpreterValue> results;
   config.fallback->setConfig(config);
-
-  auto walkResult = module.walk([&](func::FuncOp funcOp) {
-    if (numFuncs > 1 && funcOp.getSymName() != config.mainFunction)
-      return WalkResult::advance();
-
-    if (config.fallback) config.fallback->setFunction(funcOp);
-
-    results = stablehlo::eval(funcOp.getBody(), inputs, /*process=*/nullptr,
-                              /*parent=*/nullptr, *config.fallback);
-
-    if (config.stream)
-      for (auto &result : results) result.print(*config.stream);
-
-    return WalkResult::advance();
-  });
-
-  if (walkResult.wasInterrupted()) return llvm::errc::interrupted;
-
-  return results;
+  return stablehlo::eval(mainFunc.getBody(), inputs, /*process=*/nullptr,
+                         /*parent=*/nullptr, *config.fallback);
 }
 
 }  // namespace stablehlo

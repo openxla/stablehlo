@@ -86,15 +86,16 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
 
 /// The default fallback callback used by StableHLO for interpreter validation
 /// and module instrumentation.
-class DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
+class StablehloTranslateInterpreterFallback
+    : public stablehlo::InterpreterFallback {
   virtual llvm::Error handleOp(Operation &op, stablehlo::Process *process,
                                stablehlo::Scope &scope) final {
-    llvm::StringRef funcName = currentFunction.getSymName();
+    llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
     if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
       if (customCall.getCallTargetName() == "check.eq") {
         auto status = evalCustomCallCheckEq(customCall, scope);
-        return stablehlo::wrapStatus(std::move(status), funcName,
-                                     "stablehlo.custom_call(@check.eq)");
+        return stablehlo::wrapFallbackStatus(
+            std::move(status), funcName, "stablehlo.custom_call(@check.eq)");
       }
 
       return stablehlo::invalidArgument("Unsupported custom call: %s",
@@ -107,8 +108,8 @@ class DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
       auto runtimeRhs = scope.findTensor(expectAlmostEqOp.getRhs());
       auto status =
           stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
-      return stablehlo::wrapStatus(std::move(status), funcName,
-                                   "check.expect_almost_eq");
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_almost_eq");
     }
 
     if (auto expectAlmostEqConstOp =
@@ -116,16 +117,16 @@ class DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
       auto runtimeOperand = scope.findTensor(expectAlmostEqConstOp.getLhs());
       auto status = stablehlo::check::evalExpectAlmostEqConstOp(
           runtimeOperand, expectAlmostEqConstOp.getValue());
-      return stablehlo::wrapStatus(std::move(status), funcName,
-                                   "check.expect_almost_eq_const");
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_almost_eq_const");
     }
 
     if (auto expectEqOp = dyn_cast<stablehlo::check::ExpectEqOp>(op)) {
       auto runtimeLhs = scope.findTensor(expectEqOp.getLhs());
       auto runtimeRhs = scope.findTensor(expectEqOp.getRhs());
       auto status = stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
-      return stablehlo::wrapStatus(std::move(status), funcName,
-                                   "check.expect_eq");
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_eq");
     }
 
     if (auto expectEqConstOp =
@@ -133,8 +134,8 @@ class DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
       auto runtimeOperand = scope.findTensor(expectEqConstOp.getLhs());
       auto status = stablehlo::check::evalExpectEqConstOp(
           runtimeOperand, expectEqConstOp.getValue());
-      return stablehlo::wrapStatus(std::move(status), funcName,
-                                   "check.expect_eq_const");
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_eq_const");
     }
 
     if (auto expectSerializedEqOp =
@@ -144,8 +145,8 @@ class DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
       auto status = stablehlo::check::evalExpectSerializedEqOp(
           runtimeOperand, expectSerializedEqOp.getProbeId(),
           config->probeInstrumentationDir, expectSerializedEqOp.getIteration());
-      return stablehlo::wrapStatus(std::move(status), funcName,
-                                   "check.expect_serialized_eq");
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_serialized_eq");
     }
 
     return stablehlo::invalidArgument("Unsupported op: %s",
@@ -157,14 +158,20 @@ class DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
 
 TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
-    [](ModuleOp module, raw_ostream &os) {
-      DefaultInterpreterFallback fallback;
+    [](ModuleOp module, raw_ostream &os) -> LogicalResult {
       stablehlo::InterpreterConfiguration config;
       config.probeInstrumentationDir = probeOutputDir.getValue();
-      config.fallback = std::make_unique<DefaultInterpreterFallback>();
-      config.stream = &os;
+      config.fallback =
+          std::make_unique<StablehloTranslateInterpreterFallback>();
 
-      return success(runInterpreter(module, /*inputs=*/{}, config).getError());
+      auto resultsOrError = evalModule(module, /*inputs=*/{}, config);
+      if (resultsOrError) {
+        return success(resultsOrError);
+      }
+
+      for (auto &result : *resultsOrError) result.print(os);
+
+      return success();
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();

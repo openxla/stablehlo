@@ -36,16 +36,13 @@ struct InterpreterConfiguration {
   /// be serialized to disk.
   std::string probeInstrumentationDir = "";
 
-  /// If specified, use this function as the entrypoint function into the model.
-  /// Will otherwise default to “main”.
+  /// If specified, use this function as the entrypoint function into the model
+  /// when there exist more than 1 functions in a module.
   std::string mainFunction = "main";
 
   /// If specified, use the callback to run on ops which do not have a
   /// registered kernel.
   std::unique_ptr<InterpreterFallback> fallback;
-
-  /// If set, optionally dump tensor values to the specified stream.
-  raw_ostream *stream = nullptr;
 };
 
 /// Base interpreter fallback callback functor to run when no registered kernels
@@ -61,9 +58,6 @@ class InterpreterFallback {
     this->config = &config;
   }
 
-  /// Set the topmost currently executing function in the module.
-  void setFunction(func::FuncOp function) { currentFunction = function; }
-
  protected:
   /// Custom op kernels for any user specified ops not found in the StableHLO
   /// op dialect or StableHLO interpreter dialect.
@@ -71,9 +65,6 @@ class InterpreterFallback {
 
   /// The user provided interpreter configuration.
   const InterpreterConfiguration *config;
-
-  /// The topmost function currently being executed in the module.
-  func::FuncOp currentFunction;
 
  private:
   /// If the input StableHLO program has been instrumented, keep track of how
@@ -85,7 +76,7 @@ class InterpreterFallback {
 /// module input and provided inputs. Returns a list of interpreter outputs.
 /// Can optionally pass a fallback interpreter callback which executes when no
 /// builtin kernels are matched.
-llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
+llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
     const InterpreterConfiguration &config);
 

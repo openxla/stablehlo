@@ -20,7 +20,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-llvm::Error wrapStatus(llvm::Error status, llvm::StringRef funcName,
+llvm::Error wrapFallbackStatus(llvm::Error status, llvm::StringRef funcName,
                        llvm::StringRef fallbackName) {
   if (status)
     return stablehlo::invalidArgument(
