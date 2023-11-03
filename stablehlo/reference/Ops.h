@@ -194,9 +194,10 @@ Tensor evalTanhOp(const Tensor &operand, ShapedType resultType);
 Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
                        ShapedType resultType);
 Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType);
-SmallVector<InterpreterValue> evalWhileOp(
-    SmallVector<InterpreterValue> operand, Region &cond, Region &body,
-    const InterpreterConfiguration *config, Process *process, Scope &scope);
+SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
+                                          Region &cond, Region &body,
+                                          InterpreterFallback *fallback,
+                                          Process *process, Scope &scope);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 
 /// Evaluates an mlir::Region `region` using the runtime values `args`
@@ -205,10 +206,11 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 /// values for the terminator's arguments. The optional callback `fallback` is
 /// used for evaluating ops which are not supported by the interpreter.
 /// Assumes that `region` has only one block.
-SmallVector<InterpreterValue> eval(
-    Region &region, ArrayRef<InterpreterValue> args,
-    const InterpreterConfiguration *config = nullptr,
-    Process *process = nullptr, Scope *parent = nullptr);
+SmallVector<InterpreterValue> eval(Region &region,
+                                   ArrayRef<InterpreterValue> args,
+                                   InterpreterFallback *fallback = nullptr,
+                                   Process *process = nullptr,
+                                   Scope *parent = nullptr);
 
 }  // namespace stablehlo
 }  // namespace mlir

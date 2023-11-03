@@ -202,7 +202,7 @@ SmallVector<Tensor> split(const Tensor &x, int64_t numResults, Axis axis,
 
 SmallVector<InterpreterValue> eval(Region &region,
                                    ArrayRef<InterpreterValue> args,
-                                   const InterpreterConfiguration *config,
+                                   InterpreterFallback *fallback,
                                    Process *process, Scope *parent) {
   Block &block = region.front();
   if (block.getArguments().size() != args.size())
@@ -818,7 +818,7 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto operand = scope.find(whileOp.getOperand());
       auto &cond = whileOp.getCond();
       auto &body = whileOp.getBody();
-      auto results = evalWhileOp(operand, cond, body, config, process, scope);
+      auto results = evalWhileOp(operand, cond, body, fallback, process, scope);
       scope.add(whileOp.getResults(), results);
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
       auto lhs = scope.findTensor(xorOp.getLhs());
@@ -826,10 +826,10 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto result = evalXorOp(lhs, rhs, xorOp.getType());
       scope.add(xorOp.getResult(), result);
     } else {
-      if (config && !config->fallback)
+      if (!fallback)
         report_fatal_error(
             invalidArgument("Unsupported op: %s", debugString(op).c_str()));
-      auto status = (*config->fallback)(*config, op, scope, process);
+      auto status = (*fallback)(op, scope, process);
       if (status) llvm::report_fatal_error(std::move(status));
     }
   }
@@ -917,7 +917,7 @@ Tensor evalAllReduceOp(const Tensor &operand,
       auto groupOperandElement = makeScalar(groupOperand.get(*resultIt));
       if (resultElement)
         resultElement = eval(computation, {resultElement, groupOperandElement},
-                             /*config=*/nullptr, process, &scope)[0]
+                             /*fallback=*/nullptr, process, &scope)[0]
                             .getTensor();
       else
         resultElement = groupOperandElement;
@@ -2034,16 +2034,17 @@ Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType) {
   return Tuple(val, resultType);
 }
 
-SmallVector<InterpreterValue> evalWhileOp(
-    SmallVector<InterpreterValue> operand, Region &cond, Region &body,
-    const InterpreterConfiguration *config, Process *process, Scope &scope) {
+SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
+                                          Region &cond, Region &body,
+                                          InterpreterFallback *fallback,
+                                          Process *process, Scope &scope) {
   SmallVector<InterpreterValue> results(operand);
 
-  auto condResults = eval(cond, operand, config, process, &scope);
+  auto condResults = eval(cond, operand, fallback, process, &scope);
 
   while (condResults[0].getTensor().get({}).getBooleanValue()) {
-    results = eval(body, results, config, process, &scope);
-    condResults = eval(cond, results, config, process, &scope);
+    results = eval(body, results, fallback, process, &scope);
+    condResults = eval(cond, results, fallback, process, &scope);
   }
 
   return results;

@@ -19,7 +19,6 @@ limitations under the License.
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterConfiguration.h"
 #include "stablehlo/reference/InterpreterOps.h"
@@ -44,47 +43,63 @@ func::FuncOp getMainFunction(ModuleOp module, StringRef mainName) {
 
   return {};
 }
+
+// Register a default fallback callback to handle select interpreter ops.
+class DefaultInterpreterFallback : public InterpreterFallback {
+ public:
+  DefaultInterpreterFallback(const InterpreterConfiguration &config)
+      : config(config){};
+
+  virtual llvm::Error operator()(Operation &op, Scope &scope,
+                                 Process *process) final {
+    llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
+
+    if (auto probeOp = dyn_cast<stablehlo::interpreter::ProbeOp>(op)) {
+      auto input =
+          stablehlo::InterpreterValue(scope.findTensor(probeOp.getOperand()));
+      auto status = stablehlo::interpreter::evalProbeOp(
+          input, probeOp.getProbeId(), config.probeInstrumentationDir,
+          instrumentedTensors);
+      scope.add(probeOp.getResult(), input);
+      return wrapFallbackStatus(std::move(status), funcName,
+                                "interpreter.probe");
+    }
+
+    if (auto runParallelOp =
+            dyn_cast<stablehlo::interpreter::RunParallelOp>(op)) {
+      auto runtimeOperands = scope.find(runParallelOp.getInputs());
+      std::queue<StringAttr> infeed;
+      if (auto infeedAttr = runParallelOp.getInfeed())
+        for (auto &value : infeedAttr->getValue())
+          infeed.push(value.cast<FlatSymbolRefAttr>().getAttr());
+
+      SmallVector<SmallVector<StringAttr>> programs(
+          runParallelOp.getPrograms().size());
+      for (auto [i, replica] : llvm::enumerate(runParallelOp.getPrograms()))
+        for (auto &program : replica.cast<ArrayAttr>())
+          programs[i].push_back(program.cast<FlatSymbolRefAttr>().getAttr());
+
+      SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
+      auto results = stablehlo::interpreter::evalRunParallelOp(
+          runtimeOperands, infeed, programs, symbolTable);
+      scope.add(runParallelOp.getResults(), results);
+      return wrapFallbackStatus(llvm::Error::success(), funcName,
+                                "interpreter.run_parallel");
+    }
+
+    return (*config.fallback)(op, scope, process);
+  }
+
+ private:
+  /// Interpreter configuration.
+  const InterpreterConfiguration &config;
+
+  /// If the input StableHLO program has been instrumented, keep track of how
+  /// many times a given operation has been executed.
+  llvm::StringMap<int32_t> instrumentedTensors;
+};
+
 }  // namespace
-
-llvm::Error InterpreterFallback::operator()(
-    const InterpreterConfiguration &config, Operation &op, Scope &scope,
-    Process *process) {
-  llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
-
-  if (auto probeOp = dyn_cast<stablehlo::interpreter::ProbeOp>(op)) {
-    auto input =
-        stablehlo::InterpreterValue(scope.findTensor(probeOp.getOperand()));
-    auto status = stablehlo::interpreter::evalProbeOp(
-        input, probeOp.getProbeId(), config.probeInstrumentationDir,
-        instrumentedTensors);
-    scope.add(probeOp.getResult(), input);
-    return wrapFallbackStatus(std::move(status), funcName, "interpreter.probe");
-  }
-
-  if (auto runParallelOp =
-          dyn_cast<stablehlo::interpreter::RunParallelOp>(op)) {
-    auto runtimeOperands = scope.find(runParallelOp.getInputs());
-    std::queue<StringAttr> infeed;
-    if (auto infeedAttr = runParallelOp.getInfeed())
-      for (auto &value : infeedAttr->getValue())
-        infeed.push(value.cast<FlatSymbolRefAttr>().getAttr());
-
-    SmallVector<SmallVector<StringAttr>> programs(
-        runParallelOp.getPrograms().size());
-    for (auto [i, replica] : llvm::enumerate(runParallelOp.getPrograms()))
-      for (auto &program : replica.cast<ArrayAttr>())
-        programs[i].push_back(program.cast<FlatSymbolRefAttr>().getAttr());
-
-    SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
-    auto results = stablehlo::interpreter::evalRunParallelOp(
-        runtimeOperands, infeed, programs, symbolTable);
-    scope.add(runParallelOp.getResults(), results);
-    return wrapFallbackStatus(llvm::Error::success(), funcName,
-                              "interpreter.run_parallel");
-  }
-
-  return handleOp(config, op, scope, process);
-}
 
 llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
@@ -102,7 +117,8 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
           "Failed to remove existing instrumentation metadata file.");
   }
 
-  return stablehlo::eval(mainFunc.getBody(), inputs, &config);
+  DefaultInterpreterFallback fallback(config);
+  return stablehlo::eval(mainFunc.getBody(), inputs, &fallback);
 }
 
 }  // namespace stablehlo

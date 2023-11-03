@@ -23,7 +23,18 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-class InterpreterFallback;
+/// Base interpreter fallback callback functor to run when no registered kernels
+/// are found for a given StableHLO operation. See InterpreterApi for default
+/// implementation.
+class InterpreterFallback {
+ public:
+  /// Custom op kernels for any user specified ops not found in the StableHLO
+  /// op dialect or StableHLO interpreter dialect.
+  virtual llvm::Error operator()(Operation &op, Scope &scope, Process *process);
+
+  virtual ~InterpreterFallback() = default;
+};
+
 struct InterpreterConfiguration {
   InterpreterConfiguration()
       : fallback(std::make_unique<InterpreterFallback>()) {}
@@ -42,28 +53,6 @@ struct InterpreterConfiguration {
   /// If specified, use the callback to run on ops which do not have a
   /// registered kernel.
   std::unique_ptr<InterpreterFallback> fallback;
-};
-
-/// Base interpreter fallback callback functor to run when no registered kernels
-/// are found for a given StableHLO operation. See InterpreterApi for default
-/// implementation.
-class InterpreterFallback {
- public:
-  llvm::Error operator()(const InterpreterConfiguration &config, Operation &op,
-                         Scope &scope, Process *process);
-
-  virtual ~InterpreterFallback() = default;
-
- protected:
-  /// Custom op kernels for any user specified ops not found in the StableHLO
-  /// op dialect or StableHLO interpreter dialect.
-  virtual llvm::Error handleOp(const InterpreterConfiguration &config,
-                               Operation &op, Scope &scope, Process *process);
-
- private:
-  /// If the input StableHLO program has been instrumented, keep track of how
-  /// many times a given operation has been executed.
-  llvm::StringMap<int32_t> instrumentedTensors;
 };
 
 }  // namespace stablehlo

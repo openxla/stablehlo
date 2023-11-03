@@ -24,9 +24,8 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-llvm::Error InterpreterFallback::handleOp(
-    const InterpreterConfiguration &config, Operation &op, Scope &scope,
-    Process *process) {
+llvm::Error InterpreterFallback::operator()(Operation &op, Scope &scope,
+                                            Process *process) {
   return stablehlo::invalidArgument("Unsupported op: %s",
                                     debugString(op).c_str());
 }
