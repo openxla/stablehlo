@@ -21,9 +21,13 @@ limitations under the License.
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
+#include "stablehlo/reference/InterpreterConfiguration.h"
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
+#include "stablehlo/reference/Process.h"
+#include "stablehlo/reference/Scope.h"
+
 namespace mlir {
 namespace stablehlo {
 namespace {
@@ -80,13 +84,6 @@ llvm::Error InterpreterFallback::operator()(
   }
 
   return handleOp(config, op, scope, process);
-}
-
-llvm::Error InterpreterFallback::handleOp(
-    const InterpreterConfiguration &config, Operation &op, Scope &scope,
-    Process *process) {
-  return stablehlo::invalidArgument("Unsupported op: %s",
-                                    debugString(op).c_str());
 }
 
 llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(

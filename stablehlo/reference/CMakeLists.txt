@@ -79,10 +79,22 @@ add_mlir_library(StablehloReferenceInterpreterApi
   MLIRSupport
   InterpreterOps
   StablehloReferenceErrors
+  StablehloReferenceInterpreterConfiguration
   StablehloReferenceInterpreterValue
   StablehloReferenceNumPy
-  StablehloReferenceProcess
   StablehloReferenceOps
+  StablehloReferenceProcess
+  StablehloReferenceScope
+)
+
+add_mlir_library(StablehloReferenceInterpreterConfiguration
+  PARTIAL_SOURCES_INTENDED
+  InterpreterConfiguration.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRSupport
+  StablehloReferenceErrors
+  StablehloReferenceProcess
   StablehloReferenceScope
 )
 
