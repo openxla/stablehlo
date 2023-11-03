@@ -213,8 +213,9 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
       }
     }
 
-    RankedTensorType constType =
-        RankedTensorType::get(iotaArrayLength, elementType);
+    llvm::SmallVector<int64_t, 4> constShape(resultShape.size(), 1);
+    constShape[iotaDimension] = resultShape[iotaDimension];
+    RankedTensorType constType = RankedTensorType::get(constShape, elementType);
     auto constOp = rewriter.create<tosa::ConstOp>(
         op.getLoc(), constType, DenseElementsAttr::get(constType, constValues));
 
