@@ -196,7 +196,7 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
 Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType);
 SmallVector<InterpreterValue> evalWhileOp(
     SmallVector<InterpreterValue> operand, Region &cond, Region &body,
-    Process *process, Scope &scope, const InterpreterConfiguration *config);
+    const InterpreterConfiguration *config, Process *process, Scope &scope);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 
 /// Evaluates an mlir::Region `region` using the runtime values `args`

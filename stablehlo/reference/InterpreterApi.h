@@ -18,7 +18,6 @@ limitations under the License.
 
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorOr.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Process.h"
@@ -36,8 +35,11 @@ struct InterpreterConfiguration {
   /// be serialized to disk.
   std::string probeInstrumentationDir = "";
 
-  /// If specified, use this function as the entrypoint function into the model
-  /// when there exist more than 1 functions in a module.
+  /// Use the specified named function as the main entrypoint into a module.
+  /// Defaults to `main` for modules with multiple functions. If a module only
+  /// contains 1 function and the default `main` value is used, the singular 
+  /// function will be used as the entrypoint (irrespective of a function name
+  /// match).
   std::string mainFunction = "main";
 
   /// If specified, use the callback to run on ops which do not have a

@@ -818,7 +818,7 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto operand = scope.find(whileOp.getOperand());
       auto &cond = whileOp.getCond();
       auto &body = whileOp.getBody();
-      auto results = evalWhileOp(operand, cond, body, process, scope, config);
+      auto results = evalWhileOp(operand, cond, body, config, process, scope);
       scope.add(whileOp.getResults(), results);
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
       auto lhs = scope.findTensor(xorOp.getLhs());
@@ -2036,7 +2036,7 @@ Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType) {
 
 SmallVector<InterpreterValue> evalWhileOp(
     SmallVector<InterpreterValue> operand, Region &cond, Region &body,
-    Process *process, Scope &scope, const InterpreterConfiguration *config) {
+    const InterpreterConfiguration *config, Process *process, Scope &scope) {
   SmallVector<InterpreterValue> results(operand);
 
   auto condResults = eval(cond, operand, config, process, &scope);

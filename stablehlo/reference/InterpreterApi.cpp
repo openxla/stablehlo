@@ -15,7 +15,6 @@ limitations under the License.
 #include "stablehlo/reference/InterpreterApi.h"
 
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
@@ -31,14 +30,13 @@ namespace {
 func::FuncOp getMainFunction(ModuleOp module, StringRef mainName) {
   auto functions = module.getOps<func::FuncOp>();
 
-  // If the module has 1 function only, use it as the main function.
-  if (std::distance(functions.begin(), functions.end()) == 1) {
-    return *functions.begin();
-  }
-
-  for (auto funcOp : functions) {
+  for (auto funcOp : functions)
     if (funcOp.getSymName().equals(mainName)) return funcOp;
-  }
+
+  bool isSingleFunction =
+      std::distance(functions.begin(), functions.end()) == 1;
+  bool isDefaultLookup = mainName == "main";
+  if (isSingleFunction && isDefaultLookup) return *functions.begin();
 
   return {};
 }
