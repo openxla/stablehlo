@@ -37,7 +37,7 @@ struct InterpreterConfiguration {
 
   /// Use the specified named function as the main entrypoint into a module.
   /// Defaults to `main` for modules with multiple functions. If a module only
-  /// contains 1 function and the default `main` value is used, the singular 
+  /// contains 1 function and the default `main` value is used, the singular
   /// function will be used as the entrypoint (irrespective of a function name
   /// match).
   std::string mainFunction = "main";
