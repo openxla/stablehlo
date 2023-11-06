@@ -32,6 +32,19 @@ def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp">
   let dependentDialects = ["mlir::vhlo::VhloDialect"];
 }
 
+def StablehloProbeInstrumentationPass : Pass<"stablehlo-instrument", "ModuleOp"> {
+  let summary = "Inserts probe instrumentation instructions in a StableHLO "
+    "program.";
+  let dependentDialects = ["mlir::stablehlo::interpreter::InterpreterDialect"];
+  let description = [{
+    Walks through a StableHLO program and inserts a probe instrumentation
+    instruction after each operation.
+
+    Instrumentation is used to extract intermediate tensor values from the
+    StableHLO reference interpreter for later comparison with other runtimes.
+  }];
+}
+
 def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
   let summary = "Refines shapes across a StableHLO program.";
   let description = [{
