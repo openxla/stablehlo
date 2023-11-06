@@ -1706,8 +1706,8 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
   if (parser.parseKeyword("across") || parser.parseKeyword("dimensions") ||
       parser.parseEqual() ||
       parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseDim) ||
-      parser.parseOptionalAttrDict(result.attributes) ||
-      parser.parseColon() || parser.parseType(reduceOpFnType) ||
+      parser.parseOptionalAttrDict(result.attributes) || parser.parseColon() ||
+      parser.parseType(reduceOpFnType) ||
       parser.parseOptionalLocationSpecifier(explicitLoc))
     return failure();
 
