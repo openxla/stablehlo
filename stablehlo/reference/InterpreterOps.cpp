@@ -174,8 +174,8 @@ SmallVector<InterpreterValue> evalRunParallelOp(
       auto evalWrapper = [&](Region &region, ArrayRef<InterpreterValue> args,
                              ProcessId processId) {
         Process process{processId, &processGrid};
-        return eval(region, args, &process, /*parent=*/nullptr,
-                    /*fallback=*/nullptr);
+        return eval(region, args, /*config=*/nullptr, &process,
+                    /*parent=*/nullptr);
       };
 
       auto numArgs = func.getBody().front().getArguments().size();

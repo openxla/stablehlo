@@ -55,6 +55,8 @@ target_link_libraries(stablehlo-translate PRIVATE
   CheckOps
   InterpreterOps
   StablehloOps
+  StablehloReferenceErrors
+  StablehloReferenceInterpreterApi
   StablehloReferenceInterpreterValue
   StablehloReferenceOps
   StablehloReferenceProcessGrid

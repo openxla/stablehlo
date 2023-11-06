@@ -30,6 +30,15 @@ add_mlir_library(StablehloReferenceElement
   StablehloReferenceTypes
 )
 
+add_mlir_library(StablehloReferenceErrors
+  PARTIAL_SOURCES_INTENDED
+  Errors.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRSupport
+)
+
 add_mlir_library(StablehloReferenceIndex
   PARTIAL_SOURCES_INTENDED
   Index.cpp
@@ -59,6 +68,34 @@ add_mlir_dialect_library(InterpreterOps
   StablehloReferenceProcessGrid
   MLIRIR
   MLIRSupport
+)
+
+add_mlir_library(StablehloReferenceInterpreterApi
+  PARTIAL_SOURCES_INTENDED
+  InterpreterApi.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRSupport
+  InterpreterOps
+  StablehloReferenceErrors
+  StablehloReferenceInterpreterConfiguration
+  StablehloReferenceInterpreterValue
+  StablehloReferenceNumPy
+  StablehloReferenceOps
+  StablehloReferenceProcess
+  StablehloReferenceScope
+)
+
+add_mlir_library(StablehloReferenceInterpreterConfiguration
+  PARTIAL_SOURCES_INTENDED
+  InterpreterConfiguration.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRSupport
+  StablehloReferenceErrors
+  StablehloReferenceProcess
+  StablehloReferenceScope
 )
 
 add_mlir_library(StablehloReferenceInterpreterValue
