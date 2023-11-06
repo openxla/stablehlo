@@ -30,8 +30,7 @@ Unfortunately, the op name `broadcast` is already taken by [an op in XLA proper]
 
 Within each process group in the StableHLO process grid, send the value of the
 `operand` tensor from the source process to the target processes and produce a
-`result` tensor. For any process `n` not in any replica group, that process will just
-return zeros.
+`result` tensor.
 
 The operation splits the StableHLO process grid into `process_groups` which is
 defined as follows:
@@ -43,8 +42,7 @@ Afterwards, `result@process` is given by:
 
 * `operand@process_groups[i, 0]` if there exists an `i` such that
   the process is in `process_groups[i]`.
-* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
-  if process is never found in `process_groups`.
+* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))` otherwise.
 
 
 #### Inputs
@@ -52,7 +50,7 @@ Afterwards, `result@process` is given by:
 | Label | Name                    | Type                                                             | Constraints |
 |-------|-------------------------|------------------------------------------------------------------|-------------|
 | (I1)  | `operand`               | tensor                                                           | (C3)        |
-| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C2)     |
+| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1), (C2)  |
 | (I3)  | `channel_id`            | constant of type `si64`                                          |             |
 
 #### Outputs
@@ -63,7 +61,7 @@ Afterwards, `result@process` is given by:
 
 #### Constraints
 
-* (C1) is_unique(replica_groups).
+* (C1) `is_unique(replica_groups)`.
 * (C2) `0 <= replica_groups < N` where `N` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_partitions` if `cross_partition` is used.
@@ -72,38 +70,18 @@ Afterwards, `result@process` is given by:
 #### Examples
 
 ```mlir
-// num_replicas: 1
-// num_partitions: 4
+// num_replicas: 4
+// num_partitions: 1
 // %operand@(0, 0): [[1, 2]]
-// %operand@(0, 1): [[3, 4]]
-// %operand@(0, 2): [[5, 6]]
-// %operand@(0, 3): [[7, 8]]
-%result = "stablehlo.collective_broadcast"(%operand) {
-  replica_groups = dense<[[2, 0], [1, 3]]> : tensor<2x2xi64>,
-  // channel_id = 1
-  channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
-} : (tensor1x2xi64>) -> tensor<1x2xi64>
-// %result@(0, 0): [[5, 6]]
-// %result@(0, 1): [[3, 4]]
-// %result@(0, 2): [[5, 6]]
-// %result@(0, 4): [[3, 4]]
-```
-
-Example with missing processes
-```mlir
-// num_replicas: 1
-// num_partitions: 4
-// %operand@(0, 0): [[1, 2]]
-// %operand@(0, 1): [[3, 4]]
-// %operand@(0, 2): [[5, 6]]
-// %operand@(0, 3): [[7, 8]]
+// %operand@(1, 0): [[3, 4]]
+// %operand@(2, 0): [[5, 6]]
+// %operand@(3, 0): [[7, 8]]
 %result = "stablehlo.collective_broadcast"(%operand) {
   replica_groups = dense<[[2, 1]]> : tensor<1x2xi64>,
-  // channel_id = 1
-  channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
 } : (tensor1x2xi64>) -> tensor<1x2xi64>
 // %result@(0, 0): [[0, 0]]
-// %result@(0, 1): [[5, 6]]
-// %result@(0, 2): [[5, 6]]
-// %result@(0, 4): [[0, 0]]
+// %result@(1, 0): [[5, 6]]
+// %result@(2, 0): [[5, 6]]
+// %result@(3, 0): [[0, 0]]
 ```
