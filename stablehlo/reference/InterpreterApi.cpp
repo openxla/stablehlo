@@ -44,7 +44,9 @@ func::FuncOp getMainFunction(ModuleOp module, StringRef mainName) {
   return {};
 }
 
-// Register a default fallback callback to handle select interpreter ops.
+// DefaultInterpreterFallback is an implementation detail of run module. It
+// takes in an InterpreterConfiguration which can have user-implemented
+// fallbacks.
 class DefaultInterpreterFallback : public InterpreterFallback {
  public:
   DefaultInterpreterFallback(const InterpreterConfiguration &config)
