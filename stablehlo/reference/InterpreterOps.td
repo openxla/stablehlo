@@ -93,7 +93,7 @@ def Interpreter_ProbeOp : Op<Interpreter_Dialect, "probe",
     file format. Writes tensor input value to
     `<output-dir>/<probe_id>_<iteration>.npy` (where output-dir is specified by
     the `--probe_output_dir` flag). Additionally, adds an entry to
-    <output-dir>/index.csv metadata file which maps probe IDs and iterations to
+    <output-dir>/index.csv metadata file which maps probe IDs, types and
     filenames with their tensor values.
 
     The `probe` operation will not modify its input in any way. Probe

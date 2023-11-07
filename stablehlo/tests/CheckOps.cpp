@@ -31,6 +31,17 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 namespace check {
+namespace {
+
+// Splits a given string into parts, using the given delimiter.
+template <typename OutputIterator>
+void splitString(const std::string &line, char delimiter,
+                 OutputIterator output) {
+  std::istringstream buffer(line);
+  std::string part;
+  while (std::getline(buffer, part, delimiter)) *output++ = part;
+}
+}  // namespace
 
 //===----------------------------------------------------------------------===//
 // Check Dialect Constructor
@@ -81,12 +92,13 @@ llvm::Error evalExpectEqOp(const Tensor &lhs, const Tensor &rhs) {
   return llvm::Error::success();
 }
 
-// Fetch a previously serialized filepath given a `probeId` and a `probeDir` for
-// a specified `iteration` value from an `index.csv` metadata file. If no data
-// is found, returns an error.
-static llvm::ErrorOr<std::string> getSerializedTensorPath(StringRef probeId,
-                                                          StringRef probeDir,
-                                                          uint32_t iteration) {
+// Fetch a previously serialized MLIR type and data filepath given a `probeId`
+// and a `probeDir` for a specified `iteration` value from an `index.csv`
+// metadata file. If no data is found, returns an error.
+using SerializedTensorMetadata =
+    std::pair</*type=*/std::string, /*path=*/std::string>;
+static llvm::ErrorOr<SerializedTensorMetadata> getSerializedTensorMetadata(
+    StringRef probeId, StringRef probeDir, uint32_t iteration) {
   if (probeDir.empty()) return llvm::errc::invalid_argument;
 
   llvm::SmallString<128> instrumentationMetadataFile(probeDir);
@@ -97,13 +109,17 @@ static llvm::ErrorOr<std::string> getSerializedTensorPath(StringRef probeId,
   if (!metadataFile.is_open()) return llvm::errc::io_error;
 
   std::string line;
+  std::vector<std::string> fields(3);
 
   for (uint32_t match = 0; metadataFile >> line && match <= iteration;
        ++match) {
     auto pos = line.find(probeId);
 
-    if (pos != std::string::npos && match == iteration)
-      return line.substr(pos + probeId.size() + 1);
+    if (pos != std::string::npos && match == iteration) {
+      // Parse the record in the form of: probe_id,mlir_type,serialized_path
+      splitString(line, ',', fields.begin());
+      return std::make_pair(/*type=*/fields[1], /*path=*/fields[2]);
+    }
   }
 
   return llvm::errc::bad_address;
@@ -111,19 +127,26 @@ static llvm::ErrorOr<std::string> getSerializedTensorPath(StringRef probeId,
 
 llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
                                      StringRef probeDir, uint32_t iteration) {
-  auto serializedFilePathOrError =
-      getSerializedTensorPath(probeId, probeDir, iteration);
+  auto serializedMetadataOrError =
+      getSerializedTensorMetadata(probeId, probeDir, iteration);
 
-  if (!serializedFilePathOrError)
-    return llvm::createStringError(serializedFilePathOrError.getError(),
-                                   "Failed to find serialized data for probe");
+  if (!serializedMetadataOrError)
+    return llvm::createStringError(serializedMetadataOrError.getError(),
+                                   "Failed to find serialized data for probe.");
+
+  const std::string type = serializedMetadataOrError->first;
+  const std::string serializedPath = serializedMetadataOrError->second;
 
   auto tensorOrError =
-      numpy::deserializeTensor(*serializedFilePathOrError, expected.getType());
+      numpy::deserializeTensor(serializedPath, expected.getType());
 
   if (!tensorOrError)
     return llvm::createStringError(tensorOrError.getError(),
                                    "Failed to verify serialized tensor.");
+
+  if (type != debugString(expected.getType()))
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Type mismatch.");
 
   return evalExpectEqOp(expected, *tensorOrError);
 }

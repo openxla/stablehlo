@@ -121,9 +121,9 @@ def CHECK_ExpectEqOp : Op<CHECK_Dialect, "expect_eq", [SameTypeOperands]> {
 def CHECK_ExpectSerializedEqOp : Op<CHECK_Dialect, "expect_serialized_eq", []> {
   let summary = [{Checks value of serialized tensor value.}];
   let description = [{
-    Verifies that the value of the serialized tensor `probe_id` matches the
-    optionally specified input tensor at iteration `iteration`, using previously
-    serialized filepaths in `index.csv`.
+    Verifies that the value and type of the serialized tensor `probe_id` match
+    the optionally specified input tensor at iteration `iteration`, using
+    previously serialized filepaths in `index.csv`.
 
     ```mlir
     check.expect_serialized_eq %arg0,
