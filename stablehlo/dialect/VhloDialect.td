@@ -32,11 +32,12 @@ def VHLO_Dialect : Dialect {
       0.11.0: Introduce `f8E4M3B11FNUZ` type.
       0.12.0: MLIR bytecode version 1 => 3.
       0.14.0: MLIR bytecode version 3 => 5.
+      0.15.0: MLIR bytecode version 5 => 6, use properties in VHLO.
   }];
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
-  let usePropertiesForAttributes = 0;
+  let usePropertiesForAttributes = 1;
 }
 
 #endif
