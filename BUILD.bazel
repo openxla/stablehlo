@@ -1362,8 +1362,8 @@ gentbl_cc_library(
 test_suite(
     name = "stablehlo_ci_tests",
     tests = [
-        "//stablehlo/tests:stablehlo_tests",
+        "//stablehlo/conversions/tosa/tests:stablehlo_tosa_tests",
         "//stablehlo/testdata:stablehlo_testdata_tests",
-        "//stablehlo/conversions/tosa/tests:stablehlo_tosa_tests"
+        "//stablehlo/tests:stablehlo_tests",
     ],
 )
