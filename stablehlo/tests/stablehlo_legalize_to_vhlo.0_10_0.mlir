@@ -336,7 +336,7 @@ func.func @default_all_gather(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {
 
 // CHECK-LABEL: "default_all_reduce"
 func.func @default_all_reduce(%arg0: tensor<f32>) -> tensor<f32> {
-  //               CHECK: "vhlo.all_reduce_v1"(%arg0) 
+  //               CHECK: "vhlo.all_reduce_v1"(%arg0)
   //          CHECK-SAME: <{
   //          CHECK-SAME:   channel_id = #vhlo.integer_v1<0 : i64>,
   // CHECK-SAME{LITERAL}:   replica_groups = #vhlo.tensor_v1<dense<[[0], [1]]> : tensor<2x1xi64>>,
@@ -556,7 +556,7 @@ func.func @default_func(%arg0: tensor<f32>) -> tensor<f32> {
   // CHECK-SAME: }> ({
   // CHECK-NEXT:   ^[[BB:bb.*]](%arg0: !vhlo.tensor_v1<!vhlo.f32_v1>):
   // CHECK-NEXT:     "vhlo.return_v1"(%arg0) : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> ()
-  // CHECK-NEXT: }) : () -> ()  
+  // CHECK-NEXT: }) : () -> ()
   func.return %arg0 : tensor<f32>
 }
 
