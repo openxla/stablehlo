@@ -22,7 +22,7 @@ configure_lit_site_cfg(
 add_lit_testsuite(check-stablehlo-tests "Running the tests/ suite"
   ${CMAKE_CURRENT_BINARY_DIR}
   DEPENDS
-  FileCheck
+  FileCheck not
   stablehlo-opt
   stablehlo-translate
 )
