@@ -169,3 +169,4 @@ add_custom_target(check-stablehlo-quick)
 add_dependencies(check-stablehlo-ci check-stablehlo-quick)
 
 add_subdirectory(stablehlo)
+add_subdirectory(cmake/modules)

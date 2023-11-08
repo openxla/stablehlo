@@ -1,0 +1,8 @@
+# This file allows users to call find_package(Stablehlo) and pick up StableHLO
+# targets.
+
+find_package(MLIR REQUIRED CONFIG)
+
+# Provide all our include files, library targets, and binary targets to users.
+set(STABLEHLO_INCLUDE_DIRS "@STABLEHLO_CONFIG_INCLUDE_DIRS@")
+include("@STABLEHLO_CONFIG_CMAKE_DIR@/StablehloTargets.cmake")
