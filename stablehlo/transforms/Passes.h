@@ -25,6 +25,7 @@ limitations under the License.
 
 namespace mlir {
 namespace stablehlo {
+
 #define GEN_PASS_DECL_STABLEHLOCANONICALIZEDYNAMISMPASS
 #define GEN_PASS_DECL_STABLEHLOLEGALIZETOVHLOPASS
 #define GEN_PASS_DECL_STABLEHLOREFINESHAPESPASS
@@ -66,4 +67,4 @@ void registerPassPipelines();
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_DIALECT_VHLO_OPS_H
+#endif  // STABLEHLO_TRANSFORMS_PASSES_H
