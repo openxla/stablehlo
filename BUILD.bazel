@@ -434,6 +434,7 @@ cc_library(
         ":reference_process",
         ":reference_scope",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Support",
     ],
 )
 
