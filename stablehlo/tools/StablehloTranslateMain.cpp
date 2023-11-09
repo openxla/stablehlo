@@ -32,8 +32,8 @@ limitations under the License.
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
+#include "stablehlo/reference/Api.h"
 #include "stablehlo/reference/Errors.h"
-#include "stablehlo/reference/InterpreterApi.h"
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/tests/CheckOps.h"
 

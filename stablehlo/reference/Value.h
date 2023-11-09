@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_REFERENCE_INTERPRETERVALUE_H
-#define STABLEHLO_REFERENCE_INTERPRETERVALUE_H
+#ifndef STABLEHLO_REFERENCE_VALUE_H
+#define STABLEHLO_REFERENCE_VALUE_H
 
 #include <variant>
 
@@ -95,4 +95,4 @@ class InterpreterValue {
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_INTERPRETERVALUE_H
+#endif  // STABLEHLO_REFERENCE_VALUE_H

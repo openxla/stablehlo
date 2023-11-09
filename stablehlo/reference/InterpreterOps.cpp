@@ -29,10 +29,10 @@ limitations under the License.
 #include "mlir/IR/Region.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Support/LLVM.h"
-#include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/ProcessGrid.h"
+#include "stablehlo/reference/Value.h"
 
 #define GET_OP_CLASSES
 #include "stablehlo/reference/InterpreterOps.cpp.inc"

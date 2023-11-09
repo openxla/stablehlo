@@ -55,13 +55,13 @@ target_link_libraries(stablehlo-translate PRIVATE
   CheckOps
   InterpreterOps
   StablehloOps
+  StablehloReferenceApi
   StablehloReferenceErrors
-  StablehloReferenceInterpreterApi
-  StablehloReferenceInterpreterValue
   StablehloReferenceOps
   StablehloReferenceProcessGrid
   StablehloReferenceScope
   StablehloReferenceTensor
+  StablehloReferenceValue
   StablehloRegister
   StablehloSerialization
   VhloOps

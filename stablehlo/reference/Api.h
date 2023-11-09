@@ -13,22 +13,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/reference/InterpreterConfiguration.h"
+#ifndef STABLEHLO_REFERENCE_API_H
+#define STABLEHLO_REFERENCE_API_H
 
-#include "llvm/Support/Error.h"
-#include "mlir/Support/DebugStringHelper.h"
-#include "stablehlo/reference/Errors.h"
-#include "stablehlo/reference/Process.h"
-#include "stablehlo/reference/Scope.h"
+#include "llvm/Support/ErrorOr.h"
+#include "mlir/Support/LLVM.h"
+#include "stablehlo/reference/Configuration.h"
+#include "stablehlo/reference/Value.h"
 
 namespace mlir {
 namespace stablehlo {
 
-llvm::Error InterpreterFallback::operator()(Operation &op, Scope &scope,
-                                            Process *process) {
-  return stablehlo::invalidArgument("Unsupported op: %s",
-                                    debugString(op).c_str());
-}
+/// Invoke the StableHLO reference interpreter with the given parsed MLIR
+/// module input and provided inputs. Returns a list of interpreter outputs.
+/// Can optionally pass a fallback interpreter callback which executes when no
+/// builtin kernels are matched.
+llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
+    ModuleOp module, ArrayRef<InterpreterValue> inputs,
+    const InterpreterConfiguration &config);
 
 }  // namespace stablehlo
 }  // namespace mlir
+
+#endif  // STABLEHLO_REFERENCE_API_H

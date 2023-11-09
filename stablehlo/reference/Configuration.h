@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_REFERENCE_INTERPRETERCONFIGURATION_H
-#define STABLEHLO_REFERENCE_INTERPRETERCONFIGURATION_H
+#ifndef STABLEHLO_REFERENCE_CONFIGURATION_H
+#define STABLEHLO_REFERENCE_CONFIGURATION_H
 
 #include "llvm/Support/Error.h"
 #include "stablehlo/reference/Process.h"
@@ -58,4 +58,4 @@ struct InterpreterConfiguration {
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_REFERENCE_INTERPRETERCONFIGURATION_H
+#endif  // STABLEHLO_REFERENCE_CONFIGURATION_H

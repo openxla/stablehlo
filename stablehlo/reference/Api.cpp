@@ -12,15 +12,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "stablehlo/reference/InterpreterApi.h"
+#include "stablehlo/reference/Api.h"
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Errors.h"
-#include "stablehlo/reference/InterpreterConfiguration.h"
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
