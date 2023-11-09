@@ -1038,7 +1038,7 @@ SmallVector<InterpreterValue> evalCaseOp(const Tensor &index,
   if (indexValue < 0 || indexValue >= static_cast<int64_t>(branches.size()))
     indexValue = branches.size() - 1;
 
-  return eval(*branches[indexValue], {}, /*config=*/nullptr, process, &scope);
+  return eval(*branches[indexValue], {}, /*fallback=*/nullptr, process, &scope);
 }
 
 Tensor evalCbrtOp(const Tensor &operand, ShapedType resultType) {
@@ -1379,8 +1379,8 @@ SmallVector<InterpreterValue> evalIfOp(const Tensor &pred, Region &trueBranch,
                                        Region &falseBranch, Process *process,
                                        Scope &scope) {
   return pred.get({}).getBooleanValue()
-             ? eval(trueBranch, {}, /*config=*/nullptr, process, &scope)
-             : eval(falseBranch, {}, /*config=*/nullptr, process, &scope);
+             ? eval(trueBranch, {}, /*fallback=*/nullptr, process, &scope)
+             : eval(falseBranch, {}, /*fallback=*/nullptr, process, &scope);
 }
 
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType) {
@@ -1400,7 +1400,7 @@ SmallVector<InterpreterValue> evalInfeedOp(Token token, Process *process,
   auto results = eval(region.getParentOfType<ModuleOp>()
                           .lookupSymbol<func::FuncOp>(mnemonic)
                           .getBody(),
-                      {}, /*config=*/nullptr, process, &scope);
+                      {}, /*fallback=*/nullptr, process, &scope);
   results.push_back(token);
   return results;
 }
@@ -1452,7 +1452,7 @@ Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Process *process,
       args.emplace_back(tensor);
     }
     result.set(*it,
-               eval(computation, args, /*config=*/nullptr, process, &scope)[0]
+               eval(computation, args, /*fallback=*/nullptr, process, &scope)[0]
                    .getTensor()
                    .get({}));
   }
@@ -1596,7 +1596,8 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
       bodyArgs.emplace_back(
           makeSplat(initValue.getType(), input.get(*inputIt)));
 
-    auto bodyResult = eval(body, bodyArgs, /*config=*/nullptr, process, &scope);
+    auto bodyResult =
+        eval(body, bodyArgs, /*fallback=*/nullptr, process, &scope);
     for (auto [result, value] : llvm::zip(results, bodyResult))
       result.set(resultIndex, value.getTensor().get({}));
   }
@@ -1802,7 +1803,7 @@ SmallVector<Tensor> evalScatterOp(
       updateComputationArgs.push_back(makeScalar(update.get(updateIndex)));
 
     auto updatedValues = eval(updateComputation, updateComputationArgs,
-                              /*config=*/nullptr, process, &scope);
+                              /*fallback=*/nullptr, process, &scope);
     for (auto [result, updatedValue] : llvm::zip(results, updatedValues))
       result.set(resultIndex, updatedValue.getTensor().get({}));
   }
@@ -1842,7 +1843,7 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
       InterpreterValue currInterpreterVal(makeScalar(currVal));
       auto selectResult =
           eval(select, {selectedInterpreterVal, currInterpreterVal},
-               /*config=*/nullptr, process, &scope);
+               /*fallback=*/nullptr, process, &scope);
 
       bool selected = !selectResult[0].getTensor().get({}).getBooleanValue();
       if (selected) {
@@ -1968,7 +1969,7 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
         args.emplace_back(makeScalar(input.get(rhsIndex)));
       }
       auto comparatorResult =
-          eval(comparator, args, /*config=*/nullptr, process, &scope);
+          eval(comparator, args, /*fallback=*/nullptr, process, &scope);
       return comparatorResult[0].getTensor().get({}).getBooleanValue();
     };
     if (isStable)
