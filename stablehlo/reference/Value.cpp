@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/reference/InterpreterValue.h"
+#include "stablehlo/reference/Value.h"
 
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/IR/Types.h"

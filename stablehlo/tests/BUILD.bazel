@@ -31,10 +31,10 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":check_ops_inc_gen",
-        "//:reference_interpretervalue",
         "//:reference_numpy",
         "//:reference_tensor",
         "//:reference_token",
+        "//:reference_value",
     ],
 )
 

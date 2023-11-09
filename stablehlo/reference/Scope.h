@@ -16,9 +16,9 @@ limitations under the License.
 #ifndef STABLEHLO_REFERENCE_SCOPE_H
 #define STABLEHLO_REFERENCE_SCOPE_H
 
-#include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Token.h"
+#include "stablehlo/reference/Value.h"
 
 namespace mlir {
 namespace stablehlo {

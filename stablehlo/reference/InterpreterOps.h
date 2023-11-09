@@ -23,7 +23,7 @@ limitations under the License.
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/LLVM.h"
-#include "stablehlo/reference/InterpreterValue.h"
+#include "stablehlo/reference/Value.h"
 
 namespace mlir {
 namespace stablehlo {
