@@ -40,6 +40,7 @@ cc_library(
 
 gentbl_cc_library(
     name = "check_ops_inc_gen",
+    strip_include_prefix = ".",
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -52,7 +53,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "CheckOps.td",
-    strip_include_prefix = ".",
     deps = [
         ":check_ops_td_files",
     ],
@@ -140,6 +140,7 @@ expand_template(
 [
     lit_test(
         name = "%s.test" % src,
+        size = "small",
         srcs = [src],
         data = [
             "lit.cfg.py",
@@ -149,7 +150,6 @@ expand_template(
             "@llvm-project//llvm:FileCheck",
             "@llvm-project//llvm:not",
         ] + glob(["%s.bc" % src]),
-        size = "small",
         tags = ["stablehlo_tests"],
     )
     for src in glob(["**/*.mlir"])
