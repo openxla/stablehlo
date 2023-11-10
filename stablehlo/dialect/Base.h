@@ -371,4 +371,4 @@ class CompatibleOperandsAndResultType
 }  // namespace hlo
 }  // namespace mlir
 
-#endif
+#endif  // STABLEHLO_DIALECT_BASE_H
