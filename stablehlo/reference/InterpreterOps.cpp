@@ -42,6 +42,9 @@ namespace stablehlo {
 namespace interpreter {
 namespace {
 
+// A strictly increasing counter to uniquely serialize instrumented probe values
+static int64_t serializedProbeId = 0;
+
 // Appends a new line item to an instrumentation metadata file, `index.json` in
 // the form: `probeId,probeOutputDir/filename`.
 llvm::Error writeProbeMetadata(StringRef probeId, StringRef filename,
@@ -194,16 +197,13 @@ SmallVector<InterpreterValue> evalRunParallelOp(
 }
 
 llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
-                        StringRef probeOutputDir,
-                        llvm::StringMap<int32_t> &probeIterations) {
+                        StringRef probeOutputDir) {
   llvm::SmallString<128> filepath(probeOutputDir);
 
-  // To properly support loops, append a suffix denoting how many times this
-  // specific probe_id has executed.
-  const int32_t numTimesExecuted = ++probeIterations[probeId];
-
+  // Use an increasing unique integer to write to disk to avoid any odd file
+  // names as a result of unsafe probe_id values.
   llvm::sys::path::append(
-      filepath, probeId + "_" + std::to_string(numTimesExecuted) + ".npy");
+      filepath, "probe" + std::to_string(++serializedProbeId) + ".npy");
   auto tensor = input.getTensor();
   if (auto serializationResultError =
           numpy::serializeTensor(filepath, tensor.getType(), tensor.getData()))
