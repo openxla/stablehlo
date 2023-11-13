@@ -1067,7 +1067,7 @@ For quantized types, performs
 `dequantize_batch_norm_grad_or_training_quantize(lambda operand, scale, mean,
 variance, grad_output: batch_norm_grad(operand, scale, mean, variance,
 grad_output, epsilon, feature_index), operand, scale, mean, variance,
-grad_output, type(result))`.
+grad_output, type(grad_operand), type(grad_scale), type(feature_index))`.
 
 #### Inputs
 
@@ -1252,7 +1252,7 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 For quantized types, performs
 `dequantize_batch_norm_grad_or_training_quantize(lambda operand, scale, offset:
 batch_norm_training(operand, scale, offset, epsilon, feature_index), operand,
-scale, offset, type(result))`.
+scale, offset, type(output), type(batch_mean), type(batch_var))`.
 
 #### Inputs
 
