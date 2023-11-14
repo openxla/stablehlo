@@ -29,6 +29,7 @@ add_mlir_library(StablehloTOSATransforms
   DEPENDS
   StablehloTOSATransformsPassIncGen
   StablehloTOSAPDLLPatternsIncGen
+  StablehloOpsIncGen
 
   LINK_COMPONENTS
   Core
