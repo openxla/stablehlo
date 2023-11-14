@@ -145,7 +145,7 @@ llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
   if (type != expectedType)
     return llvm::createStringError(llvm::errc::invalid_argument,
                                    "Serialized types don't match: %s (actual) "
-                                   "vs %s (expected) for probe %s",
+                                   "vs %s (expected) for probe %s.",
                                    expectedType.c_str(), type.c_str(),
                                    probeId.str().c_str());
 
