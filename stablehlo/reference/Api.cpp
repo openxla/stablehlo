@@ -97,7 +97,7 @@ class DefaultInterpreterFallback : public InterpreterFallback {
   const InterpreterConfiguration &config;
 
   /// Probe instrumentation counter for uniquely identifying instrumented tensor
-  /// serialized filenames.
+  /// filenames.
   int64_t serializedProbeFileId = 0;
 };
 
