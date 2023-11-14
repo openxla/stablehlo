@@ -60,7 +60,8 @@ class DefaultInterpreterFallback : public InterpreterFallback {
       auto input =
           stablehlo::InterpreterValue(scope.findTensor(probeOp.getOperand()));
       auto status = stablehlo::interpreter::evalProbeOp(
-          input, probeOp.getProbeId(), config.probeInstrumentationDir);
+          input, probeOp.getProbeId(), config.probeInstrumentationDir,
+          ++serializedProbeFileId);
       scope.add(probeOp.getResult(), input);
       return wrapFallbackStatus(std::move(status), funcName,
                                 "interpreter.probe");
@@ -94,6 +95,10 @@ class DefaultInterpreterFallback : public InterpreterFallback {
  private:
   /// Interpreter configuration.
   const InterpreterConfiguration &config;
+
+  /// Probe instrumentation counter for uniquely identifying instrumented tensor
+  /// serialized filenames.
+  int64_t serializedProbeFileId = 0;
 };
 
 }  // namespace

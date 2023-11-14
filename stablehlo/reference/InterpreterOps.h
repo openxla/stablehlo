@@ -40,7 +40,8 @@ SmallVector<InterpreterValue> evalRunParallelOp(
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable);
 
 llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
-                        StringRef probeOutputDir);
+                        StringRef probeOutputDir,
+                        int64_t serializedProbeFileId);
 
 }  // namespace interpreter
 }  // namespace stablehlo
