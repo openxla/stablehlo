@@ -813,7 +813,7 @@ Afterwards, within each `process_group`:
 * (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `is_promotable(E, element_type(operand))`.
-* (C6) `baseline_type(result) = baseline_type(operand)`.
+* (C6) `is_promotable(type(result), type(operand))`.
 
 #### Examples
 
@@ -4127,7 +4127,7 @@ reduce(input_slices_converted), type(results...)))` where:
   `is_promotable(element_type(inputs[i]), element_type(E[i]))`.
 * (C7) `shape(results...) = shape(inputs...)` except that the dimension
   sizes of `inputs...` corresponding to `dimensions` are not included.
-* (C8) `baseline_element_type(inputs...) = baseline_element_type(results...)`.
+* (C8) `is_promotable(element_type(inputs...), element_type(results...))`.
 
 #### Examples
 
@@ -4264,7 +4264,7 @@ Afterwards, within each `process_group`:
 * (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `is_promotable(E, element_type(operand))`.
-* (C8) `baseline_type(result) = baseline_type(operand)` except:
+* (C8) `is_promotable(type(result), type(operand))` except:
   * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) /
     dim(process_groups, 1)`.
 
@@ -4362,7 +4362,7 @@ where:
   * `dilated_window_shape = (window_dimensions - 1) * window_dilations + 1`.
   * `is_empty_window = padded_input_shape = 0 || dilated_window_shape > padded_input_shape`.
   * `num_windows = is_empty_window ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
-* (C16) `baseline_element_type(results...) = baseline_element_type(init_values...)`.
+* (C16) `is_promotable(element_type(results...), element_type(init_values...))`.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -4899,7 +4899,7 @@ undefined.
 * (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>,
   tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`,
   where `is_promotable(Ei, element_type(inputs[i]))`.
-* (C16) `baseline_type(inputs...) = baseline_type(results...)`.
+* (C16) `is_promotable(type(inputs...), type(results...))`.
 
 #### Examples
 
@@ -5056,7 +5056,7 @@ More formally:
        `E = element_type(operand)`.
 * (C10) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
   `is_promotable(element_type(operand), element_type(E))`.
-* (C11) `baseline_type(operand) = baseline_type(result)`.
+* (C11) `is_promotable(type(operand), type(result))`.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -6347,10 +6347,17 @@ currently used in context of reduction computation (refer to
 
 ```python
 def is_promotable(x: Type, y: Type) -> Value:
-  return (is_integer(x) and is_integer(y)) or
-    (is_float(x) and is_float(y)) or
-    (is_complex(x) and is_complex(y)) or
-    (is_quantized(x) and is_quantized(y) and expressed_type(x) = expressed_type(y))
+  if x == Type and y == Type:
+    return shape(x) == shape(y) and is_promotable(element_type(x), element_type(y))
+
+  if x != Type and y != Type:
+    return (is_bool(x) and is_bool(y)) or
+      (is_integer(x) and is_integer(y)) or
+      (is_float(x) and is_float(y)) or
+      (is_complex(x) and is_complex(y)) or
+      (is_quantized(x) and is_quantized(y) and expressed_type(x) = expressed_type(y))
+
+  return false
 ```
 
 * `is_quantized(x: Value | Placeholder | Type) -> Value` is a shortcut for
