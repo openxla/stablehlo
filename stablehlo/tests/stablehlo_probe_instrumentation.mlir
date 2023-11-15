@@ -1,8 +1,8 @@
-// RUN: stablehlo-opt --stablehlo-instrument --split-input-file --verify-diagnostics %s | FileCheck %s
+// RUN: stablehlo-opt --stablehlo-probe --split-input-file --verify-diagnostics %s | FileCheck %s
 
 // CHECK-LABEL: func @instrument_basic_no_location
 func.func @instrument_basic_no_location(%arg0: tensor<1x2xi32>, %arg1: tensor<1x2xi32>) -> tensor<1x2xi32> {
-  // CHECK: [[RESULT:%.*]] = interpreter.probe %0, probe_id = "1" : tensor<1x2xi32>
+  // CHECK: [[RESULT:%.*]] = interpreter.probe %0, probe_id = "probe1" : tensor<1x2xi32>
   // CHECK-NEXT: return [[RESULT]]
   %0 = stablehlo.add %arg0, %arg1 : tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
@@ -20,10 +20,20 @@ func.func @instrument_basic_location(%arg0: tensor<1x2xi32>, %arg1: tensor<1x2xi
 
 // -----
 
+// CHECK-LABEL: func @do_not_instrument_constant
+func.func @do_not_instrument_constant() -> tensor<1xi64> {
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<0> : tensor<1xi64>
+  // CHECK-NEXT: return [[RESULT]]
+  %0 = stablehlo.constant dense<0> : tensor<1xi64>
+  func.return %0 : tensor<1xi64>
+}
+
+// -----
+
 // CHECK-LABEL: func @instrument_if
 func.func @instrument_if(%arg0: tensor<i1>, %arg1: tensor<2xi64>, %arg2: tensor<2xi64>) -> tensor<2xi64> {
   // CHECK: interpreter.probe {{.*}}, probe_id = "add" : tensor<2xi64>
-  // CHECK: interpreter.probe {{.*}}, probe_id = "1" : tensor<2xi64>
+  // CHECK: interpreter.probe {{.*}}, probe_id = "probe1" : tensor<2xi64>
   %result = "stablehlo.if"(%arg0) ({
     %0 = stablehlo.constant dense<0> : tensor<2xi64>
     stablehlo.return %0 : tensor<2xi64>

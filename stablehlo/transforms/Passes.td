@@ -32,16 +32,25 @@ def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp">
   let dependentDialects = ["mlir::vhlo::VhloDialect"];
 }
 
-def StablehloProbeInstrumentationPass : Pass<"stablehlo-instrument", "ModuleOp"> {
+def StablehloProbePass : Pass<"stablehlo-probe", "ModuleOp"> {
   let summary = "Inserts probe instrumentation instructions in a StableHLO "
     "program.";
   let dependentDialects = ["mlir::stablehlo::interpreter::InterpreterDialect"];
   let description = [{
     Walks through a StableHLO program and inserts a probe instrumentation
-    instruction after each operation.
+    operation after each suitable operation (see below for how a suitable
+    operation is defined). Instrumentation is used to extract intermediate
+    tensor values from the StableHLO reference interpreter for later comparison
+    with other runtimes.
 
-    Instrumentation is used to extract intermediate tensor values from the
-    StableHLO reference interpreter for later comparison with other runtimes.
+    All operations are considered suitable for instrumentation, except constant
+    ops, as they are effectively a no-op. Suitable operations will be
+    instrumented regardless of their level of nesting. That is, operations
+    inside loop/branch regions will also be instrumented.
+    
+    Instrumented operations will have their return values written to disk using
+    the NumPy data format as they are executed. See `interpreter.probe` for
+    additional information on how data is serialized.
   }];
 }
 
