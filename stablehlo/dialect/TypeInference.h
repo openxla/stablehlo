@@ -427,7 +427,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     Value result);
 
 LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
-                                  Value outputShape, int64_t outputDimension,
+                                  Value outputShape, int64_t iotaDimension,
                                   Value result);
 
 LogicalResult verifyDynamicPadOp(std::optional<Location> location,
