@@ -1203,7 +1203,7 @@ struct IotaConverter final : OpConversionPattern<OpTy> {
               nestedBuilder.getIntegerType(
                   unwrappedResultElementType.getIntOrFloatBitWidth()),
               indexOp);
-          castOp = mlir::stablehlo::StableHloOpToStdScalarOp::mapOpOfType<
+          castOp = mlir::stablehlo::StablehloOpToStdScalarOp::mapOpOfType<
               mlir::stablehlo::ConvertOp>(nestedLoc, resultElementType,
                                           castOp.getType(), {castOp},
                                           &nestedBuilder);
@@ -1242,7 +1242,7 @@ struct IotaToMapConverter final : OpConversionPattern<OpTy> {
               nestedLoc, iotaOp.getIotaDimension());
           index = nestedBuilder.create<arith::IndexCastOp>(
               nestedLoc, nestedBuilder.getI64Type(), index);
-          Value result = mlir::stablehlo::StableHloOpToStdScalarOp::mapOpOfType<
+          Value result = mlir::stablehlo::StablehloOpToStdScalarOp::mapOpOfType<
               mlir::stablehlo::ConvertOp>(nestedLoc, resultTy.getElementType(),
                                           index.getType(), {ValueRange{index}},
                                           &nestedBuilder);
@@ -2527,7 +2527,7 @@ static void populateConversionPatterns(MLIRContext *context,
       SelectAndScatterNoOverlapConverter
       >(typeConverter, context);
 
-  detail::populatePointwiseStableHloToLinalgConversionPatterns(
+  detail::populatePointwiseStablehloToLinalgConversionPatterns(
       context, typeConverter, patterns, enablePrimitiveOps);
 
   if (enablePrimitiveOps) {
@@ -2554,13 +2554,13 @@ static void populateConversionPatterns(MLIRContext *context,
 
   // clang-format on
 
-  detail::populateStableHloConvolutionToLinalgConversionPatterns(
+  detail::populateStablehloConvolutionToLinalgConversionPatterns(
       context, typeConverter, patterns);
-  detail::populateStableHloDotProdToLinalgConversionPatterns(
+  detail::populateStablehloDotProdToLinalgConversionPatterns(
       context, typeConverter, patterns);
-  detail::populateStableHloRandomToLinalgConversionPatterns(
+  detail::populateStablehloRandomToLinalgConversionPatterns(
       context, typeConverter, patterns);
-  detail::populateStableHloReductionToLinalgConversionPatterns(
+  detail::populateStablehloReductionToLinalgConversionPatterns(
       context, typeConverter, patterns, enablePrimitiveOps);
   detail::populateScalarHloToArithConversionPatterns(
       context, typeConverter, patterns, isInBodyOfLinalgOps);

@@ -719,7 +719,7 @@ struct ReduceWindowOpConversion final
 }  // namespace
 
 namespace detail {
-void populateStableHloReductionToLinalgConversionPatterns(
+void populateStablehloReductionToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns, bool enablePrimitiveOps) {
   if (enablePrimitiveOps) {

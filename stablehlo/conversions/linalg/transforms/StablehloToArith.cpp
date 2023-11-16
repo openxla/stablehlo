@@ -75,7 +75,7 @@ struct ScalarHloToArithmeticPattern final : OpConversionPattern<OpTy> {
       operands.push_back(
           rewriter.create<tensor::ExtractOp>(loc, operand, ValueRange()));
     }
-    Value scalarResult = mlir::stablehlo::StableHloOpToStdScalarOp::mapOp(
+    Value scalarResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
         op, resultTy.getElementType(), operands, &rewriter);
     if (!scalarResult) return failure();
     rewriter.replaceOpWithNewOp<tensor::FromElementsOp>(op, resultTy,

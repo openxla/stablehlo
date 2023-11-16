@@ -140,7 +140,7 @@ struct PointwiseToLinalgMapConverter final : OpConversionPattern<OpTy> {
     auto mapOp = rewriter.create<linalg::MapOp>(
         loc, mappedInputs, emptyTensor,
         [&](OpBuilder &b, Location loc, ValueRange args) {
-          Value innerResult = mlir::stablehlo::StableHloOpToStdScalarOp::mapOp(
+          Value innerResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
               op, getElementTypeOrSelf(emptyTensor),
               interleaveScalarAndBlockArgs(scalarInputs, args), &b);
 
@@ -195,7 +195,7 @@ struct PointwiseToLinalgConverter final : OpConversionPattern<OpTy> {
           Type innerResultTy = getElementTypeOrSelf(output);
           auto argvec = llvm::to_vector<2>(args.take_front(inputs.size()));
           Value semiring = preSparsify(op, argvec, innerResultTy, &rewriter);
-          Value innerResult = mlir::stablehlo::StableHloOpToStdScalarOp::mapOp(
+          Value innerResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
               op, innerResultTy, argvec, &rewriter);
           if (!innerResult) {
             failed = true;
@@ -214,7 +214,7 @@ struct PointwiseToLinalgConverter final : OpConversionPattern<OpTy> {
 }  // namespace
 
 namespace detail {
-void populatePointwiseStableHloToLinalgConversionPatterns(
+void populatePointwiseStablehloToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns, bool enablePrimitiveOps) {
   if (enablePrimitiveOps) {
