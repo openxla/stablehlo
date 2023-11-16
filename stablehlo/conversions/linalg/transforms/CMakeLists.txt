@@ -21,7 +21,25 @@ add_mlir_library(StablehloLinalgTransforms
   Core
 
   LINK_LIBS PUBLIC
+  MLIRArithDialect
+  MLIRBufferizationDialect
+  MLIRComplexDialect
+  MLIRFuncDialect
   MLIRIR
+  MLIRLinalgDialect
+  MLIRLinalgTransforms
+  MLIRLinalgUtils
+  MLIRMathDialect
+  MLIRMemRefDialect
   MLIRPass
+  MLIRPass
+  MLIRSCFDialect
+  MLIRShapeDialect
+  MLIRSparseTensorDialect
+  MLIRSupport
+  MLIRTensorDialect
   MLIRTransforms
+  MLIRTransforms
+  MLIRVectorDialect
 )
+
