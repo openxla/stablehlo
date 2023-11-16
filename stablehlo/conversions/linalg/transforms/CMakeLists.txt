@@ -21,6 +21,7 @@ add_mlir_library(StablehloLinalgTransforms
   Core
 
   LINK_LIBS PUBLIC
+  LLVMSupport
   MLIRArithDialect
   MLIRBufferizationDialect
   MLIRComplexDialect
@@ -42,4 +43,3 @@ add_mlir_library(StablehloLinalgTransforms
   MLIRTransforms
   MLIRVectorDialect
 )
-
