@@ -899,7 +899,7 @@ struct RngUniformConversion final
 }  // namespace
 
 namespace detail {
-void populateStableHloRandomToLinalgConversionPatterns(
+void populateStablehloRandomToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns) {
   patterns->add<RngBitGeneratorConverter, RngUniformConversion>(typeConverter,

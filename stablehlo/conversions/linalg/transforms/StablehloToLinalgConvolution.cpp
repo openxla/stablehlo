@@ -798,7 +798,7 @@ struct DepthwiseConvolutionOpConversion final
 }  // namespace
 
 namespace detail {
-void populateStableHloConvolutionToLinalgConversionPatterns(
+void populateStablehloConvolutionToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns) {
   // Ensure specialized patterns are higher priority than their generic

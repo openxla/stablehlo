@@ -277,7 +277,7 @@ struct DotGeneralOpConversion final
 }  // namespace
 
 namespace detail {
-void populateStableHloDotProdToLinalgConversionPatterns(
+void populateStablehloDotProdToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns) {
   // Ensure specialized patterns are higher priority than their generic

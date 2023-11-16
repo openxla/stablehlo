@@ -26,7 +26,7 @@ namespace mlir::stablehlo {
 //===----------------------------------------------------------------------===//
 
 /// Populates the patterns that convert from StableHLO to Linalg on tensors.
-void populateStableHloToLinalgConversionPatterns(MLIRContext *context,
+void populateStablehloToLinalgConversionPatterns(MLIRContext *context,
                                                  TypeConverter &typeConverter,
                                                  RewritePatternSet *patterns,
                                                  bool enablePrimitiveOps);
@@ -51,31 +51,31 @@ void populateLegalizeShapeComputationPatterns(MLIRContext *context,
 namespace detail {
 /// Populates the patterns that convert from elementwise StableHLO ops to Linalg
 /// on tensors.
-void populatePointwiseStableHloToLinalgConversionPatterns(
+void populatePointwiseStablehloToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns, bool enablePrimitiveOps);
 
 /// Populates the patterns that convert from convolution StableHLO ops to Linalg
 /// on tensors.
-void populateStableHloConvolutionToLinalgConversionPatterns(
+void populateStablehloConvolutionToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns);
 
 /// Populates the patterns that convert from dot product StableHLO ops to Linalg
 /// on tensors.
-void populateStableHloDotProdToLinalgConversionPatterns(
+void populateStablehloDotProdToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns);
 
 /// Populates the patterns that convert from random number generation StableHLO
 /// ops to Linalg on tensors.
-void populateStableHloRandomToLinalgConversionPatterns(
+void populateStablehloRandomToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns);
 
 /// Populates the patterns that convert from reduction StableHLO ops to Linalg
 /// on tensors.
-void populateStableHloReductionToLinalgConversionPatterns(
+void populateStablehloReductionToLinalgConversionPatterns(
     MLIRContext *context, TypeConverter &typeConverter,
     RewritePatternSet *patterns, bool enablePrimitiveOps);
 
