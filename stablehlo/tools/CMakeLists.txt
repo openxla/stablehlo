@@ -33,6 +33,7 @@ set(LIBS
         StablehloTestUtils
         StablehloPasses
         InterpreterOps
+        StablehloLinalgTransforms
         StablehloTOSATransforms
         )
 add_llvm_executable(stablehlo-opt StablehloOptMain.cpp)
