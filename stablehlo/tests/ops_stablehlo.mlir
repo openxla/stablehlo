@@ -5648,6 +5648,32 @@ func.func @dynamic_iota_unranked() -> tensor<*xf32> {
 
 // -----
 
+func.func @dynamic_iota_unranked_large() -> tensor<*xf32> {
+  %0 = stablehlo.constant dense<[4]> : tensor<1xi64>
+  %1 = stablehlo.dynamic_iota %0, dim = 3 : (tensor<1xi64>) -> tensor<*xf32>
+  func.return %1 : tensor<*xf32>
+}
+
+// -----
+
+func.func @dynamic_iota_invalid_iota_dimension_negative() -> tensor<?xf32> {
+  // expected-error@+2 {{iota dimension cannot go beyond the output rank or be negative}}
+  %0 = stablehlo.constant dense<[4]> : tensor<1xi64>
+  %1 = stablehlo.dynamic_iota %0, dim = -1 : (tensor<1xi64>) -> tensor<?xf32>
+  func.return %1 : tensor<?xf32>
+}
+
+// -----
+
+func.func @dynamic_iota_invalid_iota_dimension_too_big() -> tensor<?xf32> {
+  %0 = stablehlo.constant dense<[4]> : tensor<1xi64>
+  // expected-error@+1 {{iota dimension cannot go beyond the output rank or be negative}}
+  %1 = stablehlo.dynamic_iota %0, dim = 2 : (tensor<1xi64>) -> tensor<?xf32>
+  func.return %1 : tensor<?xf32>
+}
+
+// -----
+
 func.func @dynamic_iota_output_shape_negative_size() -> tensor<4xf32> {
   // @expected-error@+2 {{output_shape is incompatible with return type of operation 'tensor<4xf32>'}}
   %0 = stablehlo.constant dense<[-1]> : tensor<1xi64>
