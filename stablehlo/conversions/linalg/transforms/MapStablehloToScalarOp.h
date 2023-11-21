@@ -910,12 +910,13 @@ struct CompareSelectOpToStdScalarOp<SupportedType, StdCompareOp, Predicate,
 template <>
 inline Value mapStablehloOpToStdScalarOp<stablehlo::ClampOp>(
     Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
-    stablehlo::ClampOp::Adaptor op, OpBuilder *b) {
+    stablehlo::ClampOp::Adaptor adaptor, OpBuilder *b) {
   // clamp(lb, x, ub) = min(max(lb, x), ub)
   Value maxLbX = mapStablehloOpToStdScalarOp<stablehlo::MaxOp>(
-      loc, resultTypes, argTypes, ValueRange{op.getMin(), op.getOperand()}, b);
+      loc, resultTypes, argTypes,
+      ValueRange{adaptor.getMin(), adaptor.getOperand()}, b);
   return mapStablehloOpToStdScalarOp<stablehlo::MinOp>(
-      loc, resultTypes, argTypes, ValueRange{maxLbX, op.getMax()}, b);
+      loc, resultTypes, argTypes, ValueRange{maxLbX, adaptor.getMax()}, b);
 }
 
 template <typename U, typename S>
