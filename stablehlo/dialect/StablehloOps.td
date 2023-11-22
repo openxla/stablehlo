@@ -2042,9 +2042,9 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand,
-    I64ElementsAttr:$replica_groups,
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle
+    HLO_Tensor:$operand, /*collective_broadcast_i1*/
+    I64ElementsAttr:$replica_groups, /*collective_broadcast_i2*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle /*collective_broadcast_i3*/
   );
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;
@@ -2077,9 +2077,9 @@ def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand, /*collective_broadcast_i1*/
-    I64ElementsAttr:$source_target_pairs, /*collective_broadcast_i2*/
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle
+    HLO_Tensor:$operand, /*collective_permute_i1*/
+    I64ElementsAttr:$source_target_pairs, /*collective_permute_i2*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle /*collective_permute_i3*/
   );
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;

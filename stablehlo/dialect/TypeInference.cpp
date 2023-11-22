@@ -3289,6 +3289,32 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
   return success();
 }
 
+
+LogicalResult verifyCollectiveBroadcastOp(
+    std::optional<Location> location, DenseIntElementsAttr replicaGroups) {
+  auto type = replicaGroups.getType().dyn_cast<RankedTensorType>();
+  // collective_permute_i2
+  if (type.getRank() != 2)
+    return emitOptionalError(location,
+                             "expect replica_groups attribute to be of "
+                             "rank 2, but got rank ",
+                             type.getRank());
+
+  llvm::DenseSet<int64_t> processes;
+  for (auto i = replicaGroups.begin(), e = replicaGroups.end(); i != e;
+       ++i) {
+    auto val = (*i).getSExtValue();
+    if (val < 0)
+      return emitOptionalError(
+          location, "process ids in replica_groups must be >= 0.");
+    bool isUnique = processes.insert(val).second;
+    if (!isUnique)
+        return emitOptionalError(location, "duplicate processes not allowed.");
+  }
+  return success();
+}
+
+
 LogicalResult verifyCollectivePermuteOp(
     std::optional<Location> location, DenseIntElementsAttr sourceTargetPairs) {
   auto type = sourceTargetPairs.getType().dyn_cast<RankedTensorType>();
