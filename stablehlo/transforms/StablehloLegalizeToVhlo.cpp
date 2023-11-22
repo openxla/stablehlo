@@ -499,7 +499,9 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
                 std::is_same<StablehloOpTy,
                              stablehlo::CollectivePermuteOp>::value ||
                 std::is_same<StablehloOpTy,
-                             stablehlo::ReduceScatterOp>::value) {
+                             stablehlo::ReduceScatterOp>::value ||
+                std::is_same<StablehloOpTy,
+                             stablehlo::CollectiveBroadcastOp>::value) {
     if (stablehloName == "channel_handle")
       return convertChannelId(pattern, stablehloAttr, vhloAttrs);
     if (stablehloName == "use_global_device_ids")
@@ -581,7 +583,9 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::AllToAllOp>::value ||
                 std::is_same<StablehloOpTy,
-                             stablehlo::CollectivePermuteOp>::value) {
+                             stablehlo::CollectivePermuteOp>::value ||
+                std::is_same<StablehloOpTy,
+                             stablehlo::CollectiveBroadcastOp>::value) {
     if (!stablehloOp.getChannelHandleAttr())
       addDefaultAttr("channel_id", builder.getI64IntegerAttr(0));
   }

@@ -1647,6 +1647,68 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_clamp.mlir)
 
+### collective_broadcast
+
+#### Semantics
+
+Within each process group in the StableHLO process grid, send the value of the
+`operand` tensor from the source process to the target processes and produce a
+`result` tensor.
+
+The operation splits the StableHLO process grid into `process_groups` which is
+defined as follows:
+
+* `cross_replica(replica_groups)` if `channel_id <= 0`.
+* `cross_partition(replica_groups)` if `channel_id > 0`.
+
+Afterwards, `result@process` is given by:
+
+* `operand@process_groups[i, 0]` if there exists an `i` such that
+  the process is in `process_groups[i]`.
+* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))` otherwise.
+
+
+#### Inputs
+
+| Label | Name                    | Type                                                             | Constraints |
+|-------|-------------------------|------------------------------------------------------------------|-------------|
+| (I1)  | `operand`               | tensor                                                           | (C3)        |
+| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1), (C2)  |
+| (I3)  | `channel_id`            | constant of type `si64`                                          |             |
+
+#### Outputs
+
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C3)        |
+
+#### Constraints
+
+* (C1) `is_unique(replica_groups)`.
+* (C2) `0 <= replica_groups < N` where `N` is defined as:
+  * `num_replicas` if `cross_replica` is used.
+  * `num_partitions` if `cross_partition` is used.
+* (C3) `type(result) = type(operand)`.
+
+#### Examples
+
+```mlir
+// num_replicas: 4
+// num_partitions: 1
+// %operand@(0, 0): [[1, 2]]
+// %operand@(1, 0): [[3, 4]]
+// %operand@(2, 0): [[5, 6]]
+// %operand@(3, 0): [[7, 8]]
+%result = "stablehlo.collective_broadcast"(%operand) {
+  replica_groups = dense<[[2, 1]]> : tensor<1x2xi64>,
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+} : (tensor1x2xi64>) -> tensor<1x2xi64>
+// %result@(0, 0): [[0, 0]]
+// %result@(1, 0): [[5, 6]]
+// %result@(2, 0): [[5, 6]]
+// %result@(3, 0): [[0, 0]]
+```
+
 ### collective_permute
 
 #### Semantics
@@ -5949,11 +6011,11 @@ order and what kind of synchronization is introduced by it, is TBD
 
 ### Collective ops
 
-There are five collective ops in StableHLO: `all_gather`, `all_reduce`,
-`all_to_all`, `collective_permute` and `reduce_scatter`. All these ops split
-the processes in the StableHLO process grid into **StableHLO process groups**
-and execute a joint computation within each process group, independently from
-other process groups.
+There are six collective ops in StableHLO: `all_gather`, `all_reduce`,
+`all_to_all`, `collective_broadcast`, `collective_permute` and `reduce_scatter`. 
+All these ops split the processes in the StableHLO process grid into 
+**StableHLO process groups** and execute a joint computation within each process group, 
+independently from other process groups.
 
 Within each process group, collective ops may introduce a synchronization
 barrier. Further formalization, e.g. elaborating on when exactly this

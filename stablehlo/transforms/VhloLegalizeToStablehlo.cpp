@@ -436,7 +436,8 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                 std::is_same<VhloOpTy, vhlo::AllReduceOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::AllToAllOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value) {
+                std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
     if (vhloName == "channel_id") {
       stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
       stablehloAttr = convertChannelId(vhloAttr, pattern.getTypeConverter());
@@ -550,7 +551,8 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       eraseAttrs(vhloAttrs, "use_global_device_ids");
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::AllToAllOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value) {
+                std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
     if (isInteger(vhloOp.getChannelIdAttr(), 0))
       eraseAttrs(vhloAttrs, "channel_id");
   }
