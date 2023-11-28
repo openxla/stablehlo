@@ -2035,7 +2035,7 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
     Example:
     ```mlir
     %result = "stablehlo.collective_broadcast"(%operand) {
-      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
       channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
     } : (tensor<2x2xi64>) -> tensor<2x2xi64>
     ```

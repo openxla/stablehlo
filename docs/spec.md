@@ -1663,10 +1663,10 @@ defined as follows:
 
 Afterwards, `result@process` is given by:
 
-* `operand@process_groups[i, 0]` if there exists an `i` such that
-  the process is in `process_groups[i]`.
-* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))` otherwise.
-
+* `operand@process_groups[i, 0]` if there exists an `i` such that the process is
+  in `process_groups[i]`.
+* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
+  otherwise.
 
 #### Inputs
 
@@ -6012,10 +6012,10 @@ order and what kind of synchronization is introduced by it, is TBD
 ### Collective ops
 
 There are six collective ops in StableHLO: `all_gather`, `all_reduce`,
-`all_to_all`, `collective_broadcast`, `collective_permute` and `reduce_scatter`. 
-All these ops split the processes in the StableHLO process grid into 
-**StableHLO process groups** and execute a joint computation within each process group, 
-independently from other process groups.
+`all_to_all`, `collective_broadcast`, `collective_permute`, and
+`reduce_scatter`. All these ops split the processes in the StableHLO process
+grid into **StableHLO process groups** and execute a joint computation within
+each process group, independently from other process groups.
 
 Within each process group, collective ops may introduce a synchronization
 barrier. Further formalization, e.g. elaborating on when exactly this
