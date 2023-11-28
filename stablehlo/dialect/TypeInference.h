@@ -120,6 +120,10 @@ LogicalResult inferAllToAllOp(
     DenseIntElementsAttr replicaGroups,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferAllReduceOp(
+    std::optional<Location> location, Value operand, Region& computation,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferBatchNormGradOp(
     std::optional<Location> location, Value operand, Value scale, Value mean,
     Value variance, Value gradOutput, int64_t featureIndex,
@@ -281,7 +285,7 @@ LogicalResult inferRealOp(std::optional<Location> location, Value operand,
 
 LogicalResult inferReduceOp(
     std::optional<Location> location, TypeRange inputTypes,
-    TypeRange initValueTypes, DenseIntElementsAttr dimensions,
+    TypeRange initValueTypes, DenseIntElementsAttr dimensions, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferReduceWindowOp(
@@ -290,7 +294,7 @@ LogicalResult inferReduceWindowOp(
     std::optional<DenseIntElementsAttr> windowStrides,
     std::optional<DenseIntElementsAttr> baseDilations,
     std::optional<DenseIntElementsAttr> windowDilations,
-    std::optional<DenseIntElementsAttr> padding,
+    std::optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
@@ -306,7 +310,7 @@ LogicalResult inferRngOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferScatterOp(std::optional<Location> location,
-                             ValueRange inputs,
+                             ValueRange inputs, Region& update_computation,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferSelectOp(
@@ -314,7 +318,7 @@ LogicalResult inferSelectOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferSelectAndScatterOp(
-    Value operand, SmallVectorImpl<Type>& inferredReturnTypes);
+    Value operand, Region& scatter, SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferSendOp(HloDialectInterface* dialect,
                           std::optional<Location> location,

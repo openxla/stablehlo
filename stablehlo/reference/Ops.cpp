@@ -82,7 +82,7 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
   Builder builder(inputs[0].getType().getContext());
   auto reduceStatus = hlo::inferReduceOp(
       /*location=*/{}, inputTypes, initValueTypes,
-      builder.getI64TensorAttr(dimensions), inferredReduceTypes);
+      builder.getI64TensorAttr(dimensions), body, inferredReduceTypes);
   if (failed(reduceStatus))
     report_fatal_error(
         invalidArgument("Could not infer ReduceOp's return type"));

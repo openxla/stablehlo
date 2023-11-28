@@ -71,6 +71,55 @@ func.func @valid_scatter_dimensions_with_dynamic_index_vector_dim(
 
 // -----
 
+// CHECK: func @scatter_with_promotable_types
+func.func @scatter_with_promotable_types(%input_tensor: tensor<200x100x300xf32>,
+    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
+      tensor<200x100x300xf64> {
+  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
+  ^bb0(%lhs: tensor<f64>, %rhs: tensor<f64>):
+    %add = stablehlo.add %lhs, %rhs : tensor<f64>
+    "stablehlo.return"(%add) : (tensor<f64>) -> ()
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0, 1],
+      scatter_dims_to_operand_dims = [0, 1],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<200x100x300xf32>, tensor<10x2xi32>, tensor<10x300xf32>) ->
+      tensor<200x100x300xf64>
+  func.return %0 : tensor<200x100x300xf64>
+}
+
+// -----
+
+// CHECK: func @scatter_with_promotable_quantized_types
+func.func @scatter_with_promotable_quantized_types(%input_tensor: tensor<200x100x300x!quant.uniform<i8:f32, 2.000000e+00:15>>,
+    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
+      tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>> {
+  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
+  ^bb0(%lhs: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %rhs: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
+    %add = stablehlo.add %lhs, %rhs : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+    "stablehlo.return"(%add) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0, 1],
+      scatter_dims_to_operand_dims = [0, 1],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<200x100x300x!quant.uniform<i8:f32, 2.000000e+00:15>>, tensor<10x2xi32>,
+      tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
+      tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>>
+  func.return %0 : tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>>
+}
+
+// -----
+
 func.func @scatter_c1(%arg0: tensor<3xi32>, %arg1: tensor<1x1xi32>,
                             %arg2: tensor<1xi32>) -> tensor<3xi32> {
   // expected-error @+1 {{Not all inputs have compatible shapes.}}
@@ -233,7 +282,7 @@ func.func @scatter_c4(%input_tensor: tensor<200x100x300xf32>,
 func.func @scatter_c6_c15(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xi32>) ->
       tensor<200x100x300xf32> {
-  // expected-error@+1 {{The type of reduction-region's result type at index 0 differs from the op's corresponding init-value type: 'tensor<f32>' vs 'tensor<i32>'}}
+  // expected-error@+1 {{The element-type of reduction-region's result type at index 0 is expected to be promotable from the op's corresponding init-value element-type: 'tensor<f32>' vs 'tensor<i32>'}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs :  tensor<f32>
@@ -257,7 +306,7 @@ func.func @scatter_c6_c15(%input_tensor: tensor<200x100x300xf32>,
 func.func @scatter_c6_c15_c16(%input_tensor: tensor<200x100x300xi32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<200x100x300xf32> {
-  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be 'i32', but got 'tensor<f32>' as its type.}}
+  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be promotable from 'i32', but got 'f32'}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs :  tensor<f32>
@@ -793,4 +842,104 @@ func.func @scatter_c15(%input_tensor: tensor<200x100x300xf32>,
   } : (tensor<200x100x300xf32>, tensor<10x2xi32>, tensor<10x300xf32>) ->
       tensor<200x100x300xf32>
   func.return %0 : tensor<200x100x300xf32>
+}
+
+// -----
+
+func.func @scatter_c15(%input_tensor: tensor<200x100x300xi32>,
+    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xi32>) ->
+      tensor<200x100x300xi8> {
+
+  // expected-error@+1 {{The element-type of reduction-region's result type at index 0 is expected to be promotable from the op's corresponding init-value element-type: 'tensor<i8>' vs 'tensor<i32>'}}
+  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
+  ^bb0(%lhs: tensor<i8>, %rhs: tensor<i8>):
+    %add = stablehlo.add %lhs, %rhs : tensor<i8>
+    "stablehlo.return"(%add) : (tensor<i8>) -> ()
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0, 1],
+      scatter_dims_to_operand_dims = [0, 1],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<200x100x300xi32>, tensor<10x2xi32>, tensor<10x300xi32>) ->
+      tensor<200x100x300xi8>
+  func.return %0 : tensor<200x100x300xi8>
+}
+
+// -----
+
+func.func @scatter_c15(%input_tensor: tensor<200x100x300xi32>,
+    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xi8>) ->
+      tensor<200x100x300xi8> {
+
+  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be promotable from 'i32', but got 'i8'}}
+  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
+  ^bb0(%lhs: tensor<i8>, %rhs: tensor<i8>):
+    %add = stablehlo.add %lhs, %rhs : tensor<i8>
+    "stablehlo.return"(%add) : (tensor<i8>) -> ()
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0, 1],
+      scatter_dims_to_operand_dims = [0, 1],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<200x100x300xi32>, tensor<10x2xi32>, tensor<10x300xi8>) ->
+      tensor<200x100x300xi8>
+  func.return %0 : tensor<200x100x300xi8>
+}
+
+// -----
+
+func.func @scatter_c15(%input_tensor: tensor<200x100x300x!quant.uniform<i8:f32, 2.000000e+00:15>>,
+    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
+      tensor<200x100x300x!quant.uniform<i32:f64, 2.000000e+00:15>> {
+
+  // expected-error@+1 {{The element-type of reduction-region's result type at index 0 is expected to be promotable from the op's corresponding init-value element-type: 'tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>' vs 'tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>'}}
+  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
+  ^bb0(%lhs: tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>, %rhs: tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>):
+    %add = stablehlo.add %lhs, %rhs : tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>
+    "stablehlo.return"(%add) : (tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>) -> ()
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0, 1],
+      scatter_dims_to_operand_dims = [0, 1],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<200x100x300x!quant.uniform<i8:f32, 2.000000e+00:15>>, tensor<10x2xi32>, tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
+      tensor<200x100x300x!quant.uniform<i32:f64, 2.000000e+00:15>>
+  func.return %0 : tensor<200x100x300x!quant.uniform<i32:f64, 2.000000e+00:15>>
+}
+
+// -----
+
+func.func @scatter_c15(%input_tensor: tensor<200x100x300x!quant.uniform<i8:f64, 2.000000e+00:15>>,
+    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
+      tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>> {
+
+  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be promotable from '!quant.uniform<i8:f64, 2.000000e+00:15>', but got '!quant.uniform<i32:f32, 2.000000e+00:15>'}}
+  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
+  ^bb0(%lhs: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %rhs: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
+    %add = stablehlo.add %lhs, %rhs : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+    "stablehlo.return"(%add) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0, 1],
+      scatter_dims_to_operand_dims = [0, 1],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<200x100x300x!quant.uniform<i8:f64, 2.000000e+00:15>>, tensor<10x2xi32>, tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
+      tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>>
+  func.return %0 : tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>>
 }

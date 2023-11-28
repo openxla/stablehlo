@@ -1327,7 +1327,7 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
 }
 
 def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
-    [HLO_CompatibleOperandsAndResultType /*all_reduce_c6*/]> {
+    [InferTensorType /*all_reduce_c6, all_reduce_c7*/]> {
   let summary = "AllReduce operation";
   let description = [{
     Within each process group in the process grid, applies a reduction function
@@ -1362,8 +1362,7 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
   let hasVerifier = 1;
 }
 
-def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
-    [SameOperandsAndResultElementType /*reduce_scatter_c8*/]> {
+def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter", []> {
   let summary = "ReduceScatter operation";
   let description = [{
      Within each process group in the process grid, performs reduction, using
@@ -1448,7 +1447,7 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
       RecursiveMemoryEffects,
       SameVariadicOperandSize /*reduce_c3*/,
-      InferTensorTypeWithReify /*reduce_c7*/,
+      InferTensorTypeWithReify /*reduce_c7, reduce_c8*/,
       SingleBlockImplicitTerminator<"ReturnOp">
     ]> { /*reduce_c7*/
   let summary = "Reduce operation";
@@ -2514,7 +2513,8 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
 
 def StableHLO_ScatterOp: StableHLO_Op<"scatter", [RecursiveMemoryEffects,
       SameVariadicOperandSize /*scatter_c5*/,
-      DeclareOpInterfaceMethods<InferTypeOpInterface> /*scatter_c16*/]> {
+      DeclareOpInterfaceMethods<InferTypeOpInterface> /*scatter_c16,
+      scater_c17*/]> {
   let summary = "Scatter operation";
   let description = [{
     Produces `results` tensors which are equal to `inputs` tensors except that
@@ -2587,8 +2587,8 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwis
 }
 
 def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
-      [DeclareOpInterfaceMethods<InferTypeOpInterface> /*select_and_scatter_c11*/,
-       RecursiveMemoryEffects]> {
+      [DeclareOpInterfaceMethods<InferTypeOpInterface> /*select_and_scatter_c11,
+      select_and_scatter_c12*/, RecursiveMemoryEffects]> {
   let summary = "SelectAndScatter operation";
   let description = [{
     Scatters the values from the `source` tensor using `scatter` based on the
