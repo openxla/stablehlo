@@ -77,10 +77,9 @@ class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
   using Base::Base;
 };
 
-
 // Verifies the source target pairs attached to collective permute.
-LogicalResult verifyBroadcastSourceTargetPairs(
-    Operation *op, DenseIntElementsAttr attr);
+LogicalResult verifyBroadcastSourceTargetPairs(Operation *op,
+                                               DenseIntElementsAttr attr);
 
 // Verifies the source target pairs attached to collective permute.
 LogicalResult verifyCollectivePermuteSourceTargetPairs(

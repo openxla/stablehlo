@@ -388,7 +388,7 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                                      DenseIntElementsAttr broadcastDimensions,
                                      Value result);
 
-LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location, 
+LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
                                           DenseIntElementsAttr replicaGroups);
 
 LogicalResult verifyCollectivePermuteOp(std::optional<Location> location,

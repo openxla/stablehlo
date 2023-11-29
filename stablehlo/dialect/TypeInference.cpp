@@ -3289,17 +3289,15 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
   return success();
 }
 
-
 LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
                                           DenseIntElementsAttr replicaGroups) {
   // collective_permute_i2
   auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
   if (replicaGroupType.getRank() != 2)
-    return emitOptionalError(location,
-                             "replica groups should be a rank 2 tensor,",
-                             "but instead it is of rank ", 
-                             replicaGroupType.getRank());
-  
+    return emitOptionalError(
+        location, "replica groups should be a rank 2 tensor,",
+        "but instead it is of rank ", replicaGroupType.getRank());
+
   auto replicaIds = replicaGroups.getValues<int64_t>();
   llvm::SmallSet<int64_t, 8> replicaIdsSeen;
   for (int64_t replicaId : replicaIds) {
@@ -3319,7 +3317,6 @@ LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
 
   return success();
 }
-
 
 LogicalResult verifyCollectivePermuteOp(
     std::optional<Location> location, DenseIntElementsAttr sourceTargetPairs) {

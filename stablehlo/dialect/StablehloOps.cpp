@@ -801,11 +801,12 @@ LogicalResult AbsOp::inferReturnTypes(
 // CollectiveBroadcastOp
 //===----------------------------------------------------------------------===//
 
-void CollectiveBroadcastOp::build(OpBuilder& odsBuilder, OperationState& odsState,
-                                Type resultType, Value operand,
-                                DenseIntElementsAttr replica_groups) {
+void CollectiveBroadcastOp::build(OpBuilder& odsBuilder,
+                                  OperationState& odsState, Type resultType,
+                                  Value operand,
+                                  DenseIntElementsAttr replica_groups) {
   CollectiveBroadcastOp::build(odsBuilder, odsState, resultType, operand,
-                             replica_groups, /*channel_handle=*/nullptr);
+                               replica_groups, /*channel_handle=*/nullptr);
 }
 
 LogicalResult CollectiveBroadcastOp::verify() {
