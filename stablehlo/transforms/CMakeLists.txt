@@ -20,8 +20,8 @@ add_mlir_dialect_library(StablehloPasses
   PARTIAL_SOURCES_INTENDED
   PassPipelines.cpp
   StablehloCanonicalizeDynamism.cpp
+  StablehloInstrumentWithProbe.cpp
   StablehloLegalizeToVhlo.cpp
-  StablehloProbe.cpp
   StablehloRefineShapes.cpp
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp

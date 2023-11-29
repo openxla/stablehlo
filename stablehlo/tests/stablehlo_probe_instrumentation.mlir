@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --stablehlo-probe --split-input-file --verify-diagnostics %s | FileCheck %s
+// RUN: stablehlo-opt --stablehlo-instrument-with-probe="useDebugInfo=true" --split-input-file --verify-diagnostics %s | FileCheck %s
 
 // CHECK-LABEL: func @instrument_basic_no_location
 func.func @instrument_basic_no_location(%arg0: tensor<1x2xi32>, %arg1: tensor<1x2xi32>) -> tensor<1x2xi32> {
@@ -26,6 +26,21 @@ func.func @do_not_instrument_constant() -> tensor<1xi64> {
   // CHECK-NEXT: return [[RESULT]]
   %0 = stablehlo.constant dense<0> : tensor<1xi64>
   func.return %0 : tensor<1xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @only_instrument_tensor_type
+func.func @only_instrument_tensor_type(%arg0: tensor<f32>) -> (!stablehlo.token, tuple<tensor<f32>>, tensor<f32>) {
+  // CHECK: stablehlo.create_token
+  // CHECK-NEXT: stablehlo.tuple
+  // CHECK-NEXT: [[SUM:%.*]] = stablehlo.add
+  // CHECK-NEXT: interpreter.probe [[SUM]]
+  // CHECK-NEXT: return
+  %0 = "stablehlo.create_token"() : () -> !stablehlo.token
+  %1 = "stablehlo.tuple"(%arg0) : (tensor<f32>) -> tuple<tensor<f32>>
+  %2 = stablehlo.add %arg0, %arg0 : tensor<f32>
+  func.return %0, %1, %2 : !stablehlo.token, tuple<tensor<f32>>, tensor<f32>
 }
 
 // -----

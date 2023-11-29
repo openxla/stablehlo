@@ -32,9 +32,14 @@ def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp">
   let dependentDialects = ["mlir::vhlo::VhloDialect"];
 }
 
-def StablehloProbePass : Pass<"stablehlo-probe", "ModuleOp"> {
+def StablehloInstrumentWithProbePass : Pass<"stablehlo-instrument-with-probe", "ModuleOp"> {
   let summary = "Inserts probe instrumentation instructions in a StableHLO "
     "program.";
+  let options = [
+    Option<"useDebugInfoOption", "useDebugInfo", "bool", /*default=*/"false",
+           "Whether or not to use location debug data as `probe_id` values.">,
+  ];
+
   let dependentDialects = ["mlir::stablehlo::interpreter::InterpreterDialect"];
   let description = [{
     Walks through a StableHLO program and inserts a probe instrumentation
@@ -44,13 +49,20 @@ def StablehloProbePass : Pass<"stablehlo-probe", "ModuleOp"> {
     with other runtimes.
 
     All operations are considered suitable for instrumentation, except constant
-    ops, as they are effectively a no-op. Suitable operations will be
-    instrumented regardless of their level of nesting. That is, operations
-    inside loop/branch regions will also be instrumented.
+    ops, ops which do not have any tensor return values (i.e. an op that
+    produces a tuple or a token or no return values will not be instrumented).
+    Suitable operations will be instrumented regardless of their level of
+    nesting. That is, operations inside loop/branch regions will also be
+    instrumented.
     
     Instrumented operations will have their return values written to disk using
-    the NumPy data format as they are executed. See `interpreter.probe` for
-    additional information on how data is serialized.
+    the NumPy data format as they are executed. If the `useDebugInfo` pass
+    option is enabled, location debug information will be used when available to
+    uniquely identify instrumented tensor values (i.e. the pass will extract
+    `probe_id` from `NamedLoc(probe_id@<...>)`). Otherwise, instrumented values
+    will be referred to in the increasing sequence: `probe1`, `probe2`, ...
+    See `interpreter.probe` for additional information on how data is
+    serialized.
   }];
 }
 
