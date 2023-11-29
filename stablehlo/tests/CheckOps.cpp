@@ -36,11 +36,14 @@ namespace {
 using SerializedTensorMetadata =
     std::pair</*type=*/std::string, /*path=*/std::string>;
 
-SerializedTensorMetadata extractMetadata(StringRef line) {
+llvm::ErrorOr<SerializedTensorMetadata> extractMetadata(StringRef line) {
   // Parse a CSV record in the form of: probe_id,mlir_type,serialized_path
   constexpr int kNumFields = 3;
   SmallVector<StringRef, kNumFields> fields;
   line.split(fields, ',', kNumFields);
+
+  if (fields.size() != 3) return llvm::errc::invalid_argument;
+
   return std::make_pair(/*type=*/fields[1].str(), /*path=*/fields[2].str());
 }
 }  // namespace
