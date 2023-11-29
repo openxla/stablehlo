@@ -110,8 +110,8 @@ def StableHLO_OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlia
 
 // Represents a unique identifier for each Send/Recv instruction pair or
 // optionally for collective instructions (AllToAll, AllReduce, 
-// CollectiveBroadcast, CollectivePermute).  Non-positive channel_id handle is
-// equivalent to no channel id.
+// CollectiveBroadcast, and CollectivePermute). Non-positive channel_id
+// handle is equivalent to no channel id.
 def StableHLO_ChannelHandle : AttrDef<StableHLO_Dialect, "ChannelHandle"> {
   let cppNamespace = "::mlir::stablehlo";
   let mnemonic = "channel_handle";

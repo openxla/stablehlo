@@ -123,28 +123,6 @@ LogicalResult TypeExtensionsAttr::verifyEncoding(
 }
 
 //===----------------------------------------------------------------------===//
-// CollectiveBroadcastOp
-//===----------------------------------------------------------------------===//
-
-void CollectiveBroadcastOp::build(OpBuilder& odsBuilder, OperationState& odsState,
-                                Type resultType, Value operand,
-                                DenseIntElementsAttr replica_groups) {
-  CollectiveBroadcastOp::build(odsBuilder, odsState, resultType, operand,
-                             replica_groups, /*channel_handle=*/nullptr);
-}
-
-//===----------------------------------------------------------------------===//
-// CollectivePermuteOp
-//===----------------------------------------------------------------------===//
-
-void CollectivePermuteOp::build(OpBuilder& odsBuilder, OperationState& odsState,
-                                Type resultType, Value operand,
-                                DenseIntElementsAttr sourceTargetPairs) {
-  CollectivePermuteOp::build(odsBuilder, odsState, resultType, operand,
-                             sourceTargetPairs, /*channel_handle=*/nullptr);
-}
-
-//===----------------------------------------------------------------------===//
 // ReduceScatterOp
 //===----------------------------------------------------------------------===//
 
@@ -823,6 +801,13 @@ LogicalResult AbsOp::inferReturnTypes(
 // CollectiveBroadcastOp
 //===----------------------------------------------------------------------===//
 
+void CollectiveBroadcastOp::build(OpBuilder& odsBuilder, OperationState& odsState,
+                                Type resultType, Value operand,
+                                DenseIntElementsAttr replica_groups) {
+  CollectiveBroadcastOp::build(odsBuilder, odsState, resultType, operand,
+                             replica_groups, /*channel_handle=*/nullptr);
+}
+
 LogicalResult CollectiveBroadcastOp::verify() {
   return hlo::verifyCollectiveBroadcastOp(getLoc(), getReplicaGroups());
 }
@@ -830,6 +815,13 @@ LogicalResult CollectiveBroadcastOp::verify() {
 //===----------------------------------------------------------------------===//
 // CollectivePermuteOp
 //===----------------------------------------------------------------------===//
+
+void CollectivePermuteOp::build(OpBuilder& odsBuilder, OperationState& odsState,
+                                Type resultType, Value operand,
+                                DenseIntElementsAttr sourceTargetPairs) {
+  CollectivePermuteOp::build(odsBuilder, odsState, resultType, operand,
+                             sourceTargetPairs, /*channel_handle=*/nullptr);
+}
 
 LogicalResult CollectivePermuteOp::verify() {
   return hlo::verifyCollectivePermuteOp(getLoc(), getSourceTargetPairs());
