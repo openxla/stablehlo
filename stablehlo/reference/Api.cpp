@@ -106,6 +106,9 @@ class DefaultInterpreterFallback : public InterpreterFallback {
 llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
     const InterpreterConfiguration &config) {
+  if (module.getOps<func::FuncOp>().empty())
+    return (SmallVector<InterpreterValue>){};
+
   auto mainFunc = getMainFunction(module, config.mainFunction);
   if (!mainFunc) llvm::report_fatal_error("Requested main function not found.");
 
