@@ -6405,11 +6405,15 @@ on types" section via `member_name`.
 * `def baseline_element_type(x: Value | Placeholder | Type) -> Type` is a
 shortcut for `element_type(baseline_type(x))`.
 
-* `baseline_type` is defined on tensor types and quantized tensor types
-and transforms them to a "baseline", i.e. a type with the same shape but
-with the quantization parameters of the element type reset to default values.
-This is used as a handy trick to compare types without quantization parameters
-which is needed quite often.
+* `baseline_type` is defined on tensor types and quantized tensor types and
+transforms them to a "baseline", i.e. a type with the same shape but with the
+quantization parameters of the element type reset to default values.  This is
+used as a handy trick to compare both tensor and quantized tensor types
+uniformly, which is needed quite often. For quantized types, this enables
+comparing types ignoring the quantization parameters, that is, `shape`,
+`storage_type`, `expressed_type`, `storage_min`, `storage_max`, and
+`quantization_dimension` (for per-axis quantized type) must all match, but
+`scales` and `zero points` may differ.
 
 ```python
 def baseline_type(x: Value | Placeholder | Type) -> Type:
