@@ -55,6 +55,17 @@ func.func @probe_c32() {
 
 // -----
 
+func.func @probe_sanitized_probe_id() {
+  %0 = stablehlo.constant dense<[[1], [2], [3]]> : tensor<3x1xi64>
+  %1 = stablehlo.constant dense<[[4], [5], [6]]> : tensor<3x1xi64>
+  %2 = stablehlo.add %0, %1 : tensor<3x1xi64>
+  %3 = interpreter.probe %2, probe_id = "probe/0" : tensor<3x1xi64>
+  check.expect_serialized_eq %3, probe_id = "probe/0" : tensor<3x1xi64>
+  func.return
+}
+
+// -----
+
 func.func @probe_iterations() {
   // int i = 0;
   // int sum = 0;

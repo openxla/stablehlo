@@ -193,17 +193,17 @@ SmallVector<InterpreterValue> evalRunParallelOp(
   return results;
 }
 
+// `serializedProbeFileId` should be a unique positive integer which can be used
+// to unambiguously derive a serialized filename for a given `probeId`.
 llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
                         StringRef probeOutputDir,
-                        llvm::StringMap<int32_t> &probeIterations) {
+                        int64_t serializedProbeFileId) {
   llvm::SmallString<128> filepath(probeOutputDir);
 
-  // To properly support loops, append a suffix denoting how many times this
-  // specific probe_id has executed.
-  const int32_t numTimesExecuted = ++probeIterations[probeId];
-
+  // Use an increasing unique integer to write to disk to avoid any odd file
+  // names as a result of unsafe probe_id values.
   llvm::sys::path::append(
-      filepath, probeId + "_" + std::to_string(numTimesExecuted) + ".npy");
+      filepath, "probe" + std::to_string(serializedProbeFileId) + ".npy");
   auto tensor = input.getTensor();
   if (auto serializationResultError =
           numpy::serializeTensor(filepath, tensor.getType(), tensor.getData()))
