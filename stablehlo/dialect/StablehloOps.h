@@ -78,10 +78,6 @@ class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
 };
 
 // Verifies the source target pairs attached to collective permute.
-LogicalResult verifyBroadcastSourceTargetPairs(Operation *op,
-                                               DenseIntElementsAttr attr);
-
-// Verifies the source target pairs attached to collective permute.
 LogicalResult verifyCollectivePermuteSourceTargetPairs(
     Operation *op, DenseIntElementsAttr attr);
 
