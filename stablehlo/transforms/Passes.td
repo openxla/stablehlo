@@ -27,11 +27,6 @@ def StablehloCanonicalizeDynamismPass : Pass<"stablehlo-canonicalize-dynamism", 
   }];
 }
 
-def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp"> {
-  let summary = "Legalize StableHLO to VHLO.";
-  let dependentDialects = ["mlir::vhlo::VhloDialect"];
-}
-
 def StablehloInstrumentWithProbePass : Pass<"stablehlo-instrument-with-probe", "ModuleOp"> {
   let summary = "Inserts probe instrumentation instructions in a StableHLO "
     "program.";
@@ -64,6 +59,11 @@ def StablehloInstrumentWithProbePass : Pass<"stablehlo-instrument-with-probe", "
     See `interpreter.probe` for additional information on how data is
     serialized.
   }];
+}
+
+def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp"> {
+  let summary = "Legalize StableHLO to VHLO.";
+  let dependentDialects = ["mlir::vhlo::VhloDialect"];
 }
 
 def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
