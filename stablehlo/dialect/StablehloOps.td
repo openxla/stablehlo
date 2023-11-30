@@ -2020,6 +2020,42 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
   }];
 }
 
+
+def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
+    [HLO_CompatibleOperandsAndResultType /*collective_broadcast_c3*/]> {
+  let summary = "CollectiveBroadcast operation";
+  let description = [{
+    Within each process group in the process grid, send the value of the
+    `operand` tensor from the source process to the target processes and produce a
+    `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#collective_broadcast
+
+    Example:
+    ```mlir
+    %result = "stablehlo.collective_broadcast"(%operand) {
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+    } : (tensor<1x2xi64>) -> tensor<1x2xi64>
+    ```
+  }];
+
+  let arguments = (ins
+    HLO_Tensor:$operand, /*collective_broadcast_i1*/
+    I64ElementsAttr:$replica_groups, /*collective_broadcast_i2*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle /*collective_broadcast_i3*/
+  );
+  let results = (outs HLO_Tensor);
+  let hasVerifier = 1;
+  // channel_handle is only used for the SPMD partitioner, so we add a
+  // simplified builder method for convenience.
+  let builders = [
+    OpBuilder<(ins
+      "::mlir::Type":$result_type, "::mlir::Value":$operand,
+      "::mlir::DenseIntElementsAttr":$replica_groups)>];
+}
+
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
     [HLO_CompatibleOperandsAndResultType /*collective_permute_c5*/]> {
   let summary = "CollectivePermute operation";
