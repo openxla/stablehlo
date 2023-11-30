@@ -31,6 +31,22 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 namespace check {
+namespace {
+
+using SerializedTensorMetadata =
+    std::pair</*type=*/std::string, /*path=*/std::string>;
+
+llvm::ErrorOr<SerializedTensorMetadata> extractMetadata(StringRef line) {
+  // Parse a CSV record in the form of: probe_id,mlir_type,serialized_path
+  constexpr int kNumFields = 3;
+  SmallVector<StringRef, kNumFields> fields;
+  line.split(fields, ',', kNumFields);
+
+  if (fields.size() != 3) return llvm::errc::invalid_argument;
+
+  return std::make_pair(/*type=*/fields[1].str(), /*path=*/fields[2].str());
+}
+}  // namespace
 
 //===----------------------------------------------------------------------===//
 // Check Dialect Constructor
@@ -81,12 +97,11 @@ llvm::Error evalExpectEqOp(const Tensor &lhs, const Tensor &rhs) {
   return llvm::Error::success();
 }
 
-// Fetch a previously serialized filepath given a `probeId` and a `probeDir` for
-// a specified `iteration` value from an `index.csv` metadata file. If no data
-// is found, returns an error.
-static llvm::ErrorOr<std::string> getSerializedTensorPath(StringRef probeId,
-                                                          StringRef probeDir,
-                                                          uint32_t iteration) {
+// Fetch a previously serialized MLIR type and data filepath given a `probeId`
+// and a `probeDir` for a specified `iteration` value from an `index.csv`
+// metadata file. If no data is found, returns an error.
+static llvm::ErrorOr<SerializedTensorMetadata> getSerializedTensorMetadata(
+    StringRef probeId, StringRef probeDir, uint32_t iteration) {
   if (probeDir.empty()) return llvm::errc::invalid_argument;
 
   llvm::SmallString<128> instrumentationMetadataFile(probeDir);
@@ -103,7 +118,7 @@ static llvm::ErrorOr<std::string> getSerializedTensorPath(StringRef probeId,
     auto pos = line.find(probeId);
 
     if (pos != std::string::npos && match == iteration)
-      return line.substr(pos + probeId.size() + 1);
+      return extractMetadata(line);
   }
 
   return llvm::errc::bad_address;
@@ -111,21 +126,33 @@ static llvm::ErrorOr<std::string> getSerializedTensorPath(StringRef probeId,
 
 llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
                                      StringRef probeDir, uint32_t iteration) {
-  auto serializedFilePathOrError =
-      getSerializedTensorPath(probeId, probeDir, iteration);
+  auto serializedMetadata =
+      getSerializedTensorMetadata(probeId, probeDir, iteration);
 
-  if (!serializedFilePathOrError)
-    return llvm::createStringError(serializedFilePathOrError.getError(),
-                                   "Failed to find serialized data for probe");
+  if (!serializedMetadata)
+    return llvm::createStringError(
+        serializedMetadata.getError(),
+        "Failed to find serialized data for probe %s.", probeId.str().c_str());
 
-  auto tensorOrError =
-      numpy::deserializeTensor(*serializedFilePathOrError, expected.getType());
+  const std::string type = serializedMetadata->first;
+  const std::string serializedPath = serializedMetadata->second;
 
-  if (!tensorOrError)
-    return llvm::createStringError(tensorOrError.getError(),
-                                   "Failed to verify serialized tensor.");
+  auto tensor = numpy::deserializeTensor(serializedPath, expected.getType());
 
-  return evalExpectEqOp(expected, *tensorOrError);
+  if (!tensor)
+    return llvm::createStringError(tensor.getError(),
+                                   "Failed to verify serialized tensor %s.",
+                                   probeId.str().c_str());
+
+  const std::string expectedType = debugString(expected.getType());
+  if (type != expectedType)
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Serialized types don't match: %s (actual) "
+                                   "vs %s (expected) for probe %s.",
+                                   expectedType.c_str(), type.c_str(),
+                                   probeId.str().c_str());
+
+  return evalExpectEqOp(expected, *tensor);
 }
 
 }  // namespace check

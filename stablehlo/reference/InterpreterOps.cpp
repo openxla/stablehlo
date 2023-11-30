@@ -28,6 +28,7 @@ limitations under the License.
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/Region.h"
 #include "mlir/IR/SymbolTable.h"
+#include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
@@ -44,7 +45,7 @@ namespace {
 
 // Appends a new line item to an instrumentation metadata file, `index.json` in
 // the form: `probeId,probeOutputDir/filename`.
-llvm::Error writeProbeMetadata(StringRef probeId, StringRef filename,
+llvm::Error writeProbeMetadata(StringRef probeId, Type type, StringRef filename,
                                StringRef probeOutputDir) {
   if (probeOutputDir.empty())
     return createStringError(llvm::errc::invalid_argument,
@@ -61,7 +62,8 @@ llvm::Error writeProbeMetadata(StringRef probeId, StringRef filename,
                              "Failed to open instrumentation metadata file.");
 
   llvm::raw_fd_ostream out(fd, /*shouldClose=*/true);
-  out << probeId.str() << ',' << filename.str() << '\n';
+  out << probeId.str() << ',' << debugString(type) << ',' << filename.str()
+      << '\n';
 
   return llvm::Error::success();
 }
@@ -212,7 +214,7 @@ llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
   // After the tensor has been serialized to disk, append it to a metadata file
   // to associate the serialized probe_id with the filepath. By default, this
   // will live in an `index.csv` file generated in specified `probeOutputDir`.
-  return writeProbeMetadata(probeId, filepath, probeOutputDir);
+  return writeProbeMetadata(probeId, input.getType(), filepath, probeOutputDir);
 }
 
 }  // namespace interpreter
