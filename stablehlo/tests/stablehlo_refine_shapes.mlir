@@ -344,6 +344,19 @@ func.func @eval_multiply() -> tensor<i64> {
 
 // -----
 
+// CHECK-LABEL: func @eval_or
+func.func @eval_or() -> tensor<i1> {
+  // CHECK-NOT: stablehlo.or
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<true> : tensor<i1>
+  %1 = stablehlo.constant dense<false> : tensor<i1>
+  %2 = stablehlo.or %0, %1 : tensor<i1>
+  func.return %2 : tensor<i1>
+}
+
+// -----
+
 // CHECK-LABEL: func @eval_remainder
 func.func @eval_remainder() -> tensor<i64> {
   // CHECK-NOT: stablehlo.remainder
