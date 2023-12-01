@@ -1,5 +1,9 @@
 // RUN: stablehlo-translate --interpret --probe-output-dir=%T -split-input-file %s
 
+// Test an empty module
+
+// -----
+
 func.func @probe_i1() {
   %0 = stablehlo.constant dense<[[0], [0], [0]]> : tensor<3x1xi1>
   %1 = stablehlo.constant dense<[[1], [1], [1]]> : tensor<3x1xi1>
