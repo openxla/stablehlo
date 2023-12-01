@@ -881,6 +881,7 @@ cc_library(
     srcs = [
         "stablehlo/transforms/PassPipelines.cpp",
         "stablehlo/transforms/StablehloCanonicalizeDynamism.cpp",
+        "stablehlo/transforms/StablehloInstrumentWithProbe.cpp",
         "stablehlo/transforms/StablehloLegalizeToVhlo.cpp",
         "stablehlo/transforms/StablehloRefineShapes.cpp",
         "stablehlo/transforms/VhloLegalizeToStablehlo.cpp",
@@ -894,6 +895,7 @@ cc_library(
     deps = [
         ":base",
         ":chlo_ops",
+        ":interpreter_ops",
         ":stablehlo_ops",
         ":stablehlo_ops_inc_gen",
         ":stablehlo_pass_inc_gen",
