@@ -304,6 +304,20 @@ struct EvalMulOpPattern : public OpRewritePattern<MulOp> {
   }
 };
 
+struct EvalOrOpPattern : public OpRewritePattern<OrOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(OrOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (!resultType.getElementType().isInteger(1))
+      return rewriter.notifyMatchFailure(op, "expected boolean element type");
+
+    return evalElementwise(rewriter, op, [&](APSInt lhsInt, APSInt rhsInt) {
+      return getAPSInt(resultType.getElementType(), lhsInt != 0 || rhsInt != 0);
+    });
+  }
+};
+
 struct EvalRemOpPattern : public OpRewritePattern<RemOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(RemOp op,
@@ -1165,6 +1179,7 @@ struct StablehloRefineShapesPass
     patterns.add<EvalMaxOpPattern>(&getContext());
     patterns.add<EvalMinOpPattern>(&getContext());
     patterns.add<EvalMulOpPattern>(&getContext());
+    patterns.add<EvalOrOpPattern>(&getContext());
     patterns.add<EvalRemOpPattern>(&getContext());
     patterns.add<EvalReshapeOpPattern>(&getContext());
     patterns.add<EvalSelectOpPattern>(&getContext());
