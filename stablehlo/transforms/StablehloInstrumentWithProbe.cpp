@@ -45,10 +45,11 @@ class StablehloInstrumentWithProbePass
   void runOnOperation() override;
 
  private:
-  // Use MLIR location debug info if requested and available (in the form
-  // `NamedLoc(probe_id@...)`), otherwise return a uniquely identifying
-  // increasing probe ID in the form `probe#`.
-  std::string getLocationNameOrUniqueId(Location location, unsigned int& id);
+  // Create a uniquely identifying probe_id in the form `probe_id#` where
+  // `probe_id` is either the MLIR location data (`NamedLoc(probe_id@...)`
+  // followed by a . separator), or `probe` if debug information is not present
+  // or used, and # is an increasing positive integer.
+  std::string getLocationNameOrUniqueId(Location location, unsigned int id);
 
   // Instrument a specified operation by adding an `interpreter.probe` op for
   // each result produced by the operation.
@@ -65,13 +66,16 @@ class StablehloInstrumentWithProbePass
 };
 
 std::string StablehloInstrumentWithProbePass::getLocationNameOrUniqueId(
-    Location location, unsigned int& id) {
+    Location location, unsigned int id) {
   auto namedLocation = location.dyn_cast<NameLoc>();
+  std::string probeName = "probe";
 
   if (useDebugInfoOption && namedLocation)
-    return namedLocation.getName().strref().split('@').first.str();
+    // Append a '.' to the end of the MLIR location data to make it easy to
+    // extract the location data from the unique ID.
+    probeName = namedLocation.getName().strref().split('@').first.str() + '.';
 
-  return "probe" + std::to_string(++id);
+  return probeName + std::to_string(id);
 }
 
 void StablehloInstrumentWithProbePass::probeValue(Value value,
@@ -97,7 +101,7 @@ void StablehloInstrumentWithProbePass::runOnOperation() {
 
     for (auto res : op->getResults()) {
       if (shouldProbeValue(res))
-        probeValue(res, getLocationNameOrUniqueId(op->getLoc(), probeId),
+        probeValue(res, getLocationNameOrUniqueId(op->getLoc(), ++probeId),
                    builder);
     }
 

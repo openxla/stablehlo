@@ -12,7 +12,7 @@ func.func @instrument_basic_no_location(%arg0: tensor<1x2xi32>, %arg1: tensor<1x
 
 // CHECK-LABEL: func @instrument_basic_location
 func.func @instrument_basic_location(%arg0: tensor<1x2xi32>, %arg1: tensor<1x2xi32>) -> tensor<1x2xi32> {
-  // CHECK: [[RESULT:%.*]] = interpreter.probe %0, probe_id = "named_location" : tensor<1x2xi32>
+  // CHECK: [[RESULT:%.*]] = interpreter.probe %0, probe_id = "named_location.1" : tensor<1x2xi32>
   // CHECK-NEXT: return [[RESULT]]
   %0 = stablehlo.add %arg0, %arg1 : tensor<1x2xi32> loc("named_location")
   func.return %0 : tensor<1x2xi32>
@@ -47,8 +47,8 @@ func.func @only_instrument_tensor_type(%arg0: tensor<f32>) -> (!stablehlo.token,
 
 // CHECK-LABEL: func @instrument_if
 func.func @instrument_if(%arg0: tensor<i1>, %arg1: tensor<2xi64>, %arg2: tensor<2xi64>) -> tensor<2xi64> {
-  // CHECK: interpreter.probe {{.*}}, probe_id = "add" : tensor<2xi64>
-  // CHECK: interpreter.probe {{.*}}, probe_id = "probe1" : tensor<2xi64>
+  // CHECK: interpreter.probe {{.*}}, probe_id = "add.1" : tensor<2xi64>
+  // CHECK: interpreter.probe {{.*}}, probe_id = "probe2" : tensor<2xi64>
   %result = "stablehlo.if"(%arg0) ({
     %0 = stablehlo.constant dense<0> : tensor<2xi64>
     stablehlo.return %0 : tensor<2xi64>
@@ -69,8 +69,8 @@ func.func @instrument_loop() -> tensor<i64> {
   // CHECK-NEXT: [[PROBE1:%.*]] = interpreter.probe [[COND]]
 
   // Instrumented loop body
-  // CHECK: interpreter.probe {{.*}}, probe_id = "add1" : tensor<i64>
-  // CHECK: interpreter.probe {{.*}}, probe_id = "add2" : tensor<i64>
+  // CHECK: interpreter.probe {{.*}}, probe_id = "add.2" : tensor<i64>
+  // CHECK: interpreter.probe {{.*}}, probe_id = "add.3" : tensor<i64>
 
   // Instrumented loop return values
   // CHECK: interpreter.probe [[WHILE]]#1
@@ -91,8 +91,8 @@ func.func @instrument_loop() -> tensor<i64> {
     %cond = stablehlo.compare LT, %arg0, %two : (tensor<i64>, tensor<i64>) -> tensor<i1>
     stablehlo.return %cond : tensor<i1>
   } do {
-    %new_sum = stablehlo.add %arg1, %one : tensor<i64> loc("add1")
-    %new_i = stablehlo.add %arg0, %one : tensor<i64> loc("add2")
+    %new_sum = stablehlo.add %arg1, %one : tensor<i64> loc("add")
+    %new_i = stablehlo.add %arg0, %one : tensor<i64> loc("add")
     stablehlo.return %new_i, %new_sum : tensor<i64>, tensor<i64>
   }
 

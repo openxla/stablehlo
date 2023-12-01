@@ -54,10 +54,10 @@ def StablehloInstrumentWithProbePass : Pass<"stablehlo-instrument-with-probe", "
     the NumPy data format as they are executed. If the `useDebugInfo` pass
     option is enabled, location debug information will be used when available to
     uniquely identify instrumented tensor values (i.e. the pass will extract
-    `probe_id` from `NamedLoc(probe_id@<...>)`). Otherwise, instrumented values
-    will be referred to in the increasing sequence: `probe1`, `probe2`, ...
-    See `interpreter.probe` for additional information on how data is
-    serialized.
+    `probe_id` from `NamedLoc(probe_id@<...>)` and use the format `probe_id`.#).
+    Otherwise, instrumented values will be referred to in the increasing
+    sequence: `probe1`, `probe2`, ... See `interpreter.probe` for additional
+    information on how data is serialized.
   }];
 }
 
