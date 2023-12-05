@@ -1470,7 +1470,7 @@ struct DynamicSliceConverter final
         dynamicSliceOp.getStartIndices().front().getType());
     for (auto [idx, start, size] :
          llvm::enumerate(adaptor.getStartIndices(),
-                         dynamicSliceOp.getSliceSizes().getValues<int64_t>())) {
+                         dynamicSliceOp.getSliceSizes())) {
       sizes.push_back(rewriter.getI64IntegerAttr(size));
 
       // By stablehlo.DynamicSlice definition:

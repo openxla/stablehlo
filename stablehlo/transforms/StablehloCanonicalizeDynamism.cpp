@@ -270,8 +270,7 @@ struct CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern
     }
 
     rewriter.replaceOpWithNewOp<DynamicSliceOp>(
-        op, op.getType(), op.getOperand(), startIndices,
-        rewriter.getI64TensorAttr(sliceSizes));
+        op, op.getType(), op.getOperand(), startIndices, sliceSizes);
     return success();
   }
 };

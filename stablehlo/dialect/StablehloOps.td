@@ -1646,14 +1646,14 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
   let arguments = (ins
     HLO_Tensor:$operand /*dynamic_slice_i1*/,
     Variadic<HLO_ScalarIntTensor>:$start_indices /*dynamic_slice_i2*/,
-    I64ElementsAttr:$slice_sizes /*dynamic_slice_i3*/
+    DenseI64ArrayAttr:$slice_sizes /*dynamic_slice_i3*/
   );
 
   let results = (outs HLO_Tensor:$result);
 
   let assemblyFormat = [{
     $operand `,` custom<VariadicOperandWithAttribute>($start_indices)
-      `sizes` `=` custom<DenseI64Array>($slice_sizes)
+      `sizes` `=` $slice_sizes
       attr-dict `:` functional-type(operands, results)
   }];
 }

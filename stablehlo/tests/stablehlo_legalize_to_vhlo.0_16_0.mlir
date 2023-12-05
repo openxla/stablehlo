@@ -1291,7 +1291,7 @@ func.func @op_dynamic_slice(%arg0: tensor<16xf32>, %arg1: tensor<i64>) -> tensor
   // CHECK-SAME:   slice_sizes = #vhlo.tensor_v1<dense<4> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>, !vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tensor_v1<4x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_slice"(%arg0, %arg1) {
-    slice_sizes = dense<4> : tensor<1xi64>
+    slice_sizes = array<i64: 4>
   } : (tensor<16xf32>, tensor<i64>) -> tensor<4xf32>
   func.return %0 : tensor<4xf32>
 }

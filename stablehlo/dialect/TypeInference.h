@@ -213,7 +213,7 @@ LogicalResult inferDynamicGatherOp(
 
 LogicalResult inferDynamicSliceOp(
     std::optional<Location> location, Type operandType,
-    TypeRange startIndicesTypes, DenseIntElementsAttr sliceSizes,
+    TypeRange startIndicesTypes, ArrayRef<int64_t> sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicUpdateSliceOp(

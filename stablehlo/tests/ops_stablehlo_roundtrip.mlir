@@ -346,7 +346,7 @@ func.func @test_dot_general(%arg0: tensor<2x2x2xi8>, %arg1: tensor<2x2x3xi8>) ->
 }
 
 func.func @test_dynamic_slice(%arg: tensor<3x4xi32>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<1x4xi32> {
-  %0 = "stablehlo.dynamic_slice"(%arg, %start1, %start2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg, %start1, %start2) {slice_sizes = array<i64: 1, 4>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
 

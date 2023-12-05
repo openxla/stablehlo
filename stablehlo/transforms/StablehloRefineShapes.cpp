@@ -950,7 +950,7 @@ struct RefineRealDynamicSliceOpPattern
       SmallVector<ShapedTypeComponents> inferredReturnTypes;
       if (failed(hlo::inferDynamicSliceOp(
               op.getLoc(), op.getOperand().getType(), startIndicesTypes,
-              rewriter.getI64TensorAttr(sliceSizes), inferredReturnTypes)))
+              rewriter.getDenseI64ArrayAttr(sliceSizes), inferredReturnTypes)))
         return rewriter.notifyMatchFailure(op, "inferDynamicSliceOp failed");
       return refineReturnTypes(rewriter, op, inferredReturnTypes);
     }

@@ -288,7 +288,7 @@ func.func @dimension_attr(%arg0 : tensor<1x2xf32>, %arg1 : tensor<3xi32>, %arg2 
   %1 = "stablehlo.broadcast"(%arg1) {broadcast_sizes = array<i64: 1, 2>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
   %2 = "stablehlo.reverse"(%arg0) {dimensions = array<i64: 0, 1>} : (tensor<1x2xf32>) -> tensor<1x2xf32>
   %3 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0>} : (tensor<1x2xf32>) -> tensor<2x1xf32>
-  %4 = "stablehlo.dynamic_slice"(%arg2, %arg3, %arg3) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %4 = "stablehlo.dynamic_slice"(%arg2, %arg3, %arg3) {slice_sizes = array<i64: 1, 4>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   %5 = "stablehlo.pad"(%arg4, %arg5) { edge_padding_high = dense<4> : tensor<1xi64>, edge_padding_low = dense<4> : tensor<1xi64>, interior_padding = dense<0> : tensor<1xi64>} : (tensor<8xf32>, tensor<f32>) -> tensor<16xf32>
   "stablehlo.return"() : () -> ()
 }

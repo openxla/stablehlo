@@ -2046,15 +2046,10 @@ LogicalResult inferDynamicGatherOp(
 
 LogicalResult inferDynamicSliceOp(
     std::optional<Location> location, Type operandType,
-    TypeRange startIndicesTypes, DenseIntElementsAttr sliceSizes,
+    TypeRange startIndicesTypes, ArrayRef<int64_t> sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // dynamic_slice_i3
-  if (sliceSizes.getType().getRank() != 1)
-    return emitOptionalError(location,
-                             "slice_sizes should be rank 1, but got rank ",
-                             sliceSizes.getType().getRank(), ".");
   // dynamic_slice_c2
-  int numSliceSizes = sliceSizes.getNumElements();
+  int numSliceSizes = sliceSizes.size();
   int numStartIndices = startIndicesTypes.size();
   if (numStartIndices != numSliceSizes)
     return emitOptionalError(location, "has mismatched number of slice sizes (",
@@ -2075,7 +2070,7 @@ LogicalResult inferDynamicSliceOp(
 
   // dynamic_slice_c4
   for (int i = 0; i < numSliceSizes; ++i) {
-    int64_t sliceSize = sliceSizes.getValues<int64_t>()[i];
+    int64_t sliceSize = sliceSizes[i];
     if (sliceSize < 0)
       return emitOptionalError(
           location, "has negative size index to dynamic slice: ", sliceSize);
@@ -2089,7 +2084,7 @@ LogicalResult inferDynamicSliceOp(
   }
 
   // dynamic_slice_c5
-  inferredReturnShapes.emplace_back(sliceSizes.getValues<int64_t>(),
+  inferredReturnShapes.emplace_back(sliceSizes,
                                     rankedOperandType.getElementType());
   return success();
 }
