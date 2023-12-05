@@ -1843,13 +1843,13 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    I64ElementsAttr:$broadcast_sizes
+    DenseI64ArrayAttr:$broadcast_sizes
   );
 
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
-    $operand `,` `sizes` `=` custom<DenseI64Array>($broadcast_sizes)
+    $operand `,` `sizes` `=` $broadcast_sizes
       attr-dict `:` functional-type(operands, results)
   }];
 }

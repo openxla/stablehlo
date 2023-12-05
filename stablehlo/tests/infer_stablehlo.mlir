@@ -49,7 +49,7 @@ func.func @select(%pred : tensor<i1>, %a : tensor<?x2x3xf32>, %b : tensor<1x?x3x
 
 // CHECK-LABEL: @broadcast
 func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xindex> {
-  %0 = "stablehlo.broadcast"(%a) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>}
+  %0 = "stablehlo.broadcast"(%a) {broadcast_sizes = array<i64: 1, 2>}
       : (tensor<3xi32>) -> tensor<1x2x3xi32>
   // CHECK: types0 = tensor<1x2x3xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<1x2x3xi32>) -> tensor<1x2x3xindex>
@@ -61,7 +61,7 @@ func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xindex> {
 func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{Broadcast with negative dimension size -2}}
-  %0 = "stablehlo.broadcast"(%a) {broadcast_sizes = dense<[1, -2]> : tensor<2xi64>}
+  %0 = "stablehlo.broadcast"(%a) {broadcast_sizes = array<i64: 1, -2>}
       : (tensor<3xi32>) -> tensor<1x2x3xi32>
   func.return %0 : tensor<1x2x3xi32>
 }
@@ -1636,7 +1636,7 @@ func.func @broadcast(%arg0: tensor<?xi32>) -> tensor<3xindex> {
   // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG0]], %[[C0]] : tensor<?xi32>
   // CHECK: %[[RES:.*]] = tensor.from_elements %[[C1]], %[[C2]], %[[DIM]] : tensor<3xindex>
   // CHECK: return %[[RES]] : tensor<3xindex>
-  %result = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<?xi32>) -> tensor<1x2x?xi32>
+  %result = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 1, 2>} : (tensor<?xi32>) -> tensor<1x2x?xi32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<1x2x?xi32>) -> tensor<3xindex>
   func.return %1: tensor<3xindex>
 }

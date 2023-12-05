@@ -480,7 +480,7 @@ func.func @broadcast_in_dim_scalar(%operand: tensor<f32>) -> tensor<7x10x6xf32> 
 // CHECK-DAG: #[[RESULT_MAP:.+]] = affine_map<(d0, d1, d2) -> (d0, d1, d2)>
 // CHECK: func @broadcast_scalar
 func.func @broadcast_scalar(%arg: tensor<f32>) -> tensor<4x2x1xf32> {
-  %0 = "stablehlo.broadcast"(%arg) {broadcast_sizes = dense<[4, 2, 1]> : tensor<3xi64>} : (tensor<f32>) -> tensor<4x2x1xf32>
+  %0 = "stablehlo.broadcast"(%arg) {broadcast_sizes = array<i64: 4, 2, 1>} : (tensor<f32>) -> tensor<4x2x1xf32>
   func.return %0: tensor<4x2x1xf32>
 }
 // CHECK: tensor.empty() : tensor<4x2x1xf32>
@@ -501,7 +501,7 @@ func.func @broadcast_scalar(%arg: tensor<f32>) -> tensor<4x2x1xf32> {
 // CHECK-DAG: #[[RESULT_MAP:.+]] = affine_map<(d0, d1, d2, d3, d4, d5) -> (d0, d1, d2, d3, d4, d5)>
 // CHECK: func @broadcast
 func.func @broadcast(%arg: tensor<4x?x16xf32>) -> tensor<4x2x1x4x?x16xf32> {
-  %0 = "stablehlo.broadcast"(%arg) {broadcast_sizes = dense<[4, 2, 1]> : tensor<3xi64>} : (tensor<4x?x16xf32>) -> tensor<4x2x1x4x?x16xf32>
+  %0 = "stablehlo.broadcast"(%arg) {broadcast_sizes = array<i64: 4, 2, 1>} : (tensor<4x?x16xf32>) -> tensor<4x2x1x4x?x16xf32>
   func.return %0: tensor<4x2x1x4x?x16xf32>
 }
 // CHECK-DAG: %[[C1:.*]] = arith.constant 1 : index

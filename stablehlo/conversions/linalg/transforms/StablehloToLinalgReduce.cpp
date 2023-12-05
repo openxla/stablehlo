@@ -408,7 +408,7 @@ struct ReduceWindowOpOnTensorsGenericConversion final
       auto resultTy = llvm::cast<ShapedType>(resultTypes[i]);
       if (!resultTy.hasStaticShape()) return failure();
 
-      auto broadcastSizes = rewriter.getI64TensorAttr(resultTy.getShape());
+      auto broadcastSizes = rewriter.getDenseI64ArrayAttr(resultTy.getShape());
       broadcastValues.push_back(rewriter.create<mlir::stablehlo::BroadcastOp>(
           loc, resultTy, initValue, broadcastSizes));
     }

@@ -1481,22 +1481,16 @@ LogicalResult inferBatchNormTrainingOp(
 
 LogicalResult inferBroadcastOp(
     std::optional<Location> location, Value operand,
-    DenseIntElementsAttr broadcastSizes,
+    ArrayRef<int64_t> broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   if (!operandType) return failure();
 
-  // TODO: These should be expressed as type constraints.
-  auto sizesRank = broadcastSizes.getType().getRank();
-  if (sizesRank != 1)
-    return emitOptionalError(location, "broadcast_sizes has rank ", sizesRank,
-                             " instead of rank 1");
-
-  for (int64_t size : broadcastSizes.getValues<int64_t>())
+  for (int64_t size : broadcastSizes)
     if (size < 0)
       return emitOptionalError(location,
                                "Broadcast with negative dimension size ", size);
-  SmallVector<int64_t> shapeValues(broadcastSizes.getValues<int64_t>());
+  SmallVector<int64_t> shapeValues(broadcastSizes);
   llvm::append_range(shapeValues, operandType.getShape());
 
   inferredReturnShapes.emplace_back(shapeValues, operandType.getElementType());

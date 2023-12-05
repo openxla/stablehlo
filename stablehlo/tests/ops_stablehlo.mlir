@@ -824,16 +824,7 @@ func.func @all_gather_i3(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
 
 // CHECK-LABEL: func @broadcast
 func.func @broadcast(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
-  func.return %0 : tensor<1x2x3xi32>
-}
-
-// -----
-
-func.func @broadcast_bad_sizes_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{broadcast_sizes has rank 2 instead of rank 1}}
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[[1, 2]]> : tensor<1x2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 1, 2>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
   func.return %0 : tensor<1x2x3xi32>
 }
 
@@ -842,7 +833,7 @@ func.func @broadcast_bad_sizes_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
 func.func @broadcast_bad_result_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.broadcast' op inferred type(s) 'tensor<2x3xi32>' are incompatible with return type(s) of operation 'tensor<1x2x3xi32>'}}
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[2]> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 2>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
   func.return %0 : tensor<1x2x3xi32>
 }
 
@@ -851,7 +842,7 @@ func.func @broadcast_bad_result_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> 
 func.func @broadcast_bad_first_part_result_shape(%arg0: tensor<3xi32>) -> tensor<1x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.broadcast' op inferred type(s) 'tensor<2x3xi32>' are incompatible with return type(s) of operation 'tensor<1x3xi32>'}}
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[2]> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<1x3xi32>
+  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 2>} : (tensor<3xi32>) -> tensor<1x3xi32>
   func.return %0 : tensor<1x3xi32>
 }
 
@@ -860,7 +851,7 @@ func.func @broadcast_bad_first_part_result_shape(%arg0: tensor<3xi32>) -> tensor
 func.func @broadcast_bad_second_part_result_shape(%arg0: tensor<3xi32>) -> tensor<2x1xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.broadcast' op inferred type(s) 'tensor<2x3xi32>' are incompatible with return type(s) of operation 'tensor<2x1xi32>'}}
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[2]> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<2x1xi32>
+  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 2>} : (tensor<3xi32>) -> tensor<2x1xi32>
   func.return %0 : tensor<2x1xi32>
 }
 

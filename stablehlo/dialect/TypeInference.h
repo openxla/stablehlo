@@ -137,7 +137,7 @@ LogicalResult inferBatchNormTrainingOp(
 
 LogicalResult inferBroadcastOp(
     std::optional<Location> location, Value operand,
-    DenseIntElementsAttr broadcastSizes,
+    ArrayRef<int64_t> broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferCaseOp(std::optional<Location> location, Value index,

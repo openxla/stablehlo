@@ -908,7 +908,7 @@ func.func @op_broadcast(%arg0: tensor<16xf32>) -> tensor<16x16xf32> {
   // CHECK-SAME:   broadcast_sizes = #vhlo.tensor_v1<dense<16> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>) -> !vhlo.tensor_v1<16x16x!vhlo.f32_v1>
   %0 = "stablehlo.broadcast"(%arg0) {
-    broadcast_sizes = dense<16> : tensor<1xi64>
+    broadcast_sizes = array<i64: 16>
   } : (tensor<16xf32>) -> tensor<16x16xf32>
   func.return %0 : tensor<16x16xf32>
 }

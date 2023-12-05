@@ -109,7 +109,7 @@ func.func @test_bitcast_convert(%arg0: tensor<2xi32>) -> tensor<2xf32> {
 }
 
 func.func @test_broadcast(%arg0: tensor<4xi32>) -> tensor<1x2x3x4xi32> {
-      %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1,2,3]> : tensor<3xi64>} : (tensor<4xi32>) -> tensor<1x2x3x4xi32>
+      %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 1,2,3>} : (tensor<4xi32>) -> tensor<1x2x3x4xi32>
   func.return %0 : tensor<1x2x3x4xi32>
 }
 
