@@ -142,6 +142,15 @@ Attribute convertGeneric(Attribute stablehloAttr,
     return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
                                    attr.getRawData());
   }
+  if (auto attr = stablehloAttr.dyn_cast<DenseI64ArrayAttr>()) {
+    auto vhloType = vhlo::RankedTensorV1Type::get(
+        attr.getContext(), {attr.size()},
+        vhlo::IntegerSI64V1Type::get(attr.getContext()), Attribute{});
+    LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
+    if (!vhloType) return {};
+    return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
+                                   attr.getRawData());
+  }
   if (auto attr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
     SmallVector<std::pair<Attribute, Attribute>> vhloAttrs;
     for (auto namedAttr : attr.getValue()) {

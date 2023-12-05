@@ -357,7 +357,7 @@ func.func @test_einsum(%arg0: tensor<3x4xi32>, %arg1: tensor<4x5xi32>) -> tensor
 }
 
 func.func @test_fft(%arg0: tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>> {
-  %0 = "stablehlo.fft"(%arg0) {fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT>} : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) {fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT>} : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
   func.return %0 : tensor<3x5xcomplex<f32>>
 }
 

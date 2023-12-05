@@ -259,7 +259,7 @@ func.func @uniform_dequantize_c2(%arg: tensor<16x16x!quant.uniform<i8:f32, 34.0:
 
 // CHECK-LABEL: func @fft
 func.func @fft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xindex> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type FFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type FFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
   // CHECK: types0 = tensor<3x9xcomplex<f32>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xindex>
   func.return %1 : tensor<3x9xindex>
@@ -1766,7 +1766,7 @@ func.func @triangular_solve_bounds(
 // CHECK-LABEL: func @fft_bound
 func.func @fft_bound(%arg0: tensor<?x9xcomplex<f32>, #stablehlo.bounds<3, ?>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
-    fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type FFT>
+    fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type FFT>
   } : (tensor<?x9xcomplex<f32>, #stablehlo.bounds<3, ?>>) -> tensor<*xcomplex<f32>>
   // CHECK: types0 = tensor<?x9xcomplex<f32>, #stablehlo.bounds<3, ?>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xcomplex<f32>>) -> tensor<*xindex>
@@ -1778,7 +1778,7 @@ func.func @fft_bound(%arg0: tensor<?x9xcomplex<f32>, #stablehlo.bounds<3, ?>>) -
 // CHECK-LABEL: func @rfft_with_bound
 func.func @rfft_with_bound(%arg0: tensor<3x?x?xf32, #stablehlo.bounds<?, 3, 10>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
-    fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT>
+    fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT>
   } : (tensor<3x?x?xf32, #stablehlo.bounds<?, 3, 10>>) -> tensor<*xcomplex<f32>>
   // CHECK: types0 = tensor<3x?x5xcomplex<f32>, #stablehlo.bounds<?, 3, ?>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xcomplex<f32>>) -> tensor<*xindex>
@@ -1790,7 +1790,7 @@ func.func @rfft_with_bound(%arg0: tensor<3x?x?xf32, #stablehlo.bounds<?, 3, 10>>
 // CHECK-LABEL: func @irfft_with_bound
 func.func @irfft_with_bound(%arg0: tensor<3x?x?xcomplex<f32>, #stablehlo.bounds<?, 3, 17>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
-    fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT>
+    fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type IRFFT>
   } : (tensor<3x?x?xcomplex<f32>, #stablehlo.bounds<?, 3, 17>>) -> tensor<*xf32>
   // CHECK: types0 = tensor<3x?x9xf32, #stablehlo.bounds<?, 3, ?>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>

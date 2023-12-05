@@ -223,7 +223,7 @@ LogicalResult inferDynamicUpdateSliceOp(
 
 LogicalResult inferFftOp(
     std::optional<Location> location, Value operand, bool isFftTypeRfft,
-    bool isFftTypeIrfft, DenseIntElementsAttr fftLength,
+    bool isFftTypeIrfft, ArrayRef<int64_t> fftLength,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferGatherOp(

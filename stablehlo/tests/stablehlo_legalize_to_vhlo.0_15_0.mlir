@@ -168,7 +168,7 @@ func.func @attr_fft_type_fft(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomple
   %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type_v1 FFT>
     fft_type = #stablehlo<fft_type FFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
   func.return %0 : tensor<16xcomplex<f32>>
 }
@@ -178,7 +178,7 @@ func.func @attr_fft_type_ifft(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcompl
   %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type_v1 IFFT>
     fft_type = #stablehlo<fft_type IFFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
   func.return %0 : tensor<16xcomplex<f32>>
 }
@@ -188,7 +188,7 @@ func.func @attr_fft_type_rfft(%arg0: tensor<16xf32>) -> tensor<9xcomplex<f32>> {
   %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type_v1 RFFT>
     fft_type = #stablehlo<fft_type RFFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<16xf32>) -> tensor<9xcomplex<f32>>
   func.return %0 : tensor<9xcomplex<f32>>
 }
@@ -198,7 +198,7 @@ func.func @attr_fft_type_irfft(%arg0: tensor<9xcomplex<f32>>) -> tensor<16xf32> 
   %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type_v1 IRFFT>
     fft_type = #stablehlo<fft_type IRFFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<9xcomplex<f32>>) -> tensor<16xf32>
   func.return %0 : tensor<16xf32>
 }
@@ -1325,7 +1325,7 @@ func.func @op_fft(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>> {
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.complex_v1<!vhlo.f32_v1>>) -> !vhlo.tensor_v1<16x!vhlo.complex_v1<!vhlo.f32_v1>>
   %0 = "stablehlo.fft"(%arg0) {
     fft_type = #stablehlo<fft_type FFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
   func.return %0 : tensor<16xcomplex<f32>>
 }

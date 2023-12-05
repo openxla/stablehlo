@@ -2162,9 +2162,9 @@ LogicalResult inferDynamicUpdateSliceOp(
 // P3. Operand shape dimensions agree with fft_length for the given fft_type
 LogicalResult inferFftOp(
     std::optional<Location> location, Value operand, bool isFftTypeRfft,
-    bool isFftTypeIrfft, DenseIntElementsAttr fftLength,
+    bool isFftTypeIrfft, ArrayRef<int64_t> fftLength,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto fftLengthValues = fftLength.getValues<int64_t>();
+  auto fftLengthValues = fftLength;
   int64_t fftRank = fftLength.size();
 
   // P1.

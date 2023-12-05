@@ -2359,13 +2359,13 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   let arguments = (ins
     HLO_FpOrComplexTensor:$operand,
     StableHLO_FftTypeAttr:$fft_type,
-    I64ElementsAttr:$fft_length
+    DenseI64ArrayAttr:$fft_length
   );
 
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
-    $operand `,` `type` `=` $fft_type `,` `length` `=` custom<DenseI64Array>($fft_length)
+    $operand `,` `type` `=` $fft_type `,` `length` `=` $fft_length
       attr-dict `:` functional-type(operands, results)
   }];
 }

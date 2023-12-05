@@ -426,11 +426,24 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
   return success();
 }
 
+SpecialResult convertDenseArray(StringAttr vhloName, Attribute vhloAttr,
+                                SmallVector<NamedAttribute>& stablehloAttrs) {
+  auto tensorAttr = dyn_cast<vhlo::TensorV1Attr>(vhloAttr);
+  if (!tensorAttr) return specialFailure();
+  ArrayRef<int64_t> data(
+      reinterpret_cast<const int64_t*>(tensorAttr.getData().data()),
+      tensorAttr.getData().size() / sizeof(int64_t));
+
+  stablehloAttrs.emplace_back(
+      vhloName, DenseI64ArrayAttr::get(vhloAttr.getContext(), data));
+  return specialSuccess();
+}
+
 template <typename VhloOpTy>
 SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
-                             StringRef vhloName, Attribute vhloAttr,
+                             StringAttr vhloName, Attribute vhloAttr,
                              SmallVector<NamedAttribute>& stablehloAttrs) {
-  StringRef stablehloName = vhloName;
+  StringAttr stablehloName = vhloName;
   Attribute stablehloAttr;
   if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::AllReduceOpV1>::value ||
@@ -464,9 +477,12 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
     }
   }
   if (stablehloAttr) {
-    stablehloAttrs.emplace_back(
-        StringAttr::get(pattern.getContext(), stablehloName), stablehloAttr);
+    stablehloAttrs.emplace_back(stablehloName, stablehloAttr);
     return specialSuccess();
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::FftOpV1>::value) {
+    if (vhloName == "fft_length")
+      return convertDenseArray(vhloName, vhloAttr, stablehloAttrs);
   }
   return notSpecial();
 }
