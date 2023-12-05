@@ -1555,7 +1555,7 @@ func.func @dynamic_update_slice_float(%target: tensor<3x3xf32>,
 // CHECK-DAG: #[[RESULT_MAP:.*]] = affine_map<(d0, d1, d2, d3) -> (d0, d1, d2, d3)>
 // CHECK: func @transpose
 func.func @transpose(%arg0: tensor<2x3x9x5xi32>) -> tensor<3x2x5x9xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>}
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>}
         : (tensor<2x3x9x5xi32>) -> tensor<3x2x5x9xi32>
   func.return %0 : tensor<3x2x5x9xi32>
 }
@@ -1570,7 +1570,7 @@ func.func @transpose(%arg0: tensor<2x3x9x5xi32>) -> tensor<3x2x5x9xi32> {
 // CHECK-DAG: #[[RESULT_MAP:.*]] = affine_map<(d0, d1, d2, d3) -> (d0, d1, d2, d3)>
 // CHECK: func @transpose_dynamic
 func.func @transpose_dynamic(%arg0: tensor<?x?x9x?xi32>) -> tensor<?x?x?x9xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>, someattr}
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>, someattr}
         : (tensor<?x?x9x?xi32>) -> tensor<?x?x?x9xi32>
   func.return %0 : tensor<?x?x?x9xi32>
 }
@@ -1603,7 +1603,7 @@ func.func @transpose_dynamic(%arg0: tensor<?x?x9x?xi32>) -> tensor<?x?x?x9xi32> 
 
 func.func @transpose_unsigned(%arg0: tensor<2x2xui32>) -> tensor<2x2xui32> {
   %0 = "stablehlo.transpose"(%arg0) {
-    permutation = dense<[1, 0]> : tensor<2xi64>,
+    permutation = array<i64: 1, 0>,
     result_layout = dense<[0, 1]> : tensor<2xindex>
   } : (tensor<2x2xui32>) -> tensor<2x2xui32>
   return %0 : tensor<2x2xui32>

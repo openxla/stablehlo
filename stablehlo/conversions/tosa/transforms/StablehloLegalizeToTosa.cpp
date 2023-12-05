@@ -435,9 +435,10 @@ struct ConvertStablehloTransposeOp
     }
 
     auto perms = op.getPermutation();
+    auto type = RankedTensorType::get({static_cast<int64_t>(perms.size())},
+                                      rewriter.getI64Type());
     auto constOp = rewriter.create<tosa::ConstOp>(
-        op->getLoc(),
-        RankedTensorType::get({perms.size()}, rewriter.getI64Type()), perms);
+        op->getLoc(), type, DenseIntElementsAttr::get(type, perms));
     rewriter.replaceOpWithNewOp<tosa::TransposeOp>(op, op.getResult().getType(),
                                                    op.getOperand(), constOp);
     return success();

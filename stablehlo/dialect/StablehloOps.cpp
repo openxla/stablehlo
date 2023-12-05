@@ -2195,8 +2195,7 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
   if (!operandType) return failure();
 
   Location loc = this->getLoc();
-  SmallVector<int64_t, 4> permutation(
-      this->getPermutation().getValues<int64_t>());
+  SmallVector<int64_t, 4> permutation(this->getPermutation());
   SmallVector<Value, 4> shapeValues(permutation.size());
 
   Type shapeScalarType = builder.getIndexType();

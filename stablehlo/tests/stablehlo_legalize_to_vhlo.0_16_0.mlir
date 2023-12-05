@@ -2004,7 +2004,7 @@ func.func @op_transpose(%arg0: tensor<16x8xf32>) ->  tensor<8x16xf32> {
   // CHECK-SAME:   permutation = #vhlo.tensor_v1<dense<[1, 0]> : tensor<2xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x8x!vhlo.f32_v1>) -> !vhlo.tensor_v1<8x16x!vhlo.f32_v1>
   %0 = "stablehlo.transpose"(%arg0) {
-    permutation = dense<[1, 0]> : tensor<2xi64>
+    permutation = array<i64: 1, 0>
   } : (tensor<16x8xf32>) -> tensor<8x16xf32>
   func.return %0 : tensor<8x16xf32>
 }

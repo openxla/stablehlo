@@ -342,7 +342,7 @@ LogicalResult inferTopKOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
-                               DenseIntElementsAttr permutation,
+                               ArrayRef<int64_t> permutation,
                                SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferTriangularSolveOp(

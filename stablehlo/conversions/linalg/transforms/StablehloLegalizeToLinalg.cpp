@@ -553,7 +553,7 @@ Value transposeBroadcastOperand(PatternRewriter &rewriter, Location loc,
   return rewriter.create<mlir::stablehlo::TransposeOp>(
       loc,
       RankedTensorType::get(transposedOperandShape, operandTy.getElementType()),
-      operand, rewriter.getI64VectorAttr(permutation));
+      operand, rewriter.getDenseI64ArrayAttr(permutation));
 }
 
 struct BroadcastInDimOpToBroadcastConverter final
@@ -818,7 +818,7 @@ struct TransposeConverter final
     SmallVector<AffineExpr, 2> inputExprs;
     inputExprs.resize(resultType.getRank());
     for (auto [idx, value] : llvm::enumerate(op.getPermutation())) {
-      inputExprs[value.getZExtValue()] = b->getAffineDimExpr(idx);
+      inputExprs[value] = b->getAffineDimExpr(idx);
     }
     return {
         AffineMap::get(nloops, /*symbolCount=*/0, inputExprs, b->getContext()),
@@ -842,7 +842,7 @@ struct TransposeOpToTransposeConverter final
         getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
 
     auto permutation = rewriter.getDenseI64ArrayAttr(
-        llvm::to_vector(op.getPermutation().getValues<int64_t>()));
+        llvm::to_vector(op.getPermutation()));
 
     rewriter.replaceOpWithNewOp<linalg::TransposeOp>(
         op, adaptor.getOperand(), emptyTensor, permutation,

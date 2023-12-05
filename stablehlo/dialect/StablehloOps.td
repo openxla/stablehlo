@@ -2808,12 +2808,12 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    I64ElementsAttr:$permutation
+    DenseI64ArrayAttr:$permutation
   );
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($permutation)
+    $operand `,` `dims` `=` $permutation
       attr-dict `:` functional-type(operands, results)
   }];
 }

@@ -2921,7 +2921,7 @@ LogicalResult inferTopKOp(
 }
 
 LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
-                               DenseIntElementsAttr permutation,
+                               ArrayRef<int64_t> permutation,
                                SmallVectorImpl<Type>& inferredReturnTypes) {
   auto type = operand.getType();
   auto rankedTy = type.dyn_cast<RankedTensorType>();
@@ -2930,12 +2930,7 @@ LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
     return success();
   }
   int64_t rank = rankedTy.getRank();
-  if (permutation.getType().getRank() != 1)
-    return emitOptionalError(loc, "TransposeOp permutation has rank ",
-                             permutation.getType().getRank(),
-                             " instead of rank 1");
-
-  if (permutation.size() != rank)
+  if (static_cast<int64_t>(permutation.size()) != rank)
     return emitOptionalError(loc, "TransposeOp operand rank ", rank,
                              " does not match permutation size ",
                              permutation.size());
@@ -2952,7 +2947,7 @@ LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
   SmallVector<int64_t> resultShape;
   SmallVector<int64_t> resultBounds;
   ArrayRef<int64_t> inputShape = rankedTy.getShape();
-  for (int64_t dim : permutation.getValues<int64_t>()) {
+  for (int64_t dim : permutation) {
     resultShape.push_back(inputShape[dim]);
     if (!inputBounds.empty()) resultBounds.push_back(inputBounds[dim]);
   }

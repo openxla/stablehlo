@@ -718,7 +718,7 @@ func.func @test_sort2(%input0: tensor<16x16xf32>) {
 }
 
 func.func @test_transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
   func.return %0 : tensor<2x1x4x3xi32>
 }
 

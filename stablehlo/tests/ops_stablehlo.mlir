@@ -2520,21 +2520,21 @@ func.func @dynamic_update_slice_dynamic_sizes(%operand: tensor<?x4xi64>, %update
 
 // CHECK-LABEL: func @transpose
 func.func @transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
   func.return %0: tensor<2x1x4x3xi32>
 }
 
 // -----
 
 func.func @transpose_ranked(%arg0: tensor<?x?x?x?xi32>) ->  tensor<?x?x?x?xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
   func.return %0: tensor<?x?x?x?xi32>
 }
 
 // -----
 
 func.func @transpose_unranked(%arg0: tensor<*xi32>) ->  tensor<*xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<*xi32>) -> tensor<*xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<*xi32>) -> tensor<*xi32>
   func.return %0: tensor<*xi32>
 }
 
@@ -2548,19 +2548,10 @@ func.func @transpose_missing_permutation(%arg0: tensor<1x2x3x4xi32>) -> tensor<2
 
 // -----
 
-func.func @transpose_bad_permutations_rank(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2x1x4x3xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{permutation has rank 2 instead of rank 1}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[[1]]> : tensor<1x1xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
-  func.return %0: tensor<2x1x4x3xi32>
-}
-
-// -----
-
 func.func @transpose_bad_permutations_size(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2x1x4x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{TransposeOp operand rank 4 does not match permutation size 1}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1]> : tensor<1xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
   func.return %0: tensor<2x1x4x3xi32>
 }
 
@@ -2568,8 +2559,8 @@ func.func @transpose_bad_permutations_size(%arg0: tensor<1x2x3x4xi32>) ->  tenso
 
 func.func @transpose_bad_permutation(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2x1x4x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{attribute permutation must be a permutation of [0, 1, 2, 3] but got dense<[1, 0, 3, 9]> : tensor<4xi64>}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 9]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
+  // expected-error@+1 {{attribute permutation must be a permutation of [0, 1, 2, 3] but got 1, 0, 3, 9}}
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 9>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
   func.return %0: tensor<2x1x4x3xi32>
 }
 
@@ -2578,7 +2569,7 @@ func.func @transpose_bad_permutation(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2x1x
 func.func @transpose_operand_result_rank_mismatch(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{op inferred type(s) 'tensor<2x1x4x3xi32>' are incompatible with return type(s) of operation 'tensor<2xi32>'}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x2x3x4xi32>) -> tensor<2xi32>
   func.return %0: tensor<2xi32>
 }
 
@@ -2587,7 +2578,7 @@ func.func @transpose_operand_result_rank_mismatch(%arg0: tensor<1x2x3x4xi32>) ->
 func.func @transpose_operand_result_permutation_mismatch(%arg0: tensor<1x?x3x?xi32>) ->  tensor<?x2x?x?xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{op inferred type(s) 'tensor<?x1x?x3xi32>' are incompatible with return type(s) of operation 'tensor<?x2x?x?xi32>}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x?x3x?xi32>) -> tensor<?x2x?x?xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x?x3x?xi32>) -> tensor<?x2x?x?xi32>
   func.return %0: tensor<?x2x?x?xi32>
 }
 
@@ -5395,7 +5386,7 @@ func.func @per_axis_quantized_ops(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127
   %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[0,1,3]> : tensor<3xi64>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.5:-20}>>
   %1 = "stablehlo.broadcast_in_dim"(%arg1) {broadcast_dimensions = dense<[0,1,2]> : tensor<3xi64>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) -> tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.1:-30}>>
   %2 = stablehlo.reshape %arg0 : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
-  %3 = "stablehlo.transpose"(%arg0) {permutation = dense<[0,2,1]> : tensor<3xi64>}: (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
+  %3 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>}: (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
   func.return
 }
 

@@ -1147,7 +1147,7 @@ func.func @add_bounds_unranked(
 
 // CHECK-LABEL: func @transpose
 func.func @transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<*xindex> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<*xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x2x3x4xi32>) -> tensor<*xi32>
 
   // CHECK: types0 = tensor<2x1x4x3xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
@@ -1158,7 +1158,7 @@ func.func @transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<*xindex> {
 
 // CHECK-LABEL: func @transpose_with_bounds
 func.func @transpose_with_bounds(%arg0: tensor<?x2x?x4xi32, #stablehlo.bounds<1, ?, 3, ?>>) -> tensor<*xindex> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<?x2x?x4xi32, #stablehlo.bounds<1, ?, 3, ?>>) -> tensor<*xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<?x2x?x4xi32, #stablehlo.bounds<1, ?, 3, ?>>) -> tensor<*xi32>
 
   // CHECK: types0 = tensor<2x?x4x?xi32, #stablehlo.bounds<?, 1, ?, 3>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
@@ -1656,7 +1656,7 @@ func.func @transpose(%arg0: tensor<?x?x?x?xi32>) -> tensor<4xindex> {
   // CHECK: %[[DIM2:.*]] = tensor.dim %[[ARG0]], %[[C3]] : tensor<?x?x?x?xi32>
   // CHECK: %[[RES:.*]] = tensor.from_elements %[[DIM0]], %[[DIM]], %[[DIM2]], %[[DIM1]] : tensor<4xindex>
   // CHECK: return %[[RES]] : tensor<4xindex>
-  %result = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
+  %result = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?x?x?x?xi32>) -> tensor<4xindex>
   func.return %1: tensor<4xindex>
 }
