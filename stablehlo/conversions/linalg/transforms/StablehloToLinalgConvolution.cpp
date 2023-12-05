@@ -65,9 +65,6 @@ Value applyConvolutionPadding(Location loc, Value input,
     }
   }
 
-  IntegerType indexType = rewriter.getIntegerType(64);
-  auto attrType = RankedTensorType::get({rank}, indexType);
-
   Value zero;
   if (auto complexType = dyn_cast<ComplexType>(inputType.getElementType())) {
     auto zeroElement = rewriter.getZeroAttr(complexType.getElementType());
@@ -82,9 +79,9 @@ Value applyConvolutionPadding(Location loc, Value input,
   }
 
   return rewriter.create<mlir::stablehlo::PadOp>(
-      loc, input, zero, DenseIntElementsAttr::get(attrType, padLow),
-      DenseIntElementsAttr::get(attrType, padHigh),
-      DenseIntElementsAttr::get(attrType, padInterior));
+      loc, input, zero, padLow,
+      padHigh,
+      padInterior);
 }
 
 /// If the ConvolutionOp has a window reversal, applies it to the filter.

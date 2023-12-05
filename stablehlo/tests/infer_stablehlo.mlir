@@ -81,9 +81,9 @@ func.func @dynamic_slice(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tens
 // CHECK-LABEL: @pad
 func.func @pad(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xindex> {
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
+    edge_padding_high = array<i64: 1, 1, 0>,
+    edge_padding_low = array<i64: 0, 1, 2>,
+    interior_padding = array<i64: 0, 0, 1>
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
   // CHECK: types0 = tensor<2x4x7xf16>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x4x7xf16>) -> tensor<2x4x7xindex>
@@ -1190,9 +1190,9 @@ func.func @slice_with_index_larger_than_bound_dim(%arg0: tensor<3x?x?xi32, #stab
 // CHECK-LABEL: @pad_with_bounds
 func.func @pad_with_bounds(%arg0: tensor<3x?x?xf16, #stablehlo.bounds<?, 3, ?>>, %arg1: tensor<f16>) -> tensor<*xindex> {
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[2, 2, 0]> : tensor<3xi64>,
-    edge_padding_high = dense<[0, 0, 0]> : tensor<3xi64>,
-    interior_padding = dense<[1, 1, 1]> : tensor<3xi64>
+    edge_padding_low = array<i64: 2, 2, 0>,
+    edge_padding_high = array<i64: 0, 0, 0>,
+    interior_padding = array<i64: 1, 1, 1>
   } : (tensor<3x?x?xf16, #stablehlo.bounds<?, 3, ?>>, tensor<f16>) -> tensor<*xf16>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf16>) -> tensor<*xindex>
   // CHECK: types0 = tensor<7x?x?xf16, #stablehlo.bounds<?, 7, ?>>
@@ -1205,9 +1205,9 @@ func.func @pad_with_negative_inferred_bounds(%arg0: tensor<3x?x?xf16, #stablehlo
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{Padding result in negative bound for dimension 1}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[2, -10, 0]> : tensor<3xi64>,
-    edge_padding_high = dense<[0, 0, 0]> : tensor<3xi64>,
-    interior_padding = dense<[1, 1, 1]> : tensor<3xi64>
+    edge_padding_low = array<i64: 2, -10, 0>,
+    edge_padding_high = array<i64: 0, 0, 0>,
+    interior_padding = array<i64: 1, 1, 1>
   } : (tensor<3x?x?xf16, #stablehlo.bounds<?, 3, ?>>, tensor<f16>) -> tensor<*xf16>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf16>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
@@ -1473,9 +1473,9 @@ func.func @pad(%arg0: tensor<?x48x48x32xf32>) -> tensor<4xindex> {
   // CHECK: return %[[RES]] : tensor<4xindex>
   %0 = "stablehlo.constant"() {value = dense<0.000000e+00> : tensor<f32>} : () -> tensor<f32>
   %result = "stablehlo.pad"(%arg0, %0) {
-    edge_padding_high = dense<[0, 0, 0, 16]> : tensor<4xi64>,
-    edge_padding_low = dense<0> : tensor<4xi64>,
-    interior_padding = dense<0> : tensor<4xi64>
+    edge_padding_high = array<i64: 0, 0, 0, 16>,
+    edge_padding_low = array<i64: 0, 0, 0, 0>,
+    interior_padding = array<i64: 0, 0, 0, 0>
   } : (tensor<?x48x48x32xf32>, tensor<f32>) -> tensor<?x48x48x48xf32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<?x48x48x48xf32>) -> tensor<4xindex>
   func.return %1 : tensor<4xindex>

@@ -737,9 +737,9 @@ func.func @map_compare(%arg0: tensor<?xcomplex<f32>>,
 func.func @pad_cst(%arg0: tensor<12x4xf32>) -> tensor<18x12xf32> {
   %0 = arith.constant dense<0.0> : tensor<f32>
   %1 = "stablehlo.pad"(%arg0, %0) {
-    edge_padding_high = dense<[2, 3]> : tensor<2xi64>,
-    edge_padding_low = dense<[4, 5]> : tensor<2xi64>,
-    interior_padding = dense<0> : tensor<2xi64>
+    edge_padding_high = array<i64: 2, 3>,
+    edge_padding_low = array<i64: 4, 5>,
+    interior_padding = array<i64: 0, 0>
   } : (tensor<12x4xf32>, tensor<f32>) -> tensor<18x12xf32>
   func.return %1 : tensor<18x12xf32>
 }
@@ -754,9 +754,9 @@ func.func @pad_cst(%arg0: tensor<12x4xf32>) -> tensor<18x12xf32> {
 
 func.func @pad_tensor(%arg0: tensor<12x4xf32>, %arg1: tensor<f32>) -> tensor<18x12xf32> {
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[2, 3]> : tensor<2xi64>,
-    edge_padding_low = dense<[4, 5]> : tensor<2xi64>,
-    interior_padding = dense<0> : tensor<2xi64>
+    edge_padding_high = array<i64: 2, 3>,
+    edge_padding_low = array<i64: 4, 5>,
+    interior_padding = array<i64: 0, 0>
   } : (tensor<12x4xf32>, tensor<f32>) -> tensor<18x12xf32>
   func.return %0 : tensor<18x12xf32>
 }
@@ -773,9 +773,9 @@ func.func @pad_tensor(%arg0: tensor<12x4xf32>, %arg1: tensor<f32>) -> tensor<18x
 func.func @pad_interior(%arg0: tensor<12x4xui32>, %arg1: tensor<ui32>) -> tensor<29x15xui32> {
   %0 = arith.constant dense<0> : tensor<ui32>
   %1 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[2, 3]> : tensor<2xi64>,
-    edge_padding_low = dense<[4, 5]> : tensor<2xi64>,
-    interior_padding = dense<[1, 1]> : tensor<2xi64>
+    edge_padding_high = array<i64: 2, 3>,
+    edge_padding_low = array<i64: 4, 5>,
+    interior_padding = array<i64: 1, 1>
   } : (tensor<12x4xui32>, tensor<ui32>) -> tensor<29x15xui32>
   func.return %1 : tensor<29x15xui32>
 }
@@ -794,9 +794,9 @@ func.func @pad_interior(%arg0: tensor<12x4xui32>, %arg1: tensor<ui32>) -> tensor
 func.func @pad_interior_negative(%arg0: tensor<12x4xui32>, %arg1: tensor<ui32>) -> tensor<25x9xui32> {
   %0 = arith.constant dense<0> : tensor<ui32>
   %1 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[-2, 3]> : tensor<2xi64>,
-    edge_padding_low = dense<[4, -1]> : tensor<2xi64>,
-    interior_padding = dense<[1, 1]> : tensor<2xi64>
+    edge_padding_high = array<i64: -2, 3>,
+    edge_padding_low = array<i64: 4, -1>,
+    interior_padding = array<i64: 1, 1>
   } : (tensor<12x4xui32>, tensor<ui32>) -> tensor<25x9xui32>
   func.return %1 : tensor<25x9xui32>
 }

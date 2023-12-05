@@ -1954,26 +1954,9 @@ LogicalResult PadOp::reifyReturnTypeShapes(
   Value operand = adaptor.getOperand();
   auto operandTy = operand.getType().cast<RankedTensorType>();
 
-  llvm::SmallVector<int32_t> padHigh;
-  llvm::SmallVector<int32_t> padLow;
-  llvm::SmallVector<int32_t> padInterior;
-
-  auto padHighAttr = adaptor.getEdgePaddingHigh();
-  auto padLowAttr = adaptor.getEdgePaddingLow();
-  auto padInteriorAttr = adaptor.getInteriorPadding();
-
-  padHigh.reserve(padHighAttr.getNumElements());
-  padLow.reserve(padLowAttr.getNumElements());
-  padInterior.reserve(padInteriorAttr.getNumElements());
-
-  for (const APInt& val : padHighAttr.getValues<APInt>())
-    padHigh.push_back(val.getSExtValue());
-
-  for (const APInt& val : padLowAttr.getValues<APInt>())
-    padLow.push_back(val.getSExtValue());
-
-  for (const APInt& val : padInteriorAttr.getValues<APInt>())
-    padInterior.push_back(val.getSExtValue());
+  auto padHigh = adaptor.getEdgePaddingHigh();
+  auto padLow = adaptor.getEdgePaddingLow();
+  auto padInterior = adaptor.getInteriorPadding();
 
   Value one = builder.create<arith::ConstantIndexOp>(loc, 1).getResult();
   Value zero = builder.create<arith::ConstantIndexOp>(loc, 0).getResult();

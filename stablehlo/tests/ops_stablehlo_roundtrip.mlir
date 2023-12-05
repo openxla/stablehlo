@@ -448,7 +448,7 @@ func.func @test_outfeed3(%token: !stablehlo.token) -> !stablehlo.token {
 }
 
 func.func @test_pad(%arg: tensor<4x6xf32>, %pad: tensor<f32>) -> tensor<13x19xf32> {
-  %0 = "stablehlo.pad"(%arg, %pad) {edge_padding_high = dense<[4,5]> : tensor<2xi64>, edge_padding_low = dense<[2,3]> : tensor<2xi64>, interior_padding = dense<1> : tensor<2xi64>} : (tensor<4x6xf32>, tensor<f32>) -> tensor<13x19xf32>
+  %0 = "stablehlo.pad"(%arg, %pad) {edge_padding_high = array<i64: 4,5>, edge_padding_low = array<i64: 2,3>, interior_padding = array<i64: 1, 1>} : (tensor<4x6xf32>, tensor<f32>) -> tensor<13x19xf32>
   func.return %0 : tensor<13x19xf32>
 }
 

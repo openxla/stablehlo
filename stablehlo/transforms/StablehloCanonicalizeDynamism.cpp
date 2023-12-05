@@ -189,11 +189,9 @@ struct CanonicalizeDynamicPadOpPattern : public OpRewritePattern<DynamicPadOp> {
       return rewriter.notifyMatchFailure(op, "expected static high");
     if (!succeeded(hlo::matchInts(op.getInteriorPadding(), interiorPadding)))
       return rewriter.notifyMatchFailure(op, "expected static interior");
-    rewriter.replaceOpWithNewOp<PadOp>(
-        op, op.getType(), op.getOperand(), op.getPaddingValue(),
-        rewriter.getI64TensorAttr(edgePaddingLow),
-        rewriter.getI64TensorAttr(edgePaddingHigh),
-        rewriter.getI64TensorAttr(interiorPadding));
+    rewriter.replaceOpWithNewOp<PadOp>(op, op.getType(), op.getOperand(),
+                                       op.getPaddingValue(), edgePaddingLow,
+                                       edgePaddingHigh, interiorPadding);
     return success();
   }
 };

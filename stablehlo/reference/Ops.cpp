@@ -58,11 +58,9 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  const Sizes &interiorPadding) {
   SmallVector<Type> inferredTypes;
   Builder builder(operand.getType().getContext());
-  auto inferStatus =
-      hlo::inferPadOp({}, operand.getType(), paddingValue.getType(),
-                      builder.getI64TensorAttr(edgePaddingLow),
-                      builder.getI64TensorAttr(edgePaddingHigh),
-                      builder.getI64TensorAttr(interiorPadding), inferredTypes);
+  auto inferStatus = hlo::inferPadOp(
+      {}, operand.getType(), paddingValue.getType(), edgePaddingLow,
+      edgePaddingHigh, interiorPadding, inferredTypes);
   if (failed(inferStatus))
     report_fatal_error(invalidArgument("Could not infer PadOp's return type"));
   return evalPadOp(operand, paddingValue, edgePaddingLow, interiorPadding,

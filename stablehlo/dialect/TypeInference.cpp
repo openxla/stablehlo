@@ -2452,9 +2452,9 @@ LogicalResult inferOutfeedOp(HloDialectInterface* dialect,
 
 LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
                          Type paddingValueType,
-                         DenseIntElementsAttr edgePaddingLow,
-                         DenseIntElementsAttr edgePaddingHigh,
-                         DenseIntElementsAttr interiorPadding,
+                         ArrayRef<int64_t> edgePaddingLow,
+                         ArrayRef<int64_t> edgePaddingHigh,
+                         ArrayRef<int64_t> interiorPadding,
                          SmallVectorImpl<Type>& inferredReturnTypes) {
   auto inputType = operandType.cast<RankedTensorType>();
   auto padType = paddingValueType.cast<RankedTensorType>();
@@ -2466,17 +2466,11 @@ LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
                              "tensor, is rank ",
                              padType.getRank());
 
-  // pad_i3
-  if (edgePaddingLow.getType().getRank() != 1)
-    return emitOptionalError(location, "edge_padding_low has rank ",
-                             edgePaddingLow.getType().getRank(),
-                             " instead of required rank 1");
-
   int64_t rank = inputType.getRank();
   // pad_c2
-  if (edgePaddingLow.getType().getNumElements() != rank)
+  if (static_cast<int64_t>(edgePaddingLow.size()) != rank)
     return emitOptionalError(location, "edge_padding_low length (",
-                             edgePaddingLow.getType().getNumElements(),
+                             edgePaddingLow.size(),
                              ") must match operand rank (", rank, ")");
 
   auto inputShape = inputType.getShape();
@@ -2485,11 +2479,9 @@ LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
   SmallVector<int64_t> resultBounds(inputBounds.size(), ShapedType::kDynamic);
 
   for (int i = 0, e = inputShape.size(); i < e; i++) {
-    int64_t paddingLowVal = edgePaddingLow.getValues<APInt>()[i].getSExtValue();
-    int64_t paddingHighVal =
-        edgePaddingHigh.getValues<APInt>()[i].getSExtValue();
-    int64_t paddingInteriorVal =
-        interiorPadding.getValues<APInt>()[i].getSExtValue();
+    int64_t paddingLowVal = edgePaddingLow[i];
+    int64_t paddingHighVal = edgePaddingHigh[i];
+    int64_t paddingInteriorVal = interiorPadding[i];
     // pad_c3
     if (paddingInteriorVal < 0)
       return emitOptionalError(

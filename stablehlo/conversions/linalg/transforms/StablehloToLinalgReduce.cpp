@@ -430,16 +430,9 @@ struct ReduceWindowOpOnTensorsGenericConversion final
         staticInteriors[idx] = dilation - 1;
       }
 
-      auto padAttrType =
-          RankedTensorType::get({rank}, rewriter.getIntegerType(64));
-      auto padLows = DenseIntElementsAttr::get(padAttrType, staticLows);
-      auto padHighs = DenseIntElementsAttr::get(padAttrType, staticHighs);
-      auto padInteriors =
-          DenseIntElementsAttr::get(padAttrType, staticInteriors);
-
       for (auto [input, initValue] : llvm::zip(inputs, initValues)) {
         input = rewriter.create<mlir::stablehlo::PadOp>(
-            loc, input, initValue, padLows, padHighs, padInteriors);
+            loc, input, initValue, staticLows, staticHighs, staticInteriors);
       }
     }
 

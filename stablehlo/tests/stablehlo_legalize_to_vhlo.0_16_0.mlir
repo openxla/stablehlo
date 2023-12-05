@@ -1569,9 +1569,9 @@ func.func @op_pad(%arg0: tensor<8xf32>, %arg1: tensor<f32>) -> tensor<16xf32> {
   // CHECK-SAME:   interior_padding = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<8x!vhlo.f32_v1>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<16x!vhlo.f32_v1>
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<4> : tensor<1xi64>,
-    edge_padding_low = dense<4> : tensor<1xi64>,
-    interior_padding = dense<0> : tensor<1xi64>
+    edge_padding_high = array<i64: 4>,
+    edge_padding_low = array<i64: 4>,
+    interior_padding = array<i64: 0>
   } : (tensor<8xf32>, tensor<f32>) -> tensor<16xf32>
   func.return %0 : tensor<16xf32>
 }

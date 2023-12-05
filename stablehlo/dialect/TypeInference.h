@@ -267,9 +267,9 @@ LogicalResult inferOutfeedOp(HloDialectInterface* dialect,
 
 LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
                          Type paddingValueType,
-                         DenseIntElementsAttr edgePaddingLow,
-                         DenseIntElementsAttr edgePaddingHigh,
-                         DenseIntElementsAttr interiorPadding,
+                         ArrayRef<int64_t> edgePaddingLow,
+                         ArrayRef<int64_t> edgePaddingHigh,
+                         ArrayRef<int64_t> interiorPadding,
                          SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferPartitionIdOp(MLIRContext* context,

@@ -500,6 +500,11 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
     if (vhloName == "permutation")
       return convertDenseArray(vhloName, vhloAttr, stablehloAttrs);
   }
+  if constexpr (std::is_same<VhloOpTy, vhlo::PadOpV1>::value) {
+    if (vhloName == "edge_padding_low" || vhloName == "edge_padding_high" ||
+        vhloName == "interior_padding")
+      return convertDenseArray(vhloName, vhloAttr, stablehloAttrs);
+  }
   if constexpr (std::is_same<VhloOpTy, vhlo::SliceOpV1>::value) {
     if (vhloName == "start_indices" || vhloName == "limit_indices" ||
         vhloName == "strides")
