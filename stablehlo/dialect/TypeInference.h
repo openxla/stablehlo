@@ -484,7 +484,7 @@ LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
                               Value result);
 
 LogicalResult verifyReverseOp(std::optional<Location> location, Value operand,
-                              DenseIntElementsAttr dimensions);
+                              llvm::ArrayRef<int64_t> dimensions);
 
 LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,
                                       Value initialState, Value outputState);

@@ -2717,7 +2717,7 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    I64ElementsAttr:$dimensions
+    DenseI64ArrayAttr:$dimensions
   );
 
   let hasVerifier = 1;
@@ -2725,7 +2725,7 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
   let results = (outs HLO_Tensor:$result);
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($dimensions)
+    $operand `,` `dims` `=` $dimensions
       attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
   }];
 }

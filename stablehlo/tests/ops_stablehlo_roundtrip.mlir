@@ -574,7 +574,7 @@ func.func @test_reshape(%arg0: tensor<2xf32>) -> tensor<1x2xf32> {
 
 func.func @test_reverse(%arg0 : tensor<10x11x12x13xf32>) -> tensor<10x11x12x13xf32> {
   %result = "stablehlo.reverse"(%arg0) {
-    dimensions = dense<[1,2]> : tensor<2xi64>
+    dimensions = array<i64: 1,2>
   } : (tensor<10x11x12x13xf32>) -> tensor<10x11x12x13xf32>
   func.return %result : tensor<10x11x12x13xf32>
 }

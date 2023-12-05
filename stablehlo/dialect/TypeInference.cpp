@@ -3918,20 +3918,14 @@ LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
 }
 
 LogicalResult verifyReverseOp(std::optional<Location> location, Value operand,
-                              DenseIntElementsAttr dimensions) {
-  // reverse_i2
-  if (dimensions.getType().getRank() != 1)
-    return emitOptionalError(location, "dimensions has rank ",
-                             dimensions.getType().getRank(),
-                             " instead of required rank 1.");
-  auto dims = dimensions.getValues<int64_t>();
-  llvm::SmallDenseSet<int64_t> uniqueDims(dims.begin(), dims.end());
+                              ArrayRef<int64_t> dimensions) {
+  llvm::SmallDenseSet<int64_t> uniqueDims(dimensions.begin(), dimensions.end());
   // reverse_c2
-  if (uniqueDims.size() != dims.size())
+  if (uniqueDims.size() != dimensions.size())
     return emitOptionalError(location,
-                             "dimensions should be unique. Got: ", dims);
+                             "dimensions should be unique. Got: ", dimensions);
   auto operandTy = operand.getType().dyn_cast<RankedTensorType>();
-  for (int64_t dim : uniqueDims) {
+  for (int64_t dim : dimensions) {
     // reverse_c3
     if (dim < 0)
       return emitOptionalError(

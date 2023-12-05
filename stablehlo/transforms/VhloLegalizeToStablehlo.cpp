@@ -484,6 +484,10 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
     if (vhloName == "fft_length")
       return convertDenseArray(vhloName, vhloAttr, stablehloAttrs);
   }
+  if constexpr (std::is_same<VhloOpTy, vhlo::ReverseOpV1>::value) {
+    if (vhloName == "dimensions")
+      return convertDenseArray(vhloName, vhloAttr, stablehloAttrs);
+  }
   if constexpr (std::is_same<VhloOpTy, vhlo::TransposeOpV1>::value) {
     if (vhloName == "permutation")
       return convertDenseArray(vhloName, vhloAttr, stablehloAttrs);

@@ -1740,7 +1740,7 @@ func.func @op_reverse(%arg0: tensor<16xf32>) -> tensor<16xf32> {
   // CHECK-SAME:   dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>) -> !vhlo.tensor_v1<16x!vhlo.f32_v1>
   %0 = "stablehlo.reverse"(%arg0) {
-    dimensions = dense<0> : tensor<1xi64>
+    dimensions = array<i64: 0>
   } : (tensor<16xf32>) -> tensor<16xf32>
   func.return %0 : tensor<16xf32>
 }

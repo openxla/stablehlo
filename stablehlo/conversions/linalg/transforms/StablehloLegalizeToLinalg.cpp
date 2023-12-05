@@ -1398,11 +1398,10 @@ struct ReverseConverter final
     inputExprs.reserve(nloops);
     for (int64_t i = 0; i < nloops; ++i)
       inputExprs.push_back(b->getAffineDimExpr(i));
-    for (const APInt &dim : op.getDimensions()) {
-      int i = dim.getZExtValue();
-      if (resultType.isDynamicDim(i)) return {};
-      int n = resultType.getShape()[i];
-      inputExprs[i] = b->getAffineConstantExpr(n - 1) - inputExprs[i];
+    for (const auto &dim : op.getDimensions()) {
+      if (resultType.isDynamicDim(dim)) return {};
+      int n = resultType.getShape()[dim];
+      inputExprs[dim] = b->getAffineConstantExpr(n - 1) - inputExprs[dim];
     }
     return {
         AffineMap::get(nloops, /*symbolCount=*/0, inputExprs, b->getContext()),

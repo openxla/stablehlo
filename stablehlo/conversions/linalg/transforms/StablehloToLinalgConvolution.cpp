@@ -105,10 +105,7 @@ Value applyConvolutionReversal(Location loc, OpBuilder &b,
   }
 
   return b.create<mlir::stablehlo::ReverseOp>(
-      loc, filter,
-      mlir::DenseIntElementsAttr::get(
-          RankedTensorType::get(reversedDims.size(), b.getI64Type()),
-          reversedDims));
+      loc, filter, b.getDenseI64ArrayAttr(reversedDims));
 }
 
 /// Returns true if the given `dimensionNumbers` from a stablehlo.convolution op
