@@ -2164,7 +2164,6 @@ LogicalResult inferFftOp(
     std::optional<Location> location, Value operand, bool isFftTypeRfft,
     bool isFftTypeIrfft, ArrayRef<int64_t> fftLength,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto fftLengthValues = fftLength;
   int64_t fftRank = fftLength.size();
 
   // P1.
@@ -2214,38 +2213,36 @@ LogicalResult inferFftOp(
 
   if (isFftTypeRfft) {
     auto shapeBack = operandShape.take_back(fftRank);
-    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
+    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLength)) {
       if (!verifyCompatibleDims(operandDim, fftDim))
         return emitOptionalError(location,
                                  "RFFT requires innermost dimensions to be "
                                  "compatible with fft_length. Got: ",
-                                 operandShape, " but wanted ", fftLengthValues,
-                                 ".");
+                                 operandShape, " but wanted ", fftLength, ".");
     }
-    if (fftLengthValues[fftRank - 1] != 0)
-      resultShape[resultShape.size() - 1] =
-          fftLengthValues[fftRank - 1] / 2 + 1;
+    if (fftLength[fftRank - 1] != 0)
+      resultShape[resultShape.size() - 1] = fftLength[fftRank - 1] / 2 + 1;
   }
   if (isFftTypeIrfft) {
     auto shapeBack = operandShape.take_back(fftRank).drop_back();
-    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
+    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLength)) {
       if (!verifyCompatibleDims(operandDim, fftDim))
         return emitOptionalError(location,
                                  "IRFFT requires non-final dimensions to be "
                                  "compatible with fft_length. Got: ",
-                                 operandShape, " but wanted ", fftLengthValues,
+                                 operandShape, " but wanted ", fftLength,
                                  ", and ", operandDim, " != ", fftDim, ".");
     }
     if ((!verifyCompatibleDims(operandShape[operandShape.size() - 1], 0) ||
-         fftLengthValues[fftRank - 1] != 0) &&
+         fftLength[fftRank - 1] != 0) &&
         !verifyCompatibleDims(operandShape[operandShape.size() - 1],
-                              fftLengthValues[fftRank - 1] / 2 + 1))
+                              fftLength[fftRank - 1] / 2 + 1))
       return emitOptionalError(location,
                                "IRFFT requires innermost dimension to be "
                                "compatible with fft_length[-1]/2+1. Got: ",
                                operandShape[operandShape.size() - 1],
-                               " but fft_length is ", fftLengthValues, ".");
-    resultShape[resultShape.size() - 1] = fftLengthValues[fftRank - 1];
+                               " but fft_length is ", fftLength, ".");
+    resultShape[resultShape.size() - 1] = fftLength[fftRank - 1];
   }
   auto resultBounds = encodingToBounds(operandRankedType.getEncoding()).vec();
   if ((isFftTypeIrfft || isFftTypeRfft) && !resultBounds.empty())

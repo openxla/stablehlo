@@ -500,7 +500,7 @@ SpecialResult convertUseGlobalDeviceIds(
 
 template <typename StablehloOpTy>
 SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
-                             StringRef stablehloName, Attribute stablehloAttr,
+                             StringAttr stablehloName, Attribute stablehloAttr,
                              SmallVector<NamedAttribute>& vhloAttrs) {
   if constexpr (std::is_same<StablehloOpTy, stablehlo::AllGatherOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::AllReduceOp>::value ||
