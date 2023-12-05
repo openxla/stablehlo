@@ -394,9 +394,9 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
     if (failed(hlo::matchInts(op.getOperand(), operand)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
 
-    int64_t start = op.getStartIndices().getValues<int64_t>()[0];
-    int64_t limit = op.getLimitIndices().getValues<int64_t>()[0];
-    int64_t stride = op.getStrides().getValues<int64_t>()[0];
+    int64_t start = op.getStartIndices()[0];
+    int64_t limit = op.getLimitIndices()[0];
+    int64_t stride = op.getStrides()[0];
     SmallVector<APSInt> result;
     for (auto i = start; i < limit; i += stride) {
       result.push_back(operand[i]);
@@ -906,9 +906,7 @@ struct RefineRealDynamicSliceOpPattern
         succeeded(hlo::matchInts(op.getStrides(), strides))) {
       SmallVector<Type> inferredReturnTypes;
       if (failed(hlo::inferSliceOp(/*location=*/{}, op.getOperand().getType(),
-                                   rewriter.getI64TensorAttr(startIndices),
-                                   rewriter.getI64TensorAttr(limitIndices),
-                                   rewriter.getI64TensorAttr(strides),
+                                   startIndices, limitIndices, strides,
                                    inferredReturnTypes)))
         return rewriter.notifyMatchFailure(op, "inferSliceOp failed");
       return refineReturnTypes(rewriter, op, inferredReturnTypes);

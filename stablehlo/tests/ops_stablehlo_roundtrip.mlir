@@ -695,7 +695,7 @@ func.func @test_shift(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> (tensor<4xi
 }
 
 func.func @test_slice(%arg: tensor<3x4xi32>) -> tensor<1x2xi32> {
-  %0 = "stablehlo.slice"(%arg) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
+  %0 = "stablehlo.slice"(%arg) {start_indices = array<i64: 1, 0>, limit_indices = array<i64: 2, 4>, strides = array<i64: 1, 2>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
 

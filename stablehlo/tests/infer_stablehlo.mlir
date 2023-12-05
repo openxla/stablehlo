@@ -229,7 +229,7 @@ func.func @rng_uniform(%a: tensor<f32>, %b: tensor<f32>) -> tensor<2x3x5xindex> 
 
 // CHECK-LABEL: func @slice
 func.func @slice(%arg0: tensor<3x4xi32>) -> tensor<1x2xindex> {
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0>, limit_indices = array<i64: 2, 4>, strides = array<i64: 1, 2>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
   // CHECK: types0 = tensor<1x2xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<1x2xi32>) -> tensor<1x2xindex>
   func.return %1 : tensor<1x2xindex>
@@ -1169,7 +1169,7 @@ func.func @transpose_with_bounds(%arg0: tensor<?x2x?x4xi32, #stablehlo.bounds<1,
 
 // CHECK-LABEL: func @slice_with_bounds
 func.func @slice_with_bounds(%arg0: tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xindex> {
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0, 0]> : tensor<3xi64>, limit_indices = dense<[2, 4, 4]> : tensor<3xi64>, strides = dense<[1, 2, 2]> : tensor<3xi64>} : (tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0, 0>, limit_indices = array<i64: 2, 4, 4>, strides = array<i64: 1, 2, 2>} : (tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xi32>
   // CHECK: types0 = tensor<1x2x2xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
@@ -1180,7 +1180,7 @@ func.func @slice_with_bounds(%arg0: tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>
 func.func @slice_with_index_larger_than_bound_dim(%arg0: tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xindex> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{limit index 5 is larger than dimension bound 4 in dimension 1}}
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0, 0]> : tensor<3xi64>, limit_indices = dense<[2, 5, 4]> : tensor<3xi64>, strides = dense<[1, 2, 2]> : tensor<3xi64>} : (tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0, 0>, limit_indices = array<i64: 2, 5, 4>, strides = array<i64: 1, 2, 2>} : (tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }

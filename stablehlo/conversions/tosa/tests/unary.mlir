@@ -81,9 +81,9 @@ func.func @negate(%arg : tensor<10xf32>) -> tensor<10xf32> {
 func.func @slice(%arg : tensor<4x3xf32>) -> tensor<2x2xf32> {
   // CHECK: tosa.slice %arg0 {size = array<i64: 2, 2>, start = array<i64: 2, 1>}
   %0 = "stablehlo.slice"(%arg) {
-    start_indices = dense<[2, 1]> : tensor<2xi64>,
-    limit_indices = dense<[4, 3]> : tensor<2xi64>,
-    strides = dense<1> : tensor<2xi64>
+    start_indices = array<i64: 2, 1>,
+    limit_indices = array<i64: 4, 3>,
+    strides = array<i64: 1, 1>
   } : (tensor<4x3xf32>) -> tensor<2x2xf32>
   return %0 : tensor<2x2xf32>
 }
@@ -93,9 +93,9 @@ func.func @slice_stride_not_one(%arg : tensor<4x3xf32>) -> tensor<2x1xf32> {
   // tosa.slice only supports strides of 1, so this should not legalize.
   // CHECK: stablehlo.slice
   %0 = "stablehlo.slice"(%arg) {
-    start_indices = dense<[2, 1]> : tensor<2xi64>,
-    limit_indices = dense<[4, 3]> : tensor<2xi64>,
-    strides = dense<[1, 2]> : tensor<2xi64>
+    start_indices = array<i64: 2, 1>,
+    limit_indices = array<i64: 4, 3>,
+    strides = array<i64: 1, 2>
   } : (tensor<4x3xf32>) -> tensor<2x1xf32>
   return %0 : tensor<2x1xf32>
 }
@@ -105,9 +105,9 @@ func.func @slice_rank_seven(%arg : tensor<2x3x4x5x6x7x8xf32>) -> tensor<1x2x3x4x
   // tosa.slice only supports 1D to 6D tensors, so this should not legalize.
   // CHECK: stablehlo.slice
   %0 = "stablehlo.slice"(%arg) {
-    start_indices = dense<[1, 1, 1, 1, 1, 1, 1]> : tensor<7xi64>,
-    limit_indices = dense<[2, 3, 4, 5, 6, 7, 8]> : tensor<7xi64>,
-    strides = dense<[1, 1, 1, 1, 1, 1, 1]> : tensor<7xi64>
+    start_indices = array<i64: 1, 1, 1, 1, 1, 1, 1>,
+    limit_indices = array<i64: 2, 3, 4, 5, 6, 7, 8>,
+    strides = array<i64: 1, 1, 1, 1, 1, 1, 1>
   } : (tensor<2x3x4x5x6x7x8xf32>) -> tensor<1x2x3x4x5x6x7xf32>
   return %0 : tensor<1x2x3x4x5x6x7xf32>
 }

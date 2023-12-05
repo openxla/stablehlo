@@ -4,9 +4,9 @@
 
 module @jit_fun_flat_jax {
   func.func public @main(%arg0: tensor<i64>, %arg1: tensor<?x4xf32> {mhlo.sharding = ""}, %arg2: tensor<2xi32> {mhlo.sharding = ""}) -> tensor<?x4xf32> {
-    %0 = "stablehlo.slice"(%arg2) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %0 = "stablehlo.slice"(%arg2) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xi32>) -> tensor<1xi32>
     %1 = stablehlo.reshape %0 : (tensor<1xi32>) -> tensor<i32>
-    %2 = "stablehlo.slice"(%arg2) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %2 = "stablehlo.slice"(%arg2) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<2xi32>) -> tensor<1xi32>
     %3 = stablehlo.reshape %2 : (tensor<1xi32>) -> tensor<i32>
     %4 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %5 = stablehlo.constant dense<0> : tensor<i32>

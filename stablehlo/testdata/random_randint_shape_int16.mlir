@@ -25,12 +25,12 @@ module @jit_testcase {
     %17 = call @clip_1(%14, %15, %16) : (tensor<i32>, tensor<i32>, tensor<i32>) -> tensor<i32>
     %18 = stablehlo.convert %17 : (tensor<i32>) -> tensor<i16>
     %19 = stablehlo.iota dim = 0 : tensor<4xui32>
-    %20 = "stablehlo.slice"(%0) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
+    %20 = "stablehlo.slice"(%0) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
     %21 = stablehlo.reshape %20 : (tensor<1xui32>) -> tensor<ui32>
-    %22 = "stablehlo.slice"(%0) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
+    %22 = "stablehlo.slice"(%0) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
     %23 = stablehlo.reshape %22 : (tensor<1xui32>) -> tensor<ui32>
-    %24 = "stablehlo.slice"(%19) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<2xui32>
-    %25 = "stablehlo.slice"(%19) {limit_indices = dense<4> : tensor<1xi64>, start_indices = dense<2> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<2xui32>
+    %24 = "stablehlo.slice"(%19) {limit_indices = array<i64: 2>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<2xui32>
+    %25 = "stablehlo.slice"(%19) {limit_indices = array<i64: 4>, start_indices = array<i64: 2>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<2xui32>
     %26 = stablehlo.constant dense<[13, 15, 26, 6]> : tensor<4xui32>
     %27 = stablehlo.constant dense<[17, 29, 16, 24]> : tensor<4xui32>
     %28 = stablehlo.xor %21, %23 : tensor<ui32>
@@ -50,7 +50,7 @@ module @jit_testcase {
     } do {
       %148 = stablehlo.constant dense<1> : tensor<i32>
       %149 = stablehlo.add %iterArg_0, %148 : tensor<i32>
-      %150 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %150 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %151 = stablehlo.reshape %150 : (tensor<1xui32>) -> tensor<ui32>
       %152 = stablehlo.add %iterArg_1, %iterArg_2 : tensor<2xui32>
       %153 = stablehlo.broadcast_in_dim %151, dims = [] : (tensor<ui32>) -> tensor<2xui32>
@@ -61,7 +61,7 @@ module @jit_testcase {
       %158 = stablehlo.shift_right_logical %iterArg_2, %157 : tensor<2xui32>
       %159 = stablehlo.or %154, %158 : tensor<2xui32>
       %160 = stablehlo.xor %152, %159 : tensor<2xui32>
-      %161 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %161 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %162 = stablehlo.reshape %161 : (tensor<1xui32>) -> tensor<ui32>
       %163 = stablehlo.add %152, %160 : tensor<2xui32>
       %164 = stablehlo.broadcast_in_dim %162, dims = [] : (tensor<ui32>) -> tensor<2xui32>
@@ -72,7 +72,7 @@ module @jit_testcase {
       %169 = stablehlo.shift_right_logical %160, %168 : tensor<2xui32>
       %170 = stablehlo.or %165, %169 : tensor<2xui32>
       %171 = stablehlo.xor %163, %170 : tensor<2xui32>
-      %172 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<3> : tensor<1xi64>, start_indices = dense<2> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %172 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 3>, start_indices = array<i64: 2>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %173 = stablehlo.reshape %172 : (tensor<1xui32>) -> tensor<ui32>
       %174 = stablehlo.add %163, %171 : tensor<2xui32>
       %175 = stablehlo.broadcast_in_dim %173, dims = [] : (tensor<ui32>) -> tensor<2xui32>
@@ -83,7 +83,7 @@ module @jit_testcase {
       %180 = stablehlo.shift_right_logical %171, %179 : tensor<2xui32>
       %181 = stablehlo.or %176, %180 : tensor<2xui32>
       %182 = stablehlo.xor %174, %181 : tensor<2xui32>
-      %183 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<4> : tensor<1xi64>, start_indices = dense<3> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %183 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 4>, start_indices = array<i64: 3>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %184 = stablehlo.reshape %183 : (tensor<1xui32>) -> tensor<ui32>
       %185 = stablehlo.add %174, %182 : tensor<2xui32>
       %186 = stablehlo.broadcast_in_dim %184, dims = [] : (tensor<ui32>) -> tensor<2xui32>
@@ -109,19 +109,19 @@ module @jit_testcase {
     }
     %38 = stablehlo.concatenate %37#2, %37#3, dim = 0 : (tensor<2xui32>, tensor<2xui32>) -> tensor<4xui32>
     %39 = stablehlo.reshape %38 : (tensor<4xui32>) -> tensor<2x2xui32>
-    %40 = "stablehlo.slice"(%39) {limit_indices = dense<[1, 2]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<2x2xui32>) -> tensor<1x2xui32>
+    %40 = "stablehlo.slice"(%39) {limit_indices = array<i64: 1, 2>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<2x2xui32>) -> tensor<1x2xui32>
     %41 = stablehlo.reshape %40 : (tensor<1x2xui32>) -> tensor<2xui32>
-    %42 = "stablehlo.slice"(%39) {limit_indices = dense<2> : tensor<2xi64>, start_indices = dense<[1, 0]> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<2x2xui32>) -> tensor<1x2xui32>
+    %42 = "stablehlo.slice"(%39) {limit_indices = array<i64: 2, 2>, start_indices = array<i64: 1, 0>, strides = array<i64: 1, 1>} : (tensor<2x2xui32>) -> tensor<1x2xui32>
     %43 = stablehlo.reshape %42 : (tensor<1x2xui32>) -> tensor<2xui32>
     %44 = stablehlo.constant dense<0> : tensor<1xui32>
     %45 = stablehlo.iota dim = 0 : tensor<1xui32>
-    %46 = "stablehlo.slice"(%41) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
+    %46 = "stablehlo.slice"(%41) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
     %47 = stablehlo.reshape %46 : (tensor<1xui32>) -> tensor<ui32>
-    %48 = "stablehlo.slice"(%41) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
+    %48 = "stablehlo.slice"(%41) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
     %49 = stablehlo.reshape %48 : (tensor<1xui32>) -> tensor<ui32>
     %50 = stablehlo.concatenate %45, %44, dim = 0 : (tensor<1xui32>, tensor<1xui32>) -> tensor<2xui32>
-    %51 = "stablehlo.slice"(%50) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
-    %52 = "stablehlo.slice"(%50) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
+    %51 = "stablehlo.slice"(%50) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
+    %52 = "stablehlo.slice"(%50) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
     %53 = stablehlo.constant dense<[13, 15, 26, 6]> : tensor<4xui32>
     %54 = stablehlo.constant dense<[17, 29, 16, 24]> : tensor<4xui32>
     %55 = stablehlo.xor %47, %49 : tensor<ui32>
@@ -141,7 +141,7 @@ module @jit_testcase {
     } do {
       %148 = stablehlo.constant dense<1> : tensor<i32>
       %149 = stablehlo.add %iterArg_0, %148 : tensor<i32>
-      %150 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %150 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %151 = stablehlo.reshape %150 : (tensor<1xui32>) -> tensor<ui32>
       %152 = stablehlo.add %iterArg_1, %iterArg_2 : tensor<1xui32>
       %153 = stablehlo.broadcast_in_dim %151, dims = [] : (tensor<ui32>) -> tensor<1xui32>
@@ -152,7 +152,7 @@ module @jit_testcase {
       %158 = stablehlo.shift_right_logical %iterArg_2, %157 : tensor<1xui32>
       %159 = stablehlo.or %154, %158 : tensor<1xui32>
       %160 = stablehlo.xor %152, %159 : tensor<1xui32>
-      %161 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %161 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %162 = stablehlo.reshape %161 : (tensor<1xui32>) -> tensor<ui32>
       %163 = stablehlo.add %152, %160 : tensor<1xui32>
       %164 = stablehlo.broadcast_in_dim %162, dims = [] : (tensor<ui32>) -> tensor<1xui32>
@@ -163,7 +163,7 @@ module @jit_testcase {
       %169 = stablehlo.shift_right_logical %160, %168 : tensor<1xui32>
       %170 = stablehlo.or %165, %169 : tensor<1xui32>
       %171 = stablehlo.xor %163, %170 : tensor<1xui32>
-      %172 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<3> : tensor<1xi64>, start_indices = dense<2> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %172 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 3>, start_indices = array<i64: 2>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %173 = stablehlo.reshape %172 : (tensor<1xui32>) -> tensor<ui32>
       %174 = stablehlo.add %163, %171 : tensor<1xui32>
       %175 = stablehlo.broadcast_in_dim %173, dims = [] : (tensor<ui32>) -> tensor<1xui32>
@@ -174,7 +174,7 @@ module @jit_testcase {
       %180 = stablehlo.shift_right_logical %171, %179 : tensor<1xui32>
       %181 = stablehlo.or %176, %180 : tensor<1xui32>
       %182 = stablehlo.xor %174, %181 : tensor<1xui32>
-      %183 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<4> : tensor<1xi64>, start_indices = dense<3> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %183 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 4>, start_indices = array<i64: 3>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %184 = stablehlo.reshape %183 : (tensor<1xui32>) -> tensor<ui32>
       %185 = stablehlo.add %174, %182 : tensor<1xui32>
       %186 = stablehlo.broadcast_in_dim %184, dims = [] : (tensor<ui32>) -> tensor<1xui32>
@@ -220,13 +220,13 @@ module @jit_testcase {
     %84 = stablehlo.reshape %83 : (tensor<1xui16>) -> tensor<ui16>
     %85 = stablehlo.constant dense<0> : tensor<1xui32>
     %86 = stablehlo.iota dim = 0 : tensor<1xui32>
-    %87 = "stablehlo.slice"(%43) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
+    %87 = "stablehlo.slice"(%43) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
     %88 = stablehlo.reshape %87 : (tensor<1xui32>) -> tensor<ui32>
-    %89 = "stablehlo.slice"(%43) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
+    %89 = "stablehlo.slice"(%43) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
     %90 = stablehlo.reshape %89 : (tensor<1xui32>) -> tensor<ui32>
     %91 = stablehlo.concatenate %86, %85, dim = 0 : (tensor<1xui32>, tensor<1xui32>) -> tensor<2xui32>
-    %92 = "stablehlo.slice"(%91) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
-    %93 = "stablehlo.slice"(%91) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xui32>) -> tensor<1xui32>
+    %92 = "stablehlo.slice"(%91) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
+    %93 = "stablehlo.slice"(%91) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<2xui32>) -> tensor<1xui32>
     %94 = stablehlo.constant dense<[13, 15, 26, 6]> : tensor<4xui32>
     %95 = stablehlo.constant dense<[17, 29, 16, 24]> : tensor<4xui32>
     %96 = stablehlo.xor %88, %90 : tensor<ui32>
@@ -246,7 +246,7 @@ module @jit_testcase {
     } do {
       %148 = stablehlo.constant dense<1> : tensor<i32>
       %149 = stablehlo.add %iterArg_0, %148 : tensor<i32>
-      %150 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %150 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %151 = stablehlo.reshape %150 : (tensor<1xui32>) -> tensor<ui32>
       %152 = stablehlo.add %iterArg_1, %iterArg_2 : tensor<1xui32>
       %153 = stablehlo.broadcast_in_dim %151, dims = [] : (tensor<ui32>) -> tensor<1xui32>
@@ -257,7 +257,7 @@ module @jit_testcase {
       %158 = stablehlo.shift_right_logical %iterArg_2, %157 : tensor<1xui32>
       %159 = stablehlo.or %154, %158 : tensor<1xui32>
       %160 = stablehlo.xor %152, %159 : tensor<1xui32>
-      %161 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %161 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %162 = stablehlo.reshape %161 : (tensor<1xui32>) -> tensor<ui32>
       %163 = stablehlo.add %152, %160 : tensor<1xui32>
       %164 = stablehlo.broadcast_in_dim %162, dims = [] : (tensor<ui32>) -> tensor<1xui32>
@@ -268,7 +268,7 @@ module @jit_testcase {
       %169 = stablehlo.shift_right_logical %160, %168 : tensor<1xui32>
       %170 = stablehlo.or %165, %169 : tensor<1xui32>
       %171 = stablehlo.xor %163, %170 : tensor<1xui32>
-      %172 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<3> : tensor<1xi64>, start_indices = dense<2> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %172 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 3>, start_indices = array<i64: 2>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %173 = stablehlo.reshape %172 : (tensor<1xui32>) -> tensor<ui32>
       %174 = stablehlo.add %163, %171 : tensor<1xui32>
       %175 = stablehlo.broadcast_in_dim %173, dims = [] : (tensor<ui32>) -> tensor<1xui32>
@@ -279,7 +279,7 @@ module @jit_testcase {
       %180 = stablehlo.shift_right_logical %171, %179 : tensor<1xui32>
       %181 = stablehlo.or %176, %180 : tensor<1xui32>
       %182 = stablehlo.xor %174, %181 : tensor<1xui32>
-      %183 = "stablehlo.slice"(%iterArg_6) {limit_indices = dense<4> : tensor<1xi64>, start_indices = dense<3> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<4xui32>) -> tensor<1xui32>
+      %183 = "stablehlo.slice"(%iterArg_6) {limit_indices = array<i64: 4>, start_indices = array<i64: 3>, strides = array<i64: 1>} : (tensor<4xui32>) -> tensor<1xui32>
       %184 = stablehlo.reshape %183 : (tensor<1xui32>) -> tensor<ui32>
       %185 = stablehlo.add %174, %182 : tensor<1xui32>
       %186 = stablehlo.broadcast_in_dim %184, dims = [] : (tensor<ui32>) -> tensor<1xui32>

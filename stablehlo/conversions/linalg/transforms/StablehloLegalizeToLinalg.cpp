@@ -1422,9 +1422,9 @@ struct SliceConverter final : OpConversionPattern<mlir::stablehlo::SliceOp> {
     }
 
     SmallVector<OpFoldResult, 3> offsets, sizes, strides;
-    auto startIndices = sliceOp.getStartIndices().getValues<int64_t>();
-    auto limitIndices = sliceOp.getLimitIndices().getValues<int64_t>();
-    auto sliceStrides = sliceOp.getStrides().getValues<int64_t>();
+    auto startIndices = sliceOp.getStartIndices();
+    auto limitIndices = sliceOp.getLimitIndices();
+    auto sliceStrides = sliceOp.getStrides();
 
     for (int64_t i = 0, e = argType.getRank(); i < e; ++i) {
       int64_t start = startIndices[i];

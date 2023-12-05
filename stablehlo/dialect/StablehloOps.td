@@ -1584,7 +1584,8 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, Elementwise,
 def StableHLO_SliceOp: StableHLO_Op<
       "slice",
       [Pure, SameOperandsAndResultElementType /*slice_c1*/,
-       AllTypesMatch<["start_indices", "limit_indices", "strides"]> /*slice_c2*/,
+      AllMatchSameOperatorTrait<["start_indices", "limit_indices",
+      "strides"], "$_self.size()", "size"> /*slice_c2*/,
        DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Slice operation";
   let description = [{
@@ -1613,9 +1614,9 @@ def StableHLO_SliceOp: StableHLO_Op<
 
   let arguments = (ins
     HLO_Tensor:$operand,
-    I64ElementsAttr:$start_indices,
-    I64ElementsAttr:$limit_indices,
-    I64ElementsAttr:$strides
+    DenseI64ArrayAttr:$start_indices,
+    DenseI64ArrayAttr:$limit_indices,
+    DenseI64ArrayAttr:$strides
   );
 
   let assemblyFormat = [{

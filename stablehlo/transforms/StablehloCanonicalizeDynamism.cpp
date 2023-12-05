@@ -261,8 +261,7 @@ struct CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern
       auto startIndex1DType = RankedTensorType::get({1}, startIndexElementType);
       auto startIndex1D = rewriter.create<SliceOp>(
           op.getLoc(), startIndex1DType, op.getStartIndices(),
-          rewriter.getI64TensorAttr(i), rewriter.getI64TensorAttr(i + 1),
-          rewriter.getI64TensorAttr(1));
+          ArrayRef<int64_t>{i}, ArrayRef<int64_t>{i + 1}, ArrayRef<int64_t>{1});
       auto startIndex0DType = RankedTensorType::get({}, startIndexElementType);
       auto startIndex0D = rewriter.create<ReshapeOp>(
           op.getLoc(), startIndex0DType, startIndex1D);
@@ -289,11 +288,8 @@ struct CanonicalizeRealDynamicSliceOpToSliceOpPattern
       return rewriter.notifyMatchFailure(op, "expected static limit");
     if (!succeeded(hlo::matchInts(op.getStrides(), strides)))
       return rewriter.notifyMatchFailure(op, "expected static strides");
-    rewriter.replaceOpWithNewOp<SliceOp>(
-        op, op.getType(), op.getOperand(),
-        rewriter.getI64TensorAttr(startIndices),
-        rewriter.getI64TensorAttr(limitIndices),
-        rewriter.getI64TensorAttr(strides));
+    rewriter.replaceOpWithNewOp<SliceOp>(op, op.getType(), op.getOperand(),
+                                         startIndices, limitIndices, strides);
     return success();
   }
 };

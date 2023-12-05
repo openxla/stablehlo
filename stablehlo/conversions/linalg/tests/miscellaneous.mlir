@@ -1328,9 +1328,9 @@ func.func @torch_index_select_dynamic(%input: tensor<?x?x?x?xf32>,
 //       CHECK:   tensor.extract_slice %{{.*}}[1, 0] [1, 4] [1, 1] : tensor<3x4xi32> to tensor<1x4xi32>
 func.func @slice_whole_stride(%arg0: tensor<3x4xi32>) -> tensor<1x4xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 0]> : tensor<2xi64>,
-    limit_indices = dense<[2, 4]> : tensor<2xi64>,
-    strides = dense<1> : tensor<2xi64>
+    start_indices = array<i64: 1, 0>,
+    limit_indices = array<i64: 2, 4>,
+    strides = array<i64: 1, 1>
   } : (tensor<3x4xi32>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
@@ -1341,9 +1341,9 @@ func.func @slice_whole_stride(%arg0: tensor<3x4xi32>) -> tensor<1x4xi32> {
 //       CHECK:   tensor.extract_slice %{{.*}}[1, 1] [1, 2] [1, 1]  : tensor<3x4xi32> to tensor<1x2xi32>
 func.func @slice_stride_part(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 1]> : tensor<2xi64>,
-    limit_indices = dense<[2, 3]> : tensor<2xi64>,
-    strides = dense<1> : tensor<2xi64>
+    start_indices = array<i64: 1, 1>,
+    limit_indices = array<i64: 2, 3>,
+    strides = array<i64: 1, 1>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -1354,9 +1354,9 @@ func.func @slice_stride_part(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
 //       CHECK:   tensor.extract_slice %{{.*}}[0] [6] [2] : tensor<13xi32> to tensor<6xi32>
 func.func @slice_with_strides(%arg0: tensor<13xi32>) -> tensor<6xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    limit_indices = dense<12> : tensor<1xi64>,
-    start_indices = dense<0> : tensor<1xi64>,
-    strides = dense<2> : tensor<1xi64>
+    limit_indices = array<i64: 12>,
+    start_indices = array<i64: 0>,
+    strides = array<i64: 2>
   } : (tensor<13xi32>) -> tensor<6xi32>
   func.return %0 : tensor<6xi32>
 }
@@ -1367,9 +1367,9 @@ func.func @slice_with_strides(%arg0: tensor<13xi32>) -> tensor<6xi32> {
 //       CHECK:   tensor.extract_slice %{{.*}}[0] [3] [2] : tensor<6xi32> to tensor<3xi32>
 func.func @slice_with_strides2(%arg0: tensor<6xi32>) -> tensor<3xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    limit_indices = dense<5> : tensor<1xi64>,
-    start_indices = dense<0> : tensor<1xi64>,
-    strides = dense<2> : tensor<1xi64>
+    limit_indices = array<i64: 5>,
+    start_indices = array<i64: 0>,
+    strides = array<i64: 2>
   } : (tensor<6xi32>) -> tensor<3xi32>
   func.return %0 : tensor<3xi32>
 }
@@ -1380,9 +1380,9 @@ func.func @slice_with_strides2(%arg0: tensor<6xi32>) -> tensor<3xi32> {
 //       CHECK:   tensor.extract_slice %{{.*}}[0, 2, 0] [3, 0, 5] [1, 2, 1] : tensor<3x3x5xf64> to tensor<3x0x5xf64>
 func.func @slice_with_empty_result(%arg0: tensor<3x3x5xf64>) -> tensor<3x0x5xf64> {
   %0 = "stablehlo.slice"(%arg0) {
-    limit_indices = dense<[3, 2, 5]> : tensor<3xi64>,
-    start_indices = dense<[0, 2, 0]> : tensor<3xi64>,
-    strides = dense<[1, 2, 1]> : tensor<3xi64>
+    limit_indices = array<i64: 3, 2, 5>,
+    start_indices = array<i64: 0, 2, 0>,
+    strides = array<i64: 1, 2, 1>
   } : (tensor<3x3x5xf64>) -> tensor<3x0x5xf64>
   func.return %0 : tensor<3x0x5xf64>
 }

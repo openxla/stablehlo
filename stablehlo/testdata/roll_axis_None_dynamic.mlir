@@ -24,7 +24,7 @@ module @jit_fun_flat_jax {
   }
   func.func private @_roll_0(%arg0: tensor<i64>, %arg1: tensor<?xf32>, %arg2: tensor<i64>) -> tensor<?xf32> {
     %0 = stablehlo.broadcast_in_dim %arg2, dims = [] : (tensor<i64>) -> tensor<1xi64>
-    %1 = "stablehlo.slice"(%0) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<1xi64>) -> tensor<1xi64>
+    %1 = "stablehlo.slice"(%0) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<1xi64>) -> tensor<1xi64>
     %2 = stablehlo.reshape %1 : (tensor<1xi64>) -> tensor<i64>
     %3 = stablehlo.constant dense<4> : tensor<i64>
     %4 = stablehlo.multiply %arg0, %3 : tensor<i64>

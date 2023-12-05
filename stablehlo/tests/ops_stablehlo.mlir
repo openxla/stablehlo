@@ -2218,7 +2218,7 @@ func.func @select_c2(%arg0: tensor<i1>, %arg1: tensor<2x3xf32>, %arg2: tensor<2x
 
 // CHECK-LABEL: func @slice
 func.func @slice(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0>, limit_indices = array<i64: 2, 4>, strides = array<i64: 1, 2>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
 
@@ -2228,9 +2228,9 @@ func.func @slice_c2(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{the number of elements in start_indices (3) does not match the rank of the operand (2)}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 0, 0]> : tensor<3xi64>,
-    limit_indices = dense<[2, 4, 0]> : tensor<3xi64>,
-    strides = dense<[1, 2, 0]> : tensor<3xi64>
+    start_indices = array<i64: 1, 0, 0>,
+    limit_indices = array<i64: 2, 4, 0>,
+    strides = array<i64: 1, 2, 0>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2241,9 +2241,9 @@ func.func @slice_c3(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{negative start index -1 in dimension 0}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[-1, 0]> : tensor<2xi64>,
-    limit_indices = dense<[2, 4]> : tensor<2xi64>,
-    strides = dense<[1, 2]> : tensor<2xi64>
+    start_indices = array<i64: -1, 0>,
+    limit_indices = array<i64: 2, 4>,
+    strides = array<i64: 1, 2>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2254,9 +2254,9 @@ func.func @slice_c3(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{limit index 5 is larger than dimension size 4 in dimension 1}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 0]> : tensor<2xi64>,
-    limit_indices = dense<[2, 5]> : tensor<2xi64>,
-    strides = dense<[1, 2]> : tensor<2xi64>
+    start_indices = array<i64: 1, 0>,
+    limit_indices = array<i64: 2, 5>,
+    strides = array<i64: 1, 2>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2267,9 +2267,9 @@ func.func @slice_c3(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{start index 3 is larger than limit index 2 in dimension 1}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 3]> : tensor<2xi64>,
-    limit_indices = dense<[2, 2]> : tensor<2xi64>,
-    strides = dense<[1, 2]> : tensor<2xi64>
+    start_indices = array<i64: 1, 3>,
+    limit_indices = array<i64: 2, 2>,
+    strides = array<i64: 1, 2>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2280,9 +2280,9 @@ func.func @slice_c4(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{stride must be positive but got 0 in dimension 0}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 0]> : tensor<2xi64>,
-    limit_indices = dense<[2, 4]> : tensor<2xi64>,
-    strides = dense<[0, 2]> : tensor<2xi64>
+    start_indices = array<i64: 1, 0>,
+    limit_indices = array<i64: 2, 4>,
+    strides = array<i64: 0, 2>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2292,24 +2292,11 @@ func.func @slice_c4(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
 // CHECK-LABEL: func @slice_dynamic_dim
 func.func @slice_dynamic_dim(%arg0: tensor<3x?xi32>) -> tensor<1x?xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 1]> : tensor<2xi64>,
-    limit_indices = dense<[2, 2]> : tensor<2xi64>,
-    strides = dense<[1, 1]> : tensor<2xi64>
+    start_indices = array<i64: 1, 1>,
+    limit_indices = array<i64: 2, 2>,
+    strides = array<i64: 1, 1>
   } : (tensor<3x?xi32>) -> tensor<1x?xi32>
   func.return %0 : tensor<1x?xi32>
-}
-
-// -----
-
-func.func @slice_i2(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{start_indices has rank 2 instead of required rank 1}}
-  %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[[1, 0]]> : tensor<1x2xi64>,
-    limit_indices = dense<[[2, 4]]> : tensor<1x2xi64>,
-    strides = dense<[[1, 2]]> : tensor<1x2xi64>
-  } : (tensor<3x4xi32>) -> tensor<1x2xi32>
-  func.return %0 : tensor<1x2xi32>
 }
 
 // -----
@@ -2339,7 +2326,7 @@ func.func @send_c1(%arg0: tensor<2x2xi64>, %arg1: !stablehlo.token) -> !stablehl
 
 // CHECK-LABEL: func @slice_unranked
 func.func @slice_unranked(%arg0: tensor<*xi32>) -> tensor<*xi32> {
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<*xi32>) -> tensor<*xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0>, limit_indices = array<i64: 2, 4>, strides = array<i64: 1, 2>} : (tensor<*xi32>) -> tensor<*xi32>
   func.return %0 : tensor<*xi32>
 }
 

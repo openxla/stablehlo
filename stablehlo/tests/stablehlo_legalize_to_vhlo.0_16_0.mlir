@@ -1925,9 +1925,9 @@ func.func @op_slice(%arg0: tensor<16xf32>) -> tensor<4xf32> {
   // CHECK-SAME:   strides = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>) -> !vhlo.tensor_v1<4x!vhlo.f32_v1>
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<0> : tensor<1xi64>,
-    limit_indices = dense<4> : tensor<1xi64>,
-    strides = dense<1> : tensor<1xi64>
+    start_indices = array<i64: 0>,
+    limit_indices = array<i64: 4>,
+    strides = array<i64: 1>
   } : (tensor<16xf32>) -> tensor<4xf32>
   func.return %0 : tensor<4xf32>
 }

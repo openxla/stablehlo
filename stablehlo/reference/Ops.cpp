@@ -104,10 +104,8 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                    const Sizes &limitIndices, const Sizes &strides) {
   SmallVector<Type> inferredTypes;
   Builder builder(operand.getType().getContext());
-  auto inferStatus = hlo::inferSliceOp(
-      {}, operand.getType(), builder.getI64TensorAttr(startIndices),
-      builder.getI64TensorAttr(limitIndices), builder.getI64TensorAttr(strides),
-      inferredTypes);
+  auto inferStatus = hlo::inferSliceOp({}, operand.getType(), startIndices,
+                                       limitIndices, strides, inferredTypes);
   if (failed(inferStatus))
     report_fatal_error(
         invalidArgument("Could not infer SliceOp's return type"));

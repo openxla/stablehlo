@@ -19,7 +19,7 @@ module @jit_testcase {
       %8 = stablehlo.add %arg0, %arg1 : tensor<i32>
       stablehlo.return %8 : tensor<i32>
     }) {window_dimensions = dense<[1, 3, 1]> : tensor<3xi64>, window_strides = dense<[1, 2, 1]> : tensor<3xi64>} : (tensor<2x4x6xi32>, tensor<2x1x6xi32>, tensor<i32>) -> tensor<2x4x6xi32>
-    %6 = "stablehlo.slice"(%5) {limit_indices = dense<[2, 4, 6]> : tensor<3xi64>, start_indices = dense<0> : tensor<3xi64>, strides = dense<1> : tensor<3xi64>} : (tensor<2x4x6xi32>) -> tensor<2x4x6xi32>
+    %6 = "stablehlo.slice"(%5) {limit_indices = array<i64: 2, 4, 6>, start_indices = array<i64: 0, 0, 0>, strides = array<i64: 1, 1, 1>} : (tensor<2x4x6xi32>) -> tensor<2x4x6xi32>
     %7 = stablehlo.custom_call @check.eq(%6, %1) : (tensor<2x4x6xi32>, tensor<2x4x6xi32>) -> tensor<i1>
     return %7 : tensor<i1>
   }
