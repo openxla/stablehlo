@@ -428,9 +428,7 @@ LogicalResult generateLinalgThreeFry32(OpBuilder &builder, Location loc,
   llvm::SmallVector<int64_t> offset(resultTy.getRank(), 0);
   llvm::SmallVector<int64_t> stride(resultTy.getRank(), 1);
   Value slice = builder.create<mlir::stablehlo::SliceOp>(
-      loc, resultTy, reshape, offset,
-      resultTy.getShape(),
-      stride);
+      loc, resultTy, reshape, offset, resultTy.getShape(), stride);
 
   // Set the new tensor values.
   store = setState64(builder, loc, store, newState);
@@ -637,9 +635,8 @@ LogicalResult generateLinalgPhilox32(OpBuilder &builder, Location loc,
   llvm::SmallVector<int64_t> offset(collapseShape.size(), 0);
   llvm::SmallVector<int64_t> stride(collapseShape.size(), 1);
   Value slice = builder.create<mlir::stablehlo::SliceOp>(
-      loc, intermediateType.clone(collapseShape), reshapeIntermediate,
-      offset, collapseShape,
-      stride);
+      loc, intermediateType.clone(collapseShape), reshapeIntermediate, offset,
+      collapseShape, stride);
   Value reshapeResult =
       builder.create<mlir::stablehlo::ReshapeOp>(loc, resultTy, slice);
 
@@ -726,9 +723,8 @@ LogicalResult generateLinalgPhilox64(OpBuilder &builder, Location loc,
   llvm::SmallVector<int64_t> offset(collapseShape.size(), 0);
   llvm::SmallVector<int64_t> stride(collapseShape.size(), 1);
   Value slice = builder.create<mlir::stablehlo::SliceOp>(
-      loc, intermediateType.clone(collapseShape), reshapeIntermediate,
-      offset, collapseShape,
-      stride);
+      loc, intermediateType.clone(collapseShape), reshapeIntermediate, offset,
+      collapseShape, stride);
   Value reshapeResult =
       builder.create<mlir::stablehlo::ReshapeOp>(loc, resultTy, slice);
 

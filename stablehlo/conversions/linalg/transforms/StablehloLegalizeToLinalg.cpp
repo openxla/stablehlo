@@ -841,8 +841,8 @@ struct TransposeOpToTransposeConverter final
     Value emptyTensor =
         getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
 
-    auto permutation = rewriter.getDenseI64ArrayAttr(
-        llvm::to_vector(op.getPermutation()));
+    auto permutation =
+        rewriter.getDenseI64ArrayAttr(llvm::to_vector(op.getPermutation()));
 
     rewriter.replaceOpWithNewOp<linalg::TransposeOp>(
         op, adaptor.getOperand(), emptyTensor, permutation,
@@ -1468,9 +1468,8 @@ struct DynamicSliceConverter final
     SmallVector<OpFoldResult, 3> startIndices, sizes;
     auto originalStartIndexType = llvm::cast<ShapedType>(
         dynamicSliceOp.getStartIndices().front().getType());
-    for (auto [idx, start, size] :
-         llvm::enumerate(adaptor.getStartIndices(),
-                         dynamicSliceOp.getSliceSizes())) {
+    for (auto [idx, start, size] : llvm::enumerate(
+             adaptor.getStartIndices(), dynamicSliceOp.getSliceSizes())) {
       sizes.push_back(rewriter.getI64IntegerAttr(size));
 
       // By stablehlo.DynamicSlice definition:
@@ -2268,9 +2267,8 @@ struct PadOpNegativePaddingConversion final
 
     // Create a new pad op with the positive values.
     Value pad = rewriter.create<mlir::stablehlo::PadOp>(
-        op.getLoc(), adaptor.getOperand(), adaptor.getPaddingValue(),
-        padLow, padHigh,
-        op.getInteriorPadding());
+        op.getLoc(), adaptor.getOperand(), adaptor.getPaddingValue(), padLow,
+        padHigh, op.getInteriorPadding());
 
     // Then slice according to the negative edge padding. Static shapes only for
     // now.
@@ -2308,10 +2306,13 @@ struct PadOpConversion final : OpConversionPattern<mlir::stablehlo::PadOp> {
     Value paddingVal = rewriter.createOrFold<tensor::ExtractOp>(
         loc, adaptor.getPaddingValue());
 
-    auto i64ToFoldResult = [&](const int64_t &i) -> OpFoldResult { return rewriter.getIntegerAttr(rewriter.getI64Type(), i); };
+    auto i64ToFoldResult = [&](const int64_t &i) -> OpFoldResult {
+      return rewriter.getIntegerAttr(rewriter.getI64Type(), i);
+    };
 
     // If there is no interior padding lower to tensor.pad directly.
-    if (llvm::all_of(op.getInteriorPadding(), [](const int64_t &i) { return i == 0; })) {
+    if (llvm::all_of(op.getInteriorPadding(),
+                     [](const int64_t &i) { return i == 0; })) {
       auto padTensorOp = rewriter.create<tensor::PadOp>(
           loc, resultType, adaptor.getOperand(),
           llvm::map_to_vector(op.getEdgePaddingLow(), i64ToFoldResult),
@@ -2339,15 +2340,15 @@ struct PadOpConversion final : OpConversionPattern<mlir::stablehlo::PadOp> {
               .getResult();
         });
     // Map interior padding to strides.
-    auto strides =
-        llvm::map_to_vector(op.getInteriorPadding(),
-                            [&](const int64_t& stride) -> OpFoldResult {
-                              return rewriter.getIntegerAttr(
-                                  rewriter.getI64Type(), stride + 1);
-                            });
+    auto strides = llvm::map_to_vector(
+        op.getInteriorPadding(), [&](const int64_t &stride) -> OpFoldResult {
+          return rewriter.getIntegerAttr(rewriter.getI64Type(), stride + 1);
+        });
 
     rewriter.replaceOpWithNewOp<tensor::InsertSliceOp>(
-        op, adaptor.getOperand(), fill, llvm::map_to_vector(op.getEdgePaddingLow(), i64ToFoldResult), sizes, strides);
+        op, adaptor.getOperand(), fill,
+        llvm::map_to_vector(op.getEdgePaddingLow(), i64ToFoldResult), sizes,
+        strides);
     return success();
   }
 };

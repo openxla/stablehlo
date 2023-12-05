@@ -78,10 +78,8 @@ Value applyConvolutionPadding(Location loc, Value input,
                  RankedTensorType::get({}, inputType.getElementType())));
   }
 
-  return rewriter.create<mlir::stablehlo::PadOp>(
-      loc, input, zero, padLow,
-      padHigh,
-      padInterior);
+  return rewriter.create<mlir::stablehlo::PadOp>(loc, input, zero, padLow,
+                                                 padHigh, padInterior);
 }
 
 /// If the ConvolutionOp has a window reversal, applies it to the filter.

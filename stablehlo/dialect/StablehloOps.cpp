@@ -1025,8 +1025,7 @@ LogicalResult BroadcastOp::reifyReturnTypeShapes(
 
   // Collect the broadcast sizes.
   for (const auto& size : getBroadcastSizes())
-    shapeValues.push_back(
-        builder.create<arith::ConstantIndexOp>(loc, size));
+    shapeValues.push_back(builder.create<arith::ConstantIndexOp>(loc, size));
 
   // Collect the operand sizes.
   for (auto index : llvm::seq<int64_t>(0, operandType.getRank()))
