@@ -14,9 +14,7 @@ on those fronts alongside the interpreter implementation.
    methods, and the corresponding tests. The reviewer will double check that the
    description is comprehensive.
 1. Consult
-   [hlo_evaluator](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/hlo/evaluator)
-   and
-   [mlir_interpreter](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/compiler/xla/mlir_hlo/tools/mlir_interpreter)
+   [hlo_evaluator](https://github.com/openxla/xla/blob/main/xla/hlo/evaluator)
    to identify tricky implementation details and potential functionality gaps.
 1. File tickets for the corresponding software components if you find any bugs
    or missing functionality.
