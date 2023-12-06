@@ -783,13 +783,14 @@ Afterwards, within each `process_group`:
   * `exec(node)` = `computation(exec(node.left), exec(node.right))`.
   * `exec(leaf)` = `leaf.value`.
 * `schedule` is an implementation-defined binary tree whose in-order
-  traversal is `operands@process_group...[result_index]`.
+  traversal is `to_destination_type(operands@process_group...[result_index],
+  type(func_inputs(computation)[0]))`.
 
 #### Inputs
 
 | Label | Name                    | Type                                                             | Constraints |
 |-------|-------------------------|------------------------------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor                                                           | (C5), (C6)  |
+| (I1)  | `operand`               | tensor or per-tensor quantized tensor                            | (C5), (C6)  |
 | (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
 | (I3)  | `channel_id`            | constant of type `si64`                                          | (C4)        |
 | (I4)  | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
@@ -797,9 +798,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C6)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C6-C7)     |
 
 #### Constraints
 
@@ -811,8 +812,9 @@ Afterwards, within each `process_group`:
 * (C3) `0 <= replica_groups < size(replica_groups)`.
 * (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-       `E = element_type(operand)`.
-* (C6) `type(result) = type(operand)`.
+       `is_promotable(element_type(operand), E)`.
+* (C6) `shape(result) = shape(operand)`.
+* (C7) `element_type(result) = E`.
 
 #### Examples
 
@@ -1062,31 +1064,37 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   return grad_operand, grad_scale, grad_offset
 ```
 
+For quantized types, performs
+`dequantize_batch_norm_grad_or_training_quantize(lambda operand, scale, mean,
+variance, grad_output: batch_norm_grad(operand, scale, mean, variance,
+grad_output, epsilon, feature_index), operand, scale, mean, variance,
+grad_output, type(grad_operand), type(grad_scale), type(feature_index))`.
+
 #### Inputs
 
-| Label | Name            | Type                                        | Constraints      |
-|-------|-----------------|---------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor of floating-point type               | (C1-C3), (C5)    |
-| (I2)  | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C4), (C5) |
-| (I3)  | `mean`          | 1-dimensional tensor of floating-point type | (C2), (C4)       |
-| (I4)  | `variance`      | 1-dimensional tensor of floating-point type | (C2), (C4)       |
-| (I5)  | `grad_output`   | tensor of floating-point type               | (C2), (C3)       |
-| (I6)  | `epsilon`       | constant of type `f32`                      |                  |
-| (I7)  | `feature_index` | constant of type `si64`                     | (C1), (C5)       |
+| Label | Name            | Type                                                                | Constraints      |
+|-------|-----------------|---------------------------------------------------------------------|------------------|
+| (I1)  | `operand`       | tensor of floating-point type or per-tensor quantized tensor        | (C1-C3), (C5)    |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4), (C5) |
+| (I3)  | `mean`          | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)       |
+| (I4)  | `variance`      | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)       |
+| (I5)  | `grad_output`   | tensor of floating-point type or per-tensor quantized tensor        | (C2), (C3)       |
+| (I6)  | `epsilon`       | constant of type `f32`                                              |                  |
+| (I7)  | `feature_index` | constant of type `si64`                                             | (C1), (C5)       |
 
 #### Outputs
 
-| Name           | Type                                        | Constraints |
-|----------------|---------------------------------------------|-------------|
-| `grad_operand` | tensor of floating-point type               | (C2), (C3)  |
-| `grad_scale`   | 1-dimensional tensor of floating-point type | (C2), (C4)  |
-| `grad_offset`  | 1-dimensional tensor of floating-point type | (C2), (C4)  |
+| Name           | Type                                                                | Constraints |
+|----------------|---------------------------------------------------------------------|-------------|
+| `grad_operand` | tensor of floating-point type or per-tensor quantized tensor        | (C2), (C3)  |
+| `grad_scale`   | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)  |
+| `grad_offset`  | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)  |
 
 #### Constraints
 
 * (C1) `0 <= feature_index < rank(operand)`.
-* (C2) `operand`, `scale`, `mean`, `variance`, `grad_output`, `grad_operand`
-       `grad_scale` and `grad_offset` have the same element type.
+* (C2) `operand`, `scale`, `mean`, `variance`, `grad_output`, `grad_operand`,
+       `grad_scale` and `grad_offset` have the same `baseline_element_type`.
 * (C3) `operand`, `grad_output` and `grad_operand` have the same shape.
 * (C4) `scale`, `mean`, `variance`, `grad_scale` and `grad_offset` have the
        same shape.
@@ -1173,9 +1181,8 @@ feature_index), operand, scale, offset, mean, variance, type(result))`.
 #### Constraints
 
 * (C1) `0 <= feature_index < rank(operand)`.
-* (C2) `baseline_element_type(operand) = baseline_element_type(scale) =
-       baseline_element_type(offset) = baseline_element_type(mean) =
-       baseline_element_type(variance) = baseline_element_type(result)`.
+* (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
+       same `baseline_element_type`.
 * (C3) `size(scale) = dim(operand, feature_index)`.
 * (C4) `size(offset) = dim(operand, feature_index)`.
 * (C5) `size(mean) = dim(operand, feature_index)`.
@@ -1239,34 +1246,39 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
          mean, variance
 ```
 
+For quantized types, performs
+`dequantize_batch_norm_grad_or_training_quantize(lambda operand, scale, offset:
+batch_norm_training(operand, scale, offset, epsilon, feature_index), operand,
+scale, offset, type(output), type(batch_mean), type(batch_var))`.
+
 #### Inputs
 
-| Label | Name            | Type                                        | Constraints   |
-|-------|-----------------|---------------------------------------------|---------------|
-| (I1)  | `operand`       | tensor of floating-point type               | (C1)          |
-| (I2)  | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C3)    |
-| (I3)  | `offset`        | 1-dimensional tensor of floating-point type | (C2), (C4)    |
-| (I4)  | `epsilon`       | constant of type `f32`                      | (C1), (C3-C6) |
-| (I5)  | `feature_index` | constant of type `si64`                     | (C1), (C3-C6) |
+| Label | Name            | Type                                                           | Constraints   |
+|-------|-----------------|----------------------------------------------------------------|---------------|
+| (I1)  | `operand`       | tensor of floating-point type or per-tensor quantized tensor   | (C1)          |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point or per-tensor quantized | (C2), (C3)    |
+| (I3)  | `offset`        | 1-dimensional tensor of floating-point or per-tensor quantized | (C2), (C4)    |
+| (I4)  | `epsilon`       | constant of type `f32`                                         | (C1), (C3-C6) |
+| (I5)  | `feature_index` | constant of type `si64`                                        | (C1), (C3-C6) |
 
 #### Outputs
 
-| Name         | Type                                        | Constraints |
-|--------------|---------------------------------------------|-------------|
-| `output`     | tensor of floating-point type               | (C7)        |
-| `batch_mean` | 1-dimensional tensor of floating-point type | (C2), (C5)  |
-| `batch_var`  | 1-dimensional tensor of floating-point type | (C2), (C6)  |
+| Name         | Type                                                           | Constraints |
+|--------------|----------------------------------------------------------------|-------------|
+| `output`     | tensor of floating-point type or per-tensor quantized tensor   | (C7)        |
+| `batch_mean` | 1-dimensional tensor of floating-point or per-tensor quantized | (C2), (C5)  |
+| `batch_var`  | 1-dimensional tensor of floating-point or per-tensor quantized | (C2), (C6)  |
 
 #### Constraints
 
 * (C1) `0 <= feature_index < rank(operand)`.
-* (C2) `operand`, `scale`, `offset`, `output`, `batch_mean` and `batch_var`
-       have the same element type.
+* (C2) `operand`, `scale`, `offset`, `batch_mean`, `batch_var` and `output` have
+       the same `baseline_element_type`.
 * (C3) `size(scale) = dim(operand, feature_index)`.
 * (C4) `size(offset) = dim(operand, feature_index)`.
 * (C5) `size(batch_mean) = dim(operand, feature_index)`.
 * (C6) `size(batch_var) = dim(operand, feature_index)`.
-* (C7) `type(output) = type(operand)`.
+* (C7) `baseline_type(output) = baseline_type(operand)`.
 
 #### Examples
 
@@ -4063,49 +4075,54 @@ doesn't hold for many popular reductions. E.g. floating-point addition for
 `body` and zero for `init_values` don't actually form a monoid because
 floating-point addition is not associative.
 
-More formally, `results...[j0, ..., jR-1] = reduce(input_slices)` where:
+More formally, `results...[j0, ..., jR-1] = reduce(input_slices_converted)` where:
 
 * `input_slices = inputs...[j0, ..., :, ..., jR-1]`, where `:` are inserted
   at `dimensions`.
-* `reduce(input_slices) = exec(schedule)` for some binary tree `schedule`
-  where:
+* `input_slices_converted = to_destination_type(input_slices...,
+  type(func_inputs(body)[:len(func_inputs(body))//2])...)`.
+* `init_values_converted = to_destination_type(init_values...,
+  type(func_inputs(body)[len(func_inputs(body))//2:])...)`.
+* `reduce(input_slices_converted) = exec(schedule)` for some binary tree
+  `schedule` where:
   * `exec(node) = body(exec(node.left), exec(node.right))`.
   * `exec(leaf) = leaf.value`.
 * `schedule` is an implementation-defined full binary tree whose in-order
   traversal consists of:
-  * `input_slices...[index]` values, for all `index` in
-    `index_space(input_slices)` in the ascending lexicographic order of `index`.
-  * Interspersed with an implementation-defined amount of `init_values`
-    at implementation-defined positions.
+  * `input_slices_converted...[index]` values, for all `index` in
+    `index_space(input_slices_converted)` in the ascending lexicographic order
+    of `index`.
+  * Interspersed with an implementation-defined amount of
+    `init_values_converted` at implementation-defined positions.
 
 #### Inputs
 
-| Label | Name          | Type                                         | Constraints         |
-|-------|---------------|----------------------------------------------|---------------------|
-| (I1)  | `inputs`      | variadic number of tensors                   | (C1-C4), (C6), (C7) |
-| (I2)  | `init_values` | variadic number of 0-dimensional tensors     | (C2), (C3)          |
-| (I3)  | `dimensions`  | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C7)    |
-| (I4)  | `body`        | function                                     | (C6)                |
+| Label | Name          | Type                                                                     | Constraints         |
+|-------|---------------|--------------------------------------------------------------------------|---------------------|
+| (I1)  | `inputs`      | variadic number of tensors or per-tensor quantized tensors               | (C1-C4), (C6), (C7) |
+| (I2)  | `init_values` | variadic number of 0-dimensional tensors or per-tensor quantized tensors | (C2), (C3)          |
+| (I3)  | `dimensions`  | 1-dimensional tensor constant of type `si64`                             | (C4), (C5), (C7)    |
+| (I4)  | `body`        | function                                                                 | (C6)                |
 
 #### Outputs
 
-| Name      | Type                       | Constraints      |
-|-----------|----------------------------|------------------|
-| `results` | variadic number of tensors | (C2), (C3), (C7) |
+| Name      | Type                                                       | Constraints      |
+|-----------|------------------------------------------------------------|------------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C3), (C7), (C8) |
 
 #### Constraints
 
 * (C1) `same(shape(inputs...))`.
-* (C2) `element_type(inputs...) = element_type(init_values...) =
-  element_type(results...)`.
+* (C2) `element_type(inputs...) = element_type(init_values...)`.
 * (C3) `0 < size(inputs) = size(init_values) = size(results) = N`.
 * (C4) `0 <= dimensions < rank(inputs[0])`.
 * (C5) `is_unique(dimensions)`.
-* (C6) `body` has type `tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+* (C6) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
   `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
-  `Ei = element_type(inputs[i])`.
+  `is_promotable(element_type(inputs[i]), Ei)`.
 * (C7) `shape(results...) = shape(inputs...)` except that the dimension
   sizes of `inputs...` corresponding to `dimensions` are not included.
+* (C8) `element_type(results[i]) = Ei` for all `i` in `[0,N)`.
 
 #### Examples
 
@@ -4216,7 +4233,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name                    | Type                                         | Constraints            |
 |-------|-------------------------|----------------------------------------------|------------------------|
-| (I1)  | `operand`               | tensor                                       | (C1), (C2), (C7), (C8) |
+| (I1)  | `operand`               | tensor or per-tensor quantized tensor        | (C1), (C2), (C7), (C8) |
 | (I2)  | `scatter_dimension`     | constant of type `si64`                      | (C1), (C2), (C8)       |
 | (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C3-C5)                |
 | (I4)  | `channel_id`            | constant of type `si64`                      | (C6)                   |
@@ -4225,9 +4242,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C8)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C8-C9)     |
 
 #### Constraints
 
@@ -4241,10 +4258,11 @@ Afterwards, within each `process_group`:
 * (C5) `0 <= replica_groups < size(replica_groups)`.
 * (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-       `E = element_type(operand)`.
-* (C8) `type(result) = type(operand)` except:
+       `is_promotable(element_type(operand), E)`.
+* (C8) `shape(result) = shape(operand)` except:
   * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) /
     dim(process_groups, 1)`.
+* (C9) `element_type(result) = E`.
 
 #### Examples
 
@@ -4298,22 +4316,22 @@ where:
 
 #### Inputs
 
-| Label | Name                | Type                                         | Constraints                                     |
-|-------|---------------------|----------------------------------------------|-------------------------------------------------|
-| (I1)  | `inputs`            | variadic number of tensors                   | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
-| (I2)  | `init_values`       | variadic number of 0-dimensional tensors     | (C1), (C13), (C16)                              |
-| (I3)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C15)                               |
-| (I4)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C6), (C7), (C15)                               |
-| (I5)  | `base_dilations`    | 1-dimensional tensor constant of type `si64` | (C8), (C9), (C15)                               |
-| (I6)  | `window_dilations`  | 1-dimensional tensor constant of type `si64` | (C10), (C11), (C15)                             |
-| (I7)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C12), (C15)                                    |
-| (I8)  | `body`              | function                                     | (C13)                                           |
+| Label | Name                | Type                                                                     | Constraints                                     |
+|-------|---------------------|--------------------------------------------------------------------------|-------------------------------------------------|
+| (I1)  | `inputs`            | variadic number of tensors or per-tensor quantized tensors               | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
+| (I2)  | `init_values`       | variadic number of 0-dimensional tensors or per-tensor quantized tensors | (C1), (C13)                                     |
+| (I3)  | `window_dimensions` | 1-dimensional tensor constant of type `si64`                             | (C4), (C5), (C15)                               |
+| (I4)  | `window_strides`    | 1-dimensional tensor constant of type `si64`                             | (C6), (C7), (C15)                               |
+| (I5)  | `base_dilations`    | 1-dimensional tensor constant of type `si64`                             | (C8), (C9), (C15)                               |
+| (I6)  | `window_dilations`  | 1-dimensional tensor constant of type `si64`                             | (C10), (C11), (C15)                             |
+| (I7)  | `padding`           | 2-dimensional tensor constant of type `si64`                             | (C12), (C15)                                    |
+| (I8)  | `body`              | function                                                                 | (C13)                                           |
 
 #### Outputs
 
-| Name      | Type                       | Constraints     |
-|-----------|----------------------------|-----------------|
-| `results` | variadic number of tensors | (C1), (C14-C16) |
+| Name      | Type                                                       | Constraints     |
+|-----------|------------------------------------------------------------|-----------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C1), (C14-C16) |
 
 #### Constraints
 
@@ -4330,8 +4348,9 @@ where:
 * (C10) `size(window_dilations) = rank(inputs[0])`.
 * (C11) `0 < window_dilations`.
 * (C12) `shape(padding) = [rank(inputs[0]), 2]`.
-* (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
-  where `Ei = element_type(inputs[i])`.
+* (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+  `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
+  `is_promotable(element_type(inputs[i]), Ei)`.
 * (C14) `same(shape(results...))`.
 * (C15) `shape(results[0]) = num_windows` where:
   * `dilated_input_shape = shape(inputs[0]) = 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
@@ -4339,7 +4358,7 @@ where:
   * `dilated_window_shape = (window_dimensions - 1) * window_dilations + 1`.
   * `is_empty_window = padded_input_shape = 0 || dilated_window_shape > padded_input_shape`.
   * `num_windows = is_empty_window ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
-* (C16) `element_type(results...) = element_type(init_values...)`.
+* (C16) `element_type(results[i]) = Ei` for all `i` in `[0,N)`.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -4798,8 +4817,10 @@ Given that, `results = exec(schedule, inputs)`, where:
   `index_space(updates[0])`.
 * `exec([update_index, ...], results) = exec([...], updated_results)` where:
   * If `result_index` is in bounds for `shape(results...)`
-    * `updated_values =
-      update_computation(results...[result_index], updates...[update_index])`.
+    * `updates_converted = to_destination_type(
+      updates...[update_index], type(func_inputs(update_computation)
+      [len(func_inputs(update_computation))//2:])... )`
+    * `updated_values = update_computation(results...[result_index], updates_converted)`
     * `updated_results` is a copy of `results` with `results...[result_index]`
       set to `updated_values...`.
   * Otherwise
@@ -4835,7 +4856,7 @@ undefined.
 
 | Name      | Type                                                       | Constraints |
 |-----------|------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors or per-tensor quantized tensors | (C15)       |
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C15-C17)   |
 
 #### Constraints
 
@@ -4868,8 +4889,9 @@ undefined.
 * (C14) `0 <= index_vector_dim <= rank(scatter_indices)`.
 * (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>,
   tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`,
-  where `Ei = element_type(inputs[i])`.
-* (C16) `type(inputs...) = type(results...)`.
+  where `is_promotable(element_type(inputs[i]), Ei)`.
+* (C16) `shape(inputs...) = shape(results...)`.
+* (C17) `element_type(results[i]) = Ei` for all `i` in `[0,N)`.
 
 #### Examples
 
@@ -4991,22 +5013,22 @@ More formally:
 
 #### Inputs
 
-| Label | Name                | Type                                         | Constraints             |
-|-------|---------------------|----------------------------------------------|-------------------------|
-| (I1)  | `operand`           | tensor                                       | (C1-C4), (C6), (C8-C11) |
-| (I2)  | `source`            | tensor                                       | (C1), (C2)              |
-| (I3)  | `init_value`        | 0-dimensional tensor                         | (C3)                    |
-| (I4)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C5)        |
-| (I5)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C2), (C6), (C7)        |
-| (I6)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C2), (C8)              |
-| (I7)  | `select`            | function                                     | (C9)                    |
-| (I8)  | `scatter`           | function                                     | (C10)                   |
+| Label | Name                | Type                                                | Constraints             |
+|-------|---------------------|-----------------------------------------------------|-------------------------|
+| (I1)  | `operand`           | tensor or per-tensor quantized tensor               | (C1-C4), (C6), (C8-C11) |
+| (I2)  | `source`            | tensor or per-tensor quantized tensor               | (C1), (C2)              |
+| (I3)  | `init_value`        | 0-dimensional tensor or per-tensor quantized tensor | (C3)                    |
+| (I4)  | `window_dimensions` | 1-dimensional tensor constant of type `si64`        | (C2), (C4), (C5)        |
+| (I5)  | `window_strides`    | 1-dimensional tensor constant of type `si64`        | (C2), (C6), (C7)        |
+| (I6)  | `padding`           | 2-dimensional tensor constant of type `si64`        | (C2), (C8)              |
+| (I7)  | `select`            | function                                            | (C9)                    |
+| (I8)  | `scatter`           | function                                            | (C10)                   |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C11)       |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C11-C12)   |
 
 #### Constraints
 
@@ -5025,8 +5047,9 @@ More formally:
 * (C9) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
        `E = element_type(operand)`.
 * (C10) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
-        `E = element_type(operand)`.
-* (C11) `type(operand) = type(result)`.
+  `is_promotable(element_type(operand), E)`.
+* (C11) `shape(operand) = shape(result)`.
+* (C12) `element_type(result) = E`.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -6309,6 +6332,34 @@ for `is_quantized(x) and quantization_dimension(x) is not None`.
 * `is_per_tensor_quantized(x: Value | Placeholder | Type) -> Value` is a
 shortcut for `is_quantized(x) and quantization_dimension(x) is None`.
 
+* `is_promotable(x: Type, y: Type) -> bool` checks if type `x` can be promoted
+to type `y`.  When `x` and `y` are `QuantizedTensorElementType`s, the promotion
+is applied only to the `storage_type`. This specific version of promotion is
+currently used in context of reduction computation (refer to
+[RFC](https://github.com/openxla/stablehlo/pull/1664) for more details).
+
+```python
+def is_promotable(x: Type, y: Type) -> Value:
+  is_same_type = (is_bool(x) and is_bool(y)) or
+    (is_integer(x) and is_integer(y)) or (is_float(x) and is_float(y)) or
+    (is_complex(x) and is_complex(y)) or
+    (is_quantized(x) and is_quantized(y) and expressed_type(x) = expressed_type(y))
+
+  if is_same_type == False:
+    return False
+
+  if is_integer(x) or is_float(x):
+    return bitwidth(x) <= bitwidth(y)
+
+  if is_complex(x):
+    return bitwidth(element_type(x)) <= bitwidth(element_type(y))
+
+  if is_quantized(x):
+    return bitwidth(storage_type(x)) <= bitwidth(storage_type(y))
+
+  return false
+```
+
 * `is_quantized(x: Value | Placeholder | Type) -> Value` is a shortcut for
 `is_quantized_tensor_element_type(x)`.
 
@@ -6346,6 +6397,33 @@ takes these types as arguments.
 and [slicing](https://docs.python.org/3/reference/expressions.html#slicings)
 notations from Python are available to index into tensors, quantized tensors
 and tuples.
+
+* `to_destination_type(x: Value, destination_type: Type) -> Value` is defined on
+tensors and returns the converted value of `x` based on the `type(x)` and
+`destination_type` as follows:
+
+```python
+def to_destination_type(x: Value, destination_type: Type) -> Value:
+  if type(x) == destination_type:
+    return x
+
+  if is_quantized(destination_type):
+    if is_quantized(type(x)):
+      return quantize(x, destination_type)
+    assert is_float(type(x))
+    return quantize(x, destination_type)
+
+  if is_quantized(type(x)):
+    assert destination_type = expressed_type(type(x))
+    return dequantize(type(x))
+
+  return convert(x, destination_type)
+```
+
+There is early discussion on merging `convert`, `uniform_quantize` and
+`uniform_dequantize` operations ([#1576](https://github.com/openxla/stablehlo/issues/1576)).
+After the merge we do not need the above function and can use the operation name
+for `convert` instead.
 
 * `is_nan(x: Value) -> Value` is defined on tensors and returns `true` if
 all elements of `x` are `NaN` or `false` otherwise. If `x` is not a tensor,
@@ -6499,16 +6577,22 @@ def dequantize_op_quantize(op, *inputs_and_output_type):
   float_result = op(*float_inputs)
   return quantize(float_result, output_type)
 
-def dequantize_select_quantize(pred, on_true, on_false, output_type):
-  float_on_true = dequantize(on_true)
-  float_on_false = dequantize(on_false)
-  float_result = select(pred, float_on_true, float_on_false)
-  return quantize(float_result, output_type)
+def dequantize_batch_norm_grad_or_training_quantize(op, *inputs_and_output_types):
+  inputs = inputs_and_output_type[:-3]
+  float_inputs = map(dequantize, inputs)
+  float_results = op(*float_inputs)
+  return map(quantize, float_results, inputs_and_output_type[-3:])
 
 def dequantize_compare(lhs, rhs, comparison_direction):
   float_lhs = dequantize(lhs)
   float_rhs = dequantize(rhs)
   return compare(float_lhs, float_rhs, comparison_direction, FLOAT)
+
+def dequantize_select_quantize(pred, on_true, on_false, output_type):
+  float_on_true = dequantize(on_true)
+  float_on_false = dequantize(on_false)
+  float_result = select(pred, float_on_true, float_on_false)
+  return quantize(float_result, output_type)
 ```
 
 #### Grid computations
