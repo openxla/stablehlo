@@ -137,7 +137,7 @@ LogicalResult inferBatchNormTrainingOp(
 
 LogicalResult inferBroadcastOp(
     std::optional<Location> location, Value operand,
-    DenseIntElementsAttr broadcastSizes,
+    ArrayRef<int64_t> broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferCaseOp(std::optional<Location> location, Value index,
@@ -213,7 +213,7 @@ LogicalResult inferDynamicGatherOp(
 
 LogicalResult inferDynamicSliceOp(
     std::optional<Location> location, Type operandType,
-    TypeRange startIndicesTypes, DenseIntElementsAttr sliceSizes,
+    TypeRange startIndicesTypes, ArrayRef<int64_t> sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicUpdateSliceOp(
@@ -223,7 +223,7 @@ LogicalResult inferDynamicUpdateSliceOp(
 
 LogicalResult inferFftOp(
     std::optional<Location> location, Value operand, bool isFftTypeRfft,
-    bool isFftTypeIrfft, DenseIntElementsAttr fftLength,
+    bool isFftTypeIrfft, ArrayRef<int64_t> fftLength,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferGatherOp(
@@ -267,9 +267,9 @@ LogicalResult inferOutfeedOp(HloDialectInterface* dialect,
 
 LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
                          Type paddingValueType,
-                         DenseIntElementsAttr edgePaddingLow,
-                         DenseIntElementsAttr edgePaddingHigh,
-                         DenseIntElementsAttr interiorPadding,
+                         ArrayRef<int64_t> edgePaddingLow,
+                         ArrayRef<int64_t> edgePaddingHigh,
+                         ArrayRef<int64_t> interiorPadding,
                          SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferPartitionIdOp(MLIRContext* context,
@@ -328,9 +328,9 @@ LogicalResult inferSetDimensionSizeOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
-                           DenseIntElementsAttr startIndices,
-                           DenseIntElementsAttr limitIndices,
-                           DenseIntElementsAttr strides,
+                           ArrayRef<int64_t> startIndices,
+                           ArrayRef<int64_t> limitIndices,
+                           ArrayRef<int64_t> strides,
                            SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferSortOp(
@@ -342,7 +342,7 @@ LogicalResult inferTopKOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
-                               DenseIntElementsAttr permutation,
+                               ArrayRef<int64_t> permutation,
                                SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferTriangularSolveOp(
@@ -484,7 +484,7 @@ LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
                               Value result);
 
 LogicalResult verifyReverseOp(std::optional<Location> location, Value operand,
-                              DenseIntElementsAttr dimensions);
+                              llvm::ArrayRef<int64_t> dimensions);
 
 LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,
                                       Value initialState, Value outputState);

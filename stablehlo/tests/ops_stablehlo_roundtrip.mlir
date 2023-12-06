@@ -109,7 +109,7 @@ func.func @test_bitcast_convert(%arg0: tensor<2xi32>) -> tensor<2xf32> {
 }
 
 func.func @test_broadcast(%arg0: tensor<4xi32>) -> tensor<1x2x3x4xi32> {
-      %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1,2,3]> : tensor<3xi64>} : (tensor<4xi32>) -> tensor<1x2x3x4xi32>
+      %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 1,2,3>} : (tensor<4xi32>) -> tensor<1x2x3x4xi32>
   func.return %0 : tensor<1x2x3x4xi32>
 }
 
@@ -346,7 +346,7 @@ func.func @test_dot_general(%arg0: tensor<2x2x2xi8>, %arg1: tensor<2x2x3xi8>) ->
 }
 
 func.func @test_dynamic_slice(%arg: tensor<3x4xi32>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<1x4xi32> {
-  %0 = "stablehlo.dynamic_slice"(%arg, %start1, %start2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg, %start1, %start2) {slice_sizes = array<i64: 1, 4>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
 
@@ -357,7 +357,7 @@ func.func @test_einsum(%arg0: tensor<3x4xi32>, %arg1: tensor<4x5xi32>) -> tensor
 }
 
 func.func @test_fft(%arg0: tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>> {
-  %0 = "stablehlo.fft"(%arg0) {fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT>} : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) {fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT>} : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
   func.return %0 : tensor<3x5xcomplex<f32>>
 }
 
@@ -448,7 +448,7 @@ func.func @test_outfeed3(%token: !stablehlo.token) -> !stablehlo.token {
 }
 
 func.func @test_pad(%arg: tensor<4x6xf32>, %pad: tensor<f32>) -> tensor<13x19xf32> {
-  %0 = "stablehlo.pad"(%arg, %pad) {edge_padding_high = dense<[4,5]> : tensor<2xi64>, edge_padding_low = dense<[2,3]> : tensor<2xi64>, interior_padding = dense<1> : tensor<2xi64>} : (tensor<4x6xf32>, tensor<f32>) -> tensor<13x19xf32>
+  %0 = "stablehlo.pad"(%arg, %pad) {edge_padding_high = array<i64: 4,5>, edge_padding_low = array<i64: 2,3>, interior_padding = array<i64: 1, 1>} : (tensor<4x6xf32>, tensor<f32>) -> tensor<13x19xf32>
   func.return %0 : tensor<13x19xf32>
 }
 
@@ -574,7 +574,7 @@ func.func @test_reshape(%arg0: tensor<2xf32>) -> tensor<1x2xf32> {
 
 func.func @test_reverse(%arg0 : tensor<10x11x12x13xf32>) -> tensor<10x11x12x13xf32> {
   %result = "stablehlo.reverse"(%arg0) {
-    dimensions = dense<[1,2]> : tensor<2xi64>
+    dimensions = array<i64: 1,2>
   } : (tensor<10x11x12x13xf32>) -> tensor<10x11x12x13xf32>
   func.return %result : tensor<10x11x12x13xf32>
 }
@@ -695,7 +695,7 @@ func.func @test_shift(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> (tensor<4xi
 }
 
 func.func @test_slice(%arg: tensor<3x4xi32>) -> tensor<1x2xi32> {
-  %0 = "stablehlo.slice"(%arg) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
+  %0 = "stablehlo.slice"(%arg) {start_indices = array<i64: 1, 0>, limit_indices = array<i64: 2, 4>, strides = array<i64: 1, 2>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
 
@@ -718,7 +718,7 @@ func.func @test_sort2(%input0: tensor<16x16xf32>) {
 }
 
 func.func @test_transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
   func.return %0 : tensor<2x1x4x3xi32>
 }
 

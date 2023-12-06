@@ -18,6 +18,7 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
@@ -279,9 +280,9 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
 }
 
 void printSliceRanges(OpAsmPrinter& p, Operation* op,
-                      DenseIntElementsAttr startIndices,
-                      DenseIntElementsAttr limitIndices,
-                      DenseIntElementsAttr strides) {
+                      ArrayRef<int64_t> startIndices,
+                      ArrayRef<int64_t> limitIndices,
+                      ArrayRef<int64_t> strides) {
   p << "[";
   // Let's be safe if we're printing invalid IR somehow: this can't be parsed
   // back!
@@ -297,22 +298,21 @@ void printSliceRanges(OpAsmPrinter& p, Operation* op,
     return;
   }
 
-  llvm::interleaveComma(
-      llvm::zip(startIndices, limitIndices, strides), p,
-      [&](std::tuple<llvm::APInt, llvm::APInt, llvm::APInt> pack) {
-        auto [start, limit, stride] = pack;
-        p << start << ":" << limit;
-        if (stride != 1) {
-          p << ":" << stride;
-        }
-      });
+  llvm::interleaveComma(llvm::zip(startIndices, limitIndices, strides), p,
+                        [&](std::tuple<int64_t, int64_t, int64_t> pack) {
+                          auto [start, limit, stride] = pack;
+                          p << start << ":" << limit;
+                          if (stride != 1) {
+                            p << ":" << stride;
+                          }
+                        });
   p << "]";
 }
 
 ParseResult parseSliceRanges(OpAsmParser& parser,
-                             DenseIntElementsAttr& startIndices,
-                             DenseIntElementsAttr& limitIndices,
-                             DenseIntElementsAttr& strides) {
+                             DenseI64ArrayAttr& startIndices,
+                             DenseI64ArrayAttr& limitIndices,
+                             DenseI64ArrayAttr& strides) {
   if (parser.parseLSquare()) return failure();
   // Parse groups of comma-separated: `start`:`limit`[:`stride`]
   // If the stride isn't provided it'll be 1.
@@ -335,11 +335,9 @@ ParseResult parseSliceRanges(OpAsmParser& parser,
     } while (1);
   }
 
-  RankedTensorType type =
-      RankedTensorType::get(start.size(), parser.getBuilder().getI64Type());
-  startIndices = DenseIntElementsAttr::get(type, start);
-  limitIndices = DenseIntElementsAttr::get(type, limit);
-  strides = DenseIntElementsAttr::get(type, stride);
+  startIndices = parser.getBuilder().getDenseI64ArrayAttr(start);
+  limitIndices = parser.getBuilder().getDenseI64ArrayAttr(limit);
+  strides = parser.getBuilder().getDenseI64ArrayAttr(stride);
 
   return success();
 }

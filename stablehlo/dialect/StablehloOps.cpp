@@ -1025,8 +1025,7 @@ LogicalResult BroadcastOp::reifyReturnTypeShapes(
 
   // Collect the broadcast sizes.
   for (const auto& size : getBroadcastSizes())
-    shapeValues.push_back(
-        builder.create<arith::ConstantIndexOp>(loc, size.getZExtValue()));
+    shapeValues.push_back(builder.create<arith::ConstantIndexOp>(loc, size));
 
   // Collect the operand sizes.
   for (auto index : llvm::seq<int64_t>(0, operandType.getRank()))
@@ -1954,26 +1953,9 @@ LogicalResult PadOp::reifyReturnTypeShapes(
   Value operand = adaptor.getOperand();
   auto operandTy = operand.getType().cast<RankedTensorType>();
 
-  llvm::SmallVector<int32_t> padHigh;
-  llvm::SmallVector<int32_t> padLow;
-  llvm::SmallVector<int32_t> padInterior;
-
-  auto padHighAttr = adaptor.getEdgePaddingHigh();
-  auto padLowAttr = adaptor.getEdgePaddingLow();
-  auto padInteriorAttr = adaptor.getInteriorPadding();
-
-  padHigh.reserve(padHighAttr.getNumElements());
-  padLow.reserve(padLowAttr.getNumElements());
-  padInterior.reserve(padInteriorAttr.getNumElements());
-
-  for (const APInt& val : padHighAttr.getValues<APInt>())
-    padHigh.push_back(val.getSExtValue());
-
-  for (const APInt& val : padLowAttr.getValues<APInt>())
-    padLow.push_back(val.getSExtValue());
-
-  for (const APInt& val : padInteriorAttr.getValues<APInt>())
-    padInterior.push_back(val.getSExtValue());
+  auto padHigh = adaptor.getEdgePaddingHigh();
+  auto padLow = adaptor.getEdgePaddingLow();
+  auto padInterior = adaptor.getInteriorPadding();
 
   Value one = builder.create<arith::ConstantIndexOp>(loc, 1).getResult();
   Value zero = builder.create<arith::ConstantIndexOp>(loc, 0).getResult();
@@ -2195,8 +2177,7 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
   if (!operandType) return failure();
 
   Location loc = this->getLoc();
-  SmallVector<int64_t, 4> permutation(
-      this->getPermutation().getValues<int64_t>());
+  SmallVector<int64_t, 4> permutation(this->getPermutation());
   SmallVector<Value, 4> shapeValues(permutation.size());
 
   Type shapeScalarType = builder.getIndexType();

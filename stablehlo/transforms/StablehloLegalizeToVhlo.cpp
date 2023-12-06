@@ -142,6 +142,15 @@ Attribute convertGeneric(Attribute stablehloAttr,
     return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
                                    attr.getRawData());
   }
+  if (auto attr = stablehloAttr.dyn_cast<DenseI64ArrayAttr>()) {
+    auto vhloType = vhlo::RankedTensorV1Type::get(
+        attr.getContext(), {attr.size()},
+        vhlo::IntegerSI64V1Type::get(attr.getContext()), Attribute{});
+    LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
+    if (!vhloType) return {};
+    return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
+                                   attr.getRawData());
+  }
   if (auto attr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
     SmallVector<std::pair<Attribute, Attribute>> vhloAttrs;
     for (auto namedAttr : attr.getValue()) {
@@ -491,7 +500,7 @@ SpecialResult convertUseGlobalDeviceIds(
 
 template <typename StablehloOpTy>
 SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
-                             StringRef stablehloName, Attribute stablehloAttr,
+                             StringAttr stablehloName, Attribute stablehloAttr,
                              SmallVector<NamedAttribute>& vhloAttrs) {
   if constexpr (std::is_same<StablehloOpTy, stablehlo::AllGatherOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::AllReduceOp>::value ||

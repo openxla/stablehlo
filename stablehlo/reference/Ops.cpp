@@ -58,11 +58,9 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  const Sizes &interiorPadding) {
   SmallVector<Type> inferredTypes;
   Builder builder(operand.getType().getContext());
-  auto inferStatus =
-      hlo::inferPadOp({}, operand.getType(), paddingValue.getType(),
-                      builder.getI64TensorAttr(edgePaddingLow),
-                      builder.getI64TensorAttr(edgePaddingHigh),
-                      builder.getI64TensorAttr(interiorPadding), inferredTypes);
+  auto inferStatus = hlo::inferPadOp(
+      {}, operand.getType(), paddingValue.getType(), edgePaddingLow,
+      edgePaddingHigh, interiorPadding, inferredTypes);
   if (failed(inferStatus))
     report_fatal_error(invalidArgument("Could not infer PadOp's return type"));
   return evalPadOp(operand, paddingValue, edgePaddingLow, interiorPadding,
@@ -104,10 +102,8 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                    const Sizes &limitIndices, const Sizes &strides) {
   SmallVector<Type> inferredTypes;
   Builder builder(operand.getType().getContext());
-  auto inferStatus = hlo::inferSliceOp(
-      {}, operand.getType(), builder.getI64TensorAttr(startIndices),
-      builder.getI64TensorAttr(limitIndices), builder.getI64TensorAttr(strides),
-      inferredTypes);
+  auto inferStatus = hlo::inferSliceOp({}, operand.getType(), startIndices,
+                                       limitIndices, strides, inferredTypes);
   if (failed(inferStatus))
     report_fatal_error(
         invalidArgument("Could not infer SliceOp's return type"));

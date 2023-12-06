@@ -393,7 +393,7 @@ struct ConvertStablehloSliceOp : public OpRewritePattern<stablehlo::SliceOp> {
           op, "tosa.slice only supports 1D to 6D tensors");
     }
 
-    auto strides = op.getStrides().getValues<int64_t>();
+    auto strides = op.getStrides();
     for (auto stride : strides) {
       if (stride != 1) {
         return rewriter.notifyMatchFailure(
@@ -401,8 +401,8 @@ struct ConvertStablehloSliceOp : public OpRewritePattern<stablehlo::SliceOp> {
       }
     }
 
-    auto startIndices = op.getStartIndices().getValues<int64_t>();
-    auto endIndices = op.getLimitIndices().getValues<int64_t>();
+    auto startIndices = op.getStartIndices();
+    auto endIndices = op.getLimitIndices();
 
     llvm::SmallVector<int64_t, 2> size;
     size.resize(startIndices.size());
@@ -435,9 +435,10 @@ struct ConvertStablehloTransposeOp
     }
 
     auto perms = op.getPermutation();
+    auto type = RankedTensorType::get({static_cast<int64_t>(perms.size())},
+                                      rewriter.getI64Type());
     auto constOp = rewriter.create<tosa::ConstOp>(
-        op->getLoc(),
-        RankedTensorType::get({perms.size()}, rewriter.getI64Type()), perms);
+        op->getLoc(), type, DenseIntElementsAttr::get(type, perms));
     rewriter.replaceOpWithNewOp<tosa::TransposeOp>(op, op.getResult().getType(),
                                                    op.getOperand(), constOp);
     return success();

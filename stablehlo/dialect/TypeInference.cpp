@@ -1481,22 +1481,16 @@ LogicalResult inferBatchNormTrainingOp(
 
 LogicalResult inferBroadcastOp(
     std::optional<Location> location, Value operand,
-    DenseIntElementsAttr broadcastSizes,
+    ArrayRef<int64_t> broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   if (!operandType) return failure();
 
-  // TODO: These should be expressed as type constraints.
-  auto sizesRank = broadcastSizes.getType().getRank();
-  if (sizesRank != 1)
-    return emitOptionalError(location, "broadcast_sizes has rank ", sizesRank,
-                             " instead of rank 1");
-
-  for (int64_t size : broadcastSizes.getValues<int64_t>())
+  for (int64_t size : broadcastSizes)
     if (size < 0)
       return emitOptionalError(location,
                                "Broadcast with negative dimension size ", size);
-  SmallVector<int64_t> shapeValues(broadcastSizes.getValues<int64_t>());
+  SmallVector<int64_t> shapeValues(broadcastSizes);
   llvm::append_range(shapeValues, operandType.getShape());
 
   inferredReturnShapes.emplace_back(shapeValues, operandType.getElementType());
@@ -2052,15 +2046,10 @@ LogicalResult inferDynamicGatherOp(
 
 LogicalResult inferDynamicSliceOp(
     std::optional<Location> location, Type operandType,
-    TypeRange startIndicesTypes, DenseIntElementsAttr sliceSizes,
+    TypeRange startIndicesTypes, ArrayRef<int64_t> sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // dynamic_slice_i3
-  if (sliceSizes.getType().getRank() != 1)
-    return emitOptionalError(location,
-                             "slice_sizes should be rank 1, but got rank ",
-                             sliceSizes.getType().getRank(), ".");
   // dynamic_slice_c2
-  int numSliceSizes = sliceSizes.getNumElements();
+  int numSliceSizes = sliceSizes.size();
   int numStartIndices = startIndicesTypes.size();
   if (numStartIndices != numSliceSizes)
     return emitOptionalError(location, "has mismatched number of slice sizes (",
@@ -2081,7 +2070,7 @@ LogicalResult inferDynamicSliceOp(
 
   // dynamic_slice_c4
   for (int i = 0; i < numSliceSizes; ++i) {
-    int64_t sliceSize = sliceSizes.getValues<int64_t>()[i];
+    int64_t sliceSize = sliceSizes[i];
     if (sliceSize < 0)
       return emitOptionalError(
           location, "has negative size index to dynamic slice: ", sliceSize);
@@ -2095,7 +2084,7 @@ LogicalResult inferDynamicSliceOp(
   }
 
   // dynamic_slice_c5
-  inferredReturnShapes.emplace_back(sliceSizes.getValues<int64_t>(),
+  inferredReturnShapes.emplace_back(sliceSizes,
                                     rankedOperandType.getElementType());
   return success();
 }
@@ -2162,9 +2151,8 @@ LogicalResult inferDynamicUpdateSliceOp(
 // P3. Operand shape dimensions agree with fft_length for the given fft_type
 LogicalResult inferFftOp(
     std::optional<Location> location, Value operand, bool isFftTypeRfft,
-    bool isFftTypeIrfft, DenseIntElementsAttr fftLength,
+    bool isFftTypeIrfft, ArrayRef<int64_t> fftLength,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto fftLengthValues = fftLength.getValues<int64_t>();
   int64_t fftRank = fftLength.size();
 
   // P1.
@@ -2214,38 +2202,36 @@ LogicalResult inferFftOp(
 
   if (isFftTypeRfft) {
     auto shapeBack = operandShape.take_back(fftRank);
-    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
+    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLength)) {
       if (!verifyCompatibleDims(operandDim, fftDim))
         return emitOptionalError(location,
                                  "RFFT requires innermost dimensions to be "
                                  "compatible with fft_length. Got: ",
-                                 operandShape, " but wanted ", fftLengthValues,
-                                 ".");
+                                 operandShape, " but wanted ", fftLength, ".");
     }
-    if (fftLengthValues[fftRank - 1] != 0)
-      resultShape[resultShape.size() - 1] =
-          fftLengthValues[fftRank - 1] / 2 + 1;
+    if (fftLength[fftRank - 1] != 0)
+      resultShape[resultShape.size() - 1] = fftLength[fftRank - 1] / 2 + 1;
   }
   if (isFftTypeIrfft) {
     auto shapeBack = operandShape.take_back(fftRank).drop_back();
-    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
+    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLength)) {
       if (!verifyCompatibleDims(operandDim, fftDim))
         return emitOptionalError(location,
                                  "IRFFT requires non-final dimensions to be "
                                  "compatible with fft_length. Got: ",
-                                 operandShape, " but wanted ", fftLengthValues,
+                                 operandShape, " but wanted ", fftLength,
                                  ", and ", operandDim, " != ", fftDim, ".");
     }
     if ((!verifyCompatibleDims(operandShape[operandShape.size() - 1], 0) ||
-         fftLengthValues[fftRank - 1] != 0) &&
+         fftLength[fftRank - 1] != 0) &&
         !verifyCompatibleDims(operandShape[operandShape.size() - 1],
-                              fftLengthValues[fftRank - 1] / 2 + 1))
+                              fftLength[fftRank - 1] / 2 + 1))
       return emitOptionalError(location,
                                "IRFFT requires innermost dimension to be "
                                "compatible with fft_length[-1]/2+1. Got: ",
                                operandShape[operandShape.size() - 1],
-                               " but fft_length is ", fftLengthValues, ".");
-    resultShape[resultShape.size() - 1] = fftLengthValues[fftRank - 1];
+                               " but fft_length is ", fftLength, ".");
+    resultShape[resultShape.size() - 1] = fftLength[fftRank - 1];
   }
   auto resultBounds = encodingToBounds(operandRankedType.getEncoding()).vec();
   if ((isFftTypeIrfft || isFftTypeRfft) && !resultBounds.empty())
@@ -2466,9 +2452,9 @@ LogicalResult inferOutfeedOp(HloDialectInterface* dialect,
 
 LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
                          Type paddingValueType,
-                         DenseIntElementsAttr edgePaddingLow,
-                         DenseIntElementsAttr edgePaddingHigh,
-                         DenseIntElementsAttr interiorPadding,
+                         ArrayRef<int64_t> edgePaddingLow,
+                         ArrayRef<int64_t> edgePaddingHigh,
+                         ArrayRef<int64_t> interiorPadding,
                          SmallVectorImpl<Type>& inferredReturnTypes) {
   auto inputType = operandType.cast<RankedTensorType>();
   auto padType = paddingValueType.cast<RankedTensorType>();
@@ -2480,17 +2466,11 @@ LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
                              "tensor, is rank ",
                              padType.getRank());
 
-  // pad_i3
-  if (edgePaddingLow.getType().getRank() != 1)
-    return emitOptionalError(location, "edge_padding_low has rank ",
-                             edgePaddingLow.getType().getRank(),
-                             " instead of required rank 1");
-
   int64_t rank = inputType.getRank();
   // pad_c2
-  if (edgePaddingLow.getType().getNumElements() != rank)
+  if (static_cast<int64_t>(edgePaddingLow.size()) != rank)
     return emitOptionalError(location, "edge_padding_low length (",
-                             edgePaddingLow.getType().getNumElements(),
+                             edgePaddingLow.size(),
                              ") must match operand rank (", rank, ")");
 
   auto inputShape = inputType.getShape();
@@ -2499,11 +2479,9 @@ LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
   SmallVector<int64_t> resultBounds(inputBounds.size(), ShapedType::kDynamic);
 
   for (int i = 0, e = inputShape.size(); i < e; i++) {
-    int64_t paddingLowVal = edgePaddingLow.getValues<APInt>()[i].getSExtValue();
-    int64_t paddingHighVal =
-        edgePaddingHigh.getValues<APInt>()[i].getSExtValue();
-    int64_t paddingInteriorVal =
-        interiorPadding.getValues<APInt>()[i].getSExtValue();
+    int64_t paddingLowVal = edgePaddingLow[i];
+    int64_t paddingHighVal = edgePaddingHigh[i];
+    int64_t paddingInteriorVal = interiorPadding[i];
     // pad_c3
     if (paddingInteriorVal < 0)
       return emitOptionalError(
@@ -2791,9 +2769,9 @@ LogicalResult inferSetDimensionSizeOp(
 }
 
 LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
-                           DenseIntElementsAttr startIndices,
-                           DenseIntElementsAttr limitIndices,
-                           DenseIntElementsAttr strides,
+                           ArrayRef<int64_t> startIndices,
+                           ArrayRef<int64_t> limitIndices,
+                           ArrayRef<int64_t> strides,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
   auto rankedTy = operandType.dyn_cast<RankedTensorType>();
   if (!rankedTy) {
@@ -2804,23 +2782,13 @@ LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
     return success();
   }
 
-  // slice_i2
-  ShapedType attrTy = startIndices.getType();
-  if (attrTy.getRank() != 1)
-    return emitOptionalError(location, "start_indices has rank ",
-                             attrTy.getRank(), " instead of required rank 1");
-
   // slice_c2
   int64_t rank = rankedTy.getRank();
-  if (attrTy.getNumElements() != rank)
+  if (static_cast<int64_t>(startIndices.size()) != rank)
     return emitOptionalError(
         location, "the number of elements in start_indices (",
-        attrTy.getNumElements(), ") does not match the rank of the operand (",
-        rank, ")");
-
-  SmallVector<int64_t, 4> start(startIndices.getValues<int64_t>());
-  SmallVector<int64_t, 4> limit(limitIndices.getValues<int64_t>());
-  SmallVector<int64_t, 4> strideVals(strides.getValues<int64_t>());
+        startIndices.size(), ") does not match the rank of the operand (", rank,
+        ")");
 
   ArrayRef<int64_t> inputBounds = encodingToBounds(rankedTy.getEncoding());
   SmallVector<int64_t> shape(rank, ShapedType::kDynamic);
@@ -2828,9 +2796,9 @@ LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
 
   for (int64_t i = 0, e = rank; i != e; i++) {
     // slice_c3
-    if (start[i] < 0)
-      return emitOptionalError(location, "negative start index ", start[i],
-                               " in dimension ", i);
+    if (startIndices[i] < 0)
+      return emitOptionalError(location, "negative start index ",
+                               startIndices[i], " in dimension ", i);
 
     bool isStaticDim = !isDynamicDimSize(rankedTy.getDimSize(i));
     bool isStaticBound =
@@ -2840,25 +2808,25 @@ LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
           isStaticDim ? rankedTy.getDimSize(i) : inputBounds[i];
       StringRef sizeOrBound = isStaticDim ? "size" : "bound";
       // slice_c3
-      if (limit[i] > operandSizeOrBound)
-        return emitOptionalError(location, "limit index ", limit[i],
+      if (limitIndices[i] > operandSizeOrBound)
+        return emitOptionalError(location, "limit index ", limitIndices[i],
                                  " is larger than dimension ", sizeOrBound, " ",
                                  operandSizeOrBound, " in dimension ", i);
     }
 
     // slice_c3
-    if (start[i] > limit[i])
-      return emitOptionalError(location, "start index ", start[i],
-                               " is larger than limit index ", limit[i],
+    if (startIndices[i] > limitIndices[i])
+      return emitOptionalError(location, "start index ", startIndices[i],
+                               " is larger than limit index ", limitIndices[i],
                                " in dimension ", i);
     // slice_c4
-    if (strideVals[i] <= 0)
+    if (strides[i] <= 0)
       return emitOptionalError(location, "stride must be positive but got ",
-                               strideVals[i], " in dimension ", i);
+                               strides[i], " in dimension ", i);
 
     // slice_c5
     shape[i] = static_cast<int64_t>(
-        llvm::divideCeil(limit[i] - start[i], strideVals[i]));
+        llvm::divideCeil(limitIndices[i] - startIndices[i], strides[i]));
   }
 
   // slice_c1
@@ -2921,7 +2889,7 @@ LogicalResult inferTopKOp(
 }
 
 LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
-                               DenseIntElementsAttr permutation,
+                               ArrayRef<int64_t> permutation,
                                SmallVectorImpl<Type>& inferredReturnTypes) {
   auto type = operand.getType();
   auto rankedTy = type.dyn_cast<RankedTensorType>();
@@ -2930,12 +2898,7 @@ LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
     return success();
   }
   int64_t rank = rankedTy.getRank();
-  if (permutation.getType().getRank() != 1)
-    return emitOptionalError(loc, "TransposeOp permutation has rank ",
-                             permutation.getType().getRank(),
-                             " instead of rank 1");
-
-  if (permutation.size() != rank)
+  if (static_cast<int64_t>(permutation.size()) != rank)
     return emitOptionalError(loc, "TransposeOp operand rank ", rank,
                              " does not match permutation size ",
                              permutation.size());
@@ -2952,7 +2915,7 @@ LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
   SmallVector<int64_t> resultShape;
   SmallVector<int64_t> resultBounds;
   ArrayRef<int64_t> inputShape = rankedTy.getShape();
-  for (int64_t dim : permutation.getValues<int64_t>()) {
+  for (int64_t dim : permutation) {
     resultShape.push_back(inputShape[dim]);
     if (!inputBounds.empty()) resultBounds.push_back(inputBounds[dim]);
   }
@@ -3926,20 +3889,14 @@ LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
 }
 
 LogicalResult verifyReverseOp(std::optional<Location> location, Value operand,
-                              DenseIntElementsAttr dimensions) {
-  // reverse_i2
-  if (dimensions.getType().getRank() != 1)
-    return emitOptionalError(location, "dimensions has rank ",
-                             dimensions.getType().getRank(),
-                             " instead of required rank 1.");
-  auto dims = dimensions.getValues<int64_t>();
-  llvm::SmallDenseSet<int64_t> uniqueDims(dims.begin(), dims.end());
+                              ArrayRef<int64_t> dimensions) {
+  llvm::SmallDenseSet<int64_t> uniqueDims(dimensions.begin(), dimensions.end());
   // reverse_c2
-  if (uniqueDims.size() != dims.size())
+  if (uniqueDims.size() != dimensions.size())
     return emitOptionalError(location,
-                             "dimensions should be unique. Got: ", dims);
+                             "dimensions should be unique. Got: ", dimensions);
   auto operandTy = operand.getType().dyn_cast<RankedTensorType>();
-  for (int64_t dim : uniqueDims) {
+  for (int64_t dim : dimensions) {
     // reverse_c3
     if (dim < 0)
       return emitOptionalError(

@@ -480,7 +480,7 @@ func.func @broadcast_in_dim_scalar(%operand: tensor<f32>) -> tensor<7x10x6xf32> 
 // CHECK-DAG: #[[RESULT_MAP:.+]] = affine_map<(d0, d1, d2) -> (d0, d1, d2)>
 // CHECK: func @broadcast_scalar
 func.func @broadcast_scalar(%arg: tensor<f32>) -> tensor<4x2x1xf32> {
-  %0 = "stablehlo.broadcast"(%arg) {broadcast_sizes = dense<[4, 2, 1]> : tensor<3xi64>} : (tensor<f32>) -> tensor<4x2x1xf32>
+  %0 = "stablehlo.broadcast"(%arg) {broadcast_sizes = array<i64: 4, 2, 1>} : (tensor<f32>) -> tensor<4x2x1xf32>
   func.return %0: tensor<4x2x1xf32>
 }
 // CHECK: tensor.empty() : tensor<4x2x1xf32>
@@ -501,7 +501,7 @@ func.func @broadcast_scalar(%arg: tensor<f32>) -> tensor<4x2x1xf32> {
 // CHECK-DAG: #[[RESULT_MAP:.+]] = affine_map<(d0, d1, d2, d3, d4, d5) -> (d0, d1, d2, d3, d4, d5)>
 // CHECK: func @broadcast
 func.func @broadcast(%arg: tensor<4x?x16xf32>) -> tensor<4x2x1x4x?x16xf32> {
-  %0 = "stablehlo.broadcast"(%arg) {broadcast_sizes = dense<[4, 2, 1]> : tensor<3xi64>} : (tensor<4x?x16xf32>) -> tensor<4x2x1x4x?x16xf32>
+  %0 = "stablehlo.broadcast"(%arg) {broadcast_sizes = array<i64: 4, 2, 1>} : (tensor<4x?x16xf32>) -> tensor<4x2x1x4x?x16xf32>
   func.return %0: tensor<4x2x1x4x?x16xf32>
 }
 // CHECK-DAG: %[[C1:.*]] = arith.constant 1 : index
@@ -737,9 +737,9 @@ func.func @map_compare(%arg0: tensor<?xcomplex<f32>>,
 func.func @pad_cst(%arg0: tensor<12x4xf32>) -> tensor<18x12xf32> {
   %0 = arith.constant dense<0.0> : tensor<f32>
   %1 = "stablehlo.pad"(%arg0, %0) {
-    edge_padding_high = dense<[2, 3]> : tensor<2xi64>,
-    edge_padding_low = dense<[4, 5]> : tensor<2xi64>,
-    interior_padding = dense<0> : tensor<2xi64>
+    edge_padding_high = array<i64: 2, 3>,
+    edge_padding_low = array<i64: 4, 5>,
+    interior_padding = array<i64: 0, 0>
   } : (tensor<12x4xf32>, tensor<f32>) -> tensor<18x12xf32>
   func.return %1 : tensor<18x12xf32>
 }
@@ -754,9 +754,9 @@ func.func @pad_cst(%arg0: tensor<12x4xf32>) -> tensor<18x12xf32> {
 
 func.func @pad_tensor(%arg0: tensor<12x4xf32>, %arg1: tensor<f32>) -> tensor<18x12xf32> {
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[2, 3]> : tensor<2xi64>,
-    edge_padding_low = dense<[4, 5]> : tensor<2xi64>,
-    interior_padding = dense<0> : tensor<2xi64>
+    edge_padding_high = array<i64: 2, 3>,
+    edge_padding_low = array<i64: 4, 5>,
+    interior_padding = array<i64: 0, 0>
   } : (tensor<12x4xf32>, tensor<f32>) -> tensor<18x12xf32>
   func.return %0 : tensor<18x12xf32>
 }
@@ -773,9 +773,9 @@ func.func @pad_tensor(%arg0: tensor<12x4xf32>, %arg1: tensor<f32>) -> tensor<18x
 func.func @pad_interior(%arg0: tensor<12x4xui32>, %arg1: tensor<ui32>) -> tensor<29x15xui32> {
   %0 = arith.constant dense<0> : tensor<ui32>
   %1 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[2, 3]> : tensor<2xi64>,
-    edge_padding_low = dense<[4, 5]> : tensor<2xi64>,
-    interior_padding = dense<[1, 1]> : tensor<2xi64>
+    edge_padding_high = array<i64: 2, 3>,
+    edge_padding_low = array<i64: 4, 5>,
+    interior_padding = array<i64: 1, 1>
   } : (tensor<12x4xui32>, tensor<ui32>) -> tensor<29x15xui32>
   func.return %1 : tensor<29x15xui32>
 }
@@ -794,9 +794,9 @@ func.func @pad_interior(%arg0: tensor<12x4xui32>, %arg1: tensor<ui32>) -> tensor
 func.func @pad_interior_negative(%arg0: tensor<12x4xui32>, %arg1: tensor<ui32>) -> tensor<25x9xui32> {
   %0 = arith.constant dense<0> : tensor<ui32>
   %1 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[-2, 3]> : tensor<2xi64>,
-    edge_padding_low = dense<[4, -1]> : tensor<2xi64>,
-    interior_padding = dense<[1, 1]> : tensor<2xi64>
+    edge_padding_high = array<i64: -2, 3>,
+    edge_padding_low = array<i64: 4, -1>,
+    interior_padding = array<i64: 1, 1>
   } : (tensor<12x4xui32>, tensor<ui32>) -> tensor<25x9xui32>
   func.return %1 : tensor<25x9xui32>
 }
@@ -1062,7 +1062,7 @@ func.func @reshape_empty(%arg0: tensor<7x0xf64>) -> tensor<0x42x101xf64> {
 // CHECK: func @reverse
 func.func @reverse(%input: tensor<2x3xf32>) -> tensor<2x3xf32> {
   %result = "stablehlo.reverse"(%input) {
-    dimensions = dense<1> : tensor<1xi64>, someattr
+    dimensions = array<i64: 1>, someattr
   } : (tensor<2x3xf32>) -> tensor<2x3xf32>
   func.return %result : tensor<2x3xf32>
 }
@@ -1328,9 +1328,9 @@ func.func @torch_index_select_dynamic(%input: tensor<?x?x?x?xf32>,
 //       CHECK:   tensor.extract_slice %{{.*}}[1, 0] [1, 4] [1, 1] : tensor<3x4xi32> to tensor<1x4xi32>
 func.func @slice_whole_stride(%arg0: tensor<3x4xi32>) -> tensor<1x4xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 0]> : tensor<2xi64>,
-    limit_indices = dense<[2, 4]> : tensor<2xi64>,
-    strides = dense<1> : tensor<2xi64>
+    start_indices = array<i64: 1, 0>,
+    limit_indices = array<i64: 2, 4>,
+    strides = array<i64: 1, 1>
   } : (tensor<3x4xi32>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
@@ -1341,9 +1341,9 @@ func.func @slice_whole_stride(%arg0: tensor<3x4xi32>) -> tensor<1x4xi32> {
 //       CHECK:   tensor.extract_slice %{{.*}}[1, 1] [1, 2] [1, 1]  : tensor<3x4xi32> to tensor<1x2xi32>
 func.func @slice_stride_part(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 1]> : tensor<2xi64>,
-    limit_indices = dense<[2, 3]> : tensor<2xi64>,
-    strides = dense<1> : tensor<2xi64>
+    start_indices = array<i64: 1, 1>,
+    limit_indices = array<i64: 2, 3>,
+    strides = array<i64: 1, 1>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -1354,9 +1354,9 @@ func.func @slice_stride_part(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
 //       CHECK:   tensor.extract_slice %{{.*}}[0] [6] [2] : tensor<13xi32> to tensor<6xi32>
 func.func @slice_with_strides(%arg0: tensor<13xi32>) -> tensor<6xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    limit_indices = dense<12> : tensor<1xi64>,
-    start_indices = dense<0> : tensor<1xi64>,
-    strides = dense<2> : tensor<1xi64>
+    limit_indices = array<i64: 12>,
+    start_indices = array<i64: 0>,
+    strides = array<i64: 2>
   } : (tensor<13xi32>) -> tensor<6xi32>
   func.return %0 : tensor<6xi32>
 }
@@ -1367,9 +1367,9 @@ func.func @slice_with_strides(%arg0: tensor<13xi32>) -> tensor<6xi32> {
 //       CHECK:   tensor.extract_slice %{{.*}}[0] [3] [2] : tensor<6xi32> to tensor<3xi32>
 func.func @slice_with_strides2(%arg0: tensor<6xi32>) -> tensor<3xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    limit_indices = dense<5> : tensor<1xi64>,
-    start_indices = dense<0> : tensor<1xi64>,
-    strides = dense<2> : tensor<1xi64>
+    limit_indices = array<i64: 5>,
+    start_indices = array<i64: 0>,
+    strides = array<i64: 2>
   } : (tensor<6xi32>) -> tensor<3xi32>
   func.return %0 : tensor<3xi32>
 }
@@ -1380,9 +1380,9 @@ func.func @slice_with_strides2(%arg0: tensor<6xi32>) -> tensor<3xi32> {
 //       CHECK:   tensor.extract_slice %{{.*}}[0, 2, 0] [3, 0, 5] [1, 2, 1] : tensor<3x3x5xf64> to tensor<3x0x5xf64>
 func.func @slice_with_empty_result(%arg0: tensor<3x3x5xf64>) -> tensor<3x0x5xf64> {
   %0 = "stablehlo.slice"(%arg0) {
-    limit_indices = dense<[3, 2, 5]> : tensor<3xi64>,
-    start_indices = dense<[0, 2, 0]> : tensor<3xi64>,
-    strides = dense<[1, 2, 1]> : tensor<3xi64>
+    limit_indices = array<i64: 3, 2, 5>,
+    start_indices = array<i64: 0, 2, 0>,
+    strides = array<i64: 1, 2, 1>
   } : (tensor<3x3x5xf64>) -> tensor<3x0x5xf64>
   func.return %0 : tensor<3x0x5xf64>
 }
@@ -1395,7 +1395,7 @@ func.func @slice_with_empty_result(%arg0: tensor<3x3x5xf64>) -> tensor<3x0x5xf64
 // CHECK-SAME:    %[[ARG2:[a-zA-Z0-9_]*]]
 func.func @dynamic_slice(%arg: tensor<3x4xf32>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<1x4xf32> {
   %0 = "stablehlo.dynamic_slice"(%arg, %start1, %start2) {
-    slice_sizes = dense<[1, 4]> : tensor<2xi64>
+    slice_sizes = array<i64: 1, 4>
   } : (tensor<3x4xf32>, tensor<i64>, tensor<i64>) -> tensor<1x4xf32>
   func.return %0 : tensor<1x4xf32>
 }
@@ -1418,7 +1418,7 @@ func.func @dynamic_slice_unsigned_index(
     %arg: tensor<3x4xui32>, %start1: tensor<ui64>, %start2: tensor<ui64>)
     -> tensor<1x4xui32> {
   %0 = "stablehlo.dynamic_slice"(%arg, %start1, %start2) {
-    slice_sizes = dense<[1, 4]> : tensor<2xi64>
+    slice_sizes = array<i64: 1, 4>
   } : (tensor<3x4xui32>, tensor<ui64>, tensor<ui64>) -> tensor<1x4xui32>
   func.return %0 : tensor<1x4xui32>
 }
@@ -1434,7 +1434,7 @@ func.func @dynamic_slice_unsigned_index(
 // CHECK-SAME:    %[[ARG2:[a-zA-Z0-9_]*]]
 func.func @dynamic_slice_unsigned(%arg: tensor<3x4xui32>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<1x4xui32> {
   %0 = "stablehlo.dynamic_slice"(%arg, %start1, %start2) {
-    slice_sizes = dense<[1, 4]> : tensor<2xi64>
+    slice_sizes = array<i64: 1, 4>
   } : (tensor<3x4xui32>, tensor<i64>, tensor<i64>) -> tensor<1x4xui32>
   func.return %0 : tensor<1x4xui32>
 }
@@ -1555,7 +1555,7 @@ func.func @dynamic_update_slice_float(%target: tensor<3x3xf32>,
 // CHECK-DAG: #[[RESULT_MAP:.*]] = affine_map<(d0, d1, d2, d3) -> (d0, d1, d2, d3)>
 // CHECK: func @transpose
 func.func @transpose(%arg0: tensor<2x3x9x5xi32>) -> tensor<3x2x5x9xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>}
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>}
         : (tensor<2x3x9x5xi32>) -> tensor<3x2x5x9xi32>
   func.return %0 : tensor<3x2x5x9xi32>
 }
@@ -1570,7 +1570,7 @@ func.func @transpose(%arg0: tensor<2x3x9x5xi32>) -> tensor<3x2x5x9xi32> {
 // CHECK-DAG: #[[RESULT_MAP:.*]] = affine_map<(d0, d1, d2, d3) -> (d0, d1, d2, d3)>
 // CHECK: func @transpose_dynamic
 func.func @transpose_dynamic(%arg0: tensor<?x?x9x?xi32>) -> tensor<?x?x?x9xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>, someattr}
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>, someattr}
         : (tensor<?x?x9x?xi32>) -> tensor<?x?x?x9xi32>
   func.return %0 : tensor<?x?x?x9xi32>
 }
@@ -1603,7 +1603,7 @@ func.func @transpose_dynamic(%arg0: tensor<?x?x9x?xi32>) -> tensor<?x?x?x9xi32> 
 
 func.func @transpose_unsigned(%arg0: tensor<2x2xui32>) -> tensor<2x2xui32> {
   %0 = "stablehlo.transpose"(%arg0) {
-    permutation = dense<[1, 0]> : tensor<2xi64>,
+    permutation = array<i64: 1, 0>,
     result_layout = dense<[0, 1]> : tensor<2xindex>
   } : (tensor<2x2xui32>) -> tensor<2x2xui32>
   return %0 : tensor<2x2xui32>

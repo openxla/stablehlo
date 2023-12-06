@@ -49,7 +49,7 @@ func.func @select(%pred : tensor<i1>, %a : tensor<?x2x3xf32>, %b : tensor<1x?x3x
 
 // CHECK-LABEL: @broadcast
 func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xindex> {
-  %0 = "stablehlo.broadcast"(%a) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>}
+  %0 = "stablehlo.broadcast"(%a) {broadcast_sizes = array<i64: 1, 2>}
       : (tensor<3xi32>) -> tensor<1x2x3xi32>
   // CHECK: types0 = tensor<1x2x3xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<1x2x3xi32>) -> tensor<1x2x3xindex>
@@ -61,7 +61,7 @@ func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xindex> {
 func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{Broadcast with negative dimension size -2}}
-  %0 = "stablehlo.broadcast"(%a) {broadcast_sizes = dense<[1, -2]> : tensor<2xi64>}
+  %0 = "stablehlo.broadcast"(%a) {broadcast_sizes = array<i64: 1, -2>}
       : (tensor<3xi32>) -> tensor<1x2x3xi32>
   func.return %0 : tensor<1x2x3xi32>
 }
@@ -70,7 +70,7 @@ func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xi32> {
 
 // CHECK-LABEL: @dynamic_slice
 func.func @dynamic_slice(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<1x4xindex> {
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: 1, 4>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   // CHECK: types0 = tensor<1x4xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<1x4xi32>) -> tensor<1x4xindex>
   func.return %1 : tensor<1x4xindex>
@@ -81,9 +81,9 @@ func.func @dynamic_slice(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tens
 // CHECK-LABEL: @pad
 func.func @pad(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xindex> {
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
+    edge_padding_high = array<i64: 1, 1, 0>,
+    edge_padding_low = array<i64: 0, 1, 2>,
+    interior_padding = array<i64: 0, 0, 1>
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
   // CHECK: types0 = tensor<2x4x7xf16>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x4x7xf16>) -> tensor<2x4x7xindex>
@@ -229,7 +229,7 @@ func.func @rng_uniform(%a: tensor<f32>, %b: tensor<f32>) -> tensor<2x3x5xindex> 
 
 // CHECK-LABEL: func @slice
 func.func @slice(%arg0: tensor<3x4xi32>) -> tensor<1x2xindex> {
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0>, limit_indices = array<i64: 2, 4>, strides = array<i64: 1, 2>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
   // CHECK: types0 = tensor<1x2xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<1x2xi32>) -> tensor<1x2xindex>
   func.return %1 : tensor<1x2xindex>
@@ -259,7 +259,7 @@ func.func @uniform_dequantize_c2(%arg: tensor<16x16x!quant.uniform<i8:f32, 34.0:
 
 // CHECK-LABEL: func @fft
 func.func @fft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xindex> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type FFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type FFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
   // CHECK: types0 = tensor<3x9xcomplex<f32>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xindex>
   func.return %1 : tensor<3x9xindex>
@@ -1147,7 +1147,7 @@ func.func @add_bounds_unranked(
 
 // CHECK-LABEL: func @transpose
 func.func @transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<*xindex> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<*xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x2x3x4xi32>) -> tensor<*xi32>
 
   // CHECK: types0 = tensor<2x1x4x3xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
@@ -1158,7 +1158,7 @@ func.func @transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<*xindex> {
 
 // CHECK-LABEL: func @transpose_with_bounds
 func.func @transpose_with_bounds(%arg0: tensor<?x2x?x4xi32, #stablehlo.bounds<1, ?, 3, ?>>) -> tensor<*xindex> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<?x2x?x4xi32, #stablehlo.bounds<1, ?, 3, ?>>) -> tensor<*xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<?x2x?x4xi32, #stablehlo.bounds<1, ?, 3, ?>>) -> tensor<*xi32>
 
   // CHECK: types0 = tensor<2x?x4x?xi32, #stablehlo.bounds<?, 1, ?, 3>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
@@ -1169,7 +1169,7 @@ func.func @transpose_with_bounds(%arg0: tensor<?x2x?x4xi32, #stablehlo.bounds<1,
 
 // CHECK-LABEL: func @slice_with_bounds
 func.func @slice_with_bounds(%arg0: tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xindex> {
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0, 0]> : tensor<3xi64>, limit_indices = dense<[2, 4, 4]> : tensor<3xi64>, strides = dense<[1, 2, 2]> : tensor<3xi64>} : (tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0, 0>, limit_indices = array<i64: 2, 4, 4>, strides = array<i64: 1, 2, 2>} : (tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xi32>
   // CHECK: types0 = tensor<1x2x2xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
@@ -1180,7 +1180,7 @@ func.func @slice_with_bounds(%arg0: tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>
 func.func @slice_with_index_larger_than_bound_dim(%arg0: tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xindex> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{limit index 5 is larger than dimension bound 4 in dimension 1}}
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0, 0]> : tensor<3xi64>, limit_indices = dense<[2, 5, 4]> : tensor<3xi64>, strides = dense<[1, 2, 2]> : tensor<3xi64>} : (tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0, 0>, limit_indices = array<i64: 2, 5, 4>, strides = array<i64: 1, 2, 2>} : (tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
@@ -1190,9 +1190,9 @@ func.func @slice_with_index_larger_than_bound_dim(%arg0: tensor<3x?x?xi32, #stab
 // CHECK-LABEL: @pad_with_bounds
 func.func @pad_with_bounds(%arg0: tensor<3x?x?xf16, #stablehlo.bounds<?, 3, ?>>, %arg1: tensor<f16>) -> tensor<*xindex> {
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[2, 2, 0]> : tensor<3xi64>,
-    edge_padding_high = dense<[0, 0, 0]> : tensor<3xi64>,
-    interior_padding = dense<[1, 1, 1]> : tensor<3xi64>
+    edge_padding_low = array<i64: 2, 2, 0>,
+    edge_padding_high = array<i64: 0, 0, 0>,
+    interior_padding = array<i64: 1, 1, 1>
   } : (tensor<3x?x?xf16, #stablehlo.bounds<?, 3, ?>>, tensor<f16>) -> tensor<*xf16>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf16>) -> tensor<*xindex>
   // CHECK: types0 = tensor<7x?x?xf16, #stablehlo.bounds<?, 7, ?>>
@@ -1205,9 +1205,9 @@ func.func @pad_with_negative_inferred_bounds(%arg0: tensor<3x?x?xf16, #stablehlo
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{Padding result in negative bound for dimension 1}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[2, -10, 0]> : tensor<3xi64>,
-    edge_padding_high = dense<[0, 0, 0]> : tensor<3xi64>,
-    interior_padding = dense<[1, 1, 1]> : tensor<3xi64>
+    edge_padding_low = array<i64: 2, -10, 0>,
+    edge_padding_high = array<i64: 0, 0, 0>,
+    interior_padding = array<i64: 1, 1, 1>
   } : (tensor<3x?x?xf16, #stablehlo.bounds<?, 3, ?>>, tensor<f16>) -> tensor<*xf16>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf16>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
@@ -1473,9 +1473,9 @@ func.func @pad(%arg0: tensor<?x48x48x32xf32>) -> tensor<4xindex> {
   // CHECK: return %[[RES]] : tensor<4xindex>
   %0 = "stablehlo.constant"() {value = dense<0.000000e+00> : tensor<f32>} : () -> tensor<f32>
   %result = "stablehlo.pad"(%arg0, %0) {
-    edge_padding_high = dense<[0, 0, 0, 16]> : tensor<4xi64>,
-    edge_padding_low = dense<0> : tensor<4xi64>,
-    interior_padding = dense<0> : tensor<4xi64>
+    edge_padding_high = array<i64: 0, 0, 0, 16>,
+    edge_padding_low = array<i64: 0, 0, 0, 0>,
+    interior_padding = array<i64: 0, 0, 0, 0>
   } : (tensor<?x48x48x32xf32>, tensor<f32>) -> tensor<?x48x48x48xf32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<?x48x48x48xf32>) -> tensor<4xindex>
   func.return %1 : tensor<4xindex>
@@ -1636,7 +1636,7 @@ func.func @broadcast(%arg0: tensor<?xi32>) -> tensor<3xindex> {
   // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG0]], %[[C0]] : tensor<?xi32>
   // CHECK: %[[RES:.*]] = tensor.from_elements %[[C1]], %[[C2]], %[[DIM]] : tensor<3xindex>
   // CHECK: return %[[RES]] : tensor<3xindex>
-  %result = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<?xi32>) -> tensor<1x2x?xi32>
+  %result = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 1, 2>} : (tensor<?xi32>) -> tensor<1x2x?xi32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<1x2x?xi32>) -> tensor<3xindex>
   func.return %1: tensor<3xindex>
 }
@@ -1656,7 +1656,7 @@ func.func @transpose(%arg0: tensor<?x?x?x?xi32>) -> tensor<4xindex> {
   // CHECK: %[[DIM2:.*]] = tensor.dim %[[ARG0]], %[[C3]] : tensor<?x?x?x?xi32>
   // CHECK: %[[RES:.*]] = tensor.from_elements %[[DIM0]], %[[DIM]], %[[DIM2]], %[[DIM1]] : tensor<4xindex>
   // CHECK: return %[[RES]] : tensor<4xindex>
-  %result = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
+  %result = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?x?x?x?xi32>) -> tensor<4xindex>
   func.return %1: tensor<4xindex>
 }
@@ -1766,7 +1766,7 @@ func.func @triangular_solve_bounds(
 // CHECK-LABEL: func @fft_bound
 func.func @fft_bound(%arg0: tensor<?x9xcomplex<f32>, #stablehlo.bounds<3, ?>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
-    fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type FFT>
+    fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type FFT>
   } : (tensor<?x9xcomplex<f32>, #stablehlo.bounds<3, ?>>) -> tensor<*xcomplex<f32>>
   // CHECK: types0 = tensor<?x9xcomplex<f32>, #stablehlo.bounds<3, ?>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xcomplex<f32>>) -> tensor<*xindex>
@@ -1778,7 +1778,7 @@ func.func @fft_bound(%arg0: tensor<?x9xcomplex<f32>, #stablehlo.bounds<3, ?>>) -
 // CHECK-LABEL: func @rfft_with_bound
 func.func @rfft_with_bound(%arg0: tensor<3x?x?xf32, #stablehlo.bounds<?, 3, 10>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
-    fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT>
+    fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT>
   } : (tensor<3x?x?xf32, #stablehlo.bounds<?, 3, 10>>) -> tensor<*xcomplex<f32>>
   // CHECK: types0 = tensor<3x?x5xcomplex<f32>, #stablehlo.bounds<?, 3, ?>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xcomplex<f32>>) -> tensor<*xindex>
@@ -1790,7 +1790,7 @@ func.func @rfft_with_bound(%arg0: tensor<3x?x?xf32, #stablehlo.bounds<?, 3, 10>>
 // CHECK-LABEL: func @irfft_with_bound
 func.func @irfft_with_bound(%arg0: tensor<3x?x?xcomplex<f32>, #stablehlo.bounds<?, 3, 17>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
-    fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT>
+    fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type IRFFT>
   } : (tensor<3x?x?xcomplex<f32>, #stablehlo.bounds<?, 3, 17>>) -> tensor<*xf32>
   // CHECK: types0 = tensor<3x?x9xf32, #stablehlo.bounds<?, 3, ?>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>

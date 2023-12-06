@@ -20,39 +20,39 @@ module @jit_testcase {
     return %0 : tensor<8x9xbf16>
   }
   func.func private @cummax(%arg0: tensor<8x9xbf16>) -> tensor<8x9xbf16> {
-    %0 = "stablehlo.slice"(%arg0) {limit_indices = dense<[7, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<8x9xbf16>) -> tensor<4x9xbf16>
-    %1 = "stablehlo.slice"(%arg0) {limit_indices = dense<[8, 9]> : tensor<2xi64>, start_indices = dense<[1, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<8x9xbf16>) -> tensor<4x9xbf16>
+    %0 = "stablehlo.slice"(%arg0) {limit_indices = array<i64: 7, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 2, 1>} : (tensor<8x9xbf16>) -> tensor<4x9xbf16>
+    %1 = "stablehlo.slice"(%arg0) {limit_indices = array<i64: 8, 9>, start_indices = array<i64: 1, 0>, strides = array<i64: 2, 1>} : (tensor<8x9xbf16>) -> tensor<4x9xbf16>
     %2 = stablehlo.maximum %0, %1 : tensor<4x9xbf16>
-    %3 = "stablehlo.slice"(%2) {limit_indices = dense<[3, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<4x9xbf16>) -> tensor<2x9xbf16>
-    %4 = "stablehlo.slice"(%2) {limit_indices = dense<[4, 9]> : tensor<2xi64>, start_indices = dense<[1, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<4x9xbf16>) -> tensor<2x9xbf16>
+    %3 = "stablehlo.slice"(%2) {limit_indices = array<i64: 3, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 2, 1>} : (tensor<4x9xbf16>) -> tensor<2x9xbf16>
+    %4 = "stablehlo.slice"(%2) {limit_indices = array<i64: 4, 9>, start_indices = array<i64: 1, 0>, strides = array<i64: 2, 1>} : (tensor<4x9xbf16>) -> tensor<2x9xbf16>
     %5 = stablehlo.maximum %3, %4 : tensor<2x9xbf16>
-    %6 = "stablehlo.slice"(%5) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<2x9xbf16>) -> tensor<1x9xbf16>
-    %7 = "stablehlo.slice"(%5) {limit_indices = dense<[2, 9]> : tensor<2xi64>, start_indices = dense<[1, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<2x9xbf16>) -> tensor<1x9xbf16>
+    %6 = "stablehlo.slice"(%5) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 2, 1>} : (tensor<2x9xbf16>) -> tensor<1x9xbf16>
+    %7 = "stablehlo.slice"(%5) {limit_indices = array<i64: 2, 9>, start_indices = array<i64: 1, 0>, strides = array<i64: 2, 1>} : (tensor<2x9xbf16>) -> tensor<1x9xbf16>
     %8 = stablehlo.maximum %6, %7 : tensor<1x9xbf16>
-    %9 = "stablehlo.slice"(%8) {limit_indices = dense<[0, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<1x9xbf16>) -> tensor<0x9xbf16>
-    %10 = "stablehlo.slice"(%5) {limit_indices = dense<[2, 9]> : tensor<2xi64>, start_indices = dense<[2, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<2x9xbf16>) -> tensor<0x9xbf16>
+    %9 = "stablehlo.slice"(%8) {limit_indices = array<i64: 0, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<1x9xbf16>) -> tensor<0x9xbf16>
+    %10 = "stablehlo.slice"(%5) {limit_indices = array<i64: 2, 9>, start_indices = array<i64: 2, 0>, strides = array<i64: 2, 1>} : (tensor<2x9xbf16>) -> tensor<0x9xbf16>
     %11 = stablehlo.maximum %9, %10 : tensor<0x9xbf16>
-    %12 = "stablehlo.slice"(%5) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<2x9xbf16>) -> tensor<1x9xbf16>
+    %12 = "stablehlo.slice"(%5) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<2x9xbf16>) -> tensor<1x9xbf16>
     %13 = stablehlo.concatenate %12, %11, dim = 0 : (tensor<1x9xbf16>, tensor<0x9xbf16>) -> tensor<1x9xbf16>
     %14 = stablehlo.constant dense<0.000000e+00> : tensor<bf16>
     %15 = stablehlo.pad %13, %14, low = [0, 0], high = [1, 0], interior = [1, 0] : (tensor<1x9xbf16>, tensor<bf16>) -> tensor<2x9xbf16>
     %16 = stablehlo.constant dense<0.000000e+00> : tensor<bf16>
     %17 = stablehlo.pad %8, %16, low = [1, 0], high = [0, 0], interior = [1, 0] : (tensor<1x9xbf16>, tensor<bf16>) -> tensor<2x9xbf16>
     %18 = stablehlo.add %15, %17 : tensor<2x9xbf16>
-    %19 = "stablehlo.slice"(%18) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<2x9xbf16>) -> tensor<1x9xbf16>
-    %20 = "stablehlo.slice"(%2) {limit_indices = dense<[4, 9]> : tensor<2xi64>, start_indices = dense<[2, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<4x9xbf16>) -> tensor<1x9xbf16>
+    %19 = "stablehlo.slice"(%18) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<2x9xbf16>) -> tensor<1x9xbf16>
+    %20 = "stablehlo.slice"(%2) {limit_indices = array<i64: 4, 9>, start_indices = array<i64: 2, 0>, strides = array<i64: 2, 1>} : (tensor<4x9xbf16>) -> tensor<1x9xbf16>
     %21 = stablehlo.maximum %19, %20 : tensor<1x9xbf16>
-    %22 = "stablehlo.slice"(%2) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<4x9xbf16>) -> tensor<1x9xbf16>
+    %22 = "stablehlo.slice"(%2) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<4x9xbf16>) -> tensor<1x9xbf16>
     %23 = stablehlo.concatenate %22, %21, dim = 0 : (tensor<1x9xbf16>, tensor<1x9xbf16>) -> tensor<2x9xbf16>
     %24 = stablehlo.constant dense<0.000000e+00> : tensor<bf16>
     %25 = stablehlo.pad %23, %24, low = [0, 0], high = [1, 0], interior = [1, 0] : (tensor<2x9xbf16>, tensor<bf16>) -> tensor<4x9xbf16>
     %26 = stablehlo.constant dense<0.000000e+00> : tensor<bf16>
     %27 = stablehlo.pad %18, %26, low = [1, 0], high = [0, 0], interior = [1, 0] : (tensor<2x9xbf16>, tensor<bf16>) -> tensor<4x9xbf16>
     %28 = stablehlo.add %25, %27 : tensor<4x9xbf16>
-    %29 = "stablehlo.slice"(%28) {limit_indices = dense<[3, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<4x9xbf16>) -> tensor<3x9xbf16>
-    %30 = "stablehlo.slice"(%arg0) {limit_indices = dense<[8, 9]> : tensor<2xi64>, start_indices = dense<[2, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<8x9xbf16>) -> tensor<3x9xbf16>
+    %29 = "stablehlo.slice"(%28) {limit_indices = array<i64: 3, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<4x9xbf16>) -> tensor<3x9xbf16>
+    %30 = "stablehlo.slice"(%arg0) {limit_indices = array<i64: 8, 9>, start_indices = array<i64: 2, 0>, strides = array<i64: 2, 1>} : (tensor<8x9xbf16>) -> tensor<3x9xbf16>
     %31 = stablehlo.maximum %29, %30 : tensor<3x9xbf16>
-    %32 = "stablehlo.slice"(%arg0) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<8x9xbf16>) -> tensor<1x9xbf16>
+    %32 = "stablehlo.slice"(%arg0) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<8x9xbf16>) -> tensor<1x9xbf16>
     %33 = stablehlo.concatenate %32, %31, dim = 0 : (tensor<1x9xbf16>, tensor<3x9xbf16>) -> tensor<4x9xbf16>
     %34 = stablehlo.constant dense<0.000000e+00> : tensor<bf16>
     %35 = stablehlo.pad %33, %34, low = [0, 0], high = [1, 0], interior = [1, 0] : (tensor<4x9xbf16>, tensor<bf16>) -> tensor<8x9xbf16>

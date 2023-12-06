@@ -553,7 +553,7 @@ Value transposeBroadcastOperand(PatternRewriter &rewriter, Location loc,
   return rewriter.create<mlir::stablehlo::TransposeOp>(
       loc,
       RankedTensorType::get(transposedOperandShape, operandTy.getElementType()),
-      operand, rewriter.getI64VectorAttr(permutation));
+      operand, rewriter.getDenseI64ArrayAttr(permutation));
 }
 
 struct BroadcastInDimOpToBroadcastConverter final
@@ -818,7 +818,7 @@ struct TransposeConverter final
     SmallVector<AffineExpr, 2> inputExprs;
     inputExprs.resize(resultType.getRank());
     for (auto [idx, value] : llvm::enumerate(op.getPermutation())) {
-      inputExprs[value.getZExtValue()] = b->getAffineDimExpr(idx);
+      inputExprs[value] = b->getAffineDimExpr(idx);
     }
     return {
         AffineMap::get(nloops, /*symbolCount=*/0, inputExprs, b->getContext()),
@@ -841,8 +841,8 @@ struct TransposeOpToTransposeConverter final
     Value emptyTensor =
         getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
 
-    auto permutation = rewriter.getDenseI64ArrayAttr(
-        llvm::to_vector(op.getPermutation().getValues<int64_t>()));
+    auto permutation =
+        rewriter.getDenseI64ArrayAttr(llvm::to_vector(op.getPermutation()));
 
     rewriter.replaceOpWithNewOp<linalg::TransposeOp>(
         op, adaptor.getOperand(), emptyTensor, permutation,
@@ -1398,11 +1398,10 @@ struct ReverseConverter final
     inputExprs.reserve(nloops);
     for (int64_t i = 0; i < nloops; ++i)
       inputExprs.push_back(b->getAffineDimExpr(i));
-    for (const APInt &dim : op.getDimensions()) {
-      int i = dim.getZExtValue();
-      if (resultType.isDynamicDim(i)) return {};
-      int n = resultType.getShape()[i];
-      inputExprs[i] = b->getAffineConstantExpr(n - 1) - inputExprs[i];
+    for (const auto &dim : op.getDimensions()) {
+      if (resultType.isDynamicDim(dim)) return {};
+      int n = resultType.getShape()[dim];
+      inputExprs[dim] = b->getAffineConstantExpr(n - 1) - inputExprs[dim];
     }
     return {
         AffineMap::get(nloops, /*symbolCount=*/0, inputExprs, b->getContext()),
@@ -1423,9 +1422,9 @@ struct SliceConverter final : OpConversionPattern<mlir::stablehlo::SliceOp> {
     }
 
     SmallVector<OpFoldResult, 3> offsets, sizes, strides;
-    auto startIndices = sliceOp.getStartIndices().getValues<int64_t>();
-    auto limitIndices = sliceOp.getLimitIndices().getValues<int64_t>();
-    auto sliceStrides = sliceOp.getStrides().getValues<int64_t>();
+    auto startIndices = sliceOp.getStartIndices();
+    auto limitIndices = sliceOp.getLimitIndices();
+    auto sliceStrides = sliceOp.getStrides();
 
     for (int64_t i = 0, e = argType.getRank(); i < e; ++i) {
       int64_t start = startIndices[i];
@@ -1469,9 +1468,8 @@ struct DynamicSliceConverter final
     SmallVector<OpFoldResult, 3> startIndices, sizes;
     auto originalStartIndexType = llvm::cast<ShapedType>(
         dynamicSliceOp.getStartIndices().front().getType());
-    for (auto [idx, start, size] :
-         llvm::enumerate(adaptor.getStartIndices(),
-                         dynamicSliceOp.getSliceSizes().getValues<int64_t>())) {
+    for (auto [idx, start, size] : llvm::enumerate(
+             adaptor.getStartIndices(), dynamicSliceOp.getSliceSizes())) {
       sizes.push_back(rewriter.getI64IntegerAttr(size));
 
       // By stablehlo.DynamicSlice definition:
@@ -2244,7 +2242,7 @@ struct PadOpNegativePaddingConversion final
     SmallVector<OpFoldResult> sliceStarts;
 
     bool hasNegativePadding = false;
-    for (int64_t low : op.getEdgePaddingLow().getValues<int64_t>()) {
+    for (int64_t low : op.getEdgePaddingLow()) {
       if (low >= 0) {
         padLow.push_back(low);
         sliceStarts.push_back(rewriter.getIndexAttr(0));
@@ -2255,7 +2253,7 @@ struct PadOpNegativePaddingConversion final
       }
     }
 
-    for (int64_t high : op.getEdgePaddingHigh().getValues<int64_t>()) {
+    for (int64_t high : op.getEdgePaddingHigh()) {
       if (high >= 0) {
         padHigh.push_back(high);
       } else {
@@ -2269,9 +2267,8 @@ struct PadOpNegativePaddingConversion final
 
     // Create a new pad op with the positive values.
     Value pad = rewriter.create<mlir::stablehlo::PadOp>(
-        op.getLoc(), adaptor.getOperand(), adaptor.getPaddingValue(),
-        rewriter.getI64TensorAttr(padLow), rewriter.getI64TensorAttr(padHigh),
-        op.getInteriorPadding());
+        op.getLoc(), adaptor.getOperand(), adaptor.getPaddingValue(), padLow,
+        padHigh, op.getInteriorPadding());
 
     // Then slice according to the negative edge padding. Static shapes only for
     // now.
@@ -2301,24 +2298,26 @@ struct PadOpConversion final : OpConversionPattern<mlir::stablehlo::PadOp> {
       return rewriter.notifyMatchFailure(op, "type conversion failed");
 
     // Negative edge padding is decomposed separately.
-    auto isNegative = [](const APInt &intVal) { return intVal.isNegative(); };
-    if (llvm::any_of(op.getEdgePaddingLow().getValues<APInt>(), isNegative) ||
-        llvm::any_of(op.getEdgePaddingHigh().getValues<APInt>(), isNegative))
+    auto isNegative = [](const int64_t &i) { return i < 0; };
+    if (llvm::any_of(op.getEdgePaddingLow(), isNegative) ||
+        llvm::any_of(op.getEdgePaddingHigh(), isNegative))
       return failure();
 
     Value paddingVal = rewriter.createOrFold<tensor::ExtractOp>(
         loc, adaptor.getPaddingValue());
 
-    SmallVector<OpFoldResult> low(
-        op.getEdgePaddingLow().getValues<IntegerAttr>());
+    auto i64ToFoldResult = [&](const int64_t &i) -> OpFoldResult {
+      return rewriter.getIntegerAttr(rewriter.getI64Type(), i);
+    };
 
     // If there is no interior padding lower to tensor.pad directly.
-    if (llvm::all_of(op.getInteriorPadding().getValues<APInt>(),
-                     [](const APInt &intVal) { return intVal.isZero(); })) {
-      SmallVector<OpFoldResult> high(
-          op.getEdgePaddingHigh().getValues<IntegerAttr>());
+    if (llvm::all_of(op.getInteriorPadding(),
+                     [](const int64_t &i) { return i == 0; })) {
       auto padTensorOp = rewriter.create<tensor::PadOp>(
-          loc, resultType, adaptor.getOperand(), low, high, paddingVal);
+          loc, resultType, adaptor.getOperand(),
+          llvm::map_to_vector(op.getEdgePaddingLow(), i64ToFoldResult),
+          llvm::map_to_vector(op.getEdgePaddingHigh(), i64ToFoldResult),
+          paddingVal);
       rewriter.replaceOp(op, padTensorOp.getResult());
       return success();
     }
@@ -2341,15 +2340,15 @@ struct PadOpConversion final : OpConversionPattern<mlir::stablehlo::PadOp> {
               .getResult();
         });
     // Map interior padding to strides.
-    auto strides =
-        llvm::map_to_vector(op.getInteriorPadding().getValues<IntegerAttr>(),
-                            [&](IntegerAttr stride) -> OpFoldResult {
-                              return rewriter.getIntegerAttr(
-                                  stride.getType(), stride.getValue() + 1);
-                            });
+    auto strides = llvm::map_to_vector(
+        op.getInteriorPadding(), [&](const int64_t &stride) -> OpFoldResult {
+          return rewriter.getIntegerAttr(rewriter.getI64Type(), stride + 1);
+        });
 
     rewriter.replaceOpWithNewOp<tensor::InsertSliceOp>(
-        op, adaptor.getOperand(), fill, low, sizes, strides);
+        op, adaptor.getOperand(), fill,
+        llvm::map_to_vector(op.getEdgePaddingLow(), i64ToFoldResult), sizes,
+        strides);
     return success();
   }
 };

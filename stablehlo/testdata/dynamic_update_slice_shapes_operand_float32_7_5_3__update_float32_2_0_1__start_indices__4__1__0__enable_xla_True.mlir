@@ -7,11 +7,11 @@ module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:3 = call @inputs() : () -> (tensor<7x5x3xf32>, tensor<2x0x1xf32>, tensor<3xi32>)
     %1 = call @expected() : () -> tensor<7x5x3xf32>
-    %2 = "stablehlo.slice"(%0#2) {limit_indices = dense<1> : tensor<1xi64>, start_indices = dense<0> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<1xi32>
+    %2 = "stablehlo.slice"(%0#2) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<3xi32>) -> tensor<1xi32>
     %3 = stablehlo.reshape %2 : (tensor<1xi32>) -> tensor<i32>
-    %4 = "stablehlo.slice"(%0#2) {limit_indices = dense<2> : tensor<1xi64>, start_indices = dense<1> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<1xi32>
+    %4 = "stablehlo.slice"(%0#2) {limit_indices = array<i64: 2>, start_indices = array<i64: 1>, strides = array<i64: 1>} : (tensor<3xi32>) -> tensor<1xi32>
     %5 = stablehlo.reshape %4 : (tensor<1xi32>) -> tensor<i32>
-    %6 = "stablehlo.slice"(%0#2) {limit_indices = dense<3> : tensor<1xi64>, start_indices = dense<2> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<1xi32>
+    %6 = "stablehlo.slice"(%0#2) {limit_indices = array<i64: 3>, start_indices = array<i64: 2>, strides = array<i64: 1>} : (tensor<3xi32>) -> tensor<1xi32>
     %7 = stablehlo.reshape %6 : (tensor<1xi32>) -> tensor<i32>
     %8 = stablehlo.constant dense<0> : tensor<i32>
     %9 = stablehlo.compare  LT, %3, %8,  SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>

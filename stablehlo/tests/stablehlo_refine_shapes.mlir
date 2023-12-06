@@ -415,9 +415,9 @@ func.func @eval_slice() -> tensor<2xi64> {
   // CHECK: return [[RESULT]]
   %0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
   %1 = "stablehlo.slice"(%0) {
-    start_indices = dense<0> : tensor<1xi64>,
-    limit_indices = dense<2> : tensor<1xi64>,
-    strides = dense<1> : tensor<1xi64>
+    start_indices = array<i64: 0>,
+    limit_indices = array<i64: 2>,
+    strides = array<i64: 1>
   } : (tensor<4xi64>) -> tensor<2xi64>
   func.return %1 : tensor<2xi64>
 }

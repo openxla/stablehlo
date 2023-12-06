@@ -170,7 +170,7 @@ func.func @attr_fft_type_fft(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomple
   %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type_v1 FFT>
     fft_type = #stablehlo<fft_type FFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
   func.return %0 : tensor<16xcomplex<f32>>
 }
@@ -180,7 +180,7 @@ func.func @attr_fft_type_ifft(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcompl
   %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type_v1 IFFT>
     fft_type = #stablehlo<fft_type IFFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
   func.return %0 : tensor<16xcomplex<f32>>
 }
@@ -190,7 +190,7 @@ func.func @attr_fft_type_rfft(%arg0: tensor<16xf32>) -> tensor<9xcomplex<f32>> {
   %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type_v1 RFFT>
     fft_type = #stablehlo<fft_type RFFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<16xf32>) -> tensor<9xcomplex<f32>>
   func.return %0 : tensor<9xcomplex<f32>>
 }
@@ -200,7 +200,7 @@ func.func @attr_fft_type_irfft(%arg0: tensor<9xcomplex<f32>>) -> tensor<16xf32> 
   %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type_v1 IRFFT>
     fft_type = #stablehlo<fft_type IRFFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<9xcomplex<f32>>) -> tensor<16xf32>
   func.return %0 : tensor<16xf32>
 }
@@ -930,7 +930,7 @@ func.func @op_broadcast(%arg0: tensor<16xf32>) -> tensor<16x16xf32> {
   // CHECK-SAME:   broadcast_sizes = #vhlo.tensor_v1<dense<16> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>) -> !vhlo.tensor_v1<16x16x!vhlo.f32_v1>
   %0 = "stablehlo.broadcast"(%arg0) {
-    broadcast_sizes = dense<16> : tensor<1xi64>
+    broadcast_sizes = array<i64: 16>
   } : (tensor<16xf32>) -> tensor<16x16xf32>
   func.return %0 : tensor<16x16xf32>
 }
@@ -1294,7 +1294,7 @@ func.func @op_dynamic_slice(%arg0: tensor<16xf32>, %arg1: tensor<i64>) -> tensor
   // CHECK-SAME:   slice_sizes = #vhlo.tensor_v1<dense<4> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>, !vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tensor_v1<4x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_slice"(%arg0, %arg1) {
-    slice_sizes = dense<4> : tensor<1xi64>
+    slice_sizes = array<i64: 4>
   } : (tensor<16xf32>, tensor<i64>) -> tensor<4xf32>
   func.return %0 : tensor<4xf32>
 }
@@ -1339,7 +1339,7 @@ func.func @op_fft(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>> {
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.complex_v1<!vhlo.f32_v1>>) -> !vhlo.tensor_v1<16x!vhlo.complex_v1<!vhlo.f32_v1>>
   %0 = "stablehlo.fft"(%arg0) {
     fft_type = #stablehlo<fft_type FFT>,
-    fft_length = dense<16> : tensor<1xi64>
+    fft_length = array<i64: 16>
   } : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
   func.return %0 : tensor<16xcomplex<f32>>
 }
@@ -1572,9 +1572,9 @@ func.func @op_pad(%arg0: tensor<8xf32>, %arg1: tensor<f32>) -> tensor<16xf32> {
   // CHECK-SAME:   interior_padding = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<8x!vhlo.f32_v1>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<16x!vhlo.f32_v1>
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<4> : tensor<1xi64>,
-    edge_padding_low = dense<4> : tensor<1xi64>,
-    interior_padding = dense<0> : tensor<1xi64>
+    edge_padding_high = array<i64: 4>,
+    edge_padding_low = array<i64: 4>,
+    interior_padding = array<i64: 0>
   } : (tensor<8xf32>, tensor<f32>) -> tensor<16xf32>
   func.return %0 : tensor<16xf32>
 }
@@ -1743,7 +1743,7 @@ func.func @op_reverse(%arg0: tensor<16xf32>) -> tensor<16xf32> {
   // CHECK-SAME:   dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>) -> !vhlo.tensor_v1<16x!vhlo.f32_v1>
   %0 = "stablehlo.reverse"(%arg0) {
-    dimensions = dense<0> : tensor<1xi64>
+    dimensions = array<i64: 0>
   } : (tensor<16xf32>) -> tensor<16xf32>
   func.return %0 : tensor<16xf32>
 }
@@ -1928,9 +1928,9 @@ func.func @op_slice(%arg0: tensor<16xf32>) -> tensor<4xf32> {
   // CHECK-SAME:   strides = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>) -> !vhlo.tensor_v1<4x!vhlo.f32_v1>
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<0> : tensor<1xi64>,
-    limit_indices = dense<4> : tensor<1xi64>,
-    strides = dense<1> : tensor<1xi64>
+    start_indices = array<i64: 0>,
+    limit_indices = array<i64: 4>,
+    strides = array<i64: 1>
   } : (tensor<16xf32>) -> tensor<4xf32>
   func.return %0 : tensor<4xf32>
 }
@@ -2007,7 +2007,7 @@ func.func @op_transpose(%arg0: tensor<16x8xf32>) ->  tensor<8x16xf32> {
   // CHECK-SAME:   permutation = #vhlo.tensor_v1<dense<[1, 0]> : tensor<2xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x8x!vhlo.f32_v1>) -> !vhlo.tensor_v1<8x16x!vhlo.f32_v1>
   %0 = "stablehlo.transpose"(%arg0) {
-    permutation = dense<[1, 0]> : tensor<2xi64>
+    permutation = array<i64: 1, 0>
   } : (tensor<16x8xf32>) -> tensor<8x16xf32>
   func.return %0 : tensor<8x16xf32>
 }
