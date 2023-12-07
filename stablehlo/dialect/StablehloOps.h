@@ -75,6 +75,7 @@ class StablehloDialect : public Dialect {
 class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
  public:
   using Base::Base;
+  static constexpr StringLiteral name = "stablehlo.token";
 };
 
 // Verifies the source target pairs attached to collective permute.
