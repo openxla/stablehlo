@@ -18,9 +18,12 @@ limitations under the License.
 
 #include <memory>
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/QuantOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace mlir {
@@ -34,6 +37,14 @@ namespace stablehlo {
 #define GEN_PASS_DECL_VHLOTOVERSIONPASS
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/transforms/Passes.h.inc"
+
+// Populates --stablehlo-canonicalize-dynamism patterns.
+void populateStablehloCanonicalizeDynamismPatterns(RewritePatternSet *patterns,
+                                                   MLIRContext *context);
+
+// Populates --stablehlo-refine-shapes patterns.
+void populateStablehloRefineShapesPatterns(RewritePatternSet *patterns,
+                                           MLIRContext *context);
 
 // Populates StableHLO ops to VHLO ops rewriting patterns.
 void populateStablehloToVhloPatterns(RewritePatternSet *patterns,
