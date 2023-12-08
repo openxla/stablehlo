@@ -41,4 +41,4 @@ def VHLO_Dialect : Dialect {
   let usePropertiesForAttributes = 1;
 }
 
-#endif
+#endif  // STABLEHLO_DIALECT_VHLO_DIALECT

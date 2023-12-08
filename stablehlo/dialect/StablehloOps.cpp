@@ -77,6 +77,8 @@ limitations under the License.
 #include "stablehlo/dialect/TypeInference.h"
 
 // Include order matters
+#define GET_TYPEDEF_CLASSES
+#include "stablehlo/dialect/StablehloTypeDefs.cpp.inc"
 using mlir::hlo::parseDimSizes;
 using mlir::hlo::printDimSizes;
 #include "stablehlo/dialect/StablehloEnums.cpp.inc"
@@ -2513,21 +2515,18 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
 }
 
 Type StablehloDialect::parseType(DialectAsmParser& parser) const {
-  StringRef dataType;
-  if (parser.parseKeyword(&dataType)) return Type();
-
-  if (dataType == "token") return TokenType::get(getContext());
+  StringRef mnemonic;
+  Type type;
+  auto parseResultOpt = generatedTypeParser(parser, &mnemonic, type);
+  if (parseResultOpt.has_value() && succeeded(*parseResultOpt)) return type;
   parser.emitError(parser.getNameLoc())
-      << "unknown StableHLO type: " << dataType;
+      << "unknown stablehlo type: " << mnemonic;
   return nullptr;
 }
 
-void StablehloDialect::printType(Type type, DialectAsmPrinter& os) const {
-  if (type.isa<TokenType>()) {
-    os << "token";
-    return;
-  }
-  os << "<unknown StableHLO type>";
+void StablehloDialect::printType(Type type, DialectAsmPrinter& printer) const {
+  if (succeeded(generatedTypePrinter(type, printer))) return;
+  printer << "<unknown stablehlo type>";
 }
 
 // Entry point for Attribute parsing, TableGen generated code will handle the
