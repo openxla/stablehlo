@@ -307,16 +307,7 @@ struct StablehloCanonicalizeDynamismPass
     config.strictMode = GreedyRewriteStrictness::AnyOp;
 
     RewritePatternSet patterns(&getContext());
-    patterns.add<CanonicalizeCustomCallOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicBroadcastInDimOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicConvOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicGatherOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicIotaOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicPadOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicReshapeOpPattern>(&getContext());
-    patterns.add<CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern>(
-        &getContext());
-    patterns.add<CanonicalizeRealDynamicSliceOpToSliceOpPattern>(&getContext());
+    populateStablehloCanonicalizeDynamismPatterns(&patterns, &getContext());
     if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns),
                                             config))) {
       return signalPassFailure();
@@ -325,5 +316,19 @@ struct StablehloCanonicalizeDynamismPass
 };
 
 }  // namespace
+
+void populateStablehloCanonicalizeDynamismPatterns(RewritePatternSet* patterns,
+                                                   MLIRContext* context) {
+  patterns->add<CanonicalizeCustomCallOpPattern>(context);
+  patterns->add<CanonicalizeDynamicBroadcastInDimOpPattern>(context);
+  patterns->add<CanonicalizeDynamicConvOpPattern>(context);
+  patterns->add<CanonicalizeDynamicGatherOpPattern>(context);
+  patterns->add<CanonicalizeDynamicIotaOpPattern>(context);
+  patterns->add<CanonicalizeDynamicPadOpPattern>(context);
+  patterns->add<CanonicalizeDynamicReshapeOpPattern>(context);
+  patterns->add<CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern>(context);
+  patterns->add<CanonicalizeRealDynamicSliceOpToSliceOpPattern>(context);
+}
+
 }  // namespace stablehlo
 }  // namespace mlir

@@ -430,9 +430,20 @@ SpecialResult convertDenseArray(StringAttr vhloName, Attribute vhloAttr,
                                 SmallVector<NamedAttribute>& stablehloAttrs) {
   auto tensorAttr = dyn_cast<vhlo::TensorV1Attr>(vhloAttr);
   if (!tensorAttr) return specialFailure();
-  ArrayRef<int64_t> data(
-      reinterpret_cast<const int64_t*>(tensorAttr.getData().data()),
-      tensorAttr.getData().size() / sizeof(int64_t));
+
+  auto data = ArrayRef<int64_t>(
+                  reinterpret_cast<const int64_t*>(tensorAttr.getData().data()),
+                  tensorAttr.getData().size() / sizeof(int64_t))
+                  .vec();
+
+  // Handle splats
+  if (data.size() == 1) {
+    auto tensorType = tensorAttr.getType().dyn_cast<vhlo::RankedTensorV1Type>();
+    if (!tensorType || (tensorType.getShape().size() != 1))
+      return specialFailure();
+    auto size = tensorType.getShape()[0];
+    data.resize(size, data[0]);
+  }
 
   stablehloAttrs.emplace_back(
       vhloName, DenseI64ArrayAttr::get(vhloAttr.getContext(), data));
