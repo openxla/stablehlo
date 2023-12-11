@@ -250,4 +250,4 @@ def VHLO_UnrankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor_v1
 // and we're planning to look into it as part of the work on the dynamism RFC.
 def VHLO_WitnessV1 : VHLO_TypeDef<"WitnessV1", "witness_v1", "0.9.0", "current">;
 
-#endif // STABLEHLO_DIALECT_VHLO_TYPES
+#endif  // STABLEHLO_DIALECT_VHLO_TYPES

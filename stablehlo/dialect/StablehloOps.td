@@ -53,6 +53,7 @@ class StableHLO_Op<string mnemonic, list<Trait> traits> :
 
 include "stablehlo/dialect/StablehloEnums.td"
 include "stablehlo/dialect/StablehloAttrs.td"
+include "stablehlo/dialect/StablehloTypes.td"
 
 class StableHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits> :
     StableHLO_Op<mnemonic, traits # [DeclareOpInterfaceMethods<InferShapedTypeOpInterface,

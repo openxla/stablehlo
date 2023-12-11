@@ -41,6 +41,9 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
 
+#define GET_TYPEDEF_CLASSES
+#include "stablehlo/dialect/StablehloTypeDefs.h.inc"
+
 // Include order matters.
 #include "stablehlo/dialect/StablehloEnums.h.inc"
 #define GET_ATTRDEF_CLASSES
@@ -70,12 +73,6 @@ class StablehloDialect : public Dialect {
 
   // Prints an attribute registered to this dialect.
   void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
-};
-
-class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
- public:
-  using Base::Base;
-  static constexpr StringLiteral name = "stablehlo.token";
 };
 
 // Verifies the source target pairs attached to collective permute.

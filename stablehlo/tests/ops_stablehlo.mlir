@@ -8,7 +8,7 @@ func.func private @token_type() -> !stablehlo.token
 
 // -----
 
-// expected-error@+1 {{unknown StableHLO type: foobar}}
+// expected-error@+1 {{unknown stablehlo type: foobar}}
 func.func private @invalid_type() -> !stablehlo.foobar
 
 // -----

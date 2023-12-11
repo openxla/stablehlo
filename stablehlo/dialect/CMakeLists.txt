@@ -135,6 +135,8 @@ mlir_tablegen(StablehloEnums.h.inc -gen-enum-decls)
 mlir_tablegen(StablehloEnums.cpp.inc -gen-enum-defs)
 mlir_tablegen(StablehloAttrs.h.inc -gen-attrdef-decls)
 mlir_tablegen(StablehloAttrs.cpp.inc -gen-attrdef-defs)
+mlir_tablegen(StablehloTypeDefs.h.inc -gen-typedef-decls --typedefs-dialect=stablehlo)
+mlir_tablegen(StablehloTypeDefs.cpp.inc -gen-typedef-defs --typedefs-dialect=stablehlo)
 add_public_tablegen_target(StablehloOpsIncGen)
 add_dependencies(mlir-headers StablehloOpsIncGen)
 
