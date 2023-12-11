@@ -120,10 +120,10 @@ func.func @broadcast_select_branch_mismatch(%arg0: tensor<2xi1>, %arg1: tensor<2
 // -----
 // CHECK-LABEL: @broadcast_select_reify
 func.func @broadcast_select_reify(%arg0: tensor<2xi1>, %arg1: tensor<?xi32>, %arg2: tensor<?xi32>) -> tensor<1xindex> {
-  // CHECK:      %0 = shape.const_shape [2] : tensor<1xindex>
+  // CHECK:      %0 = shape.shape_of %arg0 : tensor<2xi1> -> tensor<1xindex>
   // CHECK-NEXT: %1 = shape.shape_of %arg1 : tensor<?xi32> -> tensor<1xindex>
   // CHECK-NEXT: %2 = shape.shape_of %arg2 : tensor<?xi32> -> tensor<1xindex>
-  // CHECK-NEXT: %3 = shape.broadcast %1, %2, %0 : tensor<1xindex>, tensor<1xindex>, tensor<1xindex> -> tensor<1xindex>
+  // CHECK-NEXT: %3 = shape.broadcast %0, %1, %2 : tensor<1xindex>, tensor<1xindex>, tensor<1xindex> -> tensor<1xindex>
   %0 = "chlo.broadcast_select"(%arg0, %arg1, %arg2) : (tensor<2xi1>, tensor<?xi32>, tensor<?xi32>) -> tensor<?xi32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%0) : (tensor<?xi32>) -> tensor<1xindex>
   return %1: tensor<1xindex>
