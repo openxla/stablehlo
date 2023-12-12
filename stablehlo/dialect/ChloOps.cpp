@@ -162,10 +162,19 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
   auto rhs = operands[1];
 
   // Check for "numpy"-style rank broadcast.
-  auto broadcastDimensions = op->getAttr("broadcast_dimensions")
-                                 .dyn_cast_or_null<DenseIntElementsAttr>();
+  // TODO(#1578): Simplify this code once broadcast_dimensions uses
+  // DenseI64ArrayAttr (instead of I64DenseArrayOrElements1DAttr).
+  auto broadcastDimensionsAttr = op->getAttr("broadcast_dimensions");
+  std::optional<SmallVector<int64_t>> broadcastDimensions;
+  if (auto attr =
+          dyn_cast_or_null<DenseIntElementsAttr>(broadcastDimensionsAttr)) {
+    broadcastDimensions = llvm::to_vector(attr.getValues<int64_t>());
+  } else if (auto attr =
+                 dyn_cast_or_null<DenseI64ArrayAttr>(broadcastDimensionsAttr)) {
+    broadcastDimensions = llvm::to_vector(attr.asArrayRef());
+  }
   if (broadcastDimensions &&
-      !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, broadcastDimensions)) {
+      !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, *broadcastDimensions)) {
     // Note: It is unclear whether the general specification of explicit
     // broadcast_dimensions on binary ops is a feature we want to carry
     // forward. While it can technically be implemented for ranked-dynamic,
@@ -175,7 +184,7 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
     // of numpy-like prefix-padding.
     return op->emitWarning()
            << "unsupported non prefix-padded dynamic rank "
-           << "broadcast_dimensions = " << broadcastDimensions;
+           << "broadcast_dimensions = " << broadcastDimensionsAttr;
   }
 
   result.push_back(hlo::computeBinaryElementwiseBroadcastingResultExtents(
@@ -212,7 +221,7 @@ LogicalResult BroadcastComplexOp::reifyReturnTypeShapes(
 
 void BroadcastCompareOp::build(OpBuilder& builder, OperationState& result,
                                Value lhs, Value rhs,
-                               DenseIntElementsAttr broadcastDimensions,
+                               Attribute broadcastDimensions,
                                chlo::ComparisonDirection comparisonDirection,
                                chlo::ComparisonType compareType) {
   build(builder, result, lhs, rhs, broadcastDimensions,

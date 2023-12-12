@@ -27,7 +27,7 @@ namespace mlir {
 namespace hlo {
 
 bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
-                                 DenseIntElementsAttr broadcastDims) {
+                                 ArrayRef<int64_t> broadcastDims) {
   RankedTensorType lhsType = lhs.getType().dyn_cast<RankedTensorType>();
   RankedTensorType rhsType = rhs.getType().dyn_cast<RankedTensorType>();
   if (!lhsType || !rhsType) return false;
@@ -37,11 +37,11 @@ bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
   auto smallerRank = std::min(lhsType.getRank(), rhsType.getRank());
   auto largerRank = std::max(lhsType.getRank(), rhsType.getRank());
 
-  if (smallerRank != broadcastDims.getNumElements()) return false;
+  if (smallerRank != static_cast<int64_t>(broadcastDims.size())) return false;
   auto expectedExtents =
       llvm::seq<int64_t>(largerRank - smallerRank, largerRank);
   return std::equal(expectedExtents.begin(), expectedExtents.end(),
-                    broadcastDims.value_begin<APInt>());
+                    broadcastDims.begin());
 }
 
 Value computeBinaryElementwiseBroadcastingResultExtents(Location loc, Value lhs,

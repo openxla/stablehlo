@@ -367,12 +367,12 @@ func.func @chlo_broadcast_complex(%arg0: tensor<2x3x4xf64>, %arg1: tensor<2x3x4x
 // CHECK-SAME:  %[[A1:.*]]: tensor<2x3x4xf64>
 // CHECK:       %[[T0:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
 // CHECK:       %[[T1:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {compare_type = #chlo<comparison_type TOTALORDER>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
-// CHECK:       %[[T2:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {broadcast_dimensions = dense<1> : tensor<1xi64>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
+// CHECK:       %[[T2:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {broadcast_dimensions = array<i64: 1>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
 // CHECK:       return %[[T0]] : tensor<2x3x4xi1>
 func.func @chlo_broadcast_compare(%arg0: tensor<2x3x4xf64>, %arg1: tensor<2x3x4xf64>) -> tensor<2x3x4xi1> {
   %0 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
   %1 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, compare_type = #chlo<comparison_type TOTALORDER>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
-  %2 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, broadcast_dimensions = dense<1> : tensor<1xi64>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
+  %2 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, broadcast_dimensions = array<i64: 1>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
   return %0 : tensor<2x3x4xi1>
 }
 
