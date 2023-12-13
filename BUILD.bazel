@@ -416,9 +416,12 @@ cc_library(
         ":reference_process",
         ":reference_scope",
         ":reference_value",
+        ":register",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Support",
     ],
 )

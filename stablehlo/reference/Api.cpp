@@ -19,7 +19,12 @@ limitations under the License.
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
+#include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/DialectRegistry.h"
+#include "mlir/InitAllDialects.h"
+#include "mlir/Parser/Parser.h"
+#include "stablehlo/dialect/Register.h"
 #include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterOps.h"
@@ -125,6 +130,27 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
 
   DefaultInterpreterFallback fallback(config);
   return stablehlo::eval(mainFunc.getBody(), inputs, &fallback);
+}
+
+llvm::ErrorOr<OwningOpRef<ModuleOp>> parseModule(const std::string &mlir,
+                                                 MLIRContext &context) {
+  llvm::SourceMgr source_mgr;
+  source_mgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(mlir),
+                                llvm::SMLoc());
+
+  mlir::DialectRegistry registry;
+  mlir::registerAllDialects(registry);
+  mlir::stablehlo::registerAllDialects(registry);
+  context.loadDialect<mlir::stablehlo::interpreter::InterpreterDialect>();
+  context.appendDialectRegistry(registry);
+
+  mlir::OwningOpRef<mlir::ModuleOp> module(
+      mlir::parseSourceFile<mlir::ModuleOp>(source_mgr, &context));
+
+  if (!module)
+    llvm::report_fatal_error("Failed to parse StableHLO module.");
+
+  return module;
 }
 
 }  // namespace stablehlo
