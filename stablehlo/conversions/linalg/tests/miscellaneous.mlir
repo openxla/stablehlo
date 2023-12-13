@@ -361,7 +361,7 @@ func.func @einsum_dynamic_size_broadcast_dot(%arg0: tensor<?x?x4xf32>, %arg1: te
 // CHECK: func @broadcast_in_dim
 func.func @broadcast_in_dim(%operand: tensor<5x7x1xf32>) -> tensor<7x10x6x4x5xf32> {
   %0 = "stablehlo.broadcast_in_dim"(%operand)
-         {broadcast_dimensions = dense<[4,0,2]> : tensor<3xi64>}
+         {broadcast_dimensions = array<i64: 4, 0, 2>}
          : (tensor<5x7x1xf32>) -> tensor<7x10x6x4x5xf32>
   func.return %0 : tensor<7x10x6x4x5xf32>
 }
@@ -385,7 +385,7 @@ func.func @broadcast_in_dim(%operand: tensor<5x7x1xf32>) -> tensor<7x10x6x4x5xf3
 // CHECK: func @broadcast_in_dim_ui32
 func.func @broadcast_in_dim_ui32(%operand: tensor<5x7x1xui32>) -> tensor<7x10x6x4x5xui32> {
   %0 = "stablehlo.broadcast_in_dim"(%operand)
-         {broadcast_dimensions = dense<[4,0,2]> : tensor<3xi64>}
+         {broadcast_dimensions = array<i64: 4, 0, 2>}
          : (tensor<5x7x1xui32>) -> tensor<7x10x6x4x5xui32>
   func.return %0 : tensor<7x10x6x4x5xui32>
 }
@@ -413,7 +413,7 @@ func.func @broadcast_in_dim_ui32(%operand: tensor<5x7x1xui32>) -> tensor<7x10x6x
 func.func @broadcast_in_dim_with_one_to_one(
          %operand: tensor<1xf32>) -> tensor<1x5xf32> {
   %0 = "stablehlo.broadcast_in_dim"(%operand)
-         {broadcast_dimensions = dense<[0]> : tensor<1xi64>}
+         {broadcast_dimensions = array<i64: 0>}
          : (tensor<1xf32>) -> tensor<1x5xf32>
   func.return %0 : tensor<1x5xf32>
 }
@@ -436,7 +436,7 @@ func.func @broadcast_in_dim_with_one_to_one(
 func.func @broadcast_in_dim_with_transpose(
          %operand: tensor<2x3x4xf32>) -> tensor<3x4x2x5xf32> {
   %0 = "stablehlo.broadcast_in_dim"(%operand)
-         {broadcast_dimensions = dense<[2, 0, 1]> : tensor<3xi64>}
+         {broadcast_dimensions = array<i64: 2, 0, 1>}
          : (tensor<2x3x4xf32>) -> tensor<3x4x2x5xf32>
   func.return %0 : tensor<3x4x2x5xf32>
 }
@@ -460,7 +460,7 @@ func.func @broadcast_in_dim_with_transpose(
 // CHECK: func @broadcast_in_dim_scalar
 func.func @broadcast_in_dim_scalar(%operand: tensor<f32>) -> tensor<7x10x6xf32> {
   %0 = "stablehlo.broadcast_in_dim"(%operand)
-        {broadcast_dimensions = dense<[]> : tensor<0xi64>}
+        {broadcast_dimensions = array<i64>}
         : (tensor<f32>) -> tensor<7x10x6xf32>
   func.return %0 : tensor<7x10x6xf32>
 }

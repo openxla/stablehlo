@@ -3402,9 +3402,9 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
 
 LogicalResult verifyDynamicBroadcastInDimOp(
     std::optional<Location> location, Value operand, Value outputDimensions,
-    DenseIntElementsAttr broadcastDimensions,
-    std::optional<DenseIntElementsAttr> knownExpandingDimensions,
-    std::optional<DenseIntElementsAttr> knownNonexpandingDimensions,
+    ArrayRef<int64_t> broadcastDimensions,
+    std::optional<ArrayRef<int64_t>> knownExpandingDimensions,
+    std::optional<ArrayRef<int64_t>> knownNonexpandingDimensions,
     Value result) {
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   auto resultType = result.getType().dyn_cast<RankedTensorType>();
@@ -3421,14 +3421,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 
   // Verify broadcast_dimensions.
   auto bcastDimensions = broadcastDimensions;
-  auto bcastDimensionsType = broadcastDimensions.getType();
-  auto bcastDimensionsRank = bcastDimensionsType.getRank();
-  // TODO(laurenzo): Update the BroadcastDimAttr to constrain its rank to 1.
-  if (bcastDimensionsRank != 1)
-    return emitOptionalError(location, "broadcast_dimensions has rank ",
-                             bcastDimensionsRank, " instead of rank 1");
-
-  auto bcastDimensionsSize = bcastDimensionsType.getNumElements();
+  int64_t bcastDimensionsSize = bcastDimensions.size();
   if (bcastDimensionsSize != operandRank)
     return emitOptionalError(
         location, "broadcast_dimensions size (", bcastDimensionsSize,
@@ -3439,7 +3432,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
                              ") is less than operand rank (", operandRank, ")");
 
   for (int i = 0; i != bcastDimensionsSize; ++i) {
-    auto dimIndex = bcastDimensions.getValues<int64_t>()[i];
+    auto dimIndex = bcastDimensions[i];
     if (dimIndex < 0 || dimIndex >= resultRank)
       return emitOptionalError(location,
                                "broadcast_dimensions contains invalid value ",
@@ -3467,11 +3460,11 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   int64_t numKnownExpansionBehavior = 0;
   DenseSet<int64_t> knownExpansionBehavior;
   auto collectExpansionBehaviorDims =
-      [&](const std::optional<DenseIntElementsAttr>& attr) {
+      [&](const std::optional<ArrayRef<int64_t>>& attr) {
         if (!attr) return;
-        for (const APInt& it : *attr) {
+        for (const auto& i : attr.value()) {
           numKnownExpansionBehavior++;
-          knownExpansionBehavior.insert(it.getLimitedValue());
+          knownExpansionBehavior.insert(i);
         }
       };
   collectExpansionBehaviorDims(knownExpandingDimensions);

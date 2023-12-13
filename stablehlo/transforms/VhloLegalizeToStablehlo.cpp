@@ -525,6 +525,13 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
     if (vhloName == "broadcast_dimensions")
       return convertDenseArray(vhloName, vhloAttr, stablehloAttrs);
   }
+  if constexpr (std::is_same<VhloOpTy,
+                             vhlo::DynamicBroadcastInDimOpV1>::value) {
+    if (vhloName == "broadcast_dimensions" ||
+        vhloName == "known_expanding_dimensions" ||
+        vhloName == "known_nonexpanding_dimensions")
+      return convertDenseArray(vhloName, vhloAttr, stablehloAttrs);
+  }
   return notSpecial();
 }
 

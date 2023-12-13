@@ -1906,17 +1906,17 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
   let arguments = (ins
     HLO_Tensor:$operand,
     HLO_DimensionTensor:$output_dimensions,
-    BroadcastDimAttr:$broadcast_dimensions,
-    OptionalAttr<BroadcastDimAttr>:$known_expanding_dimensions,
-    OptionalAttr<BroadcastDimAttr>:$known_nonexpanding_dimensions
+    I64DenseArrayOrElements1DAttr:$broadcast_dimensions,
+    OptionalAttr<I64DenseArrayOrElements1DAttr>:$known_expanding_dimensions,
+    OptionalAttr<I64DenseArrayOrElements1DAttr>:$known_nonexpanding_dimensions
   );
 
   let results = (outs HLO_Tensor);
 
   let builders = [
-    OpBuilder<(ins
+      OpBuilder<(ins
         "Type":$result_type, "Value":$operand, "Value":$output_dimensions,
-        "DenseIntElementsAttr":$broadcast_dimensions), [{
+        "Attribute":$broadcast_dimensions), [{
       build($_builder, $_state, result_type, operand, output_dimensions,
           broadcast_dimensions, /*known_expanding_dimensions=*/{},
           /*known_nonexpanding_dimensions=*/{});
@@ -1926,7 +1926,7 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` $output_dimensions `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
+    $operand `,` $output_dimensions `,` `dims` `=` custom<I64DenseArrayOrElements1D>($broadcast_dimensions)
       attr-dict `:` functional-type(operands, results)
   }];
 }

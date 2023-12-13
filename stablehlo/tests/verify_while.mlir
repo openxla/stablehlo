@@ -34,7 +34,7 @@ func.func @while_dynamic(%arg0: tensor<3xf32>) -> tensor<*xf32> {
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<*xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<*xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<*xf32>)
@@ -57,7 +57,7 @@ func.func @while_unranked(%arg0: tensor<3xf32>) -> tensor<*xf32> {
     "stablehlo.return"(%5) : (tensor<*xi1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<*xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<*xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<*xf32>)
@@ -80,7 +80,7 @@ func.func @while_with_different_types(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
@@ -103,7 +103,7 @@ func.func @while_c1(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
@@ -126,7 +126,7 @@ func.func @while_c1(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<3xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<3xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
@@ -149,7 +149,7 @@ func.func @while_c1(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%5, %5) : (tensor<i1>, tensor<i1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
@@ -169,7 +169,7 @@ func.func @while_c1(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%2) : (tensor<i32>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
@@ -190,7 +190,7 @@ func.func @while_c1(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%4) : (tensor<1xi1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
@@ -213,7 +213,7 @@ func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<3xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<3xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
@@ -236,7 +236,7 @@ func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<3xi32>, %arg3: tensor<1xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3, %3) : (tensor<1xi32>, tensor<3xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
   func.return %1#3: tensor<3xf32>
@@ -300,7 +300,7 @@ func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = array<i64: 0>} : (tensor<1xf32>) -> tensor<3xf32>
     %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
     "stablehlo.return"(%arg1, %arg2, %arg3) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)

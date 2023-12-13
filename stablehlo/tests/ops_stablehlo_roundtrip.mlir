@@ -115,7 +115,7 @@ func.func @test_broadcast(%arg0: tensor<4xi32>) -> tensor<1x2x3x4xi32> {
 
 func.func @test_broadcast_in_dim(%arg0: tensor<1xf32>) -> tensor<1x10xf32> {
   %result = "stablehlo.broadcast_in_dim"(%arg0) {
-    broadcast_dimensions = dense<0> : tensor<1xi64>
+    broadcast_dimensions = array<i64: 0>
   } : (tensor<1xf32>) -> tensor<1x10xf32>
   func.return %result : tensor<1x10xf32>
 }

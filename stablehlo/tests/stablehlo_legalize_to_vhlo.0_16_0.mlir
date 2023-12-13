@@ -511,7 +511,7 @@ func.func @default_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tenso
   // CHECK-SAME:   known_nonexpanding_dimensions = #vhlo.tensor_v1<dense<> : tensor<0xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<?x?x!vhlo.f32_v1>, !vhlo.tensor_v1<2x!vhlo.index_v1>) -> !vhlo.tensor_v1<?x?x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %arg1) {
-    broadcast_dimensions = dense<[0, 1]> : tensor<2xi64>
+    broadcast_dimensions = array<i64: 0, 1>
   } : (tensor<?x?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
   func.return %0 : tensor<?x?xf32>
 }
@@ -916,7 +916,7 @@ func.func @op_broadcast_in_dim(%arg0: tensor<16xf32>) -> tensor<16x16xf32> {
   // CHECK-SAME:   broadcast_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>) -> !vhlo.tensor_v1<16x16x!vhlo.f32_v1>
   %0 = "stablehlo.broadcast_in_dim"(%arg0) {
-    broadcast_dimensions = dense<1> : tensor<1xi64>
+    broadcast_dimensions = array<i64: 1>
   } : (tensor<16xf32>) -> tensor<16x16xf32>
   func.return %0 : tensor<16x16xf32>
 }
@@ -1197,9 +1197,9 @@ func.func @op_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tensor<2xi
   // CHECK-SAME:   known_nonexpanding_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<?x?x!vhlo.f32_v1>, !vhlo.tensor_v1<2x!vhlo.index_v1>) -> !vhlo.tensor_v1<?x?x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %arg1) {
-    broadcast_dimensions = dense<[0, 1]> : tensor<2xi64>,
-    known_expanding_dimensions = dense<0> : tensor<1xi64>,
-    known_nonexpanding_dimensions = dense<1> : tensor<1xi64>
+    broadcast_dimensions = array<i64: 0, 1>,
+    known_expanding_dimensions = array<i64: 0>,
+    known_nonexpanding_dimensions = array<i64: 1>
   } : (tensor<?x?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
   func.return %0 : tensor<?x?xf32>
 }
