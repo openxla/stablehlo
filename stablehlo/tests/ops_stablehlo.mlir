@@ -980,7 +980,7 @@ func.func @broadcast_in_dim_c5(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
 // -----
 
 func.func @broadcast_in_dim_i2(%arg0: tensor<1x2xi32>) -> tensor<1x2x3xi32> {
-  // expected-error@+1 {{broadcast_dimensions has rank 2 instead of rank 1}}
+  // expected-error@+1 {{failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr}}
   %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[[1,1],[1,1]]> : tensor<2x2xi64>} : (tensor<1x2xi32>) -> tensor<1x2x3xi32>
   func.return %0 : tensor<1x2x3xi32>
 }
@@ -5639,3 +5639,22 @@ func.func @dynamic_iota_output_shape_mismatching_size() -> tensor<4xf32> {
   %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<4xf32>
   func.return %1 : tensor<4xf32>
 }
+
+// Tests for I64DenseArrayOrElementsAttr.
+
+// -----
+
+// CHECK-LABEL: func @broadcast_in_dim_elements
+func.func @broadcast_in_dim_elements(%arg0: tensor<1x2xi32>) -> tensor<1x2x2xi32> {
+  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[1, 2]> : tensor<2xi64>} : (tensor<1x2xi32>) -> tensor<1x2x2xi32>
+  func.return %0 : tensor<1x2x2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func @broadcast_in_dim_dense_array
+func.func @broadcast_in_dim_dense_array(%arg0: tensor<1x2xi32>) -> tensor<1x2x2xi32> {
+  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = array<i64: 1, 2>} : (tensor<1x2xi32>) -> tensor<1x2x2xi32>
+  func.return %0 : tensor<1x2x2xi32>
+}
+

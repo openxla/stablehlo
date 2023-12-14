@@ -3198,7 +3198,7 @@ LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
 
 LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                                      Value operand,
-                                     DenseIntElementsAttr broadcastDimensions,
+                                     ArrayRef<int64_t> broadcastDimensions,
                                      Value result) {
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   if (!operandType) {
@@ -3207,21 +3207,15 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
     return success();
   }
 
-  auto dimensionsType = broadcastDimensions.getType();
-  auto dimensionsRank = dimensionsType.getRank();
-  // broadcast_in_dim_i2
-  if (dimensionsRank != 1)
-    return emitOptionalError(location, "broadcast_dimensions has rank ",
-                             dimensionsRank, " instead of rank 1");
   // broadcast_in_dim_c2
-  auto dimensionsSize = dimensionsType.getNumElements();
+  auto dimensionsSize = broadcastDimensions.size();
   auto operandRank = operandType.getRank();
-  if (dimensionsSize != operandRank)
+  if (static_cast<int64_t>(dimensionsSize) != operandRank)
     return emitOptionalError(location, "broadcast_dimensions size (",
                              dimensionsSize, ") does not match operand rank (",
                              operandRank, ")");
 
-  auto dimensions = llvm::to_vector(broadcastDimensions.getValues<int64_t>());
+  auto dimensions = llvm::to_vector(broadcastDimensions);
   // broadcast_in_dim_c4
   if (hasDuplicates(dimensions))
     return emitOptionalError(location,
@@ -3229,7 +3223,7 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
 
   auto resultType = result.getType().cast<RankedTensorType>();
   auto resultRank = resultType.getRank();
-  for (int i = 0; i != dimensionsSize; ++i) {
+  for (size_t i = 0; i != dimensionsSize; ++i) {
     auto dimIndex = dimensions[i];
     // broadcast_in_dim_c3
     if (dimIndex < 0 || dimIndex >= resultRank)

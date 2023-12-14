@@ -186,6 +186,19 @@ void printDenseI64Array(OpAsmPrinter& p, Operation* op,
 
 ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 
+// I64DenseArrayOrElements1D - Used to print an attr that can be either
+// I64ElementsAttr (DenseIntElementsAttr) or DenseI64ArrayAttr.
+//
+//   Dense elements:
+//     { dense<[1, 2]> : tensor<2xi64> }
+//   Array:
+//     { array<i64: 1, 2> }
+void printI64DenseArrayOrElements1D(OpAsmPrinter& p, Operation* op,
+                                    Attribute attr);
+
+ParseResult parseI64DenseArrayOrElements1D(OpAsmParser& parser,
+                                           Attribute& attr);
+
 // SliceRanges - Used to print multi-dimensional ranges for slice.
 void printSliceRanges(OpAsmPrinter& p, Operation* op,
                       ArrayRef<int64_t> startIndices,
