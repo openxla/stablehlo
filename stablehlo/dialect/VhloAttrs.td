@@ -36,7 +36,6 @@ def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
 
 class VHLO_AttrDef<string name, string minVersion, string maxVersion>
   : AttrDef<VHLO_Dialect, name, [VHLO_VersionedAttrInterface]> {
-  let cppNamespace = "::mlir::vhlo";
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
       return mlir::vhlo::Version(}] # !subst(".", ", ", minVersion) # [{);
