@@ -22,7 +22,6 @@ limitations under the License.
 #include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/DialectRegistry.h"
-#include "mlir/InitAllDialects.h"
 #include "mlir/Parser/Parser.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/reference/Configuration.h"
@@ -139,7 +138,6 @@ llvm::ErrorOr<OwningOpRef<ModuleOp>> parseModule(const std::string &mlir,
                                 llvm::SMLoc());
 
   mlir::DialectRegistry registry;
-  mlir::registerAllDialects(registry);
   mlir::stablehlo::registerAllDialects(registry);
   context.loadDialect<mlir::stablehlo::interpreter::InterpreterDialect>();
   context.appendDialectRegistry(registry);
@@ -147,8 +145,7 @@ llvm::ErrorOr<OwningOpRef<ModuleOp>> parseModule(const std::string &mlir,
   mlir::OwningOpRef<mlir::ModuleOp> module(
       mlir::parseSourceFile<mlir::ModuleOp>(source_mgr, &context));
 
-  if (!module)
-    llvm::report_fatal_error("Failed to parse StableHLO module.");
+  if (!module) return llvm::errc::invalid_argument;
 
   return module;
 }
