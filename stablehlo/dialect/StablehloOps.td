@@ -1884,15 +1884,6 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
     $operand `,` `dims` `=` custom<I64DenseArrayOrElements1D>($broadcast_dimensions)
       attr-dict `:` functional-type(operands, results)
   }];
-
-  let builders = [
-    OpBuilder<(ins
-        "Type":$result_type, "Value":$operand,
-        "DenseIntElementsAttr":$broadcast_dimensions), [{
-      build($_builder, $_state, result_type, operand,
-            $_builder.getDenseI64ArrayAttr(llvm::to_vector(broadcast_dimensions.getValues<int64_t>())));
-    }]>
-  ];
 }
 
 def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
