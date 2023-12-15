@@ -119,7 +119,7 @@ bool isPromotableElementType(Type type1, Type type2,
   Type tensorEl2 = tensorTy2.getElementType();
 
   if (ignoreFpPrecision && tensorEl1.isa<FloatType>() &&
-      tensorTy2.getElementType().isa<FloatType>())
+      tensorEl2.isa<FloatType>())
     return true;
 
   bool isSameType =

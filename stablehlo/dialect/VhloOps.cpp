@@ -24,6 +24,7 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
@@ -37,6 +38,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
+#include "stablehlo/dialect/VhloTypes.h"
 
 namespace mlir {
 namespace vhlo {
@@ -294,6 +296,100 @@ void VhloDialect::printAttribute(Attribute attr, DialectAsmPrinter& os) const {
   LogicalResult result = generatedAttributePrinter(attr, os);
   (void)result;
   assert(succeeded(result));
+}
+
+///////////////////////////
+// Op Constraint Versioning
+///////////////////////////
+// These could be migrated to ODS in VhloOps.td if we figured out a better way
+// to represent this sort of constraint in tablegen.
+
+namespace {
+bool checkIfOperandAndResultElementTypesMatch(TypeRange operandTypes,
+                                              TypeRange resultTypes) {
+  SmallVector<ShapedType> inputShapedTypes{
+      llvm::map_range(operandTypes, [](Type t) {
+        return convertTypeToBuiltinForPrint(t).cast<ShapedType>();
+      })};
+  SmallVector<ShapedType> resultShapedTypes{
+      llvm::map_range(resultTypes, [](Type t) {
+        return convertTypeToBuiltinForPrint(t).cast<ShapedType>();
+      })};
+
+  int64_t numInputs = inputShapedTypes.size();
+  for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
+    if (inputShapedTypes[inputIdx].getElementType() !=
+        resultShapedTypes[inputIdx].getElementType())
+      return true;
+  }
+  return false;
+}
+}  // namespace
+
+LogicalResult AllReduceOpV1::validateConstraint(mlir::Operation* op,
+                                                Version targetVersion) {
+  // Allow mismatched operand and result types in v0.17.0
+  if (checkIfOperandAndResultElementTypesMatch(getOperand().getType(),
+                                               getResult().getType()) &&
+      targetVersion < Version(0, 17, 0))
+    return failure();
+
+  return success();
+}
+
+LogicalResult ReduceOpV1::validateConstraint(mlir::Operation* op,
+                                             Version targetVersion) {
+  // Allow mismatched operand and result types in v0.17.0
+  if (checkIfOperandAndResultElementTypesMatch(getInputs().getTypes(),
+                                               getResultTypes()) &&
+      targetVersion < Version(0, 17, 0))
+    return failure();
+
+  return success();
+}
+
+LogicalResult ReduceScatterOpV1::validateConstraint(mlir::Operation* op,
+                                                    Version targetVersion) {
+  // Allow mismatched operand and result types in v0.17.0
+  if (checkIfOperandAndResultElementTypesMatch(getOperand().getType(),
+                                               getResult().getType()) &&
+      targetVersion < Version(0, 17, 0))
+    return failure();
+
+  return success();
+}
+
+LogicalResult ReduceWindowOpV1::validateConstraint(mlir::Operation* op,
+                                                   Version targetVersion) {
+  // Allow mismatched operand and result types in v0.17.0
+  if (checkIfOperandAndResultElementTypesMatch(getInputs().getTypes(),
+                                               getResultTypes()) &&
+      targetVersion < Version(0, 17, 0))
+    return failure();
+
+  return success();
+}
+
+LogicalResult ScatterOpV1::validateConstraint(mlir::Operation* op,
+                                              Version targetVersion) {
+  // Allow mismatched operand and result types in v0.17.0
+  if (checkIfOperandAndResultElementTypesMatch(getInputs().getTypes(),
+                                               getResultTypes()) &&
+      targetVersion < Version(0, 17, 0))
+    return failure();
+
+  return success();
+}
+
+LogicalResult SelectAndScatterOpV1::validateConstraint(mlir::Operation* op,
+                                                       Version targetVersion) {
+  // Allow mismatched operand and result types in v0.17.0
+  if (checkIfOperandAndResultElementTypesMatch(getOperand().getType(),
+                                               getResult().getType()) &&
+      targetVersion < Version(0, 17, 0))
+    return failure();
+
+  return success();
 }
 
 }  // namespace vhlo

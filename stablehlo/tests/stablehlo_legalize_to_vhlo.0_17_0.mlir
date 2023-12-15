@@ -1,12 +1,7 @@
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
-// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
-// RUN: stablehlo-opt %s > %t.1
-// RUN: diff %t.0 %t.1
-// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-opt --pass-pipeline='builtin.module(stablehlo-deserialize)' > %t.0
-// RUN: stablehlo-opt %s > %t.1
-// RUN: diff %t.0 %t.1
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
+// RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=0.17.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
+// RUN: diff <(stablehlo-translate --deserialize %s.bc | stablehlo-opt) <(stablehlo-opt --strip-debuginfo %s)
+// RUN: diff %s.bc <(stablehlo-translate --serialize --target=0.17.0 --strip-debuginfo %s)
 
 // CHECK-WARN-NOT: Not Implemented
 
@@ -514,7 +509,7 @@ func.func @default_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tenso
   // CHECK-SAME:   known_nonexpanding_dimensions = #vhlo.tensor_v1<dense<> : tensor<0xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<?x?x!vhlo.f32_v1>, !vhlo.tensor_v1<2x!vhlo.index_v1>) -> !vhlo.tensor_v1<?x?x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %arg1) {
-    broadcast_dimensions = array<i64: 0, 1>
+    broadcast_dimensions = dense<[0, 1]> : tensor<2xi64>
   } : (tensor<?x?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
   func.return %0 : tensor<?x?xf32>
 }
@@ -938,7 +933,7 @@ func.func @op_broadcast_in_dim(%arg0: tensor<16xf32>) -> tensor<16x16xf32> {
   // CHECK-SAME:   broadcast_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<16x!vhlo.f32_v1>) -> !vhlo.tensor_v1<16x16x!vhlo.f32_v1>
   %0 = "stablehlo.broadcast_in_dim"(%arg0) {
-    broadcast_dimensions = array<i64: 1>
+    broadcast_dimensions = dense<1> : tensor<1xi64>
   } : (tensor<16xf32>) -> tensor<16x16xf32>
   func.return %0 : tensor<16x16xf32>
 }
@@ -1219,9 +1214,9 @@ func.func @op_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tensor<2xi
   // CHECK-SAME:   known_nonexpanding_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<?x?x!vhlo.f32_v1>, !vhlo.tensor_v1<2x!vhlo.index_v1>) -> !vhlo.tensor_v1<?x?x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %arg1) {
-    broadcast_dimensions = array<i64: 0, 1>,
-    known_expanding_dimensions = array<i64: 0>,
-    known_nonexpanding_dimensions = array<i64: 1>
+    broadcast_dimensions = dense<[0, 1]> : tensor<2xi64>,
+    known_expanding_dimensions = dense<0> : tensor<1xi64>,
+    known_nonexpanding_dimensions = dense<1> : tensor<1xi64>
   } : (tensor<?x?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
   func.return %0 : tensor<?x?xf32>
 }

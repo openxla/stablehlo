@@ -181,7 +181,14 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
   auto opInterface = dyn_cast<VersionedOpInterface>(op);
   if (!opInterface) return false;
   if (!isLegalVersion(opInterface, targetVersion)) return false;
-  LLVM_DEBUG(llvm::dbgs() << "Legal version for target. " << op << '\n');
+  LLVM_DEBUG(llvm::dbgs() << "Legal op version for target. " << op << '\n');
+
+  // Validate op constraints
+  auto constraintInterface = dyn_cast<VersionedOpConstraintInterface>(op);
+  if (constraintInterface &&
+      failed(constraintInterface.validateConstraint(op, targetVersion)))
+    return false;
+  LLVM_DEBUG(llvm::dbgs() << "Legal constraints for target. " << op << '\n');
 
   // Validate attributes
   auto isLegalAttrFn = [&](const NamedAttribute& attr) {

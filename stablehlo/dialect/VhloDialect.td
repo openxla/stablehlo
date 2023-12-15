@@ -34,6 +34,7 @@ def VHLO_Dialect : Dialect {
       0.14.0: MLIR bytecode version 3 => 5 (revised to 4 in #1827).
       0.15.0: MLIR bytecode version 5 => 6, use properties in VHLO.
       0.16.0: Introduce `collective_broadcast` operation.
+      0.17.0: Allow reduce operations to promote to higher bitwidth.
   }];
 
   let useDefaultAttributePrinterParser = 0;
