@@ -469,15 +469,12 @@ struct HloBroadcastInDimConverter final
     SmallVector<AffineExpr> dimExprs;
     dimExprs.reserve(nloops);
 
-    if (broadcastOp.getBroadcastDimensions()) {
-      for (auto [idx, broadcastDim] : llvm::enumerate(
-               broadcastOp.getBroadcastDimensions().getValues<APInt>())) {
-        int size = broadcastDim.getSExtValue();
-        bool expansionNeeded =
-            operandShape[idx] == 1 && resultType.getShape()[size] != 1;
-        dimExprs.push_back(expansionNeeded ? b->getAffineConstantExpr(0)
-                                           : b->getAffineDimExpr(size));
-      }
+    for (auto [idx, broadcastDim] :
+         llvm::enumerate(broadcastOp.getBroadcastDimensions())) {
+      bool expansionNeeded =
+          operandShape[idx] == 1 && resultType.getShape()[broadcastDim] != 1;
+      dimExprs.push_back(expansionNeeded ? b->getAffineConstantExpr(0)
+                                         : b->getAffineDimExpr(broadcastDim));
     }
     return {
         AffineMap::get(nloops, /*symbolCount=*/0, dimExprs, b->getContext()),
@@ -566,7 +563,7 @@ struct BroadcastInDimOpToBroadcastConverter final
     Location loc = op.getLoc();
 
     SmallVector<int64_t> broadcastDimensions =
-        llvm::to_vector(op.getBroadcastDimensions().getValues<int64_t>());
+        llvm::to_vector(op.getBroadcastDimensions());
 
     Value operand = adaptor.getOperand();
     auto operandTy = llvm::cast<ShapedType>(operand.getType());

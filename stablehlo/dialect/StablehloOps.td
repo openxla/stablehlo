@@ -1873,7 +1873,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
   }];
   let arguments = (ins
     HLO_Tensor:$operand /*broadcast_in_dim_i1*/,
-    BroadcastDimAttr:$broadcast_dimensions /*broadcast_in_dim_i2*/
+    I64DenseArrayOrElements1DAttr:$broadcast_dimensions /*broadcast_in_dim_i2*/
   );
 
   let results = (outs HLO_StaticShapeTensor);
@@ -1881,7 +1881,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
+    $operand `,` `dims` `=` custom<I64DenseArrayOrElements1D>($broadcast_dimensions)
       attr-dict `:` functional-type(operands, results)
   }];
 }

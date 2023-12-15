@@ -385,7 +385,7 @@ LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
 
 LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                                      Value operand,
-                                     DenseIntElementsAttr broadcastDimensions,
+                                     ArrayRef<int64_t> broadcastDimensions,
                                      Value result);
 
 LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,

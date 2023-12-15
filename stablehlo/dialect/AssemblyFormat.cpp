@@ -279,6 +279,23 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
   return success();
 }
 
+void printI64DenseArrayOrElements1D(OpAsmPrinter& p, Operation* op,
+                                    Attribute attr) {
+  if (auto elems = dyn_cast<DenseIntElementsAttr>(attr)) {
+    printDenseI64Array(p, op, elems);
+    return;
+  }
+  dyn_cast<DenseI64ArrayAttr>(attr).print(p);
+}
+
+ParseResult parseI64DenseArrayOrElements1D(OpAsmParser& parser,
+                                           Attribute& attr) {
+  if ((attr = DenseI64ArrayAttr::parse(parser, Type{}))) {
+    return success();
+  }
+  return failure();
+}
+
 void printSliceRanges(OpAsmPrinter& p, Operation* op,
                       ArrayRef<int64_t> startIndices,
                       ArrayRef<int64_t> limitIndices,
