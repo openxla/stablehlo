@@ -162,19 +162,9 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
   auto rhs = operands[1];
 
   // Check for "numpy"-style rank broadcast.
-  // TODO(#1578): Simplify this code once broadcast_dimensions uses
-  // DenseI64ArrayAttr (instead of I64DenseArrayOrElements1DAttr).
   auto broadcastDimensionsAttr = op->getAttr("broadcast_dimensions");
-  std::optional<SmallVector<int64_t>> broadcastDimensions;
-  if (auto attr =
-          dyn_cast_or_null<DenseIntElementsAttr>(broadcastDimensionsAttr)) {
-    broadcastDimensions = llvm::to_vector(attr.getValues<int64_t>());
-  } else if (auto attr =
-                 dyn_cast_or_null<DenseI64ArrayAttr>(broadcastDimensionsAttr)) {
-    broadcastDimensions = llvm::to_vector(attr.asArrayRef());
-  }
-  if (broadcastDimensions &&
-      !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, *broadcastDimensions)) {
+  if (broadcastDimensionsAttr &&
+      !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, broadcastDimensionsAttr)) {
     // Note: It is unclear whether the general specification of explicit
     // broadcast_dimensions on binary ops is a feature we want to carry
     // forward. While it can technically be implemented for ranked-dynamic,

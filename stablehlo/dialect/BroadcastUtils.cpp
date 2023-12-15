@@ -27,7 +27,21 @@ namespace mlir {
 namespace hlo {
 
 bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
-                                 ArrayRef<int64_t> broadcastDims) {
+                                 Attribute broadcastDimensionsAttr) {
+  // TODO(#1578): Simplify this code once broadcast_dimensions uses
+  // DenseI64ArrayAttr (instead of I64DenseArrayOrElements1DAttr).
+  std::optional<SmallVector<int64_t>> broadcastDimensions;
+  if (auto attr =
+          dyn_cast_or_null<DenseIntElementsAttr>(broadcastDimensionsAttr)) {
+    broadcastDimensions = llvm::to_vector(attr.getValues<int64_t>());
+  } else if (auto attr =
+                 dyn_cast_or_null<DenseI64ArrayAttr>(broadcastDimensionsAttr)) {
+    broadcastDimensions = llvm::to_vector(attr.asArrayRef());
+  }
+  if (!broadcastDimensions) {
+    return false;
+  }
+
   RankedTensorType lhsType = lhs.getType().dyn_cast<RankedTensorType>();
   RankedTensorType rhsType = rhs.getType().dyn_cast<RankedTensorType>();
   if (!lhsType || !rhsType) return false;
@@ -37,11 +51,12 @@ bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
   auto smallerRank = std::min(lhsType.getRank(), rhsType.getRank());
   auto largerRank = std::max(lhsType.getRank(), rhsType.getRank());
 
-  if (smallerRank != static_cast<int64_t>(broadcastDims.size())) return false;
+  if (smallerRank != static_cast<int64_t>(broadcastDimensions->size()))
+    return false;
   auto expectedExtents =
       llvm::seq<int64_t>(largerRank - smallerRank, largerRank);
   return std::equal(expectedExtents.begin(), expectedExtents.end(),
-                    broadcastDims.begin());
+                    broadcastDimensions->begin());
 }
 
 Value computeBinaryElementwiseBroadcastingResultExtents(Location loc, Value lhs,
