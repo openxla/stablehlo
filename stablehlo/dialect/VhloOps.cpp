@@ -305,23 +305,25 @@ void VhloDialect::printAttribute(Attribute attr, DialectAsmPrinter& os) const {
 // to represent this sort of constraint in tablegen.
 
 namespace {
+Type getVhloElementType(Type tensorType) {
+  if (auto ranked = tensorType.dyn_cast<RankedTensorV1Type>()) {
+    return ranked.getElementType();
+  }
+  return tensorType.cast<UnrankedTensorV1Type>().getElementType();
+}
+
 bool checkIfOperandAndResultElementTypesMatch(TypeRange operandTypes,
                                               TypeRange resultTypes) {
-  SmallVector<ShapedType> inputShapedTypes{
-      llvm::map_range(operandTypes, [](Type t) {
-        return convertTypeToBuiltinForPrint(t).cast<ShapedType>();
-      })};
-  SmallVector<ShapedType> resultShapedTypes{
-      llvm::map_range(resultTypes, [](Type t) {
-        return convertTypeToBuiltinForPrint(t).cast<ShapedType>();
-      })};
+  SmallVector<Type> inputElementTypes{llvm::map_range(
+      operandTypes, [](Type t) { return getVhloElementType(t); })};
+  SmallVector<Type> resultElementTypes{llvm::map_range(
+      resultTypes, [](Type t) { return getVhloElementType(t); })};
 
-  int64_t numInputs = inputShapedTypes.size();
-  for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-    if (inputShapedTypes[inputIdx].getElementType() !=
-        resultShapedTypes[inputIdx].getElementType())
-      return true;
-  }
+  if (llvm::any_of(
+          llvm::zip(inputElementTypes, resultElementTypes),
+          [&](auto pair) { return std::get<0>(pair) != std::get<1>(pair); }))
+    return true;
+
   return false;
 }
 }  // namespace

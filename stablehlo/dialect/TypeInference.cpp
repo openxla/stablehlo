@@ -103,6 +103,11 @@ unsigned potentiallyComplexBitWidth(Type type) {
                    : type.getIntOrFloatBitWidth();
 }
 
+template <typename T>
+bool matchesType(Type a, Type b) {
+  return a.isa<T>() && b.isa<T>();
+}
+
 // Returns true if the element-type of type1 can be promoted to that of type2.
 // An element-type 'x' is promotatble to element-type 'y' is they have the same
 // base type and bitwidth(x) <= bitwidth(y). When 'x' and 'y' are quantized
@@ -122,12 +127,10 @@ bool isPromotableElementType(Type type1, Type type2,
       tensorEl2.isa<FloatType>())
     return true;
 
-  bool isSameType =
-      (tensorEl1.isa<IntegerType>() and tensorEl2.isa<IntegerType>()) ||
-      (tensorEl1.isa<FloatType>() and tensorEl2.isa<FloatType>()) ||
-      (tensorEl1.isa<ComplexType>() and tensorEl2.isa<ComplexType>()) ||
-      (tensorEl1.isa<quant::QuantizedType>() and
-       tensorEl2.isa<quant::QuantizedType>());
+  bool isSameType = matchesType<IntegerType>(tensorEl1, tensorEl2) ||
+                    matchesType<FloatType>(tensorEl1, tensorEl2) ||
+                    matchesType<ComplexType>(tensorEl1, tensorEl2) ||
+                    matchesType<quant::QuantizedType>(tensorEl1, tensorEl2);
 
   if (!isSameType) return false;
 
