@@ -424,10 +424,9 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
 
 LogicalResult verifyDynamicBroadcastInDimOp(
     std::optional<Location> location, Value operand, Value outputDimensions,
-    DenseIntElementsAttr broadcastDimensions,
-    std::optional<DenseIntElementsAttr> knownExpandingDimensions,
-    std::optional<DenseIntElementsAttr> knownNonexpandingDimensions,
-    Value result);
+    ArrayRef<int64_t> broadcastDimensions,
+    std::optional<ArrayRef<int64_t>> knownExpandingDimensions,
+    std::optional<ArrayRef<int64_t>> knownNonexpandingDimensions, Value result);
 
 LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
                                   Value outputShape, int64_t iotaDimension,

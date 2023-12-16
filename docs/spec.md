@@ -1417,7 +1417,7 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 //            [1, 2, 3]
 //           ]
 %result = "stablehlo.broadcast_in_dim"(%operand) {
-  broadcast_dimensions = dense<[2, 1]>: tensor<2xi64>
+  broadcast_dimensions = array<i64: 2, 1>
 } : (tensor<1x3xi32>) -> tensor<2x3x2xi32>
 // %result: [
 //            [
