@@ -156,7 +156,6 @@ LogicalResult ReduceScatterOp::verify() {
   }
 
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AddOp)
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AllReduceOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AndOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Atan2Op)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CbrtOp)
@@ -919,6 +918,15 @@ LogicalResult AllReduceOp::verify() {
                                 getComputation());
 }
 
+LogicalResult AllReduceOp::inferReturnTypeComponents(
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  AllReduceOp::Adaptor adaptor(operands, attributes, properties, regions);
+  return hlo::inferAllReduceOp(location, adaptor.getOperand(),
+                               adaptor.getComputation(), inferredReturnShapes);
+}
+
 //===----------------------------------------------------------------------===//
 // BatchNormGradOp
 //===----------------------------------------------------------------------===//
@@ -1379,7 +1387,7 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
       location, adaptor.getInputs(), adaptor.getInitValues(),
       adaptor.getWindowDimensions(), adaptor.getWindowStrides(),
       adaptor.getBaseDilations(), adaptor.getWindowDilations(),
-      adaptor.getPadding(), inferredReturnShapes);
+      adaptor.getPadding(), adaptor.getBody(), inferredReturnShapes);
 }
 
 LogicalResult ReduceWindowOp::verify() {
@@ -1782,7 +1790,8 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
   ReduceOp::Adaptor adaptor(operands, attributes, properties, regions);
   return hlo::inferReduceOp(location, adaptor.getInputs().getTypes(),
                             adaptor.getInitValues().getTypes(),
-                            adaptor.getDimensions(), inferredReturnShapes);
+                            adaptor.getDimensions(), adaptor.getBody(),
+                            inferredReturnShapes);
 }
 
 LogicalResult ReduceOp::verify() {
@@ -2295,8 +2304,8 @@ LogicalResult SelectAndScatterOp::inferReturnTypes(
     SmallVectorImpl<Type>& inferredReturnTypes) {
   SelectAndScatterOp::Adaptor adaptor(operands, attributes, properties,
                                       regions);
-  return hlo::inferSelectAndScatterOp(adaptor.getOperand(),
-                                      inferredReturnTypes);
+  return hlo::inferSelectAndScatterOp(
+      adaptor.getOperand(), adaptor.getScatter(), inferredReturnTypes);
 }
 
 LogicalResult SelectAndScatterOp::verify() {
@@ -2316,6 +2325,7 @@ LogicalResult ScatterOp::inferReturnTypes(
     SmallVectorImpl<Type>& inferredReturnTypes) {
   ScatterOp::Adaptor adaptor(operands, attributes, properties, regions);
   return hlo::inferScatterOp(location, adaptor.getInputs(),
+                             adaptor.getUpdateComputation(),
                              inferredReturnTypes);
 }
 

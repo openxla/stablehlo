@@ -82,6 +82,46 @@ func.func @reduce_window_with_unranked_dynamic_dims(%arg0: tensor<*xf32>,
 
 // -----
 
+// CHECK-LABEL: func @reduce_window_with_promotable_types
+func.func @reduce_window_with_promotable_types(%arg0: tensor<4x2xf32>,
+    %arg1: tensor<4x2xf32>, %init0: tensor<f32>, %init1: tensor<f32>) ->
+    (tensor<2x2xf64>, tensor<2x2xf32>) {
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+         ^bb0(%a0: tensor<f64>, %a1: tensor<f32>, %b0: tensor<f64>,
+                %b1: tensor<f32>):
+              %2 = stablehlo.add %a0, %b0 : tensor<f64>
+              %3 = stablehlo.add %a1, %b1 : tensor<f32>
+              "stablehlo.return"(%2,%3) : (tensor<f64>, tensor<f32>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64> }
+         : (tensor<4x2xf32>, tensor<4x2xf32>, tensor<f32>, tensor<f32>) ->
+              (tensor<2x2xf64>, tensor<2x2xf32>)
+  func.return %0#0, %0#1 : tensor<2x2xf64>, tensor<2x2xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @reduce_window_with_promotable_quantized_types
+func.func @reduce_window_with_promotable_quantized_types(%arg0: tensor<4x2x!quant.uniform<i8:f32, 2.000000e+00:15>>,
+    %init0: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> (tensor<2x2x!quant.uniform<i32:f32, 2.000000e+00:15>>) {
+
+  %0 = "stablehlo.reduce_window"(%arg0, %init0) ({
+         ^bb0(%a0: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %b0: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
+              %1 = stablehlo.add %a0, %b0 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+              "stablehlo.return"(%1) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64>
+         }
+         : (tensor<4x2x!quant.uniform<i8:f32, 2.000000e+00:15>>, tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> (tensor<2x2x!quant.uniform<i32:f32, 2.000000e+00:15>>)
+  func.return %0 : tensor<2x2x!quant.uniform<i32:f32, 2.000000e+00:15>>
+}
+
+// -----
+
 func.func @reduce_window_c1(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
                     %init0: tensor<f32>, %init1: tensor<i32>) ->
                       (tensor<2x2xf32>, tensor<2x2xi32>) {
@@ -123,7 +163,7 @@ func.func @reduce_window_c2(%arg0: tensor<4x2xf32>,
 func.func @reduce_window_c3(%arg0: tensor<4x2xf32>,
     %arg1: tensor<4x2xi32>, %init0: tensor<f32>, %init1: tensor<f32>) ->
     (tensor<2x2xf32>, tensor<2x2xf32>) {
-  // expected-error@+1 {{The element-type of reduction-region's argument at index 3 is expected to be 'i32', but got 'tensor<f32>' as its type.}}
+  // expected-error@+1 {{The element-type of reduction-region's argument at index 3 is expected to be promotable from 'i32', but got 'f32'}}
   %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
          ^bb0(%a0: tensor<f32>, %a1: tensor<f32>, %b0: tensor<f32>,
                 %b1: tensor<f32>):
@@ -490,7 +530,7 @@ func.func @reduce_window_c13(%arg0: tensor<4x2xf32>,
 func.func @reduce_window_c13(%arg0: tensor<4x2xf32>,
     %arg1: tensor<4x2xi32>, %init0: tensor<f32>, %init1: tensor<i32>) ->
     (tensor<2x2xf32>, tensor<2x2xi32>) {
-  // expected-error@+1 {{The type of reduction-region's result type at index 1 differs from the op's corresponding init-value type: 'tensor<f32>' vs 'tensor<i32>'}}
+  // expected-error@+1 {{The element-type of reduction-region's result type at index 1 is expected to be promotable from the op's corresponding init-value element-type: 'tensor<f32>' vs 'tensor<i32>'}}
   %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
          ^bb0(%a0: tensor<f32>, %a1: tensor<f32>, %b0: tensor<f32>,
                 %b1: tensor<f32>):
@@ -544,10 +584,86 @@ func.func @reduce_window_c13(%arg0: tensor<4x2xf32>, %init0: tensor<4x2xf32>)
 
 // -----
 
+func.func @reduce_window_c13(%arg0: tensor<4x2xi32>, %init0: tensor<i32>) ->
+        (tensor<2x2xi8>) {
+
+  // expected-error@+1 {{The element-type of reduction-region's result type at index 0 is expected to be promotable from the op's corresponding init-value element-type: 'tensor<i8>' vs 'tensor<i32>'}}
+  %0 = "stablehlo.reduce_window"(%arg0, %init0) ({
+         ^bb0(%a0: tensor<i8>, %b0: tensor<i8>):
+              %1 = stablehlo.add %a0, %b0 : tensor<i8>
+              "stablehlo.return"(%1) : (tensor<i8>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64>
+         }
+         : (tensor<4x2xi32>, tensor<i32>) -> (tensor<2x2xi8>)
+  func.return %0 : tensor<2x2xi8>
+}
+
+// -----
+
+func.func @reduce_window_c13(%arg0: tensor<4x2xi32>, %init0: tensor<i8>) ->
+        (tensor<2x2xi8>) {
+
+  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be promotable from 'i32', but got 'i8'}}
+  %0 = "stablehlo.reduce_window"(%arg0, %init0) ({
+         ^bb0(%a0: tensor<i8>, %b0: tensor<i8>):
+              %1 = stablehlo.add %a0, %b0 : tensor<i8>
+              "stablehlo.return"(%1) : (tensor<i8>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64>
+         }
+         : (tensor<4x2xi32>, tensor<i8>) -> (tensor<2x2xi8>)
+  func.return %0 : tensor<2x2xi8>
+}
+
+// -----
+
+func.func @reduce_window_c13(%arg0: tensor<4x2x!quant.uniform<i8:f32, 2.000000e+00:15>>,
+    %init0: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> (tensor<2x2x!quant.uniform<i32:f64, 2.000000e+00:15>>) {
+
+  // expected-error@+1 {{The element-type of reduction-region's result type at index 0 is expected to be promotable from the op's corresponding init-value element-type: 'tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>' vs 'tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>'}}
+  %0 = "stablehlo.reduce_window"(%arg0, %init0) ({
+         ^bb0(%a0: tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>, %b0: tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>):
+              %1 = stablehlo.add %a0, %b0 : tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>
+              "stablehlo.return"(%1) : (tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64>
+         }
+         : (tensor<4x2x!quant.uniform<i8:f32, 2.000000e+00:15>>, tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> (tensor<2x2x!quant.uniform<i32:f64, 2.000000e+00:15>>)
+  func.return %0 : tensor<2x2x!quant.uniform<i32:f64, 2.000000e+00:15>>
+}
+
+// -----
+
+func.func @reduce_window_c13(%arg0: tensor<4x2x!quant.uniform<i8:f64, 2.000000e+00:15>>,
+    %init0: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> (tensor<2x2x!quant.uniform<i32:f32, 2.000000e+00:15>>) {
+
+  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be promotable from '!quant.uniform<i8:f64, 2.000000e+00:15>', but got '!quant.uniform<i32:f32, 2.000000e+00:15>'}}
+  %0 = "stablehlo.reduce_window"(%arg0, %init0) ({
+         ^bb0(%a0: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %b0: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
+              %1 = stablehlo.add %a0, %b0 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+              "stablehlo.return"(%1) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64>
+         }
+         : (tensor<4x2x!quant.uniform<i8:f64, 2.000000e+00:15>>, tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> (tensor<2x2x!quant.uniform<i32:f32, 2.000000e+00:15>>)
+  func.return %0 : tensor<2x2x!quant.uniform<i32:f32, 2.000000e+00:15>>
+}
+
+// -----
+
 func.func @reduce_window_i2(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
                     %init0: tensor<1xf32>, %init1: tensor<1xi32>) ->
                       (tensor<2x2xf32>, tensor<2x2xi32>) {
-  // expected-error@+1 {{The type of reduction-region's result type at index 0 differs from the op's corresponding init-value type: 'tensor<f32>' vs 'tensor<1xf32>'}}
+  // expected-error@+1 {{The shape of reduction-region's result type at index 0 differs from the op's corresponding init-value type: 'tensor<f32>' vs 'tensor<1xf32>'}}
   %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
          ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
                 %b0: tensor<f32>, %b1: tensor<i32>):

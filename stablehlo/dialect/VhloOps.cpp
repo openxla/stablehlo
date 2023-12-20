@@ -24,6 +24,7 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
@@ -37,6 +38,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
+#include "stablehlo/dialect/VhloTypes.h"
 
 namespace mlir {
 namespace vhlo {
@@ -294,6 +296,76 @@ void VhloDialect::printAttribute(Attribute attr, DialectAsmPrinter& os) const {
   LogicalResult result = generatedAttributePrinter(attr, os);
   (void)result;
   assert(succeeded(result));
+}
+
+///////////////////////////
+// Op Constraint Versioning
+///////////////////////////
+// These could be migrated to ODS in VhloOps.td if we figured out a better way
+// to represent this sort of constraint in tablegen.
+
+namespace {
+Type getVhloElementType(Type tensorType) {
+  if (auto ranked = tensorType.dyn_cast<RankedTensorV1Type>()) {
+    return ranked.getElementType();
+  }
+  return tensorType.cast<UnrankedTensorV1Type>().getElementType();
+}
+
+bool checkIfOperandAndResultElementTypesMatch(TypeRange operandTypes,
+                                              TypeRange resultTypes) {
+  SmallVector<Type> inputElementTypes{llvm::map_range(
+      operandTypes, [](Type t) { return getVhloElementType(t); })};
+  SmallVector<Type> resultElementTypes{llvm::map_range(
+      resultTypes, [](Type t) { return getVhloElementType(t); })};
+
+  if (llvm::any_of(
+          llvm::zip(inputElementTypes, resultElementTypes),
+          [&](auto pair) { return std::get<0>(pair) != std::get<1>(pair); }))
+    return true;
+
+  return false;
+}
+
+// Allow mismatched operand and result types in reduce ops in v0.17.0
+LogicalResult verifyConstraint_0_17_0(mlir::Operation* op,
+                                      Version targetVersion) {
+  if (checkIfOperandAndResultElementTypesMatch(op->getOperandTypes(),
+                                               op->getResultTypes()) &&
+      targetVersion < Version(0, 17, 0))
+    return failure();
+  return success();
+}
+}  // namespace
+
+LogicalResult AllReduceOpV1::validateConstraint(mlir::Operation* op,
+                                                Version targetVersion) {
+  return verifyConstraint_0_17_0(op, targetVersion);
+}
+
+LogicalResult ReduceOpV1::validateConstraint(mlir::Operation* op,
+                                             Version targetVersion) {
+  return verifyConstraint_0_17_0(op, targetVersion);
+}
+
+LogicalResult ReduceScatterOpV1::validateConstraint(mlir::Operation* op,
+                                                    Version targetVersion) {
+  return verifyConstraint_0_17_0(op, targetVersion);
+}
+
+LogicalResult ReduceWindowOpV1::validateConstraint(mlir::Operation* op,
+                                                   Version targetVersion) {
+  return verifyConstraint_0_17_0(op, targetVersion);
+}
+
+LogicalResult ScatterOpV1::validateConstraint(mlir::Operation* op,
+                                              Version targetVersion) {
+  return verifyConstraint_0_17_0(op, targetVersion);
+}
+
+LogicalResult SelectAndScatterOpV1::validateConstraint(mlir::Operation* op,
+                                                       Version targetVersion) {
+  return verifyConstraint_0_17_0(op, targetVersion);
 }
 
 }  // namespace vhlo
