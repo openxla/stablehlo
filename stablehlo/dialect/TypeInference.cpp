@@ -97,15 +97,23 @@ bool tensorsHaveSameElType(Type type1, Type type2,
   return tensorsHaveSameElType({type1, type2}, ignoreFpPrecision);
 }
 
-unsigned potentiallyComplexBitWidth(Type type) {
-  auto complexTy = type.dyn_cast<ComplexType>();
-  return complexTy ? 2 * complexTy.getElementType().getIntOrFloatBitWidth()
-                   : type.getIntOrFloatBitWidth();
+unsigned getBitWidth(Type type) {
+  if (auto complexTy = type.dyn_cast<ComplexType>())
+    return 2 * getBitWidth(complexTy.getElementType());
+  if (auto quantTy = type.dyn_cast<quant::QuantizedType>())
+    return getBitWidth(quantTy.getStorageType());
+  return type.getIntOrFloatBitWidth();
 }
 
 template <typename T>
 bool matchesType(Type a, Type b) {
-  return a.isa<T>() && b.isa<T>();
+  bool matches = a.isa<T>() && b.isa<T>();
+  // Check that expressed type matches for quantized types
+  if constexpr (std::is_same<T, quant::QuantizedType>::value) {
+    return matches && (a.cast<quant::QuantizedType>().getExpressedType() ==
+                       b.cast<quant::QuantizedType>().getExpressedType());
+  }
+  return matches;
 }
 
 // Returns true if the element-type of type1 can be promoted to that of type2.
@@ -123,10 +131,6 @@ bool isPromotableElementType(Type type1, Type type2,
   Type tensorEl1 = tensorTy1.getElementType();
   Type tensorEl2 = tensorTy2.getElementType();
 
-  if (ignoreFpPrecision && tensorEl1.isa<FloatType>() &&
-      tensorEl2.isa<FloatType>())
-    return true;
-
   bool isSameType = matchesType<IntegerType>(tensorEl1, tensorEl2) ||
                     matchesType<FloatType>(tensorEl1, tensorEl2) ||
                     matchesType<ComplexType>(tensorEl1, tensorEl2) ||
@@ -134,15 +138,9 @@ bool isPromotableElementType(Type type1, Type type2,
 
   if (!isSameType) return false;
 
-  if (!tensorEl1.isa<quant::QuantizedType>())
-    return potentiallyComplexBitWidth(tensorEl1) <=
-           potentiallyComplexBitWidth(tensorEl2);
+  if (ignoreFpPrecision && tensorEl1.isa<FloatType>()) return true;
 
-  auto quantType1 = tensorEl1.cast<quant::QuantizedType>();
-  auto quantType2 = tensorEl2.cast<quant::QuantizedType>();
-  return quantType1.getExpressedType() == quantType2.getExpressedType() &&
-         potentiallyComplexBitWidth(quantType1.getStorageType()) <=
-             potentiallyComplexBitWidth(quantType2.getStorageType());
+  return getBitWidth(tensorEl1) <= getBitWidth(tensorEl2);
 }
 
 // Return true if type1 and type2 are shape-compatible and have same element
@@ -577,7 +575,7 @@ LogicalResult verifyReduceOpInputsAndInferShape(
 SmallVector<ShapedType> getAccumulatorTypes(Block& block) {
   SmallVector<ShapedType> accumulatorSubShapes;
   for (Value retOperand : block.getTerminator()->getOperands()) {
-    auto shapedTy = retOperand.getType().dyn_cast<ShapedType>();
+    auto shapedTy = retOperand.getType().cast<ShapedType>();
     accumulatorSubShapes.push_back(shapedTy);
   }
   return accumulatorSubShapes;
@@ -678,10 +676,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           loc, "The element-type of reduction-region's argument at index ",
           numInputs + inputIdx, " is expected to be promotable from ",
           inputTypes[inputIdx].getElementType(), ", but got ",
-          block.getArgument(numInputs + inputIdx)
-              .getType()
-              .cast<ShapedType>()
-              .getElementType());
+          getElementTypeOrSelf(
+              block.getArgument(numInputs + inputIdx).getType()));
 
     Type blockArgType = block.getArgument(numInputs + inputIdx).getType();
     auto blockArgTensorTy = blockArgType.cast<ShapedType>();
@@ -2741,11 +2737,11 @@ LogicalResult inferRngOp(
 }
 
 LogicalResult inferScatterOp(std::optional<Location>, ValueRange inputs,
-                             Region& update_computation,
+                             Region& updateComputation,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   // scatter_c16, scatter_c17
   SmallVector<ShapedType> accumulatorTypes =
-      getAccumulatorTypes(update_computation.front());
+      getAccumulatorTypes(updateComputation.front());
   for (uint64_t inputIdx = 0; inputIdx < inputs.size(); ++inputIdx) {
     auto inputShapedTy = inputs[inputIdx].getType().cast<ShapedType>();
     inferredReturnTypes.push_back(getSameShapeTensorType(
@@ -3232,8 +3228,8 @@ LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
         location, "cannot convert between real and complex types, but got: ",
         operandShapedType, " and ", targetShapedType);
 
-  auto targetEltBitWidth = potentiallyComplexBitWidth(targetElt);
-  auto operandEltBitWidth = potentiallyComplexBitWidth(operandElt);
+  auto targetEltBitWidth = getBitWidth(targetElt);
+  auto operandEltBitWidth = getBitWidth(operandElt);
 
   auto operandType = operandShapedType.dyn_cast<RankedTensorType>();
   auto targetType = targetShapedType.dyn_cast<RankedTensorType>();

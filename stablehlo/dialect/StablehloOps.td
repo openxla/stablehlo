@@ -1474,8 +1474,6 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
     Variadic<HLO_Tensor>:$init_values, /*reduce_i2*/
     I64ElementsAttr:$dimensions /*reduce_i3*/
   );
-  // TODO(hinsu): Verify that the attached body arguments and results are
-  // compatible with reduce op's operands.
   let regions = (region SizedRegion<1>:$body /*reduce_i4*/);
 
   let results = (outs Variadic<HLO_Tensor>);

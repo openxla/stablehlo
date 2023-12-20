@@ -326,72 +326,46 @@ bool checkIfOperandAndResultElementTypesMatch(TypeRange operandTypes,
 
   return false;
 }
+
+// Allow mismatched operand and result types in reduce ops in v0.17.0
+LogicalResult verifyConstraint_0_17_0(mlir::Operation* op,
+                                      Version targetVersion) {
+  if (checkIfOperandAndResultElementTypesMatch(op->getOperandTypes(),
+                                               op->getResultTypes()) &&
+      targetVersion < Version(0, 17, 0))
+    return failure();
+  return success();
+}
 }  // namespace
 
 LogicalResult AllReduceOpV1::validateConstraint(mlir::Operation* op,
                                                 Version targetVersion) {
-  // Allow mismatched operand and result types in v0.17.0
-  if (checkIfOperandAndResultElementTypesMatch(getOperand().getType(),
-                                               getResult().getType()) &&
-      targetVersion < Version(0, 17, 0))
-    return failure();
-
-  return success();
+  return verifyConstraint_0_17_0(op, targetVersion);
 }
 
 LogicalResult ReduceOpV1::validateConstraint(mlir::Operation* op,
                                              Version targetVersion) {
-  // Allow mismatched operand and result types in v0.17.0
-  if (checkIfOperandAndResultElementTypesMatch(getInputs().getTypes(),
-                                               getResultTypes()) &&
-      targetVersion < Version(0, 17, 0))
-    return failure();
-
-  return success();
+  return verifyConstraint_0_17_0(op, targetVersion);
 }
 
 LogicalResult ReduceScatterOpV1::validateConstraint(mlir::Operation* op,
                                                     Version targetVersion) {
-  // Allow mismatched operand and result types in v0.17.0
-  if (checkIfOperandAndResultElementTypesMatch(getOperand().getType(),
-                                               getResult().getType()) &&
-      targetVersion < Version(0, 17, 0))
-    return failure();
-
-  return success();
+  return verifyConstraint_0_17_0(op, targetVersion);
 }
 
 LogicalResult ReduceWindowOpV1::validateConstraint(mlir::Operation* op,
                                                    Version targetVersion) {
-  // Allow mismatched operand and result types in v0.17.0
-  if (checkIfOperandAndResultElementTypesMatch(getInputs().getTypes(),
-                                               getResultTypes()) &&
-      targetVersion < Version(0, 17, 0))
-    return failure();
-
-  return success();
+  return verifyConstraint_0_17_0(op, targetVersion);
 }
 
 LogicalResult ScatterOpV1::validateConstraint(mlir::Operation* op,
                                               Version targetVersion) {
-  // Allow mismatched operand and result types in v0.17.0
-  if (checkIfOperandAndResultElementTypesMatch(getInputs().getTypes(),
-                                               getResultTypes()) &&
-      targetVersion < Version(0, 17, 0))
-    return failure();
-
-  return success();
+  return verifyConstraint_0_17_0(op, targetVersion);
 }
 
 LogicalResult SelectAndScatterOpV1::validateConstraint(mlir::Operation* op,
                                                        Version targetVersion) {
-  // Allow mismatched operand and result types in v0.17.0
-  if (checkIfOperandAndResultElementTypesMatch(getOperand().getType(),
-                                               getResult().getType()) &&
-      targetVersion < Version(0, 17, 0))
-    return failure();
-
-  return success();
+  return verifyConstraint_0_17_0(op, targetVersion);
 }
 
 }  // namespace vhlo
