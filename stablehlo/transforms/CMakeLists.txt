@@ -31,6 +31,7 @@ add_mlir_dialect_library(StablehloPasses
 
   LINK_LIBS PUBLIC
   ChloOps
+  InterpreterOps
   MLIRFuncDialect
   MLIRIR
   MLIRInferTypeOpInterface
