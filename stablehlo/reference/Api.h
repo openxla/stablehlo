@@ -38,8 +38,8 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
     const InterpreterConfiguration &config);
 
 /// Parses a StableHLO MLIR text program into a ModuleOp.
-llvm::ErrorOr<OwningOpRef<ModuleOp>> parseModule(
-    const std::string &mlir, MLIRContext& context);
+llvm::ErrorOr<OwningOpRef<ModuleOp>> parseStablehloModule(
+    const std::string &mlir, MLIRContext &context);
 
 }  // namespace stablehlo
 }  // namespace mlir

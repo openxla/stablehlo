@@ -131,8 +131,8 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
   return stablehlo::eval(mainFunc.getBody(), inputs, &fallback);
 }
 
-llvm::ErrorOr<OwningOpRef<ModuleOp>> parseModule(const std::string &mlir,
-                                                 MLIRContext &context) {
+llvm::ErrorOr<OwningOpRef<ModuleOp>> parseStablehloModule(
+    const std::string &mlir, MLIRContext &context) {
   llvm::SourceMgr source_mgr;
   source_mgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(mlir),
                                 llvm::SMLoc());
