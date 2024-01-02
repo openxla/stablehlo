@@ -4298,13 +4298,6 @@ Afterwards, within each `process_group`:
 Applies a reduction function `body` to windows of `inputs` and `init_values`
 and produces `results`.
 
-The order of reductions is implementation-defined, which means that `body` and
-`init_values` must form a monoid to guarantee that the operation produces the
-same results for all inputs on all implementations. However, this condition
-doesn't hold for many popular reductions. E.g. floating-point addition for
-`body` and zero for `init_values` don't actually form a monoid because
-floating-point addition is not associative.
-
 The following diagram shows how elements in `results...` are computed from
 `inputs...` using a concrete example.
 
@@ -4312,7 +4305,7 @@ The following diagram shows how elements in `results...` are computed from
 
 More formally,
 `results...[result_index] = reduce(windows, init_values, axes(inputs...), body)`
-where:
+(see [reduce](#reduce)) where:
 
 * `padded_inputs = pad(inputs..., init_values..., padding[:, 0], padding[:, 1],
   base_dilations - 1)`.
@@ -5005,8 +4998,8 @@ More formally:
 
    where `E = element_type(operand)`, and `reduce_window_without_init` works
    exactly like `reduce_window`, except that the `schedule` of the underlying
-   `reduce` doesn't include init values. It is currently unspecified what
-   happens if the corresponding window doesn't have values
+   `reduce` (see [reduce](#reduce)) doesn't include init values. It is currently
+   unspecified what happens if the corresponding window doesn't have values
    ([#731](https://github.com/openxla/stablehlo/issues/731)).
 * `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
  where:
