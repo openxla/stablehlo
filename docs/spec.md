@@ -1682,11 +1682,11 @@ Afterwards, `result@process` is given by:
 
 #### Inputs
 
-| Label | Name                    | Type                                                             | Constraints |
-|-------|-------------------------|------------------------------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor                                                           | (C3)        |
-| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1), (C2)  |
-| (I3)  | `channel_id`            | constant of type `si64`                                          |             |
+| Label | Name             | Type                                                             | Constraints |
+|-------|------------------|------------------------------------------------------------------|-------------|
+| (I1)  | `operand`        | tensor                                                           | (C3)        |
+| (I2)  | `replica_groups` | variadic number of 1-dimensional tensor constants of type `si64` | (C1), (C2)  |
+| (I3)  | `channel_id`     | constant of type `si64`                                          |             |
 
 #### Outputs
 
