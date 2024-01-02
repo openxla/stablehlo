@@ -4298,6 +4298,13 @@ Afterwards, within each `process_group`:
 Applies a reduction function `body` to windows of `inputs` and `init_values`
 and produces `results`.
 
+The order of reductions is implementation-defined, which means that `body` and
+`init_values` must form a monoid to guarantee that the operation produces the
+same results for all inputs on all implementations. However, this condition
+doesn't hold for many popular reductions. E.g. floating-point addition for
+`body` and zero for `init_values` don't actually form a monoid because
+floating-point addition is not associative.
+
 The following diagram shows how elements in `results...` are computed from
 `inputs...` using a concrete example.
 
