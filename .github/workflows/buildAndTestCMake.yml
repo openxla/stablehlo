@@ -48,7 +48,7 @@ jobs:
 
     steps:
     - name: Checkout StableHLO
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Get LLVM Version
       id: llvm-version
