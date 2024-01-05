@@ -56,6 +56,8 @@ inline static bool isStaticDimSize(int64_t val) {
   return !isDynamicDimSize(val);
 }
 
+SmallVector<int64_t> i64ArrayOrElementsValues(Attribute);
+
 //  Verifies that the two types have compatible shape with bounds but allows
 //  different element types.
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2);

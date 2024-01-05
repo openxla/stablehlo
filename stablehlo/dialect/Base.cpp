@@ -600,5 +600,23 @@ ShapedType createShapedType(ShapedTypeComponents components) {
   return UnrankedTensorType::get(components.getElementType());
 }
 
+// TODO(#1578): Remove this code once all uses of I64DenseArrayOrElements1DAttr
+// have been removed.
+SmallVector<int64_t> i64ArrayOrElementsValues(Attribute attr) {
+  SmallVector<int64_t> vec;
+  if (!attr) return vec;
+  if (auto elements = dyn_cast_or_null<DenseIntElementsAttr>(attr)) {
+    vec = llvm::to_vector(elements.getValues<int64_t>());
+  } else if (auto array = dyn_cast_or_null<DenseI64ArrayAttr>(attr)) {
+    vec = llvm::to_vector(array.asArrayRef());
+  } else {
+    llvm::report_fatal_error(
+        "called i64ArrayOrElementsValues on Attribute that was neither a "
+        "DenseIntElementsAttr or a DenseI64ArrayAttr",
+        false);
+  }
+  return vec;
+}
+
 }  // namespace hlo
 }  // namespace mlir
