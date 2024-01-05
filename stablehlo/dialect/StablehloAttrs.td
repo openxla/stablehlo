@@ -105,7 +105,7 @@ def StableHLO_OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlia
 }
 
 // Represents a unique identifier for each Send/Recv instruction pair or
-// optionally for collective instructions (AllToAll, AllReduce, 
+// optionally for collective instructions (AllToAll, AllReduce,
 // CollectiveBroadcast, and CollectivePermute). Non-positive channel_id
 // handle is equivalent to no channel id.
 def StableHLO_ChannelHandle : AttrDef<StableHLO_Dialect, "ChannelHandle"> {
@@ -207,22 +207,6 @@ def StableHLO_ConvolutionAttributes {
     I64Attr:$batch_group_count,
     StableHLO_PrecisionConfigAttr:$precision_config
   );
-}
-
-def I64Elements1D : And<[I64ElementsAttr.predicate,  CPred<"$_self.cast<DenseIntElementsAttr>().getType().getRank() == 1">]>;
-
-// TODO(#1578) migrate uses to DenseI64ArrayAttr and delete this attr
-def I64DenseArrayOrElements1DAttr : Attr<Or<[DenseI64ArrayAttr.predicate, I64Elements1D]>, "either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr."> {
-  let storageType = "Attribute";
-  let returnType = "SmallVector<int64_t>";
-  let convertFromStorage = [{
-    [&]() -> SmallVector<int64_t> {
-      if (auto elems = $_self.dyn_cast<DenseIntElementsAttr>()) {
-        return llvm::to_vector(elems.getValues<int64_t>());
-      }
-      return llvm::to_vector($_self.cast<DenseI64ArrayAttr>().asArrayRef());
-    }()
-  }];
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_ATTRS

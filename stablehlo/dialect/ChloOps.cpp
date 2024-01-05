@@ -162,10 +162,10 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
   auto rhs = operands[1];
 
   // Check for "numpy"-style rank broadcast.
-  auto broadcastDimensions = op->getAttr("broadcast_dimensions")
-                                 .dyn_cast_or_null<DenseIntElementsAttr>();
-  if (broadcastDimensions &&
-      !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, broadcastDimensions)) {
+  auto broadcastDimensionsAttr = op->getAttr("broadcast_dimensions");
+  if (broadcastDimensionsAttr &&
+      !hlo::isLegalNumpyRankedBroadcast(
+          lhs, rhs, hlo::getI64Array(broadcastDimensionsAttr))) {
     // Note: It is unclear whether the general specification of explicit
     // broadcast_dimensions on binary ops is a feature we want to carry
     // forward. While it can technically be implemented for ranked-dynamic,
@@ -175,7 +175,7 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
     // of numpy-like prefix-padding.
     return op->emitWarning()
            << "unsupported non prefix-padded dynamic rank "
-           << "broadcast_dimensions = " << broadcastDimensions;
+           << "broadcast_dimensions = " << broadcastDimensionsAttr;
   }
 
   result.push_back(hlo::computeBinaryElementwiseBroadcastingResultExtents(
@@ -212,7 +212,7 @@ LogicalResult BroadcastComplexOp::reifyReturnTypeShapes(
 
 void BroadcastCompareOp::build(OpBuilder& builder, OperationState& result,
                                Value lhs, Value rhs,
-                               DenseIntElementsAttr broadcastDimensions,
+                               Attribute broadcastDimensions,
                                chlo::ComparisonDirection comparisonDirection,
                                chlo::ComparisonType compareType) {
   build(builder, result, lhs, rhs, broadcastDimensions,

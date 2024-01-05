@@ -18,7 +18,7 @@ func.func @broadcast_add_reify(%arg0: tensor<?xf32>, %arg1: tensor<?xf32>) -> te
 // -----
 // CHECK-LABEL: @broadcast_add_different_operand_size
 func.func @broadcast_add_different_operand_size(%arg1: tensor<1xi32>, %arg2: tensor<1x2xi32>) -> tensor<1x2xi32> {
-  %0 = "chlo.broadcast_add"(%arg1, %arg2) {broadcast_dimensions = dense<1> : tensor<i64>} : (tensor<1xi32>, tensor<1x2xi32>) -> tensor<1x2xi32>
+  %0 = "chlo.broadcast_add"(%arg1, %arg2) {broadcast_dimensions = array<i64: 1>} : (tensor<1xi32>, tensor<1x2xi32>) -> tensor<1x2xi32>
   // CHECK: types0 = tensor<1x2xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<1x2xi32>) -> tensor<1x2xi32>
   return %1: tensor<1x2xi32>
@@ -65,8 +65,8 @@ func.func @broadcast_compare_ranked_components(%arg0: tensor<?xf32>, %arg1: tens
 // -----
 // CHECK-LABEL: @broadcast_compare_unranked_reify
 func.func @broadcast_compare_unranked_reify(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) -> tensor<?xindex> {
-  // expected-warning @+1 {{unsupported non prefix-padded dynamic rank broadcast_dimensions = dense<1> : tensor<1xi64>}}
-  %0 = chlo.broadcast_compare %arg0, %arg1 {broadcast_dimensions = dense<1> : tensor<1xi64>, comparison_direction = #chlo<comparison_direction EQ>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xi1>
+  // expected-warning @+1 {{unsupported non prefix-padded dynamic rank broadcast_dimensions = array<i64: 1>}}
+  %0 = chlo.broadcast_compare %arg0, %arg1 {broadcast_dimensions = array<i64: 1>, comparison_direction = #chlo<comparison_direction EQ>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xi1>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%0) : (tensor<*xi1>) -> tensor<?xindex>
   func.return %1 : tensor<?xindex>
 }
