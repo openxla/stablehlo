@@ -246,11 +246,7 @@ def I64Elements1D : And<[I64ElementsAttr.predicate,  CPred<"$_self.cast<DenseInt
 def I64DenseArrayOrElements1DAttr : Attr<Or<[DenseI64ArrayAttr.predicate, I64Elements1D]>, "either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr."> {
   let storageType = "Attribute";
   let returnType = "SmallVector<int64_t>";
-  let convertFromStorage = [{
-    [&]() -> SmallVector<int64_t> {
-      return hlo::getI64Array($_self);
-    }()
-  }];
+  let convertFromStorage = "hlo::getI64Array($_self)";
 }
 
 #endif // STABLEHLO_DIALECT_BASE
