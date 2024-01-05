@@ -603,18 +603,15 @@ SmallVector<InterpreterValue> eval(Region &region,
 
       Sizes windowStrides(rank, 1);
       if (auto windowStridesAttr = reduceWindowOp.getWindowStrides())
-        windowStrides.assign(windowStridesAttr->value_begin<int64_t>(),
-                             windowStridesAttr->value_end<int64_t>());
+        windowStrides = Sizes(*windowStridesAttr);
 
       Sizes baseDilations(rank, 1);
       if (auto baseDilationsAttr = reduceWindowOp.getBaseDilations())
-        baseDilations.assign(baseDilationsAttr->value_begin<int64_t>(),
-                             baseDilationsAttr->value_end<int64_t>());
+        baseDilations = Sizes(*baseDilationsAttr);
 
       Sizes windowDilations(rank, 1);
       if (auto windowDilationsAttr = reduceWindowOp.getWindowDilations())
-        windowDilations.assign(windowDilationsAttr->value_begin<int64_t>(),
-                               windowDilationsAttr->value_end<int64_t>());
+        windowDilations = Sizes(*windowDilationsAttr);
 
       Sizes paddingLow(rank, 0), paddingHigh(rank, 0);
       if (auto paddingAttr = reduceWindowOp.getPadding()) {

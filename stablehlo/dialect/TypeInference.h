@@ -290,10 +290,10 @@ LogicalResult inferReduceOp(
 
 LogicalResult inferReduceWindowOp(
     std::optional<Location> location, ValueRange inputs, ValueRange initValues,
-    DenseIntElementsAttr windowDimensions,
-    std::optional<DenseIntElementsAttr> windowStrides,
-    std::optional<DenseIntElementsAttr> baseDilations,
-    std::optional<DenseIntElementsAttr> windowDilations,
+    ArrayRef<int64_t> windowDimensions,
+    std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<ArrayRef<int64_t>> baseDilations,
+    std::optional<ArrayRef<int64_t>> windowDilations,
     std::optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
@@ -477,10 +477,10 @@ LogicalResult verifyReduceScatterOp(std::optional<Location> location,
 
 LogicalResult verifyReduceWindowOp(
     std::optional<Location> location, ValueRange inputs, ValueRange initValues,
-    DenseIntElementsAttr windowDimensions,
-    std::optional<DenseIntElementsAttr> windowStrides,
-    std::optional<DenseIntElementsAttr> baseDilations,
-    std::optional<DenseIntElementsAttr> windowDilations,
+    ArrayRef<int64_t> windowDimensions,
+    std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<ArrayRef<int64_t>> baseDilations,
+    std::optional<ArrayRef<int64_t>> windowDilations,
     std::optional<DenseIntElementsAttr> padding, Region& body);
 
 LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,

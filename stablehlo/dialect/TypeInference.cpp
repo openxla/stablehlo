@@ -715,11 +715,10 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
 
 LogicalResult verifyReduceWindowOpInputsAndInferWindow(
     std::optional<Location> location, SmallVector<ShapedType> inputTypes,
-    SmallVector<ShapedType> initValueTypes,
-    DenseIntElementsAttr windowDimensions,
-    std::optional<DenseIntElementsAttr> windowStrides,
-    std::optional<DenseIntElementsAttr> baseDilations,
-    std::optional<DenseIntElementsAttr> windowDilations,
+    SmallVector<ShapedType> initValueTypes, ArrayRef<int64_t> windowDimensions,
+    std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<ArrayRef<int64_t>> baseDilations,
+    std::optional<ArrayRef<int64_t>> windowDilations,
     std::optional<DenseIntElementsAttr> padding,
     SmallVector<int64_t>& windowDims,
     SmallVector<WindowDimension>& inferredWindow) {
@@ -749,22 +748,6 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
             " is not compatible with shape at input-index ", rankedInputIdx);
   }
 
-  // reduce_window_i3
-  auto windowDimsOrErr =
-      convert1DAttribute(windowDimensions, location, "window_dimensions");
-  if (failed(windowDimsOrErr)) return failure();
-  // reduce_window_i4
-  auto windowStridesOrErr =
-      convert1DAttribute(windowStrides, location, "window_strides");
-  if (failed(windowStridesOrErr)) return failure();
-  // reduce_window_i5
-  auto baseDilationsOrErr =
-      convert1DAttribute(baseDilations, location, "base_dilations");
-  if (failed(baseDilationsOrErr)) return failure();
-  // reduce_window_i6
-  auto windowDilationsOrErr =
-      convert1DAttribute(windowDilations, location, "window_dilations");
-  if (failed(windowDilationsOrErr)) return failure();
   // reduce_window_c12, reduce_window_i7
   auto paddingOrErr = convertPaddingAttribute(padding, location);
   if (failed(paddingOrErr)) return failure();
@@ -772,22 +755,23 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
   // reduce_window_c4
   for (const auto inputType : inputTypes) {
     if (!inputType.hasRank()) continue;
-    if (inputType.getRank() != static_cast<int64_t>((*windowDimsOrErr).size()))
+    if (inputType.getRank() != static_cast<int64_t>(windowDimensions.size()))
       return emitOptionalError(
           location, "expects window-dimensions size == input rank, but got ",
-          "window-dimensions size: ", (*windowDimsOrErr).size(),
+          "window-dimensions size: ", windowDimensions.size(),
           " and input: ", inputType, " with rank = ", inputType.getRank(), ".");
   }
 
   // reduce_window_c5...reduce_window_c12
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
-      *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
-      /*lhsDilation=*/*baseDilationsOrErr,
-      /*rhsDilation=*/*windowDilationsOrErr, /*windowReversal=*/std::nullopt,
-      location);
+      windowDimensions, windowStrides.value_or(SmallVector<int64_t, 0>{}),
+      *paddingOrErr,
+      /*lhsDilation=*/baseDilations.value_or(SmallVector<int64_t, 0>{}),
+      /*rhsDilation=*/windowDilations.value_or(SmallVector<int64_t, 0>{}),
+      /*windowReversal=*/std::nullopt, location);
   if (failed(windowOrErr)) return failure();
 
-  windowDims.append(*windowDimsOrErr);
+  windowDims.append(windowDimensions.begin(), windowDimensions.end());
   inferredWindow.append(*windowOrErr);
   return success();
 }
@@ -2624,10 +2608,10 @@ LogicalResult inferReduceOp(
 
 LogicalResult inferReduceWindowOp(
     std::optional<Location> location, ValueRange inputs, ValueRange initValues,
-    DenseIntElementsAttr windowDimensions,
-    std::optional<DenseIntElementsAttr> windowStrides,
-    std::optional<DenseIntElementsAttr> baseDilations,
-    std::optional<DenseIntElementsAttr> windowDilations,
+    ArrayRef<int64_t> windowDimensions,
+    std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<ArrayRef<int64_t>> baseDilations,
+    std::optional<ArrayRef<int64_t>> windowDilations,
     std::optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SmallVector<ShapedType> inputTypes{llvm::map_range(
@@ -3913,10 +3897,10 @@ LogicalResult verifyReduceScatterOp(std::optional<Location> location,
 
 LogicalResult verifyReduceWindowOp(
     std::optional<Location> location, ValueRange inputs, ValueRange initValues,
-    DenseIntElementsAttr windowDimensions,
-    std::optional<DenseIntElementsAttr> windowStrides,
-    std::optional<DenseIntElementsAttr> baseDilations,
-    std::optional<DenseIntElementsAttr> windowDilations,
+    ArrayRef<int64_t> windowDimensions,
+    std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<ArrayRef<int64_t>> baseDilations,
+    std::optional<ArrayRef<int64_t>> windowDilations,
     std::optional<DenseIntElementsAttr> padding, Region& body) {
   SmallVector<ShapedType> inputTypes{llvm::map_range(
       inputs.getTypes(), [](Type t) { return t.cast<ShapedType>(); })};
