@@ -164,7 +164,8 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
   // Check for "numpy"-style rank broadcast.
   auto broadcastDimensionsAttr = op->getAttr("broadcast_dimensions");
   if (broadcastDimensionsAttr &&
-      !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, broadcastDimensionsAttr)) {
+      !hlo::isLegalNumpyRankedBroadcast(
+          lhs, rhs, hlo::getI64Array(broadcastDimensionsAttr))) {
     // Note: It is unclear whether the general specification of explicit
     // broadcast_dimensions on binary ops is a feature we want to carry
     // forward. While it can technically be implemented for ranked-dynamic,

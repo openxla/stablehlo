@@ -28,10 +28,7 @@ namespace mlir {
 namespace hlo {
 
 bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
-                                 Attribute broadcastDimensionsAttr) {
-  auto broadcastDimensions =
-      hlo::i64ArrayOrElementsValues(broadcastDimensionsAttr);
-
+                                 ArrayRef<int64_t> broadcastDimensions) {
   RankedTensorType lhsType = lhs.getType().dyn_cast<RankedTensorType>();
   RankedTensorType rhsType = rhs.getType().dyn_cast<RankedTensorType>();
   if (!lhsType || !rhsType) return false;

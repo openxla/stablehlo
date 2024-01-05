@@ -248,10 +248,7 @@ def I64DenseArrayOrElements1DAttr : Attr<Or<[DenseI64ArrayAttr.predicate, I64Ele
   let returnType = "SmallVector<int64_t>";
   let convertFromStorage = [{
     [&]() -> SmallVector<int64_t> {
-      if (auto elems = $_self.dyn_cast<DenseIntElementsAttr>()) {
-        return llvm::to_vector(elems.getValues<int64_t>());
-      }
-      return llvm::to_vector($_self.cast<DenseI64ArrayAttr>().asArrayRef());
+      return hlo::getI64Array($_self);
     }()
   }];
 }

@@ -602,7 +602,7 @@ ShapedType createShapedType(ShapedTypeComponents components) {
 
 // TODO(#1578): Remove this code once all uses of I64DenseArrayOrElements1DAttr
 // have been removed.
-SmallVector<int64_t> i64ArrayOrElementsValues(Attribute attr) {
+SmallVector<int64_t> getI64Array(Attribute attr) {
   SmallVector<int64_t> vec;
   if (!attr) return vec;
   if (auto elements = dyn_cast_or_null<DenseIntElementsAttr>(attr)) {
