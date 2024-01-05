@@ -1563,14 +1563,14 @@ void ReduceOp::print(OpAsmPrinter& p) {
     printEscapedString(innerOp.getName().getStringRef(), p.getStream());
 
     p << " across dimensions = [";
-    llvm::interleaveComma(getDimensions().getValues<int64_t>(), p);
+    llvm::interleaveComma(getDimensions(), p);
     p << "]";
     p.printOptionalAttrDict(getOperation()->getAttrs(), {"dimensions"});
     p << " : ";
     p.printFunctionalType(*this);
   } else {
     p << " across dimensions = [";
-    llvm::interleaveComma(getDimensions().getValues<int64_t>(), p);
+    llvm::interleaveComma(getDimensions(), p);
     p << "]";
     p.printOptionalAttrDict(getOperation()->getAttrs(), {"dimensions"});
     p << " : ";
@@ -1779,7 +1779,6 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
   result.addTypes(reduceOpFnType.getResults());
   result.location = innerOp->getLoc();
   result.addAttribute("dimensions", builder.getI64TensorAttr(dimensions));
-
   return success();
 }
 
@@ -1811,8 +1810,7 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
 
   Location loc = this->getLoc();
   SmallVector<Value, 4> shapeValues;
-  SmallVector<int64_t, 4> dimensions(
-      this->getDimensions().getValues<int64_t>());
+  SmallVector<int64_t, 4> dimensions(this->getDimensions());
   shapeValues.reserve(operandType.getRank());
   Type shapeScalarType = builder.getIndexType();
   auto toShapeScalarType = [&](Value v) {

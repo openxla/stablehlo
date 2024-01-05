@@ -1558,7 +1558,8 @@ struct MapOpToGenericConverter final
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
 
-    assert(op.getDimensions().size() == resultType.getRank() &&
+    assert(static_cast<int64_t>(op.getDimensions().size()) ==
+               resultType.getRank() &&
            "Expected a pointwise map");
 
     Location loc = op.getLoc();
@@ -1609,7 +1610,8 @@ struct MapOpToMapConverter final : OpConversionPattern<mlir::stablehlo::MapOp> {
     auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
-    assert(op.getDimensions().size() == resultType.getRank() &&
+    assert(static_cast<int64_t>(op.getDimensions().size()) ==
+               resultType.getRank() &&
            "Expected a pointwise map");
 
     Location loc = op.getLoc();

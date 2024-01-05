@@ -505,12 +505,8 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
 
 LogicalResult verifyReduceOpInputsAndInferShape(
     std::optional<Location> location, SmallVector<ShapedType> inputTypes,
-    SmallVector<ShapedType> initValueTypes, DenseIntElementsAttr dimensions,
+    SmallVector<ShapedType> initValueTypes, ArrayRef<int64_t> dimensions,
     SmallVector<int64_t>& newDimensions, Attribute& encoding) {
-  // reduce_i3
-  if (dimensions.getType().getRank() != 1)
-    return emitOptionalError(location, "dimensions must be rank 1");
-
   // Check for unranked tensors in input operands.
   uint64_t numInputs = inputTypes.size();
   int64_t rankedInputIdx = -1;
@@ -533,7 +529,7 @@ LogicalResult verifyReduceOpInputsAndInferShape(
   }
 
   DenseSet<int64_t> dimensionsToReduceSet;
-  for (int64_t dimension : dimensions.getValues<int64_t>()) {
+  for (int64_t dimension : dimensions) {
     // reduce_c4
     if ((!allInputsUnranked &&
          dimension >= inputTypes[rankedInputIdx].getRank()) ||
@@ -2416,14 +2412,8 @@ LogicalResult inferIfOp(std::optional<Location> location, Value pred,
 
 LogicalResult inferMapOp(
     std::optional<Location> location, ValueRange inputs,
-    DenseIntElementsAttr dimensions, Region& computation,
+    ArrayRef<int64_t> dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // map_i2
-  if (dimensions.getType().getRank() != 1)
-    return emitOptionalError(location,
-                             "dimensions should be rank 1 but got rank ",
-                             dimensions.getType().getRank());
-
   if (failed(verifyRegionNotEmpty(location, computation))) return failure();
 
   // map_c4
@@ -2471,8 +2461,7 @@ LogicalResult inferMapOp(
                              computationOutputs[0].getType());
 
   // map_c3
-  for (const auto& indexedValue :
-       llvm::enumerate(dimensions.getValues<int64_t>())) {
+  for (const auto& indexedValue : llvm::enumerate(dimensions)) {
     if (indexedValue.value() != static_cast<int64_t>(indexedValue.index()))
       return emitOptionalError(
           location,
@@ -2486,8 +2475,7 @@ LogicalResult inferMapOp(
   for (auto operand : inputs) {
     auto operandType = operand.getType().cast<ShapedType>();
     if (operandType.hasRank()) {
-      if (dimensions.size() !=
-          static_cast<int64_t>(operandType.getShape().size()))
+      if (dimensions.size() != operandType.getShape().size())
         return emitOptionalError(
             location,
             "applied to a subset of dimensions currently not supported: "
@@ -2606,7 +2594,7 @@ LogicalResult inferRealOp(std::optional<Location>, Value operand,
 
 LogicalResult inferReduceOp(
     std::optional<Location> location, TypeRange inputTypes,
-    TypeRange initValueTypes, DenseIntElementsAttr dimensions, Region& body,
+    TypeRange initValueTypes, ArrayRef<int64_t> dimensions, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SmallVector<ShapedType> inputArgTensorTypes{
       llvm::map_range(inputTypes, [](Type t) { return t.cast<ShapedType>(); })};
@@ -3801,7 +3789,7 @@ LogicalResult verifyRecvOp(HloDialectInterface* dialect,
 
 LogicalResult verifyReduceOp(std::optional<Location> location,
                              ValueRange inputs, ValueRange initValues,
-                             DenseIntElementsAttr dimensions, Region& body) {
+                             ArrayRef<int64_t> dimensions, Region& body) {
   SmallVector<ShapedType> inputTypes{llvm::map_range(
       inputs.getTypes(), [](Type t) { return t.cast<ShapedType>(); })};
   SmallVector<ShapedType> initValueTypes{llvm::map_range(
