@@ -1492,9 +1492,7 @@ bool hasSameOperandAndResultTypes(Operation& op) {
 //     first input-operand.
 // E4. The  arguments of the region's only basic block are forwarded perfectly
 //     to inner-op's operands.
-// E5. The reduce-op, inner-op, blocks arguments, and the return-op all have the
-//     same location.
-// E6. The single operation result is perfectly forwarded to the reduce op
+// E5. The single operation result is perfectly forwarded to the reduce op
 //     return.
 static bool isEligibleForCompactPrint(ReduceOp op) {
   // Check E1.
@@ -1528,14 +1526,6 @@ static bool isEligibleForCompactPrint(ReduceOp op) {
   auto retOp = dyn_cast<ReturnOp>(block.getTerminator());
   if (!retOp) return false;
 
-  auto blockArgLoc = block.getArgument(0).getLoc();
-  if (blockArgLoc != block.getArgument(1).getLoc()) return false;
-
-  if (innerOp.getLoc() != op.getLoc() || retOp.getLoc() != op.getLoc() ||
-      blockArgLoc != op.getLoc())
-    return false;
-
-  // Check E6.
   return llvm::equal(innerOp.getResults(), retOp.getOperands());
 }
 

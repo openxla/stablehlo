@@ -25,17 +25,11 @@ func.func @reduce_one_op_all_locs_same(%arg0: tensor<?x?xf32>, %arg1 : tensor<f3
   func.return %0: tensor<?xf32>
 }
 
-// The test case is not eligible for pretty-printing reduce-op. The location of
+// The test case is eligible for pretty-printing reduce-op. The location of
 // reduce-op is different.
 
 // CHECK-LABEL:  func @reduce_one_op_all_locs_not_same_1
-// CHECK-NEXT:     stablehlo.reduce(%arg0 init: %arg1)
-// CHECK-SAME:       across dimensions = [1] {foo = "bar"}
-// CHECK-SAME:      : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
-// CHECK-NEXT:     reducer(%arg[[x:.+]]: tensor<f32> loc("foo"), %arg[[y:.+]]: tensor<f32> loc("foo"))
-// CHECK-NEXT:       stablehlo.add %arg[[x]], %arg[[y]] : tensor<f32> loc("foo")
-// CHECK-NEXT:       stablehlo.return %{{[0-9]+}} : tensor<f32> loc("foo")
-// CHECK-NEXT:     loc("not_foo")
+// CHECK-NEXT:     %0 = stablehlo.reduce(%arg0 init: %arg1) applies stablehlo.add across dimensions = [1] {foo = "bar"} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32> loc("not_foo")
 
 func.func @reduce_one_op_all_locs_not_same_1(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>) -> (tensor<?xf32>) {
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
@@ -47,11 +41,11 @@ func.func @reduce_one_op_all_locs_not_same_1(%arg0: tensor<?x?xf32>, %arg1 : ten
   func.return %0: tensor<?xf32>
 }
 
-// The test case is not eligible for pretty-printing reduce-op. The location of
+// The test case is eligible for pretty-printing reduce-op. The location of
 // block-arguments are different.
 
 // CHECK-LABEL:  func @reduce_one_op_all_locs_not_same_2
-// CHECK-NOT:     applies
+// CHECK-NEXT:     %0 = stablehlo.reduce(%arg0 init: %arg1) applies stablehlo.add across dimensions = [1] : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32> loc("foo")
 
 func.func @reduce_one_op_all_locs_not_same_2(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>) -> (tensor<?xf32>) {
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
