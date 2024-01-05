@@ -95,6 +95,7 @@ cc_library(
     ],
     strip_include_prefix = ".",
     deps = [
+        ":base",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:ShapeDialect",
@@ -331,7 +332,6 @@ td_library(
     ],
 )
 
-
 gentbl_cc_library(
     name = "linalg_pass_inc_gen",
     strip_include_prefix = ".",
@@ -372,9 +372,9 @@ cc_library(
     ],
     strip_include_prefix = ".",
     deps = [
+        ":chlo_ops",
         ":linalg_pass_inc_gen",
         ":stablehlo_ops",
-        ":chlo_ops",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithDialect",
         "@llvm-project//mlir:BufferizationDialect",
@@ -396,7 +396,6 @@ cc_library(
         "@llvm-project//mlir:VectorDialect",
     ],
 )
-
 
 cc_library(
     name = "reference_api",
@@ -1462,10 +1461,9 @@ gentbl_cc_library(
 test_suite(
     name = "stablehlo_ci_tests",
     tests = [
+        "//stablehlo/conversions/linalg/tests:stablehlo_linalg_tests",
+        "//stablehlo/conversions/tosa/tests:stablehlo_tosa_tests",
         "//stablehlo/testdata:stablehlo_testdata_tests",
         "//stablehlo/tests:stablehlo_tests",
-        "//stablehlo/conversions/tosa/tests:stablehlo_tosa_tests",
-        "//stablehlo/conversions/linalg/tests:stablehlo_linalg_tests",
     ],
 )
-
