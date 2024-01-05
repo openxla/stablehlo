@@ -129,7 +129,7 @@ struct ReduceOpToGenericConverter final
     }
     auto srcRank = cast<ShapedType>(adaptor.getInputs()[0].getType()).getRank();
 
-    SmallVector<int64_t> reductionDims = extract1DVector(op.getDimensions());
+    SmallVector<int64_t> reductionDims = op.getDimensions();
 
     SmallVector<Type> resultTypes;
     if (failed(typeConverter->convertTypes(op.getResultTypes(), resultTypes)))
@@ -226,8 +226,7 @@ struct ReduceOpToReduceConverter final
                                          "unsupported reduce (noop or empty)");
     }
 
-    auto reductionDims =
-        llvm::to_vector(op.getDimensions().getValues<int64_t>());
+    auto reductionDims = op.getDimensions();
     // stablehlo.reduce doesn't specify the order of the reduction dimensions.
     llvm::sort(reductionDims);
 

@@ -326,7 +326,7 @@ struct ConvertStablehloReduceOp : public OpRewritePattern<stablehlo::ReduceOp> {
     auto operand = op.getInputs().front();
     ShapedType inputType = operand.getType().cast<ShapedType>();
     Operation& innerOp = bodyBlock.front();
-    uint64_t dimension = op.getDimensions().getValues<uint64_t>().begin()[0];
+    uint64_t dimension = op.getDimensions()[0];
     SmallVector<int64_t> innerShape(inputType.getShape());
     innerShape[dimension] = 1;
     Type innerTy = inputType.clone(innerShape);

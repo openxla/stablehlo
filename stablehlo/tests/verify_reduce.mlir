@@ -489,7 +489,7 @@ func.func @reduce_c6(%arg0: tensor<4x4x!quant.uniform<i8:f64, 2.000000e+00:15>>,
 // -----
 
 func.func @reduce_i3(%input: tensor<1x6xi64>, %init_value: tensor<i64>) -> tensor<1xi64> {
-  // expected-error@+1 {{dimensions must be rank 1}}
+  // expected-error@+1 {{attribute 'dimensions' failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr.}}
   %0 = "stablehlo.reduce"(%input, %init_value) ({
     ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
       stablehlo.return %arg0 : tensor<i64>

@@ -258,7 +258,7 @@ LogicalResult inferIfOp(std::optional<Location> location, Value pred,
 
 LogicalResult inferMapOp(
     std::optional<Location> location, ValueRange inputs,
-    DenseIntElementsAttr dimensions, Region& computation,
+    ArrayRef<int64_t> dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferOptimizationBarrierOp(
@@ -285,7 +285,7 @@ LogicalResult inferRealOp(std::optional<Location> location, Value operand,
 
 LogicalResult inferReduceOp(
     std::optional<Location> location, TypeRange inputTypes,
-    TypeRange initValueTypes, DenseIntElementsAttr dimensions, Region& body,
+    TypeRange initValueTypes, ArrayRef<int64_t> dimensions, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferReduceWindowOp(
@@ -463,7 +463,7 @@ LogicalResult verifyRecvOp(HloDialectInterface* dialect,
 
 LogicalResult verifyReduceOp(std::optional<Location> location,
                              ValueRange inputs, ValueRange initValues,
-                             DenseIntElementsAttr dimensions, Region& body);
+                             ArrayRef<int64_t> dimensions, Region& body);
 
 LogicalResult verifyReducePrecisionOp(std::optional<Location> location,
                                       int32_t exponentBits,

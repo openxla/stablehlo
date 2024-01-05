@@ -1465,14 +1465,14 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
         stablehlo.return %0 : tensor<i64>
     }) {
-      dimensions = dense<1> : tensor<1xi64>
+      dimensions = array<i64: 1>
     } : (tensor<1x6xi64>, tensor<i64>) -> tensor<1xi64>
     ```
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs, /*reduce_i1*/
     Variadic<HLO_Tensor>:$init_values, /*reduce_i2*/
-    I64ElementsAttr:$dimensions /*reduce_i3*/
+    I64DenseArrayOrElements1DAttr:$dimensions /*reduce_i3*/
   );
   let regions = (region SizedRegion<1>:$body /*reduce_i4*/);
 
@@ -2450,13 +2450,13 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
         %0 = stablehlo.multiply %arg0, %arg1 : tensor<i64>
         stablehlo.return %0 : tensor<i64>
     }) {
-      dimensions = dense<[0, 1]> : tensor<2xi64>
+      dimensions = array<i64: 0, 1>
     } : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<2x2xi64>
     ```
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs /*map_i1*/,
-    I64ElementsAttr:$dimensions /*map_i2*/
+    I64DenseArrayOrElements1DAttr:$dimensions /*map_i2*/
   );
   let regions = (region SizedRegion<1>:$computation /*map_i3*/);
   let results = (outs HLO_Tensor);
@@ -2943,7 +2943,7 @@ def StableHLO_ReturnOp : StableHLO_Op<"return", [Pure, Terminator]> {
         %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
         "stablehlo.return"(%0) : (tensor<i32>) -> ()
     }) {
-      dimensions = dense<1> : tensor<1xi64>
+      dimensions = array<i64: 1>
     } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
     ```
   }];
