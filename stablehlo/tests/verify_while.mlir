@@ -185,7 +185,7 @@ func.func @while_c1(%arg0: tensor<3xf32>) -> tensor<3xf32> {
   // expected-error @+1 {{expect condition block return a zero-ranked tensor of i1 but got 'tensor<1xi1>'}}
   %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %3 = "stablehlo.slice"(%arg2) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xi32>) -> tensor<1xi32>
     %4 = "stablehlo.compare"(%arg1, %3) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
     "stablehlo.return"(%4) : (tensor<1xi1>) -> ()
   },  {
@@ -207,7 +207,7 @@ func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
   %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
     %2 = arith.constant dense<0> : tensor<i32>
-    %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %3 = "stablehlo.slice"(%arg2) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xi32>) -> tensor<1xi32>
     %4 = "stablehlo.compare"(%arg1, %3) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
     %5 = "stablehlo.reshape"(%4) : (tensor<1xi1>) -> tensor<i1>
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
@@ -230,7 +230,7 @@ func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
   %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
     %2 = arith.constant dense<0> : tensor<i32>
-    %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %3 = "stablehlo.slice"(%arg2) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xi32>) -> tensor<1xi32>
     %4 = "stablehlo.compare"(%arg1, %3) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
     %5 = "stablehlo.reshape"(%4) : (tensor<1xi1>) -> tensor<i1>
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
@@ -252,7 +252,7 @@ func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
   %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
     %2 = arith.constant dense<0> : tensor<i32>
-    %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %3 = "stablehlo.slice"(%arg2) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xi32>) -> tensor<1xi32>
     %4 = "stablehlo.compare"(%arg1, %3) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
     %5 = "stablehlo.reshape"(%4) : (tensor<1xi1>) -> tensor<i1>
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
@@ -273,7 +273,7 @@ func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
   %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
     %2 = arith.constant dense<0> : tensor<i32>
-    %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %3 = "stablehlo.slice"(%arg2) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xi32>) -> tensor<1xi32>
     %4 = "stablehlo.compare"(%arg1, %3) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
     %5 = "stablehlo.reshape"(%4) : (tensor<1xi1>) -> tensor<i1>
     "stablehlo.return"(%5) : (tensor<i1>) -> ()
@@ -294,7 +294,7 @@ func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
   %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
     %2 = arith.constant dense<0> : tensor<i32>
-    %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %3 = "stablehlo.slice"(%arg2) {limit_indices = array<i64: 1>, start_indices = array<i64: 0>, strides = array<i64: 1>} : (tensor<2xi32>) -> tensor<1xi32>
     %4 = "stablehlo.compare"(%arg1, %3) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
     %5 = "stablehlo.reshape"(%4) : (tensor<1xi1>) -> tensor<i1>
     "stablehlo.return"(%5) : (tensor<i1>) -> ()

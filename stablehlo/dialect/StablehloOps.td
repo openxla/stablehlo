@@ -1603,9 +1603,9 @@ def StableHLO_SliceOp: StableHLO_Op<
     // The `4:8:2` above is parsed into the second entry of `start_indices`,
     // `limit_indices` and `strides` respectively.
     %result = "stablehlo.slice" (%operand) {
-      start_indices = dense<[1, 4]> : tensor<2xi64>,
-      limit_indices = dense<[3, 8]> : tensor<2xi64>,
-      strides = dense<[1, 2]> : tensor<2xi64>
+      start_indices = array<i64: 1, 4>,
+      limit_indices = array<i64: 3, 8>,
+      strides = array<i64: 1, 2>
     } : (tensor<3x8xi64>) -> tensor<2x2xi64>
     ```
   }];
