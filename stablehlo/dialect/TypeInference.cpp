@@ -4189,8 +4189,8 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
 //   P5. Check if the result type of window operation matches the source type.
 LogicalResult verifySelectAndScatterOp(
     std::optional<Location> location, Value operand, Value source,
-    Value initValue, std::optional<DenseIntElementsAttr> windowDimensions,
-    std::optional<DenseIntElementsAttr> windowStrides,
+    Value initValue, std::optional<SmallVector<int64_t>> windowDimensionsOpt,
+    std::optional<SmallVector<int64_t>> windowStridesOpt,
     std::optional<DenseIntElementsAttr> padding, Region& select,
     Region& scatter) {
   auto operandType = operand.getType().cast<ShapedType>();
@@ -4241,32 +4241,27 @@ LogicalResult verifySelectAndScatterOp(
           /*allowedDimensions=*/{})))
     return failure();
 
-  // TODO: add missing tests of convert1DAttribute( for SelectAndScatterOp.
-  auto windowDimsOrErr =
-      convert1DAttribute(windowDimensions, location, "window_dimensions");
-  if (failed(windowDimsOrErr)) return failure();
+  auto windowDims = windowDimensionsOpt.value_or(SmallVector<int64_t>{});
   if (operandType.hasRank()) {
     // select_and_scatter_c4
-    if (operandType.getRank() !=
-        static_cast<int64_t>((*windowDimsOrErr).size()))
+    if (operandType.getRank() != static_cast<int64_t>(windowDims.size()))
       return emitOptionalError(
           location,
           "expects window-dimensions size == operand rank, but got "
           "window-dimensions size: ",
-          (*windowDimsOrErr).size(), " and operand-type: ", operandType,
+          windowDims.size(), " and operand-type: ", operandType,
           " with rank = ", operandType.getRank(), ".");
   }
+
+  auto windowStrides = windowStridesOpt.value_or(SmallVector<int64_t>{});
+
   // select_and_scatter_c8, select_and_scatter_i6
   auto paddingOrErr = convertPaddingAttribute(padding, location);
   if (failed(paddingOrErr)) return failure();
 
-  // TODO: add missing tests of convert1DAttribute( for SelectAndScatterOp.
-  auto windowStridesOrErr =
-      convert1DAttribute(windowStrides, location, "window_strides");
-  if (failed(windowStridesOrErr)) return failure();
   // select_and_scatter_c5, select_and_scatter_c7
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
-      *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
+      windowDims, windowStrides, *paddingOrErr,
       /*lhsDilation=*/{}, /*rhsDilation=*/{}, /*windowReversal*/ {}, location);
   if (failed(windowOrErr)) return failure();
 

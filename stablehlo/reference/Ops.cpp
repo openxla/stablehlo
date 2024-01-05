@@ -699,14 +699,13 @@ SmallVector<InterpreterValue> eval(Region &region,
 
       Sizes windowDimensions(rank, 1);
       if (auto windowDimensionsAttr = selectAndScatterOp.getWindowDimensions())
-        windowDimensions.assign(
-            windowDimensionsAttr->getValues<int64_t>().begin(),
-            windowDimensionsAttr->getValues<int64_t>().end());
+        windowDimensions.assign(windowDimensionsAttr->begin(),
+                                windowDimensionsAttr->end());
 
       Sizes windowStrides(rank, 1);
       if (auto windowStridesAttr = selectAndScatterOp.getWindowStrides())
-        windowStrides.assign(windowStridesAttr->getValues<int64_t>().begin(),
-                             windowStridesAttr->getValues<int64_t>().end());
+        windowStrides.assign(windowStridesAttr->begin(),
+                             windowStridesAttr->end());
 
       Sizes paddingLow(rank, 0);
       if (auto padding = selectAndScatterOp.getPadding()) {
