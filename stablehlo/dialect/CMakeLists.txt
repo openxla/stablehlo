@@ -92,6 +92,7 @@ add_mlir_dialect_library(StablehloRegister
   ChloOps
   StablehloOps
   VhloOps
+  MLIRFuncDialect
 )
 
 add_mlir_dialect_library(StablehloAssemblyFormat

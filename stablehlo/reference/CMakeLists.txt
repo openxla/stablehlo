@@ -27,6 +27,7 @@ add_mlir_library(StablehloReferenceApi
   StablehloReferenceProcess
   StablehloReferenceScope
   StablehloReferenceValue
+  StablehloRegister
 )
 
 add_mlir_library(StablehloReferenceAxes

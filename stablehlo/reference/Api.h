@@ -16,7 +16,12 @@ limitations under the License.
 #ifndef STABLEHLO_REFERENCE_API_H
 #define STABLEHLO_REFERENCE_API_H
 
+#include <string>
+
 #include "llvm/Support/ErrorOr.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/OwningOpRef.h"
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Value.h"
@@ -31,6 +36,10 @@ namespace stablehlo {
 llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
     const InterpreterConfiguration &config);
+
+/// Parses a StableHLO MLIR text program into a ModuleOp.
+llvm::ErrorOr<OwningOpRef<ModuleOp>> parseStablehloModule(
+    const std::string &mlir, MLIRContext &context);
 
 }  // namespace stablehlo
 }  // namespace mlir
