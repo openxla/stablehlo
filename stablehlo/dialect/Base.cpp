@@ -600,6 +600,11 @@ ShapedType createShapedType(ShapedTypeComponents components) {
   return UnrankedTensorType::get(components.getElementType());
 }
 
+bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {
+  return std::all_of(arr.begin(), arr.end(),
+                     [val](int64_t x) { return x == val; });
+}
+
 // TODO(#1578): Remove this code once all uses of I64DenseArrayOrElements1DAttr
 // have been removed.
 SmallVector<int64_t> getI64Array(Attribute attr) {

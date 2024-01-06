@@ -56,6 +56,8 @@ inline static bool isStaticDimSize(int64_t val) {
   return !isDynamicDimSize(val);
 }
 
+bool isSplatArray(ArrayRef<int64_t> arr, int64_t val);
+
 SmallVector<int64_t> getI64Array(Attribute);
 
 //  Verifies that the two types have compatible shape with bounds but allows

@@ -556,8 +556,7 @@ struct ReduceWindowOpConversion final
     }
 
     if (auto bd = op.getBaseDilations()) {
-      if (!std::all_of(bd->begin(), bd->end(),
-                       [](int64_t x) { return x == 1; })) {
+      if (!hlo::isSplatArray(*bd, 1)) {
         return rewriter.notifyMatchFailure(op, "expected undilated base");
       }
     }
