@@ -2617,8 +2617,8 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
     HLO_Tensor:$operand, /*select_and_scatter_i1*/
     HLO_Tensor:$source, /*select_and_scatter_i2*/
     HLO_Tensor:$init_value, /*select_and_scatter_i3*/
-    OptionalAttr<I64ElementsAttr>:$window_dimensions, /*select_and_scatter_i4*/
-    OptionalAttr<I64ElementsAttr>:$window_strides, /*select_and_scatter_i5*/
+    OptionalAttr<I64DenseArrayOrElements1DAttr>:$window_dimensions, /*select_and_scatter_i4*/
+    OptionalAttr<I64DenseArrayOrElements1DAttr>:$window_strides, /*select_and_scatter_i5*/
     OptionalAttr<I64ElementsAttr>:$padding /*select_and_scatter_i6*/
   );
 
