@@ -2870,10 +2870,10 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
         stablehlo.return %0 : tensor<i64>
     }) {
-      window_dimensions = dense<[2, 1]> : tensor<2xi64>,
-      window_strides = dense<[4, 1]> : tensor<2xi64>,
-      base_dilations = dense<[2, 1]> : tensor<2xi64>,
-      window_dilations = dense<[3, 1]> : tensor<2xi64>,
+      window_dimensions = array<i64: 2, 1>,
+      window_strides = array<i64: 4, 1>,
+      base_dilations = array<i64: 2, 1>,
+      window_dilations = array<i64: 3, 1>,
       padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
     } : (tensor<3x2xi64>, tensor<i64>) -> tensor<2x2xi64>
     ```
@@ -2882,13 +2882,13 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs /*reduce_window_i1*/,
     Variadic<HLO_Tensor>:$init_values /*reduce_window_i2*/,
-    I64ElementsAttr:$window_dimensions /*reduce_window_i3*/,
+    I64DenseArrayOrElements1DAttr:$window_dimensions /*reduce_window_i3*/,
     // If strides or dilations attributes are missing then the default value is
     // one for each of the operand dimensions. Similarly, padding values are zero
     // for both low and high in each of the dimensions, if not specified.
-    OptionalAttr<I64ElementsAttr>:$window_strides /*reduce_window_i4*/,
-    OptionalAttr<I64ElementsAttr>:$base_dilations /*reduce_window_i5*/,
-    OptionalAttr<I64ElementsAttr>:$window_dilations /*reduce_window_i6*/,
+    OptionalAttr<I64DenseArrayOrElements1DAttr>:$window_strides /*reduce_window_i4*/,
+    OptionalAttr<I64DenseArrayOrElements1DAttr>:$base_dilations /*reduce_window_i5*/,
+    OptionalAttr<I64DenseArrayOrElements1DAttr>:$window_dilations /*reduce_window_i6*/,
     OptionalAttr<I64ElementsAttr>:$padding /*reduce_window_i7*/
   );
 
@@ -2897,6 +2897,7 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
   let regions = (region SizedRegion<1>:$body /*reduce_window_i8*/);
 
   let hasVerifier = 1;
+
 
   // Builder for non-variadic version of the operation.
   let builders = [
@@ -2922,7 +2923,6 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
       "function_ref<void(OpBuilder &, Location, ValueRange)>":$bodyBuilder
     )>,
   ];
-
   // TODO(hinsu): Implement custom printer and parser.
 }
 

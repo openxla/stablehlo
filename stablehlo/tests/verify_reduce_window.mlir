@@ -684,7 +684,7 @@ func.func @reduce_window_i2(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
 func.func @reduce_window_i3(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
                     %init0: tensor<f32>, %init1: tensor<i32>) ->
                       (tensor<2x2xf32>, tensor<2x2xi32>) {
-  // expected-error@+1 {{expects the shape of window_dimensions attribute to be 1-D, but got {1, 2}}}
+  // expected-error@+1 {{attribute 'window_dimensions' failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr.}}
   %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
          ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
                 %b0: tensor<f32>, %b1: tensor<i32>):
@@ -705,7 +705,7 @@ func.func @reduce_window_i3(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
 func.func @reduce_window_i4(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
                     %init0: tensor<f32>, %init1: tensor<i32>) ->
                       (tensor<2x2xf32>, tensor<2x2xi32>) {
-  // expected-error@+1 {{expects the shape of window_strides attribute to be 1-D, but got {1, 2}}}
+  // expected-error@+1 {{attribute 'window_strides' failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr.}}
   %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
          ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
                 %b0: tensor<f32>, %b1: tensor<i32>):
@@ -726,7 +726,7 @@ func.func @reduce_window_i4(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
 func.func @reduce_window_i5(%arg0: tensor<*xf32>,
     %arg1: tensor<4x?xi32>, %init0: tensor<f32>, %init1: tensor<i32>) ->
         (tensor<?x?xf32>, tensor<*xi32>) {
-  // expected-error@+1 {{expects the shape of base_dilations attribute to be 1-D, but got {1, 2}}}
+  // expected-error@+1 {{attribute 'base_dilations' failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr.}}
   %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
          ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
                 %b0: tensor<f32>, %b1: tensor<i32>):
@@ -749,7 +749,7 @@ func.func @reduce_window_i5(%arg0: tensor<*xf32>,
 func.func @reduce_window_i6(%arg0: tensor<*xf32>,
     %arg1: tensor<4x?xi32>, %init0: tensor<f32>, %init1: tensor<i32>) ->
         (tensor<?x?xf32>, tensor<*xi32>) {
-  // expected-error@+1 {{expects the shape of window_dilations attribute to be 1-D, but got {1, 2}}}
+  // expected-error@+1 {{attribute 'window_dilations' failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr.}}
   %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
          ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
                 %b0: tensor<f32>, %b1: tensor<i32>):
