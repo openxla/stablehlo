@@ -605,8 +605,6 @@ bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {
                      [val](int64_t x) { return x == val; });
 }
 
-// TODO(#1578): Remove this code once all uses of I64DenseArrayOrElements1DAttr
-// have been removed.
 SmallVector<int64_t> getI64Array(Attribute attr) {
   if (!attr) return {};
   if (auto elements = attr.dyn_cast<DenseIntElementsAttr>())
