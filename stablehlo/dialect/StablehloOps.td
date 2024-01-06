@@ -2898,6 +2898,31 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
 
   let hasVerifier = 1;
 
+
+  // Builder for non-variadic version of the operation.
+  let builders = [
+    OpBuilder<(ins "Type":$result_type, "Value":$operand,
+      "Value":$init_value,
+      "DenseIntElementsAttr":$window_dimensions,
+      "DenseIntElementsAttr":$window_strides,
+      "DenseIntElementsAttr":$base_dilations,
+      "DenseIntElementsAttr":$window_dilations,
+      "DenseIntElementsAttr":$padding),
+    [{
+      build($_builder, $_state, TypeRange(result_type), ValueRange(operand),
+            ValueRange(init_value), window_dimensions, window_strides,
+            base_dilations, window_dilations, padding);
+    }]>,
+    OpBuilder<(ins "ValueRange":$operands,
+      "ValueRange":$init_values,
+      "DenseIntElementsAttr":$window_dimensions,
+      "DenseIntElementsAttr":$window_strides,
+      "DenseIntElementsAttr":$base_dilations,
+      "DenseIntElementsAttr":$window_dilations,
+      "DenseIntElementsAttr":$padding,
+      "function_ref<void(OpBuilder &, Location, ValueRange)>":$bodyBuilder
+    )>,
+  ];
   // TODO(hinsu): Implement custom printer and parser.
 }
 
