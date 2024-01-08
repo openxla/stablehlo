@@ -1176,7 +1176,8 @@ static LogicalResult verifyGather(
 
   // gather_i7
   if (sliceSizesShape.hasRank() && sliceSizesShape.getRank() != 1)
-    return emitOptionalError(location, "slice_sizes.rank != 1");
+    return emitOptionalError(location, "slice_sizes.rank != 1 (got ",
+                             sliceSizesShape.getRank(), ')');
   if (sliceSizesShape.hasStaticShape()) {
     int64_t sliceSize = sliceSizesShape.getNumElements();
 
@@ -1778,13 +1779,12 @@ LogicalResult inferConvertOp(
  */
 LogicalResult inferConvolutionOp(
     std::optional<Location> location, Type lhsType, Type rhsType,
-    std::optional<DenseIntElementsAttr> windowStrides,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<DenseIntElementsAttr> padding,
-    std::optional<DenseIntElementsAttr> lhsDilation,
-    std::optional<DenseIntElementsAttr> rhsDilation,
-    std::optional<DenseElementsAttr> windowReversal,
-    int64_t inputBatchDimension, int64_t inputFeatureDimension,
-    ArrayRef<int64_t> inputSpatialDimensions,
+    std::optional<ArrayRef<int64_t>> lhsDilation,
+    std::optional<ArrayRef<int64_t>> rhsDilation,
+    std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
+    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
@@ -1834,22 +1834,12 @@ LogicalResult inferConvolutionOp(
   if (failed(paddingOrErr)) return failure();
 
   // TODO: add missing tests for ConvolutionOp.
-  auto windowStridesOrErr =
-      convert1DAttribute(windowStrides, location, "window_strides");
-  if (failed(windowStridesOrErr)) return failure();
-  auto lhsDilationOrErr =
-      convert1DAttribute(lhsDilation, location, "lhs_dilation");
-  if (failed(lhsDilationOrErr)) return failure();
-  auto rhsDilationOrErr =
-      convert1DAttribute(rhsDilation, location, "rhs_dilation");
-  if (failed(rhsDilationOrErr)) return failure();
-  auto windowReversalOrErr = convertWindowReversalAttribute(
-      windowReversal, location, "window_reversal");
-  if (failed(windowReversalOrErr)) return failure();
 
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
-      windowDimensions, *windowStridesOrErr, *paddingOrErr, *lhsDilationOrErr,
-      *rhsDilationOrErr, *windowReversalOrErr, location);
+      windowDimensions, windowStrides.value_or(ArrayRef<int64_t>{}),
+      *paddingOrErr, lhsDilation.value_or(ArrayRef<int64_t>{}),
+      rhsDilation.value_or(ArrayRef<int64_t>{}),
+      windowReversal.value_or(ArrayRef<bool>{}), location);
   if (failed(windowOrErr)) return failure();
 
   // P3.
@@ -2300,22 +2290,25 @@ LogicalResult inferGatherOp(
     std::optional<Location> location, Value operand, Value startIndices,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
-    DenseIntElementsAttr sliceSizes,
+    ArrayRef<int64_t> sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ShapeAdaptor operandShape(operand.getType());
   ShapeAdaptor startIndicesShape(startIndices.getType());
+  SmallVector<int64_t, 1> ssShape{static_cast<int64_t>(sliceSizes.size())};
+  ShapedTypeComponents ssSTC{ssShape};
+  ShapeAdaptor sliceSizesShape(ssSTC);
 
   // For some reason the getType call is necessary here
   if (failed(verifyGather(location,
                           /*operandShape=*/operandShape,
                           /*startIndicesShape=*/startIndicesShape,
-                          /*sliceSizesShape=*/sliceSizes.getType(), offsetDims,
+                          /*sliceSizesShape=*/sliceSizesShape, offsetDims,
                           collapsedSliceDims, startIndexMap, indexVectorDim)))
     return failure();
 
   // gather_c8
   for (auto dim : collapsedSliceDims) {
-    int64_t sliceDimSize = sliceSizes.getValues<int64_t>()[dim];
+    int64_t sliceDimSize = sliceSizes[dim];
     if (sliceDimSize > 1)
       return emitOptionalError(location, "slice_sizes collapsed dimension ",
                                dim, " should <= 1 but got ", sliceDimSize);
@@ -2323,7 +2316,7 @@ LogicalResult inferGatherOp(
 
   // gather_c12
   if (operandShape.hasRank()) {
-    for (const auto& it : llvm::enumerate(sliceSizes.getValues<int64_t>())) {
+    for (const auto& it : llvm::enumerate(sliceSizes)) {
       if (operandShape.isDynamicDim(it.index())) continue;
       auto operandDimSize = operandShape.getDimSize(it.index());
       auto sliceDimSize = it.value();
@@ -2335,7 +2328,7 @@ LogicalResult inferGatherOp(
   }
 
   auto getSliceDim = [&sliceSizes](int64_t index) -> int64_t {
-    return sliceSizes.getValues<int64_t>()[index];
+    return sliceSizes[index];
   };
 
   return inferGatherReturnTypeComponents(
@@ -3380,13 +3373,12 @@ LogicalResult verifyCollectivePermuteOp(
 
 LogicalResult verifyConvolutionOp(
     std::optional<Location> location, Type lhsType, Type rhsType,
-    std::optional<DenseIntElementsAttr> windowStrides,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<DenseIntElementsAttr> padding,
-    std::optional<DenseIntElementsAttr> lhsDilation,
-    std::optional<DenseIntElementsAttr> rhsDilation,
-    std::optional<DenseElementsAttr> windowReversal,
-    int64_t inputBatchDimension, int64_t inputFeatureDimension,
-    ArrayRef<int64_t> inputSpatialDimensions,
+    std::optional<ArrayRef<int64_t>> lhsDilation,
+    std::optional<ArrayRef<int64_t>> rhsDilation,
+    std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
+    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,

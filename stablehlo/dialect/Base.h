@@ -71,6 +71,13 @@ bool isSplatArray(ArrayRef<int64_t> arr, int64_t val);
 // have been removed.
 SmallVector<int64_t> getI64Array(Attribute);
 
+// Returns a vector of the bool values in a BoolDenseArrayOrElementsAttr.
+// Such an Attr can be backed by either a DenseIntOrFPElementsAttr or
+// a DenseBoolArrayAttr.
+// TODO(#1578): Remove this code once all uses of BoolDenseArrayOrElementsAttr
+// have been removed.
+SmallVector<bool> getBoolArray(Attribute);
+
 //  Verifies that the two types have compatible shape with bounds but allows
 //  different element types.
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2);

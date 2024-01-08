@@ -2102,11 +2102,11 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
     Example:
     ```mlir
     %result = "stablehlo.convolution"(%lhs, %rhs) {
-      window_strides = dense<4> : tensor<2xi64>,
+      window_strides = array<i64: 4, 4>,
       padding = dense<0> : tensor<2x2xi64>,
-      lhs_dilation = dense<2> : tensor<2xi64>,
-      rhs_dilation = dense<1> : tensor<2xi64>,
-      window_reversal = dense<false> : tensor<2xi1>,
+      lhs_dilation = array<i64: 2, 2>,
+      rhs_dilation = array<i64: 1, 1>,
+      window_reversal = array<i1: false, false>,
       dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
       feature_group_count = 1 : i64,
       batch_group_count = 1 : i64,
@@ -2126,8 +2126,7 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
   let extraClassDeclaration = [{
     bool hasWindowReversal() {
       auto reversal = getWindowReversalAttr();
-      return reversal && llvm::any_of(reversal.getValues<bool>(),
-                                      [](bool v) { return v; });
+      return reversal && llvm::any_of(hlo::getBoolArray(reversal), [](bool v) { return v; });
     }
   }];
 
@@ -2387,7 +2386,7 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify /*gathe
         collapsed_slice_dims = [0],
         start_index_map = [1, 0],
         index_vector_dim = 2>,
-      slice_sizes = dense<[1, 2, 2]> : tensor<3xi64>,
+      slice_sizes = array<i64: 1, 2, 2>,
       indices_are_sorted = false
     } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
     ```
@@ -2397,7 +2396,7 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify /*gathe
     HLO_Tensor:$operand /*gather_i1*/,
     HLO_IntTensor:$start_indices /*gather_i2*/,
     StableHLO_GatherDimensionNumbers:$dimension_numbers /*gather_i3, gather_i4, gather_i5, gather_i6*/,
-    I64ElementsAttr:$slice_sizes /*gather_i7*/,
+    I64DenseArrayOrElements1DAttr:$slice_sizes /*gather_i7*/,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*gather_i8*/
   );
 

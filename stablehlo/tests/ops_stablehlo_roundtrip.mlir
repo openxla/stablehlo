@@ -262,7 +262,7 @@ func.func @test_convolution3(%arg0 : tensor<100x26x26x32xi8>, %arg1 : tensor<3x3
     padding = dense<2> : tensor<2x2xi64>,
     rhs_dilation = dense<1> : tensor<2xi64>,
     window_strides = dense<1> : tensor<2xi64>,
-    window_reversal = dense<1> : tensor<2xi1>
+    window_reversal = dense<true> : tensor<2xi1>
   } : (tensor<100x26x26x32xi8>, tensor<3x3x1x32xi8>) -> tensor<100x28x28x1xi32>
   func.return %result : tensor<100x28x28x1xi32>
 }

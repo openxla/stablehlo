@@ -72,6 +72,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
+#include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/StablehloBytecode.h"
 #include "stablehlo/dialect/StablehloOps.h.inc"
 #include "stablehlo/dialect/TypeInference.h"
@@ -613,7 +614,7 @@ namespace {
 void getSliceSizeValues(GatherOp* gather, OpBuilder& builder, Location loc,
                         ValueRange operands,
                         SmallVectorImpl<Value>& sliceSizes) {
-  for (int64_t val : gather->getSliceSizes().getValues<int64_t>())
+  for (int64_t val : gather->getSliceSizes())
     sliceSizes.push_back(builder.create<arith::ConstantIndexOp>(loc, val));
 }
 
@@ -3090,42 +3091,30 @@ Attribute ConvDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
 
 namespace {
 // Custom formatting for convolution window attributes.
-void printWindowAttribute(OpAsmPrinter& p, DenseElementsAttr attribute) {
-  if (attribute.getElementType().isInteger(/*width=*/1)) {
-    // boolean attribute.
-    llvm::interleaveComma(attribute.getValues<bool>(), p,
-                          [&](bool b) { p << (b ? 1 : 0); });
-    return;
+void printWindowPadding(OpAsmPrinter& p, DenseElementsAttr padding) {
+  // Padding is Nx2 attribute.
+  auto it = padding.value_begin<int64_t>();
+  std::vector<std::pair<int64_t, int64_t>> values(padding.getNumElements() / 2);
+  for (auto& item : values) {
+    int64_t first = *it;
+    ++it;
+    int64_t second = *it;
+    ++it;
+    item = {first, second};
   }
-  if (attribute.getType().getRank() == 2) {
-    // Padding is Nx2 attribute.
-    auto it = attribute.value_begin<int64_t>();
-    std::vector<std::pair<int64_t, int64_t>> values(attribute.getNumElements() /
-                                                    2);
-    for (auto& item : values) {
-      int64_t first = *it;
-      ++it;
-      int64_t second = *it;
-      ++it;
-      item = {first, second};
-    }
-    llvm::interleaveComma(
-        values, p, [&](const std::pair<int64_t, int64_t> pair) {
-          p << '[' << pair.first << ", " << pair.second << ']';
-        });
-  } else {
-    llvm::interleaveComma(attribute.getValues<int64_t>(), p);
-  }
+  llvm::interleaveComma(values, p, [&](const std::pair<int64_t, int64_t> pair) {
+    p << '[' << pair.first << ", " << pair.second << ']';
+  });
 }
 }  // namespace
 
 void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
-                           std::optional<DenseIntElementsAttr> windowStrides,
+                           std::optional<Attribute> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
-                           std::optional<DenseIntElementsAttr> lhsDilation,
-                           std::optional<DenseIntElementsAttr> rhsDilation,
-                           std::optional<DenseElementsAttr> windowReversal) {
-  using pair_t = std::pair<DenseElementsAttr, StringRef>;
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal) {
+  using pair_t = std::pair<Attribute, StringRef>;
   std::array<pair_t, 5> printedAttributes = {{
       {windowStrides ? *windowStrides : nullptr, "stride"},
       {padding ? *padding : nullptr, "pad"},
@@ -3139,19 +3128,26 @@ void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
       printedAttributes,
       [](const pair_t& a) { return static_cast<bool>(a.first); });
 
-  llvm::interleaveComma(nonNullAttributes, p, [&](const pair_t& a) {
-    p << a.second << " = [";
-    printWindowAttribute(p, a.first);
-    p << "]";
+  llvm::interleaveComma(nonNullAttributes, p, [&](const pair_t& attr) {
+    p << attr.second << " = [";
+
+    if (attr.second == "pad") {
+      printWindowPadding(p, attr.first.dyn_cast<DenseIntElementsAttr>());
+    } else if (attr.second == "reverse") {
+      llvm::interleaveComma(hlo::getBoolArray(attr.first), p);
+    } else {
+      llvm::interleaveComma(hlo::getI64Array(attr.first), p);
+    }
+
+    p << ']';
   });
 }
 
-ParseResult parseWindowAttributes(OpAsmParser& parser,
-                                  DenseIntElementsAttr& windowStrides,
+ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
                                   DenseIntElementsAttr& padding,
-                                  DenseIntElementsAttr& lhsDilation,
-                                  DenseIntElementsAttr& rhsDilation,
-                                  DenseElementsAttr& windowReversal) {
+                                  Attribute& lhsDilation,
+                                  Attribute& rhsDilation,
+                                  Attribute& windowReversal) {
   StringRef attributeName;
 
   llvm::StringSet<> allowedAttributeNames{
@@ -3205,9 +3201,8 @@ ParseResult parseWindowAttributes(OpAsmParser& parser,
       if (parser.parseCommaSeparatedList(AsmParser::Delimiter::Square,
                                          int64Parser))
         return failure();
-      const int64_t size = static_cast<int64_t>(values.size());
       if (attributeName == "reverse") {
-        auto ty = RankedTensorType::get({size},
+        auto ty = RankedTensorType::get({static_cast<int64_t>(values.size())},
                                         parser.getBuilder().getIntegerType(1));
         auto boolVector = llvm::to_vector<4>(
             llvm::map_range(values, [](int64_t v) { return v != 0; }));
