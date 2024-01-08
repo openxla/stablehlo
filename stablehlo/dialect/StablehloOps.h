@@ -88,18 +88,17 @@ ParseResult parseConvolutionDimensions(AsmParser &parser,
 
 // Custom formatting for convolution window attributes.
 void printWindowAttributes(OpAsmPrinter &p, Operation *op,
-                           std::optional<DenseIntElementsAttr> windowStrides,
+                           std::optional<Attribute> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
-                           std::optional<DenseIntElementsAttr> lhsDilation,
-                           std::optional<DenseIntElementsAttr> rhsDilation,
-                           std::optional<DenseElementsAttr> windowReversal);
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal);
 
-ParseResult parseWindowAttributes(OpAsmParser &parser,
-                                  DenseIntElementsAttr &windowStrides,
+ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
                                   DenseIntElementsAttr &padding,
-                                  DenseIntElementsAttr &lhsDilation,
-                                  DenseIntElementsAttr &rhsDilation,
-                                  DenseElementsAttr &windowReversal);
+                                  Attribute &lhsDilation,
+                                  Attribute &rhsDilation,
+                                  Attribute &windowReversal);
 
 }  // end namespace stablehlo
 }  // end namespace mlir

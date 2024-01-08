@@ -1687,7 +1687,7 @@ struct GatherConversion final : OpConversionPattern<mlir::stablehlo::GatherOp> {
     int64_t resultRank = resultType.getRank();
     // slice_sizes has to have the same size as operand.rank, and doing it this
     // way permits an unranked operand.
-    int64_t operandRank = gatherOp.getSliceSizes().getNumElements();
+    int64_t operandRank = gatherOp.getSliceSizes().size();
 
     int64_t indexVectorDim = gatherOp.getDimensionNumbers().getIndexVectorDim();
 

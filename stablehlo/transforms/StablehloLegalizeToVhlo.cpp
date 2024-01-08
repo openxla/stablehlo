@@ -151,6 +151,19 @@ Attribute convertGeneric(Attribute stablehloAttr,
     return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
                                    attr.getRawData());
   }
+  if (auto attr = stablehloAttr.dyn_cast<DenseBoolArrayAttr>()) {
+    // Dense arrays of bool need special handling as their raw data is
+    // encoded differently from a DenseElementsAttr of bool. Using a similar
+    // conversion as for DenseI64ArrayAttr causes issues when attempting to
+    // construct a DenseIntOrFPElementsAttr from the underlying raw data.
+    // Converting to a DenseElementsAttr up front avoids issues.
+    auto data = attr.asArrayRef();
+    auto ty =
+        RankedTensorType::get({static_cast<int64_t>(attr.asArrayRef().size())},
+                              IntegerType::get(attr.getContext(), 1));
+    auto dense = DenseElementsAttr::get(ty, data);
+    return convertGeneric(dense, typeConverter);
+  }
   if (auto attr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
     SmallVector<std::pair<Attribute, Attribute>> vhloAttrs;
     for (auto namedAttr : attr.getValue()) {
