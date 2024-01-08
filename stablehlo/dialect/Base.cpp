@@ -622,10 +622,7 @@ SmallVector<bool> getBoolArray(Attribute attr) {
   if (auto elements = attr.dyn_cast<DenseIntOrFPElementsAttr>())
     return llvm::to_vector(elements.getValues<bool>());
   if (auto array = attr.dyn_cast<DenseBoolArrayAttr>()) {
-    // TODO: find a cleaner way
-    SmallVector<bool> vec;
-    for (bool b : array.asArrayRef()) vec.emplace_back(b);
-    return vec;
+    return SmallVector<bool>(array.asArrayRef());
   }
   llvm::report_fatal_error(
       "called getBoolArray on Attribute that was neither a "

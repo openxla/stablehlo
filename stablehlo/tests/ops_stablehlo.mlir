@@ -5786,7 +5786,7 @@ func.func @dynamic_iota_output_shape_mismatching_size() -> tensor<4xf32> {
   func.return %1 : tensor<4xf32>
 }
 
-// Tests for I64DenseArrayOrElementsAttr.
+// Tests for I64DenseArrayOrElements1DAttr.
 
 // -----
 
@@ -5804,3 +5804,32 @@ func.func @broadcast_in_dim_dense_array(%arg0: tensor<1x2xi32>) -> tensor<1x2x2x
   func.return %0 : tensor<1x2x2xi32>
 }
 
+// Tests for BoolDenseArrayOrElementsAttr.
+
+// -----
+
+// CHECK-LABEL: func @convolution_elements
+// CHECK: reverse = [true, false]
+func.func @convolution_elements(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>) -> tensor<1x6x6x16xf32> {
+  %0 = "stablehlo.convolution"(%arg0, %arg1) {
+    window_reversal = dense<[true, false]> : tensor<2xi1>,
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
+    feature_group_count = 1 : i64,
+    batch_group_count = 1 : i64
+  } : (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<1x6x6x16xf32>
+  func.return %0 : tensor<1x6x6x16xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @convolution_array
+// CHECK: reverse = [true, false]
+func.func @convolution_array(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>) -> tensor<1x6x6x16xf32> {
+  %0 = "stablehlo.convolution"(%arg0, %arg1) {
+    window_reversal = array<i1: true, false>,
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
+    feature_group_count = 1 : i64,
+    batch_group_count = 1 : i64
+  } : (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<1x6x6x16xf32>
+  func.return %0 : tensor<1x6x6x16xf32>
+}
