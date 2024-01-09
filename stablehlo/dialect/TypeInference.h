@@ -501,8 +501,8 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
 
 LogicalResult verifySelectAndScatterOp(
     std::optional<Location> location, Value operand, Value source,
-    Value initValue, std::optional<SmallVector<int64_t>> windowDimensions,
-    std::optional<SmallVector<int64_t>> windowStrides,
+    Value initValue, std::optional<ArrayRef<int64_t>> windowDimensions,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<DenseIntElementsAttr> padding, Region& select,
     Region& scatter);
 
