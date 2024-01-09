@@ -26,6 +26,10 @@ config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 config.suffixes = ['.mlir']
 config.test_source_root = os.path.dirname(__file__)
 
+# Disallow reusing variables across CHECK-LABEL matches.
+# A variable can eschew this (be made "global") by prefixing its name with $.
+config.environment["FILECHECK_OPTS"] = "-enable-var-scope"
+
 # Make LLVM and StableHLO tools available in RUN directives
 tools = [
   'stablehlo-opt',
