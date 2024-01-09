@@ -4153,8 +4153,8 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
 //   P5. Check if the result type of window operation matches the source type.
 LogicalResult verifySelectAndScatterOp(
     std::optional<Location> location, Value operand, Value source,
-    Value initValue, std::optional<SmallVector<int64_t>> windowDimensionsOpt,
-    std::optional<SmallVector<int64_t>> windowStridesOpt,
+    Value initValue, std::optional<ArrayRef<int64_t>> windowDimensionsOpt,
+    std::optional<ArrayRef<int64_t>> windowStridesOpt,
     std::optional<DenseIntElementsAttr> padding, Region& select,
     Region& scatter) {
   auto operandType = operand.getType().cast<ShapedType>();
