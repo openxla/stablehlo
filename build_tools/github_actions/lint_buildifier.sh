@@ -25,13 +25,10 @@ readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
 
 cd "$STABLEHLO_ROOT_DIR"
 
-targets=(
-  BUILD.bazel
-  WORKSPACE.bazel
-  stablehlo
-)
+IFS=$'\n'
+targets=($(find -type f -name '*.bazel' -not -path './llvm*'))
 
-if ! buildifier --mode=check --lint=warn --warnings=all -r "${targets[@]}"; then
+if ! buildifier --mode=check --lint=warn --warnings=all -r ${targets[@]}; then
   echo "Error: buildifier failed. Please run: buildifier --mode=fix --lint=fix --warnings=all -r ${targets[@]}"
   exit 1
 fi
