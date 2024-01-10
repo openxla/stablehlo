@@ -37,6 +37,7 @@ expand_template(
 [
     lit_test(
         name = "%s.test" % src,
+        size = "small",
         srcs = [src],
         data = [
             "lit.cfg.py",
@@ -44,7 +45,6 @@ expand_template(
             "//:stablehlo-opt",
             "@llvm-project//llvm:FileCheck",
         ],
-        size = "small",
         tags = ["stablehlo_linalg_tests"],
     )
     for src in glob(["**/*.mlir"])
