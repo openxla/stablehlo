@@ -191,7 +191,7 @@ def StableHLO_BoolElementsAttr :
 }
 
 def BoolDenseArrayOrElementsAttr : Attr<Or<[DenseBoolArrayAttr.predicate, StableHLO_BoolElementsAttr.predicate]>, "either a DenseBoolArrayAttr or a StableHLO_BoolElementsAttr"> {
-  let storageType = "Attribute";
+  let storageType = "mlir::Attribute";
   let returnType = "SmallVector<bool>";
   let convertFromStorage = "hlo::getBoolArray($_self)";
 }
