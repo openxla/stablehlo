@@ -13,7 +13,7 @@ check backward compatibility by versioning and serializing
 compatibility. This document makes the following proposal:
 
 **Proposal:** Add tests to compare `stablehlo_legalize_to_vhlo.0_X_0.mlir`
-serialized at HEAD using `--target 0.X.0` with existing [`stablehlo_legalize_to_vhlo.0_X_0.mlir.bc`](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/stablehlo_legalize_to_vhlo.0_9_0.mlir.bc)
+serialized at HEAD using `--target 0.X.0` with existing [`stablehlo_legalize_to_vhlo.0_X_0.mlir.bc`](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_9_0.mlir.bc)
 test files.
 
 ## Requirements

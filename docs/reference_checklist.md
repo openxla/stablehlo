@@ -61,8 +61,8 @@ on those fronts alongside the interpreter implementation.
         1. In case there is a mismatch between the constraints in the
            implementation VS and those in the specification, make sure there is
            an open issue reflecting that discrepancy.
-1. In [interpreter tests](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests):
-    1. Add a file called `interpret_<op_mnemonic>.mlir`.
+1. In [interpreter tests](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret):
+    1. Add a file called `<op_mnemonic>.mlir`.
     1. Write tests following the [testing guidelines](https://github.com/openxla/stablehlo/blob/main/docs/reference.md#testing-guidelines).
 1. In the [testdata directory](https://github.com/openxla/stablehlo/tree/main/stablehlo/testdata):
     1. Run any disabled tests that are covered by the newly added operation.
