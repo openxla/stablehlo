@@ -238,7 +238,7 @@ def I64Elements1D : And<[I64ElementsAttr.predicate,  CPred<"$_self.cast<DenseInt
 
 // TODO(#1578) migrate uses to DenseI64ArrayAttr and delete this attr
 def I64DenseArrayOrElements1DAttr : Attr<Or<[DenseI64ArrayAttr.predicate, I64Elements1D]>, "either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr."> {
-  let storageType = "Attribute";
+  let storageType = "mlir::Attribute";
   let returnType = "SmallVector<int64_t>";
   let convertFromStorage = "hlo::getI64Array($_self)";
 }
