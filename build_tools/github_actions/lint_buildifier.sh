@@ -30,5 +30,6 @@ targets=($(find -type f -name '*.bazel' -not -path './llvm*'))
 
 if ! buildifier --mode=check --lint=warn --warnings=all -r ${targets[@]}; then
   echo "Error: buildifier failed. Please run: buildifier --mode=fix --lint=fix --warnings=all -r ${targets[@]}"
+  echo "You may need to install a specific version of buildifier (see the GitHub Actions workflow)."
   exit 1
 fi
