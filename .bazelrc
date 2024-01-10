@@ -14,3 +14,10 @@
 
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17
+# support layering_check similar to Google internal
+# this only works for Clang toolchain AFAIK
+# https://github.com/bazelbuild/bazel/pull/11440
+build --features=layering_check
+# Set the default compiler to the `clang` binary on the `PATH`.
+# TODO(fzakaria): Make this a toolchain or hermetic somehow
+build --repo_env=CC=clang
