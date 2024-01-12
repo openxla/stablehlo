@@ -121,7 +121,7 @@ LogicalResult inferAllToAllOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferAllReduceOp(
-    std::optional<Location> location, Value operand, Region& computation,
+    std::optional<Location> location, ValueRange operands, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormGradOp(
@@ -284,7 +284,7 @@ LogicalResult inferRealOp(std::optional<Location> location, Value operand,
 
 LogicalResult inferReduceOp(
     std::optional<Location> location, TypeRange inputTypes,
-    TypeRange initValueTypes, ArrayRef<int64_t> dimensions, Region& body,
+    ArrayRef<int64_t> dimensions, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferReduceWindowOp(
@@ -317,7 +317,8 @@ LogicalResult inferSelectOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferSelectAndScatterOp(
-    Value operand, Region& scatter, SmallVectorImpl<Type>& inferredReturnTypes);
+    std::optional<Location> location, Value operand, Region& scatter,
+    SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferSendOp(HloDialectInterface* dialect,
                           std::optional<Location> location,
@@ -462,6 +463,11 @@ LogicalResult verifyRecvOp(HloDialectInterface* dialect,
 LogicalResult verifyReduceOp(std::optional<Location> location,
                              ValueRange inputs, ValueRange initValues,
                              ArrayRef<int64_t> dimensions, Region& body);
+
+LogicalResult verifyReduceOpInputsAndInferShape(
+    std::optional<Location> location, SmallVector<ShapedType> inputTypes,
+    ArrayRef<int64_t> dimensions, SmallVector<int64_t>& newDimensions,
+    Attribute& encoding);
 
 LogicalResult verifyReducePrecisionOp(std::optional<Location> location,
                                       int32_t exponentBits,
