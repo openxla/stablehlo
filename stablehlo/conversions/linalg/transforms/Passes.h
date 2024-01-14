@@ -26,11 +26,9 @@ class ModuleOp;
 
 namespace stablehlo {
 
+#define GEN_PASS_DECL
+#define GEN_PASS_REGISTRATION
 #include "stablehlo/conversions/linalg/transforms/Passes.h.inc"
-
-std::unique_ptr<OperationPass<ModuleOp>> createStablehloLegalizeToLinalgPass();
-
-void registerStablehloLegalizeToLinalgPass();
 
 }  // namespace stablehlo
 }  // namespace mlir

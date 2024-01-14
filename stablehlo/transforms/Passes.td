@@ -49,7 +49,7 @@ def StablehloInstrumentWithProbePass : Pass<"stablehlo-instrument-with-probe", "
     Suitable operations will be instrumented regardless of their level of
     nesting. That is, operations inside loop/branch regions will also be
     instrumented.
-    
+
     Instrumented operations will have their return values written to disk using
     the NumPy data format as they are executed. If the `useDebugInfo` pass
     option is enabled, location debug information will be used when available to
@@ -81,8 +81,12 @@ def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
 
 def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp"> {
   let summary = "Legalize VHLO to StableHLO.";
-  let dependentDialects = ["mlir::func::FuncDialect", "mlir::stablehlo::StablehloDialect",
-                           "mlir::shape::ShapeDialect", "mlir::quant::QuantizationDialect"];
+  let dependentDialects = [
+    "mlir::func::FuncDialect",
+    "mlir::quant::QuantizationDialect",
+    "mlir::shape::ShapeDialect",
+    "mlir::stablehlo::StablehloDialect",
+  ];
 }
 
 def VhloToVersionPass : Pass<"vhlo-to-version"> {
