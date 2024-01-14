@@ -104,6 +104,31 @@ Here's how to build the StableHLO repo on Linux or macOS:
 
    This runs all the tests in `stablehlo/tests/`.
 
+## Python
+
+If you'd like to build the Python bindings, you'll need to install a few
+additional dependencies.
+
+```sh
+sudo apt -y install python3-pybind11
+```
+
+If you've built MLIR using the script above, the Python bindings for MLIR are
+already built.
+
+After you have built the project you can import the Python bindings to begin
+by modifying your Python path variable
+
+```shell
+$ PYTHONPATH="./build/python_packages/stablehlo" python3
+Python 3.11.6 (main, Oct  8 2023, 05:06:43) [GCC 13.2.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import mlir.dialects.stablehlo
+>>> import mlir.dialects.stablehlo
+>>> from mlir.ir import Context, Location
+>>> import mlir.dialects.arith
+```
+
 ## Community
 
 Building an amazing portability layer between ML frameworks and ML compilers
