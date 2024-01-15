@@ -71,7 +71,7 @@ jobs:
         ninja check-stablehlo-python
       env:
           CMAKE_BUILD_TYPE: Release
-          LLVM_ENABLE_BINDINGS: ON
+          STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
 
     - uses: actions/setup-python@v5
       with:
