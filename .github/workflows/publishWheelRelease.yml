@@ -72,3 +72,48 @@ jobs:
       env:
           CMAKE_BUILD_TYPE: Release
           LLVM_ENABLE_BINDINGS: ON
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip' # caching pip dependencies
+    - run: pip install build
+
+    - name: Build Python Wheel"
+      shell: bash
+      run: |
+        cd "$GITHUB_WORKSPACE/stablehlo/integrations/python"
+        python3 -m build -w --dist-dir $GITHUB_WORKSPACE/${{ github.sha }}
+
+    - name: Upload an artifact
+      uses: actions/upload-artifact@v4
+      with:
+        if-no-files-found: error
+        name: build_artifact
+        path: ${{ github.sha }}
+
+  upload-tarballs:
+    runs-on: ubuntu-20.04
+    needs: cmake-build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build_artifact
+          path: ${{ github.sha }}
+
+      - name: Release current commit
+        uses: ncipollo/release-action@v1.13.0
+        with:
+          artifacts: "${{ github.sha }}/*.whl"
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          tag: "dev-wheels"
+          name: "dev-wheels"
+          removeArtifacts: false
+          allowUpdates: true
+          replacesArtifacts: true
+          makeLatest: true
