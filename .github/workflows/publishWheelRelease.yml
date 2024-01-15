@@ -116,6 +116,7 @@ jobs:
         with:
           artifacts: "${{ github.sha }}/*.whl"
           token: "${{ secrets.GITHUB_TOKEN }}"
+          # git describe in setup.py explicitly filters out this tag
           tag: "dev-wheels"
           name: "dev-wheels"
           removeArtifacts: false

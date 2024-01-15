@@ -18,7 +18,7 @@ class BinaryDistribution(Distribution):
 def get_version():
   # get the latest tag without the leading v
   latest_tag = subprocess.check_output(
-      ["git", "describe", "--tags", "--abbrev=0"], text=True).strip('v').strip()
+      ["git", "describe", "--tags", "--abbrev=0", "--exclude", "dev-wheels"], text=True).strip('v').strip()
   latest_commit = subprocess.check_output(
       ["git", "rev-parse", "--short", "HEAD"], text=True).strip()
   return f"{latest_tag}+{latest_commit}"
