@@ -30,6 +30,8 @@ def get_version():
 # experience.
 setup(
     name='stablehlo',
+    # TODO(fzakaria): The CMake build path is fixed here which kind of sucks.
+    # Ideally it should be passed in or setup.py should do the build itself.
     packages=find_namespace_packages(where=os.path.normpath("../../../build/python_packages/stablehlo")),
     package_dir={
         "": os.path.normpath("../../../build/python_packages/stablehlo")},

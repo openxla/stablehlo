@@ -35,7 +35,8 @@ jobs:
     env:
       LLVM_PROJECT_DIR: "llvm-project"
       LLVM_BUILD_DIR: "llvm-build"
-      STABLEHLO_BUILD_DIR: "stablehlo-build"
+      # The setup.py script expects the StableHLO build to be in 'build'
+      STABLEHLO_BUILD_DIR: "build"
     strategy:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
