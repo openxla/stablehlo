@@ -83,7 +83,7 @@ jobs:
       shell: bash
       run: |
         cd "$GITHUB_WORKSPACE/stablehlo/integrations/python"
-        python3 -m build -w --dist-dir $GITHUB_WORKSPACE/${{ github.sha }}
+        python3 -m build -w --outdir $GITHUB_WORKSPACE/${{ github.sha }}
 
     - name: Upload an artifact
       uses: actions/upload-artifact@v4
