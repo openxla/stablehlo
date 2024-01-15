@@ -61,7 +61,7 @@ jobs:
         ./build_tools/github_actions/ci_build_cmake_llvm.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
-          LLVM_ENABLE_BINDINGS: ON
+          MLIR_ENABLE_BINDINGS_PYTHON: ON
 
     - name: Build and Test StableHLO with Python
       shell: bash
