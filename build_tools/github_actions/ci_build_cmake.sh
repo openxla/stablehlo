@@ -31,6 +31,10 @@ CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-Release}"
 STABLEHLO_ENABLE_BINDINGS_PYTHON="${STABLEHLO_ENABLE_BINDINGS_PYTHON:-OFF}"
 
 # Configure StableHLO
+# LLVM_VERSION_SUFFIX to get rid of that annoying af git on the end of .17git
+# CMAKE_PLATFORM_NO_VERSIONED_SONAME Disables generation of "version soname"
+#                         (i.e. libFoo.so.<version>), which causes pure
+#                         duplication of various shlibs for Python wheels.
 cmake -GNinja \
   -B"$STABLEHLO_BUILD_DIR" \
   -DLLVM_ENABLE_LLD=ON \
@@ -42,8 +46,10 @@ cmake -GNinja \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
   -DSTABLEHLO_ENABLE_STRICT_BUILD=On \
+  -DLLVM_VERSION_SUFFIX='' \
+  -DCMAKE_PLATFORM_NO_VERSIONED_SONAME=ON \
   -DSTABLEHLO_ENABLE_BINDINGS_PYTHON="$STABLEHLO_ENABLE_BINDINGS_PYTHON"
 
 # Build and Test StableHLO
-cd "$STABLEHLO_BUILD_DIR"
+cd "$STABLEHLO_BUILD_DIR" || exit
 ninja check-stablehlo-ci
