@@ -43,7 +43,11 @@ jobs:
     steps:
     - name: Checkout StableHLO
       uses: actions/checkout@v4
-
+      # TODO(fzakaria): We need all the commits and the tags for the
+      # git describe` command to work to find the correct version.
+      # This can be removed if the version can be determmined in another way.
+      with:
+        fetch-depth: 0
     - name: Get LLVM Version
       id: llvm-version
       shell: bash
