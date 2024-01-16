@@ -83,7 +83,7 @@ jobs:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
 
-    - name: Build Python Wheel"
+    - name: Build Python Wheel
       shell: bash
       run: |
         cd "$GITHUB_WORKSPACE/stablehlo/integrations/python"
@@ -93,9 +93,8 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         if-no-files-found: error
-        name: build_artifact
-        path: ${{ github.sha }}-${{ matrix.python-version }}
-
+        name: build_artifact-${{ matrix.python-version }}
+        path: ${{ github.sha }}
   upload-tarballs:
     runs-on: ubuntu-20.04
     needs: cmake-build
@@ -111,8 +110,8 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: build_artifact
-          path: ${{ github.sha }}-${{ matrix.python-version }}
+          name: build_artifact-${{ matrix.python-version }}
+          path: ${{ github.sha }}
 
       - name: Release current commit
         uses: ncipollo/release-action@v1.13.0
