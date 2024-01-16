@@ -116,7 +116,7 @@ jobs:
       - name: Release current commit
         uses: ncipollo/release-action@v1.13.0
         with:
-          artifacts: "${{ github.sha }}-${{ matrix.python-version }}/*.whl"
+          artifacts: "${{ github.sha }}/*.whl"
           token: "${{ secrets.GITHUB_TOKEN }}"
           # git describe in setup.py explicitly filters out this tag
           tag: "dev-wheels"
