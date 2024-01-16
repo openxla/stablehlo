@@ -63,7 +63,7 @@ A few things to consider when adding new features:
 - Spec: Modify [`spec.md`](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)
 with the proposed changes.
 - Compatibility: Tips on managing forward/backward compatibility are in
-`[vhlo.md]` (https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md#contributing-incompatible-changes).
+[`vhlo.md`](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md#contributing-incompatible-changes).
 - Type inference: Modify [type inference](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/TypeInference.h)
 logic if necessary.
 - Reference: Add [interpreter](https://github.com/openxla/stablehlo/blob/main/stablehlo/reference/Ops.h)
