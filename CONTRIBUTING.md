@@ -70,3 +70,5 @@ logic if necessary.
 support for the new feature.
 - Tests: For each of the above modifications, consider positive and negative
 test cases.
+
+For example, see the [`collective_broadcast` integration](https://github.com/openxla/stablehlo/pull/1856).
