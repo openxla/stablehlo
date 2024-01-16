@@ -147,11 +147,11 @@ for op semantics and  example usage).
 <!-- markdownlint-disable line-length -->
 We use LLVM's [lit](https://llvm.org/docs/CommandGuide/lit.html) tool to run and
 compare against generated file to diff against the output of the interpreter
-(see [stablehlo/tests](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests)
+(see [stablehlo/tests/interpret](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret)
 for example tests).
 
 Testing `AddOp` (sample from
-[interpret_add.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/interpret_add.mlir)):
+[interpret_add.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/interpret/add.mlir)):
 <!-- markdownlint-enable line-length -->
 
 ```mlir
@@ -171,7 +171,7 @@ Testing ops in the Distribution category requires running it via the
 
 <!-- markdownlint-disable line-length -->
 Testing `AllReduceOp` (sample from
-[interpret_all_reduce.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/interpret_all_reduce.mlir)):
+[all_reduce.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/interpret/all_reduce.mlir)):
 <!-- markdownlint-enable line-length -->
 
 ```mlir
@@ -209,7 +209,7 @@ Following the StableHLO build steps, the StableHLO binaries for tools in
 GDB can be used to step through the code:
 
 ```sh
-gdb --args ./build/bin/stablehlo-translate -allow-unregistered-dialect --interpret ./stablehlo/tests/<test>.mlir
+gdb --args ./build/bin/stablehlo-translate -allow-unregistered-dialect --interpret ./stablehlo/tests/interpret/<test>.mlir
 ```
 
 ## Appendix

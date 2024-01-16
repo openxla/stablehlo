@@ -129,8 +129,7 @@ A test utility `stablehlo-translate --interpret`
 is responsible for parsing the program, interpreting each function including the
 operations constituting the function. We have a dedicated test-suite, consisting
 of several tests exercising various runtime behaviors, for each StableHLO Op.
-The tests can be found [here](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/)
-(e.g. interpret\_\*.mlir).
+The tests can be found [here](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret).
 
 ### Testing guidelines
 
