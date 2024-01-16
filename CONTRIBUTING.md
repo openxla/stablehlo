@@ -42,7 +42,7 @@ For example, see the [`collective_broadcast` RFC](https://github.com/openxla/sta
 
 To signal boost your RFC, post on [OpenXLA Discuss](https://groups.google.com/a/openxla.org/g/openxla-discuss).
 This will ensure the proper reviewers see the RFC. While there is no formal
-process for posts, we tend recommend keeping RFC feedback on the PR to keep
+process for posts, we tend to recommend keeping RFC discussion on the PR to keep
 feedback centralized in the repository.
 
 For example, see the [`collective_broadcast` post](https://groups.google.com/a/openxla.org/g/openxla-discuss/c/Q7JFyoiVFPU/m/dUH_LmJlCgAJ).
