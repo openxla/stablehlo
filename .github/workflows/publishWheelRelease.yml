@@ -61,11 +61,8 @@ jobs:
       uses: ./.github/actions/setup-build
       with:
         llvm-version: ${{ steps.llvm-version.outputs.version }}
-
-    - uses: actions/setup-python@v5
-      with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip' # caching pip dependencies
+
     - run: pip install build
 
     - name: Configure and Build LLVM

@@ -14,13 +14,18 @@
 
 # The setup-build action gets everything needed by buildAndTest into the workspace.
 name: "Setup build environment (ninja, ccache, llvm, lld)"
+description: "Setup build environment (ninja, ccache, llvm, lld)"
 
 inputs:
   llvm-version:
     description: |
       LLVM version for checkout and build. Used for ccache value and checkout.
     required: true
-
+  python-version:
+    description: |
+      Python version to install
+    required: false
+    default: '3.10.6'
 runs:
   # This is a composite action - has a list of steps to execute.
   using: "composite"
@@ -54,9 +59,9 @@ runs:
 
   # Install Python/Numpy for API tests
   - name: Install Python and Pip
-    uses: actions/setup-python@v4
+    uses: actions/setup-python@v5
     with:
-      python-version: '3.10.6'
+      python-version: ${{ inputs.python-version }}
       cache: 'pip' # caching pip dependencies
   - name: Install MLIR python requirements
     shell: bash
