@@ -60,6 +60,7 @@ Once an RFC is approved, PRs which implement the approved proposal may be sent,
 reviewed, and merged.
 
 A few things to consider when adding new features:
+
 - Spec: Modify [`spec.md`](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)
 with the proposed changes.
 - Compatibility: Tips on managing forward/backward compatibility are in
