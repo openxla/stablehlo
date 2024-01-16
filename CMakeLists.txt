@@ -135,10 +135,6 @@ add_definitions(${LLVM_DEFINITIONS})
 #-------------------------------------------------------------------------------
 
 if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
-  if(NOT STABLEHLO_EXTERNAL_PROJECT_BUILD)
-    message(WARNING "StableHLO Python bindings are not supported in standalone mode")
-  endif()
-
   include(MLIRDetectPythonEnv)
   mlir_configure_python_dev_packages()
 endif()

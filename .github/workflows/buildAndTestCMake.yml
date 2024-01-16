@@ -71,12 +71,9 @@ jobs:
       run: |
         ./build_tools/github_actions/ci_build_cmake_llvm.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR"
 
-    - name: Build and Test StableHLO
+    - name: Build and Test StableHLO (with Python bindings)
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
-
-    - name: Build and Test StableHLO Python API
-      shell: bash
-      run: |
-        ./build_tools/github_actions/ci_build_cmake_python_api.sh "$LLVM_PROJECT_DIR" "$STABLEHLO_PYTHON_BUILD_DIR" "$GITHUB_WORKSPACE"
+        cd "$STABLEHLO_BUILD_DIR"
+        ninja check-stablehlo-python
