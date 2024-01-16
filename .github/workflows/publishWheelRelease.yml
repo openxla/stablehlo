@@ -39,6 +39,8 @@ jobs:
       STABLEHLO_BUILD_DIR: "build"
     strategy:
       fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.11" ]
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
 
     steps:
@@ -60,6 +62,12 @@ jobs:
       with:
         llvm-version: ${{ steps.llvm-version.outputs.version }}
 
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip' # caching pip dependencies
+    - run: pip install build
+
     - name: Configure and Build LLVM
       shell: bash
       run: |
@@ -78,12 +86,6 @@ jobs:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        cache: 'pip' # caching pip dependencies
-    - run: pip install build
-
     - name: Build Python Wheel"
       shell: bash
       run: |
@@ -95,11 +97,15 @@ jobs:
       with:
         if-no-files-found: error
         name: build_artifact
-        path: ${{ github.sha }}
+        path: ${{ github.sha }}-${{ matrix.python-version }}
 
   upload-tarballs:
     runs-on: ubuntu-20.04
     needs: cmake-build
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.11" ]
 
     steps:
       - name: Checkout
@@ -109,12 +115,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build_artifact
-          path: ${{ github.sha }}
+          path: ${{ github.sha }}-${{ matrix.python-version }}
 
       - name: Release current commit
         uses: ncipollo/release-action@v1.13.0
         with:
-          artifacts: "${{ github.sha }}/*.whl"
+          artifacts: "${{ github.sha }}-${{ matrix.python-version }}/*.whl"
           token: "${{ secrets.GITHUB_TOKEN }}"
           # git describe in setup.py explicitly filters out this tag
           tag: "dev-wheels"
