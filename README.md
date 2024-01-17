@@ -114,8 +114,8 @@ additional dependencies.
 pip install  install -r ./llvm-project/mlir/python/requirements.txt
 ```
 
-If you've built MLIR & StableHLO using the script above, the Python bindings for MLIR are
-already built.
+If you've built MLIR & StableHLO using the script above, the Python bindings
+for MLIR are already built.
 
 After you have built the project you can import the Python bindings to begin
 by modifying your Python path variable
@@ -132,6 +132,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 You can also build a wheel yourself using the `setup.py` file.
 We also make nightly wheels available on our GitHub Releases page.
+
 ```shell
 pip install stablehlo -f https://github.com/openxla/stablehlo/releases/expanded_assets/dev-wheels
 ```
