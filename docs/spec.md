@@ -610,7 +610,7 @@ tensor. Depending on the element type, does the following:
 // %result: [2, 0, 2]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_abs.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_abs.mlir)
 
 ### add
 
@@ -651,7 +651,7 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 // %result: [[6, 8], [10, 12]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_add.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_add.mlir)
 
 ### after_all
 
@@ -681,7 +681,7 @@ it only exists to establish data dependencies from `result` to `inputs`.
 %result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_after_all.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_after_all.mlir)
 
 ### all_gather
 
@@ -756,7 +756,7 @@ Afterwards, within each `process_group`:
 // %result@(1, 0): [[1, 2, 5, 6], [3, 4, 7, 8]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_all_gather.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_all_gather.mlir)
 
 ### all_reduce
 
@@ -835,7 +835,7 @@ Afterwards, within each `process_group`:
 // %result@(1, 0): [6, 8, 10, 12]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_all_reduce.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_all_reduce.mlir)
 
 ### all_to_all
 
@@ -923,7 +923,7 @@ Afterwards, within each `process_group`:
 //                  [15, 16]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_all_to_all.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_all_to_all.mlir)
 
 ### and
 
@@ -998,7 +998,7 @@ Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 // %result: [0.0, 1.57079637, -1.57079637] // [0.0, pi/2, -pi/2]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_atan2.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_atan2.mlir)
 
 ### batch_norm_grad
 
@@ -1362,7 +1362,7 @@ implementation-defined as well.
 // %result: [0xCDEF, 0x89AB, 0x4567, 0x0123] // little-endian representation
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_bitcast_convert.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_bitcast_convert.mlir)
 
 ### broadcast_in_dim
 
@@ -1433,7 +1433,7 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 //          ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_broadcast_in_dim.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_broadcast_in_dim.mlir)
 
 ### case
 
@@ -1481,7 +1481,7 @@ where:
 // %result1: [1, 1]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_case.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_case.mlir)
 
 ### cbrt
 
@@ -1518,7 +1518,7 @@ Performs element-wise cubic root operation on `operand` tensor and produces a
 // %result: [0.0, 1.0, 2.0, 3.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_cbrt.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_cbrt.mlir)
 
 ### ceil
 
@@ -1553,7 +1553,7 @@ specification. For quantized types, performs
 // %result: [-0.0, -0.0, 1.0, 1.0, 2.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_ceil.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_ceil.mlir)
 
 ### cholesky
 
@@ -1657,7 +1657,7 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 // %result: [5, 13, 20]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_clamp.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_clamp.mlir)
 
 ### collective_broadcast
 
@@ -1785,7 +1785,7 @@ Afterwards, `result@process` is given by:
 // %result@(2, 0): [[5, 6], [7, 8]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_collective_permute.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_collective_permute.mlir)
 
 ### compare
 
@@ -1869,7 +1869,7 @@ comparison_direction)`.
 // %result: [true, false]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_compare.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_compare.mlir)
 
 ### complex
 
@@ -1907,7 +1907,7 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 // %result: [(1.0, 2.0), (3.0, 4.0)]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_complex.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_complex.mlir)
 
 ### concatenate
 
@@ -1955,7 +1955,7 @@ arguments and produces a `result` tensor. More formally,
 // %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_concatenate.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_concatenate.mlir)
 
 ### constant
 
@@ -1988,7 +1988,7 @@ Produces an `output` tensor from a constant `value`.
 // %output: [[0.0, 1.0], [2.0, 3.0]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_constant.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_constant.mlir)
 
 ### convert
 
@@ -2054,7 +2054,7 @@ into `convert` ([#1576](https://github.com/openxla/stablehlo/issues/1576)).
 // %result: [(-1.0, 0.0), (0.0, 0.0), (1.0, 0.0)]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_convert.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_convert.mlir)
 
 ### convolution
 
@@ -2301,7 +2301,7 @@ Performs element-wise cosine operation on `operand` tensor and produces a
 // %result: [[1.0, 0.0], [-1.0, 0.0]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_cosine.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_cosine.mlir)
 
 ### count_leading_zeros
 
@@ -2334,7 +2334,7 @@ tensor and produces a `result` tensor.
 // %result: [[64, 63], [56, 0]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_count_leading_zeros.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_count_leading_zeros.mlir)
 
 ### custom_call
 
@@ -2419,7 +2419,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [5.66666651, -5.66666651, -5.66666651, 5.66666651]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_divide.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_divide.mlir)
 
 ### dot_general
 
@@ -2549,7 +2549,7 @@ planning to address this in
 //          ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_dot_general.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_dot_general.mlir)
 
 ### dynamic_slice
 
@@ -2607,7 +2607,7 @@ contain the sizes of the slice for each dimension. More formally,
 //          ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_dynamic_slice.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_dynamic_slice.mlir)
 
 ### dynamic_update_slice
 
@@ -2671,7 +2671,7 @@ More formally, `result[result_index]` is defined as:
 //          ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_dynamic_update_slice.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_dynamic_update_slice.mlir)
 
 ### exponential
 
@@ -2709,7 +2709,7 @@ Performs element-wise exponential operation on `operand` tensor and produces a
 // %result: [[1.0, 2.7182818284590451], [7.3890560989306504, 20.085536923187668]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_exponential.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_exponential.mlir)
 
 ### exponential_minus_one
 
@@ -2747,7 +2747,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [0.0, 1.71828187]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_exponential_minus_one.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_exponential_minus_one.mlir)
 
 ### fft
 
@@ -2895,7 +2895,7 @@ specification. For quantized types, performs
 // %result: [-1.0, -1.0, 0.0, 0.0, 2.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_floor.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_floor.mlir)
 
 ### gather
 
@@ -3015,7 +3015,7 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 //          ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_gather.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_gather.mlir)
 
 ### get_dimension_size
 
@@ -3051,7 +3051,7 @@ Produces the size of the given `dimension` of the `operand`. More formally,
 // %result: 3
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_get_dimension_size.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_get_dimension_size.mlir)
 
 ### get_tuple_element
 
@@ -3088,7 +3088,7 @@ Extracts element at `index` position of the `operand` tuple and produces a
 // %result: [1.0, 2.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_tuple_and_get_tuple_element.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_tuple_and_get_tuple_element.mlir)
 
 ### if
 
@@ -3132,7 +3132,7 @@ pred ? true_branch() : false_branch()`.
 // %result: 10
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_if.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_if.mlir)
 
 ### imag
 
@@ -3170,7 +3170,7 @@ constant(0, element_type(result))`.
 // %result: [2.0, 4.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_imag.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_imag.mlir)
 
 ### infeed
 
@@ -3220,7 +3220,7 @@ separate outputs to improve clarity
 // results1#0: [[5, 6], [7, 8]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_infeed.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_infeed.mlir)
 
 ### iota
 
@@ -3273,7 +3273,7 @@ result_index[iota_dimension], element_type(output))`.
 //          ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_iota.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_iota.mlir)
 
 ### is_finite
 
@@ -3309,7 +3309,7 @@ always `true`.
 // %y: [false, false, false, true, true, true, true]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_is_finite.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_is_finite.mlir)
 
 ### log
 
@@ -3346,7 +3346,7 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 // %result: [[0.0, 0.69314718055994529], [1.0986122886681098, 1.3862943611198906]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_log.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_log.mlir)
 
 ### log_plus_one
 
@@ -3384,7 +3384,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [0.0, -6.90776825, 2.07944155, 2.0, 2.77258873]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_log_plus_one.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_log_plus_one.mlir)
 
 ### logistic
 
@@ -3422,7 +3422,7 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 // %result: [[0.5, 0.73105858], [0.88079708, 0.95257413]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_logistic.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_logistic.mlir)
 
 ### map
 
@@ -3472,7 +3472,7 @@ the future ([#487](https://github.com/openxla/stablehlo/issues/487)).
 // %result: [[0, 5], [12, 21]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_map.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_map.mlir)
 
 ### maximum
 
@@ -3517,7 +3517,7 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 // %result: [[5, 6], [7, 8]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_maximum.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_maximum.mlir)
 
 ### minimum
 
@@ -3562,7 +3562,7 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 // %result: [[1, 2], [3, 4]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_minimum.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_minimum.mlir)
 
 ### multiply
 
@@ -3604,7 +3604,7 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 // %result: [[5, 12], [21, 32]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_multiply.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_multiply.mlir)
 
 ### negate
 
@@ -3651,7 +3651,7 @@ tensor. Depending on the element type, does the following:
 // %result: [-2.5, -0.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_negate.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_negate.mlir)
 
 ### not
 
@@ -3728,7 +3728,7 @@ an identity, i.e. `result = operand`.
 // %result1: 1.0
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_optimization_barrier.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_optimization_barrier.mlir)
 
 ### or
 
@@ -3803,7 +3803,7 @@ Semantics of `outfeed_config` is implementation-defined.
 } : (tensor<2x2x2xi64>, !stablehlo.token) -> !stablehlo.token
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_outfeed.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_outfeed.mlir)
 
 ### pad
 
@@ -3877,7 +3877,7 @@ More formally, `result[result_index]` is defined as:
 //          ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_pad.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_pad.mlir)
 
 ### partition_id
 
@@ -3897,7 +3897,7 @@ Produces `partition_id` of the current process.
 %result = "stablehlo.partition_id"() : () -> tensor<ui32>
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_partition_id.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_partition_id.mlir)
 
 ### popcnt
 
@@ -3930,7 +3930,7 @@ and produces a `result` tensor.
 // %result: [0, 1, 1, 7]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_popcnt.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_popcnt.mlir)
 
 ### power
 
@@ -3970,7 +3970,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [4.0, 0.0, -nan, 25.0, 0.333333343, inf]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_power.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_power.mlir)
 
 ### real
 
@@ -4007,7 +4007,7 @@ tensor. More formally, for each element `x`:
 // %result: [1.0, 3.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_real.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_real.mlir)
 
 ### recv
 
@@ -4059,7 +4059,7 @@ separate outputs to improve clarity
 } : (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_send_recv.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_send_recv.mlir)
 
 ### reduce
 
@@ -4139,7 +4139,7 @@ More formally, `results...[j0, ..., jR-1] = reduce(input_slices_converted)` wher
 // %result = [15]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_reduce.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_reduce.mlir)
 
 ### reduce_precision
 
@@ -4197,7 +4197,7 @@ More formally:
 // %output: [0x7FF0000000000000, 0x7FFFFFFFFFFFFFFF, 0.0, 0.0, 65504.0, 0x7FF0000000000000]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_reduce_precision.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_reduce_precision.mlir)
 
 ### reduce_scatter
 
@@ -4289,7 +4289,7 @@ Afterwards, within each `process_group`:
 //                  [22, 24]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_reduce_scatter.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_reduce_scatter.mlir)
 
 ### reduce_window
 
@@ -4380,7 +4380,7 @@ More formally,
 // %result = [[0, 0], [3, 4]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_reduce_window.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_reduce_window.mlir)
 
 ### remainder
 
@@ -4431,7 +4431,7 @@ nearest to the exact value of `lhs/rhs` with ties to even.
 // %result: [2, -2, 2, -2]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_rem.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_rem.mlir)
 
 ### replica_id
 
@@ -4451,7 +4451,7 @@ Produces `replica_id` of the current process.
 %result = "stablehlo.replica_id"() : () -> tensor<ui32>
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_replica_id.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_replica_id.mlir)
 
 ### reshape
 
@@ -4506,7 +4506,7 @@ ordering of `index_space(result)` and `index_space(operand)`.
 // %result: [[1, 2], [3, 4], [5, 6]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_reshape.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_reshape.mlir)
 
 ### reverse
 
@@ -4549,7 +4549,7 @@ and produces a `result` tensor. More formally,
 // %result: [[2, 1], [4, 3], [6, 5]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_reverse.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_reverse.mlir)
 
 ### rng
 
@@ -4700,7 +4700,7 @@ quantized types, performs
 // %result: [-3.0, 0.0, 1.0, 1.0, 3.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_round_nearest_afz.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_round_nearest_afz.mlir)
 
 ### round_nearest_even
 
@@ -4736,7 +4736,7 @@ specification. For quantized types, performs
 // %result: [-2.0, 0.0, 0.0, 1.0, 2.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_round_nearest_even.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_round_nearest_even.mlir)
 
 ### rsqrt
 
@@ -4773,7 +4773,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [[1.0, 0.5], [0.33333343, 0.2]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_rsqrt.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_rsqrt.mlir)
 
 ### scatter
 
@@ -4926,7 +4926,7 @@ undefined.
 //          ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_scatter.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_scatter.mlir)
 
 ### select
 
@@ -4968,7 +4968,7 @@ pred[result_index]`. For quantized types, performs
 // %result: [[5, 2], [3, 8]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_select.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_select.mlir)
 
 ### select_and_scatter
 
@@ -5076,7 +5076,7 @@ More formally:
 // %result: [[0, 0], [0, 0], [5, 14], [7, 0]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/select_and_scatter.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/select_and_scatter.mlir)
 
 ### send
 
@@ -5121,7 +5121,7 @@ implementation-defined. This flag duplicates the information provided in
 } : (tensor<2x2xi64>, !stablehlo.token) -> !stablehlo.token
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_send_recv.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_send_recv.mlir)
 
 ### shift_left
 
@@ -5156,7 +5156,7 @@ of bits and produces a `result` tensor.
 // %result: [-2, 0, 8]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_shift_left.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_shift_left.mlir)
 
 ### shift_right_arithmetic
 
@@ -5191,7 +5191,7 @@ Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
 // %result: [-1, 0, 1]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_shift_right_arithmetic.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_shift_right_arithmetic.mlir)
 
 ### shift_right_logical
 
@@ -5226,7 +5226,7 @@ number of bits and produces a `result` tensor.
 // %result: [9223372036854775807, 0, 1]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_shift_right_logical.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_shift_right_logical.mlir)
 
 ### sign
 
@@ -5283,7 +5283,7 @@ For quantized types, performs
 // %result: [0x7FFFFFFFFFFFFFFF, -1.0, -0.0, 0.0, 1.0]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_sign.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_sign.mlir)
 
 ### sine
 
@@ -5323,7 +5323,7 @@ tensor. Depending on the element type, does the following:
 // %result: [[0.0, 1.0], [0.0, -1.0]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_sine.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_sine.mlir)
 
 ### slice
 
@@ -5381,7 +5381,7 @@ More formally, `result[result_index] = operand[operand_index]` where
 //           ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_slice.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_slice.mlir)
 
 ### sort
 
@@ -5469,7 +5469,7 @@ More formally, for all `result_index` in `index_space(results[0])`:
 // %result1 = [[1, 2, 1], [3, 2, 3]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_sort.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_sort.mlir)
 
 ### sqrt
 
@@ -5506,7 +5506,7 @@ Performs element-wise square root operation on `operand` tensor and produces a
 // %result: [[0.0, 1.0], [2.0, 3.0]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_sqrt.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_sqrt.mlir)
 
 ### subtract
 
@@ -5547,7 +5547,7 @@ Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 // %result: [[1, 2], [3, 4]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_subtract.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_subtract.mlir)
 
 ### tanh
 
@@ -5585,7 +5585,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [-0.76159416, 0.0, 0.76159416]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_tanh.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_tanh.mlir)
 
 ### transpose
 
@@ -5636,7 +5636,7 @@ where `result_index[d] = operand_index[permutation[d]]`.
 //          ]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_transpose.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_transpose.mlir)
 
 ### triangular_solve
 
@@ -5749,7 +5749,7 @@ Produces a `result` tuple from values `val`.
 // %result: ([1.0, 2.0], (3))
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_tuple_and_get_tuple_element.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_tuple_and_get_tuple_element.mlir)
 
 ### uniform_dequantize
 
@@ -5895,7 +5895,7 @@ The behavior of an infinite loop is TBD
 // %results1: 10
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_while.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret/interpret_while.mlir)
 
 ### xor
 

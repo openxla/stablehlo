@@ -125,8 +125,8 @@ for roundtrip examples of using the Python Serialization APIs.
 
 ## Tests
 
-We have a compatibility suite in [stablehlo/tests](../stablehlo/tests)
-that involves [a comprehensive compendium of StableHLO ops](../stablehlo/tests/stablehlo_legalize_to_vhlo.mlir)
+We have a compatibility suite in [stablehlo/tests/vhlo](../stablehlo/tests/vhlo)
+that involves [a comprehensive compendium of StableHLO ops](../stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir)
 serialized for all supported StableHLO versions. For every pull request, we are
 testing both backward and forward compatibility - i.e. that the suite can be
 deserialized targeting HEAD (backward compatibility), that the compendium

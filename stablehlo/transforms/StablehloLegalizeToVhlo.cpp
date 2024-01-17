@@ -792,10 +792,6 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
       return failure();
     }
 
-    // These operands have already been converted to VHLO by
-    // the dialect conversion infrastructure.
-    ValueRange vhloOperands = adaptor.getOperands();
-
     // Convert StableHLO attributes to VHLO equivalents.
     // There are two paths:
     //   1) Generic path where default logic applies, and there is a 1:1
@@ -820,6 +816,10 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
           break;
       }
     }
+
+    // These operands have already been converted to VHLO by
+    // the dialect conversion infrastructure.
+    ValueRange vhloOperands = adaptor.getOperands();
 
     // Convert the StableHLO operation to a VHLO equivalent.
     // This can almost be done in a generic fashion, except for

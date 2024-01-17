@@ -32,7 +32,7 @@ set_version_var() {
 set_version_var
 
 ## Check if compatibility tests exist for version `X_Y_0`
-COMPAT_TEST_BASE="stablehlo/tests/stablehlo_legalize_to_vhlo"
+COMPAT_TEST_BASE="stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo"
 COMPAT_TEST="$COMPAT_TEST_BASE.mlir"
 TEST_VERSION="${VERSION[0]}_${VERSION[1]}_0"
 VERSIONED_COMPAT_TEST="$COMPAT_TEST_BASE.$TEST_VERSION.mlir"
