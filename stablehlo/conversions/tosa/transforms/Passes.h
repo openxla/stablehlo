@@ -26,8 +26,7 @@ limitations under the License.
 namespace mlir {
 namespace tosa {
 
-#define GEN_PASS_DECL_STABLEHLOLEGALIZETOTOSAPASS
-#define GEN_PASS_DECL_STABLEHLOPREPAREFORTOSAPASS
+#define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
 
