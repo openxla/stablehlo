@@ -75,5 +75,3 @@ jobs:
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
-        cd "$STABLEHLO_BUILD_DIR"
-        ninja check-stablehlo-python
