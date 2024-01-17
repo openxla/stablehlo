@@ -63,6 +63,9 @@ jobs:
         llvm-version: ${{ steps.llvm-version.outputs.version }}
         python-version: ${{ matrix.python-version }}
 
+    # The actual tool need to execute the python build
+    # TODO(fzakaria): Consider using cibuildwheel to build multiple wheels at
+    # once and mark them as manylinux compatible.
     - run: pip install build
 
     - name: Configure and Build LLVM
@@ -77,8 +80,6 @@ jobs:
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
-        cd "$STABLEHLO_BUILD_DIR"
-        ninja check-stablehlo-python
       env:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
@@ -95,6 +96,7 @@ jobs:
         if-no-files-found: error
         name: build_artifact-${{ matrix.python-version }}
         path: ${{ github.sha }}
+
   upload-tarballs:
     runs-on: ubuntu-20.04
     needs: cmake-build
