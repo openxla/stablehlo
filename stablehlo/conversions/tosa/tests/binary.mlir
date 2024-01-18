@@ -109,7 +109,7 @@ func.func @gather(%arg0 : tensor<3x4x5xi32>, %arg1 : tensor<3x2xi32>) -> tensor<
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false,
-    slice_sizes = dense<[1, 2, 5]> : tensor<3xi64>
+    slice_sizes = array<i64: 1, 2, 5>
   } : (tensor<3x4x5xi32>, tensor<3x2xi32>) -> tensor<3x2x5xi32>
   return %0 : tensor<3x2x5xi32>
 }
@@ -127,7 +127,7 @@ func.func @gather_unranked(%arg0 : tensor<*xi32>, %arg1 : tensor<3x2xi32>) -> te
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false,
-    slice_sizes = dense<[1, 2, 5]> : tensor<3xi64>
+    slice_sizes = array<i64: 1, 2, 5>
   } : (tensor<*xi32>, tensor<3x2xi32>) -> tensor<*xi32>
   return %0 : tensor<*xi32>
 }
@@ -182,7 +182,7 @@ func.func @reduce_max(%arg0: tensor<1x10xf32>, %arg1: tensor<f32>) -> tensor<1xf
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.maximum %arg2, %arg3 : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<1> : tensor<1xi64>} : (tensor<1x10xf32>, tensor<f32>) -> tensor<1xf32>
+  }) {dimensions = array<i64: 1>} : (tensor<1x10xf32>, tensor<f32>) -> tensor<1xf32>
   return %0 : tensor<1xf32>
 }
 
@@ -194,7 +194,7 @@ func.func @reduce_sum(%arg0: tensor<5x4xf32>, %arg1: tensor<f32>) -> tensor<4xf3
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<5x4xf32>, tensor<f32>) -> tensor<4xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<5x4xf32>, tensor<f32>) -> tensor<4xf32>
   return %0 : tensor<4xf32>
 }
 

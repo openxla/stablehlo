@@ -11,7 +11,7 @@ func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
     "stablehlo.return"(%1) : (tensor<4xf32>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<4xf32>) -> tensor<4xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<4x4xf32>, tensor<4xf32>) -> tensor<4xf32>
 
   func.return %0: tensor<4xf32>
 }
@@ -26,7 +26,7 @@ func.func @reduce_complex_type(%arg0: tensor<1x2xcomplex<f32>>, %arg1 : tensor<c
   ^bb0(%arg2: tensor<complex<f32>> loc("foo"), %arg3: tensor<complex<f32>> loc("foo")):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<complex<f32>>, tensor<complex<f32>>) -> tensor<complex<f32>> loc("foo")
     "stablehlo.return"(%1) : (tensor<complex<f32>>) -> () loc("foo")
-  }) {dimensions = dense<1> : tensor<1xi64>} : (tensor<1x2xcomplex<f32>>, tensor<complex<f32>>) -> tensor<1xcomplex<f32>> loc("foo")
+  }) {dimensions = array<i64: 1>} : (tensor<1x2xcomplex<f32>>, tensor<complex<f32>>) -> tensor<1xcomplex<f32>> loc("foo")
 
   func.return %0: tensor<1xcomplex<f32>>
 }
@@ -54,7 +54,7 @@ func.func @reduce_unranked(%arg0: tensor<4x4xf32>, %arg1: tensor<4x4xf32>,
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
     "stablehlo.return"(%1, %2) : (tensor<*xf32>, tensor<*xf32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<4x4xf32>, tensor<*xf32>, tensor<*xf32>) -> (tensor<*xf32>, tensor<*xf32>)
+  }) {dimensions = array<i64: 1>} : (tensor<4x4xf32>, tensor<4x4xf32>, tensor<*xf32>, tensor<*xf32>) -> (tensor<*xf32>, tensor<*xf32>)
 
   func.return %0#0, %0#1 : tensor<*xf32>, tensor<*xf32>
 }
@@ -72,7 +72,7 @@ func.func @reduce_verify_dynamic_operand(%arg0: tensor<8x?xf32>, %arg1 : tensor<
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
     "stablehlo.return"(%1) : (tensor<4xf32>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<8x?xf32>, tensor<4xf32>) -> tensor<?xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<8x?xf32>, tensor<4xf32>) -> tensor<?xf32>
 
   func.return %0: tensor<?xf32>
 }
@@ -89,7 +89,7 @@ func.func @reduce_mix_rank_and_unranked(%arg0: tensor<4x4xf32>, %arg1: tensor<*x
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
     "stablehlo.return"(%1, %2) : (tensor<4xf32>, tensor<*xf32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<*xf32>, tensor<4xf32>, tensor<*xf32>) -> (tensor<4xf32>, tensor<*xf32>)
+  }) {dimensions = array<i64: 1>} : (tensor<4x4xf32>, tensor<*xf32>, tensor<4xf32>, tensor<*xf32>) -> (tensor<4xf32>, tensor<*xf32>)
 
   func.return %0#0, %0#1 : tensor<4xf32>, tensor<*xf32>
 }
@@ -105,7 +105,7 @@ func.func @reduce_with_promotable_types(%arg0: tensor<4x4xf32>, %arg1 : tensor<f
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f64>, tensor<f64>) -> tensor<f64>
     "stablehlo.return"(%1) : (tensor<f64>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<f32>) -> tensor<4xf64>
+  }) {dimensions = array<i64: 0>} : (tensor<4x4xf32>, tensor<f32>) -> tensor<4xf64>
 
   func.return %0: tensor<4xf64>
 }
@@ -136,7 +136,7 @@ func.func @reduce_c1(%arg0: tensor<2x3xf32>, %arg1: tensor<3x2xf32>,
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1, %2) : (tensor<f32>, tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<2x3xf32>, tensor<3x2xf32>, tensor<f32>, tensor<f32>) -> (tensor<2xf32>, tensor<2xf32>)
+  }) {dimensions = array<i64: 1>} : (tensor<2x3xf32>, tensor<3x2xf32>, tensor<f32>, tensor<f32>) -> (tensor<2xf32>, tensor<2xf32>)
 
   func.return %0#0, %0#1 : tensor<2xf32>, tensor<2xf32>
 }
@@ -154,7 +154,7 @@ func.func @reduce_c1(%arg0: tensor<?x?xf32>, %arg1: tensor<?xf32>,
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1, %2) : (tensor<f32>, tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?xf32>, tensor<f32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?xf32>, tensor<f32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>)
 
   func.return %0#0, %0#1 : tensor<?xf32>, tensor<?xf32>
 }
@@ -172,7 +172,7 @@ func.func @reduce_c2(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<i32>, tensor<i32>) -> tensor<i32>
     "stablehlo.return"(%2, %1) : (tensor<i32>, tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>)
 
   func.return %0#0, %0#1 : tensor<?xf32>, tensor<?xi32>
 }
@@ -190,7 +190,7 @@ func.func @reduce_c2(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
     %2 = "stablehlo.maximum"(%arg4, %arg6) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1, %2) : (tensor<f32>, tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xi32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xi32>)
 
   func.return %0#0, %0#1 : tensor<?xf32>, tensor<?xi32>
 }
@@ -206,7 +206,7 @@ func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[-1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
+  }) {dimensions = array<i64: -1>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
 
   func.return %0: tensor<?xf32>
 }
@@ -222,7 +222,7 @@ func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[2]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
+  }) {dimensions = array<i64: 2>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
 
   func.return %0: tensor<?xf32>
 }
@@ -237,7 +237,7 @@ func.func @reduce_c4(%arg0: tensor<*xf32>, %arg1 : tensor<*xf32>)
   ^bb0(%arg2: tensor<*xf32>, %arg3: tensor<*xf32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
     "stablehlo.return"(%1) : (tensor<*xf32>) -> ()
-  }) {dimensions = dense<[-1]> : tensor<1xi64>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
+  }) {dimensions = array<i64: -1>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
   func.return %0: tensor<*xf32>
 }
 
@@ -253,7 +253,7 @@ func.func @reduce_c5(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1,1]> : tensor<2xi64>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
+  }) {dimensions = array<i64: 1, 1>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
 
   func.return %0: tensor<?xf32>
 }
@@ -273,7 +273,7 @@ func.func @reduce_c6(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xf32>,
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%arg5, %arg7) : (tensor<f32>, tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xf32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xf32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>)
 
   func.return %0#0, %0#1 : tensor<?xf32>, tensor<?xf32>
 }
@@ -290,7 +290,7 @@ func.func @reduce_c6(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"() : () -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<f32>
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<f32>
 
     func.return %0: tensor<f32>
 }
@@ -307,7 +307,7 @@ func.func @reduce_c6(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xf32>,
     %1 = "stablehlo.add"(%arg4, %arg6) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xf32>, tensor<f32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xf32>, tensor<f32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>)
 
   func.return %0#0, %0#1 : tensor<?xf32>, tensor<?xf32>
 }
@@ -326,7 +326,7 @@ func.func @reduce_c6(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
     %3 = "stablehlo.tuple"(%1, %2) : (tensor<f32>, tensor<i32>) -> tuple<tensor<f32>, tensor<i32>>
     "stablehlo.return"(%3, %1) : (tuple<tensor<f32>, tensor<i32>>, tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>)
 
   func.return %0#0, %0#1 : tensor<?xf32>, tensor<?xi32>
 }
@@ -344,7 +344,7 @@ func.func @reduce_c6(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<i32>, tensor<i32>) -> tensor<i32>
     "stablehlo.return"(%1, %2) : (tensor<i32>, tensor<i32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>)
 
   func.return %0#0, %0#1 : tensor<?xf32>, tensor<?xi32>
 }
@@ -362,7 +362,7 @@ func.func @reduce_c6(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1, %2) : (tensor<f32>, tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>)
 
   func.return %0#0, %0#1 : tensor<?xf32>, tensor<?xi32>
 }
@@ -380,7 +380,7 @@ func.func @reduce_c6(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
     %2 = "stablehlo.maximum"(%arg4, %arg6) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1, %2) : (tensor<f32>, tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>)
 
   func.return %0#0, %0#1 : tensor<?xf32>, tensor<?xf32>
 }
@@ -397,7 +397,7 @@ func.func @reduce_c6(%arg0: tensor<?xf32>, %arg1 : tensor<?xf32>)
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<?xf32>, tensor<?xf32>) -> tensor<?xf32>
     "stablehlo.return"(%1) : (tensor<?xf32>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<?xf32>, tensor<?xf32>) -> tensor<f32>
+  }) {dimensions = array<i64: 0>} : (tensor<?xf32>, tensor<?xf32>) -> tensor<f32>
 
   func.return %0: tensor<f32>
 }
@@ -414,7 +414,7 @@ func.func @reduce_c6(%arg0: tensor<8x5xf32>, %arg1 : tensor<4xf32>)
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
     "stablehlo.return"(%1) : (tensor<4xf32>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<8x5xf32>, tensor<4xf32>) -> tensor<5xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<8x5xf32>, tensor<4xf32>) -> tensor<5xf32>
 
   func.return %0: tensor<5xf32>
 }
@@ -432,7 +432,7 @@ func.func @reduce_c6(%arg0: tensor<4x4xi32>, %arg1 : tensor<i32>)
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<i8>, tensor<i8>) -> tensor<i8>
     "stablehlo.return"(%1) : (tensor<i8>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xi32>, tensor<i32>) -> tensor<4xi8>
+  }) {dimensions = array<i64: 0>} : (tensor<4x4xi32>, tensor<i32>) -> tensor<4xi8>
 
   func.return %0: tensor<4xi8>
 }
@@ -449,7 +449,7 @@ func.func @reduce_c6(%arg0: tensor<4x4xi32>, %arg1 : tensor<i8>)
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<i8>, tensor<i8>) -> tensor<i8>
     "stablehlo.return"(%1) : (tensor<i8>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xi32>, tensor<i8>) -> tensor<4xi8>
+  }) {dimensions = array<i64: 0>} : (tensor<4x4xi32>, tensor<i8>) -> tensor<4xi8>
 
   func.return %0: tensor<4xi8>
 }

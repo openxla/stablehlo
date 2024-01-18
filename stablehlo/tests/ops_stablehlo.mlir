@@ -1851,7 +1851,7 @@ func.func @map(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xf32
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.constant dense<2.0> : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   func.return %0 : tensor<4x5xf32>
 }
 
@@ -1864,7 +1864,7 @@ func.func @map_c3(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5x
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[1, 0]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  }) {dimensions = array<i64: 1, 0>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   func.return %0 : tensor<4x5xf32>
 }
 
@@ -1877,7 +1877,7 @@ func.func @map_c3(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5x
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[0, 1, 2]> : tensor<3xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  }) {dimensions = array<i64: 0, 1, 2>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   func.return %0 : tensor<4x5xf32>
 }
 
@@ -1890,7 +1890,7 @@ func.func @map_c4(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>) -> tensor<4xf32> {
     ^bb0(%arg: tensor<f32>):
     %1 = stablehlo.add %arg, %arg : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
   func.return %0 : tensor<4xf32>
 }
 
@@ -1903,7 +1903,7 @@ func.func @map_c4(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5x
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<5xf32>):
     %1 = stablehlo.constant dense<2.0> : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   func.return %0 : tensor<4x5xf32>
 }
 
@@ -1916,7 +1916,7 @@ func.func @map_c4(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5x
     ^bb0(%arg2: tensor<i32>, %arg3: tensor<i32>):
     %1 = stablehlo.constant dense<2.0> : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   func.return %0 : tensor<4x5xf32>
 }
 
@@ -1929,7 +1929,7 @@ func.func @map_c4(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5x
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.constant dense<2.0> : tensor<f32>
     "stablehlo.return"() : () -> ()
-  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   func.return %0 : tensor<4x5xf32>
 }
 
@@ -1942,7 +1942,7 @@ func.func @map_c4(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5x
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.constant dense<2.0> : tensor<5xf32>
     "stablehlo.return"(%1) : (tensor<5xf32>) -> ()
-  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   func.return %0 : tensor<4x5xf32>
 }
 
@@ -1953,7 +1953,7 @@ func.func @map_heterogeneous_inputs(%arg0: tensor<2xf32>, %arg1: tensor<2xi32>) 
   %0 = "stablehlo.map"(%arg0, %arg1) ({
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<i32>):
     "stablehlo.return"(%arg2) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<2xf32>, tensor<2xi32>) -> tensor<2xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<2xf32>, tensor<2xi32>) -> tensor<2xf32>
   func.return %0 : tensor<2xf32>
 }
 
@@ -1977,7 +1977,7 @@ func.func @map_scalar_operands(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<> : tensor<0xi64>} : (tensor<f32>, tensor<f32>) -> tensor<f32>
+  }) {dimensions = array<i64>} : (tensor<f32>, tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
 
@@ -1989,7 +1989,7 @@ func.func @map_unranked(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) -> tensor<*x
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
 }
 
@@ -3562,7 +3562,7 @@ func.func @gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi3
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3579,7 +3579,7 @@ func.func @gather(%operand : tensor<*xi32>, %start_indices : tensor<1x5x2xi32>) 
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8, 1, 7, 1, 6, 1]> : tensor<8xi64>,
+    slice_sizes = array<i64: 1, 1, 8, 1, 7, 1, 6, 1>,
     indices_are_sorted = false
   } : (tensor<*xi32>, tensor<1x5x2xi32>) -> tensor<8x?x7x1x6x1x?xi32>
   func.return %res : tensor<8x?x7x1x6x1x?xi32>
@@ -3596,7 +3596,7 @@ func.func @gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<*xi32>) 
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<*xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3612,7 +3612,7 @@ func.func @gather(%operand : tensor<*xi32>, %start_indices : tensor<*xi32>) -> t
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<*xi32>, tensor<*xi32>) -> tensor<*xi32>
   func.return %res : tensor<*xi32>
@@ -3630,7 +3630,7 @@ func.func @gather_c1(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3648,7 +3648,7 @@ func.func @gather_c2(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = -1
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3666,7 +3666,7 @@ func.func @gather_c2(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = 4
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3684,7 +3684,7 @@ func.func @gather_c3(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3702,7 +3702,7 @@ func.func @gather_c3(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = 3
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3720,7 +3720,7 @@ func.func @gather_c4(%operand : tensor<16x11xi32>, %start_indices : tensor<5x2xi
       start_index_map = [0, 1],
       index_vector_dim = 1
     >,
-    slice_sizes = dense<[8, 6]> : tensor<2xi64>,
+    slice_sizes = array<i64: 8, 6>,
     indices_are_sorted = false
   } : (tensor<16x11xi32>, tensor<5x2xi32>) -> tensor<5x8x6xi32>
   func.return %res : tensor<5x8x6xi32>
@@ -3738,7 +3738,7 @@ func.func @gather_c4(%operand : tensor<16x11xi32>, %start_indices : tensor<5x2xi
       start_index_map = [0, 1],
       index_vector_dim = 1
     >,
-    slice_sizes = dense<[8, 6]> : tensor<2xi64>,
+    slice_sizes = array<i64: 8, 6>,
     indices_are_sorted = false
   } : (tensor<16x11xi32>, tensor<5x2xi32>) -> tensor<5x8x6xi32>
   func.return %res : tensor<5x8x6xi32>
@@ -3756,7 +3756,7 @@ func.func @gather_c5(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3774,7 +3774,7 @@ func.func @gather_c5(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3792,7 +3792,7 @@ func.func @gather_c6(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3810,7 +3810,7 @@ func.func @gather_c6(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3828,7 +3828,7 @@ func.func @gather_c7(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3846,7 +3846,7 @@ func.func @gather_c7(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3864,7 +3864,7 @@ func.func @gather_c8(%operand : tensor<*xi32>, %start_indices : tensor<*xi32>) -
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<*xi32>, tensor<*xi32>) -> tensor<*xi32>
   func.return %res : tensor<*xi32>
@@ -3882,7 +3882,7 @@ func.func @gather_c9(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
       start_index_map = [0, 0],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3900,7 +3900,7 @@ func.func @gather_c10(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x
       start_index_map = [-2, -1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3918,7 +3918,7 @@ func.func @gather_c10(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x
       start_index_map = [0, 3],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3936,7 +3936,7 @@ func.func @gather_c11(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 8]> : tensor<2xi64>,
+    slice_sizes = array<i64: 1, 8>,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   func.return %res : tensor<1x5x8xi32>
@@ -3954,7 +3954,7 @@ func.func @gather_c11(%operand : tensor<*xi32>, %start_indices : tensor<*xi32>) 
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8, 1, 2, 3]> : tensor<6xi64>,
+    slice_sizes = array<i64: 1, 1, 8, 1, 2, 3>,
     indices_are_sorted = false
   } : (tensor<*xi32>, tensor<*xi32>) -> tensor<*xi32>
   func.return %res : tensor<*xi32>
@@ -3972,7 +3972,7 @@ func.func @gather_c12(%operand : tensor<?x?x2xi32>, %start_indices : tensor<*xi3
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, -1]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, -1>,
     indices_are_sorted = false
   } : (tensor<?x?x2xi32>, tensor<*xi32>) -> tensor<*xi32>
   func.return %res : tensor<*xi32>
@@ -3990,7 +3990,7 @@ func.func @gather_c12(%operand : tensor<?x?x2xi32>, %start_indices : tensor<*xi3
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>,
+    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<?x?x2xi32>, tensor<*xi32>) -> tensor<*xi32>
   func.return %res : tensor<*xi32>
@@ -4009,7 +4009,7 @@ func.func @gather_c14(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>
+    slice_sizes = array<i64: 1, 1, 8>
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<3xi32>
   func.return %res : tensor<3xi32>
 }
@@ -4027,7 +4027,7 @@ func.func @gather_c14(%operand : tensor<*xi32>, %start_indices : tensor<?x?x?xi3
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false,
-    slice_sizes = dense<[1, 1, 8, 1, 7, 1, 6, 1]> : tensor<8xi64>
+    slice_sizes = array<i64: 1, 1, 8, 1, 7, 1, 6, 1>
   } : (tensor<*xi32>, tensor<?x?x?xi32>) -> tensor<3xi32>
   func.return %res : tensor<3xi32>
 }
@@ -5792,7 +5792,7 @@ func.func @dynamic_iota_output_shape_mismatching_size() -> tensor<4xf32> {
 
 // CHECK-LABEL: func @broadcast_in_dim_elements
 func.func @broadcast_in_dim_elements(%arg0: tensor<1x2xi32>) -> tensor<1x2x2xi32> {
-  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[1, 2]> : tensor<2xi64>} : (tensor<1x2xi32>) -> tensor<1x2x2xi32>
+  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = array<i64: 1, 2>} : (tensor<1x2xi32>) -> tensor<1x2x2xi32>
   func.return %0 : tensor<1x2x2xi32>
 }
 
@@ -5812,7 +5812,7 @@ func.func @broadcast_in_dim_dense_array(%arg0: tensor<1x2xi32>) -> tensor<1x2x2x
 // CHECK: reverse = [true, false]
 func.func @convolution_elements(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>) -> tensor<1x6x6x16xf32> {
   %0 = "stablehlo.convolution"(%arg0, %arg1) {
-    window_reversal = dense<[true, false]> : tensor<2xi1>,
+    window_reversal = array<i1: true, false>,
     dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
     feature_group_count = 1 : i64,
     batch_group_count = 1 : i64
