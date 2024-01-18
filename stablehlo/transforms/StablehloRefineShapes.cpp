@@ -967,16 +967,16 @@ struct RefineWhileOpPattern : public OpRewritePattern<WhileOp> {
     // better error reporting for this case.
     // This serves the current use cases well, so the implementation of more
     // sophisticated refinement algorithm is left for future work.
-    rewriter.startRootUpdate(op);
+    rewriter.startOpModification(op);
     auto condStatus = refineValues(rewriter, op, op.getCond().getArguments(),
                                    op.getOperandTypes());
     auto bodyStatus = refineValues(rewriter, op, op.getBody().getArguments(),
                                    op.getOperandTypes());
     if (succeeded(condStatus) || succeeded(bodyStatus)) {
-      rewriter.finalizeRootUpdate(op);
+      rewriter.finalizeOpModification(op);
       return success();
     } else {
-      rewriter.cancelRootUpdate(op);
+      rewriter.cancelOpModification(op);
       return failure();
     }
   }
@@ -1055,7 +1055,7 @@ struct UpdateRegionTypePattern : public OpRewritePattern<ReturnOp> {
     if (!needsUpdate)
       return rewriter.notifyMatchFailure(op, "doesn't need update");
 
-    rewriter.updateRootInPlace(op->getParentOp(), [&]() { return; });
+    rewriter.modifyOpInPlace(op->getParentOp(), [&]() { return; });
     return success();
   }
 };
