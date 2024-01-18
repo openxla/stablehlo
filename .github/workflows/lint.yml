@@ -82,17 +82,17 @@ jobs:
         run: ./build_tools/github_actions/lint_buildifier.sh
 
   license-check:
-  if: "github.event_name == 'pull_request'"
-  runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
-  defaults:
-    run:
-      shell: bash
-  steps:
-    - name: Checking out repository
-      uses: actions/checkout@v4
+    if: "github.event_name == 'pull_request'"
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checking out repository
+        uses: actions/checkout@v4
 
-    - name: Install addlicense
-      run: go install github.com/google/addlicense@latest
+      - name: Install addlicense
+        run: go install github.com/google/addlicense@latest
 
-    - name: Run license checks
-      run: addlicense -check -ignore '.git/**' -ignore 'build/**' -ignore 'llvm*/**' .
+      - name: Run license checks
+        run: addlicense -check -ignore '.git/**' -ignore 'build/**' -ignore 'llvm*/**' .
