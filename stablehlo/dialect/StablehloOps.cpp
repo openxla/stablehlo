@@ -1779,7 +1779,6 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ReduceOp::Adaptor adaptor(operands, attributes, properties, regions);
   return hlo::inferReduceOp(location, adaptor.getInputs().getTypes(),
-                            adaptor.getInitValues().getTypes(),
                             adaptor.getDimensions(), adaptor.getBody(),
                             inferredReturnShapes);
 }
@@ -2293,8 +2292,9 @@ LogicalResult SelectAndScatterOp::inferReturnTypes(
     SmallVectorImpl<Type>& inferredReturnTypes) {
   SelectAndScatterOp::Adaptor adaptor(operands, attributes, properties,
                                       regions);
-  return hlo::inferSelectAndScatterOp(
-      adaptor.getOperand(), adaptor.getScatter(), inferredReturnTypes);
+  return hlo::inferSelectAndScatterOp(location, adaptor.getOperand(),
+                                      adaptor.getScatter(),
+                                      inferredReturnTypes);
 }
 
 LogicalResult SelectAndScatterOp::verify() {

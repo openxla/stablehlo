@@ -505,8 +505,8 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
 
 LogicalResult verifyReduceOpInputsAndInferShape(
     std::optional<Location> location, SmallVector<ShapedType> inputTypes,
-    SmallVector<ShapedType> initValueTypes, ArrayRef<int64_t> dimensions,
-    SmallVector<int64_t>& newDimensions, Attribute& encoding) {
+    ArrayRef<int64_t> dimensions, SmallVector<int64_t>& newDimensions,
+    Attribute& encoding) {
   // Check for unranked tensors in input operands.
   uint64_t numInputs = inputTypes.size();
   int64_t rankedInputIdx = -1;
@@ -568,13 +568,17 @@ LogicalResult verifyReduceOpInputsAndInferShape(
 
 // Returns the types of the terminator arguments of the input  mlir::Block
 // 'block'.
-SmallVector<ShapedType> getAccumulatorTypes(Block& block) {
-  SmallVector<ShapedType> accumulatorSubShapes;
-  for (Value retOperand : block.getTerminator()->getOperands()) {
-    auto shapedTy = retOperand.getType().cast<ShapedType>();
-    accumulatorSubShapes.push_back(shapedTy);
+FailureOr<SmallVector<ShapedType>> getAccumulatorTypes(
+    std::optional<Location> loc, Region& region) {
+  if (region.empty()) {
+    return emitOptionalError(
+        loc, "Expects non-empty reduction block for type inference");
   }
-  return accumulatorSubShapes;
+
+  Block& block = region.front();
+  return llvm::to_vector(
+      llvm::map_range(block.getTerminator()->getOperands(),
+                      [&](Value v) { return v.getType().cast<ShapedType>(); }));
 }
 
 LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
@@ -1497,14 +1501,20 @@ LogicalResult inferAllToAllOp(
 }
 
 LogicalResult inferAllReduceOp(
-    std::optional<Location> location, Value operand, Region& computation,
+    std::optional<Location> location, ValueRange operands, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  TypeRange inputTypes = operands.getTypes();
+  SmallVector<ShapedType> inputArgTensorTypes{
+      llvm::map_range(inputTypes, [](Type t) { return t.cast<ShapedType>(); })};
   // all_reduce_c6, all_reduce_c7
-  SmallVector<ShapedType> accumulatorTypes =
-      getAccumulatorTypes(computation.front());
-  auto operandShapedTy = operand.getType().cast<ShapedType>();
-  inferredReturnShapes.emplace_back(getSameShapeTensorType(
-      operandShapedTy, accumulatorTypes[0].getElementType()));
+  auto accumulatorTypesOrErr = getAccumulatorTypes(location, computation);
+  if (failed(accumulatorTypesOrErr)) return failure();
+  for (size_t inputIdx = 0; inputIdx < inputTypes.size(); ++inputIdx) {
+    inferredReturnShapes.emplace_back(
+        getSameShapeTensorType(inputArgTensorTypes[inputIdx],
+                               (*accumulatorTypesOrErr)[0].getElementType()));
+  }
+
   return success();
 }
 
@@ -2571,25 +2581,23 @@ LogicalResult inferRealOp(std::optional<Location>, Value operand,
 
 LogicalResult inferReduceOp(
     std::optional<Location> location, TypeRange inputTypes,
-    TypeRange initValueTypes, ArrayRef<int64_t> dimensions, Region& body,
+    ArrayRef<int64_t> dimensions, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SmallVector<ShapedType> inputArgTensorTypes{
       llvm::map_range(inputTypes, [](Type t) { return t.cast<ShapedType>(); })};
-  SmallVector<ShapedType> initValueTensorTypes{llvm::map_range(
-      initValueTypes, [](Type t) { return t.cast<ShapedType>(); })};
 
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
   // reduce_c1, reduce_c4, reduce_c5, reduce_i3
-  if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTensorTypes,
-                                               initValueTensorTypes, dimensions,
-                                               newDimensions, encoding)))
+  if (failed(verifyReduceOpInputsAndInferShape(
+          location, inputArgTensorTypes, dimensions, newDimensions, encoding)))
     return failure();
   // reduce_c3, reduce_c7, reduce_c8
-  SmallVector<ShapedType> accumulatorTypes = getAccumulatorTypes(body.front());
+  auto accumulatorTypesOrErr = getAccumulatorTypes(location, body);
+  if (failed(accumulatorTypesOrErr)) return failure();
   for (uint64_t inputIdx = 0; inputIdx < inputTypes.size(); ++inputIdx) {
     ShapedType inputType = inputArgTensorTypes[inputIdx];
-    Type elementType = accumulatorTypes[inputIdx].getElementType();
+    Type elementType = (*accumulatorTypesOrErr)[inputIdx].getElementType();
     if (inputType.hasRank())
       inferredReturnShapes.emplace_back(newDimensions, elementType, encoding);
     else
@@ -2622,22 +2630,24 @@ LogicalResult inferReduceWindowOp(
     return failure();
 
   // reduce_window_c1, reduce_window_c14...reduce_window_c16
-  SmallVector<ShapedType> accumulatorTypes = getAccumulatorTypes(body.front());
+  auto accumulatorTypesOrErr = getAccumulatorTypes(location, body);
+  if (failed(accumulatorTypesOrErr)) return failure();
   for (size_t i = 0; i < inputTypes.size(); ++i) {
     auto inputRankedType = inputs[i].getType().dyn_cast<RankedTensorType>();
     if (!inputRankedType) {
-      inferredReturnShapes.emplace_back(accumulatorTypes[i].getElementType());
+      inferredReturnShapes.emplace_back(
+          (*accumulatorTypesOrErr)[i].getElementType());
     } else {
       auto resultShape =
           inferWindowOutputShape(inputTypes[i].getShape(), inferredWindow);
       auto inputBounds = encodingToBounds(inputRankedType.getEncoding());
       if (inputBounds.empty()) {
-        inferredReturnShapes.emplace_back(resultShape,
-                                          accumulatorTypes[i].getElementType());
+        inferredReturnShapes.emplace_back(
+            resultShape, (*accumulatorTypesOrErr)[i].getElementType());
       } else {
         auto resultBounds = inferWindowOutputShape(inputBounds, inferredWindow);
         inferredReturnShapes.emplace_back(
-            resultShape, accumulatorTypes[i].getElementType(),
+            resultShape, (*accumulatorTypesOrErr)[i].getElementType(),
             boundsToEncoding(inputRankedType.getEncoding(), resultBounds));
       }
     }
@@ -2701,16 +2711,16 @@ LogicalResult inferRngOp(
   return success();
 }
 
-LogicalResult inferScatterOp(std::optional<Location>, ValueRange inputs,
-                             Region& updateComputation,
+LogicalResult inferScatterOp(std::optional<Location> location,
+                             ValueRange inputs, Region& updateComputation,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   // scatter_c16, scatter_c17
-  SmallVector<ShapedType> accumulatorTypes =
-      getAccumulatorTypes(updateComputation.front());
+  auto accumulatorTypesOrErr = getAccumulatorTypes(location, updateComputation);
+  if (failed(accumulatorTypesOrErr)) return failure();
   for (uint64_t inputIdx = 0; inputIdx < inputs.size(); ++inputIdx) {
     auto inputShapedTy = inputs[inputIdx].getType().cast<ShapedType>();
     inferredReturnTypes.push_back(getSameShapeTensorType(
-        inputShapedTy, accumulatorTypes[inputIdx].getElementType()));
+        inputShapedTy, (*accumulatorTypesOrErr)[inputIdx].getElementType()));
   }
   return success();
 }
@@ -2741,14 +2751,14 @@ LogicalResult inferSelectOp(
 }
 
 LogicalResult inferSelectAndScatterOp(
-    Value operand, Region& scatter,
+    std::optional<Location> location, Value operand, Region& scatter,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   // select_and_scatter_c11, select_and_scatter_c12
-  SmallVector<ShapedType> accumulatorTypes =
-      getAccumulatorTypes(scatter.front());
+  auto accumulatorTypesOrErr = getAccumulatorTypes(location, scatter);
+  if (failed(accumulatorTypesOrErr)) return failure();
   auto operandShapedTy = operand.getType().cast<ShapedType>();
   inferredReturnTypes.push_back(getSameShapeTensorType(
-      operandShapedTy, accumulatorTypes[0].getElementType()));
+      operandShapedTy, (*accumulatorTypesOrErr)[0].getElementType()));
   return success();
 }
 
@@ -3774,8 +3784,7 @@ LogicalResult verifyReduceOp(std::optional<Location> location,
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
   // reduce_c1, reduce_c4, reduce_c5, reduce_i3
-  if (failed(verifyReduceOpInputsAndInferShape(location, inputTypes,
-                                               initValueTypes, dimensions,
+  if (failed(verifyReduceOpInputsAndInferShape(location, inputTypes, dimensions,
                                                newDimensions, encoding)))
     return failure();
 
@@ -3876,12 +3885,13 @@ LogicalResult verifyReduceScatterOp(std::optional<Location> location,
   }
 
   // reduce_scatter_c9
-  SmallVector<ShapedType> accumulatorTypes =
-      getAccumulatorTypes(computation.front());
-  if (resultType.getElementType() != accumulatorTypes[0].getElementType()) {
+  auto accumulatorTypesOrErr = getAccumulatorTypes(location, computation);
+  if (failed(accumulatorTypesOrErr)) return failure();
+  if (resultType.getElementType() !=
+      (*accumulatorTypesOrErr)[0].getElementType()) {
     return emitOptionalError(location, "result element-type is expected to be ",
-                             accumulatorTypes[0].getElementType(), ", but got ",
-                             resultType.getElementType());
+                             (*accumulatorTypesOrErr)[0].getElementType(),
+                             ", but got ", resultType.getElementType());
   }
 
   return success();
