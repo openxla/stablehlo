@@ -830,7 +830,7 @@ Afterwards, within each `process_group`:
 }) {
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
   channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-} : (tensor<i64>) -> tensor<i64>
+} : (tensor<4xi64>) -> tensor<4xi64>
 // %result@(0, 0): [6, 8, 10, 12]
 // %result@(1, 0): [6, 8, 10, 12]
 ```
