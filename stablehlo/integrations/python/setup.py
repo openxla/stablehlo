@@ -1,7 +1,4 @@
 """This setup.py builds a wheel file assuming that StableHLO is already built
-
-Much of what is written here was largely inspired (or copied) from
-https://github.com/makslevental/pristine-llvm-release/blob/main/setup.py
 """
 from setuptools import find_namespace_packages, setup, Distribution
 import os
@@ -9,7 +6,7 @@ import subprocess
 
 
 class BinaryDistribution(Distribution):
-  """Distribution which always forces a binary package with platform name"""
+  """Force distribution which always forces a binary package"""
 
   def has_ext_modules(foo):
     return True
