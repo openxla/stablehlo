@@ -17,8 +17,8 @@ func.func @select_and_scatter(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
     func.return %1 : tensor<10x24x24x64xf32>
@@ -42,8 +42,8 @@ func.func @select_and_scatter_with_promotable_types(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f64>
       "stablehlo.return"(%2) : (tensor<f64>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf64>
@@ -71,8 +71,8 @@ func.func @select_and_scatter_with_promotable_quantized_types(
     %2 = stablehlo.add %arg3, %arg4 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
     "stablehlo.return"(%2) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
   }) {
-    window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-    window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
   } : (tensor<10x24x24x64x!quant.uniform<i8:f32, 2.000000e+00:15>>,
       tensor<10x12x12x64x!quant.uniform<i8:f32, 2.000000e+00:15>>,
       tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
@@ -104,8 +104,8 @@ func.func @select_and_scatter_with_unranked_dims(
     "stablehlo.return"(%4) : (tensor<*xbf16>) -> ()
   }) {
     padding = dense<0> : tensor<4x2xi64>,
-    window_dimensions = dense<[2, 3, 1, 1]> : tensor<4xi64>,
-    window_strides = dense<[2, 2, 1, 1]> : tensor<4xi64>}
+    window_dimensions = array<i64: 2, 3, 1, 1>,
+    window_strides = array<i64: 2, 2, 1, 1>}
   : (tensor<4x5x1x1xbf16>, tensor<2x2x1x1xbf16>, tensor<bf16>) ->
       tensor<?x?x?x?xbf16>
   func.return %3 : tensor<?x?x?x?xbf16>
@@ -129,8 +129,8 @@ func.func @select_and_scatter_c1(
       %2 = stablehlo.add %arg3, %arg4 : tensor<i32>
       "stablehlo.return"(%2) : (tensor<i32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xi32>, tensor<i32>) ->
           tensor<10x24x24x64xf32>
@@ -155,8 +155,8 @@ func.func @select_and_scatter_c2(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x32xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -181,8 +181,8 @@ func.func @select_and_scatter_c3_c11(
       %2 = stablehlo.add %arg3, %arg3 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -207,7 +207,7 @@ func.func @select_and_scatter_c4(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+      window_strides = array<i64: 1, 2, 2, 1>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
     func.return %1 : tensor<10x24x24x64xf32>
@@ -231,8 +231,8 @@ func.func @select_and_scatter_c5(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 0]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 0>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -257,8 +257,8 @@ func.func @select_and_scatter_c6(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2]> : tensor<3xi64>
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
     func.return %1 : tensor<10x24x24x64xf32>
@@ -283,8 +283,8 @@ func.func @select_and_scatter_c7(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[0, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 0, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -310,8 +310,8 @@ func.func @select_and_scatter_c8(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<3x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -336,8 +336,8 @@ func.func @select_and_scatter_c8(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x3xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -363,8 +363,8 @@ func.func @select_and_scatter_c9(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
     func.return %1 : tensor<10x24x24x64xf32>
@@ -388,8 +388,8 @@ func.func @select_and_scatter_c9(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
     func.return %1 : tensor<10x24x24x64xf32>
@@ -414,8 +414,8 @@ func.func @select_and_scatter_c9(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
     func.return %1 : tensor<10x24x24x64xf32>
@@ -439,8 +439,8 @@ func.func @select_and_scatter_c9(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
     func.return %1 : tensor<10x24x24x64xf32>
@@ -466,8 +466,8 @@ func.func @select_and_scatter_c9(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
 
@@ -493,8 +493,8 @@ func.func @select_and_scatter_c9(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
     func.return %1 : tensor<10x24x24x64xf32>
@@ -518,8 +518,8 @@ func.func @select_and_scatter_c10(
       %2 = stablehlo.add %arg3, %arg3 : tensor<f32>
       "stablehlo.return"(%2) : (tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -544,8 +544,8 @@ func.func @select_and_scatter_c10(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"() : () -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -570,8 +570,8 @@ func.func @select_and_scatter_c10(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
       "stablehlo.return"(%2, %2) : (tensor<f32>, tensor<f32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -597,8 +597,8 @@ func.func @select_and_scatter_c10(
       %3 = "stablehlo.tuple"(%2) : (tensor<f32>) -> tuple<tensor<f32>>
       "stablehlo.return"(%3) : (tuple<tensor<f32>>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -623,8 +623,8 @@ func.func @select_and_scatter_c10(
       %2 = "llvm.add" (%arg3, %arg4) : (f32, f32) -> f32
       "stablehlo.return"(%2) : (f32) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -649,8 +649,8 @@ func.func @select_and_scatter_c10(
       %2 = stablehlo.constant dense<0> : tensor<i32>
       "stablehlo.return"(%2) : (tensor<i32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -675,8 +675,8 @@ func.func @select_and_scatter_c10(
       %2 = stablehlo.add %arg3, %arg4 : tensor<i32>
       "stablehlo.return"(%2) : (tensor<i32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
@@ -701,8 +701,8 @@ func.func @select_and_scatter_c10(
       %2 = stablehlo.add %arg3, %arg4 : tensor<i32>
       "stablehlo.return"(%2) : (tensor<i32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<i32>) ->
           tensor<10x24x24x64xf32>
@@ -727,8 +727,8 @@ func.func @select_and_scatter_c10(
       %2 = stablehlo.add %arg3, %arg4 : tensor<1xf32>
       "stablehlo.return"(%2) : (tensor<1xf32>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<1xf32>) ->
           tensor<10x24x24x64xf32>
@@ -755,8 +755,8 @@ func.func @select_and_scatter_c10(
     %2 = stablehlo.add %arg3, %arg4 : tensor<i8>
     "stablehlo.return"(%2) : (tensor<i8>) -> ()
   }) {
-    window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-    window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
   } : (tensor<10x24x24x64xi32>, tensor<10x12x12x64xi32>, tensor<i32>) ->
         tensor<10x24x24x64xi8>
   func.return %1 : tensor<10x24x24x64xi8>
@@ -780,8 +780,8 @@ func.func @select_and_scatter_c10(
       %2 = stablehlo.add %arg3, %arg4 : tensor<i8>
       "stablehlo.return"(%2) : (tensor<i8>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<i8>) ->
           tensor<10x24x24x64xf32>
@@ -809,8 +809,8 @@ func.func @select_and_scatter_c10(
     %2 = stablehlo.add %arg3, %arg4 : tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>
     "stablehlo.return"(%2) : (tensor<!quant.uniform<i32:f64, 2.000000e+00:15>>) -> ()
   }) {
-    window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-    window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
   } : (tensor<10x24x24x64x!quant.uniform<i8:f32, 2.000000e+00:15>>,
       tensor<10x12x12x64x!quant.uniform<i8:f32, 2.000000e+00:15>>,
       tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) ->

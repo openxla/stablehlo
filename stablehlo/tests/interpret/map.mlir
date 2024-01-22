@@ -8,7 +8,7 @@ func.func @map_op_test_si64() {
       %0 = stablehlo.multiply %arg0, %arg1 : tensor<i64>
       stablehlo.return %0 : tensor<i64>
   }) {
-    dimensions = dense<[0, 1]> : tensor<2xi64>
+    dimensions = array<i64: 0, 1>
   } : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<2x2xi64>
   check.expect_eq_const %result, dense<[[0, 5], [12, 21]]> : tensor<2x2xi64>
   func.return
