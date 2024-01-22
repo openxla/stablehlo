@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "PassDetail.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Bufferization/IR/Bufferization.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -38,6 +37,9 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir::stablehlo {
+
+#define GEN_PASS_DEF_STABLEHLOLEGALIZETOLINALGPASS
+#include "stablehlo/conversions/linalg/transforms/Passes.h.inc"
 
 namespace {
 
@@ -2570,14 +2572,9 @@ static void populateConversionPatterns(MLIRContext *context,
   linalg::populateEraseUnusedOperandsAndResultsPatterns(*patterns);
 }
 
-class StablehloLegalizeToLinalgPass
-    : public StablehloLegalizeToLinalgBase<StablehloLegalizeToLinalgPass> {
- public:
-  void getDependentDialects(DialectRegistry &registry) const override {
-    registry.insert<bufferization::BufferizationDialect, linalg::LinalgDialect,
-                    scf::SCFDialect, complex::ComplexDialect, math::MathDialect,
-                    memref::MemRefDialect, shape::ShapeDialect>();
-  }
+struct StablehloLegalizeToLinalgPass
+    : impl::StablehloLegalizeToLinalgPassBase<StablehloLegalizeToLinalgPass> {
+  using StablehloLegalizeToLinalgPassBase::StablehloLegalizeToLinalgPassBase;
 
   void runOnOperation() override {
     auto *context = &getContext();
@@ -2603,14 +2600,3 @@ class StablehloLegalizeToLinalgPass
 };
 }  // namespace
 }  // namespace mlir::stablehlo
-
-std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
-mlir::stablehlo::createStablehloLegalizeToLinalgPass() {
-  return std::make_unique<StablehloLegalizeToLinalgPass>();
-}
-
-void mlir::stablehlo::registerStablehloLegalizeToLinalgPass() {
-  mlir::registerPass([]() -> std::unique_ptr<mlir::Pass> {
-    return mlir::stablehlo::createStablehloLegalizeToLinalgPass();
-  });
-}

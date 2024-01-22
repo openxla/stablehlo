@@ -366,7 +366,6 @@ cc_library(
     hdrs = [
         "stablehlo/conversions/linalg/transforms/LegalizeToLinalgUtils.h",
         "stablehlo/conversions/linalg/transforms/MapStablehloToScalarOp.h",
-        "stablehlo/conversions/linalg/transforms/PassDetail.h",
         "stablehlo/conversions/linalg/transforms/Passes.h",
         "stablehlo/conversions/linalg/transforms/Rewriters.h",
         "stablehlo/conversions/linalg/transforms/TypeConversion.h",

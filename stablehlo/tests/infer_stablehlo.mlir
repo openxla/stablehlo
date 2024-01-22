@@ -193,7 +193,7 @@ func.func @gather_c13(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>
+    slice_sizes = array<i64: 1, 1, 8>
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   // CHECK: types0 = tensor<1x5x8xi32>
   %1 = "hlo_test_infer.get_return_types"(%res) : (tensor<1x5x8xi32>) -> tensor<1x5x8xindex>
@@ -212,7 +212,7 @@ func.func @gather_bounds(%operand : tensor<?x?x?xi32, #stablehlo.bounds<2, 4, 8>
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>
+    slice_sizes = array<i64: 1, 1, 8>
   } : (tensor<?x?x?xi32, #stablehlo.bounds<2, 4, 8>>, tensor<?x?x?xi32, #stablehlo.bounds<16, 32, 64>>)
   -> tensor<?x?x8xi32>
 
@@ -467,7 +467,7 @@ func.func @map(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xind
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.constant dense<2.0> : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   // CHECK: types0 = tensor<4x5xf32>
   %2 = "hlo_test_infer.get_return_types"(%0) : (tensor<4x5xf32>) -> tensor<4x5xindex>
   func.return %2 : tensor<4x5xindex>
@@ -619,8 +619,8 @@ func.func @select_and_scatter_c11_c12(
     %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
     "stablehlo.return"(%2) : (tensor<f32>) -> ()
   }) {
-    window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-    window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
   } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
         tensor<10x24x24x64xf32>
   // CHECK: types0 = tensor<10x24x24x64xf32>
@@ -647,8 +647,8 @@ func.func @select_and_scatter_c11_c12(
     %2 = stablehlo.add %arg3, %arg4 : tensor<f64>
     "stablehlo.return"(%2) : (tensor<f64>) -> ()
   }) {
-    window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-    window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
   } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
         tensor<10x24x24x64xf64>
   %2 = "hlo_test_infer.get_return_types"(%1) : (tensor<10x24x24x64xf64>) -> tensor<10x24x24x64xindex>
@@ -879,7 +879,7 @@ func.func @reduce(%arg0: tensor<7x5xf32>, %arg1 : tensor<5xf32>)
   ^bb0(%arg2: tensor<5xf32>, %arg3: tensor<5xf32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<5xf32>, tensor<5xf32>) -> tensor<5xf32>
     "stablehlo.return"(%1) : (tensor<5xf32>) -> ()
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<7x5xf32>, tensor<5xf32>) -> tensor<5xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<7x5xf32>, tensor<5xf32>) -> tensor<5xf32>
   // CHECK: types0 = tensor<5xf32>
   %2 = "hlo_test_infer.get_return_types"(%0)
       : (tensor<5xf32>) -> tensor<5xindex>
@@ -899,7 +899,7 @@ func.func @reduce(%arg0: tensor<4x?xf32>, %arg1 : tensor<4xf32>)-> (tensor<1xind
   ^bb0(%arg2: tensor<4xf32>, %arg3: tensor<4xf32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
     "stablehlo.return"(%1) : (tensor<4xf32>) -> ()
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x?xf32>, tensor<4xf32>) -> tensor<?xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<4x?xf32>, tensor<4xf32>) -> tensor<?xf32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?xf32>) -> tensor<1xindex>
   func.return %1: tensor<1xindex>
 }
@@ -913,7 +913,7 @@ func.func @reduce_unranked(%arg0: tensor<*xf32>, %arg1 : tensor<f32>)
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<*xf32>, tensor<f32>) -> tensor<*xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<*xf32>, tensor<f32>) -> tensor<*xf32>
   // CHECK: types0 = tensor<*xf32>
   %2 = "hlo_test_infer.get_return_types"(%0)
       : (tensor<*xf32>) -> tensor<*xindex>
@@ -929,7 +929,7 @@ func.func @reduce_c7(%arg0: tensor<7x5xf32>, %arg1 : tensor<5xf32>) -> tensor<6x
   ^bb0(%arg2: tensor<5xf32>, %arg3: tensor<5xf32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<5xf32>, tensor<5xf32>) -> tensor<5xf32>
     "stablehlo.return"(%1) : (tensor<5xf32>) -> ()
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<7x5xf32>, tensor<5xf32>) -> tensor<6xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<7x5xf32>, tensor<5xf32>) -> tensor<6xf32>
   func.return %0: tensor<6xf32>
 }
 
@@ -945,7 +945,7 @@ func.func @reduce_c8(%arg0: tensor<4x4xf32>, %arg1 : tensor<f32>)
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f64>, tensor<f64>) -> tensor<f64>
     "stablehlo.return"(%1) : (tensor<f64>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<f32>) -> tensor<4xf32>
+  }) {dimensions = array<i64: 0>} : (tensor<4x4xf32>, tensor<f32>) -> tensor<4xf32>
 
   func.return %0: tensor<4xf32>
 }
@@ -963,7 +963,7 @@ func.func @reduce_c3_c7(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<i32>, tensor<i32>) -> tensor<i32>
     "stablehlo.return"(%1, %2) : (tensor<f32>, tensor<i32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>, tensor<?xi32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>, tensor<?xi32>)
 
   func.return %0#0: tensor<?xf32>
 }
@@ -981,7 +981,7 @@ func.func @reduce_c7_c8(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
     %2 = "stablehlo.add"(%arg5, %arg7) : (tensor<i32>, tensor<i32>) -> tensor<i32>
     "stablehlo.return"(%1, %2) : (tensor<f32>, tensor<i32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?x?xf32>)
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<?x?xi32>, tensor<f32>, tensor<i32>) -> (tensor<?xf32>, tensor<?x?xf32>)
 
   func.return %0#0: tensor<?xf32>
 }
@@ -998,7 +998,7 @@ func.func @reduce_c8(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
 
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xi32>
+  }) {dimensions = array<i64: 1>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xi32>
 
   func.return %0: tensor<?xi32>
 }
@@ -1030,8 +1030,9 @@ func.func @reduce_window(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
               "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
             })
          { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
-           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
-           window_strides = dense<[3, 1]> : tensor<2xi64> }
+           window_dimensions = array<i64: 5, 1>,
+           window_strides = array<i64: 3, 1>
+         }
          : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
               (tensor<2x2xf32>, tensor<2x2xi32>)
 
@@ -1055,8 +1056,8 @@ func.func @reduce_window_c1(%arg0: tensor<4x2xf32>,
               "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
             })
          { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
-           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
-           window_strides = dense<[3, 1]> : tensor<2xi64>
+           window_dimensions = array<i64: 5, 1>,
+           window_strides = array<i64: 3, 1>
          }
          : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
               tensor<2x2xf32>
@@ -1078,8 +1079,8 @@ func.func @reduce_window_c14_c15(%arg0: tensor<4x2xf32>,
               "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
             })
          { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
-           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
-           window_strides = dense<[3, 1]> : tensor<2xi64>
+           window_dimensions = array<i64: 5, 1>,
+           window_strides = array<i64: 3, 1>
          }
          : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
               (tensor<2x2xf32>, tensor<2x3xi32>)
@@ -1101,8 +1102,8 @@ func.func @reduce_window_c16(%arg0: tensor<4x2xf32>,
               "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
             })
          { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
-           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
-           window_strides = dense<[3, 1]> : tensor<2xi64>
+           window_dimensions = array<i64: 5, 1>,
+           window_strides = array<i64: 3, 1>
          }
          : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
               (tensor<2x2xi32>, tensor<2x2xi32>)
@@ -1121,8 +1122,8 @@ func.func @reduce_window_c16(%arg0: tensor<4x2xf32>, %init0: tensor<f32>) ->
               "stablehlo.return"(%1) : (tensor<f64>) -> ()
             })
          { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
-           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
-           window_strides = dense<[3, 1]> : tensor<2xi64>
+           window_dimensions = array<i64: 5, 1>,
+           window_strides = array<i64: 3, 1>
          }
          : (tensor<4x2xf32>, tensor<f32>) -> (tensor<2x2xf32>)
   func.return %0 : tensor<2x2xf32>
@@ -1561,7 +1562,7 @@ func.func @gather(%operand : tensor<3x4x2xi32>, %start_indices : tensor<?x3x2xi6
       collapsed_slice_dims = [0],
       start_index_map = [1, 0],
       index_vector_dim = 2>,
-      slice_sizes = dense<[1, 2, 2]> : tensor<3xi64>,
+      slice_sizes = array<i64: 1, 2, 2>,
       indices_are_sorted = false
   } : (tensor<3x4x2xi32>, tensor<?x3x2xi64>) -> tensor<?x3x2x2xi32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<?x3x2x2xi32>) -> tensor<4xindex>
@@ -1631,7 +1632,7 @@ func.func @reduce_with_bounds(%arg0: tensor<?x?x5xf32, #stablehlo.bounds<3, 7, ?
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<5xf32>, tensor<5xf32>) -> tensor<5xf32>
     "stablehlo.return"(%1) : (tensor<5xf32>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>}
+  }) {dimensions = array<i64: 0>}
       : (tensor<?x?x5xf32, #stablehlo.bounds<3, 7, ?>>, tensor<5xf32>)
           -> tensor<?x5xf32, #stablehlo.bounds<7, ?>>
 
@@ -1653,7 +1654,7 @@ func.func @reduce_with_scalar_result(%arg0: tensor<?xf32, #stablehlo.bounds<3>>,
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>}
+  }) {dimensions = array<i64: 0>}
       : (tensor<?xf32, #stablehlo.bounds<3>>, tensor<f32>)
           -> tensor<*xf32>
 
@@ -1820,8 +1821,8 @@ func.func @select_and_scatter_bound(
     %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
     "stablehlo.return"(%2) : (tensor<f32>) -> ()
   }) {
-    window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-    window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
   } : (tensor<?x24x24x64xf32, #stablehlo.bounds<10, ?, ?, ?>>,
        tensor<?x12x12x64xf32, #stablehlo.bounds<10, ?, ?, ?>>,
        tensor<f32>) -> tensor<*xf32>
@@ -1841,8 +1842,8 @@ func.func @reduce_window_bound(%arg0: tensor<4x?x?x?xf32, #stablehlo.bounds<?, ?
     "stablehlo.return"(%2) : (tensor<f32>) -> ()
   }) {
     padding = dense<[[0, 0], [0, 0], [2, 2], [0, 0]]> : tensor<4x2xi64>,
-    window_dimensions = dense<[1, 1, 5, 1]> : tensor<4xi64>,
-    window_strides = dense<[1, 1, 3, 1]> : tensor<4xi64>
+    window_dimensions = array<i64: 1, 1, 5, 1>,
+    window_strides = array<i64: 1, 1, 3, 1>
   } : (tensor<4x?x?x?xf32, #stablehlo.bounds<?, ?, 4, 2>>,
        tensor<f32>) -> (tensor<*xf32>)
   // CHECK: types0 = tensor<4x?x?x?xf32, #stablehlo.bounds<?, ?, 2, 2>>

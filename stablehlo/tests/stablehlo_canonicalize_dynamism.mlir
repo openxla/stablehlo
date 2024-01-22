@@ -214,9 +214,9 @@ func.func @dynamic_conv_success_static_result_type(%arg0: tensor<100x26x26x32xf3
   %0 = stablehlo.constant dense<2> : tensor<2x2xi32>
   %1 = "stablehlo.dynamic_conv"(%arg0, %arg1, %0) {
     dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
-    window_strides = dense<1> : tensor<2xi64>,
-    lhs_dilation = dense<1> : tensor<2xi64>,
-    rhs_dilation = dense<1> : tensor<2xi64>,
+    window_strides = array<i64: 1, 1>,
+    lhs_dilation = array<i64: 1, 1>,
+    rhs_dilation = array<i64: 1, 1>,
     feature_group_count = 1 : i64,
     batch_group_count = 1 : i64
   } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>, tensor<2x2xi32>) -> tensor<100x28x28x1xf32>
@@ -242,9 +242,9 @@ func.func @dynamic_conv_success_dynamic_result_type(%arg0: tensor<100x26x26x32xf
   %0 = stablehlo.constant dense<2> : tensor<2x2xi32>
   %1 = "stablehlo.dynamic_conv"(%arg0, %arg1, %0) {
     dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
-    window_strides = dense<1> : tensor<2xi64>,
-    lhs_dilation = dense<1> : tensor<2xi64>,
-    rhs_dilation = dense<1> : tensor<2xi64>,
+    window_strides = array<i64: 1, 1>,
+    lhs_dilation = array<i64: 1, 1>,
+    rhs_dilation = array<i64: 1, 1>,
     feature_group_count = 1 : i64,
     batch_group_count = 1 : i64
   } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>, tensor<2x2xi32>) -> tensor<?x28x28x1xf32>
@@ -258,9 +258,9 @@ func.func @dynamic_conv_inapplicable_dynamic_padding(%arg0: tensor<100x26x26x32x
   // CHECK: stablehlo.dynamic_conv
   %0 = "stablehlo.dynamic_conv"(%arg0, %arg1, %arg2) {
     dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
-    window_strides = dense<1> : tensor<2xi64>,
-    lhs_dilation = dense<1> : tensor<2xi64>,
-    rhs_dilation = dense<1> : tensor<2xi64>,
+    window_strides = array<i64: 1, 1>,
+    lhs_dilation = array<i64: 1, 1>,
+    rhs_dilation = array<i64: 1, 1>,
     feature_group_count = 1 : i64,
     batch_group_count = 1 : i64
   } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>, tensor<2x2xi32>) -> tensor<100x28x28x1xf32>

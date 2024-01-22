@@ -651,7 +651,7 @@ func.func @map_mixed(%arg0: tensor<?xf32>,
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>}
+  }) {dimensions = array<i64: 0>}
   : (tensor<?xf32>, tensor<4xf32>) -> tensor<?xf32>
   func.return %0 : tensor<?xf32>
 }
@@ -671,7 +671,7 @@ func.func @map_one_arg(%arg0: tensor<?xf32>) -> tensor<?xf32> {
   ^bb0(%arg2: tensor<f32>):
     %1 = stablehlo.add %arg2, %arg2 : tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>}
+  }) {dimensions = array<i64: 0>}
   : (tensor<?xf32>) -> tensor<?xf32>
   func.return %0 : tensor<?xf32>
 }
@@ -702,7 +702,7 @@ func.func @map_compare(%arg0: tensor<?xcomplex<f32>>,
        {comparison_direction = #stablehlo<comparison_direction EQ>}
        : (tensor<f32>, tensor<f32>) -> tensor<i1>
     "stablehlo.return"(%3) : (tensor<i1>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>}
+  }) {dimensions = array<i64: 0>}
   : (tensor<?xcomplex<f32>>, tensor<?xcomplex<f32>>) -> tensor<?xi1>
   func.return %0 : tensor<?xi1>
 }
@@ -1089,8 +1089,8 @@ func.func @select_and_scatter(%arg0 : tensor<2x8x8x1xf32>, %arg1 : tensor<2x4x4x
     stablehlo.return %9 : tensor<f32>
   }) {
     padding = dense<0> : tensor<4x2xi64>,
-    window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-    window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
   } : (tensor<2x8x8x1xf32>, tensor<2x4x4x1xf32>, tensor<f32>) -> tensor<2x8x8x1xf32>
 
   return %0 : tensor<2x8x8x1xf32>

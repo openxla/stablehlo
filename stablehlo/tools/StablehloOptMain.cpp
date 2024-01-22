@@ -31,9 +31,8 @@ int main(int argc, char **argv) {
   mlir::hlo::registerAllTestPasses();
   mlir::stablehlo::registerPassPipelines();
   mlir::stablehlo::registerPasses();
-  mlir::stablehlo::registerStablehloLegalizeToLinalgPass();
-  mlir::tosa::registerStablehloLegalizeToTosaPassPass();
-  mlir::tosa::registerStablehloPrepareForTosaPassPass();
+  mlir::stablehlo::registerStablehloLinalgTransformsPasses();
+  mlir::tosa::registerStablehloTOSATransformsPasses();
 
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);

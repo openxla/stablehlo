@@ -8,7 +8,7 @@ func.func @reduce() {
       %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
       stablehlo.return %0 : tensor<i64>
   }) {
-    dimensions = dense<1> : tensor<1xi64>
+    dimensions = array<i64: 1>
   } : (tensor<1x6xi64>, tensor<i64>) -> tensor<1xi64>
   check.expect_eq_const %result, dense<[15]> : tensor<1xi64>
   func.return

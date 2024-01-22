@@ -8,11 +8,11 @@ func.func @reduce_window() {
       %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
       stablehlo.return %0 : tensor<i64>
   }) {
-    base_dilations = dense<[2, 1]> : tensor<2xi64>,
+    base_dilations = array<i64: 2, 1>,
     padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>,
-    window_dilations = dense<[3, 1]> : tensor<2xi64>,
-    window_dimensions = dense<[2, 1]> : tensor<2xi64>,
-    window_strides = dense<[4, 1]> : tensor<2xi64>
+    window_dilations = array<i64: 3, 1>,
+    window_dimensions = array<i64: 2, 1>,
+    window_strides = array<i64: 4, 1>
   } : (tensor<3x2xi64>, tensor<i64>) -> tensor<2x2xi64>
   check.expect_eq_const %result, dense<[[0, 0], [3, 4]]> : tensor<2x2xi64>
   func.return
@@ -28,11 +28,11 @@ func.func @reduce_window_issue_1662() {
       %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
       stablehlo.return %0 : tensor<i64>
   }) {
-    base_dilations = dense<[2, 1]> : tensor<2xi64>,
+    base_dilations = array<i64: 2, 1>,
     padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>,
-    window_dilations = dense<[3, 1]> : tensor<2xi64>,
-    window_dimensions = dense<[3, 1]> : tensor<2xi64>,
-    window_strides = dense<[4, 1]> : tensor<2xi64>
+    window_dilations = array<i64: 3, 1>,
+    window_dimensions = array<i64: 3, 1>,
+    window_strides = array<i64: 4, 1>
   } : (tensor<3x2xi64>, tensor<i64>) -> tensor<1x2xi64>
   check.expect_eq_const %result, dense<[[5, 6]]> : tensor<1x2xi64>
   func.return
