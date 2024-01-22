@@ -68,7 +68,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
 5. Configure and build MLIR:
 
    ```sh
-   build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build
+   MLIR_ENABLE_BINDINGS_PYTHON=ON build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build
    ```
 
    This will take a considerable amount of time. For example, on a MacBook Pro
@@ -115,7 +115,7 @@ pip install  install -r ./llvm-project/mlir/python/requirements.txt
 ```
 
 If you've built MLIR & StableHLO using the script above, the Python bindings
-for MLIR are already built.
+for MLIR may already built.
 
 After you have built the project you can import the Python bindings to begin
 by modifying your Python path variable
@@ -124,7 +124,6 @@ by modifying your Python path variable
 $ PYTHONPATH="./build/python_packages/stablehlo" python3
 Python 3.11.6 (main, Oct  8 2023, 05:06:43) [GCC 13.2.0] on linux
 Type "help", "copyright", "credits" or "license" for more information.
->>> import mlir.dialects.stablehlo
 >>> import mlir.dialects.stablehlo
 >>> from mlir.ir import Context, Location
 >>> import mlir.dialects.arith
