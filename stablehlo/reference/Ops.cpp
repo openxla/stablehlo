@@ -1,4 +1,4 @@
-/* Copyright 2023 The StableHLO Authors.
+/* Copyright 2023-2024 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -868,8 +868,11 @@ Tensor evalAllGatherOp(const Tensor &operand, int64_t allGatherDim,
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
 
-  auto groupOperands = process->rendezvous(*processGroup, channelId, operand)
-                           ->getSortedTensors();
+  const RendezvousResult resultMap =
+      *(process->rendezvous(*processGroup, channelId, operand));
+  SmallVector<Tensor> groupOperands(llvm::map_range(
+      *processGroup,
+      [&](const ProcessId &id) { return resultMap.lookup(id); }));
 
   return evalConcatenateOp(groupOperands, allGatherDim, resultType);
 }
