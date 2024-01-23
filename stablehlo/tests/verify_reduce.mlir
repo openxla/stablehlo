@@ -486,19 +486,6 @@ func.func @reduce_c6(%arg0: tensor<4x4x!quant.uniform<i8:f64, 2.000000e+00:15>>,
   return %0 : tensor<4x!quant.uniform<i32:f32, 2.000000e+00:15>>
 }
 
-// -----
-
-func.func @reduce_i3(%input: tensor<1x6xi64>, %init_value: tensor<i64>) -> tensor<1xi64> {
-  // expected-error@+1 {{attribute 'dimensions' failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr.}}
-  %0 = "stablehlo.reduce"(%input, %init_value) ({
-    ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
-      stablehlo.return %arg0 : tensor<i64>
-  }) {
-    dimensions = dense<1> : tensor<1x1xi64>
-  } : (tensor<1x6xi64>, tensor<i64>) -> tensor<1xi64>
-  func.return %0 : tensor<1xi64>
-}
-
 // The following invalid cases arises while parsing a pretty-printed version of reduce-op will "non-eligible" inner-op.
 // -----
 

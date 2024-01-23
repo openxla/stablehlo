@@ -47,7 +47,7 @@ module @jit_testcase {
     %23 = stablehlo.add %8, %22 : tensor<1xi32>
     %24 = stablehlo.select %20, %23, %8 : tensor<1xi1>, tensor<1xi32>
     %25 = stablehlo.broadcast_in_dim %24, dims = [0] : (tensor<1xi32>) -> tensor<1x1xi32>
-    %26 = "stablehlo.gather"(%16, %25) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<3xi32>, tensor<1x1xi32>) -> tensor<1xi32>
+    %26 = "stablehlo.gather"(%16, %25) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = array<i64: 1>} : (tensor<3xi32>, tensor<1x1xi32>) -> tensor<1xi32>
     %27 = stablehlo.constant dense<10> : tensor<i32>
     %28 = stablehlo.broadcast_in_dim %27, dims = [] : (tensor<i32>) -> tensor<1xi32>
     %29 = stablehlo.constant dense<1> : tensor<i32>
@@ -63,7 +63,7 @@ module @jit_testcase {
     %39 = stablehlo.add %9, %38 : tensor<1xi32>
     %40 = stablehlo.select %36, %39, %9 : tensor<1xi1>, tensor<1xi32>
     %41 = stablehlo.broadcast_in_dim %40, dims = [0] : (tensor<1xi32>) -> tensor<1x1xi32>
-    %42 = "stablehlo.gather"(%33, %41) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<3xi32>, tensor<1x1xi32>) -> tensor<1xi32>
+    %42 = "stablehlo.gather"(%33, %41) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = array<i64: 1>} : (tensor<3xi32>, tensor<1x1xi32>) -> tensor<1xi32>
     %43 = stablehlo.subtract %26, %42 : tensor<1xi32>
     %44 = stablehlo.constant dense<0> : tensor<i32>
     %45 = stablehlo.broadcast_in_dim %44, dims = [] : (tensor<i32>) -> tensor<2x1xi32>
@@ -78,7 +78,7 @@ module @jit_testcase {
       %58 = stablehlo.and %arg2, %arg3 : tensor<i1>
       stablehlo.return %58 : tensor<i1>
     }
-    %53 = "stablehlo.gather"(%arg0, %17) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 2], collapsed_slice_dims = [1], start_index_map = [1], index_vector_dim = 1>, slice_sizes = dense<[10, 1, 10]> : tensor<3xi64>} : (tensor<10x10x10xf32>, tensor<2x1xi32>) -> tensor<10x2x10xf32>
+    %53 = "stablehlo.gather"(%arg0, %17) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 2], collapsed_slice_dims = [1], start_index_map = [1], index_vector_dim = 1>, slice_sizes = array<i64: 10, 1, 10>} : (tensor<10x10x10xf32>, tensor<2x1xi32>) -> tensor<10x2x10xf32>
     %54 = stablehlo.broadcast_in_dim %52, dims = [1] : (tensor<2xi1>) -> tensor<10x2x10xi1>
     %55 = stablehlo.constant dense<0x7FC00000> : tensor<f32>
     %56 = stablehlo.broadcast_in_dim %55, dims = [] : (tensor<f32>) -> tensor<10x2x10xf32>

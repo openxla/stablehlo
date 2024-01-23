@@ -13,7 +13,7 @@ module @jit_testcase {
     ^bb0(%arg0: tensor<ui16>, %arg1: tensor<ui16>):
       %6 = stablehlo.add %arg0, %arg1 : tensor<ui16>
       stablehlo.return %6 : tensor<ui16>
-    }) {window_dimensions = dense<2> : tensor<2xi64>} : (tensor<4x6xui16>, tensor<ui16>) -> tensor<3x5xui16>
+    }) {window_dimensions = array<i64: 2, 2>} : (tensor<4x6xui16>, tensor<ui16>) -> tensor<3x5xui16>
     %5 = stablehlo.custom_call @check.eq(%4, %1) : (tensor<3x5xui16>, tensor<3x5xui16>) -> tensor<i1>
     return %5 : tensor<i1>
   }

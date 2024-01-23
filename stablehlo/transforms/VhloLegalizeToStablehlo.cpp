@@ -426,19 +426,21 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
   return success();
 }
 
-SpecialResult convertDenseI64Array(
-    StringAttr vhloName, Attribute vhloAttr,
-    SmallVector<NamedAttribute>& stablehloAttrs) {
+template <typename T, typename Attr>
+SpecialResult convertDenseArray(StringAttr vhloName, Attribute vhloAttr,
+                                SmallVector<NamedAttribute>& stablehloAttrs) {
   auto tensorAttr = dyn_cast<vhlo::TensorV1Attr>(vhloAttr);
   if (!tensorAttr) return specialFailure();
 
-  if (tensorAttr.getData().size() % sizeof(int64_t) != 0)
-    return specialFailure();
+  if (tensorAttr.getData().size() % sizeof(T) != 0) return specialFailure();
 
-  auto data = ArrayRef<int64_t>(
-                  reinterpret_cast<const int64_t*>(tensorAttr.getData().data()),
-                  tensorAttr.getData().size() / sizeof(int64_t))
-                  .vec();
+  // Extracting the data in this way prevents misaligned memory issues.
+  auto vec =
+      ArrayRef<T>(reinterpret_cast<const T*>(tensorAttr.getData().data()),
+                  tensorAttr.getData().size() / sizeof(T))
+          .vec();
+  SmallVector<T> data;
+  for (T b : vec) data.push_back(b);
 
   // Handle splats
   if (data.size() == 1) {
@@ -449,9 +451,22 @@ SpecialResult convertDenseI64Array(
     data.resize(size, data[0]);
   }
 
-  stablehloAttrs.emplace_back(
-      vhloName, DenseI64ArrayAttr::get(vhloAttr.getContext(), data));
+  stablehloAttrs.emplace_back(vhloName, Attr::get(vhloAttr.getContext(), data));
   return specialSuccess();
+}
+
+SpecialResult convertDenseI64Array(
+    StringAttr vhloName, Attribute vhloAttr,
+    SmallVector<NamedAttribute>& stablehloAttrs) {
+  return convertDenseArray<int64_t, DenseI64ArrayAttr>(vhloName, vhloAttr,
+                                                       stablehloAttrs);
+}
+
+SpecialResult convertDenseBoolArray(
+    StringAttr vhloName, Attribute vhloAttr,
+    SmallVector<NamedAttribute>& stablehloAttrs) {
+  return convertDenseArray<bool, DenseBoolArrayAttr>(vhloName, vhloAttr,
+                                                     stablehloAttrs);
 }
 
 template <typename VhloOpTy>
@@ -535,6 +550,32 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
         vhloName == "known_expanding_dimensions" ||
         vhloName == "known_nonexpanding_dimensions")
       return convertDenseI64Array(vhloName, vhloAttr, stablehloAttrs);
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::SelectAndScatterOpV1>::value) {
+    if (vhloName == "window_dimensions" || vhloName == "window_strides")
+      return convertDenseI64Array(vhloName, vhloAttr, stablehloAttrs);
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::ReduceWindowOpV1>::value) {
+    if (vhloName == "window_dimensions" || vhloName == "window_strides" ||
+        vhloName == "base_dilations" || vhloName == "window_dilations")
+      return convertDenseI64Array(vhloName, vhloAttr, stablehloAttrs);
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::MapOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::ReduceOpV1>::value) {
+    if (vhloName == "dimensions")
+      return convertDenseI64Array(vhloName, vhloAttr, stablehloAttrs);
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::GatherOpV1>::value) {
+    if (vhloName == "slice_sizes")
+      return convertDenseI64Array(vhloName, vhloAttr, stablehloAttrs);
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::DynamicConvOpV1>::value) {
+    if (vhloName == "lhs_dilation" || vhloName == "rhs_dilation" ||
+        vhloName == "window_strides")
+      return convertDenseI64Array(vhloName, vhloAttr, stablehloAttrs);
+    if (vhloName == "window_reversal")
+      return convertDenseBoolArray(vhloName, vhloAttr, stablehloAttrs);
   }
   return notSpecial();
 }

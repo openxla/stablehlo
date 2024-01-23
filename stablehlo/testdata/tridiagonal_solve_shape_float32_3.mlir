@@ -80,7 +80,7 @@ module @jit_testcase {
     %72 = stablehlo.broadcast_in_dim %71, dims = [] : (tensor<f32>) -> tensor<1xf32>
     %73 = stablehlo.constant dense<0> : tensor<i32>
     %74 = stablehlo.broadcast_in_dim %73, dims = [] : (tensor<i32>) -> tensor<1xi32>
-    %75 = "stablehlo.gather"(%61, %74) {dimension_numbers = #stablehlo.gather<offset_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = dense<2> : tensor<1xi64>} : (tensor<3xf32>, tensor<1xi32>) -> tensor<2xf32>
+    %75 = "stablehlo.gather"(%61, %74) {dimension_numbers = #stablehlo.gather<offset_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = array<i64: 2>} : (tensor<3xf32>, tensor<1xi32>) -> tensor<2xf32>
     %76 = call @append(%72, %75) : (tensor<1xf32>, tensor<2xf32>) -> tensor<3xf32>
     %77 = "stablehlo.slice"(%0#3) {limit_indices = array<i64: 0, 1>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<3x1xf32>) -> tensor<0x1xf32>
     %78 = "stablehlo.slice"(%0#3) {limit_indices = array<i64: 3, 1>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<3x1xf32>) -> tensor<3x1xf32>
@@ -173,7 +173,7 @@ module @jit_testcase {
     %165 = stablehlo.add %163, %164 : tensor<i32>
     %166 = stablehlo.convert %165 : tensor<i32>
     %167 = stablehlo.broadcast_in_dim %166, dims = [] : (tensor<i32>) -> tensor<1xi32>
-    %168 = "stablehlo.gather"(%162, %167) {dimension_numbers = #stablehlo.gather<offset_dims = [0], collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = dense<1> : tensor<2xi64>} : (tensor<3x1xf32>, tensor<1xi32>) -> tensor<1xf32>
+    %168 = "stablehlo.gather"(%162, %167) {dimension_numbers = #stablehlo.gather<offset_dims = [0], collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = array<i64: 1, 1>} : (tensor<3x1xf32>, tensor<1xi32>) -> tensor<1xf32>
     %169 = stablehlo.reverse %162, dims = [0] : tensor<3x1xf32>
     %170 = stablehlo.reverse %61, dims = [0] : tensor<3xf32>
     %171 = "stablehlo.slice"(%169) {limit_indices = array<i64: 0, 1>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<3x1xf32>) -> tensor<0x1xf32>
