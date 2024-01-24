@@ -203,7 +203,7 @@ module @jit_testcase {
     %67 = stablehlo.concatenate %66#2, %66#3, dim = 0 : (tensor<3xui32>, tensor<3xui32>) -> tensor<6xui32>
     %68 = stablehlo.constant dense<0> : tensor<i32>
     %69 = stablehlo.broadcast_in_dim %68, dims = [] : (tensor<i32>) -> tensor<1xi32>
-    %70 = "stablehlo.gather"(%67, %69) {dimension_numbers = #stablehlo.gather<offset_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = dense<5> : tensor<1xi64>} : (tensor<6xui32>, tensor<1xi32>) -> tensor<5xui32>
+    %70 = "stablehlo.gather"(%67, %69) {dimension_numbers = #stablehlo.gather<offset_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = array<i64: 5>} : (tensor<6xui32>, tensor<1xi32>) -> tensor<5xui32>
     %71 = stablehlo.broadcast_in_dim %70, dims = [1] : (tensor<5xui32>) -> tensor<1x5xui32>
     %72 = stablehlo.iota dim = 0 : tensor<4x1xui32>
     %73 = stablehlo.constant dense<8> : tensor<ui32>
@@ -307,7 +307,7 @@ module @jit_testcase {
     %107 = stablehlo.concatenate %106#2, %106#3, dim = 0 : (tensor<3xui32>, tensor<3xui32>) -> tensor<6xui32>
     %108 = stablehlo.constant dense<0> : tensor<i32>
     %109 = stablehlo.broadcast_in_dim %108, dims = [] : (tensor<i32>) -> tensor<1xi32>
-    %110 = "stablehlo.gather"(%107, %109) {dimension_numbers = #stablehlo.gather<offset_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = dense<5> : tensor<1xi64>} : (tensor<6xui32>, tensor<1xi32>) -> tensor<5xui32>
+    %110 = "stablehlo.gather"(%107, %109) {dimension_numbers = #stablehlo.gather<offset_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = array<i64: 5>} : (tensor<6xui32>, tensor<1xi32>) -> tensor<5xui32>
     %111 = stablehlo.broadcast_in_dim %110, dims = [1] : (tensor<5xui32>) -> tensor<1x5xui32>
     %112 = stablehlo.iota dim = 0 : tensor<4x1xui32>
     %113 = stablehlo.constant dense<8> : tensor<ui32>

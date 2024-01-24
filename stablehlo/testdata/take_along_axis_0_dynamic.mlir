@@ -40,7 +40,7 @@ module @jit_fun_flat_jax {
     %29 = stablehlo.select %25, %28, %16 : tensor<1xi1>, tensor<1xi64>
     %30 = stablehlo.convert %29 : (tensor<1xi64>) -> tensor<1xi32>
     %31 = stablehlo.broadcast_in_dim %30, dims = [0] : (tensor<1xi32>) -> tensor<1x1xi32>
-    %32 = "stablehlo.gather"(%22, %31) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<2xi64>, tensor<1x1xi32>) -> tensor<1xi64>
+    %32 = "stablehlo.gather"(%22, %31) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = array<i64: 1>} : (tensor<2xi64>, tensor<1x1xi32>) -> tensor<1xi64>
     %33 = stablehlo.constant dense<1> : tensor<i64>
     %34 = stablehlo.broadcast_in_dim %33, dims = [] : (tensor<i64>) -> tensor<1xi64>
     %35 = stablehlo.constant dense<2> : tensor<i64>
@@ -55,7 +55,7 @@ module @jit_fun_flat_jax {
     %44 = stablehlo.select %40, %43, %17 : tensor<1xi1>, tensor<1xi64>
     %45 = stablehlo.convert %44 : (tensor<1xi64>) -> tensor<1xi32>
     %46 = stablehlo.broadcast_in_dim %45, dims = [0] : (tensor<1xi32>) -> tensor<1x1xi32>
-    %47 = "stablehlo.gather"(%37, %46) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<2xi64>, tensor<1x1xi32>) -> tensor<1xi64>
+    %47 = "stablehlo.gather"(%37, %46) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = array<i64: 1>} : (tensor<2xi64>, tensor<1x1xi32>) -> tensor<1xi64>
     %48 = stablehlo.subtract %32, %47 : tensor<1xi64>
     %49 = stablehlo.constant dense<0> : tensor<i64>
     %50 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
@@ -78,7 +78,7 @@ module @jit_fun_flat_jax {
       %79 = stablehlo.and %arg3, %arg4 : tensor<i1>
       stablehlo.return %79 : tensor<i1>
     }
-    %66 = "stablehlo.gather"(%arg1, %15) {dimension_numbers = #stablehlo.gather<offset_dims = [1], collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<?x2xf32>, tensor<?x1xi64>) -> tensor<?x2xf32>
+    %66 = "stablehlo.gather"(%arg1, %15) {dimension_numbers = #stablehlo.gather<offset_dims = [1], collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = array<i64: 1, 2>} : (tensor<?x2xf32>, tensor<?x1xi64>) -> tensor<?x2xf32>
     %67 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %68 = stablehlo.reshape %67 : (tensor<i32>) -> tensor<1xi32>
     %69 = stablehlo.constant dense<2> : tensor<1xi32>

@@ -625,10 +625,11 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                 std::is_same<StablehloOpTy, stablehlo::DynamicConvOp>::value) {
     auto numSpatialDimensions = static_cast<int64_t>(
         stablehloOp.getDimensionNumbers().getInputSpatialDimensions().size());
-    if (!stablehloOp.getWindowStridesAttr())
+    if (!stablehloOp.getWindowStridesAttr()) {
       addDefaultAttr("window_strides",
-                     builder.getI64TensorAttr(
+                     builder.getDenseI64ArrayAttr(
                          SmallVector<int64_t>(numSpatialDimensions, 1ll)));
+    }
     if (!stablehloOp.getPaddingAttr())
       addDefaultAttr("padding",
                      DenseIntElementsAttr::get(
@@ -637,11 +638,11 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                          SmallVector<int64_t>(numSpatialDimensions * 2, 0ll)));
     if (!stablehloOp.getLhsDilationAttr())
       addDefaultAttr("lhs_dilation",
-                     builder.getI64TensorAttr(
+                     builder.getDenseI64ArrayAttr(
                          SmallVector<int64_t>(numSpatialDimensions, 1ll)));
     if (!stablehloOp.getRhsDilationAttr())
       addDefaultAttr("rhs_dilation",
-                     builder.getI64TensorAttr(
+                     builder.getDenseI64ArrayAttr(
                          SmallVector<int64_t>(numSpatialDimensions, 1ll)));
     if (!stablehloOp.getWindowReversalAttr())
       addDefaultAttr("window_reversal",

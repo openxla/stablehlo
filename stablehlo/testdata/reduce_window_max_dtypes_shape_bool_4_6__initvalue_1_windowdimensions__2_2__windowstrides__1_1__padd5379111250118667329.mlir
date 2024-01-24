@@ -12,7 +12,7 @@ module @jit_testcase {
     ^bb0(%arg0: tensor<i1>, %arg1: tensor<i1>):
       %5 = stablehlo.maximum %arg0, %arg1 : tensor<i1>
       stablehlo.return %5 : tensor<i1>
-    }) {window_dimensions = dense<2> : tensor<2xi64>} : (tensor<4x6xi1>, tensor<i1>) -> tensor<3x5xi1>
+    }) {window_dimensions = array<i64: 2, 2>} : (tensor<4x6xi1>, tensor<i1>) -> tensor<3x5xi1>
     %4 = stablehlo.custom_call @check.eq(%3, %1) : (tensor<3x5xi1>, tensor<3x5xi1>) -> tensor<i1>
     return %4 : tensor<i1>
   }

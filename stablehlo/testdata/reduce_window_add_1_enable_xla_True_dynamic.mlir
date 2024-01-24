@@ -18,7 +18,7 @@ module @jit_fun_flat_jax {
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
       %11 = stablehlo.add %arg2, %arg3 : tensor<f32>
       stablehlo.return %11 : tensor<f32>
-    }) {padding = dense<[[0, 0], [1, 1], [0, 0]]> : tensor<3x2xi64>, window_dimensions = dense<[1, 4, 1]> : tensor<3xi64>, window_strides = dense<[1, 2, 1]> : tensor<3xi64>} : (tensor<1x?x1xf32>, tensor<f32>) -> tensor<1x?x1xf32>
+    }) {padding = dense<[[0, 0], [1, 1], [0, 0]]> : tensor<3x2xi64>, window_dimensions = array<i64: 1, 4, 1>, window_strides = array<i64: 1, 2, 1>} : (tensor<1x?x1xf32>, tensor<f32>) -> tensor<1x?x1xf32>
     return %10 : tensor<1x?x1xf32>
   }
 }

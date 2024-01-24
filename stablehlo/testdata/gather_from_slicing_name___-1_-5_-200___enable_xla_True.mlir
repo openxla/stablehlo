@@ -23,7 +23,7 @@ module @jit_testcase {
     %15 = stablehlo.broadcast_in_dim %9, dims = [] : (tensor<i32>) -> tensor<1xi32>
     %16 = stablehlo.broadcast_in_dim %13, dims = [] : (tensor<i32>) -> tensor<1xi32>
     %17 = stablehlo.concatenate %14, %15, %16, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
-    %18 = "stablehlo.gather"(%0, %17) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1, 2], start_index_map = [0, 1, 2]>, indices_are_sorted = true, slice_sizes = dense<1> : tensor<3xi64>} : (tensor<10x10x10xf32>, tensor<3xi32>) -> tensor<f32>
+    %18 = "stablehlo.gather"(%0, %17) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1, 2], start_index_map = [0, 1, 2]>, indices_are_sorted = true, slice_sizes = array<i64: 1, 1, 1>} : (tensor<10x10x10xf32>, tensor<3xi32>) -> tensor<f32>
     %19 = stablehlo.custom_call @check.eq(%18, %1) : (tensor<f32>, tensor<f32>) -> tensor<i1>
     return %19 : tensor<i1>
   }

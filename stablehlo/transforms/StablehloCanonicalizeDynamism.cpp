@@ -153,7 +153,7 @@ struct CanonicalizeDynamicGatherOpPattern
       return rewriter.notifyMatchFailure(op, "expected static slice_sizes");
     rewriter.replaceOpWithNewOp<GatherOp>(
         op, op.getType(), op.getOperand(), op.getStartIndices(),
-        op.getDimensionNumbersAttr(), rewriter.getI64TensorAttr(sliceSizes),
+        op.getDimensionNumbersAttr(), rewriter.getDenseI64ArrayAttr(sliceSizes),
         op.getIndicesAreSortedAttr());
     return success();
   }

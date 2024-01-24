@@ -10,7 +10,7 @@ func.func @reduce_with_promotable_types(%arg0: tensor<4x4xf32>, %arg1 : tensor<f
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f64>, tensor<f64>) -> tensor<f64>
     "stablehlo.return"(%1) : (tensor<f64>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<f32>) -> tensor<4xf64>
+  }) {dimensions = array<i64: 0>} : (tensor<4x4xf32>, tensor<f32>) -> tensor<4xf64>
 
   func.return %0: tensor<4xf64>
 }
@@ -63,8 +63,8 @@ func.func @reduce_window_with_promotable_types(%arg0: tensor<4x2xf32>,
               "stablehlo.return"(%2,%3) : (tensor<f64>, tensor<f32>) -> ()
             })
          { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
-           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
-           window_strides = dense<[3, 1]> : tensor<2xi64> }
+           window_dimensions = array<i64: 5, 1>,
+           window_strides = array<i64: 3, 1> }
          : (tensor<4x2xf32>, tensor<4x2xf32>, tensor<f32>, tensor<f32>) ->
               (tensor<2x2xf64>, tensor<2x2xf32>)
   func.return %0#0, %0#1 : tensor<2x2xf64>, tensor<2x2xf32>
@@ -114,8 +114,8 @@ func.func @select_and_scatter_with_promotable_types(
       %2 = stablehlo.add %arg3, %arg4 : tensor<f64>
       "stablehlo.return"(%2) : (tensor<f64>) -> ()
     }) {
-      window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+      window_dimensions = array<i64: 1, 2, 2, 1>,
+      window_strides = array<i64: 1, 2, 2, 1>,
       padding = dense<0> : tensor<4x2xi64>
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf64>

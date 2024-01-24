@@ -7,7 +7,7 @@ module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:2 = call @inputs() : () -> (tensor<10xf32>, tensor<3x1xi32>)
     %1 = call @expected() : () -> tensor<3x2xf32>
-    %2 = "stablehlo.gather"(%0#0, %0#1) {dimension_numbers = #stablehlo.gather<offset_dims = [1], start_index_map = [0], index_vector_dim = 1>, slice_sizes = dense<2> : tensor<1xi64>} : (tensor<10xf32>, tensor<3x1xi32>) -> tensor<3x2xf32>
+    %2 = "stablehlo.gather"(%0#0, %0#1) {dimension_numbers = #stablehlo.gather<offset_dims = [1], start_index_map = [0], index_vector_dim = 1>, slice_sizes = array<i64: 2>} : (tensor<10xf32>, tensor<3x1xi32>) -> tensor<3x2xf32>
     %3 = stablehlo.custom_call @check.eq(%2, %1) : (tensor<3x2xf32>, tensor<3x2xf32>) -> tensor<i1>
     return %3 : tensor<i1>
   }

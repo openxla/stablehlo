@@ -1127,14 +1127,6 @@ func.func @broadcast_in_dim_c5(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
 
 // -----
 
-func.func @broadcast_in_dim_i2(%arg0: tensor<1x2xi32>) -> tensor<1x2x3xi32> {
-  // expected-error@+1 {{failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr}}
-  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[[1,1],[1,1]]> : tensor<2x2xi64>} : (tensor<1x2xi32>) -> tensor<1x2x3xi32>
-  func.return %0 : tensor<1x2x3xi32>
-}
-
-// -----
-
 // Regression test for b/180052624, where this was improperly marked as an
 // invalid stablehlo.broadcast_in_dim op.
 // CHECK-LABEL: func @broadcast_in_dim_dynamic_shaped_operand
@@ -1955,18 +1947,6 @@ func.func @map_heterogeneous_inputs(%arg0: tensor<2xf32>, %arg1: tensor<2xi32>) 
     "stablehlo.return"(%arg2) : (tensor<f32>) -> ()
   }) {dimensions = array<i64: 0>} : (tensor<2xf32>, tensor<2xi32>) -> tensor<2xf32>
   func.return %0 : tensor<2xf32>
-}
-
-// -----
-
-func.func @map_i2(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xf32> {
-  // expected-error@+1 {{attribute 'dimensions' failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr.}}
-  %0 = "stablehlo.map"(%arg0, %arg1) ({
-    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
-    %1 = stablehlo.constant dense<2.0> : tensor<f32>
-    "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<[[0, 1]]> : tensor<1x2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
-  func.return %0 : tensor<4x5xf32>
 }
 
 // -----
@@ -4030,23 +4010,6 @@ func.func @gather_c14(%operand : tensor<*xi32>, %start_indices : tensor<?x?x?xi3
     slice_sizes = array<i64: 1, 1, 8, 1, 7, 1, 6, 1>
   } : (tensor<*xi32>, tensor<?x?x?xi32>) -> tensor<3xi32>
   func.return %res : tensor<3xi32>
-}
-
-// -----
-
-func.func @gather_i7(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xi32> {
-  // expected-error@+1 {{attribute 'slice_sizes' failed to satisfy constraint: either a DenseI64ArrayAttr or a 1-dimensional I64ElementsAttr.}}
-  %res = "stablehlo.gather"(%operand, %start_indices) {
-    dimension_numbers = #stablehlo.gather<
-      offset_dims = [2],
-      collapsed_slice_dims = [0, 1],
-      start_index_map = [0, 1],
-      index_vector_dim = 2
-    >,
-    slice_sizes = dense<[[1, 1, 8]]> : tensor<1x3xi64>,
-    indices_are_sorted = false
-  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
-  func.return %res : tensor<1x5x8xi32>
 }
 
 // -----

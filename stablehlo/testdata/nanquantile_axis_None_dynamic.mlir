@@ -90,7 +90,7 @@ module @jit_fun_flat_jax {
     %40 = stablehlo.add %33, %37 : tensor<i64>
     %41 = stablehlo.select %39, %40, %33 : tensor<i1>, tensor<i64>
     %42 = stablehlo.broadcast_in_dim %41, dims = [] : (tensor<i64>) -> tensor<1xi64>
-    %43 = "stablehlo.gather"(%8, %42) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
+    %43 = "stablehlo.gather"(%8, %42) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = array<i64: 1>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
     %44 = stablehlo.constant dense<5> : tensor<i64>
     %45 = stablehlo.multiply %arg0, %44 : tensor<i64>
     %46 = stablehlo.convert %45 : tensor<i64>
@@ -99,7 +99,7 @@ module @jit_fun_flat_jax {
     %49 = stablehlo.add %34, %46 : tensor<i64>
     %50 = stablehlo.select %48, %49, %34 : tensor<i1>, tensor<i64>
     %51 = stablehlo.broadcast_in_dim %50, dims = [] : (tensor<i64>) -> tensor<1xi64>
-    %52 = "stablehlo.gather"(%8, %51) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
+    %52 = "stablehlo.gather"(%8, %51) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = array<i64: 1>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
     %53 = stablehlo.convert %43 : (tensor<f32>) -> tensor<f64>
     %54 = stablehlo.multiply %53, %22 : tensor<f64>
     %55 = stablehlo.convert %52 : (tensor<f32>) -> tensor<f64>

@@ -11,7 +11,7 @@ module @jit_fun_flat_jax {
     %4 = stablehlo.concatenate %1, %2, %3, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
     %5 = stablehlo.dynamic_iota %4, dim = 0 : (tensor<3xi32>) -> tensor<?x2x1xi64>
     %6 = stablehlo.concatenate %5, %arg2, dim = 2 : (tensor<?x2x1xi64>, tensor<?x2x3xi64>) -> tensor<?x2x4xi64>
-    %7 = "stablehlo.gather"(%arg1, %6) {dimension_numbers = #stablehlo.gather<offset_dims = [2, 3], collapsed_slice_dims = [0, 1], start_index_map = [0, 1, 2, 3], index_vector_dim = 2>, slice_sizes = dense<[1, 1, 3, 2]> : tensor<4xi64>} : (tensor<?x2x3x3xf32>, tensor<?x2x4xi64>) -> tensor<?x2x3x2xf32>
+    %7 = "stablehlo.gather"(%arg1, %6) {dimension_numbers = #stablehlo.gather<offset_dims = [2, 3], collapsed_slice_dims = [0, 1], start_index_map = [0, 1, 2, 3], index_vector_dim = 2>, slice_sizes = array<i64: 1, 1, 3, 2>} : (tensor<?x2x3x3xf32>, tensor<?x2x4xi64>) -> tensor<?x2x3x2xf32>
     return %7 : tensor<?x2x3x2xf32>
   }
 }

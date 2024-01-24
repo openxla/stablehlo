@@ -279,7 +279,7 @@ func.func @dynamic_gather_success_static_result_type(%arg0 : tensor<2x4x9xi32>, 
   // CHECK-SAME:     start_index_map = [0, 1],
   // CHECK-SAME:     index_vector_dim = 2
   // CHECK-SAME:   >,
-  // CHECK-SAME:   slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>
+  // CHECK-SAME:   slice_sizes = array<i64: 1, 1, 8>
   // CHECK-SAME: } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   %0 = stablehlo.constant dense<[1, 1, 8]> : tensor<3xi32>
   %1 = "stablehlo.dynamic_gather"(%arg0, %arg1, %0) {
@@ -305,7 +305,7 @@ func.func @dynamic_gather_success_dynamic_result_type(%arg0 : tensor<2x4x9xi32>,
   // CHECK-SAME:     start_index_map = [0, 1],
   // CHECK-SAME:     index_vector_dim = 2
   // CHECK-SAME:   >,
-  // CHECK-SAME:   slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>
+  // CHECK-SAME:   slice_sizes = array<i64: 1, 1, 8>
   // CHECK-SAME: } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x?xi32>
   %0 = stablehlo.constant dense<[1, 1, 8]> : tensor<3xi32>
   %1 = "stablehlo.dynamic_gather"(%arg0, %arg1, %0) {
