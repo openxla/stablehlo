@@ -17,7 +17,7 @@
 from setuptools import find_namespace_packages, setup, Distribution
 import os
 import subprocess
-
+import time
 
 class BinaryDistribution(Distribution):
   """Force distribution which always forces a binary package"""
@@ -32,7 +32,9 @@ def get_version():
       ["git", "describe", "--tags", "--abbrev=0", "--exclude", "dev-wheels"], text=True).strip('v').strip()
   latest_commit = subprocess.check_output(
       ["git", "rev-parse", "--short", "HEAD"], text=True).strip()
-  return f"{latest_tag}+{latest_commit}"
+  # in order for the wheels to be ordered chronologically
+  # include the epoch seconds as a portion of the version
+  return f"{latest_tag}.{int(time.now())}+{latest_commit}"
 
 
 # TODO(fzakaria): The distribution (wheel) of this package is not manylinux
