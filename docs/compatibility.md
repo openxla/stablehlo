@@ -40,8 +40,9 @@ covered by this definition of compatibility.
 Portable artifacts can be created using either the `stablehlo-translate` tool,
 or directly in C++ or Python APIs. Serialization needs a target version of
 StableHLO to write an artifact written in `#.#.#` format (See [Version.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.h#:~:text=getCurrentVersion)
-for current version). Deserialization uses the current version of StableHLO to
-read an artifact.
+for current version). Since patch versions do not impact compatibility, any
+target with non-zero patch version defaults to zero during serialization.
+Deserialization uses the current version of StableHLO to read an artifact.
 
 ### `stablehlo-translate`
 
