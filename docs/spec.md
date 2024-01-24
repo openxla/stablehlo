@@ -961,6 +961,8 @@ tensor. Depending on the element type, does the following:
 // %result: [[1, 2], [3, 0]]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret/and.mlir)
+
 ### atan2
 
 #### Semantics
@@ -3693,6 +3695,8 @@ Depending on the element type, does the following:
 // %result: [false, true]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret/not.mlir)
+
 ### optimization_barrier
 
 #### Semantics
@@ -3772,6 +3776,8 @@ tensor. Depending on the element type, does the following:
 %result = "stablehlo.or"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, true], [true, true]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret/or.mlir)
 
 ### outfeed
 
@@ -5939,6 +5945,8 @@ tensor. Depending on the element type, does the following:
 %result = "stablehlo.xor"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, true], [true, false]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret/xor.mlir)
 
 ## Execution
 
