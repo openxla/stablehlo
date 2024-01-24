@@ -29,7 +29,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  cmake-build:
+  # TODO(fzakaria): Consider running this job only if a new commit for the day has been done
+  cmake-build-wheel:
     # Only run scheduled CI on main repo
     if: (github.repository == 'openxla/stablehlo' || github.event_name != 'schedule')
     name: "cmake-build ${{ github.event_name == 'schedule' && '(llvm-project@HEAD)' || ''}}"
@@ -67,7 +68,9 @@ jobs:
     # The actual tool need to execute the python build
     # TODO(fzakaria): Consider using cibuildwheel to build multiple wheels at
     # once and mark them as manylinux compatible.
-    - run: pip install build
+    - name: Install build dependencies
+      shell: bash
+      run: pip install build
 
     - name: Configure and Build LLVM
       shell: bash
@@ -85,26 +88,10 @@ jobs:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
 
-    - name: Build Python Wheel
+    - name: Build and Test Python Wheel
       shell: bash
       run: |
-        cd "$GITHUB_WORKSPACE/stablehlo/integrations/python"
-        python3 -m build -w --outdir $GITHUB_WORKSPACE/${{ github.sha }}
-    
-    - name: Test Python Wheel
-      shell: bash
-      run: |
-        # Create a new virtual environment
-        python -m venv venv
-    
-        # Activate the virtual environment
-        source venv/bin/activate
-    
-        # Install the wheel
-        pip install --no-index --find-links=$GITHUB_WORKSPACE/${{ github.sha }} stablehlo
-    
-        # Run the smoke test script
-        python "$GITHUB_WORKSPACE/stablehlo/integrations/python/tests/smoketest.py"
+        ./build_tools/github_actions/ci_build_python_wheels.sh "$GITHUB_WORKSPACE/${{ github.sha }}"
     
     - name: Upload an artifact
       uses: actions/upload-artifact@v4
@@ -115,7 +102,7 @@ jobs:
 
   upload-tarballs:
     runs-on: ubuntu-20.04
-    needs: cmake-build
+    needs: cmake-build-wheel
     strategy:
       fail-fast: false
       matrix:
