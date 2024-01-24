@@ -68,7 +68,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
 5. Configure and build MLIR:
 
    ```sh
-   build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build
+   MLIR_ENABLE_BINDINGS_PYTHON=ON build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build
    ```
 
    This will take a considerable amount of time. For example, on a MacBook Pro
@@ -85,7 +85,8 @@ Here's how to build the StableHLO repo on Linux or macOS:
    cmake .. -GNinja \
      -DLLVM_ENABLE_LLD="$LLVM_ENABLE_LLD" \
      -DCMAKE_BUILD_TYPE=Release \
-     -DLLVM_ENABLE_ASSERTIONS=On \
+     -DLLVM_ENABLE_ASSERTIONS=ON \
+     -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=ON \
      -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
    ```
 
@@ -103,6 +104,37 @@ Here's how to build the StableHLO repo on Linux or macOS:
    ```
 
    This runs all the tests in `stablehlo/tests/`.
+
+## Python
+
+If you'd like to build the Python bindings, you'll need to install a few
+additional dependencies.
+
+```sh
+pip install  install -r ./llvm-project/mlir/python/requirements.txt
+```
+
+If you've built MLIR & StableHLO using the script above, the Python bindings
+for MLIR may already built.
+
+After you have built the project you can import the Python bindings to begin
+by modifying your Python path variable
+
+```shell
+$ PYTHONPATH="./build/python_packages/stablehlo" python3
+Python 3.11.6 (main, Oct  8 2023, 05:06:43) [GCC 13.2.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import mlir.dialects.stablehlo
+>>> from mlir.ir import Context, Location
+>>> import mlir.dialects.arith
+```
+
+You can also build a wheel yourself using the `setup.py` file.
+We also make nightly wheels available on our GitHub Releases page.
+
+```shell
+pip install stablehlo -f https://github.com/openxla/stablehlo/releases/expanded_assets/dev-wheels
+```
 
 ## Community
 

@@ -33,10 +33,13 @@ CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-RelWithDebInfo}"
 STABLEHLO_ENABLE_BINDINGS_PYTHON="${STABLEHLO_ENABLE_BINDINGS_PYTHON:-OFF}"
 
 # Configure StableHLO
+# CMAKE_PLATFORM_NO_VERSIONED_SONAME Disables generation of "version soname"
+#                         (i.e. libFoo.so.<version>), which causes pure
+#                         duplication of various shlibs for Python wheels.
 cmake -GNinja \
   -B"$STABLEHLO_BUILD_DIR" \
   -DLLVM_ENABLE_LLD=ON \
-  -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
+  -DCMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
   -DLLVM_ENABLE_ASSERTIONS=ON \
   -DMLIR_DIR="$LLVM_BUILD_DIR/lib/cmake/mlir" \
   -DCMAKE_CXX_COMPILER=clang++ \
@@ -44,7 +47,8 @@ cmake -GNinja \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
   -DSTABLEHLO_ENABLE_STRICT_BUILD=ON \
-  -DSTABLEHLO_ENABLE_BINDINGS_PYTHON="${STABLEHLO_ENABLE_BINDINGS_PYTHON}"
+  -DCMAKE_PLATFORM_NO_VERSIONED_SONAME:BOOL=ON \
+  -DSTABLEHLO_ENABLE_BINDINGS_PYTHON="$STABLEHLO_ENABLE_BINDINGS_PYTHON"
 
 # Build and Test StableHLO
 cd "$STABLEHLO_BUILD_DIR" || exit

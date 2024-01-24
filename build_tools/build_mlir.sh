@@ -23,6 +23,9 @@ fi
 # LLVM source
 LLVM_SRC_DIR="$1"
 build_dir="$2"
+CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-RelWithDebInfo}"
+# Turn on building Python bindings
+MLIR_ENABLE_BINDINGS_PYTHON="${MLIR_ENABLE_BINDINGS_PYTHON:-OFF}"
 
 if ! [ -f "$LLVM_SRC_DIR/llvm/CMakeLists.txt" ]; then
   echo "Expected the path to LLVM to be set correctly (got '$LLVM_SRC_DIR'): can't find CMakeLists.txt"
@@ -46,10 +49,14 @@ cmake -GNinja \
   -DLLVM_ENABLE_PROJECTS=mlir \
   -DLLVM_TARGETS_TO_BUILD=host \
   -DLLVM_INCLUDE_TOOLS=ON \
+  -DMLIR_ENABLE_BINDINGS_PYTHON="${MLIR_ENABLE_BINDINGS_PYTHON}" \
   -DLLVM_ENABLE_BINDINGS=OFF \
+  -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
+  -DLLVM_VERSION_SUFFIX="" \
+  -DCMAKE_PLATFORM_NO_VERSIONED_SONAME:BOOL=ON \
   -DLLVM_BUILD_TOOLS=OFF \
   -DLLVM_INCLUDE_TESTS=OFF \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DLLVM_ENABLE_ASSERTIONS=On
+  -DCMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
+  -DLLVM_ENABLE_ASSERTIONS=ON
 
 cmake --build "$build_dir" --target all

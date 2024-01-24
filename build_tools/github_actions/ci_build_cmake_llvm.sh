@@ -30,6 +30,10 @@ CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-RelWithDebInfo}"
 MLIR_ENABLE_BINDINGS_PYTHON="${MLIR_ENABLE_BINDINGS_PYTHON:-OFF}"
 
 # Configure LLVM
+# LLVM_VERSION_SUFFIX to get rid of that annoying af git on the end of .17git
+# CMAKE_PLATFORM_NO_VERSIONED_SONAME Disables generation of "version soname"
+#                         (i.e. libFoo.so.<version>), which causes pure
+#                         duplication of various shlibs for Python wheels.
 cmake -GNinja \
   "-H$LLVM_SRC_DIR/llvm" \
   "-B$LLVM_BUILD_DIR" \
@@ -42,8 +46,10 @@ cmake -GNinja \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DLLVM_BUILD_TOOLS=OFF \
   -DLLVM_INCLUDE_TESTS=OFF \
-  -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
+  -DCMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
   -DLLVM_ENABLE_ASSERTIONS=On \
+  -DLLVM_VERSION_SUFFIX="" \
+  -DCMAKE_PLATFORM_NO_VERSIONED_SONAME:BOOL=ON \
   -DCMAKE_CXX_COMPILER=clang++ \
   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
   -DCMAKE_C_COMPILER=clang \
