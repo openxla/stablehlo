@@ -91,7 +91,7 @@ jobs:
     - name: Build and Test Python Wheel
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_python_wheels.sh "$GITHUB_WORKSPACE/${{ github.sha }}"
+        ./build_tools/github_actions/ci_build_python_wheel.sh "$GITHUB_WORKSPACE/${{ github.sha }}"
     
     - name: Upload an artifact
       uses: actions/upload-artifact@v4
