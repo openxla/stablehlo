@@ -34,7 +34,7 @@ def get_version():
       ["git", "rev-parse", "--short", "HEAD"], text=True).strip()
   # in order for the wheels to be ordered chronologically
   # include the epoch seconds as a portion of the version
-  return f"{latest_tag}.{int(time.now())}+{latest_commit}"
+  return f"{latest_tag}.{int(time.time())}+{latest_commit}"
 
 
 # TODO(fzakaria): The distribution (wheel) of this package is not manylinux
