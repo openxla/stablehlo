@@ -139,7 +139,7 @@ A few examples:
 
 * Backward compatibility, positive tests: [vhlo_to_version_upgrade.mlir](https://github.com/openxla/stablehlo/blob/6886b59f6cd4369674e7e3beff61301c145176e2/stablehlo/tests/vhlo_to_version_upgrade.mlir#L2)
 * Forward compatibility, positive tests: [vhlo_to_version_downgrade.mlir](https://github.com/openxla/stablehlo/blob/6886b59f6cd4369674e7e3beff61301c145176e2/stablehlo/tests/vhlo_to_version_downgrade.mlir#L1)
-* Forward compatibility, negative tests: [vhlo_to_version_downgrade_invalid.0_9_0.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo_to_version_downgrade_invalid.0_9_0.mlir)
+* Forward compatibility, negative tests: [vhlo_to_version_downgrade_invalid.0_9_0.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo/vhlo_to_version_downgrade_invalid.0_9_0.mlir)
 
 ### Add Versioned Serialization Test
 
