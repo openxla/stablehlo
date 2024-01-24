@@ -13,27 +13,33 @@
 
 toc:
 - heading: StableHLO developer guide
-- title: Overview
-  path: /stablehlo
-- title: Bytecode
-  path: /stablehlo/bytecode
-- title: Compatibility
-  path: /stablehlo/compatibility
-- title: Governance
-  path: /stablehlo/governance
-- title: Interpreter Design
-  path: /stablehlo/reference
-- title: Interpreter Checklist
-  path: /stablehlo/reference_checklist
-- title: Roadmap
-  path: /stablehlo/roadmap
-- title: Specification
-  path: /stablehlo/spec
-- title: Specification Checklist
-  path: /stablehlo/spec_checklist
-- title: Status
-  path: /stablehlo/status
-- title: Type Inference
-  path: /stablehlo/type_inference
-- title: The VHLO Dialect
-  path: /stablehlo/vhlo
+- title: Getting started
+  section:
+  - title: Overview and build instructions
+    path: /stablehlo
+  - title: Specification
+    path: /stablehlo/spec
+  - title: Compatibility guarantees
+    path: /stablehlo/compatibility
+  - title: Reference interpreter
+    path: /stablehlo/reference
+  - title: Roadmap
+    path: /stablehlo/roadmap
+- title: Contributing
+  section:
+  - title: Governance
+    path: /stablehlo/governance
+  - title: Specification checklist
+    path: /stablehlo/spec_checklist
+  - title: Interpreter checklist
+    path: /stablehlo/reference_checklist
+  - title: Implementation status
+    path: /stablehlo/status
+- title: Developer details
+  section:
+  - title: Bytecode format
+    path: /stablehlo/bytecode
+  - title: Type inference
+    path: /stablehlo/type_inference
+  - title: The VHLO dialect
+    path: /stablehlo/vhlo
