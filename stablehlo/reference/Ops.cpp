@@ -869,11 +869,11 @@ Tensor evalAllGatherOp(const Tensor &operand, int64_t allGatherDim,
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
 
-  const RendezvousResult resultMap =
-      *(process->rendezvous(*processGroup, channelId, operand));
+  auto rendezvousResult =
+      *process->rendezvous(*processGroup, channelId, operand);
   SmallVector<Tensor> groupOperands(llvm::map_range(
       *processGroup,
-      [&](const ProcessId &id) { return resultMap.lookup(id); }));
+      [&](const ProcessId &id) { return rendezvousResult.lookup(id); }));
 
   return evalConcatenateOp(groupOperands, allGatherDim, resultType);
 }

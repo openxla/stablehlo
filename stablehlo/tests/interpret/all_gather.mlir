@@ -62,8 +62,9 @@ module @cross_replica_and_partition_issue_1933 {
     %0 = stablehlo.constant dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>
     %1 = stablehlo.constant dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>
     %results:4 = "interpreter.run_parallel"(%1, %1, %0, %1) {
-      programs=[[@all_gather, @all_gather], [@all_gather,@all_gather]]
-    } : (tensor<2x2xi64>, tensor<2x2xi64>, tensor<2x2xi64>, tensor<2x2xi64>) -> (tensor<2x8xi64>, tensor<2x8xi64>, tensor<2x8xi64>, tensor<2x8xi64>)
+      programs=[[@all_gather, @all_gather], [@all_gather, @all_gather]]
+    } : (tensor<2x2xi64>, tensor<2x2xi64>, tensor<2x2xi64>, tensor<2x2xi64>) ->
+        (tensor<2x8xi64>, tensor<2x8xi64>, tensor<2x8xi64>, tensor<2x8xi64>)
     check.expect_eq_const %results#0, dense<[[5, 6, 1, 2, 5, 6, 5, 6],
                                              [7, 8, 3, 4, 7, 8, 7, 8]]> : tensor<2x8xi64>
     check.expect_eq_const %results#1, dense<[[5, 6, 1, 2, 5, 6, 5, 6],

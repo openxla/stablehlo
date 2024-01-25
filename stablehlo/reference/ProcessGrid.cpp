@@ -260,8 +260,9 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
 
     // The last process to contribute takes the result from the state to allow
     // the process that contributed last to exit the function.
+    auto result = std::move(state.result);
     channelConditions_[channelKey].notify_one();
-    return std::move(state.result);
+    return result;
   }
 
   // Wait for all processes to contribute values.
@@ -283,6 +284,7 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     llvm::report_fatal_error(
         "rendezvous timed out: not all process has received the results yet");
 
+  channelConditions_[channelKey].notify_one();
   return result;
 }
 
