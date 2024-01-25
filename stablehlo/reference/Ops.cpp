@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
