@@ -3098,7 +3098,7 @@ def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize
       HLO_QuantizedIntTensor> { /*uniform_quantize_c1*/
   let summary = "UniformQuantize operation";
   let description = [{
-    Performs element-wise conversion of floating-point tensor or quantized
+    Performs element-wise conversion of floating-point tensor or quantized
     tensor `operand` to a quantized tensor `result` according to the
     quantization parameters defined by the `result` type.
 
