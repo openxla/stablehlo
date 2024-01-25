@@ -223,6 +223,9 @@ SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
 std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     ProcessGroup processGroup, ChannelId channelId, ProcessId processId,
     const Tensor &operand) {
+  std::string id = "(" + std::to_string(processId.replicaId) + "," +
+                   std::to_string(processId.partitionId) + "): ";
+  // std::string id = "rendezvous: " + id + "\n";
   std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   // Process wait/notify logic below doesn't work for single process.
   if (processGroup.size() == 1)
@@ -235,12 +238,16 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
   state.values[processId] = operand;
 
   if (state.values.size() == processGroup.size()) {
+    llvm::errs() << id + "(B) values.size() = " +
+                        std::to_string(state.values.size()) + "\n\n";
     // If values are full, that means all other processes are currently waiting.
     // The last process to contribute moves the values into the result
     // then waits for each process to return a copy of the result before
     // cleaning up the state variable for future computations in this process
     // grid.
     state.result = std::make_shared<RendezvousResult>(state.values);
+    llvm::errs() << id + "use_count: "
+                 << std::to_string(state.result.use_count()) << "\n\n";
     state.values.clear();
     channelConditions_[channelKey].notify_one();
 
@@ -254,15 +261,24 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
       llvm::report_fatal_error(
           "rendezvous timed out: not all processes have contributed yet");
 
+    llvm::errs() << "\n" + id + "finished reading\n\n";
+
     if (state.result.use_count() > static_cast<int64_t>(processGroup.size()))
       llvm::report_fatal_error(
           "Each process should have only one shared access to the result.");
 
     // The last process to contribute takes the result from the state to allow
     // the process that contributed last to exit the function.
+    auto result = std::move(state.result);
+    llvm::errs() << id + "use_count: "
+                 << std::to_string(state.result.use_count()) << "\n";
     channelConditions_[channelKey].notify_one();
-    return std::move(state.result);
+    llvm::errs() << id + "im exiting\n\n";
+    return result;
   }
+
+  llvm::errs() << id + "(A) values.size() = " +
+                      std::to_string(state.values.size()) + "\n";
 
   // Wait for all processes to contribute values.
   if (!channelConditions_[channelKey].wait_for(
@@ -271,8 +287,14 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     llvm::report_fatal_error(
         "rendezvous timed out: not all process has received the results yet");
 
+  llvm::errs() << id + "finished waiting for all process to contribute\n";
+  llvm::errs() << id + "state.result is null? " +
+                      std::to_string(state.result == nullptr) + "\n";
+
   // Copy result from the state before notifying.
   auto result = state.result;
+  llvm::errs() << id + "use_count: " << std::to_string(state.result.use_count())
+               << "\n";
   channelConditions_[channelKey].notify_one();
 
   // Wait for the remaining processes to have retrieved the result. In other
@@ -282,7 +304,10 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
           [&] { return state.result == nullptr; }))
     llvm::report_fatal_error(
         "rendezvous timed out: not all process has received the results yet");
-
+  llvm::errs() << id + "use_count: " << std::to_string(state.result.use_count())
+               << "\n";
+  llvm::errs() << id + "last process exited, im exiting\n";
+  channelConditions_[channelKey].notify_one();
   return result;
 }
 

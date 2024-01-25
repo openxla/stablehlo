@@ -242,7 +242,7 @@ class ProcessGrid {
   /// deadlock the interpreter.
   ///
   /// At the barrier, each StableHLO process contributes a tensor, and these
-  /// tensors are accumulated in `RendezvousResult` whose shard pointer is
+  /// tensors are accumulated in `RendezvousResult` whose shared pointer is
   /// returned to all callers once the barrier has been reached by all StableHLO
   /// processes.
   std::shared_ptr<RendezvousResult const> rendezvous(ProcessGroup processGroup,

@@ -16,6 +16,7 @@ limitations under the License.
 #include "stablehlo/reference/Ops.h"
 
 #include <algorithm>
+#include <string>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
@@ -863,16 +864,24 @@ Tensor evalAllGatherOp(const Tensor &operand, int64_t allGatherDim,
     processGroups = process->flattenedIds(replicaGroups);
 
   auto processGroup = processGroups.findGroup(process->getId());
+  // llvm::errs() << "processGroup count: " +
+  //                     std::to_string(processGroup->size()) + "\n";
   if (!processGroup)
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
 
-  const RendezvousResult resultMap =
-      *(process->rendezvous(*processGroup, channelId, operand));
+  // auto groupOperands = process->rendezvous(*processGroup, channelId, operand)
+  //                          ->getSortedTensors();
+
+  // std::string processId = std::to_string(process->getId().replicaId) + ", " +
+  //                         std::to_string(process->getId().partitionId);
+  // llvm::errs() << "current process:" + processId + "\n";
+  auto rendezvousResult =
+      *process->rendezvous(*processGroup, channelId, operand);
   SmallVector<Tensor> groupOperands(llvm::map_range(
       *processGroup,
-      [&](const ProcessId &id) { return resultMap.lookup(id); }));
+      [&](const ProcessId &id) { return rendezvousResult.lookup(id); }));
 
   return evalConcatenateOp(groupOperands, allGatherDim, resultType);
 }
