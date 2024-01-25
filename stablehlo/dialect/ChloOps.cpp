@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Traits.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/InliningUtils.h"
@@ -165,7 +166,7 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
   auto broadcastDimensionsAttr = op->getAttr("broadcast_dimensions");
   if (broadcastDimensionsAttr &&
       !hlo::isLegalNumpyRankedBroadcast(
-          lhs, rhs, hlo::getI64Array(broadcastDimensionsAttr))) {
+          lhs, rhs, broadcastDimensionsAttr.cast<mlir::DenseI64ArrayAttr>())) {
     // Note: It is unclear whether the general specification of explicit
     // broadcast_dimensions on binary ops is a feature we want to carry
     // forward. While it can technically be implemented for ranked-dynamic,
@@ -212,7 +213,7 @@ LogicalResult BroadcastComplexOp::reifyReturnTypeShapes(
 
 void BroadcastCompareOp::build(OpBuilder& builder, OperationState& result,
                                Value lhs, Value rhs,
-                               Attribute broadcastDimensions,
+                               DenseI64ArrayAttr broadcastDimensions,
                                chlo::ComparisonDirection comparisonDirection,
                                chlo::ComparisonType compareType) {
   build(builder, result, lhs, rhs, broadcastDimensions,

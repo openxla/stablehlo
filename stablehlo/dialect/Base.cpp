@@ -605,30 +605,5 @@ bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {
                      [val](int64_t x) { return x == val; });
 }
 
-SmallVector<int64_t> getI64Array(Attribute attr) {
-  if (!attr) return {};
-  if (auto elements = attr.dyn_cast<DenseIntElementsAttr>())
-    return llvm::to_vector(elements.getValues<int64_t>());
-  if (auto array = attr.dyn_cast<DenseI64ArrayAttr>())
-    return llvm::to_vector(array.asArrayRef());
-  llvm::report_fatal_error(
-      "called getI64Array on Attribute that was neither a "
-      "DenseIntElementsAttr or a DenseI64ArrayAttr",
-      false);
-}
-
-SmallVector<bool> getBoolArray(Attribute attr) {
-  if (!attr) return {};
-  if (auto elements = attr.dyn_cast<DenseIntOrFPElementsAttr>())
-    return llvm::to_vector(elements.getValues<bool>());
-  if (auto array = attr.dyn_cast<DenseBoolArrayAttr>()) {
-    return SmallVector<bool>(array.asArrayRef());
-  }
-  llvm::report_fatal_error(
-      "called getBoolArray on Attribute that was neither a "
-      "DenseIntOrFPElementsAttr or a DenseBoolArrayAttr",
-      false);
-}
-
 }  // namespace hlo
 }  // namespace mlir

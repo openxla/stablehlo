@@ -101,7 +101,7 @@ class CHLO_BroadcastBinaryElementwiseOp<
     HLO_Tensor:$rhs,
     // Explicit rank-broadcast dimension mappings. Defaults to "numpy" prefix
     // padded rank-broadcast semantics if omitted.
-    OptionalAttr<I64DenseArrayOrElements1DAttr>:$broadcast_dimensions
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions
   );
 
   let results = (outs HLO_Tensor);
@@ -313,7 +313,7 @@ def CHLO_BroadcastZetaOp : CHLO_BroadcastBinaryElementwiseOp<
     HLO_FpTensor:$rhs,
     // Explicit rank-broadcast dimension mappings. Defaults to "numpy" prefix
     // padded rank-broadcast semantics if omitted.
-    OptionalAttr<I64DenseArrayOrElements1DAttr>:$broadcast_dimensions
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions
   );
   let results = (outs HLO_FpTensor);
 }
@@ -331,7 +331,7 @@ class CHLO_BroadcastBinaryLogicalElementwiseOp<string mnemonic> :
     HLO_PredOrIntTensor:$rhs,
     // Explicit rank-broadcast dimension mappings. Defaults to "numpy" prefix
     // padded rank-broadcast semantics if omitted.
-    OptionalAttr<I64DenseArrayOrElements1DAttr>:$broadcast_dimensions
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions
   );
 }
 
@@ -448,7 +448,7 @@ def CHLO_BroadcastComplexOp : CHLO_BroadcastBinaryElementwiseOp<
     HLO_FpTensor:$rhs,
     // Explicit rank-broadcast dimension mappings. Defaults to "numpy" prefix
     // padded rank-broadcast semantics if omitted.
-    OptionalAttr<I64DenseArrayOrElements1DAttr>:$broadcast_dimensions
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions
   );
   let results = (outs HLO_ComplexTensor);
 }
@@ -755,7 +755,7 @@ def CHLO_BroadcastCompareOp : CHLO_BroadcastBinaryElementwiseOp<
   let arguments = (ins
     HLO_Tensor:$lhs,
     HLO_Tensor:$rhs,
-    OptionalAttr<I64DenseArrayOrElements1DAttr>:$broadcast_dimensions,
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions,
     CHLO_ComparisonDirectionAttr:$comparison_direction,
     OptionalAttr<CHLO_ComparisonTypeAttr>:$compare_type
   );
@@ -763,7 +763,7 @@ def CHLO_BroadcastCompareOp : CHLO_BroadcastBinaryElementwiseOp<
 
   let builders = [
     OpBuilder<(ins "Value":$lhs, "Value":$rhs,
-      "Attribute":$broadcast_dimensions,
+      "DenseI64ArrayAttr":$broadcast_dimensions,
       "::mlir::chlo::ComparisonDirection":$comparison_direction,
       CArg<"::mlir::chlo::ComparisonType",
       "::mlir::chlo::ComparisonType::NOTYPE">:$compare_type)>,

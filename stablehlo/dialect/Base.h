@@ -57,26 +57,7 @@ inline static bool isStaticDimSize(int64_t val) {
 }
 
 // Checks whether every position in the given array contains the given value.
-// This is especially useful for dealing with instances of
-// I64DenseArrayOrElements1DAttr, which returns a SmallVector<int64_t> as its
-// value no matter what actual attribute is backing it.
-// TODO(#1578): Remove this code once all uses of I64DenseArrayOrElements1DAttr
-// have been removed.
 bool isSplatArray(ArrayRef<int64_t> arr, int64_t val);
-
-// Returns a vector of the int64 values in a I64DenseArrayOrElements1DAttr.
-// Such an Attr can be backed by either a 1-dimensional DenseIntElementsAttr or
-// a DenseI64ArrayAttr.
-// TODO(#1578): Remove this code once all uses of I64DenseArrayOrElements1DAttr
-// have been removed.
-SmallVector<int64_t> getI64Array(Attribute);
-
-// Returns a vector of the bool values in a BoolDenseArrayOrElementsAttr.
-// Such an Attr can be backed by either a DenseIntOrFPElementsAttr or
-// a DenseBoolArrayAttr.
-// TODO(#1578): Remove this code once all uses of BoolDenseArrayOrElementsAttr
-// have been removed.
-SmallVector<bool> getBoolArray(Attribute);
 
 //  Verifies that the two types have compatible shape with bounds but allows
 //  different element types.
