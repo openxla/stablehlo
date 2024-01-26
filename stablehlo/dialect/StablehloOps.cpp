@@ -1401,10 +1401,10 @@ LogicalResult ReduceWindowOp::verify() {
 // Builder that takes a constructor for its region and infers result types
 void ReduceWindowOp::build(
     OpBuilder& odsBuilder, OperationState& odsState, ValueRange inputs,
-    ValueRange init_values, DenseIntElementsAttr window_dimensions,
-    /*optional*/ DenseIntElementsAttr window_strides,
-    /*optional*/ DenseIntElementsAttr base_dilations,
-    /*optional*/ DenseIntElementsAttr window_dilations,
+    ValueRange init_values, DenseI64ArrayAttr window_dimensions,
+    /*optional*/ DenseI64ArrayAttr window_strides,
+    /*optional*/ DenseI64ArrayAttr base_dilations,
+    /*optional*/ DenseI64ArrayAttr window_dilations,
     /*optional*/ DenseIntElementsAttr padding,
     function_ref<void(OpBuilder&, Location, ValueRange)> bodyBuilder) {
   odsState.addOperands(inputs);
@@ -1631,7 +1631,7 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
         parser.parseKeyword("reducer"))
       return failure();
     OpBuilder builder(parser.getBuilder().getContext());
-    result.addAttribute("dimensions", builder.getI64TensorAttr(dimensions));
+    result.addAttribute("dimensions", builder.getDenseI64ArrayAttr(dimensions));
 
     // Parse the "reducer" region now.
     SmallVector<OpAsmParser::UnresolvedOperand, 2> reducerOperands;
@@ -1769,7 +1769,7 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
   // dimension attribute.
   result.addTypes(reduceOpFnType.getResults());
   result.location = innerOp->getLoc();
-  result.addAttribute("dimensions", builder.getI64TensorAttr(dimensions));
+  result.addAttribute("dimensions", builder.getDenseI64ArrayAttr(dimensions));
   return success();
 }
 
@@ -2423,10 +2423,8 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 
 using mlir::hlo::parseComplexOpType;
 using mlir::hlo::parseCustomCallTarget;
-using mlir::hlo::parseDenseI64Array;
 using mlir::hlo::parseDotDimensionNumbers;
 using mlir::hlo::parseExponentMantissa;
-using mlir::hlo::parseI64DenseArrayOrElements1D;
 using mlir::hlo::parsePairwiseOpType;
 using mlir::hlo::parseSameOperandsAndResultType;
 using mlir::hlo::parseSelectOpType;
@@ -2436,10 +2434,8 @@ using mlir::hlo::parseVariadicOperandWithAttribute;
 using mlir::hlo::parseVariadicSameOperandsAndResultType;
 using mlir::hlo::printComplexOpType;
 using mlir::hlo::printCustomCallTarget;
-using mlir::hlo::printDenseI64Array;
 using mlir::hlo::printDotDimensionNumbers;
 using mlir::hlo::printExponentMantissa;
-using mlir::hlo::printI64DenseArrayOrElements1D;
 using mlir::hlo::printPairwiseOpType;
 using mlir::hlo::printSameOperandsAndResultType;
 using mlir::hlo::printSelectOpType;
@@ -3109,11 +3105,11 @@ void printWindowPadding(OpAsmPrinter& p, DenseElementsAttr padding) {
 }  // namespace
 
 void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
-                           std::optional<Attribute> windowStrides,
+                           std::optional<DenseI64ArrayAttr> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
-                           std::optional<Attribute> lhsDilation,
-                           std::optional<Attribute> rhsDilation,
-                           std::optional<Attribute> windowReversal) {
+                           std::optional<DenseI64ArrayAttr> lhsDilation,
+                           std::optional<DenseI64ArrayAttr> rhsDilation,
+                           std::optional<DenseBoolArrayAttr> windowReversal) {
   using pair_t = std::pair<Attribute, StringRef>;
   std::array<pair_t, 5> printedAttributes = {{
       {windowStrides ? *windowStrides : nullptr, "stride"},
@@ -3134,20 +3130,23 @@ void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
     if (attr.second == "pad") {
       printWindowPadding(p, attr.first.dyn_cast<DenseIntElementsAttr>());
     } else if (attr.second == "reverse") {
-      llvm::interleaveComma(hlo::getBoolArray(attr.first), p);
+      llvm::interleaveComma(attr.first.cast<DenseBoolArrayAttr>().asArrayRef(),
+                            p);
     } else {
-      llvm::interleaveComma(hlo::getI64Array(attr.first), p);
+      llvm::interleaveComma(attr.first.cast<DenseI64ArrayAttr>().asArrayRef(),
+                            p);
     }
 
     p << ']';
   });
 }
 
-ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
+ParseResult parseWindowAttributes(OpAsmParser& parser,
+                                  DenseI64ArrayAttr& windowStrides,
                                   DenseIntElementsAttr& padding,
-                                  Attribute& lhsDilation,
-                                  Attribute& rhsDilation,
-                                  Attribute& windowReversal) {
+                                  DenseI64ArrayAttr& lhsDilation,
+                                  DenseI64ArrayAttr& rhsDilation,
+                                  DenseBoolArrayAttr& windowReversal) {
   StringRef attributeName;
 
   llvm::StringSet<> allowedAttributeNames{
@@ -3202,13 +3201,12 @@ ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
                                          int64Parser))
         return failure();
       if (attributeName == "reverse") {
-        auto ty = RankedTensorType::get({static_cast<int64_t>(values.size())},
-                                        parser.getBuilder().getIntegerType(1));
         auto boolVector = llvm::to_vector<4>(
             llvm::map_range(values, [](int64_t v) { return v != 0; }));
-        windowReversal = DenseElementsAttr::get(ty, boolVector);
+        windowReversal =
+            DenseBoolArrayAttr::get(parser.getContext(), boolVector);
       } else {
-        auto attr = parser.getBuilder().getI64TensorAttr(values);
+        auto attr = parser.getBuilder().getDenseI64ArrayAttr(values);
 
         if (attributeName == "stride") {
           windowStrides = attr;

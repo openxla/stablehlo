@@ -129,7 +129,7 @@ struct ReduceOpToGenericConverter final
     }
     auto srcRank = cast<ShapedType>(adaptor.getInputs()[0].getType()).getRank();
 
-    SmallVector<int64_t> reductionDims = op.getDimensions();
+    SmallVector<int64_t> reductionDims = llvm::to_vector(op.getDimensions());
 
     SmallVector<Type> resultTypes;
     if (failed(typeConverter->convertTypes(op.getResultTypes(), resultTypes)))
@@ -226,7 +226,7 @@ struct ReduceOpToReduceConverter final
                                          "unsupported reduce (noop or empty)");
     }
 
-    auto reductionDims = op.getDimensions();
+    auto reductionDims = llvm::to_vector(op.getDimensions());
     // stablehlo.reduce doesn't specify the order of the reduction dimensions.
     llvm::sort(reductionDims);
 
@@ -346,17 +346,17 @@ struct ReduceWindowOpOnTensorsGenericConversion final
 
     llvm::SmallVector<int64_t> baseDilations;
     if (op.getBaseDilations()) {
-      baseDilations = *op.getBaseDilations();
+      baseDilations = llvm::to_vector(*op.getBaseDilations());
     }
 
     llvm::SmallVector<int64_t> windowStrides(windowDimensions.size(), 1);
     if (op.getWindowStrides()) {
-      windowStrides = *op.getWindowStrides();
+      windowStrides = llvm::to_vector(*op.getWindowStrides());
     }
 
     llvm::SmallVector<int64_t> windowDilations(windowDimensions.size(), 1);
     if (op.getWindowDilations()) {
-      windowDilations = *op.getWindowDilations();
+      windowDilations = llvm::to_vector(*op.getWindowDilations());
     }
 
     auto rank = static_cast<int64_t>(windowDimensions.size());

@@ -179,35 +179,18 @@ def StableHLO_ConvDimensionNumbers : AttrDef<StableHLO_Dialect, "ConvDimensionNu
   let hasCustomAssemblyFormat = 1;
 }
 
-def StableHLO_BoolElementsAttr :
-    ElementsAttrBase<
-      And<[CPred<"$_self.isa<::mlir::DenseIntOrFPElementsAttr>()">,
-           CPred<"$_self.cast<::mlir::DenseIntOrFPElementsAttr>().getType().getElementType().isInteger(1)">]>,
-      "constant boolean vector/tensor attribute"> {
-  let storageType = [{ ::mlir::DenseElementsAttr }];
-  let returnType = [{ ::mlir::DenseElementsAttr }];
-
-  let convertFromStorage = "$_self";
-}
-
-def BoolDenseArrayOrElementsAttr : Attr<Or<[DenseBoolArrayAttr.predicate, StableHLO_BoolElementsAttr.predicate]>, "either a DenseBoolArrayAttr or a StableHLO_BoolElementsAttr"> {
-  let storageType = "mlir::Attribute";
-  let returnType = "SmallVector<bool>";
-  let convertFromStorage = "hlo::getBoolArray($_self)";
-}
-
 def StableHLO_ConvolutionAttributes {
   dag attributes = (ins
     // Default value: one for each of the spatial dimension.
-    OptionalAttr<I64DenseArrayOrElements1DAttr>:$window_strides,
+    OptionalAttr<DenseI64ArrayAttr>:$window_strides,
     // Default value: two zeros for each of the spatial dimension.
     OptionalAttr<I64ElementsAttr>:$padding,
     // Default value: one for each of the spatial dimension.
-    OptionalAttr<I64DenseArrayOrElements1DAttr>:$lhs_dilation,
+    OptionalAttr<DenseI64ArrayAttr>:$lhs_dilation,
     // Default value: one for each of the spatial dimension.
-    OptionalAttr<I64DenseArrayOrElements1DAttr>:$rhs_dilation,
+    OptionalAttr<DenseI64ArrayAttr>:$rhs_dilation,
     // Default value: false for each of the spatial dimension.
-    OptionalAttr<BoolDenseArrayOrElementsAttr>:$window_reversal,
+    OptionalAttr<DenseBoolArrayAttr>:$window_reversal,
     StableHLO_ConvDimensionNumbers:$dimension_numbers,
     I64Attr:$feature_group_count,
     I64Attr:$batch_group_count,

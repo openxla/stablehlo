@@ -30,11 +30,12 @@ namespace {
 /// Apply dilation and padding to the input of a convolution.
 Value applyConvolutionPadding(Location loc, Value input,
                               DenseIntElementsAttr padding,
-                              Attribute lhsDilation,
+                              DenseI64ArrayAttr lhsDilation,
                               llvm::ArrayRef<int64_t> dimMappings,
                               OpBuilder &rewriter) {
   SmallVector<int64_t> lhsDilationValues;
-  if (lhsDilation) lhsDilationValues = hlo::getI64Array(lhsDilation);
+  if (lhsDilation)
+    lhsDilationValues = llvm::to_vector(lhsDilation.asArrayRef());
   bool noPadding = !padding || isSplatValue(padding, 0);
   bool noDilation = !lhsDilation || hlo::isSplatArray(lhsDilationValues, 1);
   if (noPadding && noDilation) return input;

@@ -256,46 +256,6 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
 // Attribute Printers and Parsers
 //===----------------------------------------------------------------------===//
 
-void printDenseI64Array(OpAsmPrinter& p, Operation* op,
-                        DenseIntElementsAttr attr) {
-  if (attr.getType().getRank() != 1)
-    llvm::report_fatal_error("printDenseI64Array only supports rank-1 arrays");
-  auto values = llvm::to_vector(attr.getValues<int64_t>());
-  DenseI64ArrayAttr arrayAttr =
-      DenseI64ArrayAttr::get(op->getContext(), values);
-  arrayAttr.print(p);
-}
-
-ParseResult parseDenseI64Array(OpAsmParser& parser,
-                               DenseIntElementsAttr& attr) {
-  DenseI64ArrayAttr arrayAttr = DenseI64ArrayAttr::parse(parser, Type{})
-                                    .dyn_cast_or_null<DenseI64ArrayAttr>();
-  if (!arrayAttr) return failure();
-
-  ArrayRef<int64_t> data = arrayAttr.asArrayRef();
-  RankedTensorType type =
-      RankedTensorType::get(data.size(), parser.getBuilder().getI64Type());
-  attr = DenseIntElementsAttr::get(type, data);
-  return success();
-}
-
-void printI64DenseArrayOrElements1D(OpAsmPrinter& p, Operation* op,
-                                    Attribute attr) {
-  if (auto elems = dyn_cast<DenseIntElementsAttr>(attr)) {
-    printDenseI64Array(p, op, elems);
-    return;
-  }
-  dyn_cast<DenseI64ArrayAttr>(attr).print(p);
-}
-
-ParseResult parseI64DenseArrayOrElements1D(OpAsmParser& parser,
-                                           Attribute& attr) {
-  if ((attr = DenseI64ArrayAttr::parse(parser, Type{}))) {
-    return success();
-  }
-  return failure();
-}
-
 void printSliceRanges(OpAsmPrinter& p, Operation* op,
                       ArrayRef<int64_t> startIndices,
                       ArrayRef<int64_t> limitIndices,
