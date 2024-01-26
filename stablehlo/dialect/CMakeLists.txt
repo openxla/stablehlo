@@ -141,6 +141,22 @@ mlir_tablegen(StablehloTypeDefs.cpp.inc -gen-typedef-defs --typedefs-dialect=sta
 add_public_tablegen_target(StablehloOpsIncGen)
 add_dependencies(mlir-headers StablehloOpsIncGen)
 
+add_mlir_dialect_library(HloUtils
+  PARTIAL_SOURCES_INTENDED
+  HloUtils.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+)
+
+set(LLVM_TARGET_DEFINITIONS HloPatterns.td)
+mlir_tablegen(HloPatterns.inc -gen-rewriters)
+add_public_tablegen_target(StablehloRewriterIncGen)
+
+set(LLVM_TARGET_DEFINITIONS StablehloCanonicalize.td)
+mlir_tablegen(StablehloCanonicalize.inc -gen-rewriters)
+add_public_tablegen_target(StablehloCanonicalizeIncGen)
+
 add_mlir_dialect_library(StablehloOps
   PARTIAL_SOURCES_INTENDED
   StablehloOps.cpp
@@ -148,11 +164,14 @@ add_mlir_dialect_library(StablehloOps
 
   DEPENDS
   StablehloOpsIncGen
+  StablehloRewriterIncGen
+  StablehloCanonicalizeIncGen
 
   LINK_LIBS PUBLIC
   StablehloAssemblyFormat
   StablehloBase
   StablehloTypeInference
+  HloUtils
   MLIRArithDialect
   MLIRDataLayoutInterfaces
   MLIRInferTypeOpInterface

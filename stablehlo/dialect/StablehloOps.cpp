@@ -73,9 +73,14 @@ limitations under the License.
 #include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/HloUtils.h"
 #include "stablehlo/dialect/StablehloBytecode.h"
 #include "stablehlo/dialect/StablehloOps.h.inc"
 #include "stablehlo/dialect/TypeInference.h"
+
+namespace mlir {
+#include "stablehlo/dialect/HloPatterns.inc"
+}  // namespace mlir
 
 // Include order matters
 #define GET_TYPEDEF_CLASSES
@@ -116,6 +121,9 @@ Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
   assert(type.isIndex() || value.getType().isIndex());
   return b.create<arith::IndexCastOp>(loc, type, value);
 }
+
+#include "stablehlo/dialect/StablehloCanonicalize.inc"
+
 }  // namespace
 
 LogicalResult TypeExtensionsAttr::verifyEncoding(
@@ -1233,6 +1241,108 @@ LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
   reifiedReturnShapes.push_back(
       castToIndexTensor(builder, getLoc(), adaptor.getOutputShape()));
   return success();
+}
+
+namespace {
+class DynamicReshapeOpNotActuallyDynamic
+    : public OpRewritePattern<DynamicReshapeOp> {
+ public:
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(DynamicReshapeOp op,
+                                PatternRewriter& rewriter) const override {
+    auto type = op.getResult().getType().dyn_cast<RankedTensorType>();
+    if (!type || !type.hasStaticShape()) {
+      return rewriter.notifyMatchFailure(op, "requires static shape tensor");
+    }
+    rewriter.replaceOpWithNewOp<ReshapeOp>(op, op.getType(), op.getOperand());
+    return success();
+  }
+};
+
+// Canonicalizes
+// %0 = some_op(%tensor)
+// %1 = "mhlo.dynamic_reshape"(%0, %shape)
+//      (tensor<?xT>, tensor<1xindex>) -> tensor<?xT>
+// ... uses of %1.
+//
+// into
+//
+// ... uses of %0.
+// This canonicalization is only correct if the input is correct!
+// TODO(b/178779691): Use a more sophisticated canonicalization that preserves
+// errors in input, and still allows us to get rid of redundant reshapes.
+class RemoveRedundantRank1DynamicReshape
+    : public OpRewritePattern<DynamicReshapeOp> {
+ public:
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(DynamicReshapeOp op,
+                                PatternRewriter& rewriter) const override {
+    auto type = op.getResult().getType().dyn_cast<RankedTensorType>();
+    if (!type || type.getRank() != 1 || type.hasStaticShape()) {
+      return rewriter.notifyMatchFailure(
+          op, "requires rank 1 shape tensor with dynamic dimension");
+    }
+    auto operandType = op.getOperand().getType().dyn_cast<RankedTensorType>();
+    if (!operandType || operandType.getRank() != 1 ||
+        operandType.hasStaticShape()) {
+      return rewriter.notifyMatchFailure(
+          op, "requires rank 1 shape tensor with dynamic dimension");
+    }
+    rewriter.replaceOp(op, {op.getOperand()});
+    return success();
+  }
+};
+
+// Canonicalizes
+// %0 = "mhlo.dynamic_reshape"(%tensor, %shape)
+// %1 = same_operands_and_result_shape_op(%tensor)
+// %2 = "mhlo.dynamic_reshape"(%1, %shape)
+// ... uses of %2.
+//
+// into
+//
+// %0 = "mhlo.dynamic_reshape"(%tensor, %shape)
+// %1 = same_operands_and_result_shape_op(%tensor)
+// ... uses of %1.
+class DynamicReshapeOpSameShapeOpResult
+    : public OpRewritePattern<DynamicReshapeOp> {
+ public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(DynamicReshapeOp op,
+                                PatternRewriter& rewriter) const override {
+    Operation* defOp = op.getOperand().getDefiningOp();
+    if (!defOp ||
+        !defOp->hasTrait<mlir::OpTrait::SameOperandsAndResultShape>()) {
+      return failure();
+    }
+    Operation* inputDefOp = defOp->getOperand(0).getDefiningOp();
+    if (!inputDefOp) {
+      return failure();
+    }
+    auto reshape = dyn_cast<DynamicReshapeOp>(*inputDefOp);
+    if (reshape && reshape.getOutputShape() == op.getOutputShape()) {
+      rewriter.replaceOp(op, {defOp->getResult(0)});
+      return success();
+    }
+    return failure();
+  }
+};
+}  // namespace
+
+void DynamicReshapeOp::getCanonicalizationPatterns(RewritePatternSet& results,
+                                                   MLIRContext* context) {
+  // clang-format off
+  results.add<
+    RemoveRedundantDynamicReshape,
+    DynamicReshapeOpNotActuallyDynamic,
+    DynamicReshapeOpSameShapeOpResult,
+    RemoveRedundantDynamicBroadcast,
+    RemoveRedundantDynamicReshape,
+    RemoveRedundantRank1DynamicReshape,
+    ShapeOfDynamicReshape 
+  >(context);
+  // clang-format on
 }
 
 //===----------------------------------------------------------------------===//

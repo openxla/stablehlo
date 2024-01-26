@@ -2504,6 +2504,7 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
   let results = (outs HLO_Tensor:$result);
 
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 }
