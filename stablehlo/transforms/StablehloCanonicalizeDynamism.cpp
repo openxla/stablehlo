@@ -111,8 +111,7 @@ struct CanonicalizeDynamicBroadcastInDimOpPattern
     if (!op.getType().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
     rewriter.replaceOpWithNewOp<BroadcastInDimOp>(
-        op, op.getType(), op.getOperand(),
-        rewriter.getDenseI64ArrayAttr(op.getBroadcastDimensions()));
+        op, op.getType(), op.getOperand(), op.getBroadcastDimensionsAttr());
     return success();
   }
 };

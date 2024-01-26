@@ -831,11 +831,8 @@ struct TransposeOpToTransposeConverter final
     Value emptyTensor =
         getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
 
-    auto permutation =
-        rewriter.getDenseI64ArrayAttr(llvm::to_vector(op.getPermutation()));
-
     rewriter.replaceOpWithNewOp<linalg::TransposeOp>(
-        op, adaptor.getOperand(), emptyTensor, permutation,
+        op, adaptor.getOperand(), emptyTensor, op.getPermutationAttr(),
         linalg::getPrunedAttributeList(op));
     return success();
   }
