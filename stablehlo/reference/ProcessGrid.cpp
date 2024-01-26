@@ -252,7 +252,7 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
                      static_cast<int64_t>(processGroup.size());
             }))
       llvm::report_fatal_error(
-          "rendezvous timed out: not all processes have contributed yet");
+          "rendezvous timed out: not all processes have read the values yet");
 
     if (state.result.use_count() > static_cast<int64_t>(processGroup.size()))
       llvm::report_fatal_error(
@@ -270,11 +270,14 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
           lock, std::chrono::seconds(3),
           [&] { return state.result != nullptr; }))
     llvm::report_fatal_error(
-        "rendezvous timed out: not all process has received the results yet");
+        "rendezvous timed out: not all processes have contributed yet");
 
   // Copy result from the state before notifying.
   auto result = state.result;
-  channelConditions_[channelKey].notify_one();
+  // Notify all to prevent accidentally waking up the last process that checks
+  // whether all processes have copied results. Otherwise, it will go back to
+  // sleep and hang.
+  channelConditions_[channelKey].notify_all();
 
   // Wait for the remaining processes to have retrieved the result. In other
   // words, wait until the last process to contribute exit the function.
