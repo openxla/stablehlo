@@ -5796,7 +5796,7 @@ More formally, `result = dequantize(operand)`.
 
 #### Semantics
 
-Performs element-wise conversion of floating-point tensor or quantized tensor
+Performs element-wise conversion of floating-point tensor or quantized tensor
 `operand` to a quantized tensor `result` according to the quantization
 parameters defined by the `result` type.
 
@@ -5812,7 +5812,7 @@ More formally,
 
 | Label | Name      | Type                                       | Constraints |
 |-------|-----------|--------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point or quantized type | (C1), (C2)  |
+| (I1)  | `operand` | tensor of floating-point or quantized type | (C1), (C2)  |
 
 #### Outputs
 
