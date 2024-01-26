@@ -122,7 +122,7 @@ jobs:
         uses: ncipollo/release-action@v1.13.0
         with:
           artifacts: "${{ github.sha }}/*.whl"
-          token: "${{ secrets.GITHUB_TOKEN }}"
+          token: "${{ secrets.PUBLISH_ACCESS_TOKEN }}"
           # git describe in setup.py explicitly filters out this tag
           tag: "dev-wheels"
           name: "dev-wheels"
