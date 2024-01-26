@@ -121,6 +121,8 @@ using Index = Sizes;
 class IndexSpaceIterator {
  public:
   /// \name Constructor
+  IndexSpaceIterator(Sizes shape) : shape_(shape) { index_ = std::nullopt; }
+
   IndexSpaceIterator(Sizes shape, std::optional<Index> index)
       : shape_(shape), index_(index) {
     if (index && !index->inBounds(shape)) index_ = std::nullopt;

@@ -70,7 +70,7 @@ one of the following tracking labels.
 | concatenate              | yes           | yes          | yes            | yes             | yes         |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
 | convert                  | yes           | yes          | infeasible     | yes             | yes         |
-| convolution              | yes           | yes          | infeasible     | revisit         | no          |
+| convolution              | yes           | yes          | infeasible     | revisit         | yes         |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | yes         |
 | create_token             | no            | yes\*        | yes\*          | yes             | revisit     |
