@@ -47,6 +47,8 @@ limitations under the License.
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/TypeInference.h"
+#include "stablehlo/reference/Ops.h"
+#include "stablehlo/reference/Tensor.h"
 #include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
@@ -251,18 +253,12 @@ DenseIntElementsAttr getTensorAttr(ShapedType type, ArrayRef<APSInt> values) {
   return DenseIntElementsAttr::get(type, supportedValues);
 }
 
-APSInt getAPSInt(Type type, uint64_t value) {
-  unsigned numBits;
-  bool isUnsigned;
-  if (auto integerType = type.dyn_cast<IntegerType>()) {
-    numBits = integerType.getWidth();
-    // Signless types are treated as signed, per StableHLO convention.
-    isUnsigned = integerType.isUnsignedInteger();
-  } else {
-    llvm::report_fatal_error("expected integer type");
-  }
-  return APSInt({/*numBits=*/numBits, value},
-                /*isUnsigned=*/isUnsigned);
+llvm::SmallVector<llvm::APSInt> getInts(Tensor tensor) {
+  llvm::SmallVector<llvm::APSInt> vector(tensor.getNumElements());
+  std::transform(
+      tensor.index_begin(), tensor.index_end(), vector.begin(),
+      [&](const Index& index) { return tensor.get(index).toBits(); });
+  return vector;
 }
 
 // The patterns below implement partial evaluation of shape computations which
@@ -279,39 +275,35 @@ LogicalResult evalElementwise(PatternRewriter& rewriter, OpType op,
     return rewriter.notifyMatchFailure(op,
                                        "expected integer result tensor type");
 
-  SmallVector<APSInt> result;
+  Tensor result;
   if constexpr (OpType::template hasTrait<OpTrait::OneOperand>()) {
-    SmallVector<APSInt> operand;
+    DenseIntElementsAttr operand;
     if (failed(hlo::matchInts(op.getOperand(), operand)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
-    for (const auto& operandEl : operand) {
-      result.push_back(fn(operandEl));
-    }
+    result = fn(makeTensor(operand), resultType);
   } else if constexpr (OpType::template hasTrait<
                            OpTrait::NOperands<2>::Impl>()) {
-    SmallVector<APSInt> lhs, rhs;
+    auto resultType = op.getType();
+    DenseIntElementsAttr lhs, rhs;
     if (failed(hlo::matchInts(op.getLhs(), lhs)) ||
         failed(hlo::matchInts(op.getRhs(), rhs)))
       return rewriter.notifyMatchFailure(op, "expected constant operands");
-    for (auto [lhsEl, rhsEl] : llvm::zip(lhs, rhs)) {
-      result.push_back(fn(lhsEl, rhsEl));
-    }
+    result = fn(makeTensor(lhs), makeTensor(rhs), resultType);
   } else if constexpr (OpType::template hasTrait<
                            OpTrait::NOperands<3>::Impl>()) {
-    SmallVector<APSInt> x, y, z;
+    auto resultType = op.getType();
+    DenseIntElementsAttr x, y, z;
     if (failed(hlo::matchInts(op->getOperand(0), x)) ||
         failed(hlo::matchInts(op->getOperand(1), y)) ||
         failed(hlo::matchInts(op->getOperand(2), z)))
       return rewriter.notifyMatchFailure(op, "expected constant operands");
-    for (auto [xEl, yEl, zEl] : llvm::zip(x, y, z)) {
-      result.push_back(fn(xEl, yEl, zEl));
-    }
+    result = fn(makeTensor(x), makeTensor(y), makeTensor(z), resultType);
   } else {
     llvm::report_fatal_error("unsupported number of operands");
   }
 
-  rewriter.replaceOpWithNewOp<ConstantOp>(op,
-                                          getTensorAttr(resultType, result));
+  rewriter.replaceOpWithNewOp<ConstantOp>(
+      op, getTensorAttr(resultType, getInts(result)));
   return success();
 }
 
@@ -319,8 +311,7 @@ struct EvalAddOpPattern : public OpRewritePattern<AddOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(AddOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalElementwise(rewriter, op,
-                           [&](APSInt lhs, APSInt rhs) { return lhs + rhs; });
+    return evalElementwise(rewriter, op, evalAddOp);
   }
 };
 
@@ -332,9 +323,7 @@ struct EvalAndOpPattern : public OpRewritePattern<AndOp> {
     if (!resultType.getElementType().isInteger(1))
       return rewriter.notifyMatchFailure(op, "expected boolean element type");
 
-    return evalElementwise(rewriter, op, [&](APSInt lhsInt, APSInt rhsInt) {
-      return getAPSInt(resultType.getElementType(), lhsInt != 0 && rhsInt != 0);
-    });
+    return evalElementwise(rewriter, op, evalAndOp);
   }
 };
 
@@ -361,12 +350,7 @@ struct EvalClampOpPattern : public OpRewritePattern<ClampOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ClampOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalElementwise(rewriter, op,
-                           [&](APSInt min, APSInt operand, APSInt max) {
-                             if (operand < min) return min;
-                             if (max < operand) return max;
-                             return operand;
-                           });
+    return evalElementwise(rewriter, op, evalClampOp);
   }
 };
 
@@ -374,32 +358,11 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(CompareOp op,
                                 PatternRewriter& rewriter) const override {
-    auto resultType = op.getType();
-    return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
-      bool result;
-      switch (op.getComparisonDirection()) {
-        case ComparisonDirection::EQ:
-          result = lhs == rhs;
-          break;
-        case ComparisonDirection::NE:
-          result = lhs != rhs;
-          break;
-        case ComparisonDirection::GE:
-          result = lhs >= rhs;
-          break;
-        case ComparisonDirection::GT:
-          result = lhs > rhs;
-          break;
-        case ComparisonDirection::LE:
-          result = lhs <= rhs;
-          break;
-        case ComparisonDirection::LT:
-          result = lhs < rhs;
-          break;
-      }
-      return getAPSInt(resultType.getElementType(), result);
-    });
-  }
+    return evalElementwise(
+        rewriter, op, [&](const Tensor& lhs, const Tensor& rhs, ShapedType t) {
+          return evalCompareOp(lhs, rhs, op.getComparisonDirection(), t);
+        });
+  };
 };
 
 struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
@@ -430,10 +393,7 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
     if (!resultType.getElementType().isa<IntegerType>())
       return rewriter.notifyMatchFailure(op,
                                          "expected integer result tensor type");
-    auto resultBitWidth = resultType.getElementType().getIntOrFloatBitWidth();
-    return evalElementwise(rewriter, op, [&](APSInt operand) {
-      return operand.extOrTrunc(resultBitWidth);
-    });
+    return evalElementwise(rewriter, op, evalConvertOp);
   }
 };
 
@@ -441,8 +401,7 @@ struct EvalDivOpPattern : public OpRewritePattern<DivOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(DivOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalElementwise(rewriter, op,
-                           [&](APSInt lhs, APSInt rhs) { return lhs / rhs; });
+    return evalElementwise(rewriter, op, evalDivideOp);
   }
 };
 
@@ -468,9 +427,7 @@ struct EvalMaxOpPattern : public OpRewritePattern<MaxOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(MaxOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
-      return lhs >= rhs ? lhs : rhs;
-    });
+    return evalElementwise(rewriter, op, evalMaxOp);
   }
 };
 
@@ -478,9 +435,7 @@ struct EvalMinOpPattern : public OpRewritePattern<MinOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(MinOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
-      return lhs <= rhs ? lhs : rhs;
-    });
+    return evalElementwise(rewriter, op, evalMinOp);
   }
 };
 
@@ -488,8 +443,7 @@ struct EvalMulOpPattern : public OpRewritePattern<MulOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(MulOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalElementwise(rewriter, op,
-                           [&](APSInt lhs, APSInt rhs) { return lhs * rhs; });
+    return evalElementwise(rewriter, op, evalMultiplyOp);
   }
 };
 
@@ -501,9 +455,7 @@ struct EvalOrOpPattern : public OpRewritePattern<OrOp> {
     if (!resultType.getElementType().isInteger(1))
       return rewriter.notifyMatchFailure(op, "expected boolean element type");
 
-    return evalElementwise(rewriter, op, [&](APSInt lhsInt, APSInt rhsInt) {
-      return getAPSInt(resultType.getElementType(), lhsInt != 0 || rhsInt != 0);
-    });
+    return evalElementwise(rewriter, op, evalOrOp);
   }
 };
 
@@ -511,8 +463,7 @@ struct EvalRemOpPattern : public OpRewritePattern<RemOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(RemOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalElementwise(rewriter, op,
-                           [&](APSInt lhs, APSInt rhs) { return lhs % rhs; });
+    return evalElementwise(rewriter, op, evalRemOp);
   }
 };
 
@@ -558,16 +509,7 @@ struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
     if (!resultType.getElementType().isa<IntegerType>())
       return rewriter.notifyMatchFailure(op,
                                          "expected integer result tensor type");
-    return evalElementwise(rewriter, op, [&](APSInt operand) {
-      int64_t result;
-      if (operand.isNegative())
-        result = -1;
-      else if (operand.isZero())
-        result = 0;
-      else
-        result = 1;
-      return getAPSInt(resultType.getElementType(), result);
-    });
+    return evalElementwise(rewriter, op, evalSignOp);
   }
 };
 
@@ -601,8 +543,7 @@ struct EvalSubtractOpPattern : public OpRewritePattern<SubtractOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(SubtractOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalElementwise(rewriter, op,
-                           [&](APSInt lhs, APSInt rhs) { return lhs - rhs; });
+    return evalElementwise(rewriter, op, evalSubtractOp);
   }
 };
 

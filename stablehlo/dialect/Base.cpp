@@ -145,7 +145,7 @@ bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
 
 LogicalResult matchInts(Value value, SmallVector<int64_t>& result) {
   DenseIntElementsAttr attr;
-  if (!matchPattern(value, m_Constant(&attr))) return failure();
+  if (failed(matchInts(value, attr))) return failure();
   for (auto element : attr.getValues<APInt>()) {
     result.push_back(element.getSExtValue());
   }
@@ -154,7 +154,7 @@ LogicalResult matchInts(Value value, SmallVector<int64_t>& result) {
 
 LogicalResult matchInts(Value value, SmallVector<APSInt>& result) {
   DenseIntElementsAttr attr;
-  if (!matchPattern(value, m_Constant(&attr))) return failure();
+  if (failed(matchInts(value, attr))) return failure();
 
   // Signless types are treated as signed, per StableHLO convention.
   // Unless the type is i1 (which models boolean type from the StableHLO spec),
@@ -171,7 +171,12 @@ LogicalResult matchInts(Value value, SmallVector<APSInt>& result) {
 
 LogicalResult matchInts(Value value) {
   DenseIntElementsAttr attr;
-  return success(/*isSuccess=*/matchPattern(value, m_Constant(&attr)));
+  return matchInts(value, attr);
+}
+
+LogicalResult matchInts(Value value, DenseIntElementsAttr& result) {
+  if (!matchPattern(value, m_Constant(&result))) return failure();
+  return success();
 }
 
 LogicalResult deriveShapeFromOperand(

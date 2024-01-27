@@ -132,6 +132,9 @@ LogicalResult matchInts(Value value, SmallVector<APSInt> &result);
 // that the given argument is indeed a constant tensor with integer values.
 LogicalResult matchInts(Value value);
 
+// Matches a constant tensor with integer values into a dense int elements attr.
+LogicalResult matchInts(Value value, DenseIntElementsAttr &result);
+
 // Shape derivation function that computes the shape of the result based on an
 // operand. For a 2-dimensional input tensor, this produces IR of the form
 //
