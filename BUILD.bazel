@@ -927,6 +927,8 @@ cc_library(
         ":base",
         ":chlo_ops",
         ":interpreter_ops",
+        ":reference_ops",
+        ":reference_tensor",
         ":stablehlo_ops",
         ":stablehlo_ops_inc_gen",
         ":stablehlo_pass_inc_gen",
