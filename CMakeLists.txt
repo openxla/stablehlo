@@ -40,6 +40,7 @@ endif()
 option(STABLEHLO_BUILD_EMBEDDED "Build StableHLO as part of another project" OFF)
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
+option(STABLEHLO_ENABLE_SANITIZER "Enable a sanitizer [OFF, address, memory, thread]" OFF)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
@@ -129,6 +130,25 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
+
+
+#-------------------------------------------------------------------------------
+# Sanitizier configuration
+#-------------------------------------------------------------------------------
+
+if(STABLEHLO_ENABLE_SANITIZER)
+  string(TOLOWER "${STABLEHLO_ENABLE_SANITIZER}" STABLEHLO_ENABLE_SANITIZER_LOWERCASE)
+  if (STABLEHLO_ENABLE_SANITIZER_LOWERCASE STREQUAL "address")
+    add_compile_options(-fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer)
+    link_libraries(-fsanitize=address -fsanitize=undefined -fsanitize=leak)
+  elseif (STABLEHLO_ENABLE_SANITIZER_LOWERCASE STREQUAL "OFF")
+    # do nothing
+  else ()
+    message (FATAL_ERROR "Unknown sanitizer type: ${STABLEHLO_ENABLE_SANITIZER}")
+  endif()
+endif()
+
+
 
 #-------------------------------------------------------------------------------
 # Python configuration
