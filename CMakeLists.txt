@@ -34,6 +34,11 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 OLD)
 endif()
 
+# Support for return(PROPAGATE ...) in functions.
+if (POLICY CMP0140)
+  cmake_policy(SET CMP0140 NEW)
+endif()
+
 #-------------------------------------------------------------------------------
 # Options and settings
 #-------------------------------------------------------------------------------
@@ -116,6 +121,9 @@ else()
   message(STATUS "Building StableHLO embedded in another project")
 endif()
 
+# Add the CMake modules specific to StableHLO
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
 if(LLVM_ENABLE_ZLIB)
   find_package(ZLIB)
 endif()
@@ -136,19 +144,8 @@ add_definitions(${LLVM_DEFINITIONS})
 # Sanitizier configuration
 #-------------------------------------------------------------------------------
 
-if(STABLEHLO_ENABLE_SANITIZER)
-  string(TOLOWER "${STABLEHLO_ENABLE_SANITIZER}" STABLEHLO_ENABLE_SANITIZER_LOWERCASE)
-  if (STABLEHLO_ENABLE_SANITIZER_LOWERCASE STREQUAL "address")
-    add_compile_options(-fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer)
-    link_libraries(-fsanitize=address -fsanitize=undefined -fsanitize=leak)
-  elseif (STABLEHLO_ENABLE_SANITIZER_LOWERCASE STREQUAL "OFF")
-    # do nothing
-  else ()
-    message (FATAL_ERROR "Unknown sanitizer type: ${STABLEHLO_ENABLE_SANITIZER}")
-  endif()
-endif()
-
-
+include(SetupSanitizers)
+setup_sanitizers()
 
 #-------------------------------------------------------------------------------
 # Python configuration

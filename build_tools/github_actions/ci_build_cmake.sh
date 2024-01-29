@@ -28,10 +28,12 @@ fi
 LLVM_BUILD_DIR="$1"
 STABLEHLO_BUILD_DIR="$2"
 CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-RelWithDebInfo}"
-STABLEHLO_ENABLE_SANITIZER="${STABLEHLO_ENABLE_SANITIZER:-OFF}"
 
 # Turn on building Python bindings
 STABLEHLO_ENABLE_BINDINGS_PYTHON="${STABLEHLO_ENABLE_BINDINGS_PYTHON:-OFF}"
+# Turn on building Sanitizers
+# Note: This is not congruent with building python bindings
+STABLEHLO_ENABLE_SANITIZER="${STABLEHLO_ENABLE_SANITIZER:-OFF}"
 
 # Configure StableHLO
 # CMAKE_PLATFORM_NO_VERSIONED_SONAME Disables generation of "version soname"
