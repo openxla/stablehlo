@@ -5,7 +5,8 @@ specification. At the moment, these changes typically involve checking multiple
 things in multiple sources, so this document summarizes them all to simplify
 reviews:
 
-  1. Check that the "Specification" column in status.md says "yes".
+  1. Check that the "Specification" column in status.md says "yes", add a row if
+     adding a new op.
   1. Check if the section title matches the op's mnemonic in
      [the ODS](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.td).
   1. Check if the "Semantics" section matches XLA's

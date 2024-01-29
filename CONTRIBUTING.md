@@ -63,20 +63,20 @@ A few things to consider when adding new features:
 
 - Spec, Type Inference, Verifiers: Steps for adding to [`spec.md`](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)
 as well as related op implementation can be found in
-[spec_checklist.md](https://github.com/openxla/stablehlo/blob/main/docs/spec_checklist.md).
+[`spec_checklist.md`](https://github.com/openxla/stablehlo/blob/main/docs/spec_checklist.md).
 - Verifiers: Steps for modifying or implementing op verifiers can also be found
 in the spec checklist.
 - Type Inference: Type inference design principles and testing details can be
-found in [type_inference.md](https://github.com/openxla/stablehlo/blob/main/docs/type_inference.md).
+found in [`type_inference.md`](https://github.com/openxla/stablehlo/blob/main/docs/type_inference.md).
 - Compatibility: Tips on managing forward/backward compatibility are in
 [`vhlo.md`](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md#contributing-incompatible-changes).
 - Reference: Steps for adding interpreter support can be found in
-[reference_checklist.md](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md).
+[`reference_checklist.md`](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md).
 - Tests: For each of the above modifications, consider positive and negative
 test cases.
 
 Some examples to help guide changes:
 
 - Adding a new op: [`collective_broadcast`](https://github.com/openxla/stablehlo/pull/1856).
-- Adding new types: [`f8E4M3FNUZ and f8E5M2FNUZ`](https://github.com/openxla/stablehlo/pull/1379).
-- Expanding type support: [`Quantized ReduceOp`](https://github.com/openxla/stablehlo/pull/1796).
+- Adding new types: [`f8E4M3FNUZ` and `f8E5M2FNUZ`](https://github.com/openxla/stablehlo/pull/1379).
+- Expanding type support: [Quantized `ReduceOp`](https://github.com/openxla/stablehlo/pull/1796).
