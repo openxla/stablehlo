@@ -298,24 +298,31 @@ struct StablehloCanonicalizeDynamismPass
   using StablehloCanonicalizeDynamismPassBase::
       StablehloCanonicalizeDynamismPassBase;
 
-  void runOnOperation() override {
-    GreedyRewriteConfig config;
+  LogicalResult initialize(MLIRContext* context) override {
     config.useTopDownTraversal = true;
     config.enableRegionSimplification = true;
     config.maxIterations = 2;
     config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
     config.strictMode = GreedyRewriteStrictness::AnyOp;
 
-    RewritePatternSet patterns(&getContext());
-    populateStablehloCanonicalizeDynamismPatterns(&patterns, &getContext());
+    RewritePatternSet patterns_(context);
+    populateStablehloCanonicalizeDynamismPatterns(&patterns_, context);
+    patterns = std::move(patterns_);
+
+    return success();
+  }
+
+  void runOnOperation() override {
     auto func = getOperation();
-    if (failed(
-            applyPatternsAndFoldGreedily(func, std::move(patterns), config))) {
+    if (failed(applyPatternsAndFoldGreedily(func, patterns, config))) {
       func.emitError("Failed to converge StablehloCanonicalizeDynamism in ")
           << config.maxIterations << " iterations";
-      return signalPassFailure();
     }
   }
+
+ private:
+  FrozenRewritePatternSet patterns;
+  GreedyRewriteConfig config;
 };
 
 }  // namespace

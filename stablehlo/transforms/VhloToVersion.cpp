@@ -216,6 +216,14 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
   VhloToVersionPass(const VhloToVersionPassOptions& opts)
       : VhloToVersionPassBase<VhloToVersionPass>(opts) {}
 
+  LogicalResult initialize(MLIRContext* context) override {
+    RewritePatternSet patterns_(context);
+    stablehlo::populateVhloToVersionPatterns(&patterns_, &converter, context);
+    patterns = std::move(patterns_);
+
+    return success();
+  }
+
   void runOnOperation() override {
     ConversionTarget target(getContext());
 
@@ -248,16 +256,14 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
           return isLegalOperation(op, targetVersion);
         });
 
-    vhlo::VhloToVersionConverter converter;
-    RewritePatternSet patterns(&getContext());
-    stablehlo::populateVhloToVersionPatterns(&patterns, &converter,
-                                             &getContext());
-
     // Conversions within VHLO may fail if new features or ops are used.
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns))))
+    if (failed(applyPartialConversion(getOperation(), target, patterns)))
       return signalPassFailure();
   }
+
+ private:
+  vhlo::VhloToVersionConverter converter;
+  FrozenRewritePatternSet patterns;
 };
 
 ////////////////////////////////////////////

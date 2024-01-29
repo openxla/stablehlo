@@ -872,25 +872,32 @@ void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
 struct VhloLegalizeToStablehloPass
     : public impl::VhloLegalizeToStablehloPassBase<
           VhloLegalizeToStablehloPass> {
+  LogicalResult initialize(MLIRContext* context) override {
+    target = std::make_shared<ConversionTarget>(*context);
+    target->addIllegalDialect<vhlo::VhloDialect>();
+    target->addLegalDialect<stablehlo::StablehloDialect>();
+    target->addLegalDialect<func::FuncDialect>();
+
+    RewritePatternSet patterns_(context);
+    stablehlo::populateVhloToStablehloPatterns(&patterns_, &converter, context);
+    patterns = std::move(patterns_);
+
+    return success();
+  }
+
   void runOnOperation() override {
-    ConversionTarget target(getContext());
-    target.addIllegalDialect<vhlo::VhloDialect>();
-    target.addLegalDialect<stablehlo::StablehloDialect>();
-    target.addLegalDialect<func::FuncDialect>();
-
-    VhloToStablehloTypeConverter converter;
-    RewritePatternSet patterns(&getContext());
-    stablehlo::populateVhloToStablehloPatterns(&patterns, &converter,
-                                               &getContext());
-
     // Upgraded VHLO should always be convertible to StableHLO.
     // Arbitrary VHLO might not be convertible if it uses deprecated features
     // which are no longer available in StableHLO.
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns)))) {
+    if (failed(applyPartialConversion(getOperation(), *target, patterns))) {
       return signalPassFailure();
     }
   }
+
+ private:
+  VhloToStablehloTypeConverter converter;
+  FrozenRewritePatternSet patterns;
+  std::shared_ptr<ConversionTarget> target;
 };
 
 void populateVhloToStablehloPatterns(RewritePatternSet* patterns,

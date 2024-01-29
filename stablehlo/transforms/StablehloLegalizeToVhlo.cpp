@@ -862,24 +862,31 @@ void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
 struct StablehloLegalizeToVhloPass
     : public impl::StablehloLegalizeToVhloPassBase<
           StablehloLegalizeToVhloPass> {
+  LogicalResult initialize(MLIRContext* context) override {
+    target = std::make_shared<ConversionTarget>(*context);
+    target->addIllegalDialect<stablehlo::StablehloDialect>();
+    target->addIllegalDialect<func::FuncDialect>();
+    target->addLegalDialect<vhlo::VhloDialect>();
+
+    RewritePatternSet patterns_(context);
+    stablehlo::populateStablehloToVhloPatterns(&patterns_, &converter, context);
+    patterns = std::move(patterns_);
+
+    return success();
+  }
+
   void runOnOperation() override {
-    ConversionTarget target(getContext());
-    target.addIllegalDialect<stablehlo::StablehloDialect>();
-    target.addIllegalDialect<func::FuncDialect>();
-    target.addLegalDialect<vhlo::VhloDialect>();
-
-    StablehloToVhloTypeConverter converter;
-    RewritePatternSet patterns(&getContext());
-    stablehlo::populateStablehloToVhloPatterns(&patterns, &converter,
-                                               &getContext());
-
     // StableHLO should always be convertible to VHLO.
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns)))) {
+    if (failed(applyPartialConversion(getOperation(), *target, patterns))) {
       LLVM_DEBUG(llvm::dbgs() << "Failed partial conversion\n");
       return signalPassFailure();
     }
   }
+
+ private:
+  StablehloToVhloTypeConverter converter;
+  FrozenRewritePatternSet patterns;
+  std::shared_ptr<ConversionTarget> target;
 };
 
 void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
