@@ -1784,7 +1784,7 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
 }
 
 void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
-                     ValueRange initValues, DenseIntElementsAttr dimensions,
+                     ValueRange initValues, DenseI64ArrayAttr dimensions,
                      TypeRange elementTypes) {
   odsState.addOperands(inputs);
   odsState.addOperands(initValues);
@@ -1806,15 +1806,12 @@ void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
                       [](Type t) { return t.cast<ShapedType>(); })};
 
   if (succeeded(hlo::verifyReduceOpInputsAndInferShape(
-          odsState.location, inputArgTensorTypes,
-          llvm::to_vector(dimensions.getValues<int64_t>()), newDimensions,
+          odsState.location, inputArgTensorTypes, dimensions, newDimensions,
           encoding))) {
     SmallVector<Type> inferredReturnTypes;
-    for (uint64_t inputIdx = 0; inputIdx < inputArgTensorTypes.size();
-         ++inputIdx) {
-      Type elementTy = elementTypes[inputIdx];
-      ShapedType inputType = inputArgTensorTypes[inputIdx];
-      if (inputType.hasRank()) {
+    for (auto [inputTy, elementTy] :
+         llvm::zip(inputArgTensorTypes, elementTypes)) {
+      if (inputTy.hasRank()) {
         inferredReturnTypes.push_back(
             RankedTensorType::get(newDimensions, elementTy, encoding));
       } else {
