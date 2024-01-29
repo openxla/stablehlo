@@ -96,3 +96,13 @@ def VhloToVersionPass : Pass<"vhlo-to-version"> {
            "The target version. Must be a version of the form #.#.# or 'current'.">,
   ];
 }
+
+def ChloLegalizeToStablehloPass : Pass<"chlo-legalize-to-stablehlo", "func::FuncOp"> {
+  let summary = "Legalize CHLO to Stablehlo.";
+  let options = [
+    Option<"legalize_broadcasts_", "legalize-broadcasts", "bool",
+           /*default=*/"true", "Legalize implicit broadcasts to explicit HLO broadcasting forms">,
+    Option<"expand_compositions_", "expand-compositions", "bool",
+           /*default=*/"true", "Expands client-centric compositions to HLO primitives">,
+  ];
+}
