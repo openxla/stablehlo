@@ -1783,6 +1783,51 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
                             inferredReturnShapes);
 }
 
+void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
+                     ValueRange initValues, DenseIntElementsAttr dimensions,
+                     TypeRange elementTypes) {
+  odsState.addOperands(inputs);
+  odsState.addOperands(initValues);
+  odsState.addAttribute(getDimensionsAttrName(odsState.name), dimensions);
+  (void)odsState.addRegion();
+
+  SmallVector<int64_t> newDimensions;
+  Attribute encoding;
+  ReduceOp::Adaptor adaptor(
+      odsState.operands,
+      odsState.attributes.getDictionary(odsState.getContext()), {},
+      odsState.regions);
+
+  SmallVector<ShapedType> inputArgTensorTypes{
+      llvm::map_range(adaptor.getInputs().getTypes(),
+                      [](Type t) { return t.cast<ShapedType>(); })};
+  SmallVector<ShapedType> initValueTensorTypes{
+      llvm::map_range(adaptor.getInitValues().getTypes(),
+                      [](Type t) { return t.cast<ShapedType>(); })};
+
+  if (succeeded(hlo::verifyReduceOpInputsAndInferShape(
+          odsState.location, inputArgTensorTypes,
+          llvm::to_vector(dimensions.getValues<int64_t>()), newDimensions,
+          encoding))) {
+    SmallVector<Type> inferredReturnTypes;
+    for (uint64_t inputIdx = 0; inputIdx < inputArgTensorTypes.size();
+         ++inputIdx) {
+      Type elementTy = elementTypes[inputIdx];
+      ShapedType inputType = inputArgTensorTypes[inputIdx];
+      if (inputType.hasRank()) {
+        inferredReturnTypes.push_back(
+            RankedTensorType::get(newDimensions, elementTy, encoding));
+      } else {
+        assert(encoding == nullptr && "attribute not supported");
+        inferredReturnTypes.push_back(UnrankedTensorType::get(elementTy));
+      }
+    }
+    odsState.addTypes(inferredReturnTypes);
+  } else {
+    llvm::report_fatal_error("Failed to infer result type(s).");
+  }
+}
+
 LogicalResult ReduceOp::verify() {
   return hlo::verifyReduceOp(getLoc(), getInputs(), getInitValues(),
                              getDimensions(), getBody());

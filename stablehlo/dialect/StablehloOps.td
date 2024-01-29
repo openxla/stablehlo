@@ -1476,6 +1476,14 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
   );
   let regions = (region SizedRegion<1>:$body /*reduce_i4*/);
 
+  // Builder
+  // The following custom builder allows inferring the operation type using the
+  // 'element_types' of the arguments of the 'body'.
+  let builders = [
+    OpBuilder<(ins "ValueRange":$inputs, "ValueRange":$init_values,
+      "DenseIntElementsAttr":$dimensions, "TypeRange":$element_types)>,
+  ];
+
   let results = (outs Variadic<HLO_Tensor>);
 
   let hasCustomAssemblyFormat = 1;
