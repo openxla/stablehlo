@@ -1783,6 +1783,48 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
                             inferredReturnShapes);
 }
 
+void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
+                     ValueRange initValues, DenseI64ArrayAttr dimensions,
+                     TypeRange elementTypes) {
+  odsState.addOperands(inputs);
+  odsState.addOperands(initValues);
+  odsState.addAttribute(getDimensionsAttrName(odsState.name), dimensions);
+  (void)odsState.addRegion();
+
+  SmallVector<int64_t> newDimensions;
+  Attribute encoding;
+  ReduceOp::Adaptor adaptor(
+      odsState.operands,
+      odsState.attributes.getDictionary(odsState.getContext()), {},
+      odsState.regions);
+
+  SmallVector<ShapedType> inputArgTensorTypes{
+      llvm::map_range(adaptor.getInputs().getTypes(),
+                      [](Type t) { return t.cast<ShapedType>(); })};
+  SmallVector<ShapedType> initValueTensorTypes{
+      llvm::map_range(adaptor.getInitValues().getTypes(),
+                      [](Type t) { return t.cast<ShapedType>(); })};
+
+  if (failed(hlo::verifyReduceOpInputsAndInferShape(
+          odsState.location, inputArgTensorTypes, dimensions, newDimensions,
+          encoding)))
+    llvm::report_fatal_error("Failed to infer result type(s).");
+
+  SmallVector<Type> inferredReturnTypes;
+  for (auto [inputTy, elementTy] :
+       llvm::zip(inputArgTensorTypes, elementTypes)) {
+    if (inputTy.hasRank()) {
+      inferredReturnTypes.push_back(
+          RankedTensorType::get(newDimensions, elementTy, encoding));
+    } else {
+      if (encoding != nullptr)
+        llvm::report_fatal_error("attribute not supported.");
+      inferredReturnTypes.push_back(UnrankedTensorType::get(elementTy));
+    }
+  }
+  odsState.addTypes(inferredReturnTypes);
+}
+
 LogicalResult ReduceOp::verify() {
   return hlo::verifyReduceOp(getLoc(), getInputs(), getInitValues(),
                              getDimensions(), getBody());
