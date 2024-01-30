@@ -2244,11 +2244,11 @@ For quantized types, performs `dequantize_op_quantize(
 //         [[[1]], [[1]], [[1]]]
 //        ]
 %result = "stablehlo.convolution"(%lhs, %rhs) {
-  window_strides = dense<4> : tensor<2xi64>,
+  window_strides = array<i64: 4, 4>,
   padding = dense<0> : tensor<2x2xi64>,
-  lhs_dilation = dense<2> : tensor<2xi64>,
-  rhs_dilation = dense<1> : tensor<2xi64>,
-  window_reversal = dense<false> : tensor<2xi1>,
+  lhs_dilation = array<i64: 2, 2>,
+  rhs_dilation = array<i64: 1, 1>,
+  window_reversal = array<i1: false, false>,
   // In the StableHLO dialect, dimension numbers are encoded via:
   // `[<input dimensions>]x[<kernel dimensions>]->[output dimensions]`.
   // "b" is batch dimension, "f" is feature dimension,
@@ -2601,7 +2601,7 @@ contain the sizes of the slice for each dimension. More formally,
 // %start_indices0: -1
 // %start_indices1: 3
 %result = "stablehlo.dynamic_slice"(%operand, %start_indices0, %start_indices1) {
-  slice_sizes = dense<[2, 2]> : tensor<2xi64>
+  slice_sizes = array<i64: 2, 2>
 } : (tensor<4x4xi32>, tensor<i64>, tensor<i64>) -> tensor<2x2xi32>
 // %result: [
 //           [1, 1],
@@ -2859,7 +2859,7 @@ floating-point type, then `shape(real)[-size(fft_length):] = fft_length`.
 // %operand: [(1.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
 %result = "stablehlo.fft"(%operand) {
   fft_type = #stablehlo<fft_type FFT>,
-  fft_length = dense<4> : tensor<1xi64>
+  fft_length = array<i64: 4>
 } : (tensor<4xcomplex<f32>>) -> tensor<4xcomplex<f32>>
 // %result: [(1.0, 0.0), (1.0, 0.0), (1.0, 0.0), (1.0, 0.0)]
 ```
@@ -3000,7 +3000,7 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
     collapsed_slice_dims = [0],
     start_index_map = [1, 0],
     index_vector_dim = 2>,
-  slice_sizes = dense<[1, 2, 2]> : tensor<3xi64>,
+  slice_sizes = array<i64: 1, 2, 2>,
   indices_are_sorted = false
 } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
 // %result: [
@@ -3469,7 +3469,7 @@ the future ([#487](https://github.com/openxla/stablehlo/issues/487)).
     %0 = stablehlo.multiply %arg0, %arg1 : tensor<i64>
     stablehlo.return %0 : tensor<i64>
 }) {
-  dimensions = dense<[0, 1]> : tensor<2xi64>
+  dimensions = array<i64: 0, 1>
 } : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<2x2xi64>
 // %result: [[0, 5], [12, 21]]
 ```
@@ -3870,9 +3870,9 @@ More formally, `result[result_index]` is defined as:
 //           ]
 // %padding_value: 0
 %result = "stablehlo.pad"(%operand, %padding_value) {
-  edge_padding_low = dense<[0, 1]> : tensor<2xi64>,
-  edge_padding_high = dense<[2, 1]> : tensor<2xi64>,
-  interior_padding = dense<[1, 2]> : tensor<2xi64>
+  edge_padding_low = array<i64: 0, 1>,
+  edge_padding_high = array<i64: 2, 1>,
+  interior_padding = array<i64: 1, 2>
 } : (tensor<2x3xi32>, tensor<i32>) -> tensor<5x9xi32>
 // %result: [
 //           [0, 1, 0, 0, 2, 0, 0, 3, 0],
@@ -4140,7 +4140,7 @@ More formally, `results...[j0, ..., jR-1] = reduce(input_slices_converted)` wher
     %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
     "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
-  dimensions = dense<1> : tensor<1xi64>
+  dimensions = array<i64: 1>
 } : (tensor<1x6xi64>, tensor<i64>) -> tensor<1xi64>
 // %result = [15]
 ```
@@ -4377,10 +4377,10 @@ More formally,
     %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
     "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
-  window_dimensions = dense<[2, 1]> : tensor<2xi64>,
-  window_strides = dense<[4, 1]> : tensor<2xi64>,
-  base_dilations = dense<[2, 1]> : tensor<2xi64>,
-  window_dilations = dense<[3, 1]> : tensor<2xi64>,
+  window_dimensions = array<i64: 2, 1>,
+  window_strides = array<i64: 4, 1>,
+  base_dilations = array<i64: 2, 1>,
+  window_dilations = array<i64: 3, 1>,
   padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
 } : (tensor<3x2xi64>, tensor<i64>) -> tensor<2x2xi64>
 // %result = [[0, 0], [3, 4]]
@@ -4550,7 +4550,7 @@ and produces a `result` tensor. More formally,
 ```mlir
 // %operand = [[1, 2], [3, 4], [5, 6]]
 %result = "stablehlo.reverse"(%operand) {
-  dimensions = dense<1> : tensor<1xi64>
+  dimensions = array<i64: 1>
 } : (tensor<3x2xi32>) -> tensor<3x2xi32>
 // %result: [[2, 1], [4, 3], [6, 5]]
 ```
@@ -5075,8 +5075,8 @@ More formally:
     %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
     "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
-  window_dimensions = dense<[3, 1]> : tensor<2xi64>,
-  window_strides = dense<[2, 1]> : tensor<2xi64>,
+  window_dimensions = array<i64: 3, 1>,
+  window_strides = array<i64: 2, 1>,
   padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
 } : (tensor<4x2xi64>, tensor<2x2xi64>, tensor<i64>) -> tensor<4x2xi64>
 // %result: [[0, 0], [0, 0], [5, 14], [7, 0]]
@@ -5377,9 +5377,9 @@ More formally, `result[result_index] = operand[operand_index]` where
 //            [0, 0, 1, 1]
 //           ]
 %result = "stablehlo.slice"(%operand) {
-  start_indices = dense<[1, 2]> : tensor<2xi64>,
-  limit_indices = dense<[3, 4]> : tensor<2xi64>,
-  strides = dense<1> : tensor<2xi64>
+  start_indices = array<i64: 1, 2>,
+  limit_indices = array<i64: 3, 4>,
+  strides = array<i64: 1, 1>
 } : (tensor<3x4xi64>) -> tensor<2x2xi64>
 // % result: [
 //            [1, 1],
@@ -5634,7 +5634,7 @@ where `result_index[d] = operand_index[permutation[d]]`.
 //            [[7,8], [9,10], [11,12]]
 //           ]
 %result = "stablehlo.transpose"(%operand) {
-  permutation = dense<[2, 1, 0]> : tensor<3xi64>
+  permutation = array<i64: 2, 1, 0>
 } : (tensor<2x3x2xi32>) -> tensor<2x3x2xi32>
 // %result: [
 //           [[1,7], [3,9], [5,11]],
