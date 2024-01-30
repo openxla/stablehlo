@@ -54,7 +54,7 @@ func.func @convolution_batch_group_count_4() {
 
 // -----
 
-func.func @convolution_feature_group_count_4() {
+func.func @convolution_feature_group_count_2() {
   %lhs = stablehlo.constant dense<[[
                                     [[1], [2], [5], [6]],
                                     [[3], [4], [7], [8]],

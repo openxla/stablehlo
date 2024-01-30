@@ -231,7 +231,7 @@ Tensor evalConvolutionOp(
           kernelInputFeatureDimension, kernelOutputFeatureDimension,
           ArrayRef<int64_t>(kernelSpatialDimensions), outputBatchDimension,
           outputFeatureDimension, ArrayRef<int64_t>(outputSpatialDimensions),
-          /*featureGroupCount=*/1, batchGroupCount,
+          featureGroupCount, batchGroupCount,
           /*precisionConfig=*/{}, inferredConvolutionType)))
     report_fatal_error(
         invalidArgument("Could not infer ConvolutionOp's return type"));
@@ -542,20 +542,18 @@ SmallVector<InterpreterValue> eval(Region &region,
       if (auto windowReversalAttr = convolutionOp.getWindowReversalAttr())
         windowReversal = SmallVector<bool>(windowReversalAttr.asArrayRef());
 
+      auto dimensionNumbers = convolutionOp.getDimensionNumbers();
       auto result = evalConvolutionOp(
           lhs, rhs, windowStrides, padding, lhsDilation, rhsDilation,
-          windowReversal,
-          convolutionOp.getDimensionNumbers().getInputBatchDimension(),
-          convolutionOp.getDimensionNumbers().getInputFeatureDimension(),
-          Axes(convolutionOp.getDimensionNumbers().getInputSpatialDimensions()),
-          convolutionOp.getDimensionNumbers().getKernelInputFeatureDimension(),
-          convolutionOp.getDimensionNumbers().getKernelOutputFeatureDimension(),
-          Axes(
-              convolutionOp.getDimensionNumbers().getKernelSpatialDimensions()),
-          convolutionOp.getDimensionNumbers().getOutputBatchDimension(),
-          convolutionOp.getDimensionNumbers().getOutputFeatureDimension(),
-          Axes(
-              convolutionOp.getDimensionNumbers().getOutputSpatialDimensions()),
+          windowReversal, dimensionNumbers.getInputBatchDimension(),
+          dimensionNumbers.getInputFeatureDimension(),
+          Axes(dimensionNumbers.getInputSpatialDimensions()),
+          dimensionNumbers.getKernelInputFeatureDimension(),
+          dimensionNumbers.getKernelOutputFeatureDimension(),
+          Axes(dimensionNumbers.getKernelSpatialDimensions()),
+          dimensionNumbers.getOutputBatchDimension(),
+          dimensionNumbers.getOutputFeatureDimension(),
+          Axes(dimensionNumbers.getOutputSpatialDimensions()),
           convolutionOp.getFeatureGroupCount(),
           convolutionOp.getBatchGroupCount(), convolutionOp.getType());
       scope.add(convolutionOp.getResult(), result);
@@ -1453,7 +1451,7 @@ Tensor evalConvolutionOp(
     lhsPaddingHigh.push_back(paddingPair.second);
   }
 
-  auto paddingValue = makeScalar(convert(result.getElementType(), 0.0));
+  auto paddingValue = constant(0.0, result.getElementType());
   auto paddedLhs = evalPadOp(lhs, paddingValue, lhsPaddingLow, lhsPaddingHigh,
                              Sizes(lhsBaseDilations));
 

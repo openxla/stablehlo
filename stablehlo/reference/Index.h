@@ -124,8 +124,8 @@ class IndexSpaceIterator {
   IndexSpaceIterator(Sizes shape) : shape_(shape) { index_ = std::nullopt; }
 
   IndexSpaceIterator(Sizes shape, std::optional<Index> index)
-      : shape_(shape), index_(index) {
-    if (index && !index->inBounds(shape)) index_ = std::nullopt;
+      : shape_(shape), index_(std::nullopt) {
+    if (index && index->inBounds(shape)) index_ = index;
   }
 
   /// Get the current index.
