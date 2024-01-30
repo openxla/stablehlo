@@ -36,12 +36,12 @@ function(setup_sanitizers)
     endif ()
 
     string(TOLOWER "${STABLEHLO_ENABLE_SANITIZER}" STABLEHLO_ENABLE_SANITIZER_LOWERCASE)
-    if (STABLEHLO_ENABLE_SANITIZER_LOWERCASE STREQUAL "OFF")
+    if (STABLEHLO_ENABLE_SANITIZER_LOWERCASE STREQUAL "off")
         return()
     endif ()
 
     if (STABLEHLO_ENABLE_BINDINGS_PYTHON)
-        message(FATAL_ERROR "Sanitizer setting not supported for Python binding builds")
+        message(FATAL_ERROR "STABLEHLO_ENABLE_SANITIZER must be set to OFF when building Python bindings")
         return()
     endif ()
 
