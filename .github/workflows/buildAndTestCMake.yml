@@ -74,6 +74,15 @@ jobs:
           CMAKE_BUILD_TYPE: Release
           MLIR_ENABLE_BINDINGS_PYTHON: ON
 
+    - name: Build and Test StableHLO (with AddressSanitizer)
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
+      env:
+          CMAKE_BUILD_TYPE: Release
+          STABLEHLO_ENABLE_BINDINGS_PYTHON: OFF
+          STABLEHLO_ENABLE_SANITIZER: address
+
     - name: Build and Test StableHLO (with Python bindings)
       shell: bash
       run: |

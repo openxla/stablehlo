@@ -34,12 +34,18 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 OLD)
 endif()
 
+# Support for return(PROPAGATE ...) in functions.
+if (POLICY CMP0140)
+  cmake_policy(SET CMP0140 NEW)
+endif()
+
 #-------------------------------------------------------------------------------
 # Options and settings
 #-------------------------------------------------------------------------------
 option(STABLEHLO_BUILD_EMBEDDED "Build StableHLO as part of another project" OFF)
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
+option(STABLEHLO_ENABLE_SANITIZER "Enable a sanitizer [OFF, address]" OFF)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
@@ -115,6 +121,9 @@ else()
   message(STATUS "Building StableHLO embedded in another project")
 endif()
 
+# Add the CMake modules specific to StableHLO
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
 if(LLVM_ENABLE_ZLIB)
   find_package(ZLIB)
 endif()
@@ -129,6 +138,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
+
+
+#-------------------------------------------------------------------------------
+# Sanitizer configuration
+#-------------------------------------------------------------------------------
+
+include(SetupSanitizers)
+setup_sanitizers()
 
 #-------------------------------------------------------------------------------
 # Python configuration
