@@ -21,17 +21,21 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+readonly SCRIPT_DIR;
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly SCRIPT_DIR
 readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
 
 cd "$STABLEHLO_ROOT_DIR"
 
 IFS=$'\n'
-mapfile -t targets < <(find . -type f -name '*.bazel' -not -path './llvm*')
+mapfile -t targets < <(find . -type f -name '*.sh' -not -path './llvm*' -printf '%P\0')
 
-if ! buildifier --mode=check --lint=warn --warnings=all -r "${targets[@]}"; then
-  echo "Error: buildifier failed. Please run: buildifier --mode=fix --lint=fix --warnings=all -r " "${targets[@]}"
-  echo "You may need to install a specific version of buildifier (see the GitHub Actions workflow)."
+echo "Running shellcheck:"
+shellcheck --version
+
+if ! shellcheck --severity=info "${targets[@]}"; then
+  echo "Error: shellcheck failed. Please run the following command to fix all issues:"
+  echo "shellcheck --severity=info --format=diff" "${targets[@]}" "| git apply"
+  echo "You may need to install a specific version of shellcheck (see above output)."
   exit 1
 fi

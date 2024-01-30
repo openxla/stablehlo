@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2022 The StableHLO Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,7 +36,7 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 echo "Gathering changed files..."
-CHANGED_FILES=$(git diff $BASE_BRANCH HEAD --name-only --diff-filter=d | grep '.*\.h\|.*\.cpp' | xargs)
+CHANGED_FILES=$(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep '.*\.h\|.*\.cpp' | xargs)
 if [[ -z "$CHANGED_FILES" ]]; then
   echo "No files to format."
   exit 0
@@ -44,7 +45,7 @@ fi
 echo "Running clang-format [mode=$FORMAT_MODE]..."
 echo "  Files: $CHANGED_FILES"
 if [[ $FORMAT_MODE == 'fix' ]]; then
-  clang-format --style=google -i $CHANGED_FILES
+  clang-format --style=google -i "$CHANGED_FILES"
 else
-  clang-format --style=google --dry-run --Werror $CHANGED_FILES
+  clang-format --style=google --dry-run --Werror "$CHANGED_FILES"
 fi

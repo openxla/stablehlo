@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2023 The StableHLO Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,10 +43,10 @@ PATH_TO_WORKSPACE="$PATH_TO_STABLEHLO_ROOT/WORKSPACE.bazel"
 
 # Commit validation functions
 llvm_commit_from_version_txt() {
-  cat $PATH_TO_LLVM_VERSION_TXT
+  cat "$PATH_TO_LLVM_VERSION_TXT"
 }
 llvm_commit_from_workspace() {
-  sed -n '/LLVM_COMMIT = /p' $PATH_TO_WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"//g'
+  sed -n '/LLVM_COMMIT = /p' "$PATH_TO_WORKSPACE" | sed 's/LLVM_COMMIT = //; s/\"//g'
 }
 llvm_commit_diff() {
   diff <(llvm_commit_from_version_txt) <(llvm_commit_from_workspace)
@@ -53,20 +54,20 @@ llvm_commit_diff() {
 
 # SHA256 validation functions
 llvm_sha256_from_workspace() {
-  sed -n '/LLVM_SHA256 = /p' $PATH_TO_WORKSPACE  | sed 's/LLVM_SHA256 = //; s/\"//g'
+  sed -n '/LLVM_SHA256 = /p' "$PATH_TO_WORKSPACE"  | sed 's/LLVM_SHA256 = //; s/\"//g'
 }
 llvm_sha256_from_archive() {
   LLVM_COMMIT="$1"
-  HTTP_CODE=$(curl -sIL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz -o /dev/null -w "%{http_code}")
+  HTTP_CODE=$(curl -sIL "https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz" -o /dev/null -w "%{http_code}")
   if [[ "$HTTP_CODE" == "404" ]]; then
     echo "Error 404 downloading LLVM at commit '$LLVM_COMMIT'."
     exit 1
   fi
-  LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
+  LLVM_SHA256="$(curl -sL "https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz" | shasum -a 256 | sed 's/ //g; s/-//g')"
   echo "$LLVM_SHA256"
 }
 llvm_sha256_diff() {
-  diff <(llvm_sha256_from_workspace) <(llvm_sha256_from_archive $(llvm_commit_from_workspace))
+  diff <(llvm_sha256_from_workspace) <(llvm_sha256_from_archive "$(llvm_commit_from_workspace)")
 }
 
 # Fix functions
@@ -79,12 +80,12 @@ update_llvm_commit_and_sha256() {
   # Update WORKSPACE commit hash to match llvm_version.txt
   LLVM_COMMIT=$(llvm_commit_from_version_txt)
   echo "Bumping commit to: $LLVM_COMMIT"
-  sed -i '/^LLVM_COMMIT/s/"[^"]*"/"'$LLVM_COMMIT'"/g' $PATH_TO_WORKSPACE
+  sed -i '/^LLVM_COMMIT/s/"[^"]*"/"'"$LLVM_COMMIT"'"/g' "$PATH_TO_WORKSPACE"
 
   # Now update WORKSPACE SHA256 using the newly updated commit hash
-  LLVM_SHA256=$(llvm_sha256_from_archive $LLVM_COMMIT)
+  LLVM_SHA256=$(llvm_sha256_from_archive "$LLVM_COMMIT")
   echo "Bumping sha256 to: $LLVM_SHA256"
-  sed -i '/^LLVM_SHA256/s/"[^"]*"/"'$LLVM_SHA256'"/g' $PATH_TO_WORKSPACE
+  sed -i '/^LLVM_SHA256/s/"[^"]*"/"'"$LLVM_SHA256"'"/g' "$PATH_TO_WORKSPACE"
 }
 
 ## Script body
@@ -96,7 +97,7 @@ fi
 
 echo "Validating LLVM commit hash..."
 LLVM_COMMIT_DIFF=$(llvm_commit_diff)
-if [[ ! -z "$LLVM_COMMIT_DIFF" ]]; then
+if [[ -n "$LLVM_COMMIT_DIFF" ]]; then
   echo "Commit mismatch:"
   echo "$LLVM_COMMIT_DIFF"
   echo
@@ -108,7 +109,7 @@ echo "Commit hashes match."
 if [[ "$VALIDATE_SHA256" == 'true' ]]; then
   echo "Validating LLVM SHA256 hash..."
   LLVM_SHA256_DIFF=$(llvm_sha256_diff)
-  if [[ ! -z "$LLVM_SHA256_DIFF" ]]; then
+  if [[ -n "$LLVM_SHA256_DIFF" ]]; then
     echo "...SHA256 mismatch:"
     echo "$LLVM_SHA256_DIFF"
     echo

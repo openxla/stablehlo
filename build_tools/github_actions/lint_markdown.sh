@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2022 The StableHLO Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +27,8 @@ if [[ $# -gt 2 ]] ; then
   exit 1
 fi
 
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR;
 readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
 
 # These must be relative to the repo root because that's the context
@@ -41,6 +43,6 @@ then
 fi
 
 # Run markdownlint-cli in Docker to avoid node versioning issues
-docker run -v $STABLEHLO_ROOT_DIR:/workdir \
+docker run -v "$STABLEHLO_ROOT_DIR:/workdir" \
     ghcr.io/igorshubovych/markdownlint-cli:v0.32.2 \
     --config $CONFIG "$@"

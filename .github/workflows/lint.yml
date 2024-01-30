@@ -96,3 +96,17 @@ jobs:
 
       - name: Run license checks
         run: addlicense -check -ignore '.git/**' -ignore 'build/**' -ignore 'llvm*/**' .
+
+  shell-script-check:
+    if: "github.event_name == 'pull_request'"
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checking out repository
+        uses: actions/checkout@v4
+
+      # shellcheck is installed by default on Ubuntu runners: https://github.com/actions/runner-images/blob/37a171e44de1f134793d7f0cbff137ca481942ab/images/ubuntu/Ubuntu2204-Readme.md
+      - name: Run shellcheck
+        run: ./build_tools/github_actions/lint_shellcheck.sh
