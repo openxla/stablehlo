@@ -629,25 +629,28 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 
 | Label | Name  | Type                       | Constraints   |
 |-------|-------|----------------------------|---------------|
-| (I1)  | `lhs` | tensor or quantized tensor | (C1-C4)       |
-| (I2)  | `rhs` | tensor or quantized tensor | (C1-C3), (C5) |
+| (I1)  | `lhs` | tensor or quantized tensor | (C1-C6)       |
+| (I2)  | `rhs` | tensor or quantized tensor | (C1-C5), (C7) |
 
 #### Outputs
 
 | Name     | Type                       | Constraints |
 |----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1-C5)     |
+| `result` | tensor or quantized tensor | (C1-C7)     |
 
 #### Constraints
 
-* (C1) `baseline_type(lhs) = baseline_type(rhs) = baseline_type(result)`.
+* If the operation uses non-quantized tensors:
+  * (C1) `type(lhs) = type(rhs) = type(result)`.
 * If the operation uses quantized tensors:
   * (C2) `is_quantized(lhs) and is_quantized(rhs) and is_quantized(result)`.
-  * (C3) `(is_per_axis_quantized(lhs) or is_per_axis_quantized(rhs)) =
+  * (C3) `storage_type(lhs) = storage_type(rhs) = storage_type(result)`.
+  * (C4) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C5) `(is_per_axis_quantized(lhs) or is_per_axis_quantized(rhs)) =
     is_per_axis_quantized(result)`.
-  * (C4) If `is_per_axis_quantized(lhs)`, then `quantization_dimension(lhs) =
+  * (C6) If `is_per_axis_quantized(lhs)`, then `quantization_dimension(lhs) =
     quantization_dimension(result)`.
-  * (C5) If `is_per_axis_quantized(rhs)`, then `quantization_dimension(rhs) =
+  * (C7) If `is_per_axis_quantized(rhs)`, then `quantization_dimension(rhs) =
     quantization_dimension(result)`.
 
 #### Examples
