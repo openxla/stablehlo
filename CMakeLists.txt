@@ -141,7 +141,7 @@ add_definitions(${LLVM_DEFINITIONS})
 
 
 #-------------------------------------------------------------------------------
-# Sanitizier configuration
+# Sanitizer configuration
 #-------------------------------------------------------------------------------
 
 include(SetupSanitizers)
