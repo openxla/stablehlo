@@ -1,4 +1,4 @@
-/* Copyright 2023 The StableHLO Authors.
+/* Copyright 2023-2024 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ class RendezvousResult {
 
 namespace detail {
 
-/// Internal storate used in `rendezvous` to manage concurrent access to the
+/// Internal storage used in `rendezvous` to manage concurrent access to the
 /// shared resource. Processes contribute their data to `values` concurrently.
 /// Once all processes have added their data, the data in `values` is moved to
 /// `result` that multiple processes can concurrently read from.
