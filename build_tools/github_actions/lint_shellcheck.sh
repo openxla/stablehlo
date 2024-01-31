@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This runs buildifier on relevant files
+# This runs shellcheck on relevant files. shellcheck is a shell script analysis
+# tool that can find bugs and subtle issues in shell scripts:
+# https://www.shellcheck.net/
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-if ! command -v buildifier &> /dev/null; then
-  echo "Error: buildifier is not installed. Aborting."
+if ! command -v shellcheck &> /dev/null; then
+  echo "Error: shellcheck is not installed. Aborting."
   exit 1
 fi
 
@@ -30,10 +32,14 @@ readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
 cd "$STABLEHLO_ROOT_DIR"
 
 IFS=$'\n'
-mapfile -t targets < <(find . -type f -name '*.bazel' -not -path './llvm*')
+mapfile -t targets < <(find . -type f -name '*.sh' -not -path './llvm*' -printf '%P\0')
 
-if ! buildifier --mode=check --lint=warn --warnings=all -r "${targets[@]}"; then
-  echo "Error: buildifier failed. Please run: buildifier --mode=fix --lint=fix --warnings=all -r " "${targets[@]}"
-  echo "You may need to install a specific version of buildifier (see the GitHub Actions workflow)."
+echo "Running shellcheck:"
+shellcheck --version
+
+if ! shellcheck --severity=style "${targets[@]}"; then
+  echo "Error: shellcheck failed. Please run the following command to fix all issues:"
+  echo "shellcheck --severity=style --format=diff" "${targets[@]}" "| git apply"
+  echo "You may need to install a specific version of shellcheck (see above output)."
   exit 1
 fi

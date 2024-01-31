@@ -70,7 +70,7 @@ REPORT_DATE="$(date +'%Y_%m_%d_%H-%M-%S')"
 REPORT_DIR="$OUTPUT_DIR/ccov_$REPORT_DATE"
 LCOV_DATA="$REPORT_DIR/cov.info"
 
-mkdir -p $REPORT_DIR
+mkdir -p "$REPORT_DIR"
 
 lcov --directory "$STABLEHLO_BUILD_DIR"  \
      --base-directory "stablehlo" \
@@ -84,12 +84,12 @@ lcov --directory "$STABLEHLO_BUILD_DIR"  \
 # Capture code coverage output
 if [[ $GENERATE_HTML == true ]]; then
   exec 5>&1
-  CCOV_OUT=$(genhtml $LCOV_DATA \
-      --output-directory $REPORT_DIR \
-      --ignore-errors source \
-      --show-details \
-      --sort \
-      --prefix $(pwd) | tee /dev/fd/5)
+  genhtml "$LCOV_DATA" \
+    --output-directory "$REPORT_DIR" \
+    --ignore-errors source \
+    --show-details \
+    --sort \
+    --prefix "$(pwd)" | tee /dev/fd/5
   echo "HTML report at:"
   echo "  $REPORT_DIR"
 fi

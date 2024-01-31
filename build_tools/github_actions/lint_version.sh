@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2023 The StableHLO Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +24,7 @@ set_version_var() {
   VERSION_STR=$(cat $VERSION_H | grep getCurrentVersion -A1 | grep -o 'Version([0-9], .*)')
   REGEX="Version\(([0-9]+), ([0-9]+), ([0-9]+)\)"
   if [[ $VERSION_STR =~ $REGEX ]]; then
-    VERSION=(${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]})
+    VERSION=("${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")
   else
     echo "Error: Could not find current version string in $VERSION_H" >&2
     exit 1
@@ -33,7 +34,6 @@ set_version_var
 
 ## Check if compatibility tests exist for version `X_Y_0`
 COMPAT_TEST_BASE="stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo"
-COMPAT_TEST="$COMPAT_TEST_BASE.mlir"
 TEST_VERSION="${VERSION[0]}_${VERSION[1]}_0"
 VERSIONED_COMPAT_TEST="$COMPAT_TEST_BASE.$TEST_VERSION.mlir"
 VERSIONED_COMPAT_TEST_BC="$COMPAT_TEST_BASE.$TEST_VERSION.mlir.bc"
