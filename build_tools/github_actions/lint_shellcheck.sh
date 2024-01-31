@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This runs shellcheck on relevant files
+# This runs shellcheck on relevant files. shellcheck is a shell script analysis
+# tool that can find bugs and subtle issues in shell scripts:
+# https://www.shellcheck.net/
 
 set -o errexit
 set -o nounset
