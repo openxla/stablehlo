@@ -89,6 +89,25 @@ Here's how to build the StableHLO repo on Linux or macOS:
      -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=ON \
      -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
    ```
+   
+   If you are actively developing StableHLO, you may want the following additional
+   CMake settings:
+   ```shell
+      cmake .. -GNinja \
+     -DLLVM_ENABLE_LLD=ON \
+     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+     -DLLVM_ENABLE_ASSERTIONS=ON \
+     -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=OFF \
+     -DSTABLEHLO_ENABLE_SPLIT_DWARF=ON \
+     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+     -DSTABLEHLO_ENABLE_SANITIZER=address \
+     -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
+   ```
+   
+      This will enable debug symbols and ccache, which can speed up incremental
+      builds. It also creates a GDB index file in the binary to speed up
+      debugging.
 
 7. Now you can make sure it works by running some tests:
 
