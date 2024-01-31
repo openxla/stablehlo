@@ -27,6 +27,9 @@ CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-RelWithDebInfo}"
 # Turn on building Python bindings
 MLIR_ENABLE_BINDINGS_PYTHON="${MLIR_ENABLE_BINDINGS_PYTHON:-OFF}"
 
+LLVM_CCACHE_BUILD=$(command -v ccache &> /dev/null && echo "ON" || echo "OFF")
+echo "LLVM_CCACHE_BUILD: $LLVM_CCACHE_BUILD"
+
 if ! [ -f "$LLVM_SRC_DIR/llvm/CMakeLists.txt" ]; then
   echo "Expected the path to LLVM to be set correctly (got '$LLVM_SRC_DIR'): can't find CMakeLists.txt"
   exit 1
@@ -57,7 +60,7 @@ cmake -GNinja \
   -DLLVM_INCLUDE_TESTS=OFF \
   -DCMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
   -DLLVM_USE_SPLIT_DWARF=ON \
-  -DLLVM_CCACHE_BUILD=ON \
+  -DLLVM_CCACHE_BUILD="${LLVM_CCACHE_BUILD}" \
   -DLLVM_ENABLE_ASSERTIONS=ON
 
 cmake --build "$build_dir" --target all
