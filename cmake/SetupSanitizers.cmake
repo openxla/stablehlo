@@ -47,7 +47,7 @@ function(setup_sanitizers)
 
     if (STABLEHLO_ENABLE_SANITIZER_LOWERCASE STREQUAL "address")
         add_compile_options(-fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer)
-        link_libraries(-fsanitize=address -fsanitize=undefined -fsanitize=leak)
+        add_link_options(-fsanitize=address -fsanitize=undefined -fsanitize=leak)
     else ()
         message(FATAL_ERROR "Unknown sanitizer type: ${STABLEHLO_ENABLE_SANITIZER}")
     endif ()
