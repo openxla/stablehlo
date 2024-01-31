@@ -49,6 +49,12 @@ struct RendezvousState {
   /// Internal storage used to store data contributed by the processes.
   std::map<ProcessId, Tensor> values;
 
+  /// Flag to check whether all processes have contributed.
+  bool sharingDone;
+
+  /// Count of how many processes have contributed so far.
+  int64_t contributionCount;
+
   /// Shared pointer to the result of `rendezvous`.
   std::shared_ptr<RendezvousResult> result;
 };
