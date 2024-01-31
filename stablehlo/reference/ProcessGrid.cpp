@@ -239,27 +239,35 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     state.result = std::make_shared<RendezvousResult>(state.values);
     state.values.clear();
     state.sharingDone = true;
+
+    // This will notify all waiting processes, but they will be blocked until
+    // the lock held by this process is released in the wait() call below.
     channelConditions_[channelKey].notify_all();
 
-    channelConditions_[channelKey].wait_for(lock, std::chrono::seconds(3), [&] {
-      return state.contributionCount ==
-             static_cast<int64_t>(processGroup.size() - 1);
-    });
+    // Once the lock is released by wait() call here, it will wait until all
+    // remaining processes have read the value and wake up when it is notified.
+    while (state.contributionCount + 1 != processGroup.size())
+      channelConditions_[channelKey].wait(lock);
 
     state.contributionCount = 0;
     state.sharingDone = false;
-    auto result = std::move(state.result);
-    return result;
+    return state.result;
   } else {
-    channelConditions_[channelKey].wait_for(lock, std::chrono::seconds(3),
-                                            [&] { return state.sharingDone; });
+    // Two cases:
+    // 1) The condition is not true and wait.
+    // 2) This process will wake up, check that the lock is still held by the
+    //    last process, and stay in a blocked state until it can acquire the
+    //    lock. Once lock is acquired, proceed below.
+    while (!state.sharingDone) channelConditions_[channelKey].wait(lock);
 
     auto result = state.result;
     state.contributionCount++;
-    if (state.contributionCount ==
-        static_cast<int64_t>(processGroup.size() - 1)) {
+
+    // Once all remaining processes have read the values, it's time to notify
+    // the last process to do clean up.
+    if (state.contributionCount + 1 == processGroup.size())
       channelConditions_[channelKey].notify_one();
-    }
+
     return result;
   }
 }

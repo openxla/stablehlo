@@ -53,7 +53,7 @@ struct RendezvousState {
   bool sharingDone;
 
   /// Count of how many processes have contributed so far.
-  int64_t contributionCount;
+  size_t contributionCount;
 
   /// Shared pointer to the result of `rendezvous`.
   std::shared_ptr<RendezvousResult> result;
