@@ -23,8 +23,8 @@ if ! command -v buildifier &> /dev/null; then
   exit 1
 fi
 
-# shellcheck disable=SC2155
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
 readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
 
 cd "$STABLEHLO_ROOT_DIR"
