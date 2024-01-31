@@ -46,7 +46,7 @@ option(STABLEHLO_BUILD_EMBEDDED "Build StableHLO as part of another project" OFF
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
 option(STABLEHLO_ENABLE_SANITIZER "Enable a sanitizer [OFF, address]" OFF)
-
+option(STABLEHLO_ENABLE_SPLIT_DWARF "Enable split DWARF if the platform supports it" OFF)
 #-------------------------------------------------------------------------------
 # Project setup and globals
 #-------------------------------------------------------------------------------
@@ -128,6 +128,19 @@ if(LLVM_ENABLE_ZLIB)
   find_package(ZLIB)
 endif()
 
+#-------------------------------------------------------------------------------
+# Performance configuration
+#-------------------------------------------------------------------------------
+
+include(CheckCXXCompilerFlag)
+include(CheckLinkerFlag)
+if(STABLEHLO_ENABLE_SPLIT_DWARF)
+    check_cxx_compiler_flag(-gsplit-dwarf STABLEHLO_SUPPORTS_SPLIT_DWARF)
+    add_compile_options("$<$<BOOL:${STABLEHLO_SUPPORTS_SPLIT_DWARF}>:-gsplit-dwarf;-ggnu-pubnames>")
+    check_linker_flag(CXX "-Wl,--gdb-index" STABLEHLO_SUPPORTS_GDB_INDEX)
+    add_link_options("$<$<BOOL:${STABLEHLO_SUPPORTS_GDB_INDEX}>:-Wl,--gdb-index>")
+endif()
+
 include(TableGen)
 include(AddLLVM)
 include(AddMLIR)
@@ -146,6 +159,7 @@ add_definitions(${LLVM_DEFINITIONS})
 
 include(SetupSanitizers)
 setup_sanitizers()
+
 
 #-------------------------------------------------------------------------------
 # Python configuration
