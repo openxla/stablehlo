@@ -67,7 +67,6 @@ namespace detail {
 /// Once all processes have added their data, the data in `values` is moved to
 /// `result` that multiple processes can concurrently read from.
 struct RendezvousState {
- public:
   /// Synchronization primitive used to manage concurrent access to this
   /// object.
   std::mutex mutex;
@@ -75,8 +74,8 @@ struct RendezvousState {
   /// Internal storage used to store data contributed by the processes.
   std::map<ProcessId, Tensor> values;
 
-  /// Internal state management counter the number of processes that
-  // contributed.
+  /// Internal state management counter which counts the number of processes
+  /// that contributed already.
   size_t useCount;
 
   /// Stores the result of `rendezvous`.
