@@ -20,8 +20,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-readonly SCRIPT_DIR;
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC2155
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
 
 cd "$STABLEHLO_ROOT_DIR"
@@ -32,9 +32,9 @@ mapfile -t targets < <(find . -type f -name '*.sh' -not -path './llvm*' -printf 
 echo "Running shellcheck:"
 shellcheck --version
 
-if ! shellcheck --severity=info "${targets[@]}"; then
+if ! shellcheck --severity=style "${targets[@]}"; then
   echo "Error: shellcheck failed. Please run the following command to fix all issues:"
-  echo "shellcheck --severity=info --format=diff" "${targets[@]}" "| git apply"
+  echo "shellcheck --severity=style --format=diff" "${targets[@]}" "| git apply"
   echo "You may need to install a specific version of shellcheck (see above output)."
   exit 1
 fi
