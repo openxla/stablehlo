@@ -237,7 +237,10 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
 
   // After each process contributes, wait for the last process to notify.
   if (state.values.size() < processGroup.size()) {
-    channelConditions_[channelKey].wait(lock);
+    if (!channelConditions_[channelKey].wait_for(
+            lock, std::chrono::seconds(3),
+            [&] { return state.values.size() == processGroup.size(); }))
+      llvm::report_fatal_error("rendezvous timed out");
   } else {
     state.result = std::move(state.values);
     channelConditions_[channelKey].notify_all();
