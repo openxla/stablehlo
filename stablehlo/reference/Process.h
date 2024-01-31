@@ -60,9 +60,8 @@ class Process {
   SmallVector<Tensor> recv(ChannelId channelId);
 
   /// See `ProcessGrid::rendezvous`.
-  std::shared_ptr<RendezvousResult const> rendezvous(ProcessGroup processGroup,
-                                                     ChannelId channelId,
-                                                     const Tensor &operand);
+  RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
+                              const Tensor &operand);
 
   /// See `ProcessGrid::send`.
   void send(ArrayRef<Tensor> inputs, ChannelId channelId);

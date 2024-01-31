@@ -222,35 +222,26 @@ SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
   return result;
 }
 
-std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
-    ProcessGroup processGroup, ChannelId channelId, ProcessId processId,
-    const Tensor &operand) {
+RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
+                                         ChannelId channelId,
+                                         ProcessId processId,
+                                         const Tensor &operand) {
   std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   // Process wait/notify logic below doesn't work for single process.
   if (processGroup.size() == 1)
-    return std::make_shared<RendezvousResult>(
-        RendezvousResult({std::pair{processId, operand}}));
+    return RendezvousResult({std::pair{processId, operand}});
 
   auto &state = channels_[channelKey];
 
   std::unique_lock<std::mutex> lock(state.mutex);
   state.values[processId] = operand;
   if (state.values.size() == processGroup.size()) {
-    state.result = std::make_shared<RendezvousResult>(state.values);
+    state.result = state.values;
     state.values.clear();
-    state.sharingDone = true;
 
     // This will notify all waiting processes, but they will be blocked until
     // the lock held by this process is released in the wait() call below.
     channelConditions_[channelKey].notify_all();
-
-    // Once the lock is released by wait() call here, it will wait until all
-    // remaining processes have read the value and wake up when it is notified.
-    while (state.contributionCount + 1 != processGroup.size())
-      channelConditions_[channelKey].wait(lock);
-
-    state.contributionCount = 0;
-    state.sharingDone = false;
     return state.result;
   } else {
     // Two cases:
@@ -258,17 +249,8 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     // 2) This process will wake up, check that the lock is still held by the
     //    last process, and stay in a blocked state until it can acquire the
     //    lock. Once lock is acquired, proceed below.
-    while (!state.sharingDone) channelConditions_[channelKey].wait(lock);
-
-    auto result = state.result;
-    state.contributionCount++;
-
-    // Once all remaining processes have read the values, it's time to notify
-    // the last process to do clean up.
-    if (state.contributionCount + 1 == processGroup.size())
-      channelConditions_[channelKey].notify_one();
-
-    return result;
+    channelConditions_[channelKey].wait(lock);
+    return state.result;
   }
 }
 

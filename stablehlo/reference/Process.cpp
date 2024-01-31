@@ -50,8 +50,9 @@ SmallVector<Tensor> Process::recv(ChannelId channelId) {
   return grid_->recv(channelId, getId());
 }
 
-std::shared_ptr<RendezvousResult const> Process::rendezvous(
-    ProcessGroup processGroup, ChannelId channelId, const Tensor &operand) {
+RendezvousResult Process::rendezvous(ProcessGroup processGroup,
+                                     ChannelId channelId,
+                                     const Tensor &operand) {
   return grid_->rendezvous(processGroup, channelId, getId(), operand);
 }
 
