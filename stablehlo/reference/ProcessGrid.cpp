@@ -20,8 +20,6 @@ limitations under the License.
 #include <optional>
 #include <utility>
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Error.h"
 #include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
@@ -226,32 +224,28 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
                                          ChannelId channelId,
                                          ProcessId processId,
                                          const Tensor &operand) {
-  std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   // Process wait/notify logic below doesn't work for single process.
   if (processGroup.size() == 1)
     return RendezvousResult({std::pair{processId, operand}});
 
+  std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   auto &state = channels_[channelKey];
 
   std::unique_lock<std::mutex> lock(state.mutex);
   state.values[processId] = operand;
-  if (state.values.size() == processGroup.size()) {
-    state.result = state.values;
-    state.values.clear();
+  state.useCount++;
 
-    // This will notify all waiting processes, but they will be blocked until
-    // the lock held by this process is released in the wait() call below.
-    channelConditions_[channelKey].notify_all();
-    return state.result;
-  } else {
-    // Two cases:
-    // 1) The condition is not true and wait.
-    // 2) This process will wake up, check that the lock is still held by the
-    //    last process, and stay in a blocked state until it can acquire the
-    //    lock. Once lock is acquired, proceed below.
+  // After each process contributes, wait for the last process to notify.
+  if (state.values.size() < processGroup.size()) {
     channelConditions_[channelKey].wait(lock);
-    return state.result;
+  } else {
+    state.result = std::move(state.values);
+    channelConditions_[channelKey].notify_all();
   }
+
+  state.useCount--;
+
+  return state.useCount > 0 ? state.result : std::move(state.result);
 }
 
 void ProcessGrid::send(ArrayRef<Tensor> inputs, ChannelId channelId,

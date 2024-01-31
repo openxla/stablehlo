@@ -66,7 +66,7 @@ namespace detail {
 /// shared resource. Processes contribute their data to `values` concurrently.
 /// Once all processes have added their data, the data in `values` is moved to
 /// `result` that multiple processes can concurrently read from.
-class RendezvousState {
+struct RendezvousState {
  public:
   /// Synchronization primitive used to manage concurrent access to this
   /// object.
@@ -75,7 +75,11 @@ class RendezvousState {
   /// Internal storage used to store data contributed by the processes.
   std::map<ProcessId, Tensor> values;
 
-  /// Shared pointer to the result of `rendezvous`.
+  /// Internal state management counter the number of processes that
+  // contributed.
+  size_t useCount;
+
+  /// Stores the result of `rendezvous`.
   RendezvousResult result;
 };
 
