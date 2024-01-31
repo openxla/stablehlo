@@ -18,6 +18,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if ! command -v buildifier &> /dev/null; then
+  echo "Error: buildifier is not installed. Aborting."
+  exit 1
+fi
+
 # shellcheck disable=SC2155
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
