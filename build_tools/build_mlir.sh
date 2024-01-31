@@ -27,13 +27,6 @@ CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-RelWithDebInfo}"
 # Turn on building Python bindings
 MLIR_ENABLE_BINDINGS_PYTHON="${MLIR_ENABLE_BINDINGS_PYTHON:-OFF}"
 
-# Check if ccache is available and set the compiler launcher
-if command -v ccache &>/dev/null; then
-  echo "Enabling ccache for the build."
-  export CMAKE_CXX_COMPILER_LAUNCHER=ccache
-  export CMAKE_C_COMPILER_LAUNCHER=ccache
-fi
-
 if ! [ -f "$LLVM_SRC_DIR/llvm/CMakeLists.txt" ]; then
   echo "Expected the path to LLVM to be set correctly (got '$LLVM_SRC_DIR'): can't find CMakeLists.txt"
   exit 1
