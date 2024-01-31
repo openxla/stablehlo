@@ -122,7 +122,7 @@ else()
 endif()
 
 # Add the CMake modules specific to StableHLO
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 if(LLVM_ENABLE_ZLIB)
   find_package(ZLIB)
@@ -144,10 +144,8 @@ add_definitions(${LLVM_DEFINITIONS})
 # Sanitizer configuration
 #-------------------------------------------------------------------------------
 
-if(STABLEHLO_ENABLE_SANITIZER)
-  include(SetupSanitizers)
-  setup_sanitizers()
-endif()
+include(SetupSanitizers)
+setup_sanitizers()
 
 #-------------------------------------------------------------------------------
 # Python configuration
