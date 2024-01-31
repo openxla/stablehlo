@@ -144,8 +144,10 @@ add_definitions(${LLVM_DEFINITIONS})
 # Sanitizer configuration
 #-------------------------------------------------------------------------------
 
-include(SetupSanitizers)
-setup_sanitizers()
+if(STABLEHLO_ENABLE_SANITIZER)
+  include(SetupSanitizers)
+  setup_sanitizers()
+endif()
 
 #-------------------------------------------------------------------------------
 # Python configuration
