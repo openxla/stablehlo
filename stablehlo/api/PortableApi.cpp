@@ -29,6 +29,13 @@ limitations under the License.
 
 namespace mlir {
 namespace stablehlo {
+namespace {
+void loadSerializationDialects(MLIRContext& context) {
+  mlir::DialectRegistry registry;
+  mlir::stablehlo::registerAllDialects(registry);
+  context.appendDialectRegistry(registry);
+}
+}  // namespace
 
 std::string getCurrentVersion() {
   return mlir::vhlo::Version::getCurrentVersion().toString();
@@ -42,9 +49,7 @@ LogicalResult serializePortableArtifact(StringRef moduleStr,
                                         StringRef targetVersion,
                                         raw_ostream& os) {
   MLIRContext context;
-  mlir::DialectRegistry registry;
-  mlir::stablehlo::registerAllDialects(registry);
-  context.appendDialectRegistry(registry);
+  loadSerializationDialects(context);
   auto module = mlir::parseSourceString<mlir::ModuleOp>(moduleStr, &context);
   if (!module || failed(module->verifyInvariants())) return failure();
 
@@ -54,7 +59,7 @@ LogicalResult serializePortableArtifact(StringRef moduleStr,
 LogicalResult deserializePortableArtifact(StringRef artifactStr,
                                           raw_ostream& os) {
   MLIRContext context;
-  loadSerializationDialects(&context);
+  loadSerializationDialects(context);
   auto module = deserializePortableArtifact(artifactStr, &context);
   if (!module) return failure();
 
