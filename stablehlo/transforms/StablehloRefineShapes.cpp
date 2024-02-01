@@ -1082,9 +1082,12 @@ struct StablehloRefineShapesPass
     config.strictMode = GreedyRewriteStrictness::AnyOp;
 
     RewritePatternSet patterns(&getContext());
+    
     populateStablehloRefineShapesPatterns(&patterns, &getContext());
     if (failed(
             applyPatternsAndFoldGreedily(func, std::move(patterns), config))) {
+      func.emitError("Failed to converge StablehloRefineShapes in ")
+          << config.maxIterations << " iterations";
       return signalPassFailure();
     }
   }

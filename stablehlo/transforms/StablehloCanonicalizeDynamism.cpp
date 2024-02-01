@@ -308,8 +308,11 @@ struct StablehloCanonicalizeDynamismPass
 
     RewritePatternSet patterns(&getContext());
     populateStablehloCanonicalizeDynamismPatterns(&patterns, &getContext());
-    if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns),
-                                            config))) {
+    auto func = getOperation();
+    if (failed(
+            applyPatternsAndFoldGreedily(func, std::move(patterns), config))) {
+      func.emitError("Failed to converge StablehloRefineShapes in ")
+          << config.maxIterations << " iterations";
       return signalPassFailure();
     }
   }
