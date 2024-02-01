@@ -311,7 +311,7 @@ struct StablehloCanonicalizeDynamismPass
     auto func = getOperation();
     if (failed(
             applyPatternsAndFoldGreedily(func, std::move(patterns), config))) {
-      func.emitError("Failed to converge StablehloRefineShapes in ")
+      func.emitError("Failed to converge StablehloCanonicalizeDynamism in ")
           << config.maxIterations << " iterations";
       return signalPassFailure();
     }
