@@ -1,4 +1,4 @@
-/* Copyright 2023 The StableHLO Authors.
+/* Copyright 2023-2024 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,8 +50,9 @@ SmallVector<Tensor> Process::recv(ChannelId channelId) {
   return grid_->recv(channelId, getId());
 }
 
-std::shared_ptr<RendezvousResult const> Process::rendezvous(
-    ProcessGroup processGroup, ChannelId channelId, const Tensor &operand) {
+RendezvousResult Process::rendezvous(ProcessGroup processGroup,
+                                     ChannelId channelId,
+                                     const Tensor &operand) {
   return grid_->rendezvous(processGroup, channelId, getId(), operand);
 }
 

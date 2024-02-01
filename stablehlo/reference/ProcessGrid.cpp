@@ -1,4 +1,4 @@
-/* Copyright 2023 The StableHLO Authors.
+/* Copyright 2023-2024 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -220,72 +220,35 @@ SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
   return result;
 }
 
-std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
-    ProcessGroup processGroup, ChannelId channelId, ProcessId processId,
-    const Tensor &operand) {
-  std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
+RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
+                                         ChannelId channelId,
+                                         ProcessId processId,
+                                         const Tensor &operand) {
   // Process wait/notify logic below doesn't work for single process.
   if (processGroup.size() == 1)
-    return std::make_shared<RendezvousResult>(
-        RendezvousResult({std::pair{processId, operand}}));
+    return RendezvousResult({std::pair{processId, operand}});
 
+  std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   auto &state = channels_[channelKey];
 
   std::unique_lock<std::mutex> lock(state.mutex);
   state.values[processId] = operand;
+  state.useCount++;
 
-  if (state.values.size() == processGroup.size()) {
-    // If values are full, that means all other processes are currently waiting.
-    // The last process to contribute moves the values into the result
-    // then waits for each process to return a copy of the result before
-    // cleaning up the state variable for future computations in this process
-    // grid.
-    state.result = std::make_shared<RendezvousResult>(state.values);
-    state.values.clear();
-    channelConditions_[channelKey].notify_one();
-
-    // The last process to contribute waits until the rest of the processes have
-    // read the values.
+  // After each process contributes, wait for the last process to notify.
+  if (state.values.size() < processGroup.size()) {
     if (!channelConditions_[channelKey].wait_for(
-            lock, std::chrono::seconds(3), [&] {
-              return state.result.use_count() >=
-                     static_cast<int64_t>(processGroup.size());
-            }))
-      llvm::report_fatal_error(
-          "rendezvous timed out: not all processes have contributed yet");
-
-    if (state.result.use_count() > static_cast<int64_t>(processGroup.size()))
-      llvm::report_fatal_error(
-          "Each process should have only one shared access to the result.");
-
-    // The last process to contribute takes the result from the state to allow
-    // the process that contributed last to exit the function.
-    auto result = std::move(state.result);
-    channelConditions_[channelKey].notify_one();
-    return result;
+            lock, std::chrono::seconds(3),
+            [&] { return state.values.size() == processGroup.size(); }))
+      llvm::report_fatal_error("rendezvous timed out");
+  } else {
+    state.result = std::move(state.values);
+    channelConditions_[channelKey].notify_all();
   }
 
-  // Wait for all processes to contribute values.
-  if (!channelConditions_[channelKey].wait_for(
-          lock, std::chrono::seconds(3),
-          [&] { return state.result != nullptr; }))
-    llvm::report_fatal_error(
-        "rendezvous timed out: not all process has received the results yet");
+  state.useCount--;
 
-  // Copy result from the state before notifying.
-  auto result = state.result;
-  channelConditions_[channelKey].notify_one();
-
-  // Wait for the remaining processes to have retrieved the result. In other
-  // words, wait until the last process to contribute exit the function.
-  if (!channelConditions_[channelKey].wait_for(
-          lock, std::chrono::seconds(3),
-          [&] { return state.result == nullptr; }))
-    llvm::report_fatal_error(
-        "rendezvous timed out: not all process has received the results yet");
-
-  channelConditions_[channelKey].notify_one();
-  return result;
+  return state.useCount > 0 ? state.result : std::move(state.result);
 }
 
 void ProcessGrid::send(ArrayRef<Tensor> inputs, ChannelId channelId,
