@@ -113,14 +113,24 @@ endif()
 
 include(CheckCXXCompilerFlag)
 include(CheckLinkerFlag)
-add_link_options("$<$<BOOL:${STABLEHLO_ENABLE_LLD}>:-fuse-ld=lld>")
+if (STABLEHLO_ENABLE_LLD)
+  message(STATUS "Enabling LLD as the linker")
+  add_link_options("-fuse-ld=lld")
+endif()
+
 if(STABLEHLO_ENABLE_SPLIT_DWARF)
     check_cxx_compiler_flag(-gsplit-dwarf STABLEHLO_SUPPORTS_SPLIT_DWARF)
-    add_compile_options("$<$<BOOL:${STABLEHLO_SUPPORTS_SPLIT_DWARF}>:-gsplit-dwarf;-ggnu-pubnames>")
+    if (STABLEHLO_SUPPORTS_SPLIT_DWARF)
+      message(STATUS "Enabling split-dwarf build")
+      add_compile_options(-gsplit-dwarf -ggnu-pubnames)
+    endif()
     check_linker_flag(CXX "-Wl,--gdb-index" STABLEHLO_SUPPORTS_GDB_INDEX)
     # If we set LLD it doesn't seem to affect the check_linker_flag above.
     # Account for it with the generator expression OR
-    add_link_options("$<$<OR:$<BOOL:${STABLEHLO_SUPPORTS_GDB_INDEX}>,$<BOOL:${STABLEHLO_ENABLE_LLD}>>:-Wl,--gdb-index>")
+    if (STABLEHLO_SUPPORTS_GDB_INDEX OR STABLEHLO_ENABLE_LLD)
+      message(STATUS "Enabling GDB index in binary")
+      add_link_options("-Wl,--gdb-index")
+    endif()
 endif()
 
 include(TableGen)
