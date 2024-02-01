@@ -46,6 +46,8 @@ option(STABLEHLO_BUILD_EMBEDDED "Build StableHLO as part of another project" OFF
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
 option(STABLEHLO_ENABLE_SANITIZER "Enable a sanitizer [OFF, address]" OFF)
+option(STABLEHLO_ENABLE_SPLIT_DWARF "Enable split DWARF if the platform supports it" OFF)
+option(STABLEHLO_ENABLE_LLD "Use LLD as the linker if available" OFF)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
@@ -126,6 +128,22 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 if(LLVM_ENABLE_ZLIB)
   find_package(ZLIB)
+endif()
+
+#-------------------------------------------------------------------------------
+# Performance configuration
+#-------------------------------------------------------------------------------
+
+include(CheckCXXCompilerFlag)
+include(CheckLinkerFlag)
+add_link_options("$<$<BOOL:${STABLEHLO_ENABLE_LLD}>:-fuse-ld=lld>")
+if(STABLEHLO_ENABLE_SPLIT_DWARF)
+    check_cxx_compiler_flag(-gsplit-dwarf STABLEHLO_SUPPORTS_SPLIT_DWARF)
+    add_compile_options("$<$<BOOL:${STABLEHLO_SUPPORTS_SPLIT_DWARF}>:-gsplit-dwarf;-ggnu-pubnames>")
+    check_linker_flag(CXX "-Wl,--gdb-index" STABLEHLO_SUPPORTS_GDB_INDEX)
+    # If we set LLD it doesn't seem to affect the check_linker_flag above.
+    # Account for it with the generator expression OR
+    add_link_options("$<$<OR:$<BOOL:${STABLEHLO_SUPPORTS_GDB_INDEX}>,$<BOOL:${STABLEHLO_ENABLE_LLD}>>:-Wl,--gdb-index>")
 endif()
 
 include(TableGen)
