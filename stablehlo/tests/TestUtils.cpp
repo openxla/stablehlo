@@ -94,14 +94,22 @@ struct ReifyReturnTypeShapesPattern : public RewritePattern {
 #include "stablehlo/tests/TestUtils.h.inc"
 
 struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
+  LogicalResult initialize(MLIRContext *context) override {
+    RewritePatternSet patterns_(context);
+    patterns_.add<InferReturnTypesPattern>(context);
+    patterns_.add<ReifyReturnTypeShapesPattern>(context);
+    patterns = std::move(patterns_);
+    return success();
+  }
+
   void runOnOperation() override {
-    RewritePatternSet patterns(&getContext());
-    patterns.add<InferReturnTypesPattern>(&getContext());
-    patterns.add<ReifyReturnTypeShapesPattern>(&getContext());
     if (failed(
             applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
       return signalPassFailure();
   }
+
+ private:
+  FrozenRewritePatternSet patterns;
 };
 
 #define GEN_PASS_REGISTRATION

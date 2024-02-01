@@ -1064,33 +1064,39 @@ struct StablehloRefineShapesPass
     : public impl::StablehloRefineShapesPassBase<StablehloRefineShapesPass> {
   using StablehloRefineShapesPassBase::StablehloRefineShapesPassBase;
 
-  void runOnOperation() override {
-    auto func = getStablehloRefineShapesTarget(getOperation());
-    if (!func) return signalPassFailure();
-
+  LogicalResult initialize(MLIRContext* context) override {
     // The algorithm behind this pass consists of a single traversal of the
     // function. This is sufficient because we only support one function per
     // program at the moment.
     // TODO(#1048): Find out why .maxIterations = 1 no longer works.
     // There have been recent refactors to applyPatternsAndFoldGreedily
     // upstream, and that might be the reason.
-    GreedyRewriteConfig config;
     config.useTopDownTraversal = true;
     config.enableRegionSimplification = true;
     config.maxIterations = 2;
     config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
     config.strictMode = GreedyRewriteStrictness::AnyOp;
 
-    RewritePatternSet patterns(&getContext());
+    RewritePatternSet patterns_(context);
+    populateStablehloRefineShapesPatterns(&patterns_, context);
+    patterns = std::move(patterns_);
 
-    populateStablehloRefineShapesPatterns(&patterns, &getContext());
-    if (failed(
-            applyPatternsAndFoldGreedily(func, std::move(patterns), config))) {
+    return success();
+  }
+
+  void runOnOperation() override {
+    auto func = getStablehloRefineShapesTarget(getOperation());
+    if (!func) return signalPassFailure();
+
+    if (failed(applyPatternsAndFoldGreedily(func, patterns, config))) {
       func.emitError("Failed to converge StablehloRefineShapes in ")
           << config.maxIterations << " iterations";
-      return signalPassFailure();
     }
   }
+
+ private:
+  FrozenRewritePatternSet patterns;
+  GreedyRewriteConfig config;
 };
 
 }  // namespace
