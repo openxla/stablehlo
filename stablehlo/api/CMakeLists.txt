@@ -19,6 +19,7 @@ add_mlir_dialect_library(StablehloPortableApi
   LINK_LIBS PUBLIC
   ChloOps
   StablehloOps
+  StablehloRegister
   StablehloSerialization
   Version
   VhloOps

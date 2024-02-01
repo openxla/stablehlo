@@ -21,6 +21,7 @@ limitations under the License.
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
+#include "stablehlo/dialect/Register.h"
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
@@ -29,10 +30,10 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 namespace {
-void loadSerializationDialects(MLIRContext* context) {
-  context->loadDialect<mlir::func::FuncDialect>();
-  context->loadDialect<mlir::stablehlo::StablehloDialect>();
-  context->loadDialect<mlir::vhlo::VhloDialect>();
+void loadSerializationDialects(MLIRContext& context) {
+  mlir::DialectRegistry registry;
+  mlir::stablehlo::registerAllDialects(registry);
+  context.appendDialectRegistry(registry);
 }
 }  // namespace
 
@@ -48,7 +49,7 @@ LogicalResult serializePortableArtifact(StringRef moduleStr,
                                         StringRef targetVersion,
                                         raw_ostream& os) {
   MLIRContext context;
-  loadSerializationDialects(&context);
+  loadSerializationDialects(context);
   auto module = mlir::parseSourceString<mlir::ModuleOp>(moduleStr, &context);
   if (!module || failed(module->verifyInvariants())) return failure();
 
@@ -58,7 +59,7 @@ LogicalResult serializePortableArtifact(StringRef moduleStr,
 LogicalResult deserializePortableArtifact(StringRef artifactStr,
                                           raw_ostream& os) {
   MLIRContext context;
-  loadSerializationDialects(&context);
+  loadSerializationDialects(context);
   auto module = deserializePortableArtifact(artifactStr, &context);
   if (!module) return failure();
 
