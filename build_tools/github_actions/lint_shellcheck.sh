@@ -32,7 +32,7 @@ readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
 cd "$STABLEHLO_ROOT_DIR"
 
 IFS=$'\n'
-mapfile -t targets < <(find . -type f -name '*.sh' -not -path './llvm*' -printf '%P\0')
+mapfile -t targets < <(find . -type f -name '*.sh' -not -path './llvm*')
 
 echo "Running shellcheck:"
 shellcheck --version
