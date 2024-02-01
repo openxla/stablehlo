@@ -45,7 +45,7 @@ fi
 echo "Running clang-format [mode=$FORMAT_MODE]..."
 echo "  Files: $CHANGED_FILES"
 if [[ $FORMAT_MODE == 'fix' ]]; then
-  clang-format --style=google -i "$CHANGED_FILES"
+  clang-format --style=google -i $CHANGED_FILES
 else
-  clang-format --style=google --dry-run --Werror "$CHANGED_FILES"
+  clang-format --style=google --dry-run --Werror $CHANGED_FILES
 fi

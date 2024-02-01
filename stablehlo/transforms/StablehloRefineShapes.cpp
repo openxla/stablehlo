@@ -1082,7 +1082,7 @@ struct StablehloRefineShapesPass
     config.strictMode = GreedyRewriteStrictness::AnyOp;
 
     RewritePatternSet patterns(&getContext());
-    
+
     populateStablehloRefineShapesPatterns(&patterns, &getContext());
     if (failed(
             applyPatternsAndFoldGreedily(func, std::move(patterns), config))) {
