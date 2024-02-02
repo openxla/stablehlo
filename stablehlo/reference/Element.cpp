@@ -729,6 +729,10 @@ Element convert(Type type, bool value) {
                  value ? static_cast<uint64_t>(1) : static_cast<uint64_t>(0));
 }
 
+Element convert(Type type, APInt value, bool isSigned) {
+  return convert(type, APSInt(value, isSigned));
+}
+
 Element convert(Type type, APSInt value) {
   if (isSupportedBooleanType(type)) return Element(type, !value.isZero());
   if (isSupportedIntegerType(type))

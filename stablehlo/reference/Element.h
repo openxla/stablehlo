@@ -190,6 +190,16 @@ Element convert(Type type, uint64_t value);
 /// behavior is TBD (#180).
 Element convert(Type type, APFloat value);
 
+/// Returns converted Element object of type `type` from source APInt `value`.
+/// If the value cannot be exactly represented in the destination type, then the
+/// behavior is TBD (#180).
+Element convert(Type type, APInt value, bool isSigned = false);
+
+/// Returns converted Element object of type `type` from source APSInt `value`.
+/// If the value cannot be exactly represented in the destination type, then the
+/// behavior is TBD (#180).
+Element convert(Type type, APSInt value);
+
 /// Returns converted Element object of type `type` from source double `value`.
 /// If the value cannot be exactly represented in the destination type, then the
 /// behavior is TBD (#180).
