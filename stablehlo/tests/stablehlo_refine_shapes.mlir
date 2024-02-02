@@ -554,11 +554,11 @@ func.func @refine_dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>
 // -----
 
 // CHECK-LABEL: @refine_dynamic_broadcast_in_dim
-func.func @refine_dynamic_broadcast_in_dim(%arg0: tensor<4xf32>) -> tensor<*xf32> {
+func.func @refine_dynamic_broadcast_in_dim(%arg0: tensor<4xf32>) -> tensor<?x?xf32> {
   // CHECK: stablehlo.dynamic_broadcast_in_dim{{.*}} -> tensor<3x4xf32>
   %0 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
-  %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<*xf32>
-  func.return %1 : tensor<*xf32>
+  %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<?x?xf32>
+  func.return %1 : tensor<?x?xf32>
 }
 
 // -----
@@ -598,11 +598,11 @@ func.func @refine_dynamic_gather(%arg0 : tensor<2x4x9xi32>, %arg1 : tensor<1x5x2
 // -----
 
 // CHECK-LABEL: @refine_dynamic_iota
-func.func @refine_dynamic_iota() -> tensor<*xf32> {
+func.func @refine_dynamic_iota() -> tensor<?xf32> {
   // CHECK: stablehlo.dynamic_iota{{.*}} -> tensor<4xf32>
   %0 = stablehlo.constant dense<[4]> : tensor<1xi64>
-  %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<*xf32>
-  func.return %1 : tensor<*xf32>
+  %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<?xf32>
+  func.return %1 : tensor<?xf32>
 }
 
 // -----
@@ -621,11 +621,11 @@ func.func @refine_dynamic_pad(%arg0: tensor<4xf32>, %arg1: tensor<f32>) -> tenso
 // -----
 
 // CHECK-LABEL: @refine_dynamic_reshape
-func.func @refine_dynamic_reshape(%arg0: tensor<4xf32>) -> tensor<*xf32> {
+func.func @refine_dynamic_reshape(%arg0: tensor<4xf32>) -> tensor<?x?xf32> {
   // CHECK: stablehlo.dynamic_reshape{{.*}} -> tensor<1x4xf32>
   %0 = stablehlo.constant dense<[1, 4]> : tensor<2xi64>
-  %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<*xf32>
-  func.return %1 : tensor<*xf32>
+  %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<?x?xf32>
+  func.return %1 : tensor<?x?xf32>
 }
 
 // -----

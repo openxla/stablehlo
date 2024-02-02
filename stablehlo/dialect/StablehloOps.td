@@ -141,8 +141,8 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Pure]>
     ```
   }];
 
-  let arguments = (ins HLO_DimensionTensor:$output_shape, I64Attr:$iota_dimension);
-  let results = (outs HLO_Tensor:$result);
+  let arguments = (ins HLO_StaticDimensionTensor:$output_shape, I64Attr:$iota_dimension);
+  let results = (outs HLO_RankedTensor:$result);
   let hasVerifier = 1;
 
   let assemblyFormat = [{
@@ -1910,13 +1910,13 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    HLO_DimensionTensor:$output_dimensions,
+    HLO_StaticDimensionTensor:$output_dimensions,
     DenseI64ArrayAttr:$broadcast_dimensions,
     OptionalAttr<DenseI64ArrayAttr>:$known_expanding_dimensions,
     OptionalAttr<DenseI64ArrayAttr>:$known_nonexpanding_dimensions
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_RankedTensor);
 
   let builders = [
       OpBuilder<(ins
@@ -2508,8 +2508,8 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
     ```
   }];
 
-  let arguments = (ins HLO_Tensor:$operand, HLO_DimensionTensor:$output_shape);
-  let results = (outs HLO_Tensor:$result);
+  let arguments = (ins HLO_Tensor:$operand, HLO_StaticDimensionTensor:$output_shape);
+  let results = (outs HLO_RankedTensor:$result);
 
   let hasVerifier = 1;
 

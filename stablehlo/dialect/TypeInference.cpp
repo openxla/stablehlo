@@ -3470,11 +3470,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     std::optional<ArrayRef<int64_t>> knownNonexpandingDimensions,
     Value result) {
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-  auto resultType = result.getType().dyn_cast<RankedTensorType>();
-
-  // If either the operand or result are unranked, there is very little
-  // to verify statically.
-  if (!operandType || !resultType) return success();
+  auto resultType = result.getType().cast<RankedTensorType>();
 
   auto outputDimensionsType =
       outputDimensions.getType().cast<RankedTensorType>();
@@ -3555,12 +3551,11 @@ LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
                                   Value outputShape, int64_t iotaDimension,
                                   Value result) {
   auto shape = result.getType().cast<ShapedType>();
+
   if (!isCompatibleForHloTypeInference(outputShape, shape))
     return emitOptionalError(
         location, "output_shape is incompatible with return type of operation ",
         result.getType());
-
-  if (!shape.hasRank()) return success();
 
   if (iotaDimension >= shape.getRank() || iotaDimension < 0)
     return emitOptionalError(
@@ -3616,8 +3611,7 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                      Value outputShape, Value result) {
   auto resultType = result.getType().cast<ShapedType>();
   auto outputShapeType = outputShape.getType().cast<ShapedType>();
-  if (resultType.hasRank() && outputShapeType.hasStaticShape() &&
-      outputShapeType.getDimSize(0) != resultType.getRank())
+  if (outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
                              "output should have a rank equal to the number of "
                              "elements in output_shape");

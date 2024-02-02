@@ -117,6 +117,8 @@ def HLO_PredTensor : TensorOf<[HLO_Pred]>;
 
 def HLO_Tensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
 
+def HLO_RankedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
+
 def HLO_ComplexTensor : TensorOf<[HLO_Complex]>;
 
 def HLO_Tuple : NestedTupleOf<[HLO_Tensor, HLO_Token]>;
@@ -158,6 +160,9 @@ def HLO_PredIntFpOrQuantizedTensor : TensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO
 //===----------------------------------------------------------------------===//
 // HLO static shape type definitions.
 //===----------------------------------------------------------------------===//
+
+// Static representation of a shape vector as a tensor.
+def HLO_StaticDimensionTensor : RankedTensorOf<[HLO_DimensionValue], [HasStaticShapePred, HasAnyRankOfPred<[1]>], "statically shaped 1-dimensional tensor">;
 
 // In general, static shaped tensor constraints should be avoided unless
 // it is for a legacy op which is only correct with static shapes.
