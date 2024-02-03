@@ -228,6 +228,71 @@ def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant_v1", "0.
   }];
   let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $scale `` `:` `` $zeroPoint `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
 }
+def VHLO_QuantizationScalesV1 : ArrayRefParameter<"::llvm::APFloat", "array of double scales"> {
+  let parser = [{
+    [&]() -> FailureOr<llvm::SmallVector<::llvm::APFloat>> {
+      ::llvm::SmallVector<double> scales;
+
+      auto parseResult = $_parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() {
+        return $_parser.parseFloat(scales.emplace_back());
+      });
+      if(failed(parseResult)) return failure();
+      return llvm::to_vector(llvm::map_range(
+        scales, [](double scale) { return APFloat(scale); }));
+    }()
+  }];
+  let printer = [{
+    $_printer << '[';
+    llvm::interleaveComma($_self, $_printer, [&](APFloat scale) {
+      $_printer << scale;
+    });
+    $_printer << ']';
+  }];
+}
+def VHLO_QuantizationZeroPointsV1 : ArrayRefParameter<"int64_t", "array of int64_t zero points"> {
+  let parser = [{
+    [&]() -> FailureOr<llvm::SmallVector<int64_t>> {
+      ::llvm::SmallVector<int64_t> zeroPoints;
+
+      auto parseResult = $_parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() {
+        return $_parser.parseInteger(zeroPoints.emplace_back());
+      });
+      if(failed(parseResult)) return failure();
+      return zeroPoints;
+    }()
+  }];
+  let printer = [{
+    $_printer << '[';
+    llvm::interleaveComma($_self, $_printer, [&](int64_t zeroPoint) {
+      $_printer << zeroPoint;
+    });
+    $_printer << ']';
+  }];
+}
+def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "quant_per_axis_v1", "0.9.0", "current"> {
+  let parameters = (ins
+    "unsigned":$flags,
+    "::mlir::Type":$storageType,
+    "::mlir::Type":$expressedType,
+    "int64_t":$quantizedDimension,
+    VHLO_QuantizationScalesV1:$scales,
+    VHLO_QuantizationZeroPointsV1:$zeroPoints,
+    "int64_t":$storageTypeMin,
+    "int64_t":$storageTypeMax
+  );
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult UniformQuantizedPerAxisV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
+        unsigned int, mlir::Type storageType, mlir::Type expressedType,
+        int64_t, ::llvm::ArrayRef<::llvm::APFloat>, ::llvm::ArrayRef<int64_t>, int64_t, int64_t) {
+      if (!isFromVhlo(storageType) || !isFromVhlo(expressedType))
+        return errFn() << "expected VHLO type";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $quantizedDimension `,` $scales `,` $zeroPoints `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
+}
 
 // TODO(#8): UnrankedTensor is not part of the StableHLO spec.
 // At the moment, it is used to represent unranked dynamism, and we will likely
