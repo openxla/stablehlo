@@ -56,6 +56,9 @@ void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                    TypeConverter *converter,
                                    MLIRContext *contexts);
 
+void populateLegalizeChloPatterns(MLIRContext *context,
+                                  RewritePatternSet *patterns);
+
 //// Pass pipelines ////
 
 // StableHLO consumers can add this pipeline to convert portable artifacts to
