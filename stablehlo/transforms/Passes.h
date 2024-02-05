@@ -56,13 +56,15 @@ void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                    TypeConverter *converter,
                                    MLIRContext *contexts);
 
-void populateLegalizeChloPatterns(MLIRContext *context,
-                                  RewritePatternSet *patterns);
+/// Collection of rewrite patterns for lowering of CHLO ops to StableHLO and
+/// Shape ops.
+void populateChloToStablehloPatterns(MLIRContext *context,
+                                     RewritePatternSet *patterns);
 
 /// Collection of canonicalization patterns for StableHLO.
-void populateCanonicalizationPatterns(MLIRContext *context,
-                                      RewritePatternSet *patterns,
-                                      PatternBenefit benefit = 1);
+void populateStablehloCanonicalizationPatterns(MLIRContext *context,
+                                               RewritePatternSet *patterns,
+                                               PatternBenefit benefit = 1);
 
 //// Pass pipelines ////
 

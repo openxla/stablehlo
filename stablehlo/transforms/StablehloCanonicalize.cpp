@@ -1134,7 +1134,7 @@ struct StableHLOCanonicalize final
   void runOnOperation() override {
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    populateCanonicalizationPatterns(ctx, &patterns);
+    populateStablehloCanonicalizationPatterns(ctx, &patterns);
     if (failed(applyPatternsAndFoldGreedily(getOperation(),
                                             std::move(patterns)))) {
       signalPassFailure();
@@ -1147,9 +1147,9 @@ struct StableHLOCanonicalize final
 };
 }  // namespace
 
-void populateCanonicalizationPatterns(MLIRContext *context,
-                                      RewritePatternSet *patterns,
-                                      PatternBenefit benefit) {
+void populateStablehloCanonicalizationPatterns(MLIRContext *context,
+                                               RewritePatternSet *patterns,
+                                               PatternBenefit benefit) {
   patterns->add<
       // Arithmetic ops.
       AddOpCanon, SubtractOpCanon, MulOpCanon, CompareOpCanon, SelectOpCanon,
