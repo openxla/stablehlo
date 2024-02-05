@@ -2204,7 +2204,7 @@ struct LegalizeChlo final : impl::LegalizeChloBase<LegalizeChlo> {
       // Add canonicalization patterns to simplify produced ops from other
       // dialects.
       RewritePatternSet patterns(ctx);
-      //populateCanonicalizationPatterns(ctx, &patterns);
+      populateCanonicalizationPatterns(ctx, &patterns);
       mlir::shape::AssumingOp::getCanonicalizationPatterns(patterns, ctx);
       mlir::shape::ShapeOfOp::getCanonicalizationPatterns(patterns, ctx);
       mlir::shape::BroadcastOp::getCanonicalizationPatterns(patterns, ctx);

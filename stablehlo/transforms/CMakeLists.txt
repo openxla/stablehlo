@@ -30,9 +30,11 @@ add_mlir_dialect_library(StablehloPasses
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp
   LegalizeCHLO.cpp
+  Canonicalize.cpp
 
   DEPENDS
   PassesIncGen
+  CHLODecompositionPatterns 
 
   LINK_LIBS PUBLIC
   ChloOps
