@@ -1,6 +1,6 @@
 # RFC: StableHLO quantization for reduction ops
 
-Status: Review<br/>
+Status: Approved<br/>
 Initial version: 06/22/2023<br/>
 updated: 07/13/2023: Minor refactoring of the examples.<br/>
 Last updated: 08/11/2023: Revision of the proposal to introduce an

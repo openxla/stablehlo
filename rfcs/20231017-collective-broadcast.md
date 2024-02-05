@@ -1,6 +1,6 @@
 # [RFC] Add collective_broadcast to the StableHLO specification
 
-Status: Review<br/>
+Status: Approved<br/>
 Initial version: 10/17/20223<br/>
 Last updated: 11/1/2023<br/>
 Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/1809)
