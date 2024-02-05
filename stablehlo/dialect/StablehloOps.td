@@ -42,13 +42,14 @@ def StableHLO_Dialect : Dialect {
 
 class StableHLO_Op<string mnemonic, list<Trait> traits> :
     Op<StableHLO_Dialect, mnemonic, traits> {
-  let extraClassDeclaration = [{
+  string commonClassDeclaration = [{
     // Relax the strict default implementation with one that allows
     // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
+  let extraClassDeclaration = commonClassDeclaration;
 }
 
 include "stablehlo/dialect/StablehloEnums.td"
@@ -57,13 +58,7 @@ include "stablehlo/dialect/StablehloTypes.td"
 
 class StableHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits> :
     StableHLO_Op<mnemonic, traits # [DeclareOpInterfaceMethods<InferShapedTypeOpInterface,
-    ["reifyReturnTypeShapes"]>]> {
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
-    }
-  }];
-}
+    ["reifyReturnTypeShapes"]>]> {}
 
 //===----------------------------------------------------------------------===//
 // StableHLO nullary op definitions.
@@ -181,16 +176,13 @@ class StableHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
     InferShapedTypeOpInterface, SameOperandsAndResultShape]> {
   let arguments = (ins OperandType:$operand);
   let results = (outs ResultType:$result);
-  let extraClassDeclaration = [{
+  let extraClassDeclaration = commonClassDeclaration # [{
     LogicalResult reifyReturnTypeShapes(
         OpBuilder& builder, ValueRange operands,
         SmallVectorImpl<Value>& reifiedReturnShapes) {
       return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
                                                 operands.front(),
                                                 &reifiedReturnShapes);
-    }
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
 
@@ -667,16 +659,13 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
     OperandType:$rhs
   );
 
-  let extraClassDeclaration = [{
+  let extraClassDeclaration = commonClassDeclaration # [{
     LogicalResult reifyReturnTypeShapes(
         OpBuilder& builder, ValueRange operands,
         SmallVectorImpl<Value>& reifiedReturnShapes) {
       return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
                                                  operands.front(),
                                                  &reifiedReturnShapes);
-    }
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
 
@@ -1275,7 +1264,7 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
 
   let hasVerifier = 1;
 
-  let extraClassDeclaration = [{
+  let extraClassDeclaration = commonClassDeclaration # [{
     // Method of OpAsmOpInterface used during custom printing to name the block
     // arguments in the nested regions. We name both the condition and the body
     // regions entry arguments the same way, with a `iterArg` prefix. Since the
@@ -1285,10 +1274,6 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
     void getAsmBlockArgumentNames(Region &region, OpAsmSetValueNameFn setNameFn) {
       for (BlockArgument arg : region.getArguments())
         setNameFn(arg, "iterArg");
-    }
-
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
   let hasCustomAssemblyFormat = 1;

@@ -59,13 +59,14 @@ def CHLO_Dialect : Dialect {
 
 class CHLO_Op<string mnemonic, list<Trait> traits> :
     Op<CHLO_Dialect, mnemonic, traits> {
-  let extraClassDeclaration = [{
+  string commonClassDeclaration = [{
     // Relax the strict default implementation with one that allows
     // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
+  let extraClassDeclaration = commonClassDeclaration;
 }
 
 include "stablehlo/dialect/ChloEnums.td"
@@ -111,11 +112,6 @@ class CHLO_BroadcastBinaryElementwiseOp<
     `(` type($lhs) `,` type($rhs) `)` `->` type(results)
   }];
 
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
-    }
-  }];
 }
 
 def CHLO_BroadcastAddOp : CHLO_BroadcastBinaryElementwiseOp<"broadcast_add",
@@ -468,14 +464,11 @@ class CHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
     $operand attr-dict `:` type($operand) `->` type($result)
   }];
 
-  let extraClassDeclaration = [{
+  let extraClassDeclaration = commonClassDeclaration # [{
     LogicalResult reifyReturnTypeShapes(OpBuilder& builder, ValueRange operands,
         SmallVectorImpl<Value>& reifiedReturnShapes) {
       return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
           operands.front(), &reifiedReturnShapes);
-    }
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
 }
