@@ -242,41 +242,19 @@ def VHLO_QuantizationScalesV1 : ArrayRefParameter<"::llvm::APFloat", "array of d
     }()
   }];
   let printer = [{
-    $_printer << '[';
     llvm::interleaveComma($_self, $_printer, [&](APFloat scale) {
       $_printer << scale;
     });
-    $_printer << ']';
   }];
 }
-def VHLO_QuantizationZeroPointsV1 : ArrayRefParameter<"int64_t", "array of int64_t zero points"> {
-  let parser = [{
-    [&]() -> FailureOr<llvm::SmallVector<int64_t>> {
-      ::llvm::SmallVector<int64_t> zeroPoints;
-
-      auto parseResult = $_parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() {
-        return $_parser.parseInteger(zeroPoints.emplace_back());
-      });
-      if(failed(parseResult)) return failure();
-      return zeroPoints;
-    }()
-  }];
-  let printer = [{
-    $_printer << '[';
-    llvm::interleaveComma($_self, $_printer, [&](int64_t zeroPoint) {
-      $_printer << zeroPoint;
-    });
-    $_printer << ']';
-  }];
-}
-def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "quant_per_axis_v1", "0.9.0", "current"> {
+def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "quant_per_axis_v1", "0.17.0", "current"> {
   let parameters = (ins
     "unsigned":$flags,
     "::mlir::Type":$storageType,
     "::mlir::Type":$expressedType,
     "int64_t":$quantizedDimension,
     VHLO_QuantizationScalesV1:$scales,
-    VHLO_QuantizationZeroPointsV1:$zeroPoints,
+    ArrayRefParameter<"int64_t">:$zeroPoints,
     "int64_t":$storageTypeMin,
     "int64_t":$storageTypeMax
   );
