@@ -62,6 +62,9 @@ Tensor evalCeilOp(const Tensor &operand, ShapedType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    ShapedType resultType);
 Tensor evalClzOp(const Tensor &operand, ShapedType resultType);
+Tensor evalCollectiveBroadcastOp(
+    const Tensor &operand, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, Process *process);
 Tensor evalCollectivePermuteOp(
     const Tensor &operand, SmallVector<SmallVector<uint32_t>> sourceTargetPairs,
     ChannelId channelId, Process *process);

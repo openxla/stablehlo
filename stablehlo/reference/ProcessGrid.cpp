@@ -49,8 +49,8 @@ bool ProcessId::operator==(const ProcessId &other) const {
 
 std::optional<ProcessGroup> ProcessGroups::findGroup(ProcessId processId) {
   for (auto processGroup : *this)
-    for (auto id : processGroup)
-      if (id == processId) return processGroup;
+    if (llvm::find(processGroup, processId) != processGroup.end())
+      return processGroup;
 
   return std::nullopt;
 }

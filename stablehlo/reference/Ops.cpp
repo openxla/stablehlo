@@ -328,6 +328,25 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto operand = scope.findTensor(clzOp.getOperand());
       auto result = evalClzOp(operand, clzOp.getType());
       scope.add(clzOp.getResult(), result);
+    } else if (auto collectiveBroadcastOp =
+                   dyn_cast<CollectiveBroadcastOp>(op)) {
+      auto operand = scope.findTensor(collectiveBroadcastOp.getOperand());
+
+      auto replicaGroupsAttr = collectiveBroadcastOp.getReplicaGroups();
+      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
+      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
+      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
+      for (auto &replicaGroup : replicaGroups)
+        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt)
+          replicaGroup.push_back(*replicaGroupsIt);
+
+      ChannelId channelId = 0;
+      if (auto channelHandle = collectiveBroadcastOp.getChannelHandle())
+        channelId = channelHandle->getHandle();
+
+      auto result =
+          evalCollectiveBroadcastOp(operand, replicaGroups, channelId, process);
+      scope.add(collectiveBroadcastOp.getResult(), result);
     } else if (auto collectivePermuteOp = dyn_cast<CollectivePermuteOp>(op)) {
       auto operand = scope.findTensor(collectivePermuteOp.getOperand());
 
@@ -1072,6 +1091,28 @@ Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
     result.set(*it, element);
   }
   return result;
+}
+
+Tensor evalCollectiveBroadcastOp(
+    const Tensor &operand, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, Process *process) {
+  if (!process)
+    llvm::report_fatal_error(
+        "collective_broadcast is only supported when run via "
+        "interpreter.run_parallel");
+
+  ProcessGroups processGroups;
+  if (channelId <= 0) processGroups = process->crossReplica(replicaGroups);
+  if (channelId > 0) processGroups = process->crossPartition(replicaGroups);
+
+  auto processGroup = processGroups.findGroup(process->getId());
+  if (processGroup)
+    return process->rendezvous(*processGroup, channelId, operand)
+        .lookup((*processGroup)[0]);
+
+  return evalBroadcastInDimOp(
+      makeScalar(convert(operand.getElementType(), 0.0)), {},
+      operand.getType());
 }
 
 Tensor evalCollectivePermuteOp(
