@@ -9,7 +9,6 @@
 
 #include "llvm/ADT/STLExtras.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
-#include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -2164,7 +2163,7 @@ struct ConvertZetaOp final : OpConversionPattern<mlir::chlo::ZetaOp> {
 struct ChloLegalizeToStablehloPass final
     : impl::ChloLegalizeToStablehloPassBase<ChloLegalizeToStablehloPass> {
   void getDependentDialects(DialectRegistry &registry) const override {
-    registry.insert<mlir::scf::SCFDialect, mlir::shape::ShapeDialect,
+    registry.insert<mlir::shape::ShapeDialect,
                     mlir::stablehlo::StablehloDialect,
                     mlir::tensor::TensorDialect>();
   }
@@ -2178,8 +2177,7 @@ struct ChloLegalizeToStablehloPass final
       conversionTarget.addLegalOp<chlo::MinimumBroadcastShapesOp>();
       conversionTarget.addLegalDialect<
           mlir::stablehlo::StablehloDialect, mlir::arith::ArithDialect,
-          mlir::shape::ShapeDialect, mlir::scf::SCFDialect,
-          mlir::tensor::TensorDialect>();
+          mlir::shape::ShapeDialect, mlir::tensor::TensorDialect>();
 
       populateChloToStablehloPatterns(ctx, &conversionPatterns);
       if (failed(applyPartialConversion(getOperation(), conversionTarget,

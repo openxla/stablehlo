@@ -18,28 +18,30 @@ add_public_tablegen_target(PassesIncGen)
 
 set(LLVM_TARGET_DEFINITIONS ChloDecompositionPatterns.td)
 mlir_tablegen(ChloDecompositionPatterns.h.inc --gen-rewriters)
-add_public_tablegen_target(ChloDecompositionPatterns)
+add_public_tablegen_target(ChloDecompositionPatternsIncGen)
 
 add_mlir_dialect_library(StablehloPasses
   PARTIAL_SOURCES_INTENDED
+  ChloLegalizeToStablehlo.cpp
   PassPipelines.cpp
+  StablehloAggressiveSimplification.cpp
   StablehloCanonicalizeDynamism.cpp
   StablehloInstrumentWithProbe.cpp
   StablehloLegalizeToVhlo.cpp
   StablehloRefineShapes.cpp
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp
-  ChloLegalizeToStablehlo.cpp
-  StablehloAggressiveSimplification.cpp
-   
+
   DEPENDS
+  ChloDecompositionPatternsIncGen
   PassesIncGen
-  ChloDecompositionPatterns
 
   LINK_LIBS PUBLIC
   ChloOps
   InterpreterOps
+  MLIRComplexDialect
   MLIRFuncDialect
+  MLIRFunctionInterfaces
   MLIRIR
   MLIRInferTypeOpInterface
   MLIRQuantDialect
@@ -47,7 +49,8 @@ add_mlir_dialect_library(StablehloPasses
   MLIRTensorDialect
   MLIRTransformUtils
   StablehloBase
-  StablehloTypeInference
+  StablehloBroadcastUtils
   StablehloOps
+  StablehloTypeInference
   VhloOps
 )
