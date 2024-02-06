@@ -1,7 +1,7 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
 module @cross_replica {
-  func.func public @all_reduce(%operand : tensor<4xi64>) -> tensor<4xi64> {
+  func.func @all_reduce(%operand : tensor<4xi64>) -> tensor<4xi64> {
     %result = "stablehlo.all_reduce"(%operand) ({
       ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
@@ -12,7 +12,7 @@ module @cross_replica {
     } : (tensor<4xi64>) -> tensor<4xi64>
     return %result : tensor<4xi64>
   }
-  func.func public @main() {
+  func.func @main() {
     %inputs0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
     %inputs1 = stablehlo.constant dense<[5, 6, 7, 8]> : tensor<4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
@@ -27,7 +27,7 @@ module @cross_replica {
 // -----
 
 module @cross_replica_and_partition {
-  func.func public @all_reduce(%operand : tensor<4xi64>) -> tensor<4xi64> {
+  func.func @all_reduce(%operand : tensor<4xi64>) -> tensor<4xi64> {
     %result = "stablehlo.all_reduce"(%operand) ({
       ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
@@ -38,7 +38,7 @@ module @cross_replica_and_partition {
     } : (tensor<4xi64>) -> tensor<4xi64>
     return %result : tensor<4xi64>
   }
-  func.func public @main() {
+  func.func @main() {
     %inputs0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
     %inputs1 = stablehlo.constant dense<[5, 6, 7, 8]> : tensor<4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
@@ -53,7 +53,7 @@ module @cross_replica_and_partition {
 // -----
 
 module @flattened_ids {
-  func.func public @all_reduce(%operand : tensor<4xi64>) -> tensor<4xi64> {
+  func.func @all_reduce(%operand : tensor<4xi64>) -> tensor<4xi64> {
     %result = "stablehlo.all_reduce"(%operand) ({
       ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
@@ -65,7 +65,7 @@ module @flattened_ids {
     } : (tensor<4xi64>) -> tensor<4xi64>
     return %result : tensor<4xi64>
   }
-  func.func public @main() {
+  func.func @main() {
     %inputs0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
     %inputs1 = stablehlo.constant dense<[5, 6, 7, 8]> : tensor<4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
@@ -80,7 +80,7 @@ module @flattened_ids {
 // -----
 
 module @ragged_replica_groups {
-  func.func public @all_reduce(%operand : tensor<4xi64>) -> tensor<4xi64> {
+  func.func @all_reduce(%operand : tensor<4xi64>) -> tensor<4xi64> {
     %result = "stablehlo.all_reduce"(%operand) ({
       ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
@@ -91,7 +91,7 @@ module @ragged_replica_groups {
     } : (tensor<4xi64>) -> tensor<4xi64>
     return %result : tensor<4xi64>
   }
-  func.func public @main() {
+  func.func @main() {
     %inputs0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
     %inputs1 = stablehlo.constant dense<[5, 6, 7, 8]> : tensor<4xi64>
     %inputs2 = stablehlo.constant dense<[6, 8, 10, 12]> : tensor<4xi64>

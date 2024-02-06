@@ -1,11 +1,11 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
 module @distribution_ops {
-  func.func public @replica_id() -> tensor<ui32> {
+  func.func @replica_id() -> tensor<ui32> {
     %result = stablehlo.replica_id : tensor<ui32>
     return %result : tensor<ui32>
   }
-  func.func public @main() {
+  func.func @main() {
     %results:2 = "interpreter.run_parallel"() {
       programs=[[@replica_id], [@replica_id]]
     } : () -> (tensor<ui32>, tensor<ui32>)

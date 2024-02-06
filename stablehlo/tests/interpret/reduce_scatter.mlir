@@ -1,7 +1,7 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
 module @cross_replica {
-  func.func public @reduce_scatter(%operand : tensor<2x4xi64>) -> tensor<2x2xi64> {
+  func.func @reduce_scatter(%operand : tensor<2x4xi64>) -> tensor<2x2xi64> {
     %result = "stablehlo.reduce_scatter"(%operand) ({
       ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
@@ -12,7 +12,7 @@ module @cross_replica {
     } : (tensor<2x4xi64>) -> tensor<2x2xi64>
     return %result : tensor<2x2xi64>
   }
-  func.func public @main() {
+  func.func @main() {
     %inputs0 = stablehlo.constant dense<[[1, 2, 3, 4],
                                          [5, 6, 7, 8]]> : tensor<2x4xi64>
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
@@ -31,7 +31,7 @@ module @cross_replica {
 // -----
 
 module @cross_replica_and_partition {
-  func.func public @reduce_scatter(%operand : tensor<2x4xi64>) -> tensor<2x2xi64> {
+  func.func @reduce_scatter(%operand : tensor<2x4xi64>) -> tensor<2x2xi64> {
     %result = "stablehlo.reduce_scatter"(%operand) ({
       ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
@@ -43,7 +43,7 @@ module @cross_replica_and_partition {
     } : (tensor<2x4xi64>) -> tensor<2x2xi64>
     return %result : tensor<2x2xi64>
   }
-  func.func public @main() {
+  func.func @main() {
     %inputs0 = stablehlo.constant dense<[[1, 2, 3, 4],
                                          [5, 6, 7, 8]]> : tensor<2x4xi64>
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
@@ -62,7 +62,7 @@ module @cross_replica_and_partition {
 // -----
 
 module @flattened_ids {
-  func.func public @reduce_scatter(%operand : tensor<2x4xi64>) -> tensor<2x2xi64> {
+  func.func @reduce_scatter(%operand : tensor<2x4xi64>) -> tensor<2x2xi64> {
     %result = "stablehlo.reduce_scatter"(%operand) ({
       ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
@@ -75,7 +75,7 @@ module @flattened_ids {
     } : (tensor<2x4xi64>) -> tensor<2x2xi64>
     return %result : tensor<2x2xi64>
   }
-  func.func public @main() {
+  func.func @main() {
     %inputs0 = stablehlo.constant dense<[[1, 2, 3, 4],
                                          [5, 6, 7, 8]]> : tensor<2x4xi64>
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
