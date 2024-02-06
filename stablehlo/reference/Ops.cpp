@@ -1105,10 +1105,10 @@ Tensor evalCollectiveBroadcastOp(
   if (channelId <= 0) processGroups = process->crossReplica(replicaGroups);
   if (channelId > 0) processGroups = process->crossPartition(replicaGroups);
 
-  for (auto processGroup : processGroups)
-    if (llvm::find(processGroup, process->getId()) != processGroup.end())
-      return process->rendezvous(processGroup, channelId, operand)
-          .lookup(processGroup[0]);
+  auto processGroup = processGroups.findGroup(process->getId());
+  if (processGroup)
+    return process->rendezvous(*processGroup, channelId, operand)
+        .lookup((*processGroup)[0]);
 
   return evalBroadcastInDimOp(
       makeScalar(convert(operand.getElementType(), 0.0)), {},
