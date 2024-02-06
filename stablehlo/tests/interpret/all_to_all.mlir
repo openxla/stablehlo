@@ -1,7 +1,7 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
 module @cross_replica {
-  func.func public @all_to_all(%operand : tensor<2x4xi64>) -> tensor<4x2xi64> {
+  func.func @all_to_all(%operand : tensor<2x4xi64>) -> tensor<4x2xi64> {
     %result = "stablehlo.all_to_all"(%operand) {
       split_dimension = 1 : i64,
       concat_dimension = 0 : i64,
@@ -10,7 +10,7 @@ module @cross_replica {
     } : (tensor<2x4xi64>) -> tensor<4x2xi64>
     return %result : tensor<4x2xi64>
   }
-  func.func public @main() {
+  func.func @main() {
     %inputs0 = stablehlo.constant dense<[[1, 2, 3, 4],
                                          [5, 6, 7, 8]]> : tensor<2x4xi64>
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
@@ -33,7 +33,7 @@ module @cross_replica {
 // -----
 
 module @cross_partition {
-  func.func public @all_to_all(%operand : tensor<2x4xi64>) -> tensor<4x2xi64> {
+  func.func @all_to_all(%operand : tensor<2x4xi64>) -> tensor<4x2xi64> {
     %result = "stablehlo.all_to_all"(%operand) {
       split_dimension = 1 : i64,
       concat_dimension = 0 : i64,
@@ -43,7 +43,7 @@ module @cross_partition {
     } : (tensor<2x4xi64>) -> tensor<4x2xi64>
     return %result : tensor<4x2xi64>
   }
-  func.func public @main() {
+  func.func @main() {
     %inputs0 = stablehlo.constant dense<[[1, 2, 3, 4],
                                          [5, 6, 7, 8]]> : tensor<2x4xi64>
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
