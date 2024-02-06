@@ -1225,41 +1225,35 @@ VhloBytecodeInterface::readUniformQuantizedPerAxisV1Type(
   LOG_READ_CALL;
   uint64_t flags;
   Type storageType, expressedType;
-  FailureOr<APFloat> scale;
+  uint64_t quantizedDimension;
+  int64_t storageTypeMin, storageTypeMax;
   SmallVector<APFloat> scales;
   SmallVector<int64_t> zeroPoints;
-  int64_t quantizedDimension, numQuantizationParams, storageTypeMin,
-      storageTypeMax;
-  if (failed(reader.readVarInt(flags)) ||
-      failed(reader.readType(storageType)) ||
-      failed(reader.readType(expressedType)) ||
-      failed(reader.readSignedVarInt(quantizedDimension)) ||
-      failed(reader.readSignedVarInt(numQuantizationParams)))
-    return reader.emitError("invalid UniformQuantizedPerAxisType"),
-           UniformQuantizedPerAxisV1Type();
-
-  for (int64_t i = 0; i < numQuantizationParams; i++) {
-    if (failed(scale = reader.readAPFloatWithKnownSemantics(
-                   llvm::APFloat::IEEEdouble())))
-      return reader.emitError("invalid UniformQuantizedPerAxisType"),
-             UniformQuantizedPerAxisV1Type();
-    scales.push_back(scale.value());
+  auto readScales = [&]() -> FailureOr<APFloat> {
+    return reader.readAPFloatWithKnownSemantics(llvm::APFloat::IEEEdouble());
+  };
+  auto readZeroPoints = [&]() -> FailureOr<int64_t> {
+    int64_t temp;
+    if (succeeded(reader.readSignedVarInt(temp))) {
+      return temp;
+    }
+    return failure();
+  };
+  if (succeeded(reader.readVarInt(flags)) &&
+      succeeded(reader.readType(storageType)) &&
+      succeeded(reader.readType(expressedType)) &&
+      succeeded(reader.readVarInt(quantizedDimension)) &&
+      succeeded(reader.readSignedVarInt(storageTypeMin)) &&
+      succeeded(reader.readSignedVarInt(storageTypeMax)) &&
+      succeeded(reader.readList(scales, readScales)) &&
+      succeeded(reader.readList(zeroPoints, readZeroPoints))) {
+    return UniformQuantizedPerAxisV1Type::get(
+        getContext(), flags, storageType, expressedType, quantizedDimension,
+        scales, zeroPoints, storageTypeMin, storageTypeMax);
   }
 
-  for (int64_t i = 0; i < numQuantizationParams; i++) {
-    if (failed(reader.readSignedVarInt(zeroPoints.emplace_back())))
-      return reader.emitError("invalid UniformQuantizedPerAxisType"),
-             UniformQuantizedPerAxisV1Type();
-  }
-
-  if (failed(reader.readSignedVarInt(storageTypeMin)) ||
-      failed(reader.readSignedVarInt(storageTypeMax)))
-    return reader.emitError("invalid UniformQuantizedPerAxisType"),
-           UniformQuantizedPerAxisV1Type();
-
-  return UniformQuantizedPerAxisV1Type::get(
-      getContext(), flags, storageType, expressedType, quantizedDimension,
-      scales, zeroPoints, storageTypeMin, storageTypeMax);
+  return reader.emitError("invalid UniformQuantizedPerAxisType"),
+         UniformQuantizedPerAxisV1Type();
 }
 
 void VhloBytecodeInterface::write(UniformQuantizedPerAxisV1Type type,
@@ -1268,15 +1262,14 @@ void VhloBytecodeInterface::write(UniformQuantizedPerAxisV1Type type,
   writer.writeVarInt(type.getFlags());
   writer.writeType(type.getStorageType());
   writer.writeType(type.getExpressedType());
-  writer.writeSignedVarInt(type.getQuantizedDimension());
-  int64_t numQuantizationParams = type.getScales().size();
-  writer.writeSignedVarInt(numQuantizationParams);
-  for (auto scale : type.getScales())
-    writer.writeAPFloatWithKnownSemantics(APFloat(scale));
-  for (auto zeroPoint : type.getZeroPoints())
-    writer.writeSignedVarInt(zeroPoint);
+  writer.writeVarInt(type.getQuantizedDimension());
   writer.writeSignedVarInt(type.getStorageTypeMin());
   writer.writeSignedVarInt(type.getStorageTypeMax());
+  writer.writeList(type.getScales(), [&](const APFloat &type) {
+    writer.writeAPFloatWithKnownSemantics(type);
+  });
+  writer.writeList(type.getZeroPoints(),
+                   [&](int64_t type) { writer.writeSignedVarInt(type); });
 }
 
 //===----------------------------------------------------------------------===//

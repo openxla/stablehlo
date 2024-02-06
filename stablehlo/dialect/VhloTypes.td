@@ -247,12 +247,12 @@ def VHLO_QuantizationScalesV1 : ArrayRefParameter<"::llvm::APFloat", "array of d
     });
   }];
 }
-def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "quant_per_axis_v1", "0.17.0", "current"> {
+def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "quant_per_axis_v1", "0.18.0", "current"> {
   let parameters = (ins
     "unsigned":$flags,
     "::mlir::Type":$storageType,
     "::mlir::Type":$expressedType,
-    "int64_t":$quantizedDimension,
+    "int32_t":$quantizedDimension,
     VHLO_QuantizationScalesV1:$scales,
     ArrayRefParameter<"int64_t">:$zeroPoints,
     "int64_t":$storageTypeMin,
@@ -263,7 +263,7 @@ def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "
     LogicalResult UniformQuantizedPerAxisV1Type::verify(
         llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
         unsigned int, mlir::Type storageType, mlir::Type expressedType,
-        int64_t, ::llvm::ArrayRef<::llvm::APFloat>, ::llvm::ArrayRef<int64_t>, int64_t, int64_t) {
+        int32_t, ::llvm::ArrayRef<::llvm::APFloat>, ::llvm::ArrayRef<int64_t>, int64_t, int64_t) {
       if (!isFromVhlo(storageType) || !isFromVhlo(expressedType))
         return errFn() << "expected VHLO type";
       return success();
