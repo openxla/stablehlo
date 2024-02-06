@@ -5960,9 +5960,18 @@ The execution order is implementation-defined as long as it is aligned with
 dataflow, i.e. if ops are executed before their uses. In StableHLO, all
 side-effecting ops consume one token and produce one token (multiple tokens can
 be multiplexed into one token via `after_all`), so the execution order of side
-effects is also aligned with dataflow. Possible execution orders of the example
-program above are `%0` → `%1` → `%2` → `%3` → `%4` → `return` or `%3` → `%0` →
-`%1` → `%2` → `%4` → `return`.
+effects is also aligned with dataflow. For example, in the below program
+there are two possible execution orders: `%0` → `%1` → `%2` → `return` and
+`%1` → `%0` → `%2` → `return`.
+
+```mlir
+func.func @main() -> tensor<f64> {
+  %0 = stablehlo.constant dense<1.0> : tensor<f64>
+  %1 = stablehlo.constant dense<2.0> : tensor<f64>
+  %2 = stablehlo.add %0, %1 : tensor<f64>
+  return %2 : tensor<f64>
+}
+```
 
 More formally, a **StableHLO process** is a combination of:
 1\) a StableHLO program, 2) operation statuses (not executed yet,
