@@ -42,20 +42,7 @@ constexpr int64_t kFoldOpEltLimit = 65536;
 
 static bool isIotaRange(ArrayRef<int64_t> dims) {
   for (auto [idx, value] : llvm::enumerate(dims)) {
-    if (idx != value) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-static bool isIotaRange(ElementsAttr attr) {
-  auto elems = attr.tryGetValues<APInt>();
-  if (!elems) return false;
-
-  for (auto [idx, value] : llvm::enumerate(*elems)) {
-    if (idx != value) {
+    if (static_cast<int64_t>(idx) != value) {
       return false;
     }
   }
@@ -689,7 +676,8 @@ struct DynamicBroadcastInDimAllDimsNonExpanding final
     }
 
     if (!op.getKnownNonexpandingDimensions() ||
-        op.getKnownNonexpandingDimensions()->size() != resultType.getRank()) {
+        static_cast<int64_t>(op.getKnownNonexpandingDimensions()->size()) !=
+            resultType.getRank()) {
       return rewriter.notifyMatchFailure(
           op, "known_nonexpanding_dimensions don't cover all output dims");
     }
