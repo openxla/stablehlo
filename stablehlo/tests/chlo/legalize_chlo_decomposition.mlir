@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --pass-pipeline="builtin.module(func.func(stablehlo-legalize-chlo))" \
+// RUN: stablehlo-opt --pass-pipeline="builtin.module(func.func(chlo-legalize-to-stablehlo))" \
 // RUN:   --split-input-file --verify-diagnostics %s | FileCheck %s
 
 // CHECK-LABEL: func.func @asin_bf16(

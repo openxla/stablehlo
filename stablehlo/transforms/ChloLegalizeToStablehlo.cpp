@@ -26,7 +26,7 @@
 namespace mlir {
 namespace stablehlo {
 
-#define GEN_PASS_DEF_LEGALIZECHLO
+#define GEN_PASS_DEF_CHLOLEGALIZETOSTABLEHLOPASS
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
@@ -2161,7 +2161,8 @@ struct ConvertZetaOp final : OpConversionPattern<mlir::chlo::ZetaOp> {
 // Pass Definition.
 //===----------------------------------------------------------------------===//
 
-struct LegalizeChlo final : impl::LegalizeChloBase<LegalizeChlo> {
+struct ChloLegalizeToStablehloPass final
+    : impl::ChloLegalizeToStablehloPassBase<ChloLegalizeToStablehloPass> {
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<mlir::scf::SCFDialect, mlir::shape::ShapeDialect,
                     mlir::stablehlo::StablehloDialect,

@@ -32,7 +32,7 @@
 namespace mlir {
 namespace stablehlo {
 
-#define GEN_PASS_DEF_STABLEHLOCANONICALIZE
+#define GEN_PASS_DEF_STABLEHLOAGGRESSIVESIMPLIFICATIONPASS
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
@@ -1129,8 +1129,9 @@ struct ReorderElementwiseAndShapeOp final
   }
 };
 
-struct StableHLOCanonicalize final
-    : impl::StableHLOCanonicalizeBase<StableHLOCanonicalize> {
+struct StablehloAggressiveSimplificationPass final
+    : impl::StablehloAggressiveSimplificationPassBase<
+          StablehloAggressiveSimplificationPass> {
   void runOnOperation() override {
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);

@@ -97,12 +97,12 @@ def VhloToVersionPass : Pass<"vhlo-to-version"> {
   ];
 }
 
-def LegalizeChlo :
-    InterfacePass<"stablehlo-legalize-chlo", "mlir::FunctionOpInterface"> {
+def ChloLegalizeToStablehloPass :
+    InterfacePass<"chlo-legalize-to-stablehlo", "mlir::FunctionOpInterface"> {
   let summary = "Legalizes from CHLO ops flow to StableHLO and Shape ops";
 }
 
-def StableHLOCanonicalize :
-    InterfacePass<"stablehlo-canonicalize", "mlir::FunctionOpInterface"> {
+def StablehloAggressiveSimplificationPass :
+    InterfacePass<"stablehlo-aggressive-simplification", "mlir::FunctionOpInterface"> {
   let summary = "Canonicalizes StableHLO operations";
 }

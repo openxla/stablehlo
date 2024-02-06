@@ -30,8 +30,8 @@ add_mlir_dialect_library(StablehloPasses
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp
   ChloLegalizeToStablehlo.cpp
-  StablehloCanonicalize.cpp
-  
+  StablehloAggressiveSimplification.cpp
+   
   DEPENDS
   PassesIncGen
   ChloDecompositionPatterns

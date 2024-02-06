@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --pass-pipeline="builtin.module(func.func(stablehlo-legalize-chlo),cse)" \
+// RUN: stablehlo-opt --pass-pipeline="builtin.module(func.func(chlo-legalize-to-stablehlo),cse)" \
 // RUN:   --split-input-file --verify-diagnostics %s | FileCheck %s
 
 // Check the non-broadcast case for each registered op, then just check a
