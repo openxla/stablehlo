@@ -1115,9 +1115,8 @@ Tensor evalCollectiveBroadcastOp(
     return process->rendezvous(*processGroup, channelId, operand)
         .lookup((*processGroup)[0]);
 
-  return evalBroadcastInDimOp(
-      makeScalar(convert(operand.getElementType(), 0.0)), {},
-      operand.getType());
+  return evalBroadcastInDimOp(constant(0.0, operand.getElementType()), {},
+                              operand.getType());
 }
 
 Tensor evalCollectivePermuteOp(
