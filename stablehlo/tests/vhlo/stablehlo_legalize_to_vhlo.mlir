@@ -261,20 +261,20 @@ func.func @attr_rng_algorithm_philox(%arg0: tensor<f32>) -> (tensor<f32>, tensor
 }
 
 // CHECK-LABEL: "attr_rng_distribution_uniform"
-func.func @attr_rng_distribution_uniform(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<?xindex>) -> tensor<f32> {
+func.func @attr_rng_distribution_uniform(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<0xindex>) -> tensor<f32> {
   %0 = "stablehlo.rng"(%arg0, %arg1, %arg2) {
     // CHECK: rng_distribution = #vhlo<rng_distribution_v1 UNIFORM>
     rng_distribution = #stablehlo<rng_distribution UNIFORM>
-  } : (tensor<f32>, tensor<f32>, tensor<?xindex>) -> tensor<f32>
+  } : (tensor<f32>, tensor<f32>, tensor<0xindex>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
 
 // CHECK-LABEL: "attr_rng_distribution_normal"
-func.func @attr_rng_distribution_normal(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<?xindex>) -> tensor<f32> {
+func.func @attr_rng_distribution_normal(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<0xindex>) -> tensor<f32> {
   %0 = "stablehlo.rng"(%arg0, %arg1, %arg2) {
     // CHECK: rng_distribution = #vhlo<rng_distribution_v1 NORMAL>
     rng_distribution = #stablehlo<rng_distribution NORMAL>
-  } : (tensor<f32>, tensor<f32>, tensor<?xindex>) -> tensor<f32>
+  } : (tensor<f32>, tensor<f32>, tensor<0xindex>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
 
@@ -1841,13 +1841,13 @@ func.func @op_rng_bit_generator(%arg0: tensor<f32>) -> (tensor<f32>, tensor<f32>
 }
 
 // CHECK-LABEL: "op_rng"
-func.func @op_rng(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<?xindex>) -> tensor<f32> {
+func.func @op_rng(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<0xindex>) -> tensor<f32> {
   //      CHECK: "vhlo.rng_v1"(%arg0, %arg1, %arg2) <{
   // CHECK-SAME:   rng_distribution = #vhlo<rng_distribution_v1 NORMAL>
-  // CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.tensor_v1<?x!vhlo.index_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+  // CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.tensor_v1<0x!vhlo.index_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
   %0 = "stablehlo.rng"(%arg0, %arg1, %arg2) {
     rng_distribution = #stablehlo<rng_distribution NORMAL>
-  } : (tensor<f32>, tensor<f32>, tensor<?xindex>) -> tensor<f32>
+  } : (tensor<f32>, tensor<f32>, tensor<0xindex>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
 
