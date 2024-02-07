@@ -56,6 +56,16 @@ void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                    TypeConverter *converter,
                                    MLIRContext *contexts);
 
+/// Collection of rewrite patterns for lowering of CHLO ops to StableHLO and
+/// Shape ops.
+void populateChloToStablehloPatterns(MLIRContext *context,
+                                     RewritePatternSet *patterns);
+
+/// Collection of canonicalization patterns for StableHLO.
+void populateStablehloCanonicalizationPatterns(MLIRContext *context,
+                                               RewritePatternSet *patterns,
+                                               PatternBenefit benefit = 1);
+
 //// Pass pipelines ////
 
 // StableHLO consumers can add this pipeline to convert portable artifacts to

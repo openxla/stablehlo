@@ -96,3 +96,13 @@ def VhloToVersionPass : Pass<"vhlo-to-version"> {
            "The target version. Must be a version of the form #.#.# or 'current'.">,
   ];
 }
+
+def ChloLegalizeToStablehloPass :
+    InterfacePass<"chlo-legalize-to-stablehlo", "mlir::FunctionOpInterface"> {
+  let summary = "Legalizes from CHLO ops flow to StableHLO and Shape ops";
+}
+
+def StablehloAggressiveSimplificationPass :
+    InterfacePass<"stablehlo-aggressive-simplification", "mlir::FunctionOpInterface"> {
+  let summary = "Canonicalizes StableHLO operations";
+}
