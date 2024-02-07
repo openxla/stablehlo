@@ -154,10 +154,15 @@ SmallVector<SmallVector<uint32_t>> getReplicaGroups(
   return replicaGroups;
 }
 
-Tensor makeScalar(const Element &initValue) {
+Tensor constant(Element initValue) {
   Tensor result(RankedTensorType::get({}, initValue.getType()));
   result.set({}, initValue);
   return result;
+}
+
+template <typename T>
+Tensor constant(T value, Type elementType) {
+  return constant(convert(elementType, value));
 }
 
 Tensor makeSplat(ShapedType type, const Element &initValue) {
@@ -182,9 +187,9 @@ SmallVector<Tensor> split(const Tensor &x, int64_t numResults, Axis axis,
   SmallVector<Tensor> results;
   for (auto i = 0; i < numResults; ++i) {
     SmallVector<Tensor> inputStartIndices(
-        x.getRank(), makeScalar(convert(IntegerType::get(context, 64), 0.0)));
-    inputStartIndices[axis] = makeScalar(
-        convert(IntegerType::get(context, 64), i * resultShape[axis]));
+        x.getRank(), constant(0.0, IntegerType::get(context, 64)));
+    inputStartIndices[axis] =
+        constant(i * resultShape[axis], IntegerType::get(context, 64));
 
     auto result = evalDynamicSliceOp(
         x, inputStartIndices, resultShape,
@@ -928,7 +933,7 @@ Tensor evalAllReduceOp(const Tensor &operand,
        ++resultIt) {
     Tensor resultElement;
     for (const auto &groupOperand : groupOperands) {
-      auto groupOperandElement = makeScalar(groupOperand.get(*resultIt));
+      auto groupOperandElement = constant(groupOperand.get(*resultIt));
       if (resultElement)
         resultElement = eval(computation, {resultElement, groupOperandElement},
                              /*fallback=*/nullptr, process, &scope)[0]
@@ -1140,9 +1145,8 @@ Tensor evalCollectivePermuteOp(
   }
 
   if (result) return result;
-  return evalBroadcastInDimOp(
-      makeScalar(convert(operand.getElementType(), 0.0)), {},
-      operand.getType());
+  return evalBroadcastInDimOp(constant(0.0, operand.getElementType()), {},
+                              operand.getType());
 }
 
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
@@ -1574,7 +1578,7 @@ Tensor evalPartitionIdOp(Process *process, MLIRContext *context) {
         "partition_id is only supported when run via interpreter.run_parallel");
   auto partitionId = process->getId().partitionId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
-  return makeScalar(Element(elementType, APInt(32, partitionId)));
+  return constant(APInt(32, partitionId), elementType);
 }
 
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType) {
@@ -1735,7 +1739,7 @@ Tensor evalReplicaIdOp(Process *process, MLIRContext *context) {
         "replica_id is only supported when run via interpreter.run_parallel");
   auto replicaId = process->getId().replicaId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
-  return makeScalar(Element(elementType, APInt(32, replicaId)));
+  return constant(APInt(32, replicaId), elementType);
 }
 
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType) {
@@ -1834,9 +1838,9 @@ SmallVector<Tensor> evalScatterOp(
 
     SmallVector<InterpreterValue> updateComputationArgs;
     for (const auto &result : results)
-      updateComputationArgs.push_back(makeScalar(result.get(resultIndex)));
+      updateComputationArgs.push_back(constant(result.get(resultIndex)));
     for (const auto &update : updates)
-      updateComputationArgs.push_back(makeScalar(update.get(updateIndex)));
+      updateComputationArgs.push_back(constant(update.get(updateIndex)));
 
     auto updatedValues = eval(updateComputation, updateComputationArgs,
                               /*fallback=*/nullptr, process, &scope);
@@ -1875,8 +1879,8 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
         selectedIndex = operandIndex;
       }
 
-      InterpreterValue selectedInterpreterVal(makeScalar(selectedVal.value()));
-      InterpreterValue currInterpreterVal(makeScalar(currVal));
+      InterpreterValue selectedInterpreterVal(constant(selectedVal.value()));
+      InterpreterValue currInterpreterVal(constant(currVal));
       auto selectResult =
           eval(select, {selectedInterpreterVal, currInterpreterVal},
                /*fallback=*/nullptr, process, &scope);
@@ -2001,8 +2005,8 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
       lhsIndex[adjustedDimension] = lhsHandle;
       rhsIndex[adjustedDimension] = rhsHandle;
       for (const auto &input : inputs) {
-        args.emplace_back(makeScalar(input.get(lhsIndex)));
-        args.emplace_back(makeScalar(input.get(rhsIndex)));
+        args.emplace_back(constant(input.get(lhsIndex)));
+        args.emplace_back(constant(input.get(rhsIndex)));
       }
       auto comparatorResult =
           eval(comparator, args, /*fallback=*/nullptr, process, &scope);
