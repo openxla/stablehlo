@@ -2163,9 +2163,9 @@ struct ConvertZetaOp final : OpConversionPattern<mlir::chlo::ZetaOp> {
 struct ChloLegalizeToStablehloPass final
     : impl::ChloLegalizeToStablehloPassBase<ChloLegalizeToStablehloPass> {
   void getDependentDialects(DialectRegistry &registry) const override {
-    registry.insert<mlir::shape::ShapeDialect,
-                    mlir::stablehlo::StablehloDialect,
-                    mlir::tensor::TensorDialect>();
+    registry
+        .insert<mlir::shape::ShapeDialect, mlir::stablehlo::StablehloDialect,
+                mlir::tensor::TensorDialect>();
   }
 
   void runOnOperation() override {
