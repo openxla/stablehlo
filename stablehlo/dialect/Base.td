@@ -117,6 +117,7 @@ def HLO_PredTensor : TensorOf<[HLO_Pred]>;
 
 def HLO_Tensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
 
+// TODO: delete this type once ranked tensors are the default
 def HLO_RankedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
 
 def HLO_ComplexTensor : TensorOf<[HLO_Complex]>;
@@ -153,6 +154,10 @@ def HLO_IntFpOrComplexOrQuantizedIntTensor : TensorOf<[HLO_Int, HLO_Float, HLO_C
 
 // Any pred, int or floating-point tensor types
 def HLO_PredIntOrFpTensor : TensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
+
+// Any pred, int or floating-point ranked tensor types
+// TODO: delete this type once ranked tensors are the default
+def HLO_PredIntOrFpRankedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
 
 // Any pred, int, floating-point or quantized tensor types
 def HLO_PredIntFpOrQuantizedTensor : TensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO_QuantizedInt]>;

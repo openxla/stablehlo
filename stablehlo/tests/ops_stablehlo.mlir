@@ -2125,6 +2125,22 @@ func.func @rng_bit_generator_dynamic(%arg0: tensor<?xui64>) -> (tensor<?xui64>, 
 
 // -----
 
+func.func @rng_dynamic_dim(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<?xi64>) -> tensor<*xf32> {
+  // expected-error@+1 {{op operand #2 must be statically shaped}}
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<?xi64>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
+}
+
+// -----
+
+func.func @rng_unranked_output(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<3xi64>) -> tensor<*xf32> {
+  // expected-error@+1 {{op result #0 must be ranked}}
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
+}
+
+// -----
+
 // CHECK-LABEL: func @rng_normal
 func.func @rng_normal(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<2x3x5xf32> {
   %cst = "stablehlo.constant"() {value = dense<[2, 3, 5]> : tensor<3xi64>} : () -> tensor<3xi64>
@@ -2138,14 +2154,6 @@ func.func @rng_normal(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<2x3x5xf3
 func.func @rng_normal_no_constant(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<3xi64>) -> tensor<?x?x?xf32> {
   %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<?x?x?xf32>
   func.return %0 : tensor<?x?x?xf32>
-}
-
-// -----
-
-// CHECK-LABEL: func @rng_normal_dynamic_dim
-func.func @rng_normal_dynamic_dim(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<?xi64>) -> tensor<*xf32> {
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<?xi64>) -> tensor<*xf32>
-  func.return %0 : tensor<*xf32>
 }
 
 // -----
@@ -2180,7 +2188,7 @@ func.func @rng_normal_invalid_sigma_rank(%mu: tensor<f32>, %sigma: tensor<1xf32>
 
 func.func @rng_normal_invalid_shape_rank(%mu: tensor<f32>, %sigma: tensor<f32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[[2, 3, 5]]> : tensor<1x3xi64>
-  // expected-error@+1 {{operand #2 must be 1D tensor of index or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer values, but got 'tensor<1x3xi64>'}}
+  // expected-error@+1 {{operand #2 must be statically shaped 1-dimensional tensor of index or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer values, but got 'tensor<1x3xi64>'}}
   %0 = "stablehlo.rng"(%mu, %sigma, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<1x3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
@@ -2209,14 +2217,6 @@ func.func @rng_uniform(%a: tensor<f32>, %b: tensor<f32>) -> tensor<2x3x5xf32> {
 func.func @rng_uniform_no_constant(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<3xi64>) -> tensor<?x?x?xf32> {
   %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<?x?x?xf32>
   func.return %0 : tensor<?x?x?xf32>
-}
-
-// -----
-
-// CHECK-LABEL: func @rng_uniform_dynamic_dim
-func.func @rng_uniform_dynamic_dim(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<?xi64>) -> tensor<*xf32> {
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<?xi64>) -> tensor<*xf32>
-  func.return %0 : tensor<*xf32>
 }
 
 // -----
@@ -2251,7 +2251,7 @@ func.func @rng_uniform_invalid_b_rank(%a: tensor<f32>, %b: tensor<1xf32>) -> ten
 
 func.func @rng_uniform_invalid_shape_rank(%a: tensor<f32>, %b: tensor<f32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[[2, 3, 5]]> : tensor<1x3xi64>
-  // expected-error@+1 {{operand #2 must be 1D tensor of index or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer values, but got 'tensor<1x3xi64>'}}
+  // expected-error@+1 {{operand #2 must be statically shaped 1-dimensional tensor of index or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer values, but got 'tensor<1x3xi64>'}}
   %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<1x3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }

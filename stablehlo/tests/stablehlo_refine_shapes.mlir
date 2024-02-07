@@ -743,11 +743,11 @@ func.func @refine_reduce_scatter_flattened_ids(%data: tensor<4x16xf32>) -> tenso
 // -----
 
 // CHECK-LABEL: @refine_rng
-func.func @refine_rng(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<*xf32> {
+func.func @refine_rng(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<?xf32> {
   // CHECK: stablehlo.rng{{.*}} -> tensor<4xf32>
   %0 = stablehlo.constant dense<[4]> : tensor<1xi64>
-  %1 = stablehlo.rng %arg0, %arg1, %0, distribution = NORMAL : (tensor<f32>, tensor<f32>, tensor<1xi64>) -> tensor<*xf32>
-  func.return %1 : tensor<*xf32>
+  %1 = stablehlo.rng %arg0, %arg1, %0, distribution = NORMAL : (tensor<f32>, tensor<f32>, tensor<1xi64>) -> tensor<?xf32>
+  func.return %1 : tensor<?xf32>
 }
 
 // -----
