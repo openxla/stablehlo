@@ -68,9 +68,9 @@ namespace hlo {
 //===----------------------------------------------------------------------===//
 
 // Checks if the vector `nums` has duplicates.
-bool hasDuplicates(ArrayRef<int64_t> nums) {
+bool isUnique(ArrayRef<int64_t> nums) {
   llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
-  return set.size() != nums.size();
+  return set.size() == nums.size();
 }
 
 bool tensorsHaveSameElType(TypeRange types, bool ignoreFpPrecision = true) {
@@ -848,17 +848,17 @@ LogicalResult isSpatialDimensionsValid(
                              "dimension-numbers to be in-range [0, ",
                              numDims, ").");
 
-  if (hasDuplicates(inputDimNums))
+  if (!isUnique(inputDimNums))
     return emitOptionalError(
         location, "expects input dimension-numbers to be unique, got {",
         inputDimNums, "}.");
 
-  if (hasDuplicates(windowDimNums))
+  if (!isUnique(windowDimNums))
     return emitOptionalError(
         location, "expects kernel dimension-numbers to be unique, got {",
         windowDimNums, "}.");
 
-  if (hasDuplicates(OutputDimNums))
+  if (!isUnique(OutputDimNums))
     return emitOptionalError(
         location, "expects output dimension-numbers to be unique, got {",
         OutputDimNums, "}.");
@@ -1021,7 +1021,7 @@ LogicalResult validateScatterDimensionNumbers(
                              updateWindowDims, "].");
 
   // scatter_c7
-  if (hasDuplicates(updateWindowDims))
+  if (!isUnique(updateWindowDims))
     return emitOptionalError(loc,
                              "Expects update_window_dims to not repeat; got: [",
                              updateWindowDims, "].");
@@ -1046,7 +1046,7 @@ LogicalResult validateScatterDimensionNumbers(
         insertedWindowDims, "].");
 
   // scatter_c9
-  if (hasDuplicates(insertedWindowDims))
+  if (!isUnique(insertedWindowDims))
     return emitOptionalError(
         loc, "Expects inserted_window_dims to not repeat; got: [",
         insertedWindowDims, "].)");
@@ -1086,7 +1086,7 @@ LogicalResult validateScatterDimensionNumbers(
   }
 
   // scatter_c12
-  if (hasDuplicates(scatterDimsToOperandDims))
+  if (!isUnique(scatterDimsToOperandDims))
     return emitOptionalError(
         loc, "Expects scatter_dims_to_operand_dims to not repeat; got: [",
         scatterDimsToOperandDims, "].");
@@ -1114,7 +1114,7 @@ static LogicalResult verifyGather(
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim) {
   // gather_c9
-  if (hasDuplicates(startIndexMap))
+  if (!isUnique(startIndexMap))
     return emitOptionalError(location,
                              "expects start_index_map to not repeat, got: [",
                              startIndexMap, "]");
@@ -1156,7 +1156,7 @@ static LogicalResult verifyGather(
   if (!llvm::is_sorted(offsetDims))
     return emitOptionalError(
         location, "expects offset_dims to be sorted, got: [", offsetDims, "]");
-  if (hasDuplicates(offsetDims))
+  if (!isUnique(offsetDims))
     return emitOptionalError(
         location, "expects offset_dims to not repeat, got: [", offsetDims, "]");
 
@@ -1165,7 +1165,7 @@ static LogicalResult verifyGather(
     return emitOptionalError(
         location, "expects collapsed_slice_dims to be sorted, got: [",
         collapsedSliceDims, "]");
-  if (hasDuplicates(collapsedSliceDims))
+  if (!isUnique(collapsedSliceDims))
     return emitOptionalError(
         location, "expects collapsed_slice_dims to not repeat, got: [",
         collapsedSliceDims, "]");
@@ -3275,7 +3275,7 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                              operandRank, ")");
 
   // broadcast_in_dim_c4
-  if (hasDuplicates(broadcastDimensions))
+  if (!isUnique(broadcastDimensions))
     return emitOptionalError(location,
                              "broadcast_dimensions should not have duplicates");
 
