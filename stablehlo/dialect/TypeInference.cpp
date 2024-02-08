@@ -68,10 +68,10 @@ namespace hlo {
 //===----------------------------------------------------------------------===//
 
 // Checks if the vector `nums` has duplicates.
-const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
+bool hasDuplicates(ArrayRef<int64_t> nums) {
   llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
   return set.size() != nums.size();
-};
+}
 
 bool tensorsHaveSameElType(TypeRange types, bool ignoreFpPrecision = true) {
   if (!types.empty()) {
@@ -3274,16 +3274,15 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                              dimensionsSize, ") does not match operand rank (",
                              operandRank, ")");
 
-  auto dimensions = llvm::to_vector(broadcastDimensions);
   // broadcast_in_dim_c4
-  if (hasDuplicates(dimensions))
+  if (hasDuplicates(broadcastDimensions))
     return emitOptionalError(location,
                              "broadcast_dimensions should not have duplicates");
 
   auto resultType = result.getType().cast<RankedTensorType>();
   auto resultRank = resultType.getRank();
   for (size_t i = 0; i != dimensionsSize; ++i) {
-    auto dimIndex = dimensions[i];
+    auto dimIndex = broadcastDimensions[i];
     // broadcast_in_dim_c3
     if (dimIndex < 0 || dimIndex >= resultRank)
       return emitOptionalError(location,
