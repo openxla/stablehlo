@@ -1223,10 +1223,12 @@ UniformQuantizedPerAxisV1Type
 VhloBytecodeInterface::readUniformQuantizedPerAxisV1Type(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  uint64_t flags;
-  Type storageType, expressedType;
-  uint64_t quantizedDimension;
-  int64_t storageTypeMin, storageTypeMax;
+  uint64_t flags = 0;
+  Type storageType;
+  Type expressedType;
+  uint64_t quantizedDimension = 0;
+  int64_t storageTypeMin = 0;
+  int64_t storageTypeMax = 0;
   SmallVector<APFloat> scales;
   SmallVector<int64_t> zeroPoints;
   auto readScales = [&]() -> FailureOr<APFloat> {
@@ -1279,10 +1281,13 @@ void VhloBytecodeInterface::write(UniformQuantizedPerAxisV1Type type,
 UniformQuantizedV1Type VhloBytecodeInterface::readUniformQuantizedV1Type(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  uint64_t flags;
-  Type storageType, expressedType;
+  uint64_t flags = 0;
+  Type storageType;
+  Type expressedType;
   FailureOr<APFloat> scale;
-  int64_t zeroPoint, storageTypeMin, storageTypeMax;
+  int64_t zeroPoint = 0;
+  int64_t storageTypeMin = 0;
+  int64_t storageTypeMax = 0;
   if (failed(reader.readVarInt(flags)) ||
       failed(reader.readType(storageType)) ||
       failed(reader.readType(expressedType)) ||
