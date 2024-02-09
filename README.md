@@ -68,7 +68,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
 5. Configure and build MLIR:
 
    ```sh
-   MLIR_ENABLE_BINDINGS_PYTHON=ON build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build
+   MLIR_ENABLE_BINDINGS_PYTHON=OFF build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build
    ```
 
    This will take a considerable amount of time. For example, on a MacBook Pro
@@ -86,7 +86,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
      -DLLVM_ENABLE_LLD="$LLVM_ENABLE_LLD" \
      -DCMAKE_BUILD_TYPE=Release \
      -DLLVM_ENABLE_ASSERTIONS=ON \
-     -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=ON \
+     -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=OFF \
      -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
    ```
 
