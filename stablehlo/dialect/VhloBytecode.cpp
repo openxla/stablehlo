@@ -323,6 +323,18 @@ enum TypeCode {
   ///   FloatF8E4M3B11FNUZV1Type {
   ///   }
   kFloatF8E4M3B11FNUZV1Type = 29,
+
+  ///   UniformQuantizedPerAxisV1Type {
+  ///     flags: varint
+  ///     storageType: Type
+  ///     expressedType: Type
+  ///     quantizedDimension: svarint
+  ///     scales: list of APFloat
+  ///     zeroPoints: list of svarint
+  ///     storageTypeMin: svarint
+  ///     storageTypeMax: svarint
+  ///   }
+  kUniformQuantizedPerAxisV1Type = 30,
 };
 
 }  // namespace vhlo_encoding
@@ -419,6 +431,8 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
                                             bool hasEncoding) const;
   TokenV1Type readTokenV1Type(DialectBytecodeReader &reader) const;
   TupleV1Type readTupleV1Type(DialectBytecodeReader &reader) const;
+  UniformQuantizedPerAxisV1Type readUniformQuantizedPerAxisV1Type(
+      DialectBytecodeReader &reader) const;
   UniformQuantizedV1Type readUniformQuantizedV1Type(
       DialectBytecodeReader &reader) const;
   UnrankedTensorV1Type readUnrankedTensorV1Type(
@@ -431,6 +445,8 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   void write(RankedTensorV1Type type, DialectBytecodeWriter &writer) const;
   void write(TokenV1Type type, DialectBytecodeWriter &writer) const;
   void write(TupleV1Type type, DialectBytecodeWriter &writer) const;
+  void write(UniformQuantizedPerAxisV1Type type,
+             DialectBytecodeWriter &writer) const;
   void write(UniformQuantizedV1Type type, DialectBytecodeWriter &writer) const;
   void write(UnrankedTensorV1Type type, DialectBytecodeWriter &writer) const;
 };
@@ -971,6 +987,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return readTokenV1Type(reader);
     case vhlo_encoding::kTupleV1Type:
       return readTupleV1Type(reader);
+    case vhlo_encoding::kUniformQuantizedPerAxisV1Type:
+      return readUniformQuantizedPerAxisV1Type(reader);
     case vhlo_encoding::kUniformQuantizedV1Type:
       return readUniformQuantizedV1Type(reader);
     case vhlo_encoding::kUnrankedTensorV1Type:
@@ -988,11 +1006,11 @@ LogicalResult VhloBytecodeInterface::writeType(
     Type type, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Type, LogicalResult>(type)
       .Case<ComplexV1Type, FunctionV1Type, RankedTensorV1Type, TokenV1Type,
-            TupleV1Type, UnrankedTensorV1Type, UniformQuantizedV1Type>(
-          [&](auto type) {
-            LOG_WRITE_CALL;
-            return write(type, writer), success();
-          })
+            TupleV1Type, UnrankedTensorV1Type, UniformQuantizedPerAxisV1Type,
+            UniformQuantizedV1Type>([&](auto type) {
+        LOG_WRITE_CALL;
+        return write(type, writer), success();
+      })
       .Case([&](BooleanV1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kBooleanV1Type), success();
@@ -1198,16 +1216,78 @@ void VhloBytecodeInterface::write(TupleV1Type type,
 }
 
 //===----------------------------------------------------------------------===//
+// UniformQuantizedPerAxisV1Type
+//===----------------------------------------------------------------------===//
+
+UniformQuantizedPerAxisV1Type
+VhloBytecodeInterface::readUniformQuantizedPerAxisV1Type(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  uint64_t flags = 0;
+  Type storageType;
+  Type expressedType;
+  uint64_t quantizedDimension = 0;
+  int64_t storageTypeMin = 0;
+  int64_t storageTypeMax = 0;
+  SmallVector<APFloat> scales;
+  SmallVector<int64_t> zeroPoints;
+  auto readScales = [&]() -> FailureOr<APFloat> {
+    return reader.readAPFloatWithKnownSemantics(llvm::APFloat::IEEEdouble());
+  };
+  auto readZeroPoints = [&]() -> FailureOr<int64_t> {
+    int64_t temp;
+    if (succeeded(reader.readSignedVarInt(temp))) {
+      return temp;
+    }
+    return failure();
+  };
+  if (succeeded(reader.readVarInt(flags)) &&
+      succeeded(reader.readType(storageType)) &&
+      succeeded(reader.readType(expressedType)) &&
+      succeeded(reader.readVarInt(quantizedDimension)) &&
+      succeeded(reader.readSignedVarInt(storageTypeMin)) &&
+      succeeded(reader.readSignedVarInt(storageTypeMax)) &&
+      succeeded(reader.readList(scales, readScales)) &&
+      succeeded(reader.readList(zeroPoints, readZeroPoints))) {
+    return UniformQuantizedPerAxisV1Type::get(
+        getContext(), flags, storageType, expressedType, quantizedDimension,
+        scales, zeroPoints, storageTypeMin, storageTypeMax);
+  }
+
+  return reader.emitError("invalid UniformQuantizedPerAxisType"),
+         UniformQuantizedPerAxisV1Type();
+}
+
+void VhloBytecodeInterface::write(UniformQuantizedPerAxisV1Type type,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kUniformQuantizedPerAxisV1Type);
+  writer.writeVarInt(type.getFlags());
+  writer.writeType(type.getStorageType());
+  writer.writeType(type.getExpressedType());
+  writer.writeVarInt(type.getQuantizedDimension());
+  writer.writeSignedVarInt(type.getStorageTypeMin());
+  writer.writeSignedVarInt(type.getStorageTypeMax());
+  writer.writeList(type.getScales(), [&](const APFloat &type) {
+    writer.writeAPFloatWithKnownSemantics(type);
+  });
+  writer.writeList(type.getZeroPoints(),
+                   [&](int64_t type) { writer.writeSignedVarInt(type); });
+}
+
+//===----------------------------------------------------------------------===//
 // UniformQuantizedV1Type
 //===----------------------------------------------------------------------===//
 
 UniformQuantizedV1Type VhloBytecodeInterface::readUniformQuantizedV1Type(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  uint64_t flags;
-  Type storageType, expressedType;
+  uint64_t flags = 0;
+  Type storageType;
+  Type expressedType;
   FailureOr<APFloat> scale;
-  int64_t zeroPoint, storageTypeMin, storageTypeMax;
+  int64_t zeroPoint = 0;
+  int64_t storageTypeMin = 0;
+  int64_t storageTypeMax = 0;
   if (failed(reader.readVarInt(flags)) ||
       failed(reader.readType(storageType)) ||
       failed(reader.readType(expressedType)) ||

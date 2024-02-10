@@ -103,21 +103,29 @@ func.func @select_and_scatter_with_promotable_types(
     %0 = stablehlo.constant dense<0.000000e+00> : tensor<f32>
 
   // expected-error @+1 {{failed to legalize operation 'vhlo.select_and_scatter_v1' that was explicitly marked illegal}}
-    %1 = "stablehlo.select_and_scatter"(%arg0, %arg1, %0) ({
-    ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
-      %2 = "stablehlo.compare"(%arg3, %arg4) {
-        comparison_direction = #stablehlo<comparison_direction GE>
-        } : (tensor<f32>, tensor<f32>) -> tensor<i1>
-      "stablehlo.return"(%2) : (tensor<i1>) -> ()
-    },  {
-    ^bb0(%arg3: tensor<f64>, %arg4: tensor<f64>):
-      %2 = stablehlo.add %arg3, %arg4 : tensor<f64>
-      "stablehlo.return"(%2) : (tensor<f64>) -> ()
-    }) {
-      window_dimensions = array<i64: 1, 2, 2, 1>,
-      window_strides = array<i64: 1, 2, 2, 1>,
-      padding = dense<0> : tensor<4x2xi64>
-    } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
-          tensor<10x24x24x64xf64>
-    func.return
+  %1 = "stablehlo.select_and_scatter"(%arg0, %arg1, %0) ({
+  ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
+    %2 = "stablehlo.compare"(%arg3, %arg4) {
+      comparison_direction = #stablehlo<comparison_direction GE>
+      } : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    "stablehlo.return"(%2) : (tensor<i1>) -> ()
+  },  {
+  ^bb0(%arg3: tensor<f64>, %arg4: tensor<f64>):
+    %2 = stablehlo.add %arg3, %arg4 : tensor<f64>
+    "stablehlo.return"(%2) : (tensor<f64>) -> ()
+  }) {
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>,
+    padding = dense<0> : tensor<4x2xi64>
+  } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
+        tensor<10x24x24x64xf64>
+  func.return
+}
+
+// -----
+
+// expected-error @+1 {{failed to legalize operation 'vhlo.func_v1' that was explicitly marked illegal}}
+func.func @type_per_axis_quantization(%arg0: tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>>) -> tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>> {
+  %0 = stablehlo.add %arg0, %arg0 : tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>>
+  func.return %0 : tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>>
 }
