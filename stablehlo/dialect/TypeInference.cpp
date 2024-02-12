@@ -3469,38 +3469,41 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   auto outputDimensionsType =
       outputDimensions.getType().cast<RankedTensorType>();
   auto outputDimensionsSize = outputDimensionsType.getDimSize(0);
-  auto operandRank = operandType.getRank();
   auto resultRank = resultType.getRank();
 
   // Verify broadcast_dimensions.
   auto bcastDimensions = broadcastDimensions;
   int64_t bcastDimensionsSize = bcastDimensions.size();
-  if (bcastDimensionsSize != operandRank)
-    return emitOptionalError(
-        location, "broadcast_dimensions size (", bcastDimensionsSize,
-        ") does not match operand rank (", operandRank, ")");
+  if (operandType) {
+    auto operandRank = operandType.getRank();
+    if (bcastDimensionsSize != operandRank)
+      return emitOptionalError(
+          location, "broadcast_dimensions size (", bcastDimensionsSize,
+          ") does not match operand rank (", operandRank, ")");
 
-  if (resultRank < operandRank)
-    return emitOptionalError(location, "result rank (", resultRank,
-                             ") is less than operand rank (", operandRank, ")");
+    if (resultRank < operandRank)
+      return emitOptionalError(location, "result rank (", resultRank,
+                               ") is less than operand rank (", operandRank,
+                               ")");
 
-  for (int i = 0; i != bcastDimensionsSize; ++i) {
-    auto dimIndex = bcastDimensions[i];
-    if (dimIndex < 0 || dimIndex >= resultRank)
-      return emitOptionalError(location,
-                               "broadcast_dimensions contains invalid value ",
-                               dimIndex, " for result with rank ", resultRank);
+    for (int i = 0; i != bcastDimensionsSize; ++i) {
+      auto dimIndex = bcastDimensions[i];
+      if (dimIndex < 0 || dimIndex >= resultRank)
+        return emitOptionalError(
+            location, "broadcast_dimensions contains invalid value ", dimIndex,
+            " for result with rank ", resultRank);
 
-    auto dimSize = operandType.getDimSize(i);
-    auto resultDimSize = resultType.getDimSize(dimIndex);
-    // Note: verifyCompatibleShapes doesn't consider size-1 broadcasting, so
-    // we add a manual check for this.
-    if (dimSize != 1 && failed(verifyCompatibleShape(dimSize, resultDimSize)))
-      return emitOptionalError(location, "size of operand dimension ", i, " (",
-                               dimSize,
-                               ") is not compatible "
-                               "with size of result dimension ",
-                               dimIndex, " (", resultDimSize, ")");
+      auto dimSize = operandType.getDimSize(i);
+      auto resultDimSize = resultType.getDimSize(dimIndex);
+      // Note: verifyCompatibleShapes doesn't consider size-1 broadcasting, so
+      // we add a manual check for this.
+      if (dimSize != 1 && failed(verifyCompatibleShape(dimSize, resultDimSize)))
+        return emitOptionalError(location, "size of operand dimension ", i,
+                                 " (", dimSize,
+                                 ") is not compatible "
+                                 "with size of result dimension ",
+                                 dimIndex, " (", resultDimSize, ")");
+    }
   }
 
   if (outputDimensionsSize != resultRank)
@@ -3527,7 +3530,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
         location,
         "duplicate expansion hint for at least one operand dimension");
   for (int64_t i : knownExpansionBehavior)
-    if (i < 0 || i >= operandRank)
+    if (operandType && (i < 0 || i >= operandType.getRank()))
       return emitOptionalError(location, "hint for expanding dimension ", i,
                                " does not refer to a "
                                "valid operand dimension");
