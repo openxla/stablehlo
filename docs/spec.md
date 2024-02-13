@@ -627,20 +627,31 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 
 #### Inputs
 
-| Label | Name  | Type                                  | Constraints |
-|-------|-------|---------------------------------------|-------------|
-| (I1)  | `lhs` | tensor or per-tensor quantized tensor | (C1)        |
-| (I2)  | `rhs` | tensor or per-tensor quantized tensor | (C1)        |
+| Label | Name  | Type                       | Constraints   |
+|-------|-------|----------------------------|---------------|
+| (I1)  | `lhs` | tensor or quantized tensor | (C1-C6)       |
+| (I2)  | `rhs` | tensor or quantized tensor | (C1-C5), (C7) |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C1)        |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1-C7)     |
 
 #### Constraints
 
-* (C1) `baseline_type(lhs) = baseline_type(rhs) = baseline_type(result)`.
+* If the operation uses non-quantized tensors:
+  * (C1) `type(lhs) = type(rhs) = type(result)`.
+* If the operation uses quantized tensors:
+  * (C2) `is_quantized(lhs) and is_quantized(rhs) and is_quantized(result)`.
+  * (C3) `storage_type(lhs) = storage_type(rhs) = storage_type(result)`.
+  * (C4) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C5) `(is_per_axis_quantized(lhs) or is_per_axis_quantized(rhs)) =
+    is_per_axis_quantized(result)`.
+  * (C6) If `is_per_axis_quantized(lhs)`, then `quantization_dimension(lhs) =
+    quantization_dimension(result)`.
+  * (C7) If `is_per_axis_quantized(rhs)`, then `quantization_dimension(rhs) =
+    quantization_dimension(result)`.
 
 #### Examples
 
@@ -2477,21 +2488,21 @@ planning to address this in
 
 #### Inputs
 
-| Label | Name                         | Type                                                         | Constraints                   |
-|-------|------------------------------|--------------------------------------------------------------|-------------------------------|
-| (I1)  | `lhs`                        | tensor or per-tensor quantized tensor                        | (C5-C6), (C9-C10), (C12-C16)  |
-| (I2)  | `rhs`                        | tensor or per-tensor quantized tensor                        | (C7-C10), (C12)               |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12) |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)        |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)       |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10)       |
-| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                         |
+| Label | Name                         | Type                                                         | Constraints                    |
+|-------|------------------------------|--------------------------------------------------------------|--------------------------------|
+| (I1)  | `lhs`                        | tensor or per-tensor quantized tensor                        | (C5-C6), (C9-C10), (C12-C16)   |
+| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12), (C18-C19)     |
+| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)  |
+| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)         |
+| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)        |
+| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10), (C19) |
+| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                          |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints         |
-|----------|---------------------------------------|---------------------|
-| `result` | tensor or per-tensor quantized tensor | (C12), (C14), (C16) |
+| Name     | Type                       | Constraints                |
+|----------|----------------------------|----------------------------|
+| `result` | tensor or quantized tensor | (C12), (C14), (C16), (C18) |
 
 #### Constraints
 
@@ -2518,6 +2529,10 @@ planning to address this in
   * (C15) `storage_type(lhs) = storage_type(rhs)`.
   * (C16) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
   * (C17) `zero_points(rhs) = 0`.
+  * (C18) If `is_per_tensor_quantized(rhs)`, then
+    `is_per_tensor_quantized(result)`.
+  * (C19) If `is_per_axis_quantized(rhs)`, then
+    `quantization_dimension(rhs)` not in `rhs_contracting_dimensions`.
 
 #### Examples
 
