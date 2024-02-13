@@ -1017,6 +1017,13 @@ func.func @dynamic_broadcast_in_dim_unknown_dim(%arg0: tensor<32xf32>, %shape: t
   %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %shape) {broadcast_dimensions = array<i64: 2>} : (tensor<32xf32>, tensor<3xi64>) -> tensor<?x?x?xf32>
   func.return %0 : tensor<?x?x?xf32>
 }
+// -----
+
+// CHECK-LABEL: func @dynamic_broadcast_unranked_operand
+func.func @dynamic_broadcast_unranked_operand(%arg0: tensor<*xf32>, %arg1: tensor<1xindex>) -> tensor<?xf32> {
+  %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %arg1) { broadcast_dimensions = array<i64: 0> } : (tensor<*xf32>, tensor<1xindex>) -> tensor<?xf32>
+  func.return %0 : tensor<?xf32>
+}
 
 // -----
 
