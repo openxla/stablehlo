@@ -12,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 print_usage() {
-  echo "Usage: $0 [-f]"
+  echo "Usage: $0 [-fb]"
   echo "    -f           Auto-fix whitespace issues."
+  echo "    -b <branch>  Base branch name, defaults to main."
 }
 
 FORMAT_MODE='validate'
-BASE_BRANCH="$(git merge-base HEAD origin/main)"
+BASE_BRANCH=main
 while getopts 'fb:' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;
@@ -34,19 +39,22 @@ if [[ $# -ne 0 ]] ; then
   exit 1
 fi
 
-get_source_files() {
-  git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep '.*\.cpp$\|.*\.h$\|.*\.md$\|.*\.mlir$\|.*\.sh$\|.*\.td$\|.*\.txt$\|.*\.yml$\|.*\.yaml$'
-}
-echo "Checking whitespace:"
-echo "  $(get_source_files | xargs)"
+echo "Gathering changed files..."
+mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep '.*\.cpp$\|.*\.h$\|.*\.md$\|.*\.mlir$\|.*\.sh$\|.*\.td$\|.*\.txt$\|.*\.yml$\|.*\.yaml$')
+if (( ${#CHANGED_FILES[@]} == 0 )); then
+  echo "No files to check."
+  exit 0
+fi
+
+echo "${CHANGED_FILES[@]}"
 
 files_without_eof_newline() {
   # shellcheck disable=SC2016
-  get_source_files | xargs -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "$0"'
+  printf "%s\n" "${CHANGED_FILES[@]}" | xargs -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "$0"'
 }
 
 files_with_trailing_whitespace() {
-  get_source_files | xargs -L1 grep -lP '[ \t]+$'
+  printf "%s\n" "${CHANGED_FILES[@]}" | xargs -L1 grep -lP '[ \t]+$'
 }
 
 fix_files_without_eof_newline() {

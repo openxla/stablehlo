@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 # This is a helper script used by lcov in
 # ci_build_cmake_code_coverage.sh
 exec llvm-cov-14 gcov "$@"

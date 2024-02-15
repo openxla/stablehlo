@@ -20,6 +20,10 @@
 # during `ci_configure`, and builds stablehlo in the directory specified
 # by the second argument.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 if [[ $# -ne 2 ]] ; then
   echo "Usage: $0 <llvm_build_dir> <stablehlo_build_dir>"
   exit 1

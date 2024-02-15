@@ -16,6 +16,7 @@
 # At the moment it only builds a Linux variant of Python wheel for the
 # default python3 version present on the system (set via GitHub action typically)
 # TODO: Incorporate cibuildwheel and build manylinux wheels
+
 set -o errexit
 set -o nounset
 set -o pipefail

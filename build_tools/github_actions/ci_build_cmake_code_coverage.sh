@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 print_usage() {
   echo "Usage:"
   echo "$0 [-g][-o output_dir] <llvm_build_dir> <stablehlo_build_dir>"

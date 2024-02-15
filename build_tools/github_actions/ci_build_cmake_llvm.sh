@@ -16,6 +16,10 @@
 # This file is similar to build_mlir.sh, but passes different flags for
 # caching in GitHub Actions to improve build speeds.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 if [[ $# -ne 2 ]] ; then
   echo "Usage: $0 <path/to/llvm> <build_dir>"
   exit 1
