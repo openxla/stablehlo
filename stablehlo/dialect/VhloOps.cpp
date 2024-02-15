@@ -322,16 +322,16 @@ bool checkIfOperandAndResultElementTypesMatch(TypeRange operandTypes,
   if (llvm::any_of(
           llvm::zip(inputElementTypes, resultElementTypes),
           [&](auto pair) { return std::get<0>(pair) != std::get<1>(pair); }))
-    return true;
+    return false;
 
-  return false;
+  return true;
 }
 
 // Allow mismatched operand and result types in reduce ops in v0.17.0
 LogicalResult verifyConstraint_0_17_0(mlir::Operation* op,
                                       Version targetVersion) {
-  if (checkIfOperandAndResultElementTypesMatch(op->getOperandTypes(),
-                                               op->getResultTypes()) &&
+  if (!checkIfOperandAndResultElementTypesMatch(op->getOperandTypes(),
+                                                op->getResultTypes()) &&
       targetVersion < Version(0, 17, 0))
     return failure();
   return success();
