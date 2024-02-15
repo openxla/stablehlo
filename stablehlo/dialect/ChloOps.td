@@ -454,7 +454,7 @@ def CHLO_BroadcastComplexOp : CHLO_BroadcastBinaryElementwiseOp<
 //===----------------------------------------------------------------------===//
 
 class CHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
-    Type ArgTensorType, Type ResultTensorType> : CHLO_Op<mnemonic,
+    Type ArgTensorType, Type ResultTensorType = ArgTensorType> : CHLO_Op<mnemonic,
     traits # [Pure, Elementwise, SameOperandsAndResultShape,
     InferShapedTypeOpInterface]> {
   let arguments = (ins ArgTensorType:$operand);
@@ -474,7 +474,7 @@ class CHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
 }
 
 def CHLO_AcosOp : CHLO_UnaryElementwiseOp<"acos",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Acos operator";
 
   let description = [{
@@ -488,7 +488,7 @@ def CHLO_AcosOp : CHLO_UnaryElementwiseOp<"acos",
 }
 
 def CHLO_AcoshOp : CHLO_UnaryElementwiseOp<"acosh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Acosh operation";
 
   let description = [{
@@ -502,7 +502,7 @@ def CHLO_AcoshOp : CHLO_UnaryElementwiseOp<"acosh",
 }
 
 def CHLO_AsinOp : CHLO_UnaryElementwiseOp<"asin",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Asin operator";
 
   let description = [{
@@ -515,7 +515,7 @@ def CHLO_AsinOp : CHLO_UnaryElementwiseOp<"asin",
 }
 
 def CHLO_AsinhOp : CHLO_UnaryElementwiseOp<"asinh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Asinh operation";
 
   let description = [{
@@ -528,7 +528,7 @@ def CHLO_AsinhOp : CHLO_UnaryElementwiseOp<"asinh",
 }
 
 def CHLO_AtanOp : CHLO_UnaryElementwiseOp<"atan",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Atan operator";
 
   let description = [{
@@ -541,7 +541,7 @@ def CHLO_AtanOp : CHLO_UnaryElementwiseOp<"atan",
 }
 
 def CHLO_AtanhOp : CHLO_UnaryElementwiseOp<"atanh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Atanh operator";
 
   let description = [{
@@ -555,7 +555,7 @@ def CHLO_AtanhOp : CHLO_UnaryElementwiseOp<"atanh",
 }
 
 def CHLO_BesselI1eOp : CHLO_UnaryElementwiseOp<"bessel_i1e",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Bessel function of order 1";
 
   let description = [{
@@ -564,7 +564,7 @@ def CHLO_BesselI1eOp : CHLO_UnaryElementwiseOp<"bessel_i1e",
 }
 
 def CHLO_ConjOp : CHLO_UnaryElementwiseOp<"conj",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Conj operator";
 
   let description = [{
@@ -577,7 +577,7 @@ def CHLO_ConjOp : CHLO_UnaryElementwiseOp<"conj",
 }
 
 def CHLO_CoshOp : CHLO_UnaryElementwiseOp<"cosh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Cosh operator";
 
   let description = [{
@@ -590,7 +590,7 @@ def CHLO_CoshOp : CHLO_UnaryElementwiseOp<"cosh",
 }
 
 def CHLO_SinhOp : CHLO_UnaryElementwiseOp<"sinh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Sinh operation";
 
   let description = [{
@@ -604,7 +604,7 @@ def CHLO_SinhOp : CHLO_UnaryElementwiseOp<"sinh",
 }
 
 def CHLO_TanOp : CHLO_UnaryElementwiseOp<"tan",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Tan operation";
 
   let description = [{
@@ -648,7 +648,7 @@ def CHLO_ConstantLikeOp : CHLO_Op<"constant_like", [Pure,
 }
 
 def CHLO_DigammaOp : CHLO_UnaryElementwiseOp<"digamma",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
   let summary = "Digamma function";
 
   let description = [{
@@ -657,7 +657,7 @@ def CHLO_DigammaOp : CHLO_UnaryElementwiseOp<"digamma",
 }
 
 def CHLO_ErfOp : CHLO_UnaryElementwiseOp<"erf",
-   [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+   [HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
   let summary = "Erfc operator";
 
   let description = [{
@@ -669,7 +669,7 @@ def CHLO_ErfOp : CHLO_UnaryElementwiseOp<"erf",
 }
 
 def CHLO_ErfInvOp : CHLO_UnaryElementwiseOp<"erf_inv",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
   let summary = "Inverse Erf";
   let description = [{
     Returns `ErfInv(operand)` element-wise.
@@ -677,7 +677,7 @@ def CHLO_ErfInvOp : CHLO_UnaryElementwiseOp<"erf_inv",
 }
 
 def CHLO_ErfcOp : CHLO_UnaryElementwiseOp<"erfc",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
   let summary = "Erfc operator";
 
   let description = [{
@@ -719,7 +719,7 @@ def CHLO_IsPosInfOp : CHLO_UnaryElementwiseOp<"is_pos_inf",
 }
 
 def CHLO_LgammaOp : CHLO_UnaryElementwiseOp<"lgamma",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
   let summary = "Lgamma function";
 
   let description = [{
