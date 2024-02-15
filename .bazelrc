@@ -18,6 +18,8 @@ build --host_cxxopt=-std=c++17
 # this only works for Clang toolchain AFAIK
 # https://github.com/bazelbuild/bazel/pull/11440
 build --features=layering_check
-# Set the default compiler to the `clang` binary on the `PATH`.
-# TODO(fzakaria): Make this a toolchain or hermetic somehow
-build --repo_env=CC=clang
+
+# Make sure we don't pickup the default CPP toolchains
+build --action_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+# Not needed after https://github.com/bazelbuild/bazel/issues/7260 is closed
+build --incompatible_enable_cc_toolchain_resolution
