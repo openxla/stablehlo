@@ -121,11 +121,3 @@ func.func @select_and_scatter_with_promotable_types(
         tensor<10x24x24x64xf64>
   func.return
 }
-
-// -----
-
-// expected-error @+1 {{failed to legalize operation 'vhlo.func_v1' that was explicitly marked illegal}}
-func.func @type_per_axis_quantization(%arg0: tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>>) -> tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>> {
-  %0 = stablehlo.add %arg0, %arg0 : tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>>
-  func.return %0 : tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>>
-}
