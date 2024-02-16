@@ -319,12 +319,9 @@ bool checkIfOperandAndResultElementTypesMatch(TypeRange operandTypes,
   SmallVector<Type> resultElementTypes{llvm::map_range(
       resultTypes, [](Type t) { return getVhloElementType(t); })};
 
-  if (llvm::any_of(
-          llvm::zip(inputElementTypes, resultElementTypes),
-          [&](auto pair) { return std::get<0>(pair) != std::get<1>(pair); }))
-    return false;
-
-  return true;
+  return llvm::all_of(
+      llvm::zip(inputElementTypes, resultElementTypes),
+      [&](auto pair) { return std::get<0>(pair) == std::get<1>(pair); });
 }
 
 // Allow mismatched operand and result types in reduce ops in v0.17.0
