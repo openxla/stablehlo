@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2024 The StableHLO Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -51,12 +51,12 @@ for file in "${CHANGED_FILES[@]}"; do
     echo
     continue
   fi
-  if [[ "$file" =~ *.mlir ]]; then
+  if [[ "$file" = *.mlir ]]; then
     echo "Skipping MLIR assembly file: $file"
     echo
     continue
   fi
-  if [[ "$file" =~ *.md ]]; then
+  if [[ "$file" = *.md ]]; then
     echo "Skipping Markdown file: $file"
     echo
     continue
