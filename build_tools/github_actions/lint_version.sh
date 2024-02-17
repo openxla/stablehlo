@@ -17,6 +17,10 @@
 # checking if files named stablehlo_legalize_to_vhlo.X_Y_0.mlir and .mlir.bc
 # exist.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 ## Setup VERSION variable as global:
 VERSION_H="stablehlo/dialect/Version.h"
 set_version_var() {

@@ -16,6 +16,10 @@
 # If passing the files as a glob, be sure to wrap in quotes. For more info,
 # see https://github.com/igorshubovych/markdownlint-cli#globbing
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 if [[ $# -gt 2 ]] ; then
   echo "Usage: $0 [-f] <files|directories|globs>"
   echo "  -f  Autofix markdown issues."

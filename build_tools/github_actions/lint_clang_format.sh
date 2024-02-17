@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 print_usage() {
-  echo "Usage: $0 [-fd]"
+  echo "Usage: $0 [-fb]"
   echo "    -f           Auto-fix clang-format issues."
-  echo "    -b <branch>  Base branch name, default to origin/main."
+  echo "    -b <branch>  Base branch name, defaults to main."
 }
 
 FORMAT_MODE='validate'
-BASE_BRANCH="$(git merge-base HEAD origin/main)"
+BASE_BRANCH=main
 while getopts 'fb:' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;

@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 print_usage() {
   echo "Usage: $0 [-f] <path/to/stablehlo/root>"
   echo "    -f           Auto-fix LLVM commit mismatch."

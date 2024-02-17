@@ -52,6 +52,7 @@ jobs:
 
       - name: Run Whitespace Checks
         run: |
+          git fetch --no-tags --prune --depth=1 origin "${GITHUB_BASE_REF?}:${GITHUB_BASE_REF?}"
           ./build_tools/github_actions/lint_whitespace_checks.sh
 
   version-checks:
