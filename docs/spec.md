@@ -50,7 +50,7 @@ func.func @main(
 ```ebnf
 Func        ::= 'func' '.' 'func' FuncId FuncInputs FuncOutputs '{' FuncBody '}'
 FuncInputs  ::= '(' [FuncInput {',' FuncInput}] `)`
-FuncInput   ::= '%' ValueId ':' ValueType
+FuncInput   ::= ValueId ':' ValueType
 FuncOutputs ::= ['->' FuncOutput, {',' FuncOutput}]
 FuncOutput  ::= ValueType
 FuncBody    ::= {Op}
