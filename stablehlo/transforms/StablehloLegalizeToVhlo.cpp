@@ -191,6 +191,9 @@ Attribute convertGeneric(Attribute stablehloAttr,
                                       integerAttr.getValue());
     }
   }
+  if (auto attr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
+    return convertGeneric(attr.getAttr(), typeConverter);
+  }
   if (auto attr = stablehloAttr.dyn_cast<StringAttr>()) {
     if (!attr.getType().isa<NoneType>()) {
       // Don't support custom string types
@@ -621,6 +624,12 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                                          pattern.getContext(),
                                          stablehlo::ComparisonType::NOTYPE));
   }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::CompositeOp>::value) {
+    if (!stablehloOp.getVersionAttr())
+      addDefaultAttr("version", builder.getI64IntegerAttr(0));
+    if (!stablehloOp.getCompositeAttributesAttr())
+      addDefaultAttr("composite_attributes", builder.getDictionaryAttr({}));
+  }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ConvolutionOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::DynamicConvOp>::value) {
     auto numSpatialDimensions = static_cast<int64_t>(
@@ -801,6 +810,7 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
     //      mapping from StableHLO to VHLO.
     SmallVector<NamedAttribute> vhloAttrs;
     if (failed(addDefaults(*this, stablehloOp, vhloAttrs))) return failure();
+
     for (NamedAttribute stablehloAttr : stablehloOp->getAttrs()) {
       auto result = convertSpecial(*this, stablehloAttr.getName(),
                                    stablehloAttr.getValue(), vhloAttrs);

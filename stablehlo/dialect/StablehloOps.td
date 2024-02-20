@@ -19,6 +19,7 @@ limitations under the License.
 
 include "mlir/Dialect/Shape/IR/ShapeBase.td"
 include "mlir/IR/OpBase.td"
+include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/OpAsmInterface.td"
@@ -2079,6 +2080,44 @@ def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
     OpBuilder<(ins
       "::mlir::Type":$result_type, "::mlir::Value":$operand,
       "::mlir::DenseIntElementsAttr":$source_target_pairs)>];
+}
+
+def StableHLO_CompositeOp : StableHLO_Op<"composite", [DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  let summary = "Composite operation";
+  let description = [{
+    Encapsulates an operation made up (composed) of other StableHLO operations,
+    taking `inputs` and `composite_attributes` and producing `results`. The
+    semantics of the op are implemented by the `decomposition` attribute. The
+    `composite` op can be replaced with its decomposition without changing program
+    semantics. In cases where inlining the decomposition does not provide the same
+    op semantics, prefer using `custom_call`.
+
+    The `version` field (defaults to `0`) is used to denote when a composite's
+    semantics change.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#composite
+
+    Example:
+    ```mlir
+    %results = stablehlo.composite "my.op" %arg0, %arg1 {
+      decomposition = @my_op,
+      composite_attributes = { my_attribute = "my_value" },
+      version = 1 : i32
+    } : (tensor<f32>, tensor<f32>) -> tensor<f32>
+    ```
+  }];
+
+  let arguments = (ins
+    Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple>:$inputs, /*composite_i1*/
+    StrAttr:$name, /*composite_i2*/
+    DefaultValuedOptionalAttr<DictionaryAttr, "{}">:$composite_attributes, /*composite_i3*/
+    FlatSymbolRefAttr:$decomposition, /*composite_i4*/
+    DefaultValuedOptionalAttr<I32Attr, "0">:$version /*composite_i5*/
+  );
+  let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple>);
+
+  let assemblyFormat = "$name $inputs attr-dict `:` functional-type(operands, results)";
 }
 
 def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {

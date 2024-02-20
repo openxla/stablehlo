@@ -1035,6 +1035,7 @@ cc_library(
         ":base",
         ":stablehlo_assembly_format",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:QuantOps",

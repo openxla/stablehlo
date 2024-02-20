@@ -199,6 +199,16 @@ LogicalResult AfterAllOp::inferReturnTypes(
 }
 
 //===----------------------------------------------------------------------===//
+// CompositeOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult CompositeOp::verifySymbolUses(
+    SymbolTableCollection& symbolTable) {
+  return hlo::verifyCompositeOp(getLoc(), getOperation(), getName(),
+                                getDecomposition(), symbolTable);
+}
+
+//===----------------------------------------------------------------------===//
 // ConstantOp
 //===----------------------------------------------------------------------===//
 

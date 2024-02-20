@@ -285,6 +285,17 @@ def VHLO_ComplexOpV1 : VHLO_Op<"complex_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
+def VHLO_CompositeOpV1 : VHLO_Op<"composite_v1", "0.19.0", "current"> {
+  let arguments = (ins
+    Variadic<VHLO_AnyType>:$inputs,
+    VHLO_AnyAttr:$name,
+    VHLO_AnyAttr:$composite_attributes,
+    VHLO_AnyAttr:$decomposition,
+    VHLO_AnyAttr:$version
+  );
+  let results = (outs Variadic<VHLO_AnyType>:$results);
+}
+
 // TODO(#8): ComputeReshapeShapeOp is not part of the StableHLO spec.
 // This operation is a work in progress, so it is not yet included in
 // the StableHLO specification.

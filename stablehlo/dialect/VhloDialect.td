@@ -36,6 +36,7 @@ def VHLO_Dialect : Dialect {
       0.16.0: Introduce `collective_broadcast` operation.
       0.17.0: Allow reduce operations to promote to higher bitwidth.
       0.18.0: Introduce `UniformQuantizedPerAxisType` type.
+      0.19.0: Introduce `composite` operation.
   }];
 
   let useDefaultAttributePrinterParser = 0;

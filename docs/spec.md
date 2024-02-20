@@ -1923,6 +1923,56 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret/complex.mlir)
 
+### composite
+
+#### Semantics
+
+Encapsulates an operation made up (composed) of other StableHLO operations,
+taking `inputs` and `composite_attributes` and producing `results`. The
+semantics of the op are implemented by the `decomposition` attribute. The
+`composite` op can be replaced with its decomposition without changing program
+semantics. In cases where inlining the decomposition does not provide the same
+op semantics, prefer using `custom_call`.
+
+The `version` field (defaults to `0`) is used to denote when a composite's
+semantics change.
+
+#### Inputs
+
+| Label | Name                                   | Type                                        |
+|-------|----------------------------------------|---------------------------------------------|
+| (I1)  | `inputs`                               | variadic number of values                   |
+| (I2)  | `name`                                 | constant of type `string`                   |
+| (I3)  | `composite_attributes`                 | attribute dictionary                        |
+| (I4)  | `decomposition`                        | constant of type `string`                   |
+| (I5)  | `version`                              | constant of type `si32`                     |
+
+#### Outputs
+
+| Name      | Type                      |
+|-----------|---------------------------|
+| `results` | variadic number of values |
+
+#### Constraints
+
+* (C1) `is_namespaced_op_name(name)`
+* (C2) `is_defined_in_parent_scope(decomposition)`
+* (C3) `types(inputs...) == input_types(decomposition)`
+* (C4) `types(results...) == output_types(decomposition)`
+
+#### Examples
+
+```mlir
+%results = "stablehlo.composite"(%input0, %input1) {
+  name = "my_namespace.my_op",
+  decomposition = @my_op,
+  composite_attributes = { my_attribute = "my_value" },
+  version = 1 : i32
+} : (tensor<f32>, tensor<f32>) -> tensor<f32>
+```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret/composite.mlir)
+
 ### concatenate
 
 #### Semantics
@@ -6424,7 +6474,7 @@ For some operations e.g. `broadcast_in_dim`, types of their outputs are
 "load-bearing", i.e. needed to evaluate an operation. In this case, the function
 takes these types as arguments.
 
-#### Function on values
+#### Functions on values
 
 * All Python's operators and functions are available. E.g. both
 [subscription](https://docs.python.org/3/reference/expressions.html#subscriptions)
@@ -6485,6 +6535,14 @@ function returns `true`. If `x` is not a tensor, returns `None`.
 * `split(x: Value, num_results: Value, axis: Value) -> Value` is defined on
 tensors and returns `num_results` slices of `x` along the axis `axis`.
 If `x` is not a tensor or `dim(x, axis) % num_results != 0`, returns `None`.
+
+* `is_defined_in_parent_scope(x: Value) -> Value` is defined on strings
+  and returns `true` if `x` is the name of a function defined in the same scope
+  as the parent function of the relevant op.
+
+* `is_namespaced_op_name(x: Value) -> Value` is defined on strings and returns
+  `true` if `x` is a valid op name, that is it respects the following regular
+  expression: `[a-zA-Z][a-zA-Z0-9_]*([.][a-zA-Z0-9_$]+)+`
 
 #### Shape computations
 
