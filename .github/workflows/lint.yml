@@ -92,11 +92,10 @@ jobs:
       - name: Checking out repository
         uses: actions/checkout@v4
 
-      - name: Install addlicense
-        run: go install github.com/google/addlicense@latest
-
       - name: Run license checks
-        run: addlicense -check -ignore '.git/**' -ignore 'build/**' -ignore 'llvm*/**' .
+        run: |
+          git fetch --no-tags --prune --depth=1 origin "${GITHUB_BASE_REF?}:${GITHUB_BASE_REF?}"
+          ./build_tools/github_actions/lint_check_license.sh -b "${GITHUB_BASE_REF}"
 
   shell-script-check:
     if: "github.event_name == 'pull_request'"
