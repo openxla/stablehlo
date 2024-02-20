@@ -64,10 +64,10 @@ We propose to define `hybrid_dequantize_then_op` semantics as part of quantizati
 computations. 
 
 * `hybrid_dequantize_then_op` is used to specify weight-only quantization for
-hybrid op which accepts lhs in float and rhs in quantized types. It dequantizes
-quantized inputs into their expressed types and performs computation in float.
-Element type of float lhs tensor and expressed type of quantized rhs tensor
-should be identical.
+hybrid op which accepts lhs in floating-point and rhs in quantized types. It
+dequantizes quantized inputs into their expressed types and performs computation
+in float. Element type of float lhs tensor and expressed type of quantized rhs
+tensor should be identical.
 
 ```python
 def hybrid_dequantize_then_op(op, *inputs):
