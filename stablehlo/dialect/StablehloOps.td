@@ -40,7 +40,7 @@ def StableHLO_Dialect : Dialect {
   let usePropertiesForAttributes = 0;
 }
 
-class StableHLO_Op<string mnemonic, list<Trait> traits> :
+class StableHLO_Op<string mnemonic, list<Trait> traits = []> :
     Op<StableHLO_Dialect, mnemonic, traits> {
   string commonClassDeclaration = [{
     // Relax the strict default implementation with one that allows
@@ -983,7 +983,7 @@ def StableHLO_XorOp : StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"xor"> {
 // StableHLO communication op definitions.
 //===----------------------------------------------------------------------===//
 
-def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
+def StableHLO_InfeedOp : StableHLO_Op<"infeed"> {
   let summary = "Infeed operation";
   let description = [{
     Reads data from the infeed and produces `results`.
@@ -1059,7 +1059,7 @@ def StableHLO_SendOp : StableHLO_Op<"send",
   let results = (outs HLO_Token);
 }
 
-def StableHLO_RecvOp : StableHLO_Op<"recv", []> {
+def StableHLO_RecvOp : StableHLO_Op<"recv"> {
   let summary = "Recv operation";
   let description = [{
     Receives data from a channel with `channel_id` and produces `results`.
@@ -1347,7 +1347,7 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
   let hasVerifier = 1;
 }
 
-def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter", []> {
+def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter"> {
   let summary = "ReduceScatter operation";
   let description = [{
      Within each process group in the process grid, performs reduction, using
@@ -2761,7 +2761,7 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   }];
 }
 
-def StableHLO_TraceOp: StableHLO_Op<"trace", []> {
+def StableHLO_TraceOp: StableHLO_Op<"trace"> {
   let summary = "Trace operation";
   let description = [{
     This operation is on its way out of StableHLO, so it is not included in
