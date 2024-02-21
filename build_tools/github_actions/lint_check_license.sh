@@ -45,10 +45,19 @@ $(printf "%s\n" "${CHANGED_FILES[@]}")"
 echo
 
 SKIPPED_SUFFIXES=(
-  MODULE.bazel.lock
+  .bazelversion
+  .clang-format
+  .gitignore
+  .markdownlint.yaml
+  .md
   .mlir
   .mlir.bc
-  .md
+  .png
+  .svg
+  LICENSE
+  MODULE.bazel.lock
+  WORKSPACE.bazel
+  llvm_version.txt
 )
 
 UNLICENSED_FILES=()
