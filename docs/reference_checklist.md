@@ -95,7 +95,8 @@ on those fronts alongside the interpreter implementation.
     1. Move any shape inference tests from the [ops_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir)
        file into this file.
 1. In [spec.md](link):
-    1. Add a link to `interpret_<op_mnemonic>.mlir` to the "Examples" section
+    1. Add a link to `stablehlo/tests/interpret/<op_mnemonic>.mlir`
+       to the "Examples" section
        (e.g. [More Examples](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#add)).
     1. Make sure the spec only has 1 example.
     1. Make sure the spec example follows the [testing guidelines](https://github.com/openxla/stablehlo/blob/main/docs/reference.md#testing-guidelines).
