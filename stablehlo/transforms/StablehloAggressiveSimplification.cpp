@@ -129,7 +129,6 @@ struct AddOpCanon final : OpRewritePattern<mlir::stablehlo::AddOp> {
       rewriter.modifyOpInPlace(op, [op, lhs, rhs] {
         op->setOperands(ValueRange{rhs, lhs});
       });
-      return success();
     }
 
     if (lhsAttr && rhsAttr) {
@@ -1120,19 +1119,21 @@ struct ReorderElementwiseAndShapeOp final
 struct StablehloAggressiveSimplificationPass final
     : impl::StablehloAggressiveSimplificationPassBase<
           StablehloAggressiveSimplificationPass> {
+  LogicalResult initialize(MLIRContext *context) override {
+    RewritePatternSet patterns_(context);
+    populateStablehloCanonicalizationPatterns(context, &patterns_);
+    patterns = std::move(patterns_);
+    return success();
+  }
+
   void runOnOperation() override {
-    MLIRContext *ctx = &getContext();
-    RewritePatternSet patterns(ctx);
-    populateStablehloCanonicalizationPatterns(ctx, &patterns);
-    if (failed(applyPatternsAndFoldGreedily(getOperation(),
-                                            std::move(patterns)))) {
+    if (failed(applyPatternsAndFoldGreedily(getOperation(), patterns))) {
       signalPassFailure();
     }
   }
 
-  void getDependentDialects(DialectRegistry &registry) const final {
-    registry.insert<tensor::TensorDialect>();
-  }
+ private:
+  FrozenRewritePatternSet patterns;
 };
 }  // namespace
 

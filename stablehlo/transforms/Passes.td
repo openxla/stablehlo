@@ -109,4 +109,7 @@ def ChloLegalizeToStablehloPass : Pass<"chlo-legalize-to-stablehlo", "func::Func
 def StablehloAggressiveSimplificationPass
     : Pass<"stablehlo-aggressive-simplification", "func::FuncOp"> {
   let summary = "Canonicalizes StableHLO operations";
+  let dependentDialects = [
+    "mlir::tensor::TensorDialect",
+  ];
 }
