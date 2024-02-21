@@ -1,5 +1,4 @@
-// RUN: stablehlo-opt --pass-pipeline="builtin.module(func.func(chlo-legalize-to-stablehlo),cse)" \
-// RUN:   --split-input-file --verify-diagnostics %s | FileCheck %s
+// RUN: stablehlo-opt --chlo-legalize-to-stablehlo --cse --canonicalize --stablehlo-aggressive-simplification --split-input-file --verify-diagnostics %s | FileCheck %s
 
 // Check the non-broadcast case for each registered op, then just check a
 // representative op for detailed broadcast semantics.
