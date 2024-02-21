@@ -13,15 +13,15 @@
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/transforms/Passes.h"
-#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/MLIRContext.h"
-#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/PatternMatch.h"
-#include "third_party/llvm/llvm-project/mlir/include/mlir/Transforms/DialectConversion.h"
 
 namespace mlir {
 namespace stablehlo {
