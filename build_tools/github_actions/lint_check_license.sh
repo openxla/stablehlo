@@ -44,22 +44,24 @@ echo "Checking the following files for licenses:
 $(printf "%s\n" "${CHANGED_FILES[@]}")"
 echo
 
+SKIPPED_SUFFIXES=(
+  MODULE.bazel.lock
+  .mlir
+  .mlir.bc
+  .md
+)
+
 UNLICENSED_FILES=()
 for file in "${CHANGED_FILES[@]}"; do
-  if [[ "$file" == MODULE.bazel.lock ]]; then
-    echo "Skipping generated file: $file"
-    echo
-    continue
-  fi
-  if [[ "$file" = *.mlir ]]; then
-    echo "Skipping MLIR assembly file: $file"
-    echo
-    continue
-  fi
-  if [[ "$file" = *.md ]]; then
-    echo "Skipping Markdown file: $file"
-    echo
-    continue
+  skip=0
+  for suffix in "${SKIPPED_SUFFIXES[@]}"; do
+    if [[ "$file" = *$suffix ]]; then
+      skip=1
+    fi
+  done
+  if (( skip )); then
+    echo "Skipping file: $file"
+    continue;
   fi
   if ! head -20 "$file" | grep "Copyright" &>/dev/null; then
     UNLICENSED_FILES+=("$file")
