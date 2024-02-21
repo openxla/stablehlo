@@ -16,19 +16,25 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
 #define STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
 
+#include <cstdint>
+#include <functional>
+
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
-#include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/IR/OperationSupport.h"
+#include "mlir/IR/Region.h"
 #include "mlir/IR/TypeRange.h"
 #include "mlir/IR/Types.h"
+#include "mlir/IR/ValueRange.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
 
@@ -154,6 +160,15 @@ void printComplexOpType(OpAsmPrinter& p, Operation* op, ShapedType lhs,
 ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
                                Type& result);
 
+// Print reduce with or without compact printing
+void printReduceOp(OpAsmPrinter& p, Operation* op, ValueRange inputs,
+                   ArrayRef<int64_t> dimensions, Region& body);
+
+// Parse reduce with or without compact parsing
+ParseResult parseReduceOp(
+    OpAsmParser& parser, OperationState& result,
+    std::function<Attribute(OpBuilder&, ArrayRef<int64_t>)> createDimensions);
+
 // SelectOpType - only print the condition and result type when branch types
 // match the result type.
 //
@@ -170,15 +185,27 @@ void printSelectOpType(OpAsmPrinter& p, Operation* op, ShapedType pred,
 ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
                               Type& onFalse, Type& result);
 
+// Print a `while` op.
+//
+// op ::= `stablehlo.while` `(` assignment-list `)` `:` types attribute-dict
+//         `cond` region
+//         `do` region
+// assignment-list ::= assignment | assignment `,` assignment-list
+// assignment ::= ssa-value `=` ssa-value
+void printWhileOp(OpAsmPrinter& p, Operation* op, Region& cond, Region& body);
+
+// Parse reduce with or without compact parsing
+ParseResult parseWhileOp(OpAsmParser& parser, OperationState& result);
+
 //===----------------------------------------------------------------------===//
 // Attribute Printers and Parsers
 //===----------------------------------------------------------------------===//
 
 // SliceRanges - Used to print multi-dimensional ranges for slice.
 void printSliceRanges(OpAsmPrinter& p, Operation* op,
-                      ArrayRef<int64_t> startIndices,
-                      ArrayRef<int64_t> limitIndices,
-                      ArrayRef<int64_t> strides);
+                      llvm::ArrayRef<int64_t> startIndices,
+                      llvm::ArrayRef<int64_t> limitIndices,
+                      llvm::ArrayRef<int64_t> strides);
 
 ParseResult parseSliceRanges(OpAsmParser& parser,
                              DenseI64ArrayAttr& startIndices,
