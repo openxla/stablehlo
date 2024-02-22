@@ -13,10 +13,11 @@
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
-#include "mlir/Interfaces/FunctionInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -2022,10 +2023,6 @@ struct ConvertSinhOp final : OpConversionPattern<mlir::chlo::SinhOp> {
 //                              (tensor<16x16xf32>) -> tensor<16x8xf32>
 // %6 = "hlo.slice"(%4) ...
 //
-// TODO(b/284078162): Decide what to do with this pattern given that we now
-// have mlir::stablehlo::TopKOp. No action needed for now given that
-// mlir::stablehlo::TopKOp is currently categorized as
-// `hasPrivateFeaturesNotInStablehlo`.
 struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -2162,57 +2159,32 @@ struct ConvertZetaOp final : OpConversionPattern<mlir::chlo::ZetaOp> {
 
 struct ChloLegalizeToStablehloPass final
     : impl::ChloLegalizeToStablehloPassBase<ChloLegalizeToStablehloPass> {
-  void getDependentDialects(DialectRegistry &registry) const override {
-    registry
-        .insert<mlir::shape::ShapeDialect, mlir::stablehlo::StablehloDialect,
-                mlir::tensor::TensorDialect>();
-  }
-
   void runOnOperation() override {
     MLIRContext *ctx = &getContext();
-    {
-      ConversionTarget conversionTarget(getContext());
-      RewritePatternSet conversionPatterns(ctx);
-      conversionTarget.addIllegalDialect<chlo::ChloDialect>();
-      conversionTarget.addLegalOp<chlo::MinimumBroadcastShapesOp>();
-      conversionTarget.addLegalDialect<
-          mlir::stablehlo::StablehloDialect, mlir::arith::ArithDialect,
-          mlir::shape::ShapeDialect, mlir::tensor::TensorDialect>();
+    ConversionTarget conversionTarget(getContext());
+    RewritePatternSet conversionPatterns(&getContext());
 
-      populateChloToStablehloPatterns(ctx, &conversionPatterns);
-      if (failed(applyPartialConversion(getOperation(), conversionTarget,
-                                        std::move(conversionPatterns)))) {
-        return signalPassFailure();
-      }
-    }
+    // Add helper dialects that are needed by the patterns.
+    conversionTarget.addIllegalDialect<chlo::ChloDialect>();
+    conversionTarget.addLegalDialect<
+        StablehloDialect, mlir::arith::ArithDialect, mlir::func::FuncDialect,
+        mlir::tensor::TensorDialect, mlir::shape::ShapeDialect>();
+    conversionTarget.addLegalOp<chlo::MinimumBroadcastShapesOp>();
 
-    {
-      // Add canonicalization patterns to simplify produced ops from other
-      // dialects.
-      RewritePatternSet patterns(ctx);
-      populateStablehloCanonicalizationPatterns(ctx, &patterns);
-      mlir::shape::AssumingOp::getCanonicalizationPatterns(patterns, ctx);
-      mlir::shape::ShapeOfOp::getCanonicalizationPatterns(patterns, ctx);
-      mlir::shape::BroadcastOp::getCanonicalizationPatterns(patterns, ctx);
-      mlir::shape::CstrBroadcastableOp::getCanonicalizationPatterns(patterns,
-                                                                    ctx);
-      mlir::tensor::CastOp::getCanonicalizationPatterns(patterns, ctx);
-      if (failed(applyPatternsAndFoldGreedily(getOperation(),
-                                              std::move(patterns)))) {
-        return signalPassFailure();
-      }
+    populateChloToStablehloPatterns(ctx, &conversionPatterns);
+    if (failed(applyPartialConversion(getOperation(), conversionTarget,
+                                      std::move(conversionPatterns)))) {
+      return signalPassFailure();
     }
   }
 };
+
+#include "stablehlo/transforms/ChloDecompositionPatterns.h.inc"
 }  // namespace
 
 namespace {
-#include "stablehlo/transforms/ChloDecompositionPatterns.h.inc"
-}
-
-namespace {
-static void populateBroadcastingPatterns(MLIRContext *context,
-                                         RewritePatternSet *patterns) {
+static void populateChloBroadcastingPatterns(MLIRContext *context,
+                                             RewritePatternSet *patterns) {
   // Instantiate conversion templates for conforming binary elementwise ops
   // that do not have different dtypes between operands and results and do
   // not have special attributes that need to be preserved.
@@ -2225,8 +2197,8 @@ static void populateBroadcastingPatterns(MLIRContext *context,
           context);
 }
 
-static void populateDecompositionPatterns(MLIRContext *context,
-                                          RewritePatternSet *patterns) {
+static void populateChloDecompositionPatterns(MLIRContext *context,
+                                              RewritePatternSet *patterns) {
   populateWithGenerated(*patterns);
   patterns->add<ConvertConstantOp, ConvertBesselI1eOp, ConvertCoshOp,
                 ConvertDigammaOp, ConvertErfOp, ConvertErfcOp, ConvertErfInvOp,
@@ -2237,8 +2209,9 @@ static void populateDecompositionPatterns(MLIRContext *context,
 
 void populateChloToStablehloPatterns(MLIRContext *context,
                                      RewritePatternSet *patterns) {
-  populateBroadcastingPatterns(context, patterns);
-  populateDecompositionPatterns(context, patterns);
+  populateChloBroadcastingPatterns(context, patterns);
+  populateChloDecompositionPatterns(context, patterns);
 }
+
 }  // namespace stablehlo
 }  // namespace mlir

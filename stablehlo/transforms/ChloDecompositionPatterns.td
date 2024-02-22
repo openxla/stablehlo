@@ -18,7 +18,7 @@ class StableHLO_ComparisonDirectionValue<string enumStr> :
   ConstantAttr<StableHLO_ComparisonDirectionAttr,
                "::mlir::stablehlo::ComparisonDirection::" # enumStr>;
 
-class ConstantLike<string value> : NativeCodeCall<
+class StableHLO_ConstantLike<string value> : NativeCodeCall<
     "::mlir::stablehlo::getConstantLike($_builder, $_loc, " # value # ", $0)">;
 
 def ComplexElementType : Type<
@@ -29,18 +29,19 @@ def NonComplexElementType : Type<
   CPred<"!isa<ComplexType>(cast<ShapedType>($_self).getElementType())">,
   "Non-complex element type">;
 
-def ConstantLikeMaxFiniteValue : NativeCodeCall<
+def StableHLO_ConstantLikeMaxFiniteValue : NativeCodeCall<
     "::mlir::stablehlo::getConstantLikeMaxFiniteValue($_builder, $_loc, $0)">;
 
-def ConstantLikePosInfValue : NativeCodeCall<
+def StableHLO_ConstantLikePosInfValue : NativeCodeCall<
     "::mlir::stablehlo::getConstantLikeInfValue($_builder, $_loc, $0, /*negative=*/false)">;
 
-def ConstantLikeNegInfValue : NativeCodeCall<
+def StableHLO_ConstantLikeNegInfValue : NativeCodeCall<
     "::mlir::stablehlo::getConstantLikeInfValue($_builder, $_loc, $0, /*negative=*/true)">;
 
 //===----------------------------------------------------------------------===//
 // Unary op patterns.
 //===----------------------------------------------------------------------===//
+
 
 // Expand acos for non-complex arguments to MHLO dialect as follows:
 //   acos(x) = 2 * atan2(sqrt(1 - x^2), (1 + x))  if x != -1
@@ -53,26 +54,26 @@ def : Pat<(CHLO_AcosOp NonComplexElementType:$input),
   (StableHLO_SelectOp
     (StableHLO_CompareOp
       $input,
-      (ConstantLike<"-1"> $input),
+      (StableHLO_ConstantLike<"-1"> $input),
       StableHLO_ComparisonDirectionValue<"NE">,
       (STABLEHLO_DEFAULT_COMPARISON_TYPE)
     ),
     (StableHLO_MulOp
-      (ConstantLike<"2"> $input),
+      (StableHLO_ConstantLike<"2"> $input),
       (StableHLO_Atan2Op
         (StableHLO_SqrtOp
           (StableHLO_SubtractOp
-            (ConstantLike<"1"> $input),
+            (StableHLO_ConstantLike<"1"> $input),
             (StableHLO_MulOp $input, $input)
           )
         ),
         (StableHLO_AddOp
-          (ConstantLike<"1"> $input),
+          (StableHLO_ConstantLike<"1"> $input),
           $input
         )
       )
     ),
-    (ConstantLike<"M_PI"> $input)
+    (StableHLO_ConstantLike<"M_PI"> $input)
   )>;
 
 // Expand acosh to MHLO dialect as follows:
@@ -87,16 +88,16 @@ def : Pat<(CHLO_AcoshOp NonComplexElementType:$input),
   (StableHLO_SelectOp
     (StableHLO_CompareOp
       $input,
-      (ConstantLike<"-1"> $input),
+      (StableHLO_ConstantLike<"-1"> $input),
       StableHLO_ComparisonDirectionValue<"LT">,
       (STABLEHLO_DEFAULT_COMPARISON_TYPE)
     ),
-    (ConstantLike<"NAN"> $input),
+    (StableHLO_ConstantLike<"NAN"> $input),
     (StableHLO_SelectOp
       (StableHLO_CompareOp
         $input,
         (StableHLO_SqrtOp
-          (ConstantLikeMaxFiniteValue $input)
+          (StableHLO_ConstantLikeMaxFiniteValue $input)
         ),
         StableHLO_ComparisonDirectionValue<"GE">,
         (STABLEHLO_DEFAULT_COMPARISON_TYPE)
@@ -104,7 +105,7 @@ def : Pat<(CHLO_AcoshOp NonComplexElementType:$input),
       (StableHLO_AddOp
         (StableHLO_LogOp $input),
         (StableHLO_LogOp
-          (ConstantLike<"2"> $input)
+          (StableHLO_ConstantLike<"2"> $input)
         )
       ),
       (StableHLO_LogOp
@@ -113,11 +114,11 @@ def : Pat<(CHLO_AcoshOp NonComplexElementType:$input),
           (StableHLO_SqrtOp
             (StableHLO_MulOp
               (StableHLO_AddOp
-                (ConstantLike<"1"> $input),
+                (StableHLO_ConstantLike<"1"> $input),
                 $input
               ),
               (StableHLO_AddOp
-                (ConstantLike<"-1"> $input),
+                (StableHLO_ConstantLike<"-1"> $input),
                 $input
               )
             )
@@ -142,11 +143,11 @@ def : Pat<(CHLO_AcoshOp ComplexElementType:$input),
         (StableHLO_MulOp
           (StableHLO_AddOp
             $input,
-            (ConstantLike<"1"> $input)
+            (StableHLO_ConstantLike<"1"> $input)
           ),
           (StableHLO_SubtractOp
             $input,
-            (ConstantLike<"1"> $input)
+            (StableHLO_ConstantLike<"1"> $input)
           )
         )
       )
@@ -158,14 +159,14 @@ def : Pat<(CHLO_AcoshOp ComplexElementType:$input),
 //   asin(x) = 2 * atan(x / (1 + sqrt(1 - x^2)))
 def : Pat<(CHLO_AsinOp $input),
   (StableHLO_MulOp
-    (ConstantLike<"2"> $input),
+    (StableHLO_ConstantLike<"2"> $input),
     (StableHLO_Atan2Op
       $input,
       (StableHLO_AddOp
-        (ConstantLike<"1"> $input),
+        (StableHLO_ConstantLike<"1"> $input),
         (StableHLO_SqrtOp
           (StableHLO_SubtractOp
-            (ConstantLike<"1"> $input),
+            (StableHLO_ConstantLike<"1"> $input),
             (StableHLO_MulOp $input, $input)
           )
         )
@@ -200,7 +201,7 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$input),
       (StableHLO_CompareOp
         (StableHLO_AbsOp $input),
         (StableHLO_SqrtOp
-          (ConstantLikeMaxFiniteValue $input)
+          (StableHLO_ConstantLikeMaxFiniteValue $input)
         ),
         StableHLO_ComparisonDirectionValue<"GE">,
         (STABLEHLO_DEFAULT_COMPARISON_TYPE)
@@ -210,13 +211,13 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$input),
           (StableHLO_AbsOp $input)
         ),
         (StableHLO_LogOp
-          (ConstantLike<"2"> $input)
+          (StableHLO_ConstantLike<"2"> $input)
         )
       ),
       (StableHLO_SelectOp
         (StableHLO_CompareOp
           (StableHLO_AbsOp $input),
-          (ConstantLike<"1"> $input),
+          (StableHLO_ConstantLike<"1"> $input),
           StableHLO_ComparisonDirectionValue<"LE">,
           (STABLEHLO_DEFAULT_COMPARISON_TYPE)
         ),
@@ -228,14 +229,14 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$input),
               (StableHLO_DivOp
                 (StableHLO_AbsOp $input),
                 (StableHLO_AddOp
-                  (ConstantLike<"1"> $input),
+                  (StableHLO_ConstantLike<"1"> $input),
                   (StableHLO_SqrtOp
                     (StableHLO_AddOp
                       (StableHLO_MulOp
                         (StableHLO_AbsOp $input),
                         (StableHLO_AbsOp $input)
                       ),
-                      (ConstantLike<"1"> $input)
+                      (StableHLO_ConstantLike<"1"> $input)
                     )
                   )
                 )
@@ -252,7 +253,7 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$input),
                   (StableHLO_AbsOp $input),
                   (StableHLO_AbsOp $input)
                 ),
-                (ConstantLike<"1"> $input)
+                (StableHLO_ConstantLike<"1"> $input)
               )
             )
           )
@@ -275,7 +276,7 @@ def : Pat<(CHLO_AsinhOp ComplexElementType:$input),
       (StableHLO_SqrtOp
         (StableHLO_AddOp
           (StableHLO_MulOp $input, $input),
-          (ConstantLike<"1"> $input)
+          (StableHLO_ConstantLike<"1"> $input)
         )
       )
     )
@@ -286,7 +287,7 @@ def : Pat<(CHLO_AsinhOp ComplexElementType:$input),
 def : Pat<(CHLO_AtanOp $input),
   (StableHLO_Atan2Op
     $input,
-    (ConstantLike<"1"> $input)
+    (StableHLO_ConstantLike<"1"> $input)
   )>;
 
 // Express `atanh` for non-complex arguments as follows:
@@ -296,11 +297,11 @@ def : Pat<(CHLO_AtanhOp NonComplexElementType:$input),
   (StableHLO_SelectOp
     (StableHLO_CompareOp
       (StableHLO_AbsOp $input),
-      (ConstantLike<"1"> $input),
+      (StableHLO_ConstantLike<"1"> $input),
       StableHLO_ComparisonDirectionValue<"GT">,
       (STABLEHLO_DEFAULT_COMPARISON_TYPE)
     ),
-    (ConstantLike<"NAN"> $input),
+    (StableHLO_ConstantLike<"NAN"> $input),
     (StableHLO_MulOp
       (StableHLO_SubtractOp
         (StableHLO_Log1pOp $input),
@@ -308,7 +309,7 @@ def : Pat<(CHLO_AtanhOp NonComplexElementType:$input),
           (StableHLO_NegOp $input)
         )
       ),
-      (ConstantLike<"0.5"> $input)
+      (StableHLO_ConstantLike<"0.5"> $input)
     )
   )>;
 
@@ -326,7 +327,7 @@ def : Pat<(CHLO_AtanhOp ComplexElementType:$input),
         (StableHLO_NegOp $input)
       )
     ),
-    (ConstantLike<"0.5"> $input)
+    (StableHLO_ConstantLike<"0.5"> $input)
   )>;
 
 // Express `conj` as
@@ -346,7 +347,7 @@ def : Pat<(CHLO_IsInfOp NonComplexElementType:$input),
 def : Pat<(CHLO_IsPosInfOp NonComplexElementType:$input),
   (StableHLO_CompareOp
     $input,
-    (ConstantLikePosInfValue $input),
+    (StableHLO_ConstantLikePosInfValue $input),
     StableHLO_ComparisonDirectionValue<"EQ">,
     (STABLEHLO_DEFAULT_COMPARISON_TYPE)
   )>;
@@ -356,7 +357,7 @@ def : Pat<(CHLO_IsPosInfOp NonComplexElementType:$input),
 def : Pat<(CHLO_IsNegInfOp NonComplexElementType:$input),
   (StableHLO_CompareOp
     $input,
-    (ConstantLikeNegInfValue $input),
+    (StableHLO_ConstantLikeNegInfValue $input),
     StableHLO_ComparisonDirectionValue<"EQ">,
     (STABLEHLO_DEFAULT_COMPARISON_TYPE)
   )>;
@@ -378,6 +379,9 @@ def : Pat<(CHLO_TanOp ComplexElementType:$input),
       (CHLO_TanOp:$tan (StableHLO_RealOp $input)),
       (StableHLO_TanhOp:$tanh (StableHLO_ImagOp $input))),
     (StableHLO_ComplexOp
-      (ConstantLike<"1.0"> $tan),
+      (StableHLO_ConstantLike<"1.0"> $tan),
       (StableHLO_NegOp (StableHLO_MulOp $tan, $tanh)))
   )>;
+
+def : Pat<(CHLO_ConstantOp $v),
+          (StableHLO_ConstantOp $v)>;

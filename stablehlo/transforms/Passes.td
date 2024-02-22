@@ -97,12 +97,16 @@ def VhloToVersionPass : Pass<"vhlo-to-version"> {
   ];
 }
 
-def ChloLegalizeToStablehloPass :
-    InterfacePass<"chlo-legalize-to-stablehlo", "mlir::FunctionOpInterface"> {
+def ChloLegalizeToStablehloPass : Pass<"chlo-legalize-to-stablehlo", "func::FuncOp"> {
   let summary = "Legalizes from CHLO ops flow to StableHLO and Shape ops";
+  let dependentDialects = [
+    "mlir::shape::ShapeDialect",
+    "mlir::stablehlo::StablehloDialect",
+    "mlir::tensor::TensorDialect",
+  ];
 }
 
-def StablehloAggressiveSimplificationPass :
-    InterfacePass<"stablehlo-aggressive-simplification", "mlir::FunctionOpInterface"> {
+def StablehloAggressiveSimplificationPass
+    : Pass<"stablehlo-aggressive-simplification", "func::FuncOp"> {
   let summary = "Canonicalizes StableHLO operations";
 }
