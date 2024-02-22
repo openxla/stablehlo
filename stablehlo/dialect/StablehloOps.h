@@ -52,6 +52,18 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+struct StablehloDialectVersion : public mlir::DialectVersion {
+  StablehloDialectVersion() = default;
+  StablehloDialectVersion(uint32_t dialectVersion)
+      : dialectVersion(dialectVersion){};
+
+  // The current dialect version.
+  constexpr uint32_t kCurrentDialectVersion = 1;
+
+  // The dialect version read from bytecode.
+  uint32_t dialectVersion = 1;
+};
+
 class StablehloDialect : public Dialect {
  public:
   explicit StablehloDialect(MLIRContext *context);
@@ -73,6 +85,16 @@ class StablehloDialect : public Dialect {
 
   // Prints an attribute registered to this dialect.
   void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
+
+  // Get the set dialect version.
+  std::optional<StablehloDialectVersion> getVersion() const;
+
+  // Set dialect version.
+  // Note: there is currently no validation.
+  void setVersion(StablehloDialectVersion version);
+
+ private:
+  std::optional<StablehloDialectVersion> version;
 };
 
 // Verifies the source target pairs attached to collective permute.

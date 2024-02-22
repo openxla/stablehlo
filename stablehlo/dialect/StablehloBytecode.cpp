@@ -262,6 +262,14 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   // TO ADD TYPE: Include a write method for each type in StableHLO
   // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
   void write(TokenType type, DialectBytecodeWriter &writer) const;
+
+  //===--------------------------------------------------------------------===//
+  // Version
+
+  std::unique_ptr<DialectVersion> readVersion(
+      DialectBytecodeReader &reader) const final;
+
+  void writeVersion(DialectBytecodeWriter &writer) const final;
 };
 
 //===----------------------------------------------------------------------===//
@@ -693,6 +701,27 @@ TokenType StablehloBytecodeInterface::readTokenType(
 void StablehloBytecodeInterface::write(TokenType type,
                                        DialectBytecodeWriter &writer) const {
   writer.writeVarInt(stablehlo_encoding::kTokenType);
+}
+
+std::unique_ptr<DialectVersion> StablehloBytecodeInterface::readVersion(
+    DialectBytecodeReader &reader) const {
+  uint64_t dialectVersion;
+  if (failed(reader.readVarInt(dialectVersion))) return nullptr;
+
+  if (dialectVersion > StablehloDialectVersion::kCurrentDialectVersion) {
+    return reader.emitError("reading newer dialect than supported"), nullptr;
+  }
+
+  auto version = std::make_unique<StablehloDialectVersion>();
+  version->dialectVersion = dialectVersion;
+  return version;
+}
+
+void StablehloBytecodeInterface::writeVersion(
+    DialectBytecodeWriter &writer) const {
+  if (auto version = cast<StablehloDialect>(getDialect())->getVersion()) {
+    writer.writeVarInt(version->dialectVersion);
+  }
 }
 
 }  // namespace
