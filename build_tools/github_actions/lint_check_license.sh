@@ -53,6 +53,7 @@ SKIPPED_SUFFIXES=(
   .png
   .svg
   LICENSE
+  MODULE.bazel.lock
   llvm_version.txt
 )
 
