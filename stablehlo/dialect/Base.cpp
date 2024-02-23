@@ -84,13 +84,13 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
     if (qtp1.getStorageType() != qtp2.getStorageType() ||
         qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
         qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax() ||
-        qtp1.getExpressedType() != qtp2.getExpressedType()){
+        qtp1.getExpressedType() != qtp2.getExpressedType()) {
       return false;
     }
 
     auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
     auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
-    if(qpatp1 && qpatp2){
+    if (qpatp1 && qpatp2) {
       // Both are also per-axis quantized
       // Don't match dimensions, Per OP verifier will do it.
       return true;
