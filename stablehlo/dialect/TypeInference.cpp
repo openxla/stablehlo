@@ -1406,17 +1406,8 @@ LogicalResult inferAbsOp(std::optional<Location>, Value operand,
   if (auto complexTy = elementTy.dyn_cast<ComplexType>())
     elementTy = complexTy.getElementType();
 
-  Type resultTy;
   // abs_c1
-  if (auto rankedOperandTy = operandTy.dyn_cast<RankedTensorType>()) {
-    resultTy = RankedTensorType::get(operandTy.getShape(), elementTy,
-                                     rankedOperandTy.getEncoding());
-  } else if (operandTy.hasRank()) {
-    resultTy = RankedTensorType::get(operandTy.getShape(), elementTy);
-  } else {
-    resultTy = UnrankedTensorType::get(elementTy);
-  }
-  inferredReturnTypes.push_back(resultTy);
+  inferredReturnTypes.push_back(operandTy.clone(elementTy));
   return success();
 }
 
