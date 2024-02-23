@@ -92,7 +92,7 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
     auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
     if(qpatp1 && qpatp2){
       // Both are also per-axis quantized
-      // For now, don't match dimentions, Per OP verifier will do it.
+      // Don't match dimensions, Per OP verifier will do it.
       return true;
     }
     // return true if both are per-tensor quantized
