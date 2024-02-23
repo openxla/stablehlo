@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 print_usage() {
   echo "Usage: $0 [-b]"
   echo "    -b <branch>  Base branch name, defaults to main."
@@ -68,7 +72,7 @@ for file in "${CHANGED_FILES[@]}"; do
   fi
 done
 
-if (( ${#UNLICENSED_FILES} )); then
+if (( ${#UNLICENSED_FILES[@]} )); then
   echo "Found unlicensed files:
 $(printf "%s\n" "${UNLICENSED_FILES[@]}")"
   exit 1
