@@ -58,7 +58,7 @@ struct StablehloDialectVersion : public mlir::DialectVersion {
       : dialectVersion(dialectVersion){};
 
   // The current dialect version.
-  constexpr uint32_t kCurrentDialectVersion = 1;
+  static constexpr uint32_t kCurrentDialectVersion = 1;
 
   // The dialect version read from bytecode.
   uint32_t dialectVersion = 1;
