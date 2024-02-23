@@ -33,13 +33,6 @@ limitations under the License.
 namespace mlir {
 namespace hlo {
 
-namespace {
-Type getExpressedTypeOrSelf(Type type) {
-  auto quantType = type.dyn_cast<quant::QuantizedType>();
-  return quantType ? quantType.getExpressedType() : type;
-}
-}  // namespace
-
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
   if (failed(verifyCompatibleShape(type1, type2))) return failure();
 
