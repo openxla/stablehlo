@@ -188,11 +188,7 @@ LogicalResult deriveShapeFromOperand(
 }
 
 ShapedType getSameShapeTensorType(ShapedType shapedType, Type elementType) {
-  if (auto rankedTensorTy = shapedType.dyn_cast<RankedTensorType>())
-    return RankedTensorType::get(rankedTensorTy.getShape(), elementType,
-                                 rankedTensorTy.getEncoding());
-  if (auto unrankedTensorTy = shapedType.dyn_cast<UnrankedTensorType>())
-    return UnrankedTensorType::get(elementType);
+  if (shapedType.isa<TensorType>()) return shapedType.clone(elementType);
   llvm::report_fatal_error("unsupported type");
 }
 
