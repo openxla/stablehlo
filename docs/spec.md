@@ -1690,22 +1690,23 @@ Afterwards, `result@process` is given by:
 
 * `operand@process_groups[i, 0]` if there exists an `i` such that the process is
   in `process_groups[i]`.
-* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
+* `broadcast_in_dim(constant(is_quantized(result) ? quantize(0,
+  element_type(result)) : 0, element_type(result)), [], type(result))`
   otherwise.
 
 #### Inputs
 
 | Label | Name             | Type                                                             | Constraints |
 |-------|------------------|------------------------------------------------------------------|-------------|
-| (I1)  | `operand`        | tensor                                                           | (C3)        |
+| (I1)  | `operand`        | tensor or per-tensor quantized tensor                            | (C3)        |
 | (I2)  | `replica_groups` | variadic number of 1-dimensional tensor constants of type `si64` | (C1), (C2)  |
 | (I3)  | `channel_id`     | constant of type `si64`                                          |             |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C3)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C3)        |
 
 #### Constraints
 
