@@ -129,6 +129,7 @@ struct AddOpCanon final : OpRewritePattern<mlir::stablehlo::AddOp> {
       rewriter.modifyOpInPlace(op, [op, lhs, rhs] {
         op->setOperands(ValueRange{rhs, lhs});
       });
+      return success();
     }
 
     if (lhsAttr && rhsAttr) {
