@@ -1,0 +1,1105 @@
+From cb8d9384082235518fb6c750b73959503400c740 Mon Sep 17 00:00:00 2001
+From: Abhinav <agunjal@google.com>
+Date: Wed, 21 Feb 2024 19:46:10 +0000
+Subject: [PATCH 1/5] T2 Trait verifier
+
+---
+ stablehlo/dialect/Base.cpp         | 11 ++++++++++-
+ stablehlo/dialect/StablehloOps.td  | 10 +++++-----
+ stablehlo/tests/ops_stablehlo.mlir |  4 ++--
+ 3 files changed, 17 insertions(+), 8 deletions(-)
+
+diff --git a/stablehlo/dialect/Base.cpp b/stablehlo/dialect/Base.cpp
+index 9eb4f2340e..88b421b2d9 100644
+--- a/stablehlo/dialect/Base.cpp
++++ b/stablehlo/dialect/Base.cpp
+@@ -83,7 +83,16 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+         qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
+         qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax())
+       return false;
+-  }
++
++    auto qpatp1 = tp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
++    auto qpatp2 = tp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
++    if (qpatp1 && qpatp2) {
++      if(qpatp1.getQuantizedDimension() != qpatp2.getQuantizedDimension())
++        return false;
++    }
++  } 
++  //if((qtp1 == NULL && qtp2 != NULL) || (qtp1 != NULL && qtp2 == NULL)) return false;
++
+   auto etp1 = getExpressedTypeOrSelf(tp1);
+   auto etp2 = getExpressedTypeOrSelf(tp2);
+ 
+diff --git a/stablehlo/dialect/StablehloOps.td b/stablehlo/dialect/StablehloOps.td
+index b2ab6d6389..29cdac7f95 100644
+--- a/stablehlo/dialect/StablehloOps.td
++++ b/stablehlo/dialect/StablehloOps.td
+@@ -1847,7 +1847,7 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
+ }
+ 
+ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
+-      [Pure, HLO_CompatibleOperandsAndResultElementType /*broadcast_in_dim_c1*/]> {
++      [Pure, /*can't use the Trait, need updates to verifierHLO_CompatibleOperandsAndResultElementType*/ /*broadcast_in_dim_c1*/]> {
+   let summary = "BroadcastInDim operation";
+   let description = [{
+     Expands the dimensions and/or rank of an input tensor by duplicating the
+@@ -1926,7 +1926,7 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
+ // directly.
+ 
+ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
+-      [Pure, SameOperandsAndResultElementType /*cholesky_c1*/,
++      [Pure, HLO_CompatibleOperandsAndResultElementType /*cholesky_c1*/,
+        InferTensorType /*cholesky_c1*/]> {
+   let summary = "Cholesky operation";
+   let description = [{
+@@ -1953,7 +1953,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
+ }
+ 
+ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
+-  SameOperandsAndResultElementType /* clamp_c3 */, HLO_BroadcastingElementwise,
++  HLO_CompatibleOperandsAndResultElementType  /* clamp_c3 */, HLO_BroadcastingElementwise,
+   InferTensorType]> {
+   let summary = "Clamp operation";
+   let description = [{
+@@ -2455,7 +2455,7 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
+ }
+ 
+ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
+-      [Pure, HLO_CompatibleOperandsAndResultElementType]> {
++      [Pure, /* can't use the Trait, need verifier updatesHLO_CompatibleOperandsAndResultElementType*/]> {
+   let summary = "Reshape operation";
+   let description = [{
+     Performs reshape of `operand` tensor to a `result` tensor.
+@@ -2784,7 +2784,7 @@ def StableHLO_TraceOp: StableHLO_Op<"trace", []> {
+ }
+ 
+ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
+-      [Pure, HLO_CompatibleOperandsAndResultElementType,
++      [Pure, /* can't use the Trait, need verifier to handle per-axis HLO_CompatibleOperandsAndResultElementType,*/
+       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+   let summary = "Transpose operation";
+   let description = [{
+diff --git a/stablehlo/tests/ops_stablehlo.mlir b/stablehlo/tests/ops_stablehlo.mlir
+index 998054478f..d5cabe763e 100644
+--- a/stablehlo/tests/ops_stablehlo.mlir
++++ b/stablehlo/tests/ops_stablehlo.mlir
+@@ -5476,8 +5476,8 @@ func.func @quantization_supported_ops(%arg0: tensor<1x2x2x!quant.uniform<i8:f32,
+ func.func @per_axis_quantized_ops(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>, %arg1: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) {
+   %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = array<i64: 0, 1, 3>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.5:-20}>>
+   %1 = "stablehlo.broadcast_in_dim"(%arg1) {broadcast_dimensions = array<i64: 0, 1, 2>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) -> tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.1:-30}>>
+-  %2 = stablehlo.reshape %arg0 : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
+-  %3 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>}: (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
++  // %2 = stablehlo.reshape %arg0 : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
++  // %3 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>}: (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
+   func.return
+ }
+ 
+
+From cc743f716ff9d41db7a6dca6ede0ab20e483c155 Mon Sep 17 00:00:00 2001
+From: Abhinav <agunjal@google.com>
+Date: Wed, 21 Feb 2024 20:34:04 +0000
+Subject: [PATCH 2/5] reorg isCompatibleElementTypeForHloTypeInference
+
+---
+ stablehlo/dialect/Base.cpp | 62 ++++++++++++++++++++------------------
+ 1 file changed, 33 insertions(+), 29 deletions(-)
+
+diff --git a/stablehlo/dialect/Base.cpp b/stablehlo/dialect/Base.cpp
+index 88b421b2d9..0ebcc01cba 100644
+--- a/stablehlo/dialect/Base.cpp
++++ b/stablehlo/dialect/Base.cpp
+@@ -66,7 +66,9 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
+   }
+   return success();
+ }
+-
++//    tp1         tp2                 Result
++//   Quantized    Non Quantized        false
++//   ....
+ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+   // Get element type if shaped
+   tp1 = getElementTypeOrSelf(tp1);
+@@ -78,34 +80,36 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+   // Individual ops may introduce additional constraints.
+   auto qtp1 = tp1.dyn_cast<quant::QuantizedType>();
+   auto qtp2 = tp2.dyn_cast<quant::QuantizedType>();
+-  if (qtp1 && qtp2) {
+-    if (qtp1.getStorageType() != qtp2.getStorageType() ||
+-        qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
+-        qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax())
+-      return false;
+-
+-    auto qpatp1 = tp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
+-    auto qpatp2 = tp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
+-    if (qpatp1 && qpatp2) {
+-      if(qpatp1.getQuantizedDimension() != qpatp2.getQuantizedDimension())
+-        return false;
+-    }
+-  } 
+-  //if((qtp1 == NULL && qtp2 != NULL) || (qtp1 != NULL && qtp2 == NULL)) return false;
+-
+-  auto etp1 = getExpressedTypeOrSelf(tp1);
+-  auto etp2 = getExpressedTypeOrSelf(tp2);
+-
+-  // Sparsity: In the most general case, we allow any combination of
+-  // sparsity/denseness across any combination of operands/results, as well as
+-  // differences in sparsity encodings for operands and results.
+-  // Individual ops may introduce additional constraints.
+-  // No additional code is needed to check this because of how sparsity is
+-  // currently implemented.
+-
+-  // Default case: Unless dynamism, quantization and/or sparsity are involved,
+-  // the types are required to be exactly equal.
+-  return etp1 == etp2;
++  if(!(qtp1 && qtp2)){
++    // one Q and another non Q
++    if (qtp1 || qtp2) return false;
++
++    // Sparsity: In the most general case, we allow any combination of
++    // sparsity/denseness across any combination of operands/results, as well as
++    // differences in sparsity encodings for operands and results.
++    // Individual ops may introduce additional constraints.
++    // No additional code is needed to check this because of how sparsity is
++    // currently implemented.
++
++    // Default case: Unless dynamism, quantization and/or sparsity are involved,
++    // the types are required to be exactly equal.
++    
++    auto etp1 = getExpressedTypeOrSelf(tp1);
++    auto etp2 = getExpressedTypeOrSelf(tp2);
++    return etp1 == etp2;
++  }
++  if (qtp1.getStorageType() != qtp2.getStorageType() ||
++      qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
++      qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax())
++    return false;
++
++  auto qpatp1 = tp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
++  auto qpatp2 = tp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
++  if (qpatp1 && qpatp2) {
++    if(qpatp1.getQuantizedDimension() != qpatp2.getQuantizedDimension())
++    return false;
++  }
++  return true;
+ }
+ 
+ bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
+
+From ac17026d5de29f30d94931645c3efe7d28cd506c Mon Sep 17 00:00:00 2001
+From: Abhinav <agunjal@google.com>
+Date: Thu, 22 Feb 2024 18:58:13 +0000
+Subject: [PATCH 3/5] updated isCompatibleElementTypeForHloTypeInference logic
+
+---
+ stablehlo/dialect/Base.cpp | 67 ++++++++++++++++++--------------------
+ 1 file changed, 32 insertions(+), 35 deletions(-)
+
+diff --git a/stablehlo/dialect/Base.cpp b/stablehlo/dialect/Base.cpp
+index 0ebcc01cba..998dd183eb 100644
+--- a/stablehlo/dialect/Base.cpp
++++ b/stablehlo/dialect/Base.cpp
+@@ -66,50 +66,47 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
+   }
+   return success();
+ }
+-//    tp1         tp2                 Result
+-//   Quantized    Non Quantized        false
+-//   ....
++
++// Q: Quantized (per-tensor or per-axis)
++// NQ: Non Quantized
++//      tp1           tp2           Result
++// NQ             NQ              true/false
++// NQ             Q               false
++// Q(per-tensor)  Q(per-tensor)   true/false
++// Q(per-tensor)  Q(per-axis)     false
++// Q(per-axis)    Q(per-axis)     true/false
++
+ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+   // Get element type if shaped
+   tp1 = getElementTypeOrSelf(tp1);
+   tp2 = getElementTypeOrSelf(tp2);
+ 
+-  // Quantization: In the most general case, we allow any combination of
+-  // quantized/non-quantized across any combination of operands/results,
+-  // and some differences in quantization parameters across operands/results.
+-  // Individual ops may introduce additional constraints.
+   auto qtp1 = tp1.dyn_cast<quant::QuantizedType>();
+   auto qtp2 = tp2.dyn_cast<quant::QuantizedType>();
+-  if(!(qtp1 && qtp2)){
+-    // one Q and another non Q
+-    if (qtp1 || qtp2) return false;
+-
+-    // Sparsity: In the most general case, we allow any combination of
+-    // sparsity/denseness across any combination of operands/results, as well as
+-    // differences in sparsity encodings for operands and results.
+-    // Individual ops may introduce additional constraints.
+-    // No additional code is needed to check this because of how sparsity is
+-    // currently implemented.
+-
+-    // Default case: Unless dynamism, quantization and/or sparsity are involved,
+-    // the types are required to be exactly equal.
+-    
+-    auto etp1 = getExpressedTypeOrSelf(tp1);
+-    auto etp2 = getExpressedTypeOrSelf(tp2);
+-    return etp1 == etp2;
++  
++  // If both are non quantized
++  if (!qtp1 && !qtp2) {
++    return tp1 == tp2;
+   }
+-  if (qtp1.getStorageType() != qtp2.getStorageType() ||
+-      qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
+-      qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax())
+-    return false;
+-
+-  auto qpatp1 = tp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
+-  auto qpatp2 = tp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
+-  if (qpatp1 && qpatp2) {
+-    if(qpatp1.getQuantizedDimension() != qpatp2.getQuantizedDimension())
+-    return false;
++  // If both are per-tensor Quantized
++  if (qtp1 && qtp2) {
++    if (qtp1.getStorageType() != qtp2.getStorageType() ||
++        qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
++        qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax() || 
++        qtp1.getExpressedType() != qtp2.getExpressedType()){
++      return false;
++    }
++
++    auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
++    auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
++    // If both are also per-axis quantized
++    if(qpatp1 && qpatp2){
++      return qpatp1.getQuantizedDimension() == qpatp2.getQuantizedDimension();
++    }
++    return !(qpatp1 || qpatp2);
+   }
+-  return true;
++ 
++  return false;
+ }
+ 
+ bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
+
+From 7c342ce16fda44dc20313b05dd47120a0b860e39 Mon Sep 17 00:00:00 2001
+From: Abhinav <agunjal@google.com>
+Date: Fri, 23 Feb 2024 00:38:54 +0000
+Subject: [PATCH 4/5] generated new vhlo bytecode files to address add test
+ failures
+
+---
+ stablehlo/dialect/Base.cpp                    |  18 ++++++++++--------
+ stablehlo/dialect/StablehloOps.td             |   6 +++---
+ stablehlo/tests/ops_stablehlo.mlir            |  12 ++++++------
+ .../stablehlo_legalize_to_vhlo.0_10_0.mlir    |   8 ++++----
+ .../stablehlo_legalize_to_vhlo.0_10_0.mlir.bc | Bin 20200 -> 20200 bytes
+ .../stablehlo_legalize_to_vhlo.0_11_0.mlir    |   8 ++++----
+ .../stablehlo_legalize_to_vhlo.0_11_0.mlir.bc | Bin 20285 -> 20285 bytes
+ .../stablehlo_legalize_to_vhlo.0_12_0.mlir    |   8 ++++----
+ .../stablehlo_legalize_to_vhlo.0_12_0.mlir.bc | Bin 20929 -> 20929 bytes
+ .../stablehlo_legalize_to_vhlo.0_13_0.mlir    |   8 ++++----
+ .../stablehlo_legalize_to_vhlo.0_13_0.mlir.bc | Bin 20929 -> 20929 bytes
+ .../stablehlo_legalize_to_vhlo.0_14_0.mlir    |   8 ++++----
+ .../stablehlo_legalize_to_vhlo.0_14_0.mlir.bc | Bin 20579 -> 20579 bytes
+ .../stablehlo_legalize_to_vhlo.0_15_0.mlir    |   8 ++++----
+ .../stablehlo_legalize_to_vhlo.0_15_0.mlir.bc | Bin 16604 -> 16604 bytes
+ .../stablehlo_legalize_to_vhlo.0_16_0.mlir    |   8 ++++----
+ .../stablehlo_legalize_to_vhlo.0_16_0.mlir.bc | Bin 16732 -> 16732 bytes
+ .../stablehlo_legalize_to_vhlo.0_17_0.mlir    |   8 ++++----
+ .../stablehlo_legalize_to_vhlo.0_17_0.mlir.bc | Bin 17622 -> 17622 bytes
+ .../stablehlo_legalize_to_vhlo.0_18_0.mlir    |  10 +++++-----
+ .../stablehlo_legalize_to_vhlo.0_18_0.mlir.bc | Bin 17750 -> 17739 bytes
+ .../stablehlo_legalize_to_vhlo.0_9_0.mlir     |   8 ++++----
+ .../stablehlo_legalize_to_vhlo.0_9_0.mlir.bc  | Bin 20035 -> 20035 bytes
+ .../vhlo/stablehlo_legalize_to_vhlo.mlir      |   8 ++++----
+ 24 files changed, 64 insertions(+), 62 deletions(-)
+
+diff --git a/stablehlo/dialect/Base.cpp b/stablehlo/dialect/Base.cpp
+index 998dd183eb..299b1635f0 100644
+--- a/stablehlo/dialect/Base.cpp
++++ b/stablehlo/dialect/Base.cpp
+@@ -70,11 +70,11 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
+ // Q: Quantized (per-tensor or per-axis)
+ // NQ: Non Quantized
+ //      tp1           tp2           Result
+-// NQ             NQ              true/false
++// NQ             NQ              tp1 == tp2
+ // NQ             Q               false
+-// Q(per-tensor)  Q(per-tensor)   true/false
++// Q              Q               tp1.storage_type() == tp2.storage_type() || .. 
++// Q(per-axis)    Q(per-axis)     tp1.quantized_dimension() == ...
+ // Q(per-tensor)  Q(per-axis)     false
+-// Q(per-axis)    Q(per-axis)     true/false
+ 
+ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+   // Get element type if shaped
+@@ -83,13 +83,13 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+ 
+   auto qtp1 = tp1.dyn_cast<quant::QuantizedType>();
+   auto qtp2 = tp2.dyn_cast<quant::QuantizedType>();
+-  
+-  // If both are non quantized
++
+   if (!qtp1 && !qtp2) {
++    // Both are non quantized
+     return tp1 == tp2;
+   }
+-  // If both are per-tensor Quantized
+   if (qtp1 && qtp2) {
++    // Both are quantized
+     if (qtp1.getStorageType() != qtp2.getStorageType() ||
+         qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
+         qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax() || 
+@@ -99,13 +99,15 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+ 
+     auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
+     auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
+-    // If both are also per-axis quantized
+     if(qpatp1 && qpatp2){
++      // Both are also per-axis quantized
+       return qpatp1.getQuantizedDimension() == qpatp2.getQuantizedDimension();
+     }
++    // return true if both are per-tensor quantized
+     return !(qpatp1 || qpatp2);
++    return true;
+   }
+- 
++
+   return false;
+ }
+ 
+diff --git a/stablehlo/dialect/StablehloOps.td b/stablehlo/dialect/StablehloOps.td
+index 29cdac7f95..295a6e6c3a 100644
+--- a/stablehlo/dialect/StablehloOps.td
++++ b/stablehlo/dialect/StablehloOps.td
+@@ -1847,7 +1847,7 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
+ }
+ 
+ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
+-      [Pure, /*can't use the Trait, need updates to verifierHLO_CompatibleOperandsAndResultElementType*/ /*broadcast_in_dim_c1*/]> {
++      [Pure, HLO_CompatibleOperandsAndResultElementType /*broadcast_in_dim_c1*/]> {
+   let summary = "BroadcastInDim operation";
+   let description = [{
+     Expands the dimensions and/or rank of an input tensor by duplicating the
+@@ -2455,7 +2455,7 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
+ }
+ 
+ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
+-      [Pure, /* can't use the Trait, need verifier updatesHLO_CompatibleOperandsAndResultElementType*/]> {
++      [Pure, HLO_CompatibleOperandsAndResultElementType]> {
+   let summary = "Reshape operation";
+   let description = [{
+     Performs reshape of `operand` tensor to a `result` tensor.
+@@ -2784,7 +2784,7 @@ def StableHLO_TraceOp: StableHLO_Op<"trace", []> {
+ }
+ 
+ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
+-      [Pure, /* can't use the Trait, need verifier to handle per-axis HLO_CompatibleOperandsAndResultElementType,*/
++      [Pure, HLO_CompatibleOperandsAndResultElementType,
+       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+   let summary = "Transpose operation";
+   let description = [{
+diff --git a/stablehlo/tests/ops_stablehlo.mlir b/stablehlo/tests/ops_stablehlo.mlir
+index d5cabe763e..2d2ca1d014 100644
+--- a/stablehlo/tests/ops_stablehlo.mlir
++++ b/stablehlo/tests/ops_stablehlo.mlir
+@@ -5396,11 +5396,11 @@ func.func @is_compatible_dynamism_dim_mismatch(%arg0: tensor<1x?xf32>) {
+ // TODO(b/230263270): For stablehlo.add, the plan is to only allow fp+fp=fp, q+q=q and q+q=fp.
+ func.func @is_compatible_quant_mix_non_quant(%arg0: tensor<1xf32>, %arg1: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1xf32>, tensor<1xf32>) -> tensor<1xf32>
+-  %1 = "stablehlo.add"(%arg0, %arg0) : (tensor<1xf32>, tensor<1xf32>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+-  %2 = "stablehlo.add"(%arg0, %arg1) : (tensor<1xf32>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+-  %3 = "stablehlo.add"(%arg0, %arg1) : (tensor<1xf32>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+-  %4 = "stablehlo.add"(%arg1, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1xf32>) -> tensor<1xf32>
+-  %5 = "stablehlo.add"(%arg1, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1xf32>) -> tensor<1xf32>
++  //%1 = "stablehlo.add"(%arg0, %arg0) : (tensor<1xf32>, tensor<1xf32>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
++  //%2 = "stablehlo.add"(%arg0, %arg1) : (tensor<1xf32>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
++  //%3 = "stablehlo.add"(%arg0, %arg1) : (tensor<1xf32>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
++  //%4 = "stablehlo.add"(%arg1, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1xf32>) -> tensor<1xf32>
++  //%5 = "stablehlo.add"(%arg1, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1xf32>) -> tensor<1xf32>
+   %6 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+   %7 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+   func.return
+@@ -5474,7 +5474,7 @@ func.func @quantization_supported_ops(%arg0: tensor<1x2x2x!quant.uniform<i8:f32,
+ }
+ 
+ func.func @per_axis_quantized_ops(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>, %arg1: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) {
+-  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = array<i64: 0, 1, 3>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.5:-20}>>
++  // %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = array<i64: 0, 1, 3>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.5:-20}>>
+   %1 = "stablehlo.broadcast_in_dim"(%arg1) {broadcast_dimensions = array<i64: 0, 1, 2>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) -> tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.1:-30}>>
+   // %2 = stablehlo.reshape %arg0 : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
+   // %3 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>}: (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_10_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_10_0.mlir
+index d2eef1d28e..47c3010cf6 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_10_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_10_0.mlir
+@@ -2233,10 +2233,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_quantization"
+-func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_10_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_10_0.mlir.bc
+index c040c899c3199b90c7a68116f9bceb38916aa835..94dd3fba5d17280e18d2e7d91184e5008b12c348 100644
+GIT binary patch
+delta 945
+zcmY+CO-K}B7{__`@%43fT8FnWZFhE^#&JJh$Ng$q%$6mTAnM>pMM4J!Ln=B%hYS@7
+z3llmR^imNa_Ca;%5==o|I&|p}bm-v0qFW#Y1`%}anGtklU|wdP|MP!-|9NI(1vXaT
+z^*c07Zkl7R*}+}cvaGEC2@^c(IHn^J7fi?h6&-5ToxEfN16(32s-yAlCJ8qp>Oy?9
+z)scL#xeF&XstK+>$Lp*pQ7fugVgwvDo=EH^3ESuJ;Lf;YQghVp#4r`t6ONh2v_Qlu
+zfm4Wr#RcY7tJU3G#i~HM1S?nYj$l`>;f!F}3Cs#!uFT=Q;C=nqaY3-Yel>1cduoeI
+zSQA_-K&ck3lO06^4Z%DwuqBUs0#Fx(ziGAWS-~)cb-}T&jHEo{0jV_8Fbp)Q1PFqi
+z2Yf_5ZpgPn&a31sn5hMZnuc1yT^H=hGkh)(AiyPjz>9REC(u^Q$^Brfm&tOI>!Pc^
+zCr6uX8*RUwS_3x?F%A)qX=-Vr`Aon^&XMUDR=(1ydhB7yt64kQnP(&+86(*m$+*tq
+zAi&^of@9u)V_ycX3P(6R)v>C2onu&rikf!Lo@(sOw1k~mn1DVG_jSxR*!ECS(>e9Q
+z98@{Xa-8QhF&N8fY+<Y32mQ+JDqwJ)?)n|8!6Gby+X1sW*3^hAV-geqI2|yp(=JMd
+zL;eRhAKAhi3h@4>A3{+rXA<avr(R`_hp_)L6ZCd0J6&l+-rR+Ja5wUwZRESTR7i9n
+zH`&=3s#yyYBc$LxhaR04{y5hLb@euvrce7VH>hndLS^LPz{Ec%?Fe}OP45b{xj}rO
+z_%Fx_wYdoW5~?Ntb0_zYXqdaJ?F%XB14>xkioYI3>6Z#NK;0iHwu9;IthzHAuG&^J
+gr4-oygVGRaF1Wy($=}~BUjoerJAAbL$;vJ3KRykWdH?_b
+
+delta 944
+zcmY*XO=uHQ5N0xcech~Scy4V>HtD+A=I1rdpCQB;g0u*thyJKo@X$h~h$x5$D{U!K
+zr4~F?@S!47>JRF{i?9lM@!-XS;K4%=RlErWp@Ilro!vs4@?eLZ`R1GNd-FC{U}FVd
+zzr!#$j4{WEaK|xCGh?`)Fvf$HZCDa<!LZz4!J$sw%1bsdz$LQ0IvVX&m!hM4Ey)Ml
+zlQ^kST5t(B0_t<L$?_7lyb8rez*6I}m<MC~Z0>y-mrQDwx*Z#);(E+B9CQRCP6?bs
+z6f7z*r#j8v{t8wE(h;m!#yf&ty@oS_r6w>Xc(FW(^MY4v*Kt9xYE6xs=AQcE64nLJ
+zD8P(bG*3qIVGIi<$%M~wPXOwI)Nh*IdP*=%U_)?hsBm1Kkw7TT2#3RHPzewOI}iAX
+zdhC>^Z-tmwiCHj1^9VH!H80-~?8!5HE)c+zOY#9PP(&%Psg~pWp{ZWR%Wbxew)!3)
+zZEF&@TTZNj<3NZ*fTKe#Z8V<=_{cdj9sSBzimJ~VhMbzU;ypP=5P~s+tr3jtED8d`
+z98Pe|xo@n?pjF@qho?GLRKI-;i%?e6_SsXdo#_t0GX)b+<8WWcR10k%6*ZkxAIw3O
+z!z{;nP7}ScoW>Tm>Q$&ICs{x*o=*M_)nO5qz=^=Dj&(KS$WR6p0N4?j)@c`|!XfvA
+zlMigk8}j7+O+AFXT29AMf>f{4$9=K?(i4;&%S=~VC2#JMd~mnqKiiV;W)r@m1KG)*
+zR#WYo?-(Hg?>Y48wD8B-E@-H?*%V#vx9p&{y$F?-hdmPaoU{TU-J7{9&}Dn}f$YB^
+zCe-Ev^dwYA{^ySGA3@)Dvg->W=mImax@CVoh#9w3umBqFNU<9XxwGn?pug&-nkglq
+e={_h8fo6jZyq);n&GJRin#AJ$f;(BcW&Q{0=ak|A
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_11_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_11_0.mlir
+index 59657615db..d7d51de1b4 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_11_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_11_0.mlir
+@@ -2240,10 +2240,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_quantization"
+-func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_11_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_11_0.mlir.bc
+index 2e3fc977ed958537bc528c8e4d7fd369d70685ad..314cc89d59f01107e5425936afc4fd319169ce1f 100644
+GIT binary patch
+delta 933
+zcmY*XO-NKx6z0sC>+Q}<AJ=E<%$w=;<~cqu&zW%?hEazpbWsSAW(z|iQ3z=jZH$sZ
+zOi<hea*;4fv)TwI!CS^`UAS}8qM%&{ZQ4aY5ZyOJ{&3;k_wIMkcfRkOTit-_2E2QZ
+zx<L(N+%ejy<Cv!D`uo^HBereW0&&5x{hyIrO`4q+WN?rQBw0Bb?Fb843dzOj^(I@;
+zp@t+*Glg*~52J%5E0ASncWe}FS&7A()fIBira>fB5W#G@9UD>Lub6G5FvSsZhT{w(
+zCsB@RnKnDR3s~T&7ALtpu5$9=A<l8)PNB<bE?>cUPK*5uxX4MdUsg=>Y-xD~OPq=|
+zKq23lV|`g2bxu4lpj8}CIiSXgI$h_eqro);bUpYW7_bsdV3|`a%S>Dhc%agl@&5uK
+zaB>&$g(7ikf;UyEEmevWg9Q~BLlzh*%hh;$*yCu)xAAtc<X$`%b{ur%pZLwNWufJd
+zCq96af<_7viYWvPt73%1KBY)BtRbJ(E=R2qNXwU2T*Yb-{g2i?U<J5DVOPU~9J8-r
+z4)XH3J&{in#iE#qV#=JMNHyZZ6cj1E($GBt_9~ERG{_Ul1QwxR4kt6U{ZaCJV+odF
+z1)Mfm(y$~iWRfkn>j?tZ0Kjg8#~KQM$GH=#E13wC#5&i{XF-R920;BpvAwzy4?KC$
+zIb0K)a3>)vEAH%#laha&l6>*B<lje<p#lX8O%&&;vKsiM%J1Jg9$2~DH4U!Z?uxgT
+zPsnIyHO~lT`Kc?V+6iKa9gRR<6$62Pe??d!@ceD>KD0OiIVkd7m5XdHq$V#j=`Y6(
+z`WC4*NHhxAs(0ovqTb$)(<h%~zCzib&9;K!9S^uu&07uFlAApVu>5MzHDC@nKvmNm
+TzomBxm<3kt*YaQIpPByv<+7J3
+
+delta 939
+zcmY*XO=uHA6z1h+I!@MfnQm>GY~s4vrs<Gw(lmrL4N=;IB8aW^P$^<*L5e5wQqdAh
+z6<T@`%21@DtyM3DT7*4Hu08bDiw6a7R`B9Y`~h(`!TzxDX7{~$-}}DzZG9c;>+tS9
+z>eMjC9V0>=$285f;q74;4OzBf3B(1%@_vSHwrZ9u$j}fKNL)D??UGB;Yi*XG!!1di
+zW-868fW?43hz=1~AaiAJY!ofQ<Vw_t_<dn@o1C$!9|;viFiUR5M!=H4Vz%L+!x3?Y
+z;|wAvQH~kunq9pGEO1m0C%HVXaB}|v&T*2O!W5^ud=2M0EtVGWF(<{6teNKN^3pPv
+zIZdwursW%RY{1n~=R_zi4UDH8P~${p*Es5EaLoW+_g@J5s00&O;S?(}8yABDR2wt?
+zUjPJ7?f||}Aa=?pyrD*Is!^O6%%8v*GCyCDEAh^t;8>M!<DF2IyYYO`w$YY<;x~d-
+z1>}t<K7ivum_mr6gMdLbjBwba6p4n7%4c=TQELP;@}(75vF=CjqjeWp0WMJ3(Xb%L
+z>`Rz~ynJp?6f#7iC?ukgvZp9gjig`-N)%pcm^xPMS4E~#zfU9+ScH<ioXj@Phsp2Z
+zGAzL|I1yOXuq@AIlkK;f4QW^f06PMYG)#Nj&h0>x$%M}&*1dMt1s(QV0QF<TcAHED
+z2)W;Vxj{COo&;Cc(zDl(Q~q&+^7)gLe;-nY8WbtCQk<tss;`$Sy?>i^U&_UvX-LVf
+zo_I&)7>zd8(2P)#pL$YiogjwUp#}1a81(gf%fbqP@U}AdpxyStL4oh6USx9t<-E+g
+zUyc^^E!0?$2&ZAQxtW8I`uDb-0r@2R6)N6rt^*8lWN^3gTNzxH8+{3=diB1mz-+LA
+Ws-@Xpd;cP^ssi#q!FyeJX8r@O@t0Nr
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_12_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_12_0.mlir
+index 8d3f1a1405..46b5bf29b7 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_12_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_12_0.mlir
+@@ -2240,10 +2240,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_quantization"
+-func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_12_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_12_0.mlir.bc
+index 684a242efbb87b704c0d5de38aa07f84fb2c57b0..a4e3a88fb6373af03bf33f77902390ba33a23e1e 100644
+GIT binary patch
+delta 942
+zcmZ8fPe>F|9Nypl=J}kN+T}Tz?#^!G?Cdta9e3AtT~}MTQ0UUdl0b<hlt7A3fk=pi
+z35rK~NJ&JPK@?=soTQVN4j#L8u|wb?=o<Yw*qhaGje+01dEfhezwi6r>}<l$CcOKA
+zQG*)Bm}9h2$1zRQ^>;B%HQP39j<{gh{!i^jM7MLC3=L6^q#$m_(h7&Auvm;;jo6$H
+zH>Ge&l^CO9KQ=@P9Myv8ieCX+%*W#`@(5|QX;2B}gsZlA6(5n{uefbwFvAdWn&C7e
+zBQb_Kku%d>Wh^t44<p4At}-%vALkfxC(&iJSenNNj8+B~aFLP9fS5PUQ`O}atTM{i
+z0J(T!j`kO#7-hus0$R!Ohym)1$lY~@Q8butKr|XG2nMVKlUQREYa*ZE=RJ^Zs`2jt
+zATV+p@Tnwm>VluiQ5$j;BZeAGP*qd|BQ>#_XjeRjmUxqB2TOcR6cxuoNBl{QE0%?p
+zKbC9`yBP?brl3*GAfO_r5eB=IDjpIY55YaT5KGoL<ir=tlJy{{zSZ#<v@(P)QrOb5
+zEOzV>EJ8^bsayRyBAFx`k!<;9suYpx#Dz%+RVX~y(QUwcBwj&Pr$O`ER0mdIKzvH|
+z25(<=G>BAT8CD?Vw84^&Rbi*|5e{nr5VG6gp^n_2NWTmpX}KO~iMX$!Ahz8kdf<uA
+z?r2?EzVnXUUGH2xq3_54`YxQ*_q$QwHGZgXmf!7fG!apcOd=#9v`wK;$6ABQ7KxVv
+zlL$3oX1Pr9QueZToW5Ak4%Z#;WhcVm`GdJ9aK;HT1exKMY&Q|rxv;!<@jZXgkjXc#
+zo=HYn-KxxG<0zMXP5yrq=|TTqcNn1N&lD@r>K$M5IgKiAaLJa~>9N7`zxK?4=70ks
+W+9ap=Q@!s&v%ot1w*0ewo916)s+X?-
+
+delta 948
+zcmZ8fPe>F|7~gNdeLiO<cX<xBuCv=XJG+f<*Iiv#UAJ`$g)Utz36w}e38d&0h=fR(
+zpm>yrlthFXL_rqKNjmMNgU4=N>=1Yex<-Ev_TFl^#lSajzVCg%@AvzCQ`?5xHoSe0
+z5o($ft{J7SYgv|O`g@q7y6u=YM_e*(|A&4(Y}h$YMn)({k`p&#DX|*6(rR-$+LXi@
+zO{N*;uo4spu@REvsO3a=$7Qs+Ce~wSRQ0vU+oa8*DiX>G*KF~!V+?HZv%@i6bQvPf
+zGMq(ZB*ri+a#pIlh((6-VWg*k>x|6b!v#jt)0k$or?80k867As;W8rwC9!B(r^>5q
+zSZ37Q0QAIjYkVjd!3ZN<YN=y9WPk=EGP}tzf+jOeh(y$Zph6{>zzU;S5&1Yj$3eDf
+z=HCl|z{oAYClbU-E5c9Zs4Y2)5mQqWGz~SCuZZ<{dx$fvir4XWsEQBqLdbE@5x?V;
+zp{fM(Clbv;&xJq>1)ZXcfFU`JFxaCsltp6TQE^`$#ELx$S@GGnWjs{Tw>uw!UWC8}
+z3OfcCMa>z*9w-Pid2=XBB$7lU5-s0MLj|M;Ny9V*N)(<Mm~N=|$$AMjgR15?$xa-A
+zlK7bHS8rc)bqJSX71ki&Mq$OkvT#!Qum>9e5OAXKz(CKRO1%gkbGfFtguPdg6T4ml
+zIdJjG8?Q6VciooR&93Et_<jGM-}!&}{c7ZQl^^k&=XZu0MTE6ukq8M0>{1vsu+kv1
+zRo072Btk`487^JCn7O2%xGy#{qjkmmnW-Rfe>nFTPCLp&kRI;Hb_-Ek2+F;SZ~4Op
+zPrmAPPtwBf)ub<5$G#ls^8cGk4f}U{g8&tOu26zDezN4VIt_Vh$yHJ7bD-*f>6-)H
+Z0S5xKNlx)+`rm<GRcPuP{4;~w)*mhBm)!sW
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_13_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_13_0.mlir
+index db050230c2..2438d7aff7 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_13_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_13_0.mlir
+@@ -2240,10 +2240,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_quantization"
+-func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_13_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_13_0.mlir.bc
+index 847748925eb47be3dcb888d980e0c770b7fb3c8f..2e15e9c5e661d3a271416ed0d43f260473cadd13 100644
+GIT binary patch
+delta 942
+zcmZ8fPe>F|9Nypl=J}kN+T}Tz?#^!G?Cdta9e3AtT~}MTQ0UUdl0b<hlt7A3fk=pi
+z35rK~NJ&JPK@?=soTQVN4j#L8u|wb?=o<Yw*qhaGje+01dEfhezwi6r>}<l$CcOKA
+zQG*)Bm}9h2$1zRQ^>;B%HQP39j<{gh{!i^jM7MLC3=L6^q#$m_(h7&Auvm;;jo6$H
+zH>Ge&l^CO9KQ=@P9Myv8ieCX+%*W#`@(5|QX;2B}gsZlA6(5n{uefbwFvAdWn&C7e
+zBQb_Kku%d>Wh^t44<p4At}-%vALkfxC(&iJSenNNj8+B~aFLP9fS5PUQ`O}atTM{i
+z0J(T!j`kO#7-hus0$R!Ohym)1$lY~@Q8butKr|XG2nMVKlUQREYa*ZE=RJ^Zs`2jt
+zATV+p@Tnwm>VluiQ5$j;BZeAGP*qd|BQ>#_XjeRjmUxqB2TOcR6cxuoNBl{QE0%?p
+zKbC9`yBP?brl3*GAfO_r5eB=IDjpIY55YaT5KGoL<ir=tlJy{{zSZ#<v@(P)QrOb5
+zEOzV>EJ8^bsayRyBAFx`k!<;9suYpx#Dz%+RVX~y(QUwcBwj&Pr$O`ER0mdIKzvH|
+z25(<=G>BAT8CD?Vw84^&Rbi*|5e{nr5VG6gp^n_2NWTmpX}KO~iMX$!Ahz8kdf<uA
+z?r2?EzVnXUUGH2xq3_54`YxQ*_q$QwHGZgXmf!7fG!apcOd=#9v`wK;$6ABQ7KxVv
+zlL$3oX1Pr9QueZToW5Ak4%Z#;WhcVm`GdJ9aK;HT1exKMY&Q|rxv;!<@jZXgkjXc#
+zo=HYn-KxxG<0zMXP5yrq=|TTqcNn1N&lD@r>K$M5IgKiAaLJa~>9N7`zxK?4=70ks
+W+9ap=Q@!s&v%ot1w*0ewo916)s+X?-
+
+delta 948
+zcmZ8fPe>F|7~gNdeLiO<cX<xBuCv=XJG+f<*Iiv#UAJ`$g)Utz36w}e38d&0h=fR(
+zpm>yrlthFXL_rqKNjmMNgU4=N>=1Yex<-Ev_TFl^#lSajzVCg%@AvzCQ`?5xHoSe0
+z5o($ft{J7SYgv|O`g@q7y6u=YM_e*(|A&4(Y}h$YMn)({k`p&#DX|*6(rR-$+LXi@
+zO{N*;uo4spu@REvsO3a=$7Qs+Ce~wSRQ0vU+oa8*DiX>G*KF~!V+?HZv%@i6bQvPf
+zGMq(ZB*ri+a#pIlh((6-VWg*k>x|6b!v#jt)0k$or?80k867As;W8rwC9!B(r^>5q
+zSZ37Q0QAIjYkVjd!3ZN<YN=y9WPk=EGP}tzf+jOeh(y$Zph6{>zzU;S5&1Yj$3eDf
+z=HCl|z{oAYClbU-E5c9Zs4Y2)5mQqWGz~SCuZZ<{dx$fvir4XWsEQBqLdbE@5x?V;
+zp{fM(Clbv;&xJq>1)ZXcfFU`JFxaCsltp6TQE^`$#ELx$S@GGnWjs{Tw>uw!UWC8}
+z3OfcCMa>z*9w-Pid2=XBB$7lU5-s0MLj|M;Ny9V*N)(<Mm~N=|$$AMjgR15?$xa-A
+zlK7bHS8rc)bqJSX71ki&Mq$OkvT#!Qum>9e5OAXKz(CKRO1%gkbGfFtguPdg6T4ml
+zIdJjG8?Q6VciooR&93Et_<jGM-}!&}{c7ZQl^^k&=XZu0MTE6ukq8M0>{1vsu+kv1
+zRo072Btk`487^JCn7O2%xGy#{qjkmmnW-Rfe>nFTPCLp&kRI;Hb_-Ek2+F;SZ~4Op
+zPrmAPPtwBf)ub<5$G#ls^8cGk4f}U{g8&tOu26zDezN4VIt_Vh$yHJ7bD-*f>6-)H
+Z0S5xKNlx)+`rm<GRcPuP{4;~w)*mhBm)!sW
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_14_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_14_0.mlir
+index 9e25d0177f..4460108823 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_14_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_14_0.mlir
+@@ -2240,10 +2240,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_quantization"
+-func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_14_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_14_0.mlir.bc
+index 4b48cf0681aa84aedcc60e16d351358b40e92e13..acb4b340f6eb1ed8bbbbace194704a143edf0bc3 100644
+GIT binary patch
+delta 922
+zcmY+CPe>F|9LM)Jzj;1qN8Mh7Zo9MVFgvc}b6wX}7ZcgaLMSLq$&$z=4H1zJ9U@Fp
+z)Ud=;Jo<Byw2&Z3g1IIXK|#@>OQ-N66m;ki5hNnLSs|5y-{bLpzwi6}zHc^`U}Fhh
+zzQT|}4da4igsJ10rs;Ygv4#e1+psy}v|)RHgO@6FJIzUFC*?>o;&P-$<uIp++mW6M
+zo73YZ2^`X-#;Eun=_DDBT1KR!XTcVe(da>WgjCwpuY_{KHCsH7c1v+HY8y#RGDI9<
+zID*JXgkf4Vnl%kM%rTT7BiR<b$H<LwoM6NqM3>QQ%PpK@w5@#_XBla07n7!0)^TSZ
+zI~e8n0l8Q)d&8L!h8Rhud|T=9kOAsU;#b6~be9o~W1dmWi%g84Pk}t88KF=J4JiQv
+zBcp(evd1a%J(kYP(wPxM^9?l(HJ>}r$kP>k#t^{AmH2>Ta>W!wORUBYfhFF@vZ~{t
+zBer7ws%4?&^~Zlg@>HOlLXcuowy5%c!r%j?s*G62qPDJMQjA&WAT3^7aaq^>>TOxG
+zpp6EOQdre7C+^y(mBC^0#V+L1MA}FzBCQ%rshUQrlQVAuZ4{p9=<ZRQrJ6-er?PW2
+zQLS9PCgu~({<4<XV%MWeLJ2rwnA5R?N<VR+H7uIaYJ^JXg6v)JdwY5n2-snm(UE)G
+z&Xlr4b<wAqt6i=hhzCBG0EYJ5`%d<ze5$@a(dBmg;1App7!cd;&3*WP_TwMfkH5JG
+z|3zI9|5M!+a7C8KAuqalC5($<o|Ks_@RQpAq{UZ$Ob+Q)*Pl?J&l_r(fhxyO4CGv^
+z8dXh1Z9<WcE;iG@cXRj=+@FJpX3EQYW_HH^7L-5SwsTmFWqv{4D>T(ZWoq|LYlBox
+m`fr*Si&+aSZ!KGZ(yp!mmDxC+)A9&P^ZDY=^4_*Cng0M{uBQ|L
+
+delta 921
+zcmY+CUq}>D6vp?=+3R(7)a^FtwmZ8Hv*Wm4*Ku7}F<Gp(5DF4gqBLqrLqw#99wJOq
+zR4~P-xb){m(n5kD3FbAS2nvcGdg&>A5ej<fAtFdbx}%WFz`5Le?)mQTd}lV6U}Fhh
+zzQQoo^^3M1p|))pMoRZSVhs(MmTq#yDc$t`hAvlVrprm8KsgduT#eR<xoFQ}lhczW
+zNgPz=F{2!274bb<ATCGM6>jVtm|`Lp^RJOgi~5mJPPl4{=do^?+>BYejW$EXVTQwq
+zj6@lxMWa#Eki#59`7x5o;yp%gjo~;W&Hy@$X0ms1lF`<-DV$-XwM|SIMp^sad2DAi
+zbssP#R*c?=8^$mrTsE<z@sI&(Oww1xt2BoZOkkc-%!^E%U*I5bsd_jZMqQ==fsqlw
+zMOkAxKHp=hyeyR&(N$kiRZ;cN^Nc)Q!DkEsd|ZhSI4W1<3_HYX{0MZ2_wj7dvd|J+
+z@xEY()b{!kKf&n?lv4;%v}H+9zE2o@pfo5Q)^I1cuAwbP&GV2Jug!#v>wfgM%o$LJ
+z0>>$=YM2vq)>-AsfcRn+Thm0!NGT$v8cS)=MXHfAZvt%;o@nUo%Qnkw7FCVP%8_KX
+zGICwaC!76cExE;R#FV5Gup=<5VLO$2;!sOOG`YbjmC8j~yWrP$^(qjsA~3CC%G<Ul
+zm0hY!KGkgPa&><q@VNvqyzkw2vNr8g_4J6&RJRZQAT<pAVmo#F0REqY_{R?7Z|=i?
+zQMZHtsqPv$BFhty7u~!PZi*r9NY57dY4yL;;wwKPoAj#dPbtvj4K_?emE}7IvaeN@
+z1`R}YT#-W;o9^#DAAW=m`XFMN^0Kb!-S)qQ<PW!P9~GmSUy%2TP4!U8_hwofqCv->
+j>6lo|n$Y2`Ws6W+C<LhV#`5gkBPbn%ogH{@Tb7J}$;_ry
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_15_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_15_0.mlir
+index cf0001f2ea..6a1a43b877 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_15_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_15_0.mlir
+@@ -2248,10 +2248,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_quantization"
+-func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_15_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_15_0.mlir.bc
+index 6f6da967ff4d7fc540769f5059f00a716e0969b2..795ccbbdefa222cb819917799d11c2a53477b976 100644
+GIT binary patch
+delta 934
+zcmY*XPe>F|7@u#xc|ONk8J>fGw$-(9T$XiPw#AlJWZ4FBF{1Dfnir!DWf3VTuuw@;
+zi^#gvL;6EzA`%fqFxM`fJanioo;(yCi}2DR579Sk);7cNX6Ajr@Av0>I}5P00I%oN
+zfOW>P>bc{DLZPU)tnO4mQWo{7x~$5(`Z>9)=U6g^dQu*%+O;AW5r|k6SVR;oBrqW}
+zM(bc2(*o%hEY*(p1iLzovw}qn7!^F#ehudZ&vY)}l3<xmyeZINU<i89@Y_+R2|y`$
+z*R9*wC3tKFFeYCa106{dO~K-Ezl1tJ5I_h<e;)}n(GrFQrs=;h^tl)|V^(m?%8o#6
+zJ`M!at%CwUDDkXP6Q^Wjji}a%N-#_J8FU?WUr$!BjZJ(m5WsguE&(TL#kfElA%!ov
+zvVSdJcYom?)d1Rp<#L#-70h+f6|7r+3fP+Cpd(rJh-TYpdxh%H&~iel&V!2)!f2$B
+z^+7k+qR0#^?et(oj+v*M5{x#ffKkC9*W$<xmbMi$4?`6Cdou(H@2hzcDkqd&9`0aT
+z7DTUF7?&@_NMAX4?GO0WTP2f+b&QrZ-r!mib%Phie=6xbtl&H+MxT}w?Izb!{_cfK
+za<C?;(sHBbdtmC2+M+7XFl=F$oU`Ia|9}dLJq+(?Xxrfq@0)d0)k~_XRFV~`dlnvT
+zQa)Aynq|~&D%TResi7hHrLNCco~|##s9dd|PM7Pyd{DS=;EMX6gBjW_i6s2VhOjSk
+zvSAFO@<T&YeYTA6aj6ZtVbf9zMj#>Eg1wao!;mw<<An9z1oJ8kdDyrFb&j6{P!8vj
+zYav8^R;808pEUib{+q!vQV37OM*{te`yt#%jCtGPI6&4@54S;W{NJ4Ss87Tnv@2b^
+f8R$INXQ8sEN8yx><88G(gi6;fec4{Ib*k|<tSOyj
+
+delta 934
+zcmY*XPe>F|7@u#xdA=QIWq1y{+UnZ4F3Y+t+hWTq%d!pPVuaxzGCe447>h_jfrUz%
+zT10lrhxCWcL?j}JV6I&{dFW7GJb5TO7Sg3d9ing6tZjzj&Aj*h{(Qf0_7-7p5nj!!
+z{&Qg~z{BBSFc`Jm6?Lx)60)R6<*GieuBdWfcUU5ZdP1J4{$_<SED*6Iu!JaBP+(kU
+zjJBZ;><~z|V96BT6YSay&IuMNVnpy{>N+k6p3W@dvS8^9-V$gqFa$klcyz=x2`B~c
+zx_t+`1dpx(M&(OmurpzzDOfD#l@RlN0fb<*`%s{XmM|<ZP49)Fr^T=Zvw~w*cKTxr
+zF(8<39TosWS!bO{?1-nkK~kF}C77jq3c8NEx1SYkYa5>l1n|0|E&-=##hAbxLJFUA
+z<=|Sn;rzm%R0Eh3ET6}GonVfGj$qyLqu<tS8*RyIMzkEsyTzJM(AuNa6u`kSVKj2c
+z`k|X^QDg>|PkJycC(JX=aYlz!z^Gt|YjNZTOWTTBfU^|(J2MDz_ltQ6d>52_0q$al
+zEQ(%rtSDcIk^V~X#vkyhH%g`en;5Ae-r`ykb%T!;e<<k!tl<JDMNgKK>^9d@-s$8;
+zIaHfeX}MXu@4tLRZB>=<FzjHLoVVge-=GSLJq&MYXuF|K_p5bW)yuA`Rk9VSe;OKX
+zRz6e#nibORD%TQTQv(C?bA7+(JRK;(s9X=sq$~YjIV?PA;Hvsx2eWiqHc9x?4I$6u
+zRKo;B<okx^K(<2fQJIFiVbfA;j6htrH}?7thaqPhPZHLB-B?gzz{RFzsJFcwfO0sG
+zTni%Vb1MBg@^SO`n!g#WAcgQGbj;tkbP&QSV$|IY#R0OedbAztV*lp+lXxQDpl76G
+fw?NJ<+T-AJ9EDRhw!72%0DLo0{sOnuHr@0aJ*b?V
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_16_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_16_0.mlir
+index 16b2527a3c..14cc3c0549 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_16_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_16_0.mlir
+@@ -2259,10 +2259,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_quantization"
+-func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_16_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_16_0.mlir.bc
+index b9b4c99c6a728ce95d8385545a135d4c6bcae444..d2ec74d21984b8af366430110bb9e1c494c727ad 100644
+GIT binary patch
+delta 877
+zcmY*XO-vI(6y7&)hv~Adb-IyKmV(=*X=-hnLK+~Xfof<pQNv%63r742g3*K+V~_}1
+zq6SSgIx+rSPzf>IO!lBhJ##Q#6|Z{IV2l?I#+d?AH<|40y!ZXg_jaueYh`#{CVuO<
+zYlWHX+P0nW?vafe$cP0aM(z-?Vw@C#+HRUjqLC5(wd+<K;~WvkIgTT8Y6mebhRl}1
+z9OgI%G017Q4IglNWg2HVO^jiJvuxWnoa3y$^9Igy+TMvbIhqtqE*F}LPBKjZ3eLK2
+zFJKpE$wz=mv1$%<WH@q8Qz_LVnIChI2r5sX$^u&4w19K9p{TSdHe;SM%!`sg2`Mq>
+zZy0hbju$2C3(3l<WhgSkKtoCAIbB-DR~!M<1#G#&^BiqVadZ%}xWcr}r+mHe2REcD
+zpd-Hfv%2e|D`J5W-Eq+IW&>X#c32A(p@4DOqXQ!CgM&;@AT_a4>BYFX6+9MAQ(2S^
+zR5lDUJ%!Aqxu_N_LP_TNGiXEF3+%oKz6q_n2zN0j=J_cyc2<1jBdyior7iH$_gZ@q
+zmN8L9{EF!rG)yL8Q=vw3VM^Q&Wz_3k=!gGu1BnsM9fnox5^GJa_+t6Y{s97-GYlUv
+z>8)Fn#Hh%Jh}1t__q=J;(LUCI%x=egD`9$Cxi6K36Yf(MFNMcpRD2Fk=c<if-EQ1;
+zI!peuT9(!9me+;)CS`J^{tP6<u1GYTuhM&2p^=xO)8arR4ry^Na>%!xx_BGukyvjd
+zQY29F3XStn=c=4R<~)f^w-JpQ0&;AhqQ3+GGI)rU5cd1~%bNi_L;3ryTOHy^^DoGI
+xJ$v`Tp484viO%%68frnzInCgBi_Qt~_4aB^#^ZX_eFDBhq4MQ;%Pnsj{{mzto8<ri
+
+delta 877
+zcmY*XO-vI(6y7&)hv~Adb-IyKmV(=*X=-hnLK+}VBh}DoB8KuO93;V?AQ(-EF{Tnh
+zOVpr=MkmIf3o0Rm6DE7mqn<e!uZmYaX)wkM2jgr3shezecHaAb=6kbVhV?SME)(xb
+z+Xyn-Hcc~TIQPkB4J5_977?r3D7j07UYn=MIBH2ztlcndv^gS<a~wzH)bwLQ4CpQW
+zZP>=qkA6;5X?)1()e=r~8XdzZXQ}jcoaHRjeiP?7&9vh!jyeUM%NKQ*PBKjZ3eGz3
+z%ws2KvB!Whv8MNRBsp?U<8ik|GC$!U5mfFzlLa)mZUE=*f}*QMu^F?RVO9)!;}93K
+z-i84y>Pjp~)|Zl%Q$usfGz~R(Kg;Rj5-xKDa1UV01zzB2Vw__RA&o0c*?P)1@_%qs
+zssiT3cW+v?EVM+#H>~CW!I|-Wg-EyJD?lD?*`op??S&&ujUm;sQt3up-1eUcC#WpS
+z1}Yo+nVLYR(@a?L7hq84`O|Mg!tw3B1fFxsp#t2)HZjLflT%~j8y{}11}|=dkG)sg
+z3$TRID&l3Prcl$FgiQq+$;3tRAdqrD?*c!(Qw=0S6nhBPuv4rz+2V`g(R=y`DAo{s
+zz?idPOcJdkA0SfyOx=s75li`412Vf^^R0xbN!NX`D6C+wYw>b$97e?FU@22=^x972
+zmeU#XpVhLgrnkM$*EhK)SL)9~RO|_bgV`#*R}~t0D0)R44n-j$&WDbAc2XB_LtPT<
+zY=#O1icY?94(cp7XOKBhB2!I7ZJK}_+o$kv-@gnVVI_ov-k$PS0MAigzYU{99B=*w
+yS*L6N0oWJcoheb78g++S60=q_<eUX-6g>I7!el&_L+z*FDM95AoTZjGjeh|GhMOG#
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_17_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_17_0.mlir
+index 5b06671a35..5f5a4c8a71 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_17_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_17_0.mlir
+@@ -2383,10 +2383,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_quantization"
+-func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_17_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_17_0.mlir.bc
+index 8f459cf76b62d1f070d0f279ab6943555b8338d2..8066e685e9032c25113740917eab9b7259813b80 100644
+GIT binary patch
+delta 935
+zcmY+BT}TvB6vyY>Gq=05>$u*gRd<JN)omKbZCkcw5!<A;%_R%N2nz!vr4o~}5Q311
+zJ}m5mpzA}>OBU6OgfT_=68Y4F1PK-tk<derK@TBBP<M2tZ7$ryo%8>n`@83S7=sUE
+zFf~qe<A7}#H7p)yrfG@^G7o8S2D|0{4tK0c*Ar#=TZyr>XjG>m?S56ms#N{<Wu=Oi
+zR8Wdi)uzn{a}LetncV7`gET7|{Y~T*5uN@X@zlS?pLHmgY1Fb}(f_(psyWX&nr7vr
+z(xhqfho&)yZC}-Zee$F^y}g9w#6qCaaM0n1IK*)Xk<%#0jEGdM+t7-w9OdG)xdrcX
+zdTA7|a+>JJ1ZT}HV|bmjt@)dHi_@)nalFE$$$>#kifa{zYO)3zoTgG<J!zicfB`P4
+z|5Q{55}aZj3!Gs=)aeeS#4dfK-?lu4Va}4`qTUcKaQgfOPICnC7$g(mSs5|K(GoLy
+zEm-1{o>pxeZ4s>8&2t<>7~(jBBb-_mTJB)wH)z<a=tan*Bkd|6(oQHa)kYe?rA!+-
+zVz_EgG(%-l3aAw9V`>6ffVR{t!6J0YW_+nKA>;n4ItjkBN}&kXu~nQ}-A7KG7W1nQ
+zZYnoFD4Dz7D!C#&#6(%)$4pJ57GTnL*ocyI7sPoZ<%KEZdu8|BdnLRdW--YmhL{PN
+z?wd8wh_-ZLgvc8&*W6n>U@3E}0FAP$n+a2s9&b;N*k0S|L5<h;!+`i*JCZF&ySO4;
+zX1hZEgS#fPnG)S(IObu!4Ihb>^WR@7K--k*B0M5;fSr*LjEZ9s3o_zHWT$VX-{Ny*
+zo2=okHH!p#+@sMnskXfigY57XWU7g%og*NpHyQgGEWQ2-{(HWdt<#~~{aE)Bpy1wa
+wXo67c-xSxYOtri*wu`xV3@rCY{1Es$Ius_`W4i~eJK$??UpiUt;`)W?UvT8H_y7O^
+
+delta 935
+zcmY+BUr1Cz6vpqFbH~}c>#E~*{j<xu>ULeP+qP_r$R=j%=8{EWgo*`{l8H$fNP&n%
+zmWEmcjSoRDSyV4l!Y#^|$fq7eNHC#@gdTbfdI%wcnyV{rcVG^4&-b1A%{l8+us#I~
+zv&7vQ()AJ+3^Je3r;9nV22pVpyX5`>4;Mu%iL(9e#6VQksEZJ_zNuxZRQ++(Nfphg
+zAQPpkMO({Hm^7JWa;sz}(zvK`)`|}28S<8h7tVvuxJkK8qZSvN&UZCZ&3VGqG$ZMk
+zCQXw+G>w_8Ij0JH<w-MpdI(8~4OfjG!VpKqA&x_coccM&gg1B3-Ue*oC>N)7_4t6(
+z8xweoQ?nmU&g$x?aE7zSraO3-)5a!oA=gL41A`bA)4AOxaUFF|BN4lvG|zEB7njt3
+zbBkRjrx?T}XP6WfZWAKnsC%E&Fl>fl&cb5cUFA=5`sy_<as;p$Bop9>j2PjV5=-t<
+zNQuwxm}(eki2S@`Ji*a}9*(0p%4rG^tiinRP<32!ry+?UX;%S}wn2)iA*3$c%Cule
+z3>Td6$EZw70hNMNObsJ*(L|+^pN4kXjIRYgh*`f2E`j5Ul1jr2Hi*lGy=35`SSvie
+zKim8`V?Mc}G^F7PnpuUPF*Syoi%HvA-A_iw#5Fx?hXwsdUi<1trK|&%G0Y@}Sn~L+
+z_eC#>wsoPG$Qy5#JS^`sl+_$SJ*(;g!qkY(+tnqSOWSOy+0uUK6Msra>$1_tcZAz)
+zljJ|RX_<{@=;q4;Hr7hnxj;7mqn!e@MOjS4Qz8f0=JmjJao%e{Ox*S!aqRS4eDNNV
+zHLP-9nn0J;=Z}$M!|pK14o@OeeTdo^0Xe<-z_0ww>!0K9^Tl$78``Z;6>k8N*1f7)
+u@I-c}SgkVEu*WzdR)YaZSwDl_;Am}Cm~4+>bsG1<F#%gAur{kV{Qm&gkg*&9
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_18_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_18_0.mlir
+index 77aec23663..03a798a8c4 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_18_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_18_0.mlir
+@@ -2382,11 +2382,11 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+   func.return %0 : tensor<*xf32>
+ }
+ 
+-// CHECK-LABEL: "type_per_tensor_quantization"
+-func.func @type_per_tensor_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++// CHECK-LABEL: "type_quantization"
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ // CHECK-LABEL: "type_per_axis_quantization"
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_18_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_18_0.mlir.bc
+index 7ac3ab342767d1c4847bf8e4f17b6a584728e0e2..ed1b4ed419907bdc2e9db743333827bcece829cb 100644
+GIT binary patch
+delta 991
+zcmY*XOK1~O6wQ5ip06|0*gmH*H6hfr9mi>mVT`ecSTsh1B9;1SwQ3bbP!TEOMu~zJ
+zs#vKa4@FT>5XBFOI0$~I3l}1O7UFN$g$rE>f(th;#5*;`I0JK;ch0@%oVoLH1YV86
+zz4I(=ZE!3rD%#paJRVoq*eCE*1^emw0hcv-Nf!EhP1Y7qrL{-k`Cqk}8nNp19I<$n
+z1=UKdHTwI8g3F6VL64+xk>}KWqk}zTYKt+T#*9Tq&gGI|)N=~W=d+0|Wx>^TyO^LR
+zU8e(G7p_=3r4@J3o9=Gk&R9YHFdfT9S0dt|#6d*K6B4s3Ro_0R3%exJEqP}iuSh<8
+z0#8bw+Jz}8I`gM+REovLGk8|=#YI)AkMs1Ny_i;)>bFL77Fv>LGQm7*zAgbxNv<2i
+z)6JCR*oGx3u%x`O3mLUJJlAmSz{3G4(n^I}7nCG_^aRHw0t6n&6W}4Ln2~5Bcz8}!
+zzt7Oo;&1##96(!r3wxU5prd9^T_p<=BN&lb!HVRzjkbSys=-><gu-PgqDu`LAo3n4
+z3C%%n;smlBU3If@bw0}pBmyVGI-#Xdm^_~hHI$(jYq1UgVf~o(Gjb5>4uwi(IE7v6
+z#<U%5-+pCSn-aBc*Q#y3Z$gDKT*s6;W?9L7`#V@DUxte~Do8re7o>knXdddOIC4xq
+zuriFw7wfyx|Mo*@MjyPwv_IbTj_DJUF-Dq?qgP>%+T0vx0|V+{b5CI4W%DjNn>VA<
+zS8HR42`wE&`|IO4!&FV~5kj+p@T9M`?0;jYCkbQ;V>=<GcE=LYQq73l69P1X539>D
+z8?x$IY(?GV4%D>x5{l!mkCzz?_?HqMo9+aufl?nwp~VsPBMfMxpId&K)x>v^ezWnW
+zHsd}qwgvwB{f6X2fRg{BwF4rVf2*CP3C#|6yHbhv7O;J%eJj*;cZb9j8tRYQ7eEc$
+dmRjiSHlJ?n<7OlrwL5M9j`KR=4|Tm4e*mxew6XvI
+
+delta 1006
+zcmY*XQD_ub6y5voJm1bt*7%&P8+TdaZZeLObzP=w8kS|7PPbhOQb}qPT?2~2V1w8#
+zriIEXR3R24X$g;(77Hy%q*@ShC}^cW`6#8aAELH@e)yrFAoRl@Kg2t67uOkhmwD&h
+zcg~snR_5W~dARZ&i|uwSD<S&(MJkoD)Oq$F6jT%IwBE&cdkPsAdHJ+!UqR)y>re<D
+zYMV4-MfD+K@fHhOl~`l?o$iv$eP7U$5iatg+HMT0DPxi?Gj+pw%P6{B5{!CLq50<)
+zVoO<ab=~&U)THaQq3gmG@2tt<6n*LLfdh<{)c>YqIp|14Y)EV%N}iVJsa)5<)-skQ
+z(kuDUF#aU@+*f!;a`zCrQVb2B#RVxUBj4bn<dqTC>`L+6%wf!_b6xuqMGGy-^ZD>R
+zYF?6nrX<(vVjE0Xa_mQ63iOp1b0M!LW7`bd4n53Dky9#`ebblx`VIU;B0%VYJOLh~
+zig}4u1P{Lzt^afCOaD1OBMx9yJ&t*rZKJI=t=%C@65|+`*u<vfRX_-iuQgcqgGj6f
+zK04H(0U{rTs?Z$dCaxmyp`(6Tx3lDN0*SzhuuEt;6ecfaBHc9@$4+ebYgiq<pdcF%
+z{X9~w!C5S;3+t!Y%n@Z+d()k5=UZ)K|3u0)SVC8ww5-g`kwF$I)!+wQ5F{Py3(~(R
+zG!J!C96O<YvkHvL1M7(~e(P>z;{>c=F1Xioo9U~PNk*E#Cw_)$HQAeD^}70^cQiEc
+zckdzEdt+mBqSMAHCbWDQ?WK>?4Bd|0^Mn>d;kK_2+3Uu>ZWG87CJ%zEK2D|+e#a4)
+zRt4w?ep3CIw82x$$@in}8L0KCw<%8WQL4tE9-K>iY=a%921<Pzg_c6pPcWc~-tT*A
+zwh~`Px@Px!`i-l^*dO{E54tng0Q}&u>>$MRuSUCB6Pg{)c20?bKBxxHz&=p6V+G&a
+z3lN=yh*(2vD(}pikM>M(GagIW!{y*t=Vsjabo%K2&!#__Z5&mL6)QMXSr#t<vnsi6
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_9_0.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_9_0.mlir
+index fa9f862417..73fa3e24dc 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_9_0.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_9_0.mlir
+@@ -2219,10 +2219,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_quantization"
+-func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_9_0.mlir.bc b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_9_0.mlir.bc
+index 805452951125ee099c35ea3774a62fecaca96113..b8ebd6b5f8835df3a28981ba73e5c9d2828ce4b1 100644
+GIT binary patch
+delta 940
+zcmZ9KT}TvB6vsJx_U>(VTID*n+s>@s#&Mm!jO)5C>$WXRXkcWJeLMsShLR+`ghYu+
+zf%sOC#En2y!lxjJKIW-<iG&_Y2!tL=h&~>J9(?erJG+o>44lKAbN_#S^FOn`0_!XA
+z`~@}})G*FFMuIwyWm&HO79%uj+lDO==MCH6i1sz<c2<yq0V<H>WGvYk7H~5p^T{(!
+zwxENN4xG@`j8XX@StL1uT26jQo(5ZT(`->!$N`%Ml~6&1X3LZ2h#D@Nwvom(L&R~0
+z<A{tT8D`~2v$MO1MTY8OBwxV0j7(p{>x{Ug=rWow%-}4erScr!Vx&}-+_Lsp<`=NS
+zs8|FPa>zQH$Ted#Bc2!7Dv$dNP-hDNnHASvMz9U5jAB)8SOPq`W0@7FhO(qgmX!%3
+zh8Acw4YdHV%E;;?Tw@3jkSS8YN!8I~$mK}tAaFUA%7+~X9l4r17Umqe|2?${P8wnq
+z{zNdXBw;`#3|>--M913Xwd(Rq`v_!ZmZwx54yu2dUj?lQM=9LVu_(6=9mhNrq_8iX
+z%M#_HoQQIY@1sa{;=(ADDBRZ3-7_@RP}8Z>!3-2BT%kBil`ardC2p_JOHh`Zb`J)f
+zcKnW2U>+90Nx+1T75OyV(K=MWC}0r)>;#PIDEzWB8LAWZ2ZWE)OOTTTT_$=e(Xp-*
+zHQpy(7uDOSd!vE+YXh~}Nd4_U>g`A)_0L`EPwqrv?+0(!eG%H=6@?ZZt9#Pesp}A`
+zaw?NnLEp;^YX6oaKWB~v3HWirL*V)S-ZZp2K~kWSdZ<xEZ7u|AyKlOG>_+rHT8l`;
+z1T5FHc^6f`VA(k=t)5>{^)VL*!`oebQ?#~vF1vf%fcwL}r$BSS0UA->{#w2W8V6oG
+Ka(}DulJyt8S(h>Z
+
+delta 954
+zcmZ9KPe>F|9LM?X&$q9cX_e>LZacF&jpH~z)^T08b=#ID*1*Uh!wx}$p(I(CkSH-J
+z5N`!Zya+@kJOx4YXHL~65;~R;2pvj@{v3l29z6AC7t)P^_jvF3zF$7S?{C&uV0{Ii
+zzrZG{>*pLjK^@05O-~QrVw9?uty>&%Ublh`wXadLd`>DA%8~dYmh4bX4nq-+mCIb%
+zhAu{uhnp=<2cqpbp~zQ^a<~~050ZJ}b5wlsA$bNYVHrmFj2y6OxDv_<S1fVL7?#Cl
+z!`2;i7$S}{97kj%$uKQG8Xes^%rTT7BbhATWn}sqUT4G|MVHY`b_Qn|%@^kI79;tB
+zuuOA*aee`djCzZJo)|Po5`GglF~Vg}Rge1&P-C*0XJ%Y;8NpU8F^VOzAv@z@$23Z|
+z8=@>plVxebh^~ZMML{LJFEO(E2-g?_gk+Kwa8mBb8J5Lx>L8TGR4UtG+h~i`)bWNg
+zAOzo2o8UMQqwpt+j+8V2B4O~7QY0EyE3f4)zO)TPTKHB<u0!D(T(Yi$l7nLu?r4}3
+zTZc|y2C{<N=g+2zbdgR(I>q-<q#AKy6bck>Yv}GN8nUQpRO(;`@)WL6oTXA1im4R0
+z)#`aDh)uf(!=1MOjul}Z7QjisgoZ`&)NgMYtUdH#5diE2jA`fvMQ1WnBkT_eAG=H7
+zi%O?~VWMN5C#$?qIxomu)w@wg{k4wTsHgt+AN6*$p8Dr5^(Sv4x3}T#nlC~tyrR&o
+zVQEhqJ2f3bNlbOQGU$6<1IoYQh|gU|!vumjw<5rU{`54o*kMv2lX|F7L}e}la=LH2
+zf9yu|UadyNV;(HmvU#V<U$E#L5oXUXC<T~_gU)wH->6ncUl!fHtxyhzdQXF5gAFt)
+Uy@R!E9+a{)3Xc$M^<6ao0<-j)6#xJL
+
+diff --git a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir
+index 4f0822483f..49e87338c0 100644
+--- a/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir
++++ b/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir
+@@ -2388,10 +2388,10 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+ }
+ 
+ // CHECK-LABEL: "type_per_tensor_quantization"
+-func.func @type_per_tensor_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
+-  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
+-  func.return %0 : tensor<f32>
++func.func @type_per_tensor_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
++  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>, !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
++  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
++  func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
+ }
+ 
+ // CHECK-LABEL: "type_per_axis_quantization"
+
+From a09e8f63d1a120d01fab2fd0bf879e8721f1d00e Mon Sep 17 00:00:00 2001
+From: Abhinav <agunjal@google.com>
+Date: Fri, 23 Feb 2024 18:12:25 +0000
+Subject: [PATCH 5/5] Relax per-axis dimension check
+
+---
+ stablehlo/dialect/Base.cpp         | 13 ++-------
+ stablehlo/tests/ops_stablehlo.mlir | 45 ++----------------------------
+ 2 files changed, 4 insertions(+), 54 deletions(-)
+
+diff --git a/stablehlo/dialect/Base.cpp b/stablehlo/dialect/Base.cpp
+index 299b1635f0..781d7c0a39 100644
+--- a/stablehlo/dialect/Base.cpp
++++ b/stablehlo/dialect/Base.cpp
+@@ -67,15 +67,6 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
+   return success();
+ }
+ 
+-// Q: Quantized (per-tensor or per-axis)
+-// NQ: Non Quantized
+-//      tp1           tp2           Result
+-// NQ             NQ              tp1 == tp2
+-// NQ             Q               false
+-// Q              Q               tp1.storage_type() == tp2.storage_type() || .. 
+-// Q(per-axis)    Q(per-axis)     tp1.quantized_dimension() == ...
+-// Q(per-tensor)  Q(per-axis)     false
+-
+ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+   // Get element type if shaped
+   tp1 = getElementTypeOrSelf(tp1);
+@@ -101,11 +92,11 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+     auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
+     if(qpatp1 && qpatp2){
+       // Both are also per-axis quantized
+-      return qpatp1.getQuantizedDimension() == qpatp2.getQuantizedDimension();
++      // For now, don't match dimentions, Per OP verifier will do it.
++      return true;
+     }
+     // return true if both are per-tensor quantized
+     return !(qpatp1 || qpatp2);
+-    return true;
+   }
+ 
+   return false;
+diff --git a/stablehlo/tests/ops_stablehlo.mlir b/stablehlo/tests/ops_stablehlo.mlir
+index 2d2ca1d014..3a0063e63e 100644
+--- a/stablehlo/tests/ops_stablehlo.mlir
++++ b/stablehlo/tests/ops_stablehlo.mlir
+@@ -5393,16 +5393,10 @@ func.func @is_compatible_dynamism_dim_mismatch(%arg0: tensor<1x?xf32>) {
+ 
+ // -----
+ 
+-// TODO(b/230263270): For stablehlo.add, the plan is to only allow fp+fp=fp, q+q=q and q+q=fp.
+ func.func @is_compatible_quant_mix_non_quant(%arg0: tensor<1xf32>, %arg1: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1xf32>, tensor<1xf32>) -> tensor<1xf32>
+-  //%1 = "stablehlo.add"(%arg0, %arg0) : (tensor<1xf32>, tensor<1xf32>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+-  //%2 = "stablehlo.add"(%arg0, %arg1) : (tensor<1xf32>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+-  //%3 = "stablehlo.add"(%arg0, %arg1) : (tensor<1xf32>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+-  //%4 = "stablehlo.add"(%arg1, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1xf32>) -> tensor<1xf32>
+-  //%5 = "stablehlo.add"(%arg1, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1xf32>) -> tensor<1xf32>
+-  %6 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+-  %7 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
++  %1 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
++  %2 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+   func.return
+ }
+ 
+@@ -5444,42 +5438,7 @@ func.func @is_compatible_quant_signedness_mismatch(%arg0: tensor<1x!quant.unifor
+   func.return
+ }
+ 
+-// -----
+-
+-// The following is the not the exhaustive list of ops supporting quantized
+-// types. The list will be updated as part of adding verification support for
+-// quantized ops.
+-func.func @quantization_supported_ops(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, %arg2: tensor<!quant.uniform<i8:f32, 1.0:17>>) {
+-  %0 = "stablehlo.atan2"(%arg0, %arg1) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %1 = "stablehlo.divide"(%arg0, %arg1) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %2 = "stablehlo.power"(%arg0, %arg1) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %3 = "stablehlo.remainder"(%arg0, %arg1) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %4 = "stablehlo.subtract"(%arg0, %arg1) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-
+-  %5 = "stablehlo.abs"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %6 = "stablehlo.cbrt"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %7 = "stablehlo.cosine"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %8 = "stablehlo.exponential"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %9 = "stablehlo.exponential_minus_one"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %10 = "stablehlo.log"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %11 = "stablehlo.log_plus_one"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %12 = "stablehlo.logistic"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %13 = "stablehlo.negate"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %14 = "stablehlo.rsqrt"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %15 = "stablehlo.sign"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %16 = "stablehlo.sine"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %17 = "stablehlo.sqrt"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  %18 = "stablehlo.tanh"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
+-  func.return
+-}
+ 
+-func.func @per_axis_quantized_ops(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>, %arg1: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) {
+-  // %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = array<i64: 0, 1, 3>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.5:-20}>>
+-  %1 = "stablehlo.broadcast_in_dim"(%arg1) {broadcast_dimensions = array<i64: 0, 1, 2>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) -> tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.1:-30}>>
+-  // %2 = stablehlo.reshape %arg0 : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
+-  // %3 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>}: (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
+-  func.return
+-}
+ 
+ // -----
+ 
