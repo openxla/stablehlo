@@ -255,6 +255,19 @@ bool hasSameOperandAndResultTypes(Operation& op) {
          llvm::all_of(op.getResultTypes(), typeMatch);
 }
 
+// Helper method for E2
+bool isCommutativeNoRegionMatchingDialect(OperationName innerOp,
+                                          StringRef reduceOpDialect) {
+  auto innerOpDialect = innerOp.getDialect();
+  return innerOpDialect &&
+         innerOpDialect->getNamespace().equals(reduceOpDialect) &&
+         innerOp.hasTrait<mlir::OpTrait::NOperands<2>::Impl>() &&
+         innerOp.hasTrait<mlir::OpTrait::OneResult>() &&
+         (innerOp.hasTrait<mlir::hlo::OpTrait::IsCommutative>() ||
+          innerOp.hasTrait<mlir::OpTrait::IsCommutative>()) &&
+         innerOp.hasTrait<mlir::OpTrait::ZeroRegions>();
+}
+
 // Checks the following eligibility criteria for compact printing of reduce:
 // E1. The reduce-op wraps a single inner-op in the associated region.
 // E2. The single operation is a commutative binary-op from the dialect, zero
@@ -280,12 +293,9 @@ static bool isReduceEligibleForCompactPrint(Operation* op, ValueRange inputs,
   LLVM_DEBUG(llvm::dbgs() << "Checking ReduceOp compact print E2\n");
   if (innerOp.getDialect() != op->getDialect()) return false;
 
-  if (innerOp.getNumOperands() != 2 ||
-      !innerOp.hasTrait<mlir::OpTrait::OneResult>() ||
-      !hasSameOperandAndResultTypes(innerOp) ||
-      (!innerOp.hasTrait<mlir::hlo::OpTrait::IsCommutative>() &&
-       !innerOp.hasTrait<mlir::OpTrait::IsCommutative>()) ||
-      !innerOp.hasTrait<mlir::OpTrait::ZeroRegions>())
+  if (!isCommutativeNoRegionMatchingDialect(innerOp.getName(),
+                                            op->getDialect()->getNamespace()) ||
+      !hasSameOperandAndResultTypes(innerOp))
     return false;
 
   // Check E3.
@@ -311,55 +321,42 @@ static bool isReduceEligibleForCompactPrint(Operation* op, ValueRange inputs,
 
 void printReduceOp(OpAsmPrinter& p, Operation* op, ValueRange inputs,
                    ArrayRef<int64_t> dimensions, Region& body) {
-  {
-    // Print the pairs of operands under the form:
-    //   (%arg0 init: %arg3), (%arg1 init: %arg4), (%arg2 init: %arg5)
-    StringRef comma = "";
-    int numOperandPairs = op->getNumOperands() / 2;
-    for (int opId : llvm::seq<int>(0, numOperandPairs)) {
-      p << comma << "(" << op->getOperand(opId)
-        << " init: " << op->getOperand(opId + numOperandPairs) << ")";
-      comma = ", ";
-    }
-  }
+  int numOperandPairs = op->getNumOperands() / 2;
+  auto printOpAndInit = [&](int opId) {
+    p << "(" << op->getOperand(opId)
+      << " init: " << op->getOperand(opId + numOperandPairs) << ")";
+  };
+  // Print the pairs of operands under the form:
+  //   (%arg0 init: %arg3), (%arg1 init: %arg4), (%arg2 init: %arg5)
+  llvm::interleaveComma(llvm::seq<int>(0, numOperandPairs), p, printOpAndInit);
 
-  // If the reduce-op is eligible for compact printing, we emit the one-liner:
-  // stablehlo.reduce applies <inner-op> across dimensions = [...] : <func-type>
-  // Note: We are not printing the function type of reduction operation. We
-  // have some simplifying assumptions (refer to IsEligibleForCompactPrint::E3)
-  // to derive the type from that of reduce-op.
-  if (isReduceEligibleForCompactPrint(op, inputs, body)) {
+  // Print compact if eligible
+  bool printCompact = isReduceEligibleForCompactPrint(op, inputs, body);
+  if (printCompact) {
     Operation& innerOp = body.front().front();
     p << " applies ";
-    llvm::printEscapedString(innerOp.getName().getStringRef(), p.getStream());
-    p << " across dimensions = [";
-    llvm::interleaveComma(dimensions, p);
-    p << "]";
-    p.printOptionalAttrDict(op->getAttrs(), {"dimensions"});
-    p << " : ";
-    p.printFunctionalType(op);
-  } else {
-    p << " across dimensions = [";
-    llvm::interleaveComma(dimensions, p);
-    p << "]";
-    p.printOptionalAttrDict(op->getAttrs(), {"dimensions"});
-    p << " : ";
-    p.printFunctionalType(op);
+    p.printKeywordOrString(innerOp.getName().getStringRef());
+  }
+  p << " across dimensions = [";
+  llvm::interleaveComma(dimensions, p);
+  p << "]";
+  p.printOptionalAttrDict(op->getAttrs(), {"dimensions"});
+  p << " : ";
+  p.printFunctionalType(op);
+  if (!printCompact) {
     p.printNewline();
     p << " reducer";
-    {
-      // Print the pairs of block operands under the form:
-      //   (%arg0_elt, %arg0_acc) (%arg1_elt, %arg1_acc):
-      Block& reducer = body.front();
-      int numOperandPairs = op->getNumOperands() / 2;
-      for (int opId : llvm::seq<int>(0, numOperandPairs)) {
-        p << "(";
-        p.printRegionArgument(reducer.getArgument(opId));
-        p << ", ";
-        p.printRegionArgument(reducer.getArgument(opId + numOperandPairs));
-        p << ") ";
-      }
-    }
+    // Print the pairs of block operands under the form:
+    //   (%arg0_elt, %arg0_acc) (%arg1_elt, %arg1_acc):
+    Block& reducer = body.front();
+    auto printReducerOpAndInit = [&](int opId) {
+      p << "(";
+      p.printRegionArgument(reducer.getArgument(opId));
+      p << ", ";
+      p.printRegionArgument(reducer.getArgument(opId + numOperandPairs));
+      p << ") ";
+    };
+    llvm::for_each(llvm::seq<int>(0, numOperandPairs), printReducerOpAndInit);
     p << ' ';
     p.printRegion(body, /*printEntryBlockArgs=*/false);
   }
@@ -377,17 +374,16 @@ ParseResult parseReduceOp(
   // they are stored with the input first and the init values after.
   SmallVector<OpAsmParser::UnresolvedOperand, 2> operands;
   SmallVector<OpAsmParser::UnresolvedOperand, 2> initOperands;
-  do {
-    (void)parser.parseOptionalComma();
-    if (parser.parseOptionalLParen()) break;
-    OpAsmParser::UnresolvedOperand operand, initOperand;
-    if (parser.parseOperand(operand) || parser.parseKeyword("init") ||
-        parser.parseColon() || parser.parseOperand(initOperand) ||
+  auto parseEle = [&]() -> ParseResult {
+    if (parser.parseOptionalLParen()) return success();
+    if (parser.parseOperand(operands.emplace_back()) ||
+        parser.parseKeyword("init") || parser.parseColon() ||
+        parser.parseOperand(initOperands.emplace_back()) ||
         parser.parseRParen())
       return failure();
-    operands.push_back(operand);
-    initOperands.push_back(initOperand);
-  } while (true);
+    return success();
+  };
+  if (failed(parser.parseCommaSeparatedList(parseEle))) return failure();
   operands.append(initOperands);
 
   // Check if we are parsing the compact version of reduce-op:
@@ -411,7 +407,7 @@ ParseResult parseReduceOp(
         parser.parseColon() || parser.parseType(reduceOpFnType) ||
         parser.parseKeyword("reducer"))
       return failure();
-    OpBuilder builder(parser.getBuilder().getContext());
+    OpBuilder builder(parser.getContext());
     result.addAttribute("dimensions", createDimensions(builder, dimensions));
 
     // Parse the "reducer" region now.
@@ -425,27 +421,21 @@ ParseResult parseReduceOp(
         [&](SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands,
             SmallVectorImpl<Type>& types,
             SmallVectorImpl<std::optional<Location>>& locs) -> ParseResult {
-      OpAsmParser::UnresolvedOperand operand;
-      Type type;
-      std::optional<Location> loc;
-      if (parser.parseOperand(operand, /*allowResultNumber=*/false) ||
-          parser.parseColon() || parser.parseType(type) ||
-          parser.parseOptionalLocationSpecifier(loc))
+      if (parser.parseOperand(operands.emplace_back(),
+                              /*allowResultNumber=*/false) ||
+          parser.parseColon() || parser.parseType(types.emplace_back()) ||
+          parser.parseOptionalLocationSpecifier(locs.emplace_back()))
         return failure();
-      operands.push_back(operand);
-      types.push_back(type);
-      locs.push_back(loc);
       return success();
     };
-    do {
-      if (failed(parser.parseOptionalLParen())) break;
+    while (succeeded(parser.parseOptionalLParen())) {
       if (parseBlockOperand(reducerOperands, reducerTypes, reducerLocs) ||
           parser.parseComma() ||
           parseBlockOperand(reducerInitOperands, reducerInitTypes,
                             reducerInitLocs) ||
           parser.parseRParen())
         return failure();
-    } while (true);
+    }
     reducerOperands.append(reducerInitOperands);
     reducerTypes.append(reducerInitTypes);
     reducerLocs.append(reducerInitLocs);
@@ -478,21 +468,15 @@ ParseResult parseReduceOp(
   Dialect* innerOpDialect = innerOpNameInfo->getDialect();
   StringRef reduceOpDialect = result.name.getDialectNamespace();
   LLVM_DEBUG(llvm::dbgs() << "Reduce: " << reduceOpDialect << "\n");
-  LLVM_DEBUG(llvm::dbgs() << "inner: " << innerOpDialect->getNamespace()
+  LLVM_DEBUG(llvm::dbgs() << "Inner: " << innerOpDialect->getNamespace()
                           << "\n");
-  if (!innerOpDialect ||
-      !innerOpDialect->getNamespace().equals(reduceOpDialect) ||
-      !innerOpNameInfo->hasTrait<mlir::OpTrait::NOperands<2>::Impl>() ||
-      !innerOpNameInfo->hasTrait<mlir::OpTrait::OneResult>() ||
-      (!innerOpNameInfo->hasTrait<mlir::hlo::OpTrait::IsCommutative>() &&
-       !innerOpNameInfo->hasTrait<mlir::OpTrait::IsCommutative>()) ||
-      !innerOpNameInfo->hasTrait<mlir::OpTrait::ZeroRegions>()) {
-    parser.emitError(loc,
-                     "expected the inner-op to be a commutative binary-op that "
-                     "matching the reduce op dialect, with zero region, "
-                     "producing single result");
-    return failure();
-  }
+  if (!isCommutativeNoRegionMatchingDialect(*innerOpNameInfo, reduceOpDialect))
+    return parser.emitError(
+        loc,
+        "expected the inner-op to be a commutative binary-op from "
+        "the " +
+            reduceOpDialect +
+            " dialect, with zero region, producing single result");
 
   // Parse the inner-op dimensions, reduce-op's function-type and
   // optional location.
@@ -540,7 +524,7 @@ ParseResult parseReduceOp(
   auto rhs = block.addArgument(innerOpType, reduceOpLoc);
 
   // Create and insert an "inner-op" operation in the block.
-  OpBuilder builder(parser.getBuilder().getContext());
+  OpBuilder builder(parser.getContext());
   builder.setInsertionPointToStart(&block);
 
   OperationState innerOpState(reduceOpLoc, innerOpName);

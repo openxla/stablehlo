@@ -161,6 +161,14 @@ ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
                                Type& result);
 
 // Print reduce with or without compact printing
+// If the reduce-op is eligible for compact printing, we emit a one-line print.
+// See IsEligibleForCompactPrint code comments for criteria.
+//
+// Compact:
+//   stablehlo.reduce(...) applies <inner-op> across dimensions = [...] : <type>
+// Not compact:
+//   stablehlo.reduce(...) across dimensions = [...] : <type>
+//     reducer(...)  { ...}
 void printReduceOp(OpAsmPrinter& p, Operation* op, ValueRange inputs,
                    ArrayRef<int64_t> dimensions, Region& body);
 
@@ -194,7 +202,7 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
 // assignment ::= ssa-value `=` ssa-value
 void printWhileOp(OpAsmPrinter& p, Operation* op, Region& cond, Region& body);
 
-// Parse reduce with or without compact parsing
+// Parse while with or without compact parsing
 ParseResult parseWhileOp(OpAsmParser& parser, OperationState& result);
 
 //===----------------------------------------------------------------------===//
@@ -203,9 +211,9 @@ ParseResult parseWhileOp(OpAsmParser& parser, OperationState& result);
 
 // SliceRanges - Used to print multi-dimensional ranges for slice.
 void printSliceRanges(OpAsmPrinter& p, Operation* op,
-                      llvm::ArrayRef<int64_t> startIndices,
-                      llvm::ArrayRef<int64_t> limitIndices,
-                      llvm::ArrayRef<int64_t> strides);
+                      ArrayRef<int64_t> startIndices,
+                      ArrayRef<int64_t> limitIndices,
+                      ArrayRef<int64_t> strides);
 
 ParseResult parseSliceRanges(OpAsmParser& parser,
                              DenseI64ArrayAttr& startIndices,
@@ -219,9 +227,9 @@ ParseResult parseSliceRanges(OpAsmParser& parser,
 //   Custom:
 //     [1, ?]
 std::string dimSizeToString(int64_t dimSize);
-std::string dimSizesToString(llvm::ArrayRef<int64_t> dimSize);
+std::string dimSizesToString(ArrayRef<int64_t> dimSize);
 
-void printDimSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dimSizes);
+void printDimSizes(AsmPrinter& p, ArrayRef<int64_t> dimSizes);
 
 FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser);
 ParseResult parseDimSizes(AsmParser& parser, SmallVector<int64_t>& dimSizes);
