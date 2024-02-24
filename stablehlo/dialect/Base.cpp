@@ -67,13 +67,23 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
 
   auto qtp1 = tp1.dyn_cast<quant::QuantizedType>();
   auto qtp2 = tp2.dyn_cast<quant::QuantizedType>();
+  // Sparsity: In the most general case, we allow any combination of
+  // sparsity/denseness across any combination of operands/results, as well as
+  // differences in sparsity encodings for operands and results.
+  // Individual ops may introduce additional constraints.
+  // No additional code is needed to check this because of how sparsity is
+  // currently implemented.
 
-  if (!qtp1 && !qtp2) {
-    // Both are non quantized
+  // Default case: Unless dynamism, quantization and/or sparsity are involved,
+  // the types are required to be exactly equal.
+  if (!qtp1 && !qtp2){
     return tp1 == tp2;
   }
+  // For quantized types, 
+  //   a. both `tp1` and `tp2` should be quantized types
+  //   b. with similar quantization granularity (i.e. both per-tensor or both per-axis)
+  //   c. with equal storage_type, storage_type_min and storage_type_max, expressed_type
   if (qtp1 && qtp2) {
-    // Both are quantized
     if (qtp1.getStorageType() != qtp2.getStorageType() ||
         qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
         qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax() ||
@@ -83,13 +93,8 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
 
     auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
     auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
-    if (qpatp1 && qpatp2) {
-      // Both are also per-axis quantized
-      // Don't match dimensions, Per OP verifier will do it.
-      return true;
-    }
-    // return true if both are per-tensor quantized
-    return !(qpatp1 || qpatp2);
+    
+    return ((qpatp1 && qpatp2) || (!qpatp1 && !qpatp2));
   }
 
   return false;
