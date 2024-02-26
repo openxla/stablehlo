@@ -53,7 +53,7 @@ namespace stablehlo {
 
 namespace {
 
-bool isShapedI32ElementType(Value value) {
+bool isShapedOfI32(Value value) {
   auto type = value.getType().dyn_cast<ShapedType>();
   return type && type.getElementType().isInteger(32);
 }
@@ -119,7 +119,7 @@ Value castToIndex(PatternRewriter& rewriter, Location loc, Value value) {
 }
 
 Value maybeCastToIndex(Value result, Value value, PatternRewriter& rewriter) {
-  if (isShapedI32ElementType(result)) return value;
+  if (isShapedOfI32(result)) return value;
   return castToIndex(rewriter, value.getLoc(), value);
 }
 
@@ -327,14 +327,14 @@ struct ConvertIndexCastOpPattern : public OpRewritePattern<arith::IndexCastOp> {
 
     if (isIndexOrShapedOfIndex(result)) {
       result = castToI32(rewriter, op.getLoc(), result);
-    } else if (!isShapedI32ElementType(result)) {
+    } else if (!isShapedOfI32(result)) {
       return rewriter.notifyMatchFailure(op,
                                          "expected input with index/i32 style");
     }
 
     if (isIndexOrShapedOfIndex(op.getOut())) {
       result = castToIndex(rewriter, op.getLoc(), result);
-    } else if (!isShapedI32ElementType(op.getOut())) {
+    } else if (!isShapedOfI32(op.getOut())) {
       return rewriter.notifyMatchFailure(
           op, "expected output with index/i32 style");
     }
