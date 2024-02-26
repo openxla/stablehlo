@@ -450,9 +450,10 @@ struct ConvertTensorFromElementsPattern
       return rewriter.notifyMatchFailure(op, "expected constant index op");
 
     if (tensorType.getRank() == 0) {
-      // Handle the special cast of tensor.from_elements i64 -> tensor<i64>
-      // This is converted to unrealized_conversin_cast i64 -> tensor<i64>,
-      // which is later cancelled with previous unrealized_conversin_cast op.
+      // Handle the special cast of scalar element type to 0-D tensor, i.e.
+      //   tensor.from_elements i64 -> tensor<i64>
+      // This is converted to unrealized_conversion_cast i64 -> tensor<i64>,
+      // which is later cancelled with previous unrealized_conversion_cast op.
       rewriter.replaceOp(
           op, rewriter.create<UnrealizedConversionCastOp>(
                   op.getLoc(), op.getResult().getType(), op.getElements()[0]));
