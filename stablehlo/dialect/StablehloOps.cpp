@@ -857,12 +857,8 @@ LogicalResult ConvolutionOp::verify() {
 
 void ConvertOp::build(OpBuilder& builder, OperationState& result, Value operand,
                       Type resultElementTy) {
-  Type resultTy;
-  Type operandTy = operand.getType();
-  if (auto rankedTy = operandTy.dyn_cast<RankedTensorType>())
-    resultTy = RankedTensorType::get(rankedTy.getShape(), resultElementTy);
-  else
-    resultTy = UnrankedTensorType::get(resultElementTy);
+  auto rankedTy = operand.getType().cast<RankedTensorType>();
+  auto resultTy = RankedTensorType::get(rankedTy.getShape(), resultElementTy);
   build(builder, result, resultTy, operand);
 }
 

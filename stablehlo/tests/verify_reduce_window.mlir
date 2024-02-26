@@ -59,29 +59,6 @@ func.func @reduce_window_with_non_scalar_block_arg2(%arg0: tensor<4x2xf32>,
 
 // -----
 
-// CHECK-LABEL: func @reduce_window_with_unranked_dynamic_dims
-func.func @reduce_window_with_unranked_dynamic_dims(%arg0: tensor<*xf32>,
-    %arg1: tensor<4x?xi32>, %init0: tensor<f32>, %init1: tensor<i32>) ->
-        (tensor<?x?xf32>, tensor<*xi32>) {
-  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
-         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
-                %b0: tensor<f32>, %b1: tensor<i32>):
-              %2 = stablehlo.add %a0, %b0 : tensor<f32>
-              %3 = stablehlo.add %a1, %b1 : tensor<i32>
-              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
-            })
-         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
-           window_dimensions = array<i64: 5, 1>,
-           window_strides = array<i64: 3, 1>,
-           base_dilations = array<i64: 1, 1>,
-           window_dilations = array<i64: 1, 1> }
-         : (tensor<*xf32>, tensor<4x?xi32>, tensor<f32>, tensor<i32>) ->
-              (tensor<?x?xf32>, tensor<*xi32>)
-  func.return %0#0, %0#1 : tensor<?x?xf32>, tensor<*xi32>
-}
-
-// -----
-
 // CHECK-LABEL: func @reduce_window_with_promotable_types
 func.func @reduce_window_with_promotable_types(%arg0: tensor<4x2xf32>,
     %arg1: tensor<4x2xf32>, %init0: tensor<f32>, %init1: tensor<f32>) ->

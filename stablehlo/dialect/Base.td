@@ -22,6 +22,14 @@ include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 
 //===----------------------------------------------------------------------===//
+// Common type definitions.
+//===----------------------------------------------------------------------===//
+
+def I32RankedTensor : RankedTensorOf<[I32]>;
+
+def UI32RankedTensor : RankedTensorOf<[UI32]>;
+
+//===----------------------------------------------------------------------===//
 // HLO type definitions.
 //===----------------------------------------------------------------------===//
 
@@ -99,26 +107,23 @@ def HLO_QuantizedInt :
 def HLO_Token : Type<CPred<"$_self.isa<TokenType>()">, "token">;
 
 // Any integer tensor types
-def HLO_IntTensor : TensorOf<[HLO_Int]>;
+def HLO_IntTensor : RankedTensorOf<[HLO_Int]>;
 
 // Any integer tensor type with rank 0 (i.e. representing a single integer).
 def HLO_ScalarIntTensor : 0DTensorOf<[HLO_Int]>;
 
 // Any floating-point tensor types
-def HLO_FpTensor : TensorOf<[HLO_Float]>;
+def HLO_FpTensor : RankedTensorOf<[HLO_Float]>;
 
 // 32 or 64 bits floating-point tensor types
-def HLO_Fp32Or64Tensor : TensorOf<[HLO_Float32Or64]>;
+def HLO_Fp32Or64Tensor : RankedTensorOf<[HLO_Float32Or64]>;
 
 // Any quantized integer tensor types
-def HLO_QuantizedIntTensor : TensorOf<[HLO_QuantizedInt]>;
+def HLO_QuantizedIntTensor : RankedTensorOf<[HLO_QuantizedInt]>;
 
-def HLO_PredTensor : TensorOf<[HLO_Pred]>;
+def HLO_PredTensor : RankedTensorOf<[HLO_Pred]>;
 
-def HLO_Tensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
-
-// TODO: delete this type once ranked tensors are the default
-def HLO_RankedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
+def HLO_Tensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
 
 def HLO_ComplexTensor : TensorOf<[HLO_Complex]>;
 
@@ -134,33 +139,55 @@ def HLO_DimensionValue : AnyTypeOf<[Index, HLO_Int]>;
 def HLO_DimensionTensor : 1DTensorOf<[HLO_DimensionValue]>;
 
 //===----------------------------------------------------------------------===//
+// Exceptions for unranked dynamism. These should not be used with StableHLO,
+// but may be used with CHLO for now.
+// TODO(b/326463552): Remove these when CHLO no longer needs unranked dynamism.
+//===----------------------------------------------------------------------===//
+
+def HLO_AnyTensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
+
+def HLO_AnyPredTensor : TensorOf<[HLO_Pred]>;
+
+def HLO_AnyFpTensor : TensorOf<[HLO_Float]>;
+
+def HLO_AnyComplexTensor : TensorOf<[HLO_Complex]>;
+
+def HLO_AnyFpOrComplexTensor : TensorOf<[HLO_Float, HLO_Complex]>;
+
+def HLO_AnyPredOrIntTensor : TensorOf<[HLO_Pred, HLO_Int]>;
+
+def HLO_AnyTuple : NestedTupleOf<[HLO_AnyTensor, HLO_Token]>;
+
+def HLO_CustomCallValue : AnyTypeOf<[HLO_AnyTensor, HLO_Token, HLO_AnyTuple]>;
+
+//===----------------------------------------------------------------------===//
 // HLO combined type definitions.
 //===----------------------------------------------------------------------===//
 
 // Any integer or floating-point tensor types
-def HLO_IntOrFpTensor : TensorOf<[HLO_Int, HLO_Float]>;
+def HLO_IntOrFpTensor : RankedTensorOf<[HLO_Int, HLO_Float]>;
 
 // Any integer or predicate tensor types
-def HLO_PredOrIntTensor : TensorOf<[HLO_Pred, HLO_Int]>;
+def HLO_PredOrIntTensor : RankedTensorOf<[HLO_Pred, HLO_Int]>;
 
 // Any floating-point or complex tensor types
-def HLO_FpOrComplexTensor : TensorOf<[HLO_Float, HLO_Complex]>;
+def HLO_FpOrComplexTensor : RankedTensorOf<[HLO_Float, HLO_Complex]>;
 
 // Any floating-point, complex or quantized tensor types
-def HLO_FpComplexOrQuantizedIntTensor : TensorOf<[HLO_Float, HLO_Complex, HLO_QuantizedInt]>;
+def HLO_FpComplexOrQuantizedIntTensor : RankedTensorOf<[HLO_Float, HLO_Complex, HLO_QuantizedInt]>;
 
 // Any int, floating-point, complex or quantized tensor types
-def HLO_IntFpOrComplexOrQuantizedIntTensor : TensorOf<[HLO_Int, HLO_Float, HLO_Complex, HLO_QuantizedInt]>;
+def HLO_IntFpOrComplexOrQuantizedIntTensor : RankedTensorOf<[HLO_Int, HLO_Float, HLO_Complex, HLO_QuantizedInt]>;
 
 // Any pred, int or floating-point tensor types
-def HLO_PredIntOrFpTensor : TensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
+def HLO_PredIntOrFpTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
 
 // Any pred, int or floating-point ranked tensor types
 // TODO: delete this type once ranked tensors are the default
 def HLO_PredIntOrFpRankedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
 
 // Any pred, int, floating-point or quantized tensor types
-def HLO_PredIntFpOrQuantizedTensor : TensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO_QuantizedInt]>;
+def HLO_PredIntFpOrQuantizedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO_QuantizedInt]>;
 
 //===----------------------------------------------------------------------===//
 // HLO static shape type definitions.
