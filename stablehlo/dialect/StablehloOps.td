@@ -137,7 +137,7 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Pure]>
   }];
 
   let arguments = (ins HLO_StaticDimensionTensor:$output_shape, I64Attr:$iota_dimension);
-  let results = (outs HLO_RankedTensor:$result);
+  let results = (outs HLO_Tensor:$result);
   let hasVerifier = 1;
 
   let assemblyFormat = [{
@@ -194,8 +194,8 @@ class StableHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
 // Abs supports complex to real, so element type is not guaranteed to match.
 def StableHLO_AbsOp: StableHLO_UnaryElementwiseOp<"abs",
     [Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>],
-     TensorOf<[HLO_SInt, HLO_Float, HLO_Complex, HLO_QuantizedInt] /* abs_i1 */>,
-     TensorOf<[HLO_SInt, HLO_Float, HLO_QuantizedInt]>> {
+     RankedTensorOf<[HLO_SInt, HLO_Float, HLO_Complex, HLO_QuantizedInt] /* abs_i1 */>,
+     RankedTensorOf<[HLO_SInt, HLO_Float, HLO_QuantizedInt]>> {
   let summary = "Abs operation";
   let description = [{
     Performs element-wise abs operation on `operand` tensor and produces a
@@ -576,7 +576,7 @@ def StableHLO_RsqrtOp: StableHLO_UnaryElementwiseOp<"rsqrt", [Pure,
 
 def StableHLO_SignOp: StableHLO_UnaryElementwiseOp<"sign",
     [Pure, HLO_CompatibleOperandsAndResultType /*sign_c1*/],
-    TensorOf<[HLO_SInt, HLO_Float, HLO_Complex, HLO_QuantizedInt]> /*sign_i1*/> { /*sign_c1*/
+    RankedTensorOf<[HLO_SInt, HLO_Float, HLO_Complex, HLO_QuantizedInt]> /*sign_i1*/> { /*sign_c1*/
   let summary = "Sign operation";
   let description = [{
     Returns the sign of the `operand` element-wise and produces a `result`
@@ -1104,7 +1104,7 @@ def StableHLO_ReplicaIdOp : StableHLO_Op<"replica_id", [Pure,
     %result = stablehlo.replica_id : tensor<ui32>
     ```
   }];
-  let results = (outs TensorOf<[UI32]>);
+  let results = (outs UI32RankedTensor);
 
   let assemblyFormat = "attr-dict `:` type(results)";
 }
@@ -1123,7 +1123,7 @@ def StableHLO_PartitionIdOp : StableHLO_Op<"partition_id", [Pure,
     %result = stablehlo.partition_id : tensor<ui32>
     ```
   }];
-  let results = (outs TensorOf<[UI32]>);
+  let results = (outs UI32RankedTensor);
 
   let assemblyFormat = "attr-dict `:` type(results)";
 }
@@ -1217,7 +1217,7 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
   }];
 
   let arguments = (ins
-    I32Tensor:$index /*case_i1*/
+    I32RankedTensor:$index /*case_i1*/
   );
 
   let regions = (region VariadicRegion<SizedRegion<1>>:$branches /*case_i2*/);
@@ -1708,17 +1708,17 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
   }];
 
   let arguments = (ins
-    RankedTensorOf<[HLO_Float]>:$operand, /*batch_norm_grad_i1*/
+    HLO_FpTensor:$operand, /*batch_norm_grad_i1*/
     1DTensorOf<[HLO_Float]>:$scale, /*batch_norm_grad_i2*/
     1DTensorOf<[HLO_Float]>:$mean, /*batch_norm_grad_i3*/
     1DTensorOf<[HLO_Float]>:$variance, /*batch_norm_grad_i4*/
-    RankedTensorOf<[HLO_Float]>:$grad_output, /*batch_norm_grad_i5*/
+    HLO_FpTensor:$grad_output, /*batch_norm_grad_i5*/
     F32Attr:$epsilon, /*batch_norm_grad_i6*/
     I64Attr:$feature_index /*batch_norm_grad_i7*/
   );
 
   let results = (outs
-      RankedTensorOf<[HLO_Float]>:$grad_operand,
+      HLO_FpTensor:$grad_operand,
       1DTensorOf<[HLO_Float]>:$grad_scale,
       1DTensorOf<[HLO_Float]>:$grad_offset);
 }
@@ -1745,7 +1745,7 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
   }];
 
   let arguments = (ins
-    RankedTensorOf<[HLO_Float]>:$operand /*batch_norm_inference_i1*/,
+    HLO_FpTensor:$operand /*batch_norm_inference_i1*/,
     1DTensorOf<[HLO_Float]>:$scale /*batch_norm_inference_i2*/,
     1DTensorOf<[HLO_Float]>:$offset /*batch_norm_inference_i3*/,
     1DTensorOf<[HLO_Float]>:$mean /*batch_norm_inference_i4*/,
@@ -1754,7 +1754,7 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
     I64Attr:$feature_index /*batch_norm_inference_i7*/
   );
 
-  let results = (outs RankedTensorOf<[HLO_Float]>:$result);
+  let results = (outs HLO_FpTensor:$result);
 }
 
 def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
@@ -1781,7 +1781,7 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
   }];
 
   let arguments = (ins
-    RankedTensorOf<[HLO_Float]>:$operand /*batch_norm_training_i1*/,
+    HLO_FpTensor:$operand /*batch_norm_training_i1*/,
     1DTensorOf<[HLO_Float]>:$scale /*batch_norm_training_i2*/,
     1DTensorOf<[HLO_Float]>:$offset /*batch_norm_training_i3*/,
     F32Attr:$epsilon /*batch_norm_training_i4*/,
@@ -1789,7 +1789,7 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
   );
 
   let results = (outs
-      RankedTensorOf<[HLO_Float]>:$output,
+      HLO_FpTensor:$output,
       1DTensorOf<[HLO_Float]>:$batch_mean,
       1DTensorOf<[HLO_Float]>:$batch_var);
 }
@@ -1901,7 +1901,7 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
     OptionalAttr<DenseI64ArrayAttr>:$known_nonexpanding_dimensions
   );
 
-  let results = (outs HLO_RankedTensor);
+  let results = (outs HLO_Tensor);
 
   let builders = [
       OpBuilder<(ins
@@ -2181,7 +2181,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   }];
 
   let arguments = (ins
-    Variadic<HLO_TensorOrTokenOrTuple>:$inputs,
+    Variadic<HLO_CustomCallValue>:$inputs,
     StrAttr:$call_target_name,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$has_side_effect,
     DefaultValuedStrAttr<StrAttr, "">:$backend_config,
@@ -2200,7 +2200,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
             "Aliasing attribute for outputs and operands of CustomCall">,
         "{}">:$output_operand_aliases
   );
-  let results = (outs Variadic<HLO_TensorOrTokenOrTuple>);
+  let results = (outs Variadic<HLO_CustomCallValue>);
   let hasVerifier = 1;
 
   let assemblyFormat = [{
@@ -2417,7 +2417,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
   // TODO(hinsu): Allow 64-bit result types once XLA HLO dialect based on the
   // XLA semantics is available. This limitation is because of the current XLA
   // implementation.
-  let results = (outs I32Tensor);
+  let results = (outs I32RankedTensor);
 
   let assemblyFormat = [{
     $operand `,` `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
@@ -2494,7 +2494,7 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
   }];
 
   let arguments = (ins HLO_Tensor:$operand, HLO_StaticDimensionTensor:$output_shape);
-  let results = (outs HLO_RankedTensor:$result);
+  let results = (outs HLO_Tensor:$result);
 
   let hasVerifier = 1;
 
@@ -2533,7 +2533,7 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [RecursiveMemoryEffects,
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs, /*scatter_i1*/
-    TensorOf<[AnyInteger, Index]>:$scatter_indices, /*scatter_i2*/
+    RankedTensorOf<[AnyInteger, Index]>:$scatter_indices, /*scatter_i2*/
     Variadic<HLO_Tensor>:$updates, /*scatter_i3*/
     StableHLO_ScatterDimensionNumbers:$scatter_dimension_numbers, /*scatter_i4...scatter_i7*/
     DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted, /*scatter_i8*/
@@ -2641,7 +2641,7 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    I32Tensor:$size,
+    I32RankedTensor:$size,
     I64Attr:$dimension
   );
   let results = (outs HLO_Tensor);
@@ -3087,7 +3087,7 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
 
 // TODO(b/230662142): Implement unknown scales/zero_point cases.
 def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize",
-      [Pure], TensorOf<[HLO_Float, HLO_QuantizedInt]> /*uniform_quantize_i1*/,
+      [Pure], RankedTensorOf<[HLO_Float, HLO_QuantizedInt]> /*uniform_quantize_i1*/,
       HLO_QuantizedIntTensor> { /*uniform_quantize_c1*/
   let summary = "UniformQuantize operation";
   let description = [{

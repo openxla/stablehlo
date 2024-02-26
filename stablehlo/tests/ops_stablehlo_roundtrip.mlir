@@ -142,10 +142,10 @@ func.func @callee_add_mult(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> (tenso
   func.return %0, %1 : tensor<4xi32>, tensor<4xi32>
 }
 
-func.func @test_cast(%arg0: tensor<4xi32>) -> tensor<*xi32> {
+func.func @test_cast(%arg0: tensor<4xi32>) -> tensor<?xi32> {
   %0 = "stablehlo.not"(%arg0) : (tensor<4xi32>) -> tensor<4xi32>
-  %1 = tensor.cast %0 : tensor<4xi32> to tensor<*xi32>
-  func.return %1 : tensor<*xi32>
+  %1 = tensor.cast %0 : tensor<4xi32> to tensor<?xi32>
+  func.return %1 : tensor<?xi32>
 }
 
 func.func @test_collective_permute(%arg0: tensor<128x32xf32>) -> tensor<128x32xf32> {
