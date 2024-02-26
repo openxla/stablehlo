@@ -2159,24 +2159,31 @@ struct ConvertZetaOp final : OpConversionPattern<mlir::chlo::ZetaOp> {
 
 struct ChloLegalizeToStablehloPass final
     : impl::ChloLegalizeToStablehloPassBase<ChloLegalizeToStablehloPass> {
+  LogicalResult initialize(MLIRContext *context) override {
+    target = std::make_shared<ConversionTarget>(*context);
+    target->addIllegalDialect<chlo::ChloDialect>();
+    target->addLegalOp<chlo::MinimumBroadcastShapesOp>();
+    target->addLegalDialect<mlir::stablehlo::StablehloDialect,
+                            mlir::arith::ArithDialect, mlir::func::FuncDialect,
+                            mlir::shape::ShapeDialect,
+                            mlir::tensor::TensorDialect>();
+
+    RewritePatternSet patterns_(context);
+    populateChloToStablehloPatterns(context, &patterns_);
+    patterns = std::move(patterns_);
+
+    return success();
+  }
+
   void runOnOperation() override {
-    MLIRContext *ctx = &getContext();
-    ConversionTarget conversionTarget(getContext());
-    RewritePatternSet conversionPatterns(&getContext());
-
-    // Add helper dialects that are needed by the patterns.
-    conversionTarget.addIllegalDialect<chlo::ChloDialect>();
-    conversionTarget.addLegalDialect<
-        StablehloDialect, mlir::arith::ArithDialect, mlir::func::FuncDialect,
-        mlir::tensor::TensorDialect, mlir::shape::ShapeDialect>();
-    conversionTarget.addLegalOp<chlo::MinimumBroadcastShapesOp>();
-
-    populateChloToStablehloPatterns(ctx, &conversionPatterns);
-    if (failed(applyPartialConversion(getOperation(), conversionTarget,
-                                      std::move(conversionPatterns)))) {
+    if (failed(applyPartialConversion(getOperation(), *target, patterns))) {
       return signalPassFailure();
     }
   }
+
+ private:
+  std::shared_ptr<ConversionTarget> target;
+  FrozenRewritePatternSet patterns;
 };
 
 #include "stablehlo/transforms/ChloDecompositionPatterns.h.inc"
