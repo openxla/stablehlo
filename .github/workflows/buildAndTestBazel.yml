@@ -42,6 +42,9 @@ jobs:
     - name: Checkout StableHLO
       uses: actions/checkout@v4
 
+    - name: Free space
+      run: ./build_tools/github_actions/ci_build_free_disk_space.sh
+
     - name: Validate LLVM Commit
       run: |
         ./build_tools/github_actions/lint_llvm_commit.sh .
