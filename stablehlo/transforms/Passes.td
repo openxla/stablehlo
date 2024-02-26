@@ -108,13 +108,13 @@ def StablehloAggressiveSimplificationPass :
 }
 
 def ShapeLegalizeToStablehloPass : Pass<"shape-legalize-to-stablehlo", "func::FuncOp"> {
-  let summary = "Legalize shape-related ops to HLO.";
+  let summary = "Legalize shape-related ops to StableHLO.";
   let description = [{
     An experimental pass that legalizes shape-related ops to StableHLO ops.
 
     Bringing shape and data computations together via an optional pass will
     make it possible for the StableHLO ecosystem to potentially leverage the
-    compilation pipelines that use HLO operations to model dynamism.
+    compilation pipelines that use StableHLO operations to model dynamism.
   }];
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
 }

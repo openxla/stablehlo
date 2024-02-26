@@ -18,6 +18,7 @@ limitations under the License.
 #include <memory>
 #include <utility>
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -31,6 +32,7 @@ limitations under the License.
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Operation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Value.h"
@@ -51,7 +53,7 @@ namespace stablehlo {
 
 namespace {
 
-bool hasI32Style(Value value) {
+bool isShapedI32ElementType(Value value) {
   auto type = value.getType().dyn_cast<ShapedType>();
   return type && type.getElementType().isInteger(32);
 }
@@ -81,7 +83,7 @@ Value castToI32(PatternRewriter& rewriter, Location loc, Value value) {
   return cast.getResult(0);
 }
 
-bool hasIndexStyle(Value value) {
+bool isIndexOrShapedOfIndex(Value value) {
   if (value.getType().isIndex()) return true;
   auto type = value.getType().dyn_cast<ShapedType>();
   return type && type.getElementType().isIndex();
@@ -114,6 +116,22 @@ Value castToIndex(PatternRewriter& rewriter, Location loc, Value value) {
   auto cast =
       rewriter.create<UnrealizedConversionCastOp>(loc, resultType, value);
   return cast.getResult(0);
+}
+
+Value maybeCastToIndex(Value result, Value value, PatternRewriter& rewriter) {
+  if (isShapedI32ElementType(result)) return value;
+  return castToIndex(rewriter, value.getLoc(), value);
+}
+
+Value convertToConstantOrI32Cast(Value value, PatternRewriter& rewriter) {
+  if (auto constIndex =
+          dyn_cast_or_null<arith::ConstantIndexOp>(value.getDefiningOp())) {
+    return rewriter.create<ConstantOp>(
+        value.getLoc(), DenseIntElementsAttr::get<int32_t>(
+                            RankedTensorType::get({}, rewriter.getI32Type()),
+                            static_cast<int32_t>(constIndex.value())));
+  }
+  return castToI32(rewriter, value.getLoc(), value);
 }
 
 struct ConvertComputeReshapeShapeOpPattern
@@ -180,9 +198,7 @@ struct ConvertComputeReshapeShapeOpPattern
     // (stablehlo.compute_reshape_shape supports both index- and integer-based
     // results).
     // This cannot error out given how the operation is currently defined.
-    auto resultIndex = hasI32Style(op.getResult())
-                           ? resultI32
-                           : castToIndex(rewriter, op.getLoc(), resultI32);
+    auto resultIndex = maybeCastToIndex(op.getResult(), resultI32, rewriter);
     if (!resultIndex || resultIndex.getType() != op.getResult().getType())
       return rewriter.notifyMatchFailure(op, "cast to index failed");
     rewriter.replaceOp(op, resultIndex);
@@ -237,7 +253,7 @@ struct ConvertShapeOfOpPattern : public OpRewritePattern<shape::ShapeOfOp> {
     if (!operandType)
       return rewriter.notifyMatchFailure(op, "expected ranked operand");
 
-    // Produce an StableHLO equivalent of this shape::ShapeOfOp.
+    // Produce a StableHLO equivalent of this shape::ShapeOfOp.
     // This is a very laborious representation because StableHLO is currently
     // lacking convenient tools to express this.
     SmallVector<Value> sizesI32x1;
@@ -271,10 +287,10 @@ struct ConvertConstShapeOpPattern
     if (!operandType)
       return rewriter.notifyMatchFailure(op, "expected ranked operand");
 
-    llvm::SmallVector<int32_t> shape;
-    for (int i : op.getShape().getValues<int64_t>()) {
-      shape.push_back(i);
-    }
+    llvm::SmallVector<int32_t> shape{
+        llvm::map_range(op.getShape().getValues<int64_t>(),
+                        [](int64_t val) { return static_cast<int32_t>(val); })};
+
     auto newConst = rewriter.create<ConstantOp>(
         op.getLoc(), DenseElementsAttr::get(
                          RankedTensorType::get({operandType.getDimSize(0)},
@@ -291,8 +307,10 @@ struct ConvertIndexCastOpPattern : public OpRewritePattern<arith::IndexCastOp> {
   LogicalResult matchAndRewrite(arith::IndexCastOp op,
                                 PatternRewriter& rewriter) const override {
     Value result = op.getIn();
-    if (hasIndexStyle(op.getIn()) && !op.getIn().getType().isa<ShapedType>()) {
-      // Handle a special case of index -> i64.
+    if (isIndexOrShapedOfIndex(op.getIn()) &&
+        !op.getIn().getType().isa<ShapedType>()) {
+      // Handle a special case where index is cast to something other than i32.
+      // In practice this is only index -> i64.
       // This is converted to the following sequence:
       //   unrealized_conversion_cast index -> tensor<i32>
       //   stablehlo.convert tensor<i32> -> tensor<i64>
@@ -307,16 +325,16 @@ struct ConvertIndexCastOpPattern : public OpRewritePattern<arith::IndexCastOp> {
       return success();
     }
 
-    if (hasIndexStyle(result)) {
+    if (isIndexOrShapedOfIndex(result)) {
       result = castToI32(rewriter, op.getLoc(), result);
-    } else if (!hasI32Style(result)) {
+    } else if (!isShapedI32ElementType(result)) {
       return rewriter.notifyMatchFailure(op,
                                          "expected input with index/i32 style");
     }
 
-    if (hasIndexStyle(op.getOut())) {
+    if (isIndexOrShapedOfIndex(op.getOut())) {
       result = castToIndex(rewriter, op.getLoc(), result);
-    } else if (!hasI32Style(op.getOut())) {
+    } else if (!isShapedI32ElementType(op.getOut())) {
       return rewriter.notifyMatchFailure(
           op, "expected output with index/i32 style");
     }
@@ -330,30 +348,13 @@ struct ConvertMulIOpPattern : public OpRewritePattern<arith::MulIOp> {
   LogicalResult matchAndRewrite(arith::MulIOp op,
                                 PatternRewriter& rewriter) const override {
     // We only handle index types.
-    if (!hasIndexStyle(op.getLhs()) || !hasIndexStyle(op.getRhs()) ||
-        !hasIndexStyle(op.getResult())) {
+    if (!isIndexOrShapedOfIndex(op.getLhs()) ||
+        !isIndexOrShapedOfIndex(op.getRhs()) ||
+        !isIndexOrShapedOfIndex(op.getResult())) {
       return rewriter.notifyMatchFailure(op, "expected index type");
     }
-    Value lhs = op.getLhs();
-    if (auto constIndex =
-            dyn_cast_or_null<arith::ConstantIndexOp>(lhs.getDefiningOp())) {
-      lhs = rewriter.create<ConstantOp>(
-          op.getLoc(), DenseIntElementsAttr::get<int32_t>(
-                           RankedTensorType::get({}, rewriter.getI32Type()),
-                           static_cast<int32_t>(constIndex.value())));
-    } else {
-      lhs = castToI32(rewriter, op.getLoc(), op.getLhs());
-    }
-    Value rhs = op.getRhs();
-    if (auto constIndex =
-            dyn_cast_or_null<arith::ConstantIndexOp>(rhs.getDefiningOp())) {
-      rhs = rewriter.create<ConstantOp>(
-          op.getLoc(), DenseIntElementsAttr::get<int32_t>(
-                           RankedTensorType::get({}, rewriter.getI32Type()),
-                           static_cast<int32_t>(constIndex.value())));
-    } else {
-      rhs = castToI32(rewriter, op.getLoc(), op.getRhs());
-    }
+    Value lhs = convertToConstantOrI32Cast(op.getLhs(), rewriter);
+    Value rhs = convertToConstantOrI32Cast(op.getRhs(), rewriter);
     Value result = rewriter.create<MulOp>(op.getLoc(), lhs, rhs);
     rewriter.replaceOp(op, castToIndex(rewriter, op.getLoc(), result));
     return success();
@@ -427,9 +428,8 @@ struct ConvertTensorDimPattern : public OpRewritePattern<tensor::DimOp> {
     // We only support getting static index.
     auto constIndex =
         dyn_cast_or_null<arith::ConstantIndexOp>(op.getIndex().getDefiningOp());
-    if (!constIndex) {
-      return failure();
-    }
+    if (!constIndex)
+      return rewriter.notifyMatchFailure(op, "expected constant index op");
 
     auto dim = rewriter.create<GetDimensionSizeOp>(op->getLoc(), op.getSource(),
                                                    constIndex.value());
@@ -446,9 +446,9 @@ struct ConvertTensorFromElementsPattern
                                 PatternRewriter& rewriter) const override {
     auto tensorType =
         op.getResult().getType().dyn_cast_or_null<RankedTensorType>();
-    if (!tensorType) {
-      return failure();
-    }
+    if (!tensorType)
+      return rewriter.notifyMatchFailure(op, "expected constant index op");
+
     if (tensorType.getRank() == 0) {
       // Handle the special cast of tensor.from_elements i64 -> tensor<i64>
       // This is converted to unrealized_conversin_cast i64 -> tensor<i64>,
@@ -462,7 +462,7 @@ struct ConvertTensorFromElementsPattern
     // We only handle 1D tensor with index types. tensor.from_elements spec
     // allows the same element type only for all input/output.
     if (tensorType.getRank() != 1) return failure();
-    if (!hasIndexStyle(op.getResult())) return failure();
+    if (!isIndexOrShapedOfIndex(op.getResult())) return failure();
 
     SmallVector<Value> elementI32x1;
     for (size_t i = 0; i < op.getElements().size(); ++i) {
@@ -481,9 +481,7 @@ struct ConvertTensorFromElementsPattern
     Value tensorI32 = rewriter.create<ConcatenateOp>(op.getLoc(), elementI32x1,
                                                      /*dimension=*/0);
 
-    tensorI32 = hasI32Style(op.getResult())
-                    ? tensorI32
-                    : castToIndex(rewriter, op.getLoc(), tensorI32);
+    tensorI32 = maybeCastToIndex(op.getResult(), tensorI32, rewriter);
     if (!tensorI32 || tensorI32.getType() != op.getResult().getType())
       return rewriter.notifyMatchFailure(op, "cast to index failed");
     rewriter.replaceOp(op, tensorI32);
@@ -496,7 +494,7 @@ struct CastOperandsPattern : public OpRewritePattern<OpType> {
   using OpRewritePattern<OpType>::OpRewritePattern;
   LogicalResult matchAndRewrite(OpType op,
                                 PatternRewriter& rewriter) const override {
-    if (!llvm::any_of(op->getOperands(), hasIndexStyle))
+    if (!llvm::any_of(op->getOperands(), isIndexOrShapedOfIndex))
       return rewriter.notifyMatchFailure(op, "no operands need a cast to i32");
 
     // If op has operands of type tensor<Nxindex>, cast them to tensor<Nxi32>.
@@ -505,7 +503,7 @@ struct CastOperandsPattern : public OpRewritePattern<OpType> {
     // each other upon canonicalization.
     SmallVector<Value> operandsI32;
     for (auto operand : op->getOperands()) {
-      if (hasIndexStyle(operand)) {
+      if (isIndexOrShapedOfIndex(operand)) {
         operandsI32.push_back(castToI32(rewriter, op.getLoc(), operand));
       } else {
         operandsI32.push_back(operand);
@@ -523,12 +521,12 @@ struct ShapeLegalizeToStablehloPass
           ShapeLegalizeToStablehloPass> {
   using ShapeLegalizeToStablehloPassBase::ShapeLegalizeToStablehloPassBase;
 
-  void runOnOperation() override {
+  LogicalResult initialize(MLIRContext* context) override {
     // In order to make dynamic StableHLO programs compatible with HLO, we need
     // to get rid of all non-StableHLO ops.
     //
     // As an example, a cursory inspection of the TF/XLA bridge, which provides
-    // one data point of an StableHLO producer that can generate dynamic
+    // one data point of a StableHLO producer that can generate dynamic
     // programs, reveals the following non-StableHLO ops:
     //   * shape.broadcast
     //   * shape.concat
@@ -548,18 +546,18 @@ struct ShapeLegalizeToStablehloPass
     // is able to remove unnecessary cruft. At the moment, this pass is a
     // work in progress, so not all of these ops are supported.
     //
-    ConversionTarget target(getContext());
-    target.addIllegalDialect<shape::ShapeDialect>();
-    target.addIllegalDialect<tensor::TensorDialect>();
-    target.addIllegalOp<stablehlo::ComputeReshapeShapeOp>();
-    target.addIllegalOp<arith::IndexCastOp>();
-    target.addIllegalOp<arith::MulIOp>();
-    target.addDynamicallyLegalDialect<stablehlo::StablehloDialect>(
+    target = std::make_shared<ConversionTarget>(*context);
+    target->addIllegalDialect<shape::ShapeDialect>();
+    target->addIllegalDialect<tensor::TensorDialect>();
+    target->addIllegalOp<stablehlo::ComputeReshapeShapeOp>();
+    target->addIllegalOp<arith::IndexCastOp>();
+    target->addIllegalOp<arith::MulIOp>();
+    target->addDynamicallyLegalDialect<stablehlo::StablehloDialect>(
         [](Operation* op) {
-          return !llvm::any_of(op->getOperands(), hasIndexStyle);
+          return !llvm::any_of(op->getOperands(), isIndexOrShapedOfIndex);
         });
-    target.addLegalOp<tensor::CastOp>();
-    target.addLegalOp<UnrealizedConversionCastOp>();
+    target->addLegalOp<tensor::CastOp>();
+    target->addLegalOp<UnrealizedConversionCastOp>();
 
     // The patterns do what one might expect, converting between MLIR-style
     // and HLO-style shape computations.
@@ -569,14 +567,21 @@ struct ShapeLegalizeToStablehloPass
     // this gap by producing unrealized_conversion_cast ops, which we expect
     // to ultimately annihilate with each other upon canonicalization if
     // everything went right.
-    MLIRContext* context = &getContext();
-    RewritePatternSet patterns(context);
-    populateShapeToStablehloPatterns(context, &patterns);
+    RewritePatternSet patterns_(context);
+    populateShapeToStablehloPatterns(context, &patterns_);
+    patterns = std::move(patterns_);
 
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns))))
+    return success();
+  }
+
+  void runOnOperation() override {
+    if (failed(applyPartialConversion(getOperation(), *target, patterns)))
       return signalPassFailure();
   }
+
+ private:
+  std::shared_ptr<ConversionTarget> target;
+  FrozenRewritePatternSet patterns;
 };
 
 }  // namespace
