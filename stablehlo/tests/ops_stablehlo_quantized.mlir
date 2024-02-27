@@ -343,7 +343,7 @@ func.func @negative_bitcast_quantization(%arg0: tensor<1x2x2x!quant.uniform<i8:f
 // -----
 
 func.func @negative_bitcast_quantization(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>){
-  // expected-error@+1 {{operand #0 must be tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
+  // expected-error@+1 {{operand #0 must be ranked tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
   %ceil = "stablehlo.ceil"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>
   func.return
 }
@@ -432,7 +432,7 @@ func.func @negative_exponential_quantization(%arg0: tensor<1x2x2x!quant.uniform<
 // -----
 
 func.func @negative_floor_quantization(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>){
-  // expected-error@+1 {{operand #0 must be tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
+  // expected-error@+1 {{operand #0 must be ranked tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
   %floor = "stablehlo.floor"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>
   func.return
 }
@@ -440,7 +440,7 @@ func.func @negative_floor_quantization(%arg0: tensor<1x2x2x!quant.uniform<i8:f32
 // -----
 
 func.func @negative_floor_quantization(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>){
-  // expected-error@+1 {{operand #0 must be tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
+  // expected-error@+1 {{operand #0 must be ranked tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
   %is_finite = "stablehlo.is_finite"(%arg0) {} : (tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<1x2x2xi1>
   func.return
 }
@@ -675,7 +675,7 @@ func.func @negative_gather_quantization(%operand : tensor<*x!quant.uniform<i8:f3
 // -----
 
 func.func @negative_reduce_precision_quantization(%arg0: tensor<6x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<6x!quant.uniform<i8:f32:0, {0.1:-30}>> {
-  // expected-error@+1 {{operand #0 must be tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<6x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
+  // expected-error@+1 {{operand #0 must be ranked tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<6x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
   %output = "stablehlo.reduce_precision"(%arg0) {
     exponent_bits = 5 : i32,
     mantissa_bits = 10 : i32
@@ -729,7 +729,7 @@ func.func @negative_reverse_quantization(%operand: tensor<3x2x!quant.uniform<i8:
 // -----
 
 func.func @negative_round_afz(%arg0: tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>> {
-  // expected-error@+1 {{ operand #0 must be tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
+  // expected-error@+1 {{ operand #0 must be ranked tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
   %0 = "stablehlo.round_nearest_afz"(%arg0) {} : (tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>>
   func.return %0 : tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>>
 }
@@ -737,7 +737,7 @@ func.func @negative_round_afz(%arg0: tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}
 // -----
 
 func.func @negative_round_even(%arg0: tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>> {
-  // expected-error@+1 {{ operand #0 must be tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
+  // expected-error@+1 {{ operand #0 must be ranked tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
   %0 = "stablehlo.round_nearest_even"(%arg0) {} : (tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>>
   func.return %0 : tensor<2x!quant.uniform<i8:f32:0, {0.1:-30}>>
 }
