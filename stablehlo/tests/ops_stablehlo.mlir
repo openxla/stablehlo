@@ -4221,6 +4221,15 @@ func.func @custom_call_output_operand_alias(%arg0: tuple<tensor<1x1xf32>, tensor
 
 // -----
 
+// CHECK-LABEL: func @custom_call_unranked_types
+func.func @custom_call_unranked_types(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+  // CHECK: stablehlo.custom_call {{.*}} : (tensor<*xf32>) -> tensor<*xf32>
+  %0 = "stablehlo.custom_call"(%arg0) {call_target_name = "foo"} : (tensor<*xf32>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
+}
+
+// -----
+
 // Test custom attribute printing/parsing.
 // We really just need one op as holder, use module: this is the simplest top-level.
 
