@@ -79,6 +79,20 @@ def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
   }];
 }
 
+def StablehloRefineParametersPass : Pass<"stablehlo-refine-parameters", "ModuleOp"> {
+  let summary = "Refines the parameter shapes of the main function.";
+  let description = [{
+    Modifies the parameters of the main function using the input type signature.
+    Wraps parameters in bitcast_convert ops to keep the rest of the program the
+    same for shape refinement pass.
+  }];
+  let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
+  let options = [
+    ListOption<"refinedShapesOption", "shapes", "std::string",
+           "The main parameter shapes specified as an MLIR TypeRange 'tensor<1x2xf32>, ...'">,
+  ];
+}
+
 def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp"> {
   let summary = "Legalize VHLO to StableHLO.";
   let dependentDialects = [
