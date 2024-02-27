@@ -83,7 +83,7 @@ def StableHLO_ConstantOp : StableHLO_Op<"constant",
   );
 
   let results = (outs
-    HLO_StaticShapeTensor:$output
+    HLO_StaticShapeTensorOrPerAxisQuantizedTensor:$output
   );
 
   let builders = [
@@ -113,7 +113,7 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
   }];
   let arguments = (ins I64Attr:$iota_dimension);
 
-  let results = (outs HLO_StaticShapeIntFpOrComplexTensor:$output);
+  let results = (outs HLO_StaticShapeIntFpComplexOrQuantizedTensor:$output);
 
   let hasVerifier = 1;
 
@@ -230,7 +230,7 @@ def StableHLO_CbrtOp: StableHLO_UnaryElementwiseOp<"cbrt",
 }
 
 def StableHLO_CeilOp: StableHLO_UnaryElementwiseOp<"ceil",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrQuantizedIntTensor> {
   let summary = "Ceil operation";
   let description = [{
     Performs element-wise ceil of `operand` tensor and produces a `result` tensor.
@@ -246,7 +246,7 @@ def StableHLO_CeilOp: StableHLO_UnaryElementwiseOp<"ceil",
 }
 
 def StableHLO_ConvertOp : StableHLO_UnaryElementwiseOp<"convert",
-    [Pure, SameOperandsAndResultShape /*convert_c1*/], HLO_Tensor> { /*convert_i1*/
+    [Pure, SameOperandsAndResultShape /*convert_c1*/], HLO_NonQuantizedTensor> { /*convert_i1*/
   let summary = "Convert operation";
   let description = [{
     Performs an element-wise conversion from one element type to another on
@@ -336,7 +336,7 @@ def StableHLO_Expm1Op: StableHLO_UnaryElementwiseOp<"exponential_minus_one",
 }
 
 def StableHLO_FloorOp: StableHLO_UnaryElementwiseOp<"floor",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrQuantizedIntTensor> {
   let summary = "Floor operation";
   let description = [{
     Performs element-wise floor of `operand` tensor and produces a `result`
@@ -371,7 +371,7 @@ def StableHLO_ImagOp: StableHLO_UnaryElementwiseOp<"imag",
 }
 
 def StableHLO_IsFiniteOp: StableHLO_UnaryElementwiseOp<"is_finite", [Pure,
-    DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_Tensor> {
+    DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_FpOrQuantizedIntTensor> {
     /*is_finite_c1*/
   let summary = "IsFinite operation";
   let description = [{
@@ -386,7 +386,7 @@ def StableHLO_IsFiniteOp: StableHLO_UnaryElementwiseOp<"is_finite", [Pure,
     %y = stablehlo.is_finite %x : (tensor<7xf64>) -> tensor<7xi1>
     ```
   }];
-  let arguments = (ins HLO_FpTensor:$x); /*is_finite_i1*/
+  let arguments = (ins HLO_FpOrQuantizedIntTensor:$x); /*is_finite_i1*/
   let results = (outs HLO_PredTensor:$y);
 
   let assemblyFormat = [{
@@ -520,7 +520,7 @@ def StableHLO_RealOp: StableHLO_UnaryElementwiseOp<"real",
 
 def StableHLO_RoundOp: StableHLO_UnaryElementwiseOp<"round_nearest_afz",
     [Pure, HLO_CompatibleOperandsAndResultType /*round_nearest_afz_c1*/],
-    HLO_FpTensor /*round_nearest_afz_i1*/> { /*round_nearest_afz_c1*/
+    HLO_FpOrQuantizedIntTensor /*round_nearest_afz_i1*/> { /*round_nearest_afz_c1*/
   let summary = "Round operation";
   let description = [{
     Performs element-wise rounding towards the nearest integer, breaking ties
@@ -538,7 +538,7 @@ def StableHLO_RoundOp: StableHLO_UnaryElementwiseOp<"round_nearest_afz",
 
 def StableHLO_RoundNearestEvenOp: StableHLO_UnaryElementwiseOp<"round_nearest_even",
     [Pure, HLO_CompatibleOperandsAndResultType /*round_nearest_even_c1*/],
-    HLO_FpTensor /*round_nearest_even_i1*/> { /*round_nearest_even_c1*/
+    HLO_FpOrQuantizedIntTensor /*round_nearest_even_i1*/> { /*round_nearest_even_c1*/
   let summary = "RoundNearestEven operation";
   let description = [{
     Performs element-wise rounding towards the nearest integer, breaking ties
@@ -678,7 +678,8 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
 }
 
 def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add",
-      [HLO_Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
+      [HLO_Commutative, Pure, HLO_CompatibleOperandsAndResultType],
+      HLO_TensorOrPerAxisQuantizedTensor> {
   let summary = "Add operation";
   let description = [{
     Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
@@ -1003,7 +1004,7 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed"> {
     DefaultValuedStrAttr<StrAttr, "">:$infeed_config, /*infeed_i2*/
     OptionalAttr<ArrayAttr>:$layout
   );
-  let results = (outs Variadic<HLO_StaticShapeTensorOrToken>);
+  let results = (outs Variadic<HLO_StaticShapeTensorOrPerAxisQuantizedTensorOrToken>);
   let hasVerifier = 1;
 }
 
@@ -1024,7 +1025,7 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs, /*outfeed_i1*/
+    Variadic<HLO_TensorOrPerAxisQuantizedTensor>:$inputs, /*outfeed_i1*/
     HLO_Token:$token, /*outfeed_i2*/
     DefaultValuedStrAttr<StrAttr, "">:$outfeed_config /*outfeed_i3*/
   );
@@ -1050,7 +1051,7 @@ def StableHLO_SendOp : StableHLO_Op<"send",
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs, /*send_i1*/
+    Variadic<HLO_TensorOrPerAxisQuantizedTensor>:$inputs, /*send_i1*/
     HLO_Token:$token, /*send_i2*/
     StableHLO_ChannelHandle:$channel_handle, /*send_i3_i4*/
     DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer /*send_i5*/
@@ -1082,7 +1083,7 @@ def StableHLO_RecvOp : StableHLO_Op<"recv"> {
     DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer /*recv_i4*/
   );
 
-  let results = (outs Variadic<HLO_StaticShapeTensorOrToken>);
+  let results = (outs Variadic<HLO_StaticShapeTensorOrPerAxisQuantizedTensorOrToken>);
   let hasVerifier = 1;
 }
 
@@ -1187,7 +1188,7 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
   let regions = (region SizedRegion<1>:$true_branch /*if_i2*/,
                         SizedRegion<1>:$false_branch /*if_i3*/);
 
-  let results = (outs Variadic<HLO_TensorOrToken>);
+  let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>);
 }
 
 // Xla Client API has two separate calls for indexed and predicated conditional,
@@ -1222,7 +1223,7 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
 
   let regions = (region VariadicRegion<SizedRegion<1>>:$branches /*case_i2*/);
 
-  let results = (outs Variadic<HLO_TensorOrToken>);
+  let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>);
 }
 
 
@@ -1253,14 +1254,14 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
     }
     ```
   }];
-  let arguments = (ins Variadic<HLO_TensorOrToken>:$operand /*while_i1*/);
+  let arguments = (ins Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>:$operand /*while_i1*/);
 
   let regions = (region
     SizedRegion<1>:$cond /*while_i2*/,
     SizedRegion<1>:$body /*while_i3*/
   );
 
-  let results = (outs Variadic<HLO_TensorOrToken>);
+  let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>);
 
   let hasVerifier = 1;
 
@@ -1500,7 +1501,7 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,
     I32Attr:$index /*get_tuple_element_i2*/
   );
 
-  let results = (outs HLO_TensorOrTokenOrTuple);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple);
 
   let assemblyFormat = [{
     $operand `[` $index `]` attr-dict `:` functional-type(operands, results)
@@ -1522,7 +1523,7 @@ def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
     ```
    }];
 
-  let arguments = (ins Variadic<HLO_TensorOrTokenOrTuple>:$val /*tuple_i1*/);
+  let arguments = (ins Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple>:$val /*tuple_i1*/);
   let results = (outs HLO_Tuple:$result);
 
   let assemblyFormat = [{
@@ -1708,19 +1709,19 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
   }];
 
   let arguments = (ins
-    HLO_FpTensor:$operand, /*batch_norm_grad_i1*/
-    1DTensorOf<[HLO_Float]>:$scale, /*batch_norm_grad_i2*/
-    1DTensorOf<[HLO_Float]>:$mean, /*batch_norm_grad_i3*/
-    1DTensorOf<[HLO_Float]>:$variance, /*batch_norm_grad_i4*/
-    HLO_FpTensor:$grad_output, /*batch_norm_grad_i5*/
+    RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>:$operand, /*batch_norm_grad_i1*/
+    1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$scale, /*batch_norm_grad_i2*/
+    1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$mean, /*batch_norm_grad_i3*/
+    1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$variance, /*batch_norm_grad_i4*/
+    RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>:$grad_output, /*batch_norm_grad_i5*/
     F32Attr:$epsilon, /*batch_norm_grad_i6*/
     I64Attr:$feature_index /*batch_norm_grad_i7*/
   );
 
   let results = (outs
-      HLO_FpTensor:$grad_operand,
-      1DTensorOf<[HLO_Float]>:$grad_scale,
-      1DTensorOf<[HLO_Float]>:$grad_offset);
+      RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>:$grad_operand,
+      1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$grad_scale,
+      1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$grad_offset);
 }
 
 def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
@@ -1745,16 +1746,16 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
   }];
 
   let arguments = (ins
-    HLO_FpTensor:$operand /*batch_norm_inference_i1*/,
-    1DTensorOf<[HLO_Float]>:$scale /*batch_norm_inference_i2*/,
-    1DTensorOf<[HLO_Float]>:$offset /*batch_norm_inference_i3*/,
-    1DTensorOf<[HLO_Float]>:$mean /*batch_norm_inference_i4*/,
-    1DTensorOf<[HLO_Float]>:$variance /*batch_norm_inference_i5*/,
+    RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>:$operand /*batch_norm_inference_i1*/,
+    1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$scale /*batch_norm_inference_i2*/,
+    1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$offset /*batch_norm_inference_i3*/,
+    1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$mean /*batch_norm_inference_i4*/,
+    1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$variance /*batch_norm_inference_i5*/,
     F32Attr:$epsilon /*batch_norm_inference_i6*/,
     I64Attr:$feature_index /*batch_norm_inference_i7*/
   );
 
-  let results = (outs HLO_FpTensor:$result);
+  let results = (outs RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>:$result);
 }
 
 def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
@@ -1781,17 +1782,17 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
   }];
 
   let arguments = (ins
-    HLO_FpTensor:$operand /*batch_norm_training_i1*/,
-    1DTensorOf<[HLO_Float]>:$scale /*batch_norm_training_i2*/,
-    1DTensorOf<[HLO_Float]>:$offset /*batch_norm_training_i3*/,
+    RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>:$operand /*batch_norm_training_i1*/,
+    1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$scale /*batch_norm_training_i2*/,
+    1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$offset /*batch_norm_training_i3*/,
     F32Attr:$epsilon /*batch_norm_training_i4*/,
     I64Attr:$feature_index /*batch_norm_training_i5*/
   );
 
   let results = (outs
-      HLO_FpTensor:$output,
-      1DTensorOf<[HLO_Float]>:$batch_mean,
-      1DTensorOf<[HLO_Float]>:$batch_var);
+      RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>:$output,
+      1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$batch_mean,
+      1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$batch_var);
 }
 
 def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
@@ -1811,8 +1812,8 @@ def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
     ```
   }];
 
-  let arguments = (ins HLO_Tensor:$operand /*bitcast_convert_i1*/);
-  let results = (outs HLO_Tensor);
+  let arguments = (ins HLO_TensorOrPerAxisQuantizedTensor:$operand /*bitcast_convert_i1*/);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
   let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
@@ -1838,7 +1839,7 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
     DenseI64ArrayAttr:$broadcast_sizes
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
 
   let assemblyFormat = [{
     $operand `,` `sizes` `=` $broadcast_sizes
@@ -1862,11 +1863,11 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand /*broadcast_in_dim_i1*/,
+    HLO_TensorOrPerAxisQuantizedTensor:$operand /*broadcast_in_dim_i1*/,
     DenseI64ArrayAttr:$broadcast_dimensions /*broadcast_in_dim_i2*/
   );
 
-  let results = (outs HLO_StaticShapeTensor);
+  let results = (outs HLO_StaticShapeTensorOrPerAxisQuantizedTensor);
 
   let hasVerifier = 1;
 
@@ -1941,11 +1942,11 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
     ```
   }];
   let arguments = (ins
-    HLO_FpOrComplexTensor:$a,
+    HLO_FpComplexOrQuantizedIntTensor:$a,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$lower
   );
 
-  let results = (outs HLO_FpOrComplexTensor:$result);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
 
   let assemblyFormat = [{
     $a (`,` `lower` `=` $lower^)? attr-dict `:` custom<SameOperandsAndResultType>(type($a), type($result))
@@ -2110,10 +2111,10 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
   let arguments = !con(
     (ins
        HLO_Tensor:$lhs,
-       HLO_Tensor:$rhs),
+       HLO_TensorOrPerAxisQuantizedTensor:$rhs),
     StableHLO_ConvolutionAttributes.attributes);
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
   let hasVerifier = 1;
 
   let extraClassDeclaration = [{
@@ -2181,7 +2182,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   }];
 
   let arguments = (ins
-    Variadic<HLO_CustomCallValue>:$inputs,
+    Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple>:$inputs,
     StrAttr:$call_target_name,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$has_side_effect,
     DefaultValuedStrAttr<StrAttr, "">:$backend_config,
@@ -2200,7 +2201,8 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
             "Aliasing attribute for outputs and operands of CustomCall">,
         "{}">:$output_operand_aliases
   );
-  let results = (outs Variadic<HLO_CustomCallValue>);
+
+  let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple>);
   let hasVerifier = 1;
 
   let assemblyFormat = [{
@@ -2225,10 +2227,10 @@ def StableHLO_DotOp: StableHLO_Op<"dot", [Pure]> {
   }];
   let arguments = (
     ins HLO_Tensor:$lhs,
-    HLO_Tensor:$rhs,
+    HLO_TensorOrPerAxisQuantizedTensor:$rhs,
     StableHLO_PrecisionConfigAttr:$precision_config
   );
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
   let hasVerifier = 1;
 
   // Use empty `` to prevent extra whitespace before precision config.
@@ -2258,12 +2260,12 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general", [Pure]> {
   }];
   let arguments = (ins
     HLO_Tensor:$lhs /*dot_general_i1*/,
-    HLO_Tensor:$rhs /*dot_general_i2*/,
+    HLO_TensorOrPerAxisQuantizedTensor:$rhs /*dot_general_i2*/,
     StableHLO_DotDimensionNumbers:$dot_dimension_numbers /*dot_general_i3, dot_general_i4, dot_general_i5, dot_general_i6*/,
     StableHLO_PrecisionConfigAttr:$precision_config /*dot_general_i7*/
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
   let hasVerifier = 1;
 
   // Use empty `` to prevent extra whitespace before precision config.
@@ -2353,7 +2355,7 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
     DenseI64ArrayAttr:$fft_length
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_FpOrComplexTensor);
 
   let assemblyFormat = [{
     $operand `,` `type` `=` $fft_type `,` `length` `=` $fft_length
@@ -2469,9 +2471,9 @@ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
     ```
   }];
 
-  let arguments = (ins HLO_Tensor:$operand);
+  let arguments = (ins HLO_TensorOrPerAxisQuantizedTensor:$operand);
 
-  let results = (outs HLO_StaticShapeTensor);
+  let results = (outs HLO_StaticShapeTensorOrPerAxisQuantizedTensor);
   let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
@@ -2800,10 +2802,10 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
+    HLO_TensorOrPerAxisQuantizedTensor:$operand,
     DenseI64ArrayAttr:$permutation
   );
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
 
   let assemblyFormat = [{
     $operand `,` `dims` `=` $permutation
@@ -3087,8 +3089,8 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
 
 // TODO(b/230662142): Implement unknown scales/zero_point cases.
 def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize",
-      [Pure], RankedTensorOf<[HLO_Float, HLO_QuantizedInt]> /*uniform_quantize_i1*/,
-      HLO_QuantizedIntTensor> { /*uniform_quantize_c1*/
+      [Pure], TensorOf<[HLO_Float, HLO_QuantizedInt, HLO_PerAxisQuantizedInt]> /*uniform_quantize_i1*/,
+      TensorOf<[HLO_QuantizedInt, HLO_PerAxisQuantizedInt]>> { /*uniform_quantize_c1*/
   let summary = "UniformQuantize operation";
   let description = [{
     Performs element-wise conversion of floating-point tensor or quantized
@@ -3106,7 +3108,7 @@ def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize
 }
 
 def StableHLO_UniformDequantizeOp : StableHLO_UnaryElementwiseOp<"uniform_dequantize",
-      [InferTensorType, Pure], HLO_QuantizedIntTensor /*uniform_dequantize_i1*/,
+      [InferTensorType, Pure], TensorOf<[HLO_QuantizedInt, HLO_PerAxisQuantizedInt]> /*uniform_dequantize_i1*/,
       HLO_FpTensor> { /*uniform_dequantize_c1, uniform_dequantize_c2*/
   let summary = "UniformDequantize operation";
   let description = [{
@@ -3142,12 +3144,12 @@ def StableHLO_ReducePrecisionOp :
     ```
   }];
   let arguments = (ins
-    HLO_FpTensor:$operand, /*reduce_precision_i1*/
+    HLO_FpOrQuantizedIntTensor:$operand, /*reduce_precision_i1*/
     I32Attr:$exponent_bits, /*reduce_precision_i2*/
     I32Attr:$mantissa_bits /*reduce_precision_i3*/
   );
   let hasVerifier = 1;
-  let results = (outs HLO_FpTensor:$output);
+  let results = (outs HLO_FpOrQuantizedIntTensor:$output);
 
   let assemblyFormat = [{
     $operand `,` `format` `=` custom<ExponentMantissa>($exponent_bits, $mantissa_bits)
