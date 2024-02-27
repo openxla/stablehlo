@@ -59,7 +59,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: "~/.cache/bazel"
-        key: ${{ runner.os }}-stablehlo_build_assets-${{ steps.llvm-version.outputs.version }}-bazelbuild
+        key: ${{ runner.os }}-stablehlo_bazelbuild-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
+        restore-keys: |
+          ${{ runner.os }}-bazel-stablehlo_bazelbuild-
 
     - name: Build StableHLO
       shell: bash
