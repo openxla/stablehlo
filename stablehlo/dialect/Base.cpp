@@ -65,8 +65,32 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
   tp1 = getElementTypeOrSelf(tp1);
   tp2 = getElementTypeOrSelf(tp2);
 
+  // For quantized types:
+  //   a. both `tp1` and `tp2` should be quantized types
+  //   b. with similar quantization granularity (i.e. both per-tensor or both
+  //   per-axis)
+  //   c. with equal storage_type, storage_type_min, storage_type_max, and
+  //   expressed_type
   auto qtp1 = tp1.dyn_cast<quant::QuantizedType>();
   auto qtp2 = tp2.dyn_cast<quant::QuantizedType>();
+  if (qtp1 && qtp2) {
+    if (qtp1.getStorageType() != qtp2.getStorageType() ||
+        qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
+        qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax() ||
+        qtp1.getExpressedType() != qtp2.getExpressedType()) {
+      return false;
+    }
+
+    auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>(); 
+    auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
+    bool quantizationGranularityMatches = (qpatp1 && qpatp2) || (!qpatp1 && !qpatp2);
+
+    return quantizationGranularityMatches;
+  }
+
+  if (qtp1 || qtp2)
+    return false;
+
   // Sparsity: In the most general case, we allow any combination of
   // sparsity/denseness across any combination of operands/results, as well as
   // differences in sparsity encodings for operands and results.
@@ -76,30 +100,7 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
 
   // Default case: Unless dynamism, quantization and/or sparsity are involved,
   // the types are required to be exactly equal.
-  if (!qtp1 && !qtp2) {
-    return tp1 == tp2;
-  }
-  // For quantized types:
-  //   a. both `tp1` and `tp2` should be quantized types
-  //   b. with similar quantization granularity (i.e. both per-tensor or both
-  //   per-axis)
-  //   c. with equal storage_type, storage_type_min and storage_type_max,
-  //   expressed_type
-  if (qtp1 && qtp2) {
-    if (qtp1.getStorageType() != qtp2.getStorageType() ||
-        qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
-        qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax() ||
-        qtp1.getExpressedType() != qtp2.getExpressedType()) {
-      return false;
-    }
-
-    auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
-    auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
-
-    return ((qpatp1 && qpatp2) || (!qpatp1 && !qpatp2));
-  }
-
-  return false;
+  return tp1 == tp2;
 }
 
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
