@@ -4224,7 +4224,7 @@ func.func @custom_call_output_operand_alias(%arg0: tuple<tensor<1x1xf32>, tensor
 // CHECK-LABEL: func @custom_call_unranked_types
 func.func @custom_call_unranked_types(%arg0: tensor<*xf32>) -> tensor<*xf32> {
   // CHECK: stablehlo.custom_call {{.*}} : (tensor<*xf32>) -> tensor<*xf32>
-  %0 = "stablehlo.custom_call"(%arg0) {backend_config="", call_target_name = "foo", has_side_effect = false} : (tensor<*xf32>) -> tensor<*xf32>
+  %0 = "stablehlo.custom_call"(%arg0) {call_target_name = "foo"} : (tensor<*xf32>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
 }
 
