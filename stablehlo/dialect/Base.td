@@ -185,7 +185,7 @@ def HLO_DimensionTensor : 1DTensorOf<[HLO_DimensionValue]>;
 // TODO(b/326463552): Remove these when CHLO no longer needs unranked dynamism.
 //===----------------------------------------------------------------------===//
 
-def HLO_AnyTensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
+def HLO_AnyTensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt]>;
 
 def HLO_AnyPredTensor : TensorOf<[HLO_Pred]>;
 
