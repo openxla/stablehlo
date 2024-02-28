@@ -57,7 +57,7 @@ class StableHLO_UniformQuantizedSignedInt<int width>
            CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
                  ".getStorageTypeIntegralWidth() == " # width>,
            CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
-                 ".isSigned()">]>,
+                 ".getStorageType().cast<mlir::IntegerType>().isSignless()">]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedSignedInt";
   int bitwidth = width;
@@ -68,7 +68,7 @@ class StableHLO_UniformQuantizedPerAxisSignedInt<int width>
            CPred<"$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
                  ".getStorageTypeIntegralWidth() == " # width>,
            CPred<"$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
-                 ".isSigned()">]>,
+                 ".getStorageType().cast<mlir::IntegerType>().isSignless()">]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedPerAxisSignedInt";
   int bitwidth = width;

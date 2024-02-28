@@ -807,3 +807,11 @@ func.func @negative_select_and_scatter_quantization(%arg0: tensor<10x24x24x64x!q
   } : (tensor<10x24x24x64x!quant.uniform<i8:f32:0, {0.1:-30}>>, tensor<10x23x23x64x!quant.uniform<i8:f32:0, {0.1:-30}>>, tensor<!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<10x24x24x64x!quant.uniform<i8:f32:0, {0.1:-30}>>
   func.return %0 : tensor<10x24x24x64x!quant.uniform<i8:f32:0, {0.1:-30}>>
 }
+
+// -----
+
+func.func @illegal_storage_type_for_quantized_element_type(%arg0: tensor<4x!quant.uniform<si8:f32, 1.000000e+00>>) -> tensor<4xf32> {
+  // expected-error@+1 {{operand #0 must be tensor of 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer or 4/8/16/32-bit uniform quantized per axis signed integer or 4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<4x!quant.uniform<i8:f32, 1.000000e+00>>}}
+  %0 = "stablehlo.uniform_dequantize"(%arg0) : (tensor<4x!quant.uniform<si8:f32, 1.000000e+00>>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
