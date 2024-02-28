@@ -1895,14 +1895,14 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
     must be disjoint and they must be a subset of the operand's dimensions.
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
+    HLO_TensorOrPerAxisQuantizedTensor:$operand,
     HLO_StaticDimensionTensor:$output_dimensions,
     DenseI64ArrayAttr:$broadcast_dimensions,
     OptionalAttr<DenseI64ArrayAttr>:$known_expanding_dimensions,
     OptionalAttr<DenseI64ArrayAttr>:$known_nonexpanding_dimensions
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
 
   let builders = [
       OpBuilder<(ins
@@ -2413,7 +2413,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand, /*get_dimension_size_i1*/
+    HLO_TensorOrPerAxisQuantizedTensor:$operand, /*get_dimension_size_i1*/
     I64Attr:$dimension /*get_dimension_size_i2*/
   );
   // TODO(hinsu): Allow 64-bit result types once XLA HLO dialect based on the
