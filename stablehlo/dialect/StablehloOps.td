@@ -1532,7 +1532,7 @@ def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
 }
 
 def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, Elementwise,
-    SameOperandsElementType /*compare_c1*/,
+    HLO_CompatibleOperandsElementType /*compare_c1*/,
     SameOperandsAndResultShape /*compare_c2*/,
     InferTensorTypeWithReify /*compare_c1, compare_c2*/]> {
   let summary = "Compare operation";
@@ -1685,8 +1685,7 @@ def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
 //===----------------------------------------------------------------------===//
 
 def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
-    AllElementTypesMatch<["operand", "scale", "mean", "variance", "grad_output",
-    "grad_operand", "grad_scale", "grad_offset"] /*batch_norm_grad_c2*/>,
+    HLO_CompatibleOperandsAndResultElementType /*batch_norm_grad_c2*/,
     InferTensorType /*batch_norm_grad_c3, batch_norm_grad_c4*/]> {
   let summary = "BatchNormGrad operation";
   let description = [{
@@ -1725,8 +1724,7 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
 }
 
 def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
-    [Pure, AllElementTypesMatch<["operand", "scale", "offset", "mean",
-     "variance", "result"]> /*batch_norm_inference_c2*/,
+    [Pure, HLO_CompatibleOperandsAndResultElementType /*batch_norm_inference_c2*/,
      InferTensorType /*batch_norm_inference_c7*/]> {
   let summary = "BatchNormInference operation";
   let description = [{
@@ -1759,8 +1757,7 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
 }
 
 def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
-    [Pure, AllElementTypesMatch<["operand", "scale", "offset", "output",
-     "batch_mean", "batch_var"]> /*batch_norm_training_c2*/,
+    [Pure, HLO_CompatibleOperandsAndResultElementType /*batch_norm_training_c2*/,
      InferTensorType /*batch_norm_training_c5, batch_norm_training_c6, batch_norm_training_c7*/]> {
   let summary = "BatchNormTraining operation";
   let description = [{
@@ -2814,7 +2811,7 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
 }
 
 def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
-    [Pure, SameOperandsAndResultElementType, InferTensorType]> {
+    [Pure, HLO_CompatibleOperandsAndResultElementType, InferTensorType]> {
   let summary = "TriangularSolve operation";
   let description = [{
     Solves batches of systems of linear equations with lower or upper triangular

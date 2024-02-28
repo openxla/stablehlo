@@ -88,6 +88,7 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
     return quantizationGranularityMatches;
   }
 
+  // return false if only one is of quantized type
   if (qtp1 || qtp2)
     return false;
 

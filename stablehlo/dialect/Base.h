@@ -307,6 +307,55 @@ class CompatibleOperandsAndResultElementType
 };
 
 template <typename ConcreteType>
+class CompatibleOperandsElementType
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      CompatibleOperandsElementType> {
+ public:
+  static LogicalResult verifyTrait(Operation *op) {
+    Type expected;
+    if (op->getNumOperands() != 0) expected = op->getOperand(0).getType();
+    if (!expected) return failure();
+
+    auto typeMatch = [&](Type actual) {
+      return isCompatibleElementTypeForHloTypeInference(actual, expected);
+    };
+    auto allMatch = llvm::all_of(op->getOperandTypes(), typeMatch);
+    if (!allMatch) {
+      return op->emitOpError(
+          "requires compatible element types for all operands");
+    }
+
+    return success(allMatch);
+  }
+};
+
+/*
+template <typename ConcreteType>
+class CompatibleAllElementType
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      CompatibleOperandsElementType> {
+ public:
+  static LogicalResult verifyTrait(Operation *op) {
+    Type expected;
+    if (op->getNumResults() != 0) expected = op->getResult(0).getType();
+    if (op->getNumOperands() != 0) expected = op->getArgument
+    if (!expected) return failure();
+    expected = op->getT
+    auto typeMatch = [&](Type actual) {
+      return isCompatibleElementTypeForHloTypeInference(actual, expected);
+    };
+    auto allMatch = llvm::all_of(op->getOperandTypes(), typeMatch) &&
+                    llvm::all_of(op->getResultTypes(), typeMatch);
+    if (!allMatch) {
+      return op->emitOpError(
+          "requires compatible element types for all operands and results");
+    }
+
+    return success(allMatch);
+  }
+};
+*/
+template <typename ConcreteType>
 class CompatibleOperandsAndResultType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       CompatibleOperandsAndResultType> {
