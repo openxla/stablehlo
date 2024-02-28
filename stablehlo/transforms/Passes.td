@@ -83,8 +83,13 @@ def StablehloRefineParametersPass : Pass<"stablehlo-refine-parameters", "ModuleO
   let summary = "Refines the parameter shapes of the main function.";
   let description = [{
     Modifies the parameters of the main function using the input type signature.
-    Wraps parameters in bitcast_convert ops to keep the rest of the program the
-    same for shape refinement pass.
+    Wraps parameters in custom_call @stablehlo.shape_refinement_operand_wrapper
+    to keep the IR valid before shape refinement is run.
+
+    The `refinedShapesOption` can be used to specify a list of refined types.
+    This can be specified in MLIR with `--shapes='tensor<...>,tensor<...>'`, or
+    passed to the pass create method. The refinement type list must specify the
+    type of every argument to the `main` method being refined.
   }];
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
   let options = [

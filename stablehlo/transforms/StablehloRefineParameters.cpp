@@ -1,4 +1,4 @@
-/* Copyright 2022 The StableHLO Authors.
+/* Copyright 2024 The StableHLO Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -97,7 +97,7 @@ LogicalResult validateRefinedTypes(func::FuncOp func, TypeRange refinedTypes) {
     // Always allow skipping refinement
     if (type == refinedType) continue;
 
-    // If mismatched, much be tensor types
+    // If mismatched, must be tensor types
     auto tensorType = type.dyn_cast<TensorType>();
     auto refinedTensorType = refinedType.dyn_cast<TensorType>();
     if (!tensorType || !refinedTensorType) {
@@ -133,6 +133,22 @@ LogicalResult validateRefinedTypes(func::FuncOp func, TypeRange refinedTypes) {
   return success();
 }
 
+// Wrap operands in "type barriers" so the rest of the program remains valid
+// after the signature update and before shape refinement
+//
+// %1 = stablehlo.custom_call
+//   @stablehlo.shape_refinement_operand_wrapper(%arg1, %0)
+//     {indices_of_shape_operands = dense<1> : tensor<1xi64>}
+//     : (tensor<5x10xf32>, tensor<2xi64>) -> tensor<?x10xf32>
+//
+// When introduced this is an identity operation from:
+//   (tensor<?x10xf32>) -> tensor<?x10xf32>
+// But after the operand is changed, this op has type signature
+//  (tensor<5x10xf32>) -> tensor<?x10xf32>
+//
+// Before shape refinement, all future uses of this argument expect type
+// tensor<?x10xf32>. By updating these uses to instead use the wrapper, the IR
+// remains valid in the intermediate state.
 void wrapRefinedOperands(func::FuncOp func, TypeRange refinedTypes) {
   Region& body = func.getBody();
   OpBuilder builder(body);
