@@ -94,7 +94,7 @@ def StablehloRefineParametersPass : Pass<"stablehlo-refine-parameters", "ModuleO
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
   let options = [
     ListOption<"refinedShapesOption", "shapes", "std::string",
-           "The main parameter shapes specified as an MLIR TypeRange 'tensor<1x2xf32>, ...'">,
+           "The new types to be used for the main function's parameters, specified as an MLIR TypeRange 'tensor<1x2xf32>, ...'">,
   ];
 }
 
