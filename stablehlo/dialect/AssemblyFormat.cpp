@@ -465,10 +465,10 @@ ParseResult parseReduceOp(
   if (failed(innerOpNameInfo)) return failure();
 
   StringRef innerOpName = innerOpNameInfo->getStringRef();
-  Dialect* innerOpDialect = innerOpNameInfo->getDialect();
   StringRef reduceOpDialect = result.name.getDialectNamespace();
   LLVM_DEBUG(llvm::dbgs() << "Reduce: " << reduceOpDialect << "\n");
-  LLVM_DEBUG(llvm::dbgs() << "Inner: " << innerOpDialect->getNamespace()
+  LLVM_DEBUG(llvm::dbgs() << "Inner: "
+                          << innerOpNameInfo->getDialect()->getNamespace()
                           << "\n");
   if (!isCommutativeNoRegionMatchingDialect(*innerOpNameInfo, reduceOpDialect))
     return parser.emitError(
