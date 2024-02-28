@@ -49,10 +49,8 @@ $(printf "%s\n" "${CHANGED_FILES[@]}")"
 echo
 
 SKIPPED_SUFFIXES=(
-  .bazelversion
   .clang-format
   .gitignore
-  .markdownlint.yaml
   .md
   .mlir
   .mlir.bc
@@ -60,7 +58,6 @@ SKIPPED_SUFFIXES=(
   .svg
   LICENSE
   MODULE.bazel.lock
-  WORKSPACE.bazel
   llvm_version.txt
 )
 
