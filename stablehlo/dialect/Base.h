@@ -325,7 +325,7 @@ class CompatibleOperandsElementType
           "requires compatible element types for all operands");
     }
 
-    return success(allMatch);
+    return success();
   }
 };
 
