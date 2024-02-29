@@ -183,8 +183,7 @@ struct StablehloRefineArgumentsPass
   using Super =
       impl::StablehloRefineArgumentsPassBase<StablehloRefineArgumentsPass>;
   StablehloRefineArgumentsPass() : Super() {}
-  StablehloRefineArgumentsPass(
-      const StablehloRefineArgumentsPassOptions& opts)
+  StablehloRefineArgumentsPass(const StablehloRefineArgumentsPassOptions& opts)
       : Super(opts) {}
   StablehloRefineArgumentsPass(TypeRange refinedTypes_) : Super() {
     refinedTypes = llvm::to_vector(refinedTypes_);

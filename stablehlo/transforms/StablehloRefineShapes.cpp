@@ -717,7 +717,7 @@ struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
       if (operand.getType() == op.getResult(0).getType()) {
         op.replaceAllUsesWith(ValueRange(operand));
       }
-      op.erase();
+      op.erase()
     }
     return success();
   }
