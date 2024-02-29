@@ -81,16 +81,16 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
       return false;
     }
 
-    auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>(); 
+    auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
     auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
-    bool quantizationGranularityMatches = (qpatp1 && qpatp2) || (!qpatp1 && !qpatp2);
+    bool quantizationGranularityMatches =
+        (qpatp1 && qpatp2) || (!qpatp1 && !qpatp2);
 
     return quantizationGranularityMatches;
   }
 
   // return false if only one is of quantized type
-  if (qtp1 || qtp2)
-    return false;
+  if (qtp1 || qtp2) return false;
 
   // Sparsity: In the most general case, we allow any combination of
   // sparsity/denseness across any combination of operands/results, as well as
