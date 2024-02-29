@@ -72,7 +72,7 @@ void populateShapeToStablehloPatterns(MLIRContext *context,
 
 //// Additional pass constructors ////
 
-std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineParametersPass(
+std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
     TypeRange refinedTypes);
 
 //// Pass pipelines ////

@@ -29,7 +29,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloCanonicalizeDynamism.cpp
   StablehloInstrumentWithProbe.cpp
   StablehloLegalizeToVhlo.cpp
-  StablehloRefineParameters.cpp
+  StablehloRefineArguments.cpp
   StablehloRefineShapes.cpp
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp

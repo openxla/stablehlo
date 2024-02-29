@@ -932,7 +932,7 @@ cc_library(
         "stablehlo/transforms/StablehloCanonicalizeDynamism.cpp",
         "stablehlo/transforms/StablehloInstrumentWithProbe.cpp",
         "stablehlo/transforms/StablehloLegalizeToVhlo.cpp",
-        "stablehlo/transforms/StablehloRefineParameters.cpp",
+        "stablehlo/transforms/StablehloRefineArguments.cpp",
         "stablehlo/transforms/StablehloRefineShapes.cpp",
         "stablehlo/transforms/VhloLegalizeToStablehlo.cpp",
         "stablehlo/transforms/VhloToVersion.cpp",

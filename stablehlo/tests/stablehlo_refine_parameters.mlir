@@ -1,6 +1,6 @@
-// RUN: stablehlo-opt --stablehlo-refine-parameters='shapes=tensor<f32>,tensor<1xf32>,tensor<?xf32>,tensor<1x?x?xf32>,tensor<*xf32>,!stablehlo.token' --split-input-file --verify-diagnostics %s | FileCheck %s --check-prefixes=CHECK,NO-REFINE
-// RUN: stablehlo-opt --stablehlo-refine-parameters='shapes=tensor<f32>,tensor<1xf32>,tensor<2xf32>,tensor<1x4x6xf32>,tensor<8x10xf32>,!stablehlo.token' --split-input-file --verify-diagnostics %s | FileCheck %s --check-prefixes=CHECK,FULL-REFINE
-// RUN: stablehlo-opt --stablehlo-refine-parameters='shapes=tensor<f32>,tensor<1xf32>,tensor<?xf32>,tensor<1x4x?xf32>,tensor<8x?xf32>,!stablehlo.token' --split-input-file --verify-diagnostics %s | FileCheck %s --check-prefixes=CHECK,PARTIAL-REFINE
+// RUN: stablehlo-opt --stablehlo-refine-arguments='shapes=tensor<f32>,tensor<1xf32>,tensor<?xf32>,tensor<1x?x?xf32>,tensor<*xf32>,!stablehlo.token' --split-input-file --verify-diagnostics %s | FileCheck %s --check-prefixes=CHECK,NO-REFINE
+// RUN: stablehlo-opt --stablehlo-refine-arguments='shapes=tensor<f32>,tensor<1xf32>,tensor<2xf32>,tensor<1x4x6xf32>,tensor<8x10xf32>,!stablehlo.token' --split-input-file --verify-diagnostics %s | FileCheck %s --check-prefixes=CHECK,FULL-REFINE
+// RUN: stablehlo-opt --stablehlo-refine-arguments='shapes=tensor<f32>,tensor<1xf32>,tensor<?xf32>,tensor<1x4x?xf32>,tensor<8x?xf32>,!stablehlo.token' --split-input-file --verify-diagnostics %s | FileCheck %s --check-prefixes=CHECK,PARTIAL-REFINE
 
 // CHECK-LABEL: refine_params
 func.func @refine_params(%arg0: tensor<f32>, %arg1: tensor<1xf32>, %arg2: tensor<?xf32>, %arg3: tensor<1x?x?xf32>, %arg4: tensor<*xf32>, %arg5: !stablehlo.token)
@@ -26,35 +26,35 @@ func.func @refine_params(%arg0: tensor<f32>, %arg1: tensor<1xf32>, %arg2: tensor
 // -----
 
 // expected-error @+1 {{number of refinements must match number of function operands 6 vs 1}}
-func.func @refine_params_invalid_arg_num_mismatch(%arg0: tensor<f32>) {
+func.func @refine_arguments_invalid_arg_num_mismatch(%arg0: tensor<f32>) {
   return
 }
 
 // -----
 
 // expected-error @+1 {{refinement type must be tensor 'tensor<f32>' -> '!stablehlo.token'}}
-func.func @refine_params_invalid_type_mismatch(%arg0: tensor<f32>, %arg1: tensor<1xf32>, %arg2: tensor<?xf32>, %arg3: tensor<1x?x?xf32>, %arg4: tensor<*xf32>, %arg5: tensor<f32>) {
+func.func @refine_arguments_invalid_type_mismatch(%arg0: tensor<f32>, %arg1: tensor<1xf32>, %arg2: tensor<?xf32>, %arg3: tensor<1x?x?xf32>, %arg4: tensor<*xf32>, %arg5: tensor<f32>) {
   return
 }
 
 // -----
 
 // expected-error @+1 {{refinement rank must match operand rank 'tensor<f32>' -> 'tensor<1xf32>'}}
-func.func @refine_params_invalid_refine_rank_mismatch(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<?xf32>, %arg3: tensor<1x?x?xf32>, %arg4: tensor<*xf32>, %arg5: !stablehlo.token) {
+func.func @refine_arguments_invalid_refine_rank_mismatch(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<?xf32>, %arg3: tensor<1x?x?xf32>, %arg4: tensor<*xf32>, %arg5: !stablehlo.token) {
   return
 }
 
 // -----
 
 // expected-error @+1 {{refinement dimension sizes must match for static dimensions 'tensor<2xf32>' -> 'tensor<1xf32>'}}
-func.func @refine_params_invalid_static_dim_mismatch(%arg0: tensor<f32>, %arg1: tensor<2xf32>, %arg2: tensor<?xf32>, %arg3: tensor<1x?x?xf32>, %arg4: tensor<*xf32>, %arg5: !stablehlo.token) {
+func.func @refine_arguments_invalid_static_dim_mismatch(%arg0: tensor<f32>, %arg1: tensor<2xf32>, %arg2: tensor<?xf32>, %arg3: tensor<1x?x?xf32>, %arg4: tensor<*xf32>, %arg5: !stablehlo.token) {
   return
 }
 
 // -----
 
 // This test is used to check the case where a ranked operand is refined to unranked
-// RUN: not stablehlo-opt --stablehlo-refine-parameters='shapes=tensor<f32>,tensor<1xf32>,tensor<?xf32>,tensor<*xf32>,tensor<*xf32>,!stablehlo.token' %s 2>&1 | FileCheck %s --check-prefixes=UNRANKED-ERROR
+// RUN: not stablehlo-opt --stablehlo-refine-arguments='shapes=tensor<f32>,tensor<1xf32>,tensor<?xf32>,tensor<*xf32>,tensor<*xf32>,!stablehlo.token' %s 2>&1 | FileCheck %s --check-prefixes=UNRANKED-ERROR
 // UNRANKED-ERROR: refinement must be ranked 'tensor<1x?x?xf32>' -> 'tensor<*xf32>'
 func.func @main(%arg0: tensor<f32>, %arg1: tensor<1xf32>, %arg2: tensor<?xf32>, %arg3: tensor<1x?x?xf32>, %arg4: tensor<*xf32>, %arg5: !stablehlo.token) {
   return

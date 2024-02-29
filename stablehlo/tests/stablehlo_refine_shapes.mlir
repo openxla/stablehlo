@@ -536,6 +536,16 @@ func.func @refine_custom_call(%arg0: tensor<4xf32>) -> (tensor<?x?xf32>, tuple<t
 
 // -----
 
+// CHECK-LABEL: @refine_custom_call_operand_wrapper
+func.func @refine_custom_call_operand_wrapper(%arg0: tensor<10x5xf32>) -> tensor<?x5xf32> {
+  %0 = stablehlo.constant dense<[10, 5]> : tensor<2xi64>
+  // CHECK-NOT: stablehlo.shape_refinement_operand_wrapper
+  %1 = stablehlo.custom_call @stablehlo.shape_refinement_operand_wrapper(%arg0, %0) {indices_of_shape_operands = dense<1> : tensor<1xi64>} : (tensor<10x5xf32>, tensor<2xi64>) -> tensor<?x5xf32>
+  return %1 : tensor<?x5xf32>
+}
+
+// -----
+
 // CHECK-LABEL: @refine_dot_general
 func.func @refine_dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<?x?x?xf32> {
   // CHECK: stablehlo.dot_general{{.*}} -> tensor<2x4x5xf32>

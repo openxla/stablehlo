@@ -43,7 +43,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-#define GEN_PASS_DEF_STABLEHLOREFINEPARAMETERSPASS
+#define GEN_PASS_DEF_STABLEHLOREFINEARGUMENTSPASS
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
@@ -69,7 +69,7 @@ ParseResult parseRefinedTypes(ModuleOp module,
                               SmallVector<Type>& refinedTypes) {
   MLIRContext* context = module.getContext();
   for (const auto& shape : shapeString) {
-    Type type = parseType(shape, context);
+    Type type = mlir::parseType(shape, context);
     if (!type) return module->emitOpError("Invalid type string: ") << shape;
     refinedTypes.push_back(type);
   }
@@ -177,17 +177,17 @@ void refineOperandsAndUpdateFunctionSignature(func::FuncOp func,
   func.setType(builder.getFunctionType(refinedTypes, func.getResultTypes()));
 }
 
-struct StablehloRefineParametersPass
-    : public impl::StablehloRefineParametersPassBase<
-          StablehloRefineParametersPass> {
+struct StablehloRefineArgumentsPass
+    : public impl::StablehloRefineArgumentsPassBase<
+          StablehloRefineArgumentsPass> {
   using Super =
-      impl::StablehloRefineParametersPassBase<StablehloRefineParametersPass>;
-  StablehloRefineParametersPass() : Super() {}
-  StablehloRefineParametersPass(
-      const StablehloRefineParametersPassOptions& opts)
+      impl::StablehloRefineArgumentsPassBase<StablehloRefineArgumentsPass>;
+  StablehloRefineArgumentsPass() : Super() {}
+  StablehloRefineArgumentsPass(
+      const StablehloRefineArgumentsPassOptions& opts)
       : Super(opts) {}
-  StablehloRefineParametersPass(TypeRange refinedTypes) : Super() {
-    this->refinedTypes = llvm::to_vector(refinedTypes);
+  StablehloRefineArgumentsPass(TypeRange refinedTypes_) : Super() {
+    refinedTypes = llvm::to_vector(refinedTypes_);
   }
 
   void runOnOperation() override {
@@ -218,9 +218,9 @@ struct StablehloRefineParametersPass
 
 }  // namespace
 
-std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineParametersPass(
+std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
     TypeRange refinedTypes) {
-  return std::make_unique<StablehloRefineParametersPass>(refinedTypes);
+  return std::make_unique<StablehloRefineArgumentsPass>(refinedTypes);
 }
 }  // namespace stablehlo
 }  // namespace mlir
