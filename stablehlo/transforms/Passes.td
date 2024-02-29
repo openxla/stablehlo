@@ -86,14 +86,14 @@ def StablehloRefineArgumentsPass : Pass<"stablehlo-refine-arguments", "ModuleOp"
     Wraps arguments in custom_call @stablehlo.shape_refinement_operand_wrapper
     to keep the IR valid before shape refinement is run.
 
-    The `refinedShapesOption` can be used to specify a list of refined types.
-    This can be specified in MLIR with `--shapes='tensor<...>,tensor<...>'`, or
+    The `refinedTypesOption` can be used to specify a list of refined types.
+    This can be specified in MLIR with `--types='tensor<...>,tensor<...>'`, or
     passed to the pass create method. The refinement type list must specify the
     type of every argument to the `main` method being refined.
   }];
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
   let options = [
-    ListOption<"refinedShapesOption", "shapes", "std::string",
+    ListOption<"refinedTypesOption", "types", "std::string",
            "The new types to be used for the main function's arguments, specified as an MLIR TypeRange 'tensor<1x2xf32>, ...'">,
   ];
 }

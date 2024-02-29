@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -50,10 +51,9 @@ namespace {
 
 CustomCallOp makeShapeRefinementOperandWrapper(OpBuilder& builder,
                                                Value operand,
-                                               Type refinedType) {
-  auto rankedTensor = refinedType.cast<RankedTensorType>();
+                                               RankedTensorType refinedType) {
   auto constant = builder.create<stablehlo::ConstantOp>(
-      operand.getLoc(), builder.getI64TensorAttr(rankedTensor.getShape()));
+      operand.getLoc(), builder.getI64TensorAttr(refinedType.getShape()));
   return builder.create<stablehlo::CustomCallOp>(
       operand.getLoc(), operand.getType(), ValueRange{operand, constant},
       llvm::SmallVector<NamedAttribute>{
@@ -76,6 +76,13 @@ ParseResult parseRefinedTypes(ModuleOp module,
   return success();
 }
 
+LogicalResult refinementError(func::FuncOp func, int64_t idx, Type argType,
+                              Type refinedType, StringRef msg) {
+  return func.emitOpError()
+         << "invalid refinement for argument " << idx << ", refinement " << msg
+         << " in " << argType << "->" << refinedType;
+}
+
 // Validates refinement types:
 //   - A type refinement must be specified for each operand
 //   - Refinement types that match operand types are skipped
@@ -92,8 +99,11 @@ LogicalResult validateRefinedTypes(func::FuncOp func, TypeRange refinedTypes) {
   }
 
   // Validate that refinements are valid
-  for (auto [type, refinedType] :
-       llvm::zip(func.getArgumentTypes(), refinedTypes)) {
+  auto argTypes = func.getArgumentTypes();
+  for (int64_t i = 0; i < func.getNumArguments(); ++i) {
+    Type type = argTypes[i];
+    Type refinedType = refinedTypes[i];
+
     // Always allow skipping refinement
     if (type == refinedType) continue;
 
@@ -101,32 +111,30 @@ LogicalResult validateRefinedTypes(func::FuncOp func, TypeRange refinedTypes) {
     auto tensorType = type.dyn_cast<TensorType>();
     auto refinedTensorType = refinedType.dyn_cast<TensorType>();
     if (!tensorType || !refinedTensorType) {
-      return func.emitOpError("refinement type must be tensor ")
-             << type << " -> " << refinedType;
+      return refinementError(func, i, type, refinedType, "must be a tensor");
     }
 
     // Refined rank cannot be unranked if mismatch
     if (refinedType.isa<UnrankedTensorType>()) {
-      return func.emitOpError("refinement must be ranked ")
-             << type << " -> " << refinedType;
+      return refinementError(func, i, type, refinedType, "must be ranked");
     }
 
-    if (tensorType.hasRank()) {
-      // Validate ranks match if ranked (must allow unranked tensorType)
-      if (tensorType.getRank() != refinedTensorType.getRank()) {
-        return func.emitOpError("refinement rank must match operand rank ")
-               << type << " -> " << refinedType;
-      }
+    // Unranked operands can be refined to anything
+    if (!tensorType.hasRank()) continue;
 
-      // Validate static dimension sizes match
-      for (auto [dimSize, refinedDimSize] :
-           llvm::zip(tensorType.getShape(), refinedTensorType.getShape())) {
-        if (!ShapedType::isDynamic(dimSize) && dimSize != refinedDimSize) {
-          return func.emitOpError(
-                     "refinement dimension sizes must match for static "
-                     "dimensions ")
-                 << type << " -> " << refinedType;
-        }
+    // Validate ranks match if ranked (must allow unranked tensorType)
+    if (tensorType.getRank() != refinedTensorType.getRank()) {
+      return refinementError(func, i, type, refinedType,
+                             "rank must match operand rank");
+    }
+
+    // Validate static dimension sizes match
+    for (auto [dimSize, refinedDimSize] :
+         llvm::zip(tensorType.getShape(), refinedTensorType.getShape())) {
+      if (!ShapedType::isDynamic(dimSize) && dimSize != refinedDimSize) {
+        return refinementError(
+            func, i, type, refinedType,
+            "dimension sizes must match for static dimensions");
       }
     }
   }
@@ -134,17 +142,13 @@ LogicalResult validateRefinedTypes(func::FuncOp func, TypeRange refinedTypes) {
 }
 
 // Wrap operands in "type barriers" so the rest of the program remains valid
-// after the signature update and before shape refinement
+// after the signature update and before shape refinement.
 //
+// %0 = stablehlo.constant dense<[10, 5]> : tensor<2xi64>
 // %1 = stablehlo.custom_call
 //   @stablehlo.shape_refinement_operand_wrapper(%arg1, %0)
 //     {indices_of_shape_operands = dense<1> : tensor<1xi64>}
 //     : (tensor<5x10xf32>, tensor<2xi64>) -> tensor<?x10xf32>
-//
-// When introduced this is an identity operation from:
-//   (tensor<?x10xf32>) -> tensor<?x10xf32>
-// But after the operand is changed, this op has type signature
-//  (tensor<5x10xf32>) -> tensor<?x10xf32>
 //
 // Before shape refinement, all future uses of this argument expect type
 // tensor<?x10xf32>. By updating these uses to instead use the wrapper, the IR
@@ -153,13 +157,14 @@ void wrapRefinedOperands(func::FuncOp func, TypeRange refinedTypes) {
   Region& body = func.getBody();
   OpBuilder builder(body);
   builder.setInsertionPointToStart(&body.front());
-  for (int i = 0; i < static_cast<int>(body.getNumArguments()); ++i) {
+  for (int64_t i = 0; i < body.getNumArguments(); ++i) {
     BlockArgument arg = body.getArgument(i);
     Type argType = arg.getType();
     Type refinedType = refinedTypes[i];
     if (argType != refinedType) {
+      auto rankedRefinedType = refinedType.cast<RankedTensorType>();
       auto customCall =
-          makeShapeRefinementOperandWrapper(builder, arg, refinedType);
+          makeShapeRefinementOperandWrapper(builder, arg, rankedRefinedType);
       auto callResult = customCall.getResult(0);
       arg.replaceAllUsesExcept(callResult, customCall);
     }
@@ -170,7 +175,7 @@ void refineOperandsAndUpdateFunctionSignature(func::FuncOp func,
                                               TypeRange refinedTypes) {
   Region& body = func.getBody();
   OpBuilder builder(body);
-  for (int i = 0; i < static_cast<int>(body.getNumArguments()); ++i) {
+  for (int64_t i = 0; i < body.getNumArguments(); ++i) {
     auto arg = body.getArgument(i);
     arg.setType(refinedTypes[i]);
   }
@@ -180,12 +185,10 @@ void refineOperandsAndUpdateFunctionSignature(func::FuncOp func,
 struct StablehloRefineArgumentsPass
     : public impl::StablehloRefineArgumentsPassBase<
           StablehloRefineArgumentsPass> {
-  using Super =
-      impl::StablehloRefineArgumentsPassBase<StablehloRefineArgumentsPass>;
-  StablehloRefineArgumentsPass() : Super() {}
-  StablehloRefineArgumentsPass(const StablehloRefineArgumentsPassOptions& opts)
-      : Super(opts) {}
-  StablehloRefineArgumentsPass(TypeRange refinedTypes_) : Super() {
+  using StablehloRefineArgumentsPassBase::StablehloRefineArgumentsPassBase;
+
+  StablehloRefineArgumentsPass(TypeRange refinedTypes_)
+      : StablehloRefineArgumentsPassBase() {
     refinedTypes = llvm::to_vector(refinedTypes_);
   }
 
@@ -194,8 +197,8 @@ struct StablehloRefineArgumentsPass
     if (!func) return signalPassFailure();
 
     // Parse if string specified as option
-    if (!refinedShapesOption.empty() &&
-        failed(parseRefinedTypes(getOperation(), refinedShapesOption,
+    if (!refinedTypesOption.empty() &&
+        failed(parseRefinedTypes(getOperation(), refinedTypesOption,
                                  refinedTypes))) {
       return signalPassFailure();
     }

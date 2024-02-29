@@ -717,7 +717,7 @@ struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
       if (operand.getType() == op.getResult(0).getType()) {
         op.replaceAllUsesWith(ValueRange(operand));
       }
-      op.erase()
+      op.erase();
     }
     return success();
   }
@@ -1069,14 +1069,6 @@ struct UpdateRegionTypePattern : public OpRewritePattern<ReturnOp> {
       return rewriter.notifyMatchFailure(op, "doesn't need update");
 
     rewriter.modifyOpInPlace(op->getParentOp(), [&]() { return; });
-    return success();
-  }
-};
-
-struct CleanupOperandBufferPattern : public OpRewritePattern<CustomCallOp> {
-  using OpRewritePattern::OpRewritePattern;
-  LogicalResult matchAndRewrite(CustomCallOp op,
-                                PatternRewriter& rewriter) const override {
     return success();
   }
 };
