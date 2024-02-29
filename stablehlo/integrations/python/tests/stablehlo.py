@@ -21,6 +21,7 @@ import re
 import io
 from mlir import ir
 from mlir.dialects import stablehlo
+import numpy as np
 
 
 def run(f):
@@ -228,11 +229,25 @@ def test_minimum_version():
 
 
 ASM = """
-func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {
-  %0 = stablehlo.add %arg0, %arg0 : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
-  func.return %0 : tensor<2xf32>
+func.func @test(%arg0: tensor<2xi64>) -> tensor<2xi64> {
+  %0 = stablehlo.add %arg0, %arg0 : (tensor<2xi64>, tensor<2xi64>) -> tensor<2xi64>
+  func.return %0 : tensor<2xi64>
 }
 """
+
+@run
+def test_reference_api():
+  with ir.Context() as context:
+    stablehlo.register_dialect(context)
+    m = ir.Module.parse(ASM)
+    module_str = str(m)
+    input = ir.DenseIntElementsAttr.get(np.asarray([1, 2], np.int64))
+    inputs = [input]
+
+  res = stablehlo.eval_module(m, inputs)
+  actual = np.array(res[0])
+  expected = np.array([2, 4])
+  assert (actual == expected).all()
 
 @run
 def test_serialization_apis():

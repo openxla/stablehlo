@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 #include "stablehlo/reference/Api.h"
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
@@ -21,6 +22,7 @@ limitations under the License.
 #include "llvm/Support/Path.h"
 #include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/Parser/Parser.h"
 #include "stablehlo/dialect/Register.h"
@@ -31,6 +33,8 @@ limitations under the License.
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/Scope.h"
+#include "stablehlo/reference/Tensor.h"
+#include "stablehlo/reference/Value.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -129,6 +133,26 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
 
   DefaultInterpreterFallback fallback(config);
   return stablehlo::eval(mainFunc.getBody(), inputs, &fallback);
+}
+
+llvm::ErrorOr<SmallVector<DenseElementsAttr>> evalModule(
+    ModuleOp module, ArrayRef<DenseElementsAttr> inputs,
+    const InterpreterConfiguration &config) {
+  SmallVector<InterpreterValue> valueInputs = llvm::to_vector(
+      llvm::map_range(inputs, [](DenseElementsAttr attr) -> InterpreterValue {
+        return InterpreterValue(makeTensor(attr));
+      }));
+
+  llvm::ErrorOr<SmallVector<InterpreterValue>> values =
+      evalModule(module, valueInputs, config);
+  if (!values) return values.getError();
+
+  SmallVector<DenseElementsAttr> results = llvm::to_vector(llvm::map_range(
+      values.get(), [](InterpreterValue val) -> DenseElementsAttr {
+        return makeDenseElementsAttr(val.getTensor());
+      }));
+
+  return results;
 }
 
 llvm::ErrorOr<OwningOpRef<ModuleOp>> parseStablehloModule(

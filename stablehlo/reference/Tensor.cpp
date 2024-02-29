@@ -20,6 +20,8 @@ limitations under the License.
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/Error.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Types.h"
@@ -533,6 +535,30 @@ Tensor makeTensor(DenseElementsAttr attr) {
 
   report_fatal_error(
       invalidArgument("Unsupported type: ", debugString(type).c_str()));
+}
+
+DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
+  auto type = tensor.getType();
+  auto elemType = type.getElementType();
+
+  if (elemType.isa<FloatType>()) {
+    std::vector<llvm::APFloat> values;
+    for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
+      Element ele = tensor.get(*it);
+      values.push_back(ele.getFloatValue());
+    }
+    return DenseFPElementsAttr::get(tensor.getType(), values);
+  }
+  if (elemType.isa<IntegerType>()) {
+    std::vector<llvm::APInt> values;
+    for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
+      Element ele = tensor.get(*it);
+      values.push_back(ele.getIntegerValue());
+    }
+    return DenseIntElementsAttr::get(tensor.getType(), values);
+  }
+
+  llvm::report_fatal_error("Only FloatType and IntType are handled currently.");
 }
 
 }  // namespace stablehlo

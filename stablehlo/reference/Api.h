@@ -19,6 +19,7 @@ limitations under the License.
 #include <string>
 
 #include "llvm/Support/ErrorOr.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OwningOpRef.h"
@@ -35,6 +36,12 @@ namespace stablehlo {
 /// builtin kernels are matched.
 llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
+    const InterpreterConfiguration &config);
+
+/// This wrapper is intended to be easily used by the StableHLO Python bindings.
+// It wraps the InterpreterValue API.
+llvm::ErrorOr<SmallVector<DenseElementsAttr>> evalModule(
+    ModuleOp module, ArrayRef<DenseElementsAttr> inputs,
     const InterpreterConfiguration &config);
 
 /// Parses a StableHLO MLIR text program into a ModuleOp.
