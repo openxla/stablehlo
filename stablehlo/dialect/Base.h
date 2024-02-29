@@ -312,10 +312,10 @@ class CompatibleOperandsElementType
                                       CompatibleOperandsElementType> {
  public:
   static LogicalResult verifyTrait(Operation *op) {
-    Type expected;
-    if (op->getNumOperands() != 0) expected = op->getOperand(0).getType();
-    if (!expected) return failure();
+    if (failed(mlir::OpTrait::impl::verifyAtLeastNOperands(op, 1)))
+      return failure();
 
+    Type expected = op->getOperand(0).getType();
     auto typeMatch = [&](Type actual) {
       return isCompatibleElementTypeForHloTypeInference(actual, expected);
     };
