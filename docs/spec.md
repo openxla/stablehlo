@@ -3040,14 +3040,15 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 #### Semantics
 
 Produces the size of the given `dimension` of the `operand`. More formally,
-`result = dim(operand, dimension)`.
+`result = dim(operand, dimension)`. The Semantics concerns only with the shape
+component of the type. The element-type could be anything.
 
 #### Inputs
 
-| Label | Name        | Type                    | Constraints |
-|-------|-------------|-------------------------|-------------|
-| (I1)  | `operand`   | tensor                  | (C1)        |
-| (I2)  | `dimension` | constant of type `si64` | (C1)        |
+| Label | Name        | Type                       | Constraints |
+|-------|-------------|----------------------------|-------------|
+| (I1)  | `operand`   | tensor or quantized tensor | (C1)        |
+| (I2)  | `dimension` | constant of type `si64`    | (C1)        |
 
 #### Outputs
 
