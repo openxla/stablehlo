@@ -29,6 +29,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloCanonicalizeDynamism.cpp
   StablehloInstrumentWithProbe.cpp
   StablehloLegalizeToVhlo.cpp
+  StablehloRefineArguments.cpp
   StablehloRefineShapes.cpp
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp
@@ -41,6 +42,7 @@ add_mlir_dialect_library(StablehloPasses
   ChloOps
   InterpreterOps
   MLIRArithDialect
+  MLIRAsmParser
   MLIRComplexDialect
   MLIRFuncDialect
   MLIRFunctionInterfaces

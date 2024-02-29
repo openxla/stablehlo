@@ -40,6 +40,7 @@ limitations under the License.
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
+#include "mlir/IR/ValueRange.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -706,7 +707,19 @@ struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
     SmallVector<ShapedTypeComponents> refinements;
     if (failed(hlo::getShapeRefinements(op.getLoc(), op, refinements)))
       return rewriter.notifyMatchFailure(op, "expected valid refinements");
-    return refineReturnTypes(rewriter, op, refinements);
+    if (failed(refineReturnTypes(rewriter, op, refinements)))
+      return rewriter.notifyMatchFailure(op, "refineReturnTypes failed");
+
+    // Clean up operand buffers after refinement
+    // Must do in this pattern to avoid needing multiple refinement iterations
+    if (op.getCallTargetName().equals(kCustomCallOperandBarrierTarget)) {
+      Value operand = op.getOperand(0);
+      if (operand.getType() == op.getResult(0).getType()) {
+        op.replaceAllUsesWith(ValueRange(operand));
+      }
+      op.erase();
+    }
+    return success();
   }
 };
 

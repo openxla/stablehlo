@@ -70,6 +70,11 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
 void populateShapeToStablehloPatterns(MLIRContext *context,
                                       RewritePatternSet *patterns);
 
+//// Additional pass constructors ////
+
+std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
+    TypeRange refinedTypes);
+
 //// Pass pipelines ////
 
 // StableHLO consumers can add this pipeline to convert portable artifacts to

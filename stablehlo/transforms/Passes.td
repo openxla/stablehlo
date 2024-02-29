@@ -79,6 +79,25 @@ def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
   }];
 }
 
+def StablehloRefineArgumentsPass : Pass<"stablehlo-refine-arguments", "ModuleOp"> {
+  let summary = "Refines the argument shapes of the main function.";
+  let description = [{
+    Modifies the arguments of the main function using the input type signature.
+    Wraps arguments in custom_call @stablehlo.shape_refinement_operand_wrapper
+    to keep the IR valid before shape refinement is run.
+
+    The `refinedTypesOption` can be used to specify a list of refined types.
+    This can be specified in MLIR with `--types='tensor<...>,tensor<...>'`, or
+    passed to the pass create method. The refinement type list must specify the
+    type of every argument to the `main` method being refined.
+  }];
+  let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
+  let options = [
+    ListOption<"refinedTypesOption", "types", "std::string",
+           "The new types to be used for the main function's arguments, specified as an MLIR TypeRange 'tensor<1x2xf32>, ...'">,
+  ];
+}
+
 def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp"> {
   let summary = "Legalize VHLO to StableHLO.";
   let dependentDialects = [

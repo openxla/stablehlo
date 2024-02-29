@@ -96,6 +96,12 @@ LogicalResult refineReturnShape(PatternRewriter& rewriter, OpType op,
   return refineReturnShape(rewriter, op, shape);
 }
 
+// Custom call used to buffer operands for shape refinement
+// This is a temporary artifact that is introduced by StablehloRefineArguments
+// and is washed away during StablehloRefineShapes.
+constexpr StringRef kCustomCallOperandBarrierTarget =
+    "stablehlo.shape_refinement_operand_wrapper";
+
 }  // namespace stablehlo
 }  // namespace mlir
 
