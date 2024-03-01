@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 #include "stablehlo/reference/Api.h"
+#include <cstdint>
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
@@ -23,8 +24,12 @@ limitations under the License.
 #include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectRegistry.h"
+#include "mlir/IR/Location.h"
+#include "mlir/IR/TypeRange.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Errors.h"
@@ -39,7 +44,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 namespace {
-func::FuncOp getMainFunction(ModuleOp module, StringRef mainName) {
+FailureOr<func::FuncOp> getMainFunction(ModuleOp module, StringRef mainName) {
   auto functions = module.getOps<func::FuncOp>();
 
   for (auto funcOp : functions)
@@ -50,7 +55,8 @@ func::FuncOp getMainFunction(ModuleOp module, StringRef mainName) {
   bool isDefaultLookup = mainName == "main";
   if (isSingleFunction && isDefaultLookup) return *functions.begin();
 
-  return {};
+  return module.emitError()
+         << "module must have entry func with name " << mainName;
 }
 
 // DefaultInterpreterFallback is an implementation detail of run module. It
@@ -110,16 +116,41 @@ class DefaultInterpreterFallback : public InterpreterFallback {
   int64_t serializedProbeFileId = 0;
 };
 
+LogicalResult validateEntrySignature(func::FuncOp func,
+                                     ArrayRef<InterpreterValue> inputs) {
+  if (func.getNumArguments() != inputs.size())
+    return func->emitError()
+           << "incorrect number of arguments specified, provided "
+           << inputs.size() << " inputs but function expected"
+           << func.getNumArguments();
+  
+
+  TypeRange signature = func.getArgumentTypes();
+  for (int64_t i = 0; i < func.getNumArguments(); ++i) {
+    Type sigType = signature[i];
+    Type argType = inputs[i].getType();
+    if (sigType != argType)
+      return func.emitError() << "invalid input argument type at index " << i
+                              << ", input type was " << argType
+                              << " but entry function expected " << sigType;
+  }
+  return success();
+}
+
 }  // namespace
 
-llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
+FailureOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
     const InterpreterConfiguration &config) {
+  // Additional error checking at main function boundary.
+  // This is most likely user error, where future errors during interpreting are
+  // more likely invalid IR or interpreter bugs.
   if (module.getOps<func::FuncOp>().empty())
     return SmallVector<InterpreterValue>();
 
   auto mainFunc = getMainFunction(module, config.mainFunction);
-  if (!mainFunc) llvm::report_fatal_error("Requested main function not found.");
+  if (failed(mainFunc) || failed(validateEntrySignature(*mainFunc, inputs)))
+    return failure();
 
   if (!config.probeInstrumentationDir.empty()) {
     llvm::SmallString<128> instrumentationMetadataFile(
@@ -127,15 +158,16 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> evalModule(
     llvm::sys::path::append(instrumentationMetadataFile,
                             stablehlo::numpy::kInstrumentationMetadataFilename);
     if (llvm::sys::fs::remove(instrumentationMetadataFile))
-      llvm::report_fatal_error(
+      return emitError(
+          UnknownLoc::get(module.getContext()),
           "Failed to remove existing instrumentation metadata file.");
   }
 
   DefaultInterpreterFallback fallback(config);
-  return stablehlo::eval(mainFunc.getBody(), inputs, &fallback);
+  return stablehlo::eval(mainFunc->getBody(), inputs, &fallback);
 }
 
-llvm::ErrorOr<SmallVector<DenseElementsAttr>> evalModule(
+FailureOr<SmallVector<DenseElementsAttr>> evalModule(
     ModuleOp module, ArrayRef<DenseElementsAttr> inputs,
     const InterpreterConfiguration &config) {
   SmallVector<InterpreterValue> valueInputs = llvm::to_vector(
@@ -143,19 +175,18 @@ llvm::ErrorOr<SmallVector<DenseElementsAttr>> evalModule(
         return InterpreterValue(makeTensor(attr));
       }));
 
-  llvm::ErrorOr<SmallVector<InterpreterValue>> values =
-      evalModule(module, valueInputs, config);
-  if (!values) return values.getError();
+  auto values = evalModule(module, valueInputs, config);
+  if (failed(values)) return failure();
 
   SmallVector<DenseElementsAttr> results = llvm::to_vector(llvm::map_range(
-      values.get(), [](InterpreterValue val) -> DenseElementsAttr {
+      values.value(), [](InterpreterValue val) -> DenseElementsAttr {
         return makeDenseElementsAttr(val.getTensor());
       }));
 
   return results;
 }
 
-llvm::ErrorOr<OwningOpRef<ModuleOp>> parseStablehloModule(
+FailureOr<OwningOpRef<ModuleOp>> parseStablehloModule(
     const std::string &mlir, MLIRContext &context) {
   llvm::SourceMgr source_mgr;
   source_mgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(mlir),
@@ -169,7 +200,8 @@ llvm::ErrorOr<OwningOpRef<ModuleOp>> parseStablehloModule(
   mlir::OwningOpRef<mlir::ModuleOp> module(
       mlir::parseSourceFile<mlir::ModuleOp>(source_mgr, &context));
 
-  if (!module) return llvm::errc::invalid_argument;
+  if (!module)
+    return emitError(UnknownLoc::get(&context), "unable to parse module");
 
   return module;
 }

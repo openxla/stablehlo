@@ -508,9 +508,8 @@ PYBIND11_MODULE(_stablehlo, m) {
         mlir::stablehlo::InterpreterConfiguration config;
         auto results =
             mlir::stablehlo::evalModule(unwrap(module), inputs, config);
-        if (!results) {
-          PyErr_SetString(PyExc_ValueError,
-                          results.getError().message().c_str());
+        if (failed(results)) {
+          PyErr_SetString(PyExc_ValueError, "interpreter failed");
           return {};
         }
 

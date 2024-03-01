@@ -228,26 +228,43 @@ def test_minimum_version():
   assert is_semver_format(curr_version)
 
 
-ASM = """
-func.func @test(%arg0: tensor<2xi64>) -> tensor<2xi64> {
-  %0 = stablehlo.add %arg0, %arg0 : (tensor<2xi64>, tensor<2xi64>) -> tensor<2xi64>
-  func.return %0 : tensor<2xi64>
-}
+ASM_FORMAT = """
+func.func @test(%arg0: tensor<{0}>) -> tensor<{0}> {{
+  %0 = stablehlo.add %arg0, %arg0 : (tensor<{0}>, tensor<{0}>) -> tensor<{0}>
+  func.return %0 : tensor<{0}>
+}}
 """
+
 
 @run
 def test_reference_api():
-  with ir.Context() as context:
-    stablehlo.register_dialect(context)
-    m = ir.Module.parse(ASM)
-    module_str = str(m)
-    input = ir.DenseIntElementsAttr.get(np.asarray([1, 2], np.int64))
-    inputs = [input]
+  # Formatted as (tensor_type, np_value)
+  # Program runs arg + arg, which is used for expected value
+  tests = [
+    # No numpy types for f8
+    ("f16", np.asarray(1, np.float16)),
+    ("f32", np.asarray(2, np.float32)),
+    ("f64", np.asarray(3, np.double)),
+    ("1xi8", np.asarray([4], np.int8)),
+    ("1xi16", np.asarray([5], np.int16)),
+    ("1xi32", np.asarray([-6], np.int32)),
+    # Numpy uint types interpreter as int
+    ("2x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,2)),
+    ("2x1x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,1,2)),
+  ]
+  for test in tests:
+    tensor_type, arg = test
+    with ir.Context() as context:
+      stablehlo.register_dialect(context)
+      m = ir.Module.parse(ASM_FORMAT.format(tensor_type))
+      module_str = str(m)
+      args = [ir.DenseIntElementsAttr.get(arg)]
 
-  res = stablehlo.eval_module(m, inputs)
-  actual = np.array(res[0])
-  expected = np.array([2, 4])
-  assert (actual == expected).all()
+    res = stablehlo.eval_module(m, args)
+    actual = np.array(res[0])
+    expected = arg + arg
+    assert (actual == expected).all()
+
 
 @run
 def test_serialization_apis():
@@ -255,7 +272,7 @@ def test_serialization_apis():
 
   with ir.Context() as context:
     stablehlo.register_dialect(context)
-    m = ir.Module.parse(ASM)
+    m = ir.Module.parse(ASM_FORMAT.format("2xf32"))
     module_str = str(m)
     assert m is not None
     serialized = stablehlo.serialize_portable_artifact(m, curr_version)
@@ -273,7 +290,7 @@ def test_str_serialization_apis():
 
   with ir.Context() as context:
     stablehlo.register_dialect(context)
-    m = ir.Module.parse(ASM)
+    m = ir.Module.parse(ASM_FORMAT.format("2xf32"))
     module_str = str(m)
     assert m is not None
     bytecode = module_to_bytecode(m)

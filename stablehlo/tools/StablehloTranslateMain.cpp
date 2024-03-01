@@ -175,12 +175,10 @@ TranslateFromMLIRRegistration interpretRegistration(
           config.probeInstrumentationDir);
 
       llvm::SmallVector<stablehlo::InterpreterValue> inputs;
-      auto resultsOrError = evalModule(module, inputs, config);
-      if (resultsOrError) {
-        return success(resultsOrError);
-      }
+      auto results= evalModule(module, inputs, config);
+      if (failed(results)) return failure();
 
-      for (auto &result : *resultsOrError) result.print(os);
+      for (auto &result : *results) result.print(os);
 
       return success();
     },
