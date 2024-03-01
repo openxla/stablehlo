@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 #include "stablehlo/reference/Api.h"
+
 #include <cstdint>
 
 #include "llvm/ADT/STLExtras.h"
@@ -123,7 +124,6 @@ LogicalResult validateEntrySignature(func::FuncOp func,
            << "incorrect number of arguments specified, provided "
            << inputs.size() << " inputs but function expected"
            << func.getNumArguments();
-  
 
   TypeRange signature = func.getArgumentTypes();
   for (int64_t i = 0; i < func.getNumArguments(); ++i) {
@@ -186,8 +186,8 @@ FailureOr<SmallVector<DenseElementsAttr>> evalModule(
   return results;
 }
 
-FailureOr<OwningOpRef<ModuleOp>> parseStablehloModule(
-    const std::string &mlir, MLIRContext &context) {
+FailureOr<OwningOpRef<ModuleOp>> parseStablehloModule(const std::string &mlir,
+                                                      MLIRContext &context) {
   llvm::SourceMgr source_mgr;
   source_mgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(mlir),
                                 llvm::SMLoc());

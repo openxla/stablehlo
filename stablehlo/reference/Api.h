@@ -45,8 +45,8 @@ FailureOr<SmallVector<DenseElementsAttr>> evalModule(
     const InterpreterConfiguration &config);
 
 /// Parses a StableHLO MLIR text program into a ModuleOp.
-FailureOr<OwningOpRef<ModuleOp>> parseStablehloModule(
-    const std::string &mlir, MLIRContext &context);
+FailureOr<OwningOpRef<ModuleOp>> parseStablehloModule(const std::string &mlir,
+                                                      MLIRContext &context);
 
 }  // namespace stablehlo
 }  // namespace mlir
