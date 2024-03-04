@@ -1893,9 +1893,6 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
     assumed to be possibly expanding. The sets of dimensions that are known to
     be expanding and the set of dimensions that are known to be non-expanding
     must be disjoint and they must be a subset of the operand's dimensions.
-
-    There are internal tests written with per-axis support which we would like to maintain
-    till the op makes its place to spec.
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
