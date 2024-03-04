@@ -431,6 +431,7 @@ cc_library(
         ":reference_ops",
         ":reference_process",
         ":reference_scope",
+        ":reference_tensor",
         ":reference_value",
         ":register",
         "@llvm-project//llvm:Support",
