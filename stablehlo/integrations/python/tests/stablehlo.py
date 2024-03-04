@@ -241,14 +241,14 @@ def test_reference_api():
   # Formatted as (tensor_type, np_value)
   # Program runs arg + arg, which is used for expected value
   tests = [
-    # No numpy types for f8
+    # No numpy types for f8 - skipping fp8 tests
     ("f16", np.asarray(1, np.float16)),
     ("f32", np.asarray(2, np.float32)),
     ("f64", np.asarray(3, np.double)),
     ("1xi8", np.asarray([4], np.int8)),
     ("1xi16", np.asarray([5], np.int16)),
     ("1xi32", np.asarray([-6], np.int32)),
-    # Numpy uint types interpreter as int
+    # Numpy uint types interpreter as int - skipping np.uint tests
     ("2x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,2)),
     ("2x1x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,1,2)),
   ]
