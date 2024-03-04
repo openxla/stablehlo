@@ -1898,14 +1898,14 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
     till the op makes its place to spec.
   }];
   let arguments = (ins
-    HLO_TensorOrPerAxisQuantizedTensor:$operand,
+    HLO_Tensor:$operand,
     HLO_StaticDimensionTensor:$output_dimensions,
     DenseI64ArrayAttr:$broadcast_dimensions,
     OptionalAttr<DenseI64ArrayAttr>:$known_expanding_dimensions,
     OptionalAttr<DenseI64ArrayAttr>:$known_nonexpanding_dimensions
   );
 
-  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
+  let results = (outs HLO_Tensor);
 
   let builders = [
       OpBuilder<(ins
