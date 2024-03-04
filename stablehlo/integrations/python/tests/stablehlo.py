@@ -248,7 +248,7 @@ def test_reference_api():
     ("1xi8", np.asarray([4], np.int8)),
     ("1xi16", np.asarray([5], np.int16)),
     ("1xi32", np.asarray([-6], np.int32)),
-    # Numpy uint types interpreter as int - skipping np.uint tests
+    # Numpy's uint treated as int by DenseElementsAttr, skipping np.uint tests
     ("2x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,2)),
     ("2x1x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,1,2)),
   ]
