@@ -194,7 +194,7 @@ LogicalResult inferCreateTokenOp(HloDialectInterface* dialect,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferDotOp(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 

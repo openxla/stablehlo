@@ -740,6 +740,19 @@ struct RefineDotGeneralOpPattern : public OpRewritePattern<DotGeneralOp> {
   }
 };
 
+struct RefineDotOpPattern : public OpRewritePattern<DotOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(DotOp op,
+                                PatternRewriter& rewriter) const override {
+    SmallVector<ShapedTypeComponents> inferredReturnShapes;
+    if (failed(hlo::inferDotOp(
+            /*location=*/{}, op.getLhs().getType(), op.getRhs().getType(),
+            op.getPrecisionConfig(), inferredReturnShapes)))
+      return rewriter.notifyMatchFailure(op, "inferDotOp failed");
+    return refineReturnTypes(rewriter, op, inferredReturnShapes);
+  }
+};
+
 struct RefineDynamicBroadcastInDimOpPattern
     : public OpRewritePattern<DynamicBroadcastInDimOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -1179,6 +1192,7 @@ void populateStablehloRefineShapesPatterns(RewritePatternSet* patterns,
   patterns->add<RefineConvolutionOpPattern>(context);
   patterns->add<RefineCustomCallOpPattern>(context);
   patterns->add<RefineDotGeneralOpPattern>(context);
+  patterns->add<RefineDotOpPattern>(context);
   patterns->add<RefineDynamicBroadcastInDimOpPattern>(context);
   patterns->add<RefineDynamicConvOpPattern>(context);
   patterns->add<RefineDynamicIotaOpPattern>(context);
