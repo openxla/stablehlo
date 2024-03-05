@@ -32,7 +32,7 @@ from python.runfiles import Runfiles
 from pathlib import Path
 
 r = Runfiles.Create()
-LITE_CFG_PY = Path(r.Rlocation("stablehlo/stablehlo/conversions/linalg/tests/lite.cfg.py"))
+LITE_CFG_PY = Path(r.Rlocation("stablehlo/stablehlo/conversions/linalg/tests/lit.cfg.py"))
 RUNFILES_DIR = LITE_CFG_PY.parents[4].absolute().as_posix()''',
         "@LLVM_TOOLS_DIR@": "../llvm-project/llvm",
     },
