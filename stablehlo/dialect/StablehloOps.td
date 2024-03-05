@@ -2413,7 +2413,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand, /*get_dimension_size_i1*/
+    HLO_TensorOrPerAxisQuantizedTensor:$operand, /*get_dimension_size_i1*/
     I64Attr:$dimension /*get_dimension_size_i2*/
   );
   // TODO(hinsu): Allow 64-bit result types once XLA HLO dialect based on the
