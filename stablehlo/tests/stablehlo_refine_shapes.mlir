@@ -562,6 +562,15 @@ func.func @refine_dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>
 
 // -----
 
+// CHECK-LABEL: @refine_dot
+func.func @refine_dot(%arg0: tensor<3x4xf32>, %arg1: tensor<4x5xf32>) -> tensor<?x?xf32> {
+  // CHECK: stablehlo.dot{{.*}} -> tensor<3x5xf32>
+  %0 = stablehlo.dot %arg0, %arg1 : (tensor<3x4xf32>, tensor<4x5xf32>) -> tensor<?x?xf32>
+  func.return %0 : tensor<?x?xf32>
+}
+
+// -----
+
 // CHECK-LABEL: @refine_dynamic_broadcast_in_dim
 func.func @refine_dynamic_broadcast_in_dim(%arg0: tensor<4xf32>) -> tensor<?x?xf32> {
   // CHECK: stablehlo.dynamic_broadcast_in_dim{{.*}} -> tensor<3x4xf32>

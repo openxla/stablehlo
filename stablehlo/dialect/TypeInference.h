@@ -194,8 +194,8 @@ LogicalResult inferCreateTokenOp(HloDialectInterface* dialect,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferDotOp(
-    std::optional<Location> location, Value lhs, Value rhs,
-    std::optional<ArrayAttr> precisionConfig,
+    std::optional<Location> location, RankedTensorType lhsType,
+    RankedTensorType rhsType, std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDotGeneralOp(
@@ -412,8 +412,9 @@ LogicalResult verifyConvolutionOp(
     int64_t featureGroupCount, int64_t batchGroupCount,
     std::optional<ArrayAttr> precisionConfig, Type resultType);
 
-LogicalResult verifyDotOp(std::optional<Location> location, Value lhs,
-                          Value rhs, std::optional<ArrayAttr> precisionConfig,
+LogicalResult verifyDotOp(std::optional<Location> location,
+                          RankedTensorType lhsType, RankedTensorType rhsType,
+                          std::optional<ArrayAttr> precisionConfig,
                           Value result);
 
 LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,

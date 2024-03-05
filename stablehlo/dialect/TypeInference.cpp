@@ -1884,18 +1884,11 @@ LogicalResult inferCreateTokenOp(HloDialectInterface* dialect,
 }
 
 LogicalResult inferDotOp(
-    std::optional<Location> location, Value lhs, Value rhs,
-    std::optional<ArrayAttr> precisionConfig,
+    std::optional<Location> location, RankedTensorType lhsType,
+    RankedTensorType rhsType, std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (failed(verifyPrecisionConfig(location, precisionConfig)))
     return failure();
-
-  auto lhsType = lhs.getType().dyn_cast<RankedTensorType>();
-  auto rhsType = rhs.getType().dyn_cast<RankedTensorType>();
-  if (!lhsType || !rhsType) {
-    inferredReturnShapes.push_back({});
-    return success();
-  }
 
   SmallVector<int64_t> dimensions;
   if (1 == lhsType.getRank() && 1 == rhsType.getRank() &&
@@ -3403,11 +3396,12 @@ LogicalResult verifyConvolutionOp(
   return success();
 }
 
-LogicalResult verifyDotOp(std::optional<Location> location, Value lhs,
-                          Value rhs, std::optional<ArrayAttr> precisionConfig,
+LogicalResult verifyDotOp(std::optional<Location> location,
+                          RankedTensorType lhsType, RankedTensorType rhsType,
+                          std::optional<ArrayAttr> precisionConfig,
                           Value result) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
-  if (failed(inferDotOp(location, lhs, rhs, precisionConfig,
+  if (failed(inferDotOp(location, lhsType, rhsType, precisionConfig,
                         inferredReturnShapes)))
     return failure();
 
