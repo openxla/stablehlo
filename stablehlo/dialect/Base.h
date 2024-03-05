@@ -307,6 +307,29 @@ class CompatibleOperandsAndResultElementType
 };
 
 template <typename ConcreteType>
+class CompatibleOperandsElementType
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      CompatibleOperandsElementType> {
+ public:
+  static LogicalResult verifyTrait(Operation *op) {
+    if (failed(mlir::OpTrait::impl::verifyAtLeastNOperands(op, 1)))
+      return failure();
+
+    Type expected = op->getOperand(0).getType();
+    auto typeMatch = [&](Type actual) {
+      return isCompatibleElementTypeForHloTypeInference(actual, expected);
+    };
+    auto allMatch = llvm::all_of(op->getOperandTypes(), typeMatch);
+    if (!allMatch) {
+      return op->emitOpError(
+          "requires compatible element types for all operands");
+    }
+
+    return success();
+  }
+};
+
+template <typename ConcreteType>
 class CompatibleOperandsAndResultType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       CompatibleOperandsAndResultType> {
