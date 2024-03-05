@@ -1884,40 +1884,32 @@ LogicalResult inferCreateTokenOp(HloDialectInterface* dialect,
 }
 
 LogicalResult inferDotOp(
-    std::optional<Location> location, Type lhsType, Type rhsType,
-    std::optional<ArrayAttr> precisionConfig,
+    std::optional<Location> location, RankedTensorType lhsType,
+    RankedTensorType rhsType, std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (failed(verifyPrecisionConfig(location, precisionConfig)))
     return failure();
 
-  auto lhsRankedType = lhsType.dyn_cast<RankedTensorType>();
-  auto rhsRankedType = rhsType.dyn_cast<RankedTensorType>();
-  if (!lhsRankedType || !rhsRankedType) {
-    inferredReturnShapes.push_back({});
-    return success();
-  }
-
   SmallVector<int64_t> dimensions;
-  if (1 == lhsRankedType.getRank() && 1 == rhsRankedType.getRank() &&
+  if (1 == lhsType.getRank() && 1 == rhsType.getRank() &&
       // vector dot vector
-      verifyCompatibleDims(lhsRankedType.getDimSize(0),
-                           rhsRankedType.getDimSize(0))) {
-  } else if (2 == lhsRankedType.getRank() && 1 == rhsRankedType.getRank() &&
-             verifyCompatibleDims(lhsRankedType.getDimSize(1),
-                                  rhsRankedType.getDimSize(0))) {
+      verifyCompatibleDims(lhsType.getDimSize(0), rhsType.getDimSize(0))) {
+  } else if (2 == lhsType.getRank() && 1 == rhsType.getRank() &&
+             verifyCompatibleDims(lhsType.getDimSize(1),
+                                  rhsType.getDimSize(0))) {
     // matrix dot vector
-    dimensions.push_back(lhsRankedType.getDimSize(0));
-  } else if (1 == lhsRankedType.getRank() && 2 == rhsRankedType.getRank() &&
-             verifyCompatibleDims(lhsRankedType.getDimSize(0),
-                                  rhsRankedType.getDimSize(0))) {
+    dimensions.push_back(lhsType.getDimSize(0));
+  } else if (1 == lhsType.getRank() && 2 == rhsType.getRank() &&
+             verifyCompatibleDims(lhsType.getDimSize(0),
+                                  rhsType.getDimSize(0))) {
     // vector dot matrix
-    dimensions.push_back(rhsRankedType.getDimSize(1));
-  } else if (2 == lhsRankedType.getRank() && 2 == rhsRankedType.getRank() &&
-             verifyCompatibleDims(lhsRankedType.getDimSize(1),
-                                  rhsRankedType.getDimSize(0))) {
+    dimensions.push_back(rhsType.getDimSize(1));
+  } else if (2 == lhsType.getRank() && 2 == rhsType.getRank() &&
+             verifyCompatibleDims(lhsType.getDimSize(1),
+                                  rhsType.getDimSize(0))) {
     // matrix dot matrix
-    dimensions.push_back(lhsRankedType.getDimSize(0));
-    dimensions.push_back(rhsRankedType.getDimSize(1));
+    dimensions.push_back(lhsType.getDimSize(0));
+    dimensions.push_back(rhsType.getDimSize(1));
   } else {
     return emitOptionalError(location,
                              "expected both lhs/rhs ranks to be "
@@ -3404,11 +3396,12 @@ LogicalResult verifyConvolutionOp(
   return success();
 }
 
-LogicalResult verifyDotOp(std::optional<Location> location, Value lhs,
-                          Value rhs, std::optional<ArrayAttr> precisionConfig,
+LogicalResult verifyDotOp(std::optional<Location> location,
+                          RankedTensorType lhsType, RankedTensorType rhsType,
+                          std::optional<ArrayAttr> precisionConfig,
                           Value result) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
-  if (failed(inferDotOp(location, lhs.getType(), rhs.getType(), precisionConfig,
+  if (failed(inferDotOp(location, lhsType, rhsType, precisionConfig,
                         inferredReturnShapes)))
     return failure();
 
