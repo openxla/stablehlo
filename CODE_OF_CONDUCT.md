@@ -67,7 +67,7 @@ threatening or harassing, report it. We are dedicated to providing an environmen
 where participants feel welcome and safe.
 
 Reports should be directed to StableHLO's Project Stewards,
-Thea Lamkin (thealamkin@google.com) and Eugene Burmako (burmako@google.com).
+Kevin Gleason (gleasonk@google.com) and Farid Zakaria (fmzakari@google.com).
 It is the Project Steward’s duty to receive and address reported violations of
 the code of conduct.
 
