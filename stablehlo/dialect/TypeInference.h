@@ -23,6 +23,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/Location.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Support/LogicalResult.h"
@@ -397,6 +398,10 @@ LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
 
 LogicalResult verifyCollectivePermuteOp(std::optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
+
+LogicalResult verifyCompositeOp(std::optional<Location> location, Operation* op,
+                                StringRef name, StringRef decomposition,
+                                SymbolTableCollection& symbolTable);
 
 LogicalResult verifyConvolutionOp(
     std::optional<Location> location, Type lhsType, Type rhsType,

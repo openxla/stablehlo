@@ -65,6 +65,7 @@ one of the following tracking labels.
 | collective_permute       | yes           | revisit      | yes            | no              | yes         |
 | compare                  | yes           | yes          | yes            | yes             | yes         |
 | complex                  | yes           | yes          | yes            | yes             | yes         |
+| composite                | yes           | yes          | infeasible     | yes             | yes         |
 | compute_reshape_shape    | no            | revisit      | no             | yes             | no          |
 | concatenate              | yes           | yes          | yes            | yes             | yes         |
 | constant                 | yes           | yes          | yes            | yes             | yes         |

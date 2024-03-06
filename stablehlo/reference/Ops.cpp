@@ -384,6 +384,18 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto rhs = scope.findTensor(complexOp.getRhs());
       auto result = evalComplexOp(lhs, rhs, complexOp.getType());
       scope.add(complexOp.getResult(), result);
+    } else if (auto compositeOp = dyn_cast<CompositeOp>(op)) {
+      auto operands = scope.findTensors(compositeOp.getOperands());
+      SmallVector<InterpreterValue> values = llvm::to_vector(llvm::map_range(
+          operands, [](const Tensor &t) { return InterpreterValue(t); }));
+      SymbolTableCollection symbolTableCollection;
+      auto symbolTable =
+          symbolTableCollection.getSymbolTable(op.getParentOfType<ModuleOp>());
+      auto func = symbolTable.lookupNearestSymbolFrom<func::FuncOp>(
+          &op,
+          StringAttr::get(op.getContext(), compositeOp.getDecomposition()));
+      auto results = eval(func.getBody(), values, fallback, process, nullptr);
+      scope.add(compositeOp.getResults(), results);
     } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
       auto operands = scope.findTensors(concatenateOp.getOperands());
       auto result = evalConcatenateOp(operands, concatenateOp.getDimension(),

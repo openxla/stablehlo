@@ -5389,3 +5389,162 @@ func.func @dynamic_iota_output_shape_mismatching_size() -> tensor<4xf32> {
   %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<4xf32>
   func.return %1 : tensor<4xf32>
 }
+
+// -----
+
+func.func @first(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
+  func.return %arg0 : tensor<f32>
+}
+
+func.func @composite_generic(%arg0: tensor<f32>, %arg1: tensor<f32>) {
+  %0 = "stablehlo.composite"(%arg0, %arg1) {
+    name = "stablehlo.first",
+    decomposition = @first,
+    version = 1 : i32,
+    composite_attributes = {
+      an_attribute = "foo"
+    }
+  } : (tensor<f32>, tensor<f32>) -> tensor<f32>
+  func.return
+}
+
+// -----
+
+func.func @foo() { func.return }
+func.func @composite_c1() {
+  // @expected-error@+1 {{name must be a valid namespaced op name}}
+  stablehlo.composite "foo" { decomposition = @foo } : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @foo() { func.return }
+func.func @composite_c1() {
+  // @expected-error@+1 {{name must be a valid namespaced op name}}
+  stablehlo.composite "." { decomposition = @foo } : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @foo() { func.return }
+func.func @composite_c1() {
+  // @expected-error@+1 {{name must be a valid namespaced op name}}
+  stablehlo.composite "foo." { decomposition = @foo } : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @foo() { func.return }
+func.func @composite_c1() {
+  // @expected-error@+1 {{name must be a valid namespaced op name}}
+  stablehlo.composite ".foo" { decomposition = @foo } : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @foo() { func.return }
+func.func @composite_c1() {
+  // @expected-error@+1 {{name must be a valid namespaced op name}}
+  stablehlo.composite "0.foo" { decomposition = @foo } : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @foo() { func.return }
+func.func @composite_c1() {
+  // @expected-error@+1 {{name must be a valid namespaced op name}}
+  stablehlo.composite "foo.%" { decomposition = @foo } : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @foo() { func.return }
+func.func @composite_c1() {
+  // @expected-error@+1 {{name must be a valid namespaced op name}}
+  stablehlo.composite "foo.foo.%" { decomposition = @foo } : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @foo() { func.return }
+func.func @composite_c1() {
+  // valid name
+  stablehlo.composite "f00._.$" { decomposition = @foo } : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @composite_c2(%arg0: tensor<f32>) {
+  // @expected-error@+1 {{'nonexistent' does not reference a valid function}}
+  %0 = stablehlo.composite "stablehlo.nonexistent" %arg0 {
+    decomposition = @nonexistent
+  } : (tensor<f32>) -> tensor<f32>
+  func.return
+}
+
+// -----
+
+func.func @foo() -> !stablehlo.token {
+  %0 = stablehlo.create_token : !stablehlo.token
+  func.return %0 : !stablehlo.token
+}
+
+func.func @composite_c3(%arg0: tensor<f32>) {
+  // @expected-error@+1 {{has 1 operand(s), but decomposition has 0}}
+  %0 = stablehlo.composite "stablehlo.identity" %arg0 {
+    decomposition = @foo
+  } : (tensor<f32>) -> !stablehlo.token
+  func.return
+}
+
+// -----
+
+func.func @foo(%arg0: tensor<f64>) -> !stablehlo.token {
+  %0 = stablehlo.create_token : !stablehlo.token
+  func.return %0 : !stablehlo.token
+}
+
+func.func @composite_c3(%arg0: tensor<f32>) {
+  // @expected-error@+1 {{operand at index 0 has type 'tensor<f32>', but decomposition has type 'tensor<f64>'}}
+  %0 = stablehlo.composite "stablehlo.identity" %arg0 {
+    decomposition = @foo
+  } : (tensor<f32>) -> !stablehlo.token
+  func.return
+}
+
+// -----
+
+func.func @foo(%arg0: !stablehlo.token) {
+  func.return
+}
+
+func.func @composite_c4(%arg0: !stablehlo.token) {
+  // @expected-error@+1 {{has 1 result(s), but decomposition has 0}}
+  %0 = stablehlo.composite "stablehlo.identity" %arg0 {
+    decomposition = @foo
+  } : (!stablehlo.token) -> tensor<f32>
+  func.return
+}
+
+// -----
+
+func.func @foo(%arg0: !stablehlo.token) -> tensor<f64> {
+  %0 = stablehlo.constant dense<0.> : tensor<f64>
+  func.return %0 : tensor<f64>
+}
+
+func.func @composite_c4(%arg0: !stablehlo.token) {
+  // @expected-error@+1 {{result at index 0 has type 'tensor<f32>', but decomposition has type 'tensor<f64>'}}
+  %0 = stablehlo.composite "stablehlo.identity" %arg0 {
+    decomposition = @foo
+  } : (!stablehlo.token) -> tensor<f32>
+  func.return
+}

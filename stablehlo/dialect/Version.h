@@ -39,7 +39,7 @@ class Version {
 
   /// Return a Version representing the current VHLO dialect version.
   static Version getCurrentVersion() {
-    return Version(/*major=*/0, /*minor=*/18, /*patch=*/5);
+    return Version(/*major=*/0, /*minor=*/19, /*patch=*/0);
   }
 
   /// Return a Version representing the minimum supported VHLO dialect version.

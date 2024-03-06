@@ -43,9 +43,12 @@ limitations under the License.
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/MathExtras.h"
+#include "llvm/Support/Regex.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Location.h"
@@ -3356,6 +3359,63 @@ LogicalResult verifyCollectivePermuteOp(
         return emitOptionalError(location, "duplicate targets not allowed.");
     }
   }
+  return success();
+}
+
+LogicalResult verifyCompositeOp(std::optional<Location> loc, Operation* op,
+                                StringRef name, StringRef decomposition,
+                                SymbolTableCollection& symbolTable) {
+  // composite_c1
+  auto nameRegexString = "^[a-zA-Z][a-zA-Z0-9_]*([.][a-zA-Z0-9_$]+)+$";
+  llvm::Regex nameRegex(nameRegexString);
+  if (!nameRegex.match(name))
+    return emitOptionalError(loc,
+                             "name must be a valid namespaced op name, i.e. it "
+                             "must match the following regular expression: ",
+                             nameRegexString, " e.g. \"my_namespace.my_op\"");
+
+  // composite_c2
+  auto decomp = symbolTable.lookupNearestSymbolFrom<mlir::func::FuncOp>(
+      op, StringAttr::get(op->getContext(), decomposition));
+  if (!decomp) {
+    return emitOptionalError(loc, "'", decomposition,
+                             "' does not reference a valid function");
+  }
+
+  auto decompFunType = decomp.getFunctionType();
+
+  // composite_c3
+  auto types = op->getOperandTypes();
+  auto decompTypes = decompFunType.getInputs();
+  if (types.size() != decompTypes.size()) {
+    return emitOptionalError(loc, "has ", types.size(),
+                             " operand(s), but decomposition has ",
+                             decompTypes.size());
+  }
+  for (size_t i = 0; i < types.size(); i++) {
+    if (types[i] != decompTypes[i]) {
+      return emitOptionalError(loc, "operand at index ", i, " has type ",
+                               types[i], ", but decomposition has type ",
+                               decompTypes[i]);
+    }
+  }
+
+  // composite_c4
+  auto resTypes = op->getResultTypes();
+  auto decompResTypes = decompFunType.getResults();
+  if (resTypes.size() != decompResTypes.size()) {
+    return emitOptionalError(loc, "has ", resTypes.size(),
+                             " result(s), but decomposition has ",
+                             decompResTypes.size());
+  }
+  for (size_t i = 0; i < resTypes.size(); i++) {
+    if (resTypes[i] != decompResTypes[i]) {
+      return emitOptionalError(loc, "result at index ", i, " has type ",
+                               resTypes[i], ", but decomposition has type ",
+                               decompResTypes[i]);
+    }
+  }
+
   return success();
 }
 
