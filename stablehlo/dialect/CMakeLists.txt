@@ -153,6 +153,7 @@ add_mlir_dialect_library(StablehloOps
   StablehloAssemblyFormat
   StablehloBase
   StablehloTypeInference
+  Version
   MLIRArithDialect
   MLIRDataLayoutInterfaces
   MLIRInferTypeOpInterface

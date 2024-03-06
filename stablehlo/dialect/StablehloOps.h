@@ -40,6 +40,7 @@ limitations under the License.
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/Version.h"
 
 #define GET_TYPEDEF_CLASSES
 #include "stablehlo/dialect/StablehloTypeDefs.h.inc"
@@ -53,12 +54,26 @@ namespace mlir {
 namespace stablehlo {
 
 struct StablehloDialectVersion : public mlir::DialectVersion {
-  StablehloDialectVersion() = default;
-  StablehloDialectVersion(Version dialectVersion)
-      : dialectVersion(dialectVersion){};
+  StablehloDialectVersion(int64_t major, int64_t minor, int64_t patch)
+      : dialectVersion(major, minor, patch) {}
 
+  int64_t getMajor() const { return dialectVersion.getMajor(); }
+  int64_t getMinor() const { return dialectVersion.getMinor(); }
+  int64_t getPatch() const { return dialectVersion.getPatch(); }
+
+  static StablehloDialectVersion getCurrentVersion() {
+    // The same version as VHLO as this is serialization related only.
+    auto vhloVer = vhlo::Version::getCurrentVersion();
+    return {vhloVer.getMajor(), vhloVer.getMinor(), vhloVer.getPatch()};
+  }
+
+  bool operator<(const StablehloDialectVersion &other) const {
+    return this->dialectVersion < other.dialectVersion;
+  }
+
+ private:
   // The dialect version read from bytecode.
-  Version dialectVersion;
+  vhlo::Version dialectVersion;
 };
 
 class StablehloDialect : public Dialect {

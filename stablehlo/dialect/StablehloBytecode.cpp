@@ -705,27 +705,26 @@ void StablehloBytecodeInterface::write(TokenType type,
 
 std::unique_ptr<DialectVersion> StablehloBytecodeInterface::readVersion(
     DialectBytecodeReader &reader) const {
-  int64_t major, minor, patch;
+  uint64_t major, minor, patch;
   if (failed(reader.readVarInt(major)) || failed(reader.readVarInt(minor)) ||
       failed(reader.readVarInt(patch)))
     return nullptr;
 
-  Version version(/*major=*/major, /*minor=*/minor, /*patch=*/patch);
-  if (Version::getCurrentVersion() < version) {
+  auto version = std::make_unique<StablehloDialectVersion>(
+      /*major=*/major, /*minor=*/minor, /*patch=*/patch);
+  if (version && StablehloDialectVersion::getCurrentVersion() < *version) {
     return reader.emitError("reading newer dialect than supported"), nullptr;
   }
 
-  auto version = std::make_unique<StablehloDialectVersion>();
-  version->dialectVersion = version;
   return version;
 }
 
 void StablehloBytecodeInterface::writeVersion(
     DialectBytecodeWriter &writer) const {
   if (auto version = cast<StablehloDialect>(getDialect())->getVersion()) {
-    writer.writeVarInt(version.getMajor());
-    writer.writeVarInt(version.getMinor());
-    writer.writeVarInt(version.getPatch());
+    writer.writeVarInt(static_cast<uint64_t>(version->getMajor()));
+    writer.writeVarInt(static_cast<uint64_t>(version->getMinor()));
+    writer.writeVarInt(static_cast<uint64_t>(version->getPatch()));
   }
 }
 
