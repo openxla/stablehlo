@@ -144,3 +144,40 @@ def ShapeLegalizeToStablehloPass : Pass<"shape-legalize-to-stablehlo", "func::Fu
   }];
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
 }
+
+def StablehloLegalizeCompositeToCallPass :
+    Pass<"stablehlo-legalize-composite-to-call", "func::FuncOp"> {
+  let summary = "Replaces composite ops with a call to their decomposition";
+  let description = [{
+    Replaces composite ops with a call to their decomposition, e.g. the below:
+
+    ```mlir
+    stablehlo.composite "my_namespace.my_op" %arg0, %arg1 {
+      decomposition = @bar,
+      version = 1,
+      composite_attributes = {
+        "my_attribute": "my_value"
+      }
+    }
+    ```
+
+    Will become:
+
+    ```mlir
+    func.call @bar(%arg0, %arg1)
+    ```
+
+    A subset of composites can be excepted from this transformation using the
+    "except" flag, e.g.:
+
+    ```bash
+    stablehlo-opt --stablehlo-legalize-composite-to-call=except='foo.baz,foo.qux'
+    ```
+  }];
+  let dependentDialects = [
+    "mlir::func::FuncDialect",
+  ];
+  let options = [
+    ListOption<"exceptListOption", "except", "std::string", "Names of composites that should not be replaced with calls.">
+  ];
+}

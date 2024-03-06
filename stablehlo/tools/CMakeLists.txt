@@ -32,6 +32,7 @@ set(LIBS
         StablehloRegister
         StablehloTestUtils
         StablehloPasses
+        CheckOps
         InterpreterOps
         StablehloLinalgTransforms
         StablehloTOSATransforms
