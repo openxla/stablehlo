@@ -324,6 +324,21 @@ struct ConvertIndexCastOpPattern : public OpRewritePattern<arith::IndexCastOp> {
                                  op.getLoc(), op.getOut().getType(), result));
       return success();
     }
+    if (!op.getIn().getType().isa<ShapedType>() &&
+        isIndexOrShapedOfIndex(op.getOut())) {
+      // Handle a special case of i32 -> index.
+      // This is converted to the following sequence:
+      //   unrealized_conversion_cast i32 -> tensor<i32>
+      //   unrealized_conversion_cast tensor<i32> -> index
+      result = rewriter
+                   .create<UnrealizedConversionCastOp>(
+                       op.getLoc(), RankedTensorType::get({}, result.getType()),
+                       result)
+                   .getResult(0);
+      rewriter.replaceOp(op, rewriter.create<UnrealizedConversionCastOp>(
+                                 op.getLoc(), op.getOut().getType(), result));
+      return success();
+    }
 
     if (isIndexOrShapedOfIndex(result)) {
       result = castToI32(rewriter, op.getLoc(), result);
@@ -435,6 +450,58 @@ struct ConvertTensorDimPattern : public OpRewritePattern<tensor::DimOp> {
                                                    constIndex.value());
     auto dimIndex = castToIndex(rewriter, op.getLoc(), dim);
     rewriter.replaceOp(op, dimIndex);
+    return success();
+  }
+};
+
+struct ConvertTensorExtractPattern
+    : public OpRewritePattern<tensor::ExtractOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(tensor::ExtractOp op,
+                                PatternRewriter& rewriter) const override {
+    SmallVector<int64_t> indices;
+    auto tensorType = op.getTensor().getType();
+    // We only support getting static indices.
+    for (auto index : op.getIndices()) {
+      auto constIndex =
+          dyn_cast_or_null<arith::ConstantIndexOp>(index.getDefiningOp());
+      if (!constIndex)
+        return rewriter.notifyMatchFailure(op, "expected constant index op");
+
+      // Check if the index is out of range.
+      int idx = indices.size();
+      if (tensorType.isDynamicDim(idx) ||
+          constIndex.value() >= tensorType.getDimSize(idx))
+        return rewriter.notifyMatchFailure(op, "index out of range");
+
+      indices.push_back(constIndex.value());
+    }
+    auto input = castToI32(rewriter, op.getLoc(), op.getTensor());
+    auto startIndices = rewriter.getDenseI64ArrayAttr(indices);
+    for (auto& index : indices) {
+      index += 1;
+    }
+    auto limitIndices = rewriter.getDenseI64ArrayAttr(indices);
+
+    Value extractedTensor = rewriter.create<SliceOp>(
+        op.getLoc(), input, startIndices, limitIndices,
+        /*strides=*/
+        rewriter.getDenseI64ArrayAttr(SmallVector<int64_t>(indices.size(), 1)));
+    Value extractedScalarTensor = rewriter.create<ReshapeOp>(
+        op.getLoc(), RankedTensorType::get({}, rewriter.getI32Type()),
+        extractedTensor);
+    if (getElementTypeOrSelf(op.getResult().getType()).isIndex()) {
+      auto extractedIndex =
+          castToIndex(rewriter, op.getLoc(), extractedScalarTensor);
+      rewriter.replaceOp(op, extractedIndex);
+    } else {
+      // For the special case when the input is a i32 tensor and output is i32,
+      // convert the result back to i32 to be consistent:
+      //   unrealized_conversion_cast tensor<i32> -> i32
+      rewriter.replaceOp(op, rewriter.create<UnrealizedConversionCastOp>(
+                                 op.getLoc(), op.getResult().getType(),
+                                 extractedScalarTensor));
+    }
     return success();
   }
 };
@@ -599,6 +666,7 @@ void populateShapeToStablehloPatterns(MLIRContext* context,
   patterns->add<CastOperandsPattern<DynamicBroadcastInDimOp>>(context);
   patterns->add<CastOperandsPattern<DynamicReshapeOp>>(context);
   patterns->add<ConvertTensorDimPattern>(context);
+  patterns->add<ConvertTensorExtractPattern>(context);
   patterns->add<ConvertTensorFromElementsPattern>(context);
 }
 
