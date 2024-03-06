@@ -1133,6 +1133,7 @@ cc_binary(
         ":register",
         ":stablehlo_passes",
         ":tosa_passes",
+        "//stablehlo/tests:check_ops",
         "//stablehlo/tests:test_utils",
         "@llvm-project//mlir:AllExtensions",
         "@llvm-project//mlir:AllPassesAndDialects",

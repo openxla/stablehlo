@@ -111,6 +111,20 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                      inferredTypes[0].cast<ShapedType>());
 }
 
+SmallVector<InterpreterValue> evalCallOp(ArrayRef<Tensor> inputs,
+                                         InterpreterFallback *fallback,
+                                         Process *process, Operation *op,
+                                         StringRef funcName) {
+  SymbolTableCollection symbolTableCollection;
+  auto symbolTable =
+      symbolTableCollection.getSymbolTable(op->getParentOfType<ModuleOp>());
+  auto func = symbolTable.lookupNearestSymbolFrom<func::FuncOp>(
+      op, StringAttr::get(op->getContext(), funcName));
+  SmallVector<InterpreterValue> values = llvm::to_vector(llvm::map_range(
+      inputs, [](const Tensor &t) { return InterpreterValue(t); }));
+  return eval(func.getBody(), values, fallback, process, nullptr);
+}
+
 // Experimental notation for slices, roughly following the spec notation.
 // TODO(#1401): Might evolve in the future together with the spec.
 constexpr int64_t kColon = -1;
@@ -308,6 +322,11 @@ SmallVector<InterpreterValue> eval(Region &region,
       scope.add(broadcastInDimOp.getResult(), result);
     } else if (isa<BroadcastOp>(op)) {
       failOnDecomposableOp(op);
+    } else if (auto callOp = dyn_cast<func::CallOp>(op)) {
+      auto operands = scope.findTensors(callOp.getOperands());
+      auto results =
+          evalCallOp(operands, fallback, process, &op, callOp.getCallee());
+      scope.add(callOp.getResults(), results);
     } else if (auto caseOp = dyn_cast<CaseOp>(op)) {
       auto index = scope.findTensor(caseOp.getIndex());
       auto branches = caseOp.getBranches();
@@ -386,15 +405,8 @@ SmallVector<InterpreterValue> eval(Region &region,
       scope.add(complexOp.getResult(), result);
     } else if (auto compositeOp = dyn_cast<CompositeOp>(op)) {
       auto operands = scope.findTensors(compositeOp.getOperands());
-      SmallVector<InterpreterValue> values = llvm::to_vector(llvm::map_range(
-          operands, [](const Tensor &t) { return InterpreterValue(t); }));
-      SymbolTableCollection symbolTableCollection;
-      auto symbolTable =
-          symbolTableCollection.getSymbolTable(op.getParentOfType<ModuleOp>());
-      auto func = symbolTable.lookupNearestSymbolFrom<func::FuncOp>(
-          &op,
-          StringAttr::get(op.getContext(), compositeOp.getDecomposition()));
-      auto results = eval(func.getBody(), values, fallback, process, nullptr);
+      auto results = evalCallOp(operands, fallback, process, &op,
+                                compositeOp.getDecomposition());
       scope.add(compositeOp.getResults(), results);
     } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
       auto operands = scope.findTensors(concatenateOp.getOperands());

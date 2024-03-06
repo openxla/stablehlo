@@ -23,6 +23,7 @@ limitations under the License.
 #include "stablehlo/conversions/tosa/transforms/Passes.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/reference/InterpreterOps.h"
+#include "stablehlo/tests/CheckOps.h"
 #include "stablehlo/tests/TestUtils.h"
 #include "stablehlo/transforms/Passes.h"
 
@@ -38,6 +39,7 @@ int main(int argc, char **argv) {
   mlir::registerAllDialects(registry);
   mlir::registerAllExtensions(registry);
   mlir::stablehlo::registerAllDialects(registry);
+  registry.insert<mlir::stablehlo::check::CheckDialect>();
   registry.insert<mlir::stablehlo::interpreter::InterpreterDialect>();
 
   return failed(

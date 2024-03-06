@@ -1,4 +1,5 @@
-// RUN: stablehlo-translate --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret %s
+// RUN: stablehlo-opt --stablehlo-legalize-composite-to-call  %s | stablehlo-translate --interpret
 
 func.func @add_n.impl(%arg0: tensor<i64>) -> tensor<i64> {
   %0 = stablehlo.constant dense<2> : tensor<i64>
