@@ -156,5 +156,6 @@ export TARGET_FILENAME=${TARGET_VERSION//./_}
 stablehlo-translate --serialize --target=$TARGET_VERSION --strip-debuginfo stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir > stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir.bc
 ```
 
-_See [#1856](https://github.com/openxla/stablehlo/pull/1856) for an example of
+_See [#1856](https://github.com/openxla/stablehlo/pull/1856) and
+[#1986](https://github.com/openxla/stablehlo/pull/1986) for examples of
 adding new VHLO tests._
