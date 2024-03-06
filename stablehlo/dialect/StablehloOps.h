@@ -54,14 +54,11 @@ namespace stablehlo {
 
 struct StablehloDialectVersion : public mlir::DialectVersion {
   StablehloDialectVersion() = default;
-  StablehloDialectVersion(uint32_t dialectVersion)
+  StablehloDialectVersion(Version dialectVersion)
       : dialectVersion(dialectVersion){};
 
-  // The current dialect version.
-  static constexpr uint32_t kCurrentDialectVersion = 1;
-
   // The dialect version read from bytecode.
-  uint32_t dialectVersion = 1;
+  Version dialectVersion;
 };
 
 class StablehloDialect : public Dialect {
