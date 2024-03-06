@@ -1893,14 +1893,14 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
     must be disjoint and they must be a subset of the operand's dimensions.
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
+    HLO_TensorOrPerAxisQuantizedTensor:$operand,
     HLO_StaticDimensionTensor:$output_dimensions,
     DenseI64ArrayAttr:$broadcast_dimensions,
     OptionalAttr<DenseI64ArrayAttr>:$known_expanding_dimensions,
     OptionalAttr<DenseI64ArrayAttr>:$known_nonexpanding_dimensions
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
 
   let builders = [
       OpBuilder<(ins
