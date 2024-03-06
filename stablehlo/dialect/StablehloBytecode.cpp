@@ -706,8 +706,7 @@ void StablehloBytecodeInterface::write(TokenType type,
 std::unique_ptr<DialectVersion> StablehloBytecodeInterface::readVersion(
     DialectBytecodeReader &reader) const {
   int64_t major, minor, patch;
-  if (failed(reader.readVarInt(major)) ||
-      failed(reader.readVarInt(minor)) ||
+  if (failed(reader.readVarInt(major)) || failed(reader.readVarInt(minor)) ||
       failed(reader.readVarInt(patch)))
     return nullptr;
 
