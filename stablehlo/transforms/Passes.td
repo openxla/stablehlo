@@ -145,8 +145,8 @@ def ShapeLegalizeToStablehloPass : Pass<"shape-legalize-to-stablehlo", "func::Fu
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
 }
 
-def StablehloReplaceCompositesWithCallsPass :
-    Pass<"stablehlo-replace-composites-with-calls", "func::FuncOp"> {
+def StablehloLegalizeCompositeToCallPass :
+    Pass<"stablehlo-legalize-composite-to-call", "func::FuncOp"> {
   let summary = "Replaces composite ops with a call to their decomposition";
   let description = [{
     Replaces composite ops with a call to their decomposition, e.g. the below:
@@ -171,7 +171,7 @@ def StablehloReplaceCompositesWithCallsPass :
     "except" flag, e.g.:
 
     ```bash
-    stablehlo-opt --stablehlo-replace-composites-with-calls=except='foo.baz,foo.qux'
+    stablehlo-opt --stablehlo-legalize-composite-to-call=except='foo.baz,foo.qux'
     ```
   }];
   let dependentDialects = [

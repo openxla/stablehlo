@@ -1,5 +1,5 @@
-// RUN: stablehlo-opt --stablehlo-replace-composites-with-calls --split-input-file %s | FileCheck %s
-// RUN: stablehlo-opt --stablehlo-replace-composites-with-calls=except='foo.baz,foo.qux' --split-input-file %s | FileCheck %s --check-prefix=EXCEPT
+// RUN: stablehlo-opt --stablehlo-legalize-composite-to-call --split-input-file %s | FileCheck %s
+// RUN: stablehlo-opt --stablehlo-legalize-composite-to-call=except='foo.baz,foo.qux' --split-input-file %s | FileCheck %s --check-prefix=EXCEPT
 
 // CHECK-LABEL: func @composite
 // EXCEPT-LABEL: func @composite

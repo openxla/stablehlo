@@ -27,7 +27,7 @@ add_mlir_dialect_library(StablehloPasses
   ShapeLegalizeToStablehlo.cpp
   StablehloAggressiveSimplification.cpp
   StablehloCanonicalizeDynamism.cpp
-  StablehloReplaceCompositesWithCalls.cpp
+  StablehloLegalizeCompositeToCall.cpp
   StablehloInstrumentWithProbe.cpp
   StablehloLegalizeToVhlo.cpp
   StablehloRefineArguments.cpp

@@ -32,7 +32,7 @@
 namespace mlir {
 namespace stablehlo {
 
-#define GEN_PASS_DEF_STABLEHLOREPLACECOMPOSITESWITHCALLSPASS
+#define GEN_PASS_DEF_STABLEHLOLEGALIZECOMPOSITETOCALLPASS
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
@@ -41,42 +41,44 @@ struct ReplaceCompositeWithCall final
     : OpRewritePattern<mlir::stablehlo::CompositeOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  ReplaceCompositeWithCall(MLIRContext *context,
-                           const DenseSet<StringRef> &excludedNames_)
-      : OpRewritePattern<mlir::stablehlo::CompositeOp>(context),
-        excludedNames(excludedNames_) {}
+  ReplaceCompositeWithCall(MLIRContext *context)
+      : OpRewritePattern<mlir::stablehlo::CompositeOp>(context) {}
 
   LogicalResult matchAndRewrite(CompositeOp op,
                                 PatternRewriter &rewriter) const override {
-    if (excludedNames.contains(op.getName()))
-      return rewriter.notifyMatchFailure(
-          op, Twine("excepted name: ") + op.getName());
-
     auto call = rewriter.create<mlir::func::CallOp>(
         op.getLoc(), op.getResultTypes(), op.getDecomposition(),
         op.getOperands());
     rewriter.replaceOp(op, call.getResults());
     return success();
   }
-
- private:
-  const DenseSet<StringRef> &excludedNames;
 };
 
-struct StablehloInlineCompositesPass
-    : public impl::StablehloReplaceCompositesWithCallsPassBase<
-          StablehloInlineCompositesPass> {
-  using StablehloReplaceCompositesWithCallsPassBase::
-      StablehloReplaceCompositesWithCallsPassBase;
+struct StablehloLegalizeCompositeToCallPass
+    : public impl::StablehloLegalizeCompositeToCallPassBase<
+          StablehloLegalizeCompositeToCallPass> {
+  using StablehloLegalizeCompositeToCallPassBase::
+      StablehloLegalizeCompositeToCallPassBase;
 
   void runOnOperation() override {
     MLIRContext *context = &getContext();
+
+    DenseSet<StringRef> excludedNames(exceptListOption.begin(),
+                                      exceptListOption.end());
+
+    ConversionTarget target(getContext());
+    target.addLegalDialect<stablehlo::StablehloDialect>();
+    target.addLegalDialect<func::FuncDialect>();
+    target.addDynamicallyLegalOp<stablehlo::CompositeOp>(
+        [&](stablehlo::CompositeOp op) {
+          return excludedNames.contains(op.getName());
+        });
+
     RewritePatternSet patterns(context);
-    auto excludedNames =
-        DenseSet<StringRef>(exceptListOption.begin(), exceptListOption.end());
-    patterns.add<ReplaceCompositeWithCall>(context, excludedNames);
-    if (failed(applyPatternsAndFoldGreedily(getOperation(),
-                                            std::move(patterns)))) {
+    patterns.add<ReplaceCompositeWithCall>(context);
+
+    if (failed(applyPartialConversion(getOperation(), target,
+                                      std::move(patterns)))) {
       signalPassFailure();
     }
   }
