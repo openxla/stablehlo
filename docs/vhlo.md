@@ -140,6 +140,12 @@ before version `X`. If adding a new version of an op, add a test file like
 `vhlo_to_version_downgrade.0_Y_0.mlir` that shows that the op can be downgraded
 successfully.
 
+See
+[vhlo_to_version_downgrade_invalid.0_17_0.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo/vhlo_to_version_downgrade_invalid.0_17_0.mlir)
+and
+[vhlo_to_version_downgrade_invalid.0_18_0.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo/vhlo_to_version_downgrade_invalid.0_18_0.mlir)
+for examples of downgrade tests.
+
 If your op has default attributes, include tests that show that the defaults are
 serialized and deserialized correctly.
 
@@ -147,7 +153,7 @@ serialized and deserialized correctly.
 
 After adding tests to `stablehlo_legalize_to_vhlo.mlir`, copy the versioned test
 file with the largest version into a new file at the new version, and add the
-new tests to that file as well. You will need to also create an associated
+new tests to that file as well. You will also need to create an associated
 bytecode file using `stablehlo-translate`:
 
 ```bash
