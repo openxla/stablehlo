@@ -2,6 +2,8 @@
 // RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=0.18.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
 // RUN: diff <(stablehlo-translate --deserialize %s.bc | stablehlo-opt) <(stablehlo-opt --strip-debuginfo %s)
 // RUN: diff %s.bc <(stablehlo-translate --serialize --target=0.18.0 --strip-debuginfo %s)
+// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
+// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 
 // CHECK-WARN-NOT: Not Implemented
 

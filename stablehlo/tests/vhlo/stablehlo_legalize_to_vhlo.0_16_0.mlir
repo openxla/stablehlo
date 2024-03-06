@@ -1,11 +1,11 @@
 // RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
 // RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=0.16.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
-// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-opt > %t.0
-// RUN: stablehlo-opt --strip-debuginfo %s > %t.1
-// RUN: diff %t.0 %t.1
-// RUN: stablehlo-translate --serialize --target=0.16.0 --strip-debuginfo %s > %t.2
-// RUN: diff %s.bc %t.2
+// RUN: diff <(stablehlo-translate --deserialize %s.bc | stablehlo-opt) <(stablehlo-opt --strip-debuginfo %s)
+// RUN: diff %s.bc <(stablehlo-translate --serialize --target=0.16.0 --strip-debuginfo %s)
+// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
+// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 
+// CHECK-WARN-NOT: Not Implemented
 
 // ============ ATTRIBUTES ============
 
