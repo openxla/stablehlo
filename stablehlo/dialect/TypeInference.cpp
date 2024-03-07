@@ -65,42 +65,25 @@ limitations under the License.
 
 namespace mlir {
 namespace hlo {
-
+namespace {
 //===----------------------------------------------------------------------===//
 // Utils for quantization specific verifications
 //===----------------------------------------------------------------------===//
-
+template <typename T>
 bool allQuantized(ArrayRef<Type> range) {
   return llvm::all_of(range, [&](Type val) {
-    return val.cast<ShapedType>()
-        .getElementType()
-        .isa<mlir::quant::QuantizedType>();
+    return val.cast<ShapedType>().getElementType().isa<T>();
   });
 }
 
+template <typename T>
 bool noneQuantized(ArrayRef<Type> range) {
   return llvm::all_of(range, [&](Type val) {
-    return !val.cast<ShapedType>()
-                .getElementType()
-                .isa<mlir::quant::QuantizedType>();
+    return !val.cast<ShapedType>().getElementType().isa<T>();
   });
 }
 
-bool allPerAxisQuantized(ArrayRef<Type> range) {
-  return llvm::all_of(range, [&](Type val) {
-    return val.cast<ShapedType>()
-        .getElementType()
-        .isa<mlir::quant::UniformQuantizedPerAxisType>();
-  });
-}
-
-bool nonePerAxisQuantized(ArrayRef<Type> range) {
-  return llvm::all_of(range, [&](Type val) {
-    return !val.cast<ShapedType>()
-                .getElementType()
-                .isa<mlir::quant::UniformQuantizedPerAxisType>();
-  });
-}
+}  // namespace
 
 //===----------------------------------------------------------------------===//
 // Utils for shape functions.
@@ -3490,9 +3473,9 @@ LogicalResult verifyConvolutionOp(
                              shapedResultType, "");
 
   llvm::SmallVector<Type, 3> typeEntries{lhsType, rhsType, resultType};
-  if (noneQuantized(typeEntries)) return success();
+  if (noneQuantized<quant::QuantizedType>(typeEntries)) return success();
   // convolution_c28
-  if (!allQuantized(typeEntries)) {
+  if (!allQuantized<quant::QuantizedType>(typeEntries)) {
     return emitOptionalError(location,
                              "not all of operands and result are quantized");
   }
@@ -3516,11 +3499,12 @@ LogicalResult verifyConvolutionOp(
                              "mismatched operands and result expressed types");
 
   llvm::SmallVector<Type, 2> typeEntriesPerAxis{rhsType, resultType};
-  if (nonePerAxisQuantized(typeEntriesPerAxis)) return success();
+  if (noneQuantized<quant::UniformQuantizedPerAxisType>(typeEntriesPerAxis))
+    return success();
   // convolution_c31
-  if (!allPerAxisQuantized(typeEntriesPerAxis)) {
+  if (!allQuantized<quant::UniformQuantizedPerAxisType>(typeEntriesPerAxis)) {
     return emitOptionalError(location,
-                             "operand and result are of mixed per_tensor and "
+                             "rhs and result are of mixed per_tensor and "
                              "per_axis quantized tensor type");
   }
 
@@ -3537,10 +3521,10 @@ LogicalResult verifyConvolutionOp(
   // convolution_c33
   if (resultQPAType &&
       resultQPAType.getQuantizedDimension() != outputFeatureDimension)
-    return emitOptionalError(
-        location, "mismatched output_feature_dimension ",
-        kernelOutputFeatureDimension, " and result quantized dimension ",
-        resultQPAType.getQuantizedDimension(), "");
+    return emitOptionalError(location, "mismatched output_feature_dimension ",
+                             outputFeatureDimension,
+                             " and result quantized dimension ",
+                             resultQPAType.getQuantizedDimension(), "");
 
   return success();
 }
