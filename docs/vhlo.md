@@ -133,33 +133,35 @@ negative unit tests of the feature, as well as compatibility unit tests.
 
 Compatibility unit testing involves updating [stablehlo_legalize_to_vhlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir)
 to ensure that StableHLO round trips with the latest version of VHLO, as well
-as any additional forward or backward compatibility tests required.
+as any additional forward or backward compatibility tests required. For example,
+if adding a new op at version `X` with `Y = X - 1`, add a test file like
+`vhlo_to_version_downgrade_invalid.0_Y_0.mlir` that shows the op is unsupported
+before version `X`. If adding a new version of an op, add a test file like
+`vhlo_to_version_downgrade.0_Y_0.mlir` that shows that the op can be downgraded
+successfully.
 
-A few examples:
+See
+[vhlo_to_version_downgrade_invalid.0_17_0.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo/vhlo_to_version_downgrade_invalid.0_17_0.mlir)
+and
+[vhlo_to_version_downgrade_invalid.0_18_0.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo/vhlo_to_version_downgrade_invalid.0_18_0.mlir)
+for examples of downgrade tests.
 
-* Backward compatibility, positive tests: [vhlo_to_version_upgrade.mlir](https://github.com/openxla/stablehlo/blob/6886b59f6cd4369674e7e3beff61301c145176e2/stablehlo/tests/vhlo_to_version_upgrade.mlir#L2)
-* Forward compatibility, positive tests: [vhlo_to_version_downgrade.mlir](https://github.com/openxla/stablehlo/blob/6886b59f6cd4369674e7e3beff61301c145176e2/stablehlo/tests/vhlo_to_version_downgrade.mlir#L1)
-* Forward compatibility, negative tests: [vhlo_to_version_downgrade_invalid.0_9_0.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo/vhlo_to_version_downgrade_invalid.0_9_0.mlir)
+If your op has default attributes, include tests that show that the defaults are
+serialized and deserialized correctly.
 
 ### Add Versioned Serialization Test
 
-After adding a test point to `stablehlo_legalize_to_vhlo.mlir`, create a
-versioned copy of the file named `stablehlo_legalize_to_vhlo.0_X_0.mlir` as
-follows, along with a bytecode version of said file with a `.0_X_0.mlir.bc`
-extension. Add [proper FileCheck lines](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_9_0.mlir#L1-L3)
-for forward and backward compatibility testing.
+After adding tests to `stablehlo_legalize_to_vhlo.mlir`, copy the versioned test
+file with the largest version into a new file at the new version, and add the
+new tests to that file as well. You will also need to create an associated
+bytecode file using `stablehlo-translate`:
 
 ```bash
-$ export TARGET_VERSION=0.X.0
-$ export TARGET_FILENAME=${TARGET_VERSION//./_}
-$ cp stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir
-$ build/bin/stablehlo-translate --serialize --target=$TARGET_VERSION --strip-debuginfo stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir > stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir.bc
-
-# Replace RUN commands in stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.0_X_0.mlir with the following for 0.X.0:
-// RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
-// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=0.X.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
-// RUN: diff <(stablehlo-translate --deserialize %s.bc | stablehlo-opt) <(stablehlo-opt --strip-debuginfo %s)
-// RUN: diff %s.bc <(stablehlo-translate --serialize --target=0.X.0 --strip-debuginfo %s)
+export TARGET_VERSION=0.X.0
+export TARGET_FILENAME=${TARGET_VERSION//./_}
+stablehlo-translate --serialize --target=$TARGET_VERSION --strip-debuginfo stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir > stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir.bc
 ```
 
-_Example of versioned test in [#1430](https://github.com/openxla/stablehlo/pull/1430)._
+_See [#1856](https://github.com/openxla/stablehlo/pull/1856) and
+[#1986](https://github.com/openxla/stablehlo/pull/1986) for examples of
+adding new VHLO tests._
