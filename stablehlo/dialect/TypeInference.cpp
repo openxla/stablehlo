@@ -3536,9 +3536,9 @@ LogicalResult verifyConvolutionOp(
         rhsQPAType.getQuantizedDimension(), "");
   // convolution_c33
   if (resultQPAType &&
-      resultQPAType.getQuantizedDimension() != kernelOutputFeatureDimension)
+      resultQPAType.getQuantizedDimension() != outputFeatureDimension)
     return emitOptionalError(
-        location, "mismatched kernel_output_feature_dimension ",
+        location, "mismatched output_feature_dimension ",
         kernelOutputFeatureDimension, " and result quantized dimension ",
         resultQPAType.getQuantizedDimension(), "");
 
