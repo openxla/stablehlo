@@ -70,15 +70,15 @@ namespace {
 // Utils for quantization specific verifications
 //===----------------------------------------------------------------------===//
 template <typename T>
-bool allQuantized(ArrayRef<Type> range) {
-  return llvm::all_of(range, [&](Type val) {
+bool allQuantized(ArrayRef<Type> typeRange) {
+  return llvm::all_of(typeRange, [&](Type val) {
     return val.cast<ShapedType>().getElementType().isa<T>();
   });
 }
 
 template <typename T>
-bool noneQuantized(ArrayRef<Type> range) {
-  return llvm::all_of(range, [&](Type val) {
+bool noneQuantized(ArrayRef<Type> typeRange) {
+  return llvm::all_of(typeRange, [&](Type val) {
     return !val.cast<ShapedType>().getElementType().isa<T>();
   });
 }
@@ -3490,7 +3490,7 @@ LogicalResult verifyConvolutionOp(
   if (lhsQType.getStorageType() != rhsQType.getStorageType())
     return emitOptionalError(location, "mismatched operand storage types ",
                              lhsQType.getStorageType(), " and ",
-                             rhsQType.getStorageType(), "");
+                             rhsQType.getStorageType());
   // convolution_c30
   auto expressedType = lhsQType.getExpressedType();
   if (expressedType != rhsQType.getExpressedType() ||
@@ -3505,7 +3505,8 @@ LogicalResult verifyConvolutionOp(
   if (!allQuantized<quant::UniformQuantizedPerAxisType>(typeEntriesPerAxis)) {
     return emitOptionalError(location,
                              "rhs and result are of mixed per_tensor and "
-                             "per_axis quantized tensor type");
+                             "per_axis quantized tensor type ",
+                             rhsType, " and ", resultType);
   }
 
   auto rhsQPAType = rhsQType.dyn_cast<quant::UniformQuantizedPerAxisType>();
@@ -3516,7 +3517,7 @@ LogicalResult verifyConvolutionOp(
       rhsQPAType.getQuantizedDimension() != kernelOutputFeatureDimension)
     return emitOptionalError(
         location, "mismatched kernel_output_feature_dimension ",
-        kernelOutputFeatureDimension, " and operand quantized dimension ",
+        kernelOutputFeatureDimension, " and rhs quantized dimension ",
         rhsQPAType.getQuantizedDimension(), "");
   // convolution_c33
   if (resultQPAType &&
@@ -3524,7 +3525,7 @@ LogicalResult verifyConvolutionOp(
     return emitOptionalError(location, "mismatched output_feature_dimension ",
                              outputFeatureDimension,
                              " and result quantized dimension ",
-                             resultQPAType.getQuantizedDimension(), "");
+                             resultQPAType.getQuantizedDimension());
 
   return success();
 }
