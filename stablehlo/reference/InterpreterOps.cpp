@@ -160,7 +160,7 @@ LogicalResult RunParallelOp::verify() {
 SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable) {
-  llvm::ThreadPool threadPool;
+  llvm::DefaultThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
 
   uint32_t numReplicas = programs.size();
