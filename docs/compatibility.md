@@ -3,7 +3,7 @@
 StableHLO is a backward compatible ML compute opset inspired by HLO/MHLO.
 This document explains the kind and the extent of the compatibility guarantees
 that StableHLO provides, based on the process established in
-[the compatibility RFC](../rfcs/20220912-compatibility.md).
+[the compatibility RFC](https://github.com/openxla/stablehlo/tree/main/rfcs/20220912-compatibility.md).
 
 ## Versions
 
@@ -126,8 +126,8 @@ for roundtrip examples of using the Python Serialization APIs.
 
 ## Tests
 
-We have a compatibility suite in [stablehlo/tests/vhlo](../stablehlo/tests/vhlo)
-that involves [a comprehensive compendium of StableHLO ops](../stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir)
+We have a compatibility suite in [stablehlo/tests/vhlo](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/vhlo)
+that involves [a comprehensive compendium of StableHLO ops](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir)
 serialized for all supported StableHLO versions. For every pull request, we are
 testing both backward and forward compatibility - i.e. that the suite can be
 deserialized targeting HEAD (backward compatibility), that the compendium

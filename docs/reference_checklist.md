@@ -63,7 +63,7 @@ on those fronts alongside the interpreter implementation.
            an open issue reflecting that discrepancy.
 1. In [interpreter tests](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret):
     1. Add a file called `<op_mnemonic>.mlir`.
-    1. Write tests following the [testing guidelines](https://github.com/openxla/stablehlo/blob/main/docs/reference.md#testing-guidelines).
+    1. Write tests following the [testing guidelines](reference.md#testing-guidelines).
 1. In the [testdata directory](https://github.com/openxla/stablehlo/tree/main/stablehlo/testdata):
     1. Run any disabled tests that are covered by the newly added operation.
     1. If the tests pass, enable them by converting `RUN-DISABLED` to `RUN`.
@@ -94,13 +94,13 @@ on those fronts alongside the interpreter implementation.
        in this file, following the same naming guidelines noted above.
     1. Move any shape inference tests from the [ops_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir)
        file into this file.
-1. In [spec.md](link):
+1. In [spec.md](spec.md):
     1. Add a link to `stablehlo/tests/interpret/<op_mnemonic>.mlir`
        to the "Examples" section
-       (e.g. [More Examples](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#add)).
+       (e.g. [More Examples](spec.md#add)).
     1. Make sure the spec only has 1 example.
-    1. Make sure the spec example follows the [testing guidelines](https://github.com/openxla/stablehlo/blob/main/docs/reference.md#testing-guidelines).
+    1. Make sure the spec example follows the [testing guidelines](reference.md#testing-guidelines).
     1. Make sure the spec example test is interpretable.
     1. Make sure the spec example is the same as what is in the ODS.
-1. In [status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md):
+1. In [status.md](status.md):
     1. Update the "Interpreter" column to `yes`.
