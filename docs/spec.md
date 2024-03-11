@@ -852,7 +852,7 @@ Afterwards, within each `process_group`:
 
 #### Semantics
 
-![all_to_all example](images/spec/all_to_all.svg)
+![all_to_all](images/spec/all_to_all.svg)
 
 Within each process group in the StableHLO process grid, splits the values of
 the `operand` tensor along `split_dimension` into parts, scatters the split
@@ -2128,7 +2128,7 @@ Computes dot products between windows of `lhs` and slices of `rhs` and produces
 `result`. The following diagram shows how elements in `result` are computed from
 `lhs` and `rhs` using a concrete example.
 
-![convolution example](images/spec/convolution.svg)
+![convolution](images/spec/convolution.svg)
 
 More formally, consider the following reframing of the inputs in terms of `lhs`
 in order to be able to express windows of `lhs`:
@@ -2976,7 +2976,7 @@ The following diagram shows how elements in `result` map on elements in
 `operand` using a concrete example. The diagram picks a few example `result`
 indices and explains in detail which `operand` indices they correspond to.
 
-![gather example](images/spec/gather.svg)
+![gather](images/spec/gather.svg)
 
 More formally, `result[result_index] = operand[operand_index]` where:
 
@@ -4276,7 +4276,7 @@ More formally:
 
 #### Semantics
 
-![reduce_scatter example](images/spec/reduce_scatter.svg)
+![reduce_scatter](images/spec/reduce_scatter.svg)
 
 Within each process group in the StableHLO process grid, performs reduction,
 using `computations`, over the values of the `operand` tensor from each process,
@@ -4374,7 +4374,7 @@ and produces `results`.
 The following diagram shows how elements in `results...` are computed from
 `inputs...` using a concrete example.
 
-![reduce_window example](images/spec/reduce_window.svg)
+![reduce_window](images/spec/reduce_window.svg)
 
 More formally,
 `results...[result_index] = reduce(windows, init_values, axes(inputs...), body)`
@@ -4861,7 +4861,7 @@ The following diagram shows how elements in `updates...` map on elements in
 `updates...` indices and explains in detail which `results...` indices they
 correspond to.
 
-![scatter example](images/spec/scatter.svg)
+![scatter](images/spec/scatter.svg)
 
 More formally, for all `update_index` in `index_space(updates[0])`:
 
