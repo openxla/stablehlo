@@ -51,7 +51,7 @@ This proposal is inspired by `lhs_batching_dims` and `rhs_batching_dims` of
 
 The new `stablehlo.gather` and `stablehlo.scatter` can be decomposed to the old
 ops by applying the workaround above. For `stablehlo.gather` this would mean
-making the `operand_batching_dims` as `collapsed_slice_dimensions` and
+making the `operand_batching_dims` as `collapsed_slice_dims` and
 `start_indices_batching_dims` as implicit batch dimensions in `start_indices`,
 by incrementing `index_vector_dim` by the size of `operand_batching_dims` (and
 updating `start_index_map` accordingly), and concatenating an iota for each
