@@ -165,11 +165,7 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
        dim(start_indices, index_vector_dim) : 1`.
 * (C4) `is_unique(offset_dims) and is_sorted(offset_dims)`.
 * (C5) `0 <= offset_dims < rank(result)`.
-<<<<<<< HEAD
-* (C6) `is_unique(collapsed_slice_dims + operand_batching_dims)`
-=======
 * (C6) `is_unique(concatenate(collapsed_slice_dims, operand_batching_dims))`
->>>>>>> c2942ea6 ([RFC] Add batching dims to `stablehlo.gather` and `stable.scatter` specification)
 * (C7) `is_sorted(collapsed_slice_dims)`.
 * (C8) `0 <= collapsed_slice_dims < rank(operand)`.
 * (C9) `slice_sizes[collapsed_slice_dims...] <= 1`.
@@ -181,24 +177,15 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 * (C15) `index_vector_dim not in start_indices_batching_dims`.
 * (C16) `size(operand_batching_dims) == size(start_indices_batching_dims)`.
 * (C17) `dim(operand, operand_batching_dims...) = dim(start_indices, start_indices_batching_dims...)`.
-<<<<<<< HEAD
-* (C18) `is_unique(start_index_map + operand_batching_dims)`.
-=======
 * (C18) `is_unique(concatenate(start_index_map, operand_batching_dims))`.
->>>>>>> c2942ea6 ([RFC] Add batching dims to `stablehlo.gather` and `stable.scatter` specification)
 * (C19) `0 <= start_index_map < rank(operand)`.
 * (C20) `size(slice_sizes) = rank(operand)`.
 * (C21) `0 <= slice_sizes <= shape(operand)`.
 * (C22) `shape(result) = combine(batch_dim_sizes, offset_dim_sizes)` where:
   * `batch_dim_sizes = shape(start_indices)` except that the dimension size
     of `start_indices` corresponding to `index_vector_dim` is not included.
-<<<<<<< HEAD
-  * `offset_dim_sizes = shape(slice_sizes)` except that the dimension sizes
-    in `slice_sizes` corresponding to `collapsed_slice_dims` and
-=======
   * `offset_dim_sizes = slice_sizes` except that the dimension sizes in
     `slice_sizes` corresponding to `collapsed_slice_dims` and
->>>>>>> c2942ea6 ([RFC] Add batching dims to `stablehlo.gather` and `stable.scatter` specification)
     `operand_batching_dims` are not included.
   * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
    `offset_dim_sizes` at axes corresponding to `offset_dims`.
@@ -380,11 +367,7 @@ undefined.
 * (C6) `element_type(updates...) = element_type(inputs...)`.
 * (C7) `is_unique(update_window_dims) and is_sorted(update_window_dims)`.
 * (C8) `0 <= update_window_dims < rank(updates[0])`.
-<<<<<<< HEAD
-* (C9) `is_unique(inserted_window_dims + input_batching_dimensions)`
-=======
 * (C9) `is_unique(concatenate(inserted_window_dims, input_batching_dimensions))`
->>>>>>> c2942ea6 ([RFC] Add batching dims to `stablehlo.gather` and `stable.scatter` specification)
 * (C10) `is_sorted(inserted_window_dims)`.
 * (C11) `0 <= inserted_window_dims < rank(inputs[0])`.
 * (C12) `is_sorted(input_batching_dimensions)`.
@@ -397,11 +380,7 @@ undefined.
 * (C19) `size(scatter_dims_to_operand_dims) =
        index_vector_dim < rank(scatter_indices) ?
        dim(scatter_indices, index_vector_dim) : 1`.
-<<<<<<< HEAD
-* (C20) `is_unique(scatter_dims_to_operand_dims + input_batching_dimensions)`.
-=======
 * (C20) `is_unique(concatenate(scatter_dims_to_operand_dims, input_batching_dimensions))`.
->>>>>>> c2942ea6 ([RFC] Add batching dims to `stablehlo.gather` and `stable.scatter` specification)
 * (C21) `0 <= scatter_dims_to_operand_dims < rank(inputs[0])`.
 * (C22) `0 <= index_vector_dim <= rank(scatter_indices)`.
 * (C23) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>,
