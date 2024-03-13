@@ -187,14 +187,4 @@ add_custom_target(check-stablehlo-quick)
 add_dependencies(check-stablehlo-ci check-stablehlo-quick)
 
 add_subdirectory(stablehlo)
-
-# Let's create a single library here so that linking against
-add_library(stablehlo_lib INTERFACE)
-# Link the master library with the other libraries
-target_link_libraries(stablehlo_lib INTERFACE
-  ${dialect_libs}
-  ${conversion_libs}
-  StablehloOps
-  )
-
 add_subdirectory(examples)

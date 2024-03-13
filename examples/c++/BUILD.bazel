@@ -1,4 +1,4 @@
-# Copyright 2024 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,8 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+load("@rules_cc//cc:defs.bzl", "cc_binary")
 
-add_executable(stablehlo-add stablehlo_add.cpp)
-target_link_libraries(stablehlo-add PRIVATE
-    StablehloOps
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+cc_binary(
+    name = "stablehlo-add",
+    srcs = [
+        "stablehlo_add.cpp",
+    ],
+    deps = [
+        "//:stablehlo_ops",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:QuantOps",
+    ],
 )
