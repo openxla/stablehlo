@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_test")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -30,3 +30,17 @@ cc_binary(
         "@llvm-project//mlir:QuantOps",
     ],
 )
+
+cc_test(
+    name = "stablehlo-add_test",
+    srcs = [
+        "stablehlo_add.cpp",
+    ],
+    deps = [
+        "//:stablehlo_ops",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:QuantOps",
+    ],
+)
+
