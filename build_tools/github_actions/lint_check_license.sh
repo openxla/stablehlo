@@ -51,6 +51,7 @@ echo
 SKIPPED_SUFFIXES=(
   .clang-format
   .gitignore
+  .json
   .md
   .mlir
   .mlir.bc
@@ -59,7 +60,6 @@ SKIPPED_SUFFIXES=(
   LICENSE
   MODULE.bazel.lock
   llvm_version.txt
-  .json
 )
 
 UNLICENSED_FILES=()
