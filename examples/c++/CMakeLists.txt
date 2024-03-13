@@ -12,7 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TODO(fzakaria): As we think about adding more tests we should consider
+# making this a function to be DRY.
 add_executable(stablehlo-add stablehlo_add.cpp)
 target_link_libraries(stablehlo-add PRIVATE
     StablehloOps
 )
+mlir_check_all_link_libraries(stablehlo-add)
+add_custom_target(stablehlo-add-test
+  COMMAND stablehlo-add
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Executing stablehlo-add to validate it works."
+  DEPENDS
+    stablehlo-add
+)
+add_dependencies(check-stablehlo-quick stablehlo-add-test)
