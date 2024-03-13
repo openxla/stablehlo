@@ -43,4 +43,3 @@ cc_test(
         "@llvm-project//mlir:QuantOps",
     ],
 )
-
