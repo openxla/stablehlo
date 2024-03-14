@@ -3502,16 +3502,16 @@ LogicalResult verifyConvolutionOp(
   if (noneQuantized<quant::UniformQuantizedPerAxisType>(typeEntriesPerAxis))
     return success();
   // convolution_c31
-  if (!allQuantized<quant::UniformQuantizedPerAxisType>(typeEntriesPerAxis)) {
+  auto rhsQPAType = rhsQType.dyn_cast<quant::UniformQuantizedPerAxisType>();
+  auto resultQPAType =
+      resultQType.dyn_cast<quant::UniformQuantizedPerAxisType>();
+  if (!rhsQPAType && resultQPAType) {
     return emitOptionalError(location,
                              "rhs and result are of mixed per_tensor and "
                              "per_axis quantized tensor type ",
                              rhsType, " and ", resultType);
   }
 
-  auto rhsQPAType = rhsQType.dyn_cast<quant::UniformQuantizedPerAxisType>();
-  auto resultQPAType =
-      resultQType.dyn_cast<quant::UniformQuantizedPerAxisType>();
   // convolution_c32
   if (rhsQPAType &&
       rhsQPAType.getQuantizedDimension() != kernelOutputFeatureDimension)
