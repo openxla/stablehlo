@@ -699,8 +699,8 @@ it only exists to establish data dependencies from `result` to `inputs`.
 #### Semantics
 
 Within each process group in the StableHLO process grid, concatenates the values
-of the `operand` tensor from each process along `all_gather_dim` and produces a
-`result` tensor.
+of the `operands` tensors from each process along `all_gather_dim` and produces
+`results` tensors.
 
 The operation splits the StableHLO process grid into `process_groups` which is
 defined as follows:
@@ -714,30 +714,30 @@ defined as follows:
 
 Afterwards, within each `process_group`:
 
-* `operands@receiver = [operand@sender for sender in process_group]` for all
+* `operands...@receiver = [operand@sender for sender in process_group]` for all
   `receiver` in `process_group`.
-* `result@process = concatenate(operands@process, all_gather_dim)` for all
+* `results...@process = concatenate(operands...@process, all_gather_dim)` for all
   `process` in `process_group`.
 
 #### Inputs
 
-| Label | Name                    | Type                                         | Constraints |
-|-------|-------------------------|----------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor or per-tensor quantized tensor        | (C1), (C6)  |
-| (I2)  | `all_gather_dim`        | constant of type `si64`                      | (C1), (C6)  |
-| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C2-C4)     |
-| (I4)  | `channel_id`            | constant of type `si64`                      | (C5)        |
-| (I5)  | `use_global_device_ids` | constant of type `i1`                        | (C5)        |
+| Label | Name                    | Type                                                        | Constraints |
+|-------|-------------------------|-------------------------------------------------------------|-------------|
+| (I1)  | `operands`               | variadic number of tensors or per-tensor quantized tensors | (C1), (C6)  |
+| (I2)  | `all_gather_dim`        | constant of type `si64`                                     | (C1), (C6)  |
+| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64`                | (C2-C4)     |
+| (I4)  | `channel_id`            | constant of type `si64`                                     | (C5)        |
+| (I5)  | `use_global_device_ids` | constant of type `i1`                                       | (C5)        |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C6)        |
+| Name     | Type                                                        | Constraints |
+|----------|-------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C6)        |
 
 #### Constraints
 
-* (C1) `0 <= all_gather_dim < rank(operand)`.
+* (C1) `0 <= all_gather_dim < rank(operands...)`.
 * (C2) `is_unique(replica_groups)`.
 * (C3) `size(replica_groups)` is defined as:
   * `num_replicas` if `cross_replica` is used.
@@ -745,9 +745,9 @@ Afterwards, within each `process_group`:
   * `num_processes` if `flattened_ids` is used.
 * (C4) `0 <= replica_groups < size(replica_groups)`.
 * (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
-* (C6) `type(result) = type(operand)` except:
-  * `dim(result, all_gather_dim) =
-    dim(operand, all_gather_dim) * dim(process_groups, 1)`.
+* (C6) `type(results...) = type(operands...)` except:
+  * `dim(results..., all_gather_dim) =
+    dim(operands..., all_gather_dim) * dim(process_groups, 1)`.
 
 #### Examples
 
@@ -774,8 +774,8 @@ Afterwards, within each `process_group`:
 #### Semantics
 
 Within each process group in the StableHLO process grid, applies a reduction
-function `computation` to the values of the `operand` tensor from each process
-and produces a `result` tensor.
+function `computation` to the values of the `operands` tensors from each process
+and produces `results` tensors.
 
 The operation splits the StableHLO process grid into `process_groups` which is
 defined as follows:
@@ -789,19 +789,19 @@ defined as follows:
 
 Afterwards, within each `process_group`:
 
-* `result@process[result_index] = exec(schedule)` for some binary tree
+* `results...@process[result_index] = exec(schedule)` for some binary tree
   `schedule` where:
   * `exec(node)` = `computation(exec(node.left), exec(node.right))`.
   * `exec(leaf)` = `leaf.value`.
 * `schedule` is an implementation-defined binary tree whose in-order
-  traversal is `to_destination_type(operands@process_group...[result_index],
+  traversal is `to_destination_type(operands...@process_group...[result_index],
   type(func_inputs(computation)[0]))`.
 
 #### Inputs
 
 | Label | Name                    | Type                                                             | Constraints |
 |-------|-------------------------|------------------------------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor or per-tensor quantized tensor                            | (C5), (C6)  |
+| (I1)  | `operands`               | variadic number of tensors or per-tensor quantized tensors      | (C5), (C6)  |
 | (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
 | (I3)  | `channel_id`            | constant of type `si64`                                          | (C4)        |
 | (I4)  | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
@@ -809,9 +809,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C6-C7)     |
+| Name      | Type                                                        | Constraints |
+|-----------|-------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors  | (C6-C7)     |
 
 #### Constraints
 
@@ -824,8 +824,8 @@ Afterwards, within each `process_group`:
 * (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `is_promotable(element_type(operand), E)`.
-* (C6) `shape(result) = shape(operand)`.
-* (C7) `element_type(result) = E`.
+* (C6) `shape(results...) = shape(operands...)`.
+* (C7) `element_type(results...) = E`.
 
 #### Examples
 
@@ -855,10 +855,9 @@ Afterwards, within each `process_group`:
 ![all_to_all](images/spec/all_to_all.svg)
 
 Within each process group in the StableHLO process grid, splits the values of
-the `operand` tensor along `split_dimension` into parts, scatters the split
+the `operands` tensors along `split_dimension` into parts, scatters the split
 parts between the processes, concatenates the scattered parts along
-`concat_dimension` and produces a `result` tensor.
-
+`concat_dimension` and produces `results` tensors.
 The operation splits the StableHLO process grid into `process_groups` which is
 defined as follows:
 
@@ -867,35 +866,35 @@ defined as follows:
 
 Afterwards, within each `process_group`:
 
-* `split_parts@sender = split(operand@sender, split_count, split_dimension)`
+* `split_parts...@sender = split(operands...@sender, split_count, split_dimension)`
   for all `sender` in `process_group`.
-* `scattered_parts@receiver = [split_parts@sender[receiver_index] for
+* `scattered_parts...@receiver = [split_parts...@sender[receiver_index] for
   sender in process_group]` where
   `receiver_index = process_group.index(receiver)`.
-* `result@process = concatenate(scattered_parts@process, concat_dimension)`.
+* `results...@process = concatenate(scattered_parts...@process, concat_dimension)`.
 
 #### Inputs
 
-| Label | Name               | Type                                         | Constraints            |
-|-------|--------------------|----------------------------------------------|------------------------|
-| (I1)  | `operand`          | tensor or per-tensor quantized tensor        | (C1-C3), (C9)          |
-| (I2)  | `split_dimension`  | constant of type `si64`                      | (C1), (C2), (C9)       |
-| (I3)  | `concat_dimension` | constant of type `si64`                      | (C3), (C9)             |
-| (I4)  | `split_count`      | constant of type `si64`                      | (C2), (C4), (C8), (C9) |
-| (I5)  | `replica_groups`   | 2-dimensional tensor constant of type `si64` | (C5-C8)                |
-| (I6)  | `channel_id`       | constant of type `si64`                      |                        |
+| Label | Name               | Type                                                         | Constraints            |
+|-------|--------------------|--------------------------------------------------------------|------------------------|
+| (I1)  | `operands`          | variadic number of tensors or per-tensor quantized tensors  | (C1-C3), (C9)          |
+| (I2)  | `split_dimension`  | constant of type `si64`                                      | (C1), (C2), (C9)       |
+| (I3)  | `concat_dimension` | constant of type `si64`                                      | (C3), (C9)             |
+| (I4)  | `split_count`      | constant of type `si64`                                      | (C2), (C4), (C8), (C9) |
+| (I5)  | `replica_groups`   | 2-dimensional tensor constant of type `si64`                 | (C5-C8)                |
+| (I6)  | `channel_id`       | constant of type `si64`                                      |                        |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C9)        |
+| Name      | Type                                                        | Constraints |
+|-----------|-------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors  | (C9)        |
 
 #### Constraints
 
-* (C1) `0 <= split_dimension < rank(operand)`.
-* (C2) `dim(operand, split_dimension) % split_count = 0`.
-* (C3) `0 <= concat_dimension < rank(operand)`.
+* (C1) `0 <= split_dimension < rank(operands...)`.
+* (C2) `dim(operands..., split_dimension) % split_count = 0`.
+* (C3) `0 <= concat_dimension < rank(operands...)`.
 * (C4) `0 < split_count`.
 * (C5) `is_unique(replica_groups)`.
 * (C6) `size(replica_groups)` is defined as:
@@ -903,11 +902,11 @@ Afterwards, within each `process_group`:
   * `num_partitions` if `cross_partition` is used.
 * (C7) `0 <= replica_groups < size(replica_groups)`.
 * (C8) `dim(replica_groups, 1) = split_count`.
-* (C9) `type(result) = type(operand)` except:
-  * `dim(result, split_dimension) =
-    dim(operand, split_dimension) / split_count`.
-  * `dim(result, concat_dimension) =
-    dim(operand, concat_dimension) * split_count`.
+* (C9) `type(results...) = type(operands...)` except:
+  * `dim(results..., split_dimension) =
+    dim(operands..., split_dimension) / split_count`.
+  * `dim(results..., concat_dimension) =
+    dim(operands..., concat_dimension) * split_count`.
 
 #### Examples
 
