@@ -13,7 +13,9 @@
             "STABLEHLO_ENABLE_BINDINGS_PYTHON" : "OFF",
             "STABLEHLO_ENABLE_SPLIT_DWARF": "ON",
             "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+            "CMAKE_CXX_COMPILER": "clang++",
             "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+            "CMAKE_C_COMPILER": "clang",
             "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
             "MLIR_DIR": "${sourceDir}/llvm-build/lib/cmake/mlir"
           }
