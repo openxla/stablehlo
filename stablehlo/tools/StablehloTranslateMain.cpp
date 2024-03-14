@@ -15,6 +15,7 @@ limitations under the License.
 
 #include <memory>
 
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -173,12 +174,11 @@ TranslateFromMLIRRegistration interpretRegistration(
       config.fallback = std::make_unique<StablehloTranslateInterpreterFallback>(
           config.probeInstrumentationDir);
 
-      auto resultsOrError = evalModule(module, /*inputs=*/{}, config);
-      if (resultsOrError) {
-        return success(resultsOrError);
-      }
+      llvm::SmallVector<stablehlo::InterpreterValue> inputs;
+      auto results = evalModule(module, inputs, config);
+      if (failed(results)) return failure();
 
-      for (auto &result : *resultsOrError) result.print(os);
+      for (auto &result : *results) result.print(os);
 
       return success();
     },

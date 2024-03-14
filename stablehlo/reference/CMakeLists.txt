@@ -26,6 +26,7 @@ add_mlir_library(StablehloReferenceApi
   StablehloReferenceOps
   StablehloReferenceProcess
   StablehloReferenceScope
+  StablehloReferenceTensor
   StablehloReferenceValue
   StablehloRegister
 )

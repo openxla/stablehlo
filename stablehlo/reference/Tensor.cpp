@@ -20,6 +20,8 @@ limitations under the License.
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/Error.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Types.h"
@@ -377,12 +379,12 @@ void Tensor::dump() const { print(llvm::errs()); }
 
 Tensor makeTensor(DenseElementsAttr attr) {
   auto type = attr.getType();
-  auto elemType = type.getElementType();
+  auto elementType = type.getElementType();
 
   // Handle floating-point types.
-  if (elemType.isFloat8E4M3B11FNUZ() || elemType.isFloat8E4M3FN() ||
-      elemType.isFloat8E4M3FNUZ() || elemType.isFloat8E5M2() ||
-      elemType.isFloat8E5M2FNUZ()) {
+  if (elementType.isFloat8E4M3B11FNUZ() || elementType.isFloat8E4M3FN() ||
+      elementType.isFloat8E4M3FNUZ() || elementType.isFloat8E5M2() ||
+      elementType.isFloat8E5M2FNUZ()) {
     auto floatValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APFloat>(), [&](APFloat value) -> uint8_t {
           return value.bitcastToAPInt().getZExtValue();
@@ -395,7 +397,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
                             floatValues));
   }
 
-  if (elemType.isF16() || elemType.isBF16()) {
+  if (elementType.isF16() || elementType.isBF16()) {
     auto floatValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APFloat>(), [&](APFloat value) -> uint16_t {
           return value.bitcastToAPInt().getZExtValue();
@@ -408,7 +410,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
         HeapAsmResourceBlob::allocateAndCopyInferAlign<uint16_t>(floatValues));
   }
 
-  if (elemType.isF32()) {
+  if (elementType.isF32()) {
     auto floatValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APFloat>(),
         [&](APFloat value) -> float { return value.convertToFloat(); }));
@@ -416,7 +418,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
                             floatValues));
   }
 
-  if (elemType.isF64()) {
+  if (elementType.isF64()) {
     auto floatValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APFloat>(),
         [&](APFloat value) -> double { return value.convertToDouble(); }));
@@ -425,7 +427,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
   }
 
   // Handle signed integer types.
-  if (elemType.isSignlessInteger(4) || elemType.isSignlessInteger(8)) {
+  if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> int8_t { return value.getSExtValue(); }));
@@ -433,7 +435,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
                             intValues));
   }
 
-  if (elemType.isSignlessInteger(16)) {
+  if (elementType.isSignlessInteger(16)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> int16_t { return value.getSExtValue(); }));
@@ -441,7 +443,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
                             intValues));
   }
 
-  if (elemType.isSignlessInteger(32)) {
+  if (elementType.isSignlessInteger(32)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> int32_t { return value.getSExtValue(); }));
@@ -449,7 +451,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
                             intValues));
   }
 
-  if (elemType.isSignlessInteger(64)) {
+  if (elementType.isSignlessInteger(64)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> int64_t { return value.getSExtValue(); }));
@@ -458,7 +460,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
   }
 
   // Handle unsigned integer types.
-  if (elemType.isUnsignedInteger(4) || elemType.isUnsignedInteger(8)) {
+  if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> uint8_t { return value.getZExtValue(); }));
@@ -466,7 +468,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
                             intValues));
   }
 
-  if (elemType.isUnsignedInteger(16)) {
+  if (elementType.isUnsignedInteger(16)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> uint16_t { return value.getZExtValue(); }));
@@ -475,7 +477,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
         HeapAsmResourceBlob::allocateAndCopyInferAlign<uint16_t>(intValues));
   }
 
-  if (elemType.isUnsignedInteger(32)) {
+  if (elementType.isUnsignedInteger(32)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> uint32_t { return value.getZExtValue(); }));
@@ -484,7 +486,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
         HeapAsmResourceBlob::allocateAndCopyInferAlign<uint32_t>(intValues));
   }
 
-  if (elemType.isUnsignedInteger(64)) {
+  if (elementType.isUnsignedInteger(64)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> uint64_t { return value.getZExtValue(); }));
@@ -494,7 +496,7 @@ Tensor makeTensor(DenseElementsAttr attr) {
   }
 
   // Handle boolean type.
-  if (isSupportedBooleanType(elemType)) {
+  if (isSupportedBooleanType(elementType)) {
     auto boolValues = llvm::to_vector(
         llvm::map_range(attr.getValues<bool>(),
                         [&](bool value) -> uint8_t { return value ? 1 : 0; }));
@@ -503,8 +505,8 @@ Tensor makeTensor(DenseElementsAttr attr) {
   }
 
   // Handle complex types.
-  if (elemType.isa<ComplexType>()) {
-    auto complexElemTy = elemType.cast<ComplexType>().getElementType();
+  if (elementType.isa<ComplexType>()) {
+    auto complexElemTy = elementType.cast<ComplexType>().getElementType();
     if (complexElemTy.isF32()) {
       auto complexValues = llvm::to_vector(llvm::map_range(
           attr.getValues<std::complex<APFloat>>(),
@@ -533,6 +535,30 @@ Tensor makeTensor(DenseElementsAttr attr) {
 
   report_fatal_error(
       invalidArgument("Unsupported type: ", debugString(type).c_str()));
+}
+
+DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
+  auto type = tensor.getType();
+  auto elementType = type.getElementType();
+
+  if (elementType.isa<FloatType>()) {
+    std::vector<llvm::APFloat> values;
+    for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
+      Element element = tensor.get(*it);
+      values.push_back(element.getFloatValue());
+    }
+    return DenseFPElementsAttr::get(tensor.getType(), values);
+  }
+  if (elementType.isa<IntegerType>()) {
+    std::vector<llvm::APInt> values;
+    for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
+      Element element = tensor.get(*it);
+      values.push_back(element.getIntegerValue());
+    }
+    return DenseIntElementsAttr::get(tensor.getType(), values);
+  }
+
+  llvm::report_fatal_error("Only FloatType and IntType are handled currently.");
 }
 
 }  // namespace stablehlo
