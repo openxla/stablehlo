@@ -42,7 +42,9 @@ We recommend additionally setting the following in your `.vscode/settings.json` 
 
 ### LLVM/MLIR settings
 
-Check out the official instructions for [LLVM](https://github.com/llvm/llvm-project/blob/main/llvm/utils/vim/README) and [MLIR](https://github.com/llvm/llvm-project/blob/main/mlir/utils/vim/README) settings to enable syntax highlighting and other goodies.
+Check out the official instructions for [LLVM](https://github.com/llvm/llvm-project/blob/main/llvm/utils/vim/README)
+and [MLIR](https://github.com/llvm/llvm-project/blob/main/mlir/utils/vim/README)
+settings to enable syntax highlighting and other goodies.
 
 ### IDE-like features
 
