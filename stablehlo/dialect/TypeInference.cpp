@@ -3506,10 +3506,9 @@ LogicalResult verifyConvolutionOp(
   auto resultQPAType =
       resultQType.dyn_cast<quant::UniformQuantizedPerAxisType>();
   if (!rhsQPAType && resultQPAType) {
-    return emitOptionalError(location,
-                             "rhs and result are of mixed per_tensor and "
-                             "per_axis quantized tensor type ",
-                             rhsType, " and ", resultType);
+    return emitOptionalError(
+        location, "per-tensor rhs expects per-tensor result but received ",
+        rhsType, " and ", resultType, " respectively");
   }
 
   // convolution_c32
