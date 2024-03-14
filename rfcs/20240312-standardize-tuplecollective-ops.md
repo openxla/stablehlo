@@ -9,19 +9,20 @@ Discussion thread: [GitHub](add PR Link)
 
 Several features have been added to MHLO in the past year, which frameworks want
 to leverage and members of the community have made requests for them as well.
-This includes: supoport of variadic operands/results for tuple-collective
+This includes: support of variadic operands/results for tuple-collective
 (`AllGatherOp`,`AllReduceOp`, `AllToAllOp`) ops. We propose adding these
 feature to the StableHLO spec so they can be used by the community.
 
 StableHLO tuple-collective ops support is limited to **single-operand** and **single-result**.
 [MHLO ops](https://github.com/tensorflow/mlir-hlo/blob/master/mhlo/IR/hlo_ops.td)
 supports
-**multi-operand** and **multi-result** which is in sync with XLA semantics and
+**multi-operand** and **multi-result** which is in sync with multi-operand and
+multi-result XLA semantics and
 horizontal scaling
 [`all_reduce`](https://openxla.org/xla/operation_semantics#allreduce)
 [`all_gather`](https://openxla.org/xla/operation_semantics#allgather) and
-[`all_to_all`](https://openxla.org/xla/operation_semantics#alltoall) which
-supports multi-operand and multi-result. `all_reduce` support is requested
+[`all_to_all`](https://openxla.org/xla/operation_semantics#alltoall). `all_reduce`
+support is requested
 in [#1370](https://github.com/openxla/stablehlo/issues/1370) is relied on by
 PyTorch/XLA today via XlaBuilder ([ref](https://github.com/pytorch/xla/blob/1bbe333ad137ace6b8134db640c0b24c8c428db6/torch_xla/csrc/cross_replica_reduces.cpp#L156)).
 `all_to_all` support is requested in
