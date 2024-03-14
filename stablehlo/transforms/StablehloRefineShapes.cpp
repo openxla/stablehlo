@@ -29,6 +29,7 @@ limitations under the License.
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -577,19 +578,48 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
   LogicalResult matchAndRewrite(SliceOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.hasRank() || resultType.getRank() != 1)
-      return rewriter.notifyMatchFailure(op, "expected 1-dimensional type");
+    if (!resultType.hasRank() || resultType.getRank() < 1)
+      return rewriter.notifyMatchFailure(
+          op, "expected non-0 ranked tensor result type");
 
-    SmallVector<APSInt> operand;
-    if (failed(hlo::matchInts(op.getOperand(), operand)))
+    auto operand = op.getOperand().dyn_cast<TypedValue<RankedTensorType>>();
+    if (!operand || !operand.getType().hasStaticShape())
+      return rewriter.notifyMatchFailure(
+          op, "expected operand with static ranked tensor type");
+
+    // A ranked tensor type with unit dimension prefix of R-1 size is physically
+    // compatible with 1-dimensional type.
+    auto resultShape = resultType.getShape();
+    for (const auto& dimSize : resultShape.drop_back(1)) {
+      if (dimSize != 1)
+        return rewriter.notifyMatchFailure(
+            op, "expected 1-dimensional result type");
+    }
+
+    SmallVector<APSInt> operandData;
+    if (failed(hlo::matchInts(op.getOperand(), operandData)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
 
-    int64_t start = op.getStartIndices()[0];
-    int64_t limit = op.getLimitIndices()[0];
-    int64_t stride = op.getStrides()[0];
+    assert(llvm::all_of(op.getStrides().drop_back(),
+                        [](int64_t s) { return s == 1; }) &&
+           "all strides but last must be 1");
+
+    const auto dimOffsets = computeSuffixProduct(operand.getType().getShape());
+    const auto startIndices = op.getStartIndices();
+    const auto limitIndices = op.getLimitIndices();
+    const auto strides = op.getStrides();
+
+    int64_t start = 0;
+    for (size_t i = 0; i < startIndices.size(); ++i) {
+      start += startIndices[i] * dimOffsets[i];
+    }
+
+    auto slicedDim = operand.getType().getRank() - 1;
+    int64_t limit = start + limitIndices[slicedDim] - startIndices[slicedDim];
+    int64_t stride = strides[slicedDim];
     SmallVector<APSInt> result;
     for (auto i = start; i < limit; i += stride) {
-      result.push_back(operand[i]);
+      result.push_back(operandData[i]);
     }
 
     rewriter.replaceOpWithNewOp<ConstantOp>(op,
