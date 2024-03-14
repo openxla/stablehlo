@@ -257,11 +257,9 @@ def test_reference_api():
     with ir.Context() as context:
       stablehlo.register_dialect(context)
       m = ir.Module.parse(ASM_FORMAT.format(tensor_type))
-      module_str = str(m)
       args = [ir.DenseIntElementsAttr.get(arg)]
 
-    res = stablehlo.eval_module(m, args)
-    actual = np.array(res[0])
+    actual = np.array(stablehlo.eval_module(m, args)[0])
     expected = arg + arg
     assert (actual == expected).all()
 
@@ -273,11 +271,10 @@ def test_serialization_apis():
   with ir.Context() as context:
     stablehlo.register_dialect(context)
     m = ir.Module.parse(ASM_FORMAT.format("2xf32"))
-    module_str = str(m)
     assert m is not None
     serialized = stablehlo.serialize_portable_artifact(m, curr_version)
     deserialized = stablehlo.deserialize_portable_artifact(context, serialized)
-    assert module_str == str(deserialized)
+    assert str(m) == str(deserialized)
 
 @run
 def test_str_serialization_apis():
@@ -291,10 +288,9 @@ def test_str_serialization_apis():
   with ir.Context() as context:
     stablehlo.register_dialect(context)
     m = ir.Module.parse(ASM_FORMAT.format("2xf32"))
-    module_str = str(m)
     assert m is not None
     bytecode = module_to_bytecode(m)
     serialized = stablehlo.serialize_portable_artifact(bytecode, curr_version)
     deserialized = stablehlo.deserialize_portable_artifact(serialized)
     deserialized_module = ir.Module.parse(deserialized)
-    assert module_str == str(deserialized_module)
+    assert str(m) == str(deserialized_module)

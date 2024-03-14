@@ -514,9 +514,7 @@ PYBIND11_MODULE(_stablehlo, m) {
         }
 
         std::vector<MlirAttribute> pyResults;
-        for (auto res : *results) {
-          pyResults.push_back(wrap(res));
-        }
+        for (auto res : *results) pyResults.push_back(wrap(res));
         return pyResults;
       },
       py::arg("module"), py::arg("args"));
