@@ -272,9 +272,10 @@ def test_serialization_apis():
     stablehlo.register_dialect(context)
     m = ir.Module.parse(ASM_FORMAT.format("2xf32"))
     assert m is not None
+    module_str = str(m)
     serialized = stablehlo.serialize_portable_artifact(m, curr_version)
     deserialized = stablehlo.deserialize_portable_artifact(context, serialized)
-    assert str(m) == str(deserialized)
+    assert module_str == str(deserialized)
 
 @run
 def test_str_serialization_apis():
@@ -289,8 +290,9 @@ def test_str_serialization_apis():
     stablehlo.register_dialect(context)
     m = ir.Module.parse(ASM_FORMAT.format("2xf32"))
     assert m is not None
+    module_str = str(m)
     bytecode = module_to_bytecode(m)
     serialized = stablehlo.serialize_portable_artifact(bytecode, curr_version)
     deserialized = stablehlo.deserialize_portable_artifact(serialized)
     deserialized_module = ir.Module.parse(deserialized)
-    assert str(m) == str(deserialized_module)
+    assert module_str == str(deserialized_module)
