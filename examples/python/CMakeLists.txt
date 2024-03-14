@@ -12,5 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(c++)
-add_subdirectory(python)
+add_stablehlo_python_test(stablehlo-python-add add.py)
