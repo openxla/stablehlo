@@ -62,8 +62,8 @@ gap.
 View spec.md changes in this PR to view the diff vs original spec.
 
 To view rich text of the spec, see:
-[TanOp](https://github.com/abhigunj/stablehlo/blob/a3b4c1b69aff41e3175c1b4ccb6352bcadf1f79a/docs/spec.md#tan)
-[CustomCallOp](https://github.com/abhigunj/stablehlo/blob/a3b4c1b69aff41e3175c1b4ccb6352bcadf1f79a/docs/spec.md#custom_call)
-[AllGatherOp](https://github.com/abhigunj/stablehlo/blob/a3b4c1b69aff41e3175c1b4ccb6352bcadf1f79a/docs/spec.md#all_gather)
-[AllReduceOp](https://github.com/abhigunj/stablehlo/blob/a3b4c1b69aff41e3175c1b4ccb6352bcadf1f79a/docs/spec.md#all_reduce)
-[AllToAllOp](https://github.com/abhigunj/stablehlo/blob/a3b4c1b69aff41e3175c1b4ccb6352bcadf1f79a/docs/spec.md#all_to_all)
+[TanOp](https://github.com/openxla/stablehlo/blob/f8d6756c70dc5301d5be88d1ca378d1429943e0c/docs/spec.md#tan)
+[CustomCallOp](https://github.com/openxla/stablehlo/blob/f8d6756c70dc5301d5be88d1ca378d1429943e0c/docs/spec.md#custom_call)
+[AllGatherOp](https://github.com/openxla/stablehlo/blob/f8d6756c70dc5301d5be88d1ca378d1429943e0c/docs/spec.md#all_gather)
+[AllReduceOp](https://github.com/openxla/stablehlo/blob/f8d6756c70dc5301d5be88d1ca378d1429943e0c/docs/spec.md#all_reduce)
+[AllToAllOp](https://github.com/openxla/stablehlo/blob/f8d6756c70dc5301d5be88d1ca378d1429943e0c/docs/spec.md#all_to_all)
