@@ -1,0 +1,24 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+          "name": "debug",
+          "displayName": "Debug w/ ccache",
+          "generator": "Ninja",
+          "binaryDir": "build/",
+          "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug",
+            "LLVM_ENABLE_ASSERTIONS": "ON",
+            "LLVM_ENABLE_LLD": "ON",
+            "STABLEHLO_ENABLE_BINDINGS_PYTHON" : "OFF",
+            "STABLEHLO_ENABLE_SPLIT_DWARF": "ON",
+            "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+            "CMAKE_CXX_COMPILER": "clang++",
+            "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+            "CMAKE_C_COMPILER": "clang",
+            "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+            "MLIR_DIR": "${sourceDir}/llvm-build/lib/cmake/mlir"
+          }
+        }
+      ]
+  }
