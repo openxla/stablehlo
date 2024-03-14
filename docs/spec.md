@@ -699,7 +699,7 @@ it only exists to establish data dependencies from `result` to `inputs`.
 #### Semantics
 
 Within each process group in the StableHLO process grid, concatenates the values
-of the `operands` tensors from each process along `all_gather_dim` and produces a
+of the `operands` tensors from each process along `all_gather_dim` and produces
 `results` tensors. When multiple `operands` are specified, the `all_gather` is
 performed on each operand.
 
@@ -722,18 +722,18 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name                    | Type                                         | Constraints |
-|-------|-------------------------|----------------------------------------------|-------------|
+| Label | Name                    | Type                                                               | Constraints |
+|-------|-------------------------|--------------------------------------------------------------------|-------------|
 | (I1)  | `operands`               | variadic number of tensors or per-tensor quantized tensors        | (C1), (C6)  |
-| (I2)  | `all_gather_dim`        | constant of type `si64`                      | (C1), (C6)  |
-| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C2-C4)     |
-| (I4)  | `channel_id`            | constant of type `si64`                      | (C5)        |
-| (I5)  | `use_global_device_ids` | constant of type `i1`                        | (C5)        |
+| (I2)  | `all_gather_dim`        | constant of type `si64`                                            | (C1), (C6)  |
+| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64`                       | (C2-C4)     |
+| (I4)  | `channel_id`            | constant of type `si64`                                            | (C5)        |
+| (I5)  | `use_global_device_ids` | constant of type `i1`                                              | (C5)        |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
+| Name     | Type                                                        | Constraints |
+|----------|-------------------------------------------------------------|-------------|
 | `results` | variadic number of tensors or per-tensor quantized tensors | (C6)        |
 
 #### Constraints
@@ -776,7 +776,7 @@ Afterwards, within each `process_group`:
 
 Within each process group in the StableHLO process grid, applies a reduction
 function `computation` to the values of the `operands` tensors from each process
-and produces a `results` tensors. When multiple `operands` are specified, the
+and produces `results` tensors. When multiple `operands` are specified, the
 `all_reduce` is performed on each operand.
 
 The operation splits the StableHLO process grid into `process_groups` which is
@@ -801,19 +801,19 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name                    | Type                                                             | Constraints |
-|-------|-------------------------|------------------------------------------------------------------|-------------|
+| Label | Name                    | Type                                                                                   | Constraints |
+|-------|-------------------------|----------------------------------------------------------------------------------------|-------------|
 | (I1)  | `operands`               | variadic number of tensors or per-tensor quantized tensors                            | (C5), (C6)  |
-| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
-| (I3)  | `channel_id`            | constant of type `si64`                                          | (C4)        |
-| (I4)  | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
-| (I5)  | `computation`           | function                                                         | (C5)        |
+| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64`                       | (C1-C3)     |
+| (I3)  | `channel_id`            | constant of type `si64`                                                                | (C4)        |
+| (I4)  | `use_global_device_ids` | constant of type `i1`                                                                  | (C4)        |
+| (I5)  | `computation`           | function                                                                               | (C5)        |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `results` | variadic number of tensors or per-tensor quantized tensors | (C6-C7)     |
+| Name      | Type                                                        | Constraints |
+|-----------|-------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors  | (C6-C7)     |
 
 #### Constraints
 
@@ -859,7 +859,7 @@ Afterwards, within each `process_group`:
 Within each process group in the StableHLO process grid, splits the values of
 the `operands` tensors along `split_dimension` into parts, scatters the split
 parts between the processes, concatenates the scattered parts along
-`concat_dimension` and produces a `results` tensors. When multiple `operands`
+`concat_dimension` and produces `results` tensors. When multiple `operands`
 are specified, the `all_to_all` is performed on each operand.
 
 The operation splits the StableHLO process grid into `process_groups` which is
@@ -879,20 +879,20 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name               | Type                                         | Constraints            |
-|-------|--------------------|----------------------------------------------|------------------------|
+| Label | Name               | Type                                                               | Constraints            |
+|-------|--------------------|--------------------------------------------------------------------|------------------------|
 | (I1)  | `operands`          | variadic number of tensors or per-tensor quantized tensors        | (C1-C3), (C9)          |
-| (I2)  | `split_dimension`  | constant of type `si64`                      | (C1), (C2), (C9)       |
-| (I3)  | `concat_dimension` | constant of type `si64`                      | (C3), (C9)             |
-| (I4)  | `split_count`      | constant of type `si64`                      | (C2), (C4), (C8), (C9) |
-| (I5)  | `replica_groups`   | 2-dimensional tensor constant of type `si64` | (C5-C8)                |
-| (I6)  | `channel_id`       | constant of type `si64`                      |                        |
+| (I2)  | `split_dimension`  | constant of type `si64`                                            | (C1), (C2), (C9)       |
+| (I3)  | `concat_dimension` | constant of type `si64`                                            | (C3), (C9)             |
+| (I4)  | `split_count`      | constant of type `si64`                                            | (C2), (C4), (C8), (C9) |
+| (I5)  | `replica_groups`   | 2-dimensional tensor constant of type `si64`                       | (C5-C8)                |
+| (I6)  | `channel_id`       | constant of type `si64`                                            |                        |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `results` | variadic number of tensors or per-tensor quantized tensors | (C9)        |
+| Name      | Type                                                        | Constraints |
+|-----------|-------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors  | (C9)        |
 
 #### Constraints
 
@@ -2419,14 +2419,14 @@ the XLA compiler. In the future, we are planning to unify this metadata
 
 #### Inputs
 
-| Label | Name                  | Type                                          |
-|-------|-----------------------|-----------------------------------------------|
-| (I1)  | `inputs`              | variadic number of values                     |
-| (I2)  | `call_target_name`    | constant of type `string`                     |
-| (I3)  | `has_side_effect`     | constant of type `i1`                         |
-| (I4)  | `backend_config`      | constant of type `string` dictionary with key of type `string` and values of type `Value`                   |
-| (I5)  | `api_version`         | constant of type `si32`                       |
-| (I6)  | `called_computations` | variadic number of constants of type `string` |
+| Label | Name                  | Type                                                                                                        |
+|-------|-----------------------|-------------------------------------------------------------------------------------------------------------|
+| (I1)  | `inputs`              | variadic number of values                                                                                   |
+| (I2)  | `call_target_name`    | constant of type `string`                                                                                   |
+| (I3)  | `has_side_effect`     | constant of type `i1`                                                                                       |
+| (I4)  | `backend_config`      | constant of type `string` or attribute dictionary |
+| (I5)  | `api_version`         | constant of type `si32`                                                                                     |
+| (I6)  | `called_computations` | variadic number of constants of type `string`                                                               |
 
 #### Outputs
 
@@ -2441,6 +2441,7 @@ the XLA compiler. In the future, we are planning to unify this metadata
   call_target_name = "foo",
   has_side_effect = false,
   backend_config = {bar = 42 : i32},
+  // api_version 4 is to express backend_config as a dictionary attribute 
   api_version = 4 : i32,
   called_computations = [@foo]
 } : (tensor<f64>) -> tensor<f64>
