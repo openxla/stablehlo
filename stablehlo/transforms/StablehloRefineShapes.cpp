@@ -582,45 +582,42 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
       return rewriter.notifyMatchFailure(
           op, "expected non-0 ranked tensor result type");
 
-    auto operand = op.getOperand().dyn_cast<TypedValue<RankedTensorType>>();
-    if (!operand || !operand.getType().hasStaticShape())
+    auto operand = op.getOperand().cast<TypedValue<RankedTensorType>>();
+    RankedTensorType operandType = operand.getType();
+    if (!operandType.hasStaticShape())
       return rewriter.notifyMatchFailure(
           op, "expected operand with static ranked tensor type");
 
     // A ranked tensor type with unit dimension prefix of R-1 size is physically
     // compatible with 1-dimensional type.
-    auto resultShape = resultType.getShape();
-    for (const auto& dimSize : resultShape.drop_back(1)) {
-      if (dimSize != 1)
-        return rewriter.notifyMatchFailure(
-            op, "expected 1-dimensional result type");
-    }
+    if (!llvm::all_of(resultType.getShape().drop_back(),
+                      [](int64_t s) { return s == 1; }))
+      return rewriter.notifyMatchFailure(
+          op, "expected 1-dimensional compatible result type");
 
     SmallVector<APSInt> operandData;
-    if (failed(hlo::matchInts(op.getOperand(), operandData)))
+    if (failed(hlo::matchInts(operand, operandData)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
 
     assert(llvm::all_of(op.getStrides().drop_back(),
                         [](int64_t s) { return s == 1; }) &&
            "all strides but last must be 1");
 
-    const auto dimOffsets = computeSuffixProduct(operand.getType().getShape());
-    const auto startIndices = op.getStartIndices();
-    const auto limitIndices = op.getLimitIndices();
-    const auto strides = op.getStrides();
+    const auto dimOffsets = computeSuffixProduct(operandType.getShape());
+    auto startIndices = op.getStartIndices();
+    auto limitIndices = op.getLimitIndices();
+    auto strides = op.getStrides();
 
     int64_t start = 0;
-    for (size_t i = 0; i < startIndices.size(); ++i) {
+    for (size_t i = 0; i < startIndices.size(); ++i)
       start += startIndices[i] * dimOffsets[i];
-    }
 
-    auto slicedDim = operand.getType().getRank() - 1;
+    auto slicedDim = operandType.getRank() - 1;
     int64_t limit = start + limitIndices[slicedDim] - startIndices[slicedDim];
     int64_t stride = strides[slicedDim];
     SmallVector<APSInt> result;
-    for (auto i = start; i < limit; i += stride) {
+    for (auto i = start; i < limit; i += stride)
       result.push_back(operandData[i]);
-    }
 
     rewriter.replaceOpWithNewOp<ConstantOp>(op,
                                             getTensorAttr(resultType, result));
