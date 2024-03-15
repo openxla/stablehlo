@@ -1,4 +1,4 @@
-# [RFC] Standardize CustomCallOp to extend backend_config to take a DictAttr
+# [RFC] Standardize CustomCallOp to extend backend_config to take a DictionaryAttr
 
 Status: Review<br/>
 Initial version: 03/12/2024<br/>
@@ -14,8 +14,8 @@ This includes: MHLO
 `backend_config` to take a `DictionaryAttr`.
 
 StableHLO `custom_call` op does not support this feature. There are several
-occurrences of users working around this gap in `custom_call` today.
-Example - Jax uses [unregistered attributes](https://github.com/google/jax/blob/1ed27ecebb92e916b45601e3a107971170a4592b/jaxlib/hlo_helpers.py#L191)
+occurrences of users working around this gap in `custom_call` today, examples -
+Jax uses [unregistered attributes](https://github.com/google/jax/blob/1ed27ecebb92e916b45601e3a107971170a4592b/jaxlib/hlo_helpers.py#L191)
 to hold the `DictionaryAttr` or serializing the dictionary as a string
 to pass around for StableHLO `custom_call` op.
 
