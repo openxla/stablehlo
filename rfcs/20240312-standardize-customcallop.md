@@ -33,6 +33,3 @@ Open tickets for this request: [#637](https://github.com/openxla/stablehlo/issue
 ## Proposed Specification Changes
 
 Please refer spec.md changes in this PR to view the diff vs original spec.
-
-To view rich text of the spec, see:
-[CustomCallOp](https://github.com/openxla/stablehlo/blob/f8d6756c70dc5301d5be88d1ca378d1429943e0c/docs/spec.md#custom_call)
