@@ -1,4 +1,4 @@
-# [RFC] Standardize Tuple-collective (AllGatherOp, AllReduceOp, AllToAllOp) ops
+# [RFC] Standardize collective ops to support variadic operand/result
 
 Status: Review<br/>
 Initial version: 03/12/2024<br/>
@@ -9,12 +9,12 @@ Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/2099)
 
 Several features have been added to MHLO in the past year, which frameworks want
 to leverage and members of the community have made requests for them as well.
-This includes: feature to support variadic operands/results for tuple-collective
+This includes: feature to support variadic operands/results for collective
 (`AllGatherOp`,`AllReduceOp`, `AllToAllOp`) ops.
 
 We propose adding this feature to the StableHLO spec so they can be used by the community.
-StableHLO tuple-collective ops support is limited to **single-operand** and **single-result**.
-[MHLO tuple-collective ops](https://github.com/tensorflow/mlir-hlo/blob/master/mhlo/IR/hlo_ops.td)
+StableHLO collective ops support is limited to **single-operand** and **single-result**.
+[MHLO collective ops](https://github.com/tensorflow/mlir-hlo/blob/master/mhlo/IR/hlo_ops.td)
 support
 **multi-operand** and **multi-result** which is in sync with multi-operand and
 multi-result XLA semantics
