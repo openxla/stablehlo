@@ -3330,8 +3330,9 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv", [Pure]> {
   let results = (outs HLO_Tensor);
 }
 
-def StableHLO_ComputeReshapeShapeOp :
-    StableHLO_Op<"compute_reshape_shape", [Pure]> {
+def StableHLO_ComputeReshapeShapeOp : StableHLO_Op<
+    "compute_reshape_shape",
+    [Pure, AllShapesMatch<["dynamic_shape", "result"]>]> {
   let summary = "ComputeReshapeShape operation";
   let description = [{
     This operation is a work in progress, so it is not yet included in

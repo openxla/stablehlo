@@ -403,6 +403,59 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
   }
 };
 
+struct EvalComputeReshapeShapeOpPattern
+    : public OpRewritePattern<ComputeReshapeShapeOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(ComputeReshapeShapeOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+
+    int64_t numElems;
+    if (failed(hlo::matchInt(op.getNumElements(), numElems)))
+      return rewriter.notifyMatchFailure(
+          op, "expected constant number of elements");
+
+    SmallVector<int64_t> dynShape;
+    if (failed(hlo::matchInts(op.getDynamicShape(), dynShape)))
+      return rewriter.notifyMatchFailure(op, "expected constant dynamic shape");
+
+    std::optional<size_t> unknownDimIdx;
+    int64_t dimensionProduct = 1;
+    for (size_t i = 0; i < dynShape.size(); ++i) {
+      if (dynShape[i] == -1) {
+        if (unknownDimIdx.has_value())
+          return rewriter.notifyMatchFailure(
+              op, "multiple -1 values in dimensions is an undefined behavior");
+
+        unknownDimIdx = i;
+        continue;
+      }
+
+      dimensionProduct *= dynShape[i];
+    }
+
+    if (numElems % dimensionProduct != 0)
+      return rewriter.notifyMatchFailure(
+          op,
+          "dimensions that can't evenly divide num elements is an undefined "
+          "behavior");
+
+    if (unknownDimIdx.has_value())
+      dynShape[unknownDimIdx.value()] = numElems / dimensionProduct;
+
+    const auto resultBitWidth = resultType.getElementTypeBitWidth();
+    auto result =
+        llvm::to_vector(llvm::map_range(dynShape, [&](int64_t value) -> APSInt {
+          return APSInt(APInt(resultBitWidth, value), false);
+        }));
+
+    rewriter.replaceOpWithNewOp<ConstantOp>(op,
+                                            getTensorAttr(resultType, result));
+
+    return success();
+  }
+};
+
 struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
@@ -1172,6 +1225,7 @@ void populateStablehloRefineShapesPatterns(RewritePatternSet* patterns,
   patterns->add<EvalBroadcastInDimOpPattern>(context);
   patterns->add<EvalClampOpPattern>(context);
   patterns->add<EvalCompareOpPattern>(context);
+  patterns->add<EvalComputeReshapeShapeOpPattern>(context);
   patterns->add<EvalConcatenateOpPattern>(context);
   patterns->add<EvalConvertOpPattern>(context);
   patterns->add<EvalDivOpPattern>(context);
