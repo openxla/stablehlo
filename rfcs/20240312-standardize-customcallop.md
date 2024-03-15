@@ -25,6 +25,7 @@ workarounds. It will help to unify metadata under single `DictionaryAttr` which
 provides more stable serialization of `custom_call` metadata, a feature that is
 desired by frameworks and compilers. Standardizing this feature to StableHLO
 will benefit the entire ecosystem.
+Note: `backend_config` will continue to accept strings as before.
 
 Open tickets for this request: [#637](https://github.com/openxla/stablehlo/issues/637),
 [#741](https://github.com/openxla/stablehlo/issues/741)
