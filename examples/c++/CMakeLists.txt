@@ -14,16 +14,16 @@
 
 # TODO(fzakaria): As we think about adding more tests we should consider
 # making this a function to be DRY.
-add_executable(stablehlo-add stablehlo_add.cpp)
-llvm_update_compile_flags(stablehlo-add)
-target_link_libraries(stablehlo-add PRIVATE StablehloOps)
+add_executable(example-add ExampleAdd.cpp)
+llvm_update_compile_flags(example-add)
+target_link_libraries(example-add PRIVATE StablehloOps StablehloReferenceApi)
 
-mlir_check_all_link_libraries(stablehlo-add)
-add_custom_target(stablehlo-add-test
-  COMMAND stablehlo-add
+mlir_check_all_link_libraries(example-add)
+add_custom_target(example-add-test
+  COMMAND example-add
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  COMMENT "Executing stablehlo-add to validate it works."
+  COMMENT "Executing example-add to validate it works."
   DEPENDS
-    stablehlo-add
+    example-add
 )
-add_dependencies(check-stablehlo-quick stablehlo-add-test)
+add_dependencies(check-stablehlo-quick example-add-test)
