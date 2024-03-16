@@ -95,6 +95,9 @@ jobs:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
 
+    - name: Print Filesystem Usage
+      run: df -H
+
     - name: Upload Core Dumps
       if: always()
       uses: actions/upload-artifact@v4
