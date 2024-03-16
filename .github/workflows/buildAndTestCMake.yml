@@ -77,12 +77,11 @@ jobs:
       run: |
           # e is the process name, p is the process id
           sudo sysctl -w kernel.core_pattern="core.%e.%p"
-          ulimit -c unlimited
     - name: Build and Test StableHLO (with AddressSanitizer)
       shell: bash
       run: |
         ulimit -c unlimited         # Enable core dumps to be captured (must be in same run block)
-        sudo ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
+        ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: OFF
