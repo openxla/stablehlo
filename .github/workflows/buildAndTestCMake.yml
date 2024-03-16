@@ -75,7 +75,7 @@ jobs:
       run: |
         ulimit -c unlimited
         make x
-        sudo ./x
+        cat /proc/sys/kernel/core_pattern
         ./x
     - name: Configure and Build LLVM
       shell: bash
