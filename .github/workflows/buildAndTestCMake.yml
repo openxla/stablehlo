@@ -73,11 +73,16 @@ jobs:
       env:
           CMAKE_BUILD_TYPE: Release
           MLIR_ENABLE_BINDINGS_PYTHON: ON
-
+    - name: Setup Core Dumps
+      run: |
+          # e is the process name, p is the process id
+          sudo sysctl -w kernel.core_pattern="core.%e.%p"
+          ulimit -c unlimited
     - name: Build and Test StableHLO (with AddressSanitizer)
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
+        ulimit -c unlimited         # Enable core dumps to be captured (must be in same run block) 
+        sudo ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: OFF
@@ -90,3 +95,11 @@ jobs:
       env:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
+    
+    - name: Upload Core Dumps
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: crashes
+        path: core*
+        if-no-files-found: ignore
