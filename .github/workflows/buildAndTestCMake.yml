@@ -65,7 +65,18 @@ jobs:
       uses: ./.github/actions/setup-build
       with:
         llvm-version: ${{ steps.llvm-version.outputs.version }}
-
+    - name: Setup Core Dumps
+      run: |
+          sudo mkdir /cores
+          sudo chmod 777 /cores
+          # Core filenames will be of the form executable.pid.timestamp:
+          sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
+    - name: Build and Run X
+      run: |
+        ulimit -c unlimited
+        make x
+        sudo ./x
+        ./x
     - name: Configure and Build LLVM
       shell: bash
       run: |
@@ -73,12 +84,6 @@ jobs:
       env:
           CMAKE_BUILD_TYPE: Release
           MLIR_ENABLE_BINDINGS_PYTHON: ON
-    - name: Setup Core Dumps
-      run: |
-          sudo mkdir /cores
-          sudo chmod 777 /cores
-          # e is the process name, p is the process id
-          sudo sysctl -w kernel.core_pattern="/cores/core.%e.%p"
     - name: Build and Test StableHLO (with AddressSanitizer)
       shell: bash
       run: |
@@ -98,7 +103,7 @@ jobs:
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
 
     - name: Upload Core Dumps
-      if: always()
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v4
       with:
         name: crashes
