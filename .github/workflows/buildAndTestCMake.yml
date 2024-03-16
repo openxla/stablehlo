@@ -96,6 +96,7 @@ jobs:
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
 
     - name: Print Filesystem Usage
+      if: always()
       run: df -H
 
     - name: Upload Core Dumps
