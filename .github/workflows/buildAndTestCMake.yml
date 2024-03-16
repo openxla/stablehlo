@@ -81,7 +81,7 @@ jobs:
     - name: Build and Test StableHLO (with AddressSanitizer)
       shell: bash
       run: |
-        ulimit -c unlimited         # Enable core dumps to be captured (must be in same run block) 
+        ulimit -c unlimited         # Enable core dumps to be captured (must be in same run block)
         sudo ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
@@ -95,7 +95,7 @@ jobs:
       env:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
-    
+
     - name: Upload Core Dumps
       if: always()
       uses: actions/upload-artifact@v4
