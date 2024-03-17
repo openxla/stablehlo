@@ -551,5 +551,5 @@ PYBIND11_MODULE(_stablehlo, m) {
 
         return {module.release()};
       },
-      py::arg("module"), py::arg("target"));
+      py::arg("context"), py::arg("artifact"));
 }
