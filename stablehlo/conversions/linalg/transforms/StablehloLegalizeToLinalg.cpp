@@ -354,18 +354,20 @@ struct DataMovementOpConverter : OpConversionPattern<OpTy> {
   LogicalResult matchAndRewrite(
       OpTy op, typename OpTy::Adaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) return failure();
+    if (failed(verifyHloOpBufferOrTensorSemantics(op)))
+      return rewriter.notifyMatchFailure(
+          op, "failed to verify hlo buffer or tensor semantics");
 
     ShapedType resultType = getHloOpResultType(op);
     resultType =
         this->getTypeConverter()->template convertType<ShapedType>(resultType);
-    if (!resultType) {
+    if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
-    }
 
     SmallVector<AffineMap, 2> indexingMaps =
         Derived::getIndexingMaps(op, &rewriter);
-    if (indexingMaps.empty()) return failure();
+    if (indexingMaps.empty())
+      return rewriter.notifyMatchFailure(op, "could not derive indexing maps");
 
     int64_t nloops = resultType.getRank();
     Location loc = op.getLoc();

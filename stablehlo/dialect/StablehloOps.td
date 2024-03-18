@@ -2758,6 +2758,16 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
     $operand `,` `dims` `=` $dimensions
       attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
   }];
+
+  let extraClassDeclaration = [{
+    LogicalResult reifyReturnTypeShapes(
+        OpBuilder& builder, ValueRange operands,
+        SmallVectorImpl<Value>& reifiedReturnShapes) {
+      return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
+                                                operands.front(),
+                                                &reifiedReturnShapes);
+    }
+  }];
 }
 
 def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
