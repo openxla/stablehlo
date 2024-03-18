@@ -253,6 +253,9 @@ struct ConvertShapeOfOpPattern : public OpRewritePattern<shape::ShapeOfOp> {
     if (!operandType)
       return rewriter.notifyMatchFailure(op, "expected ranked operand");
 
+    if (operandType.getRank() == 0)
+      return rewriter.notifyMatchFailure(op, "expected non-0 ranked operand");
+
     // Produce a StableHLO equivalent of this shape::ShapeOfOp.
     // This is a very laborious representation because StableHLO is currently
     // lacking convenient tools to express this.

@@ -387,3 +387,12 @@ func.func @tensor_extract_dynamic(%arg0: tensor<?x3xindex>) -> index {
   %0 = tensor.extract %arg0[%c1, %c2] : tensor<?x3xindex>
   return %0 : index
 }
+
+// -----
+
+func.func @shape_of_zero_ranked_tensor(%arg0: tensor<?x3xindex>) -> tensor<0xindex> {
+  %0 = arith.constant dense<0> : tensor<i32>
+  // expected-error@+1 {{failed to legalize operation 'shape.shape_of' that was explicitly marked illegal}}
+  %1 = shape.shape_of %0 : tensor<i32> -> tensor<0xindex>
+  func.return %1 : tensor<0xindex>
+}
