@@ -54,28 +54,24 @@ int main() {
   mlir::Location loc = block_builder.getUnknownLoc();
 
   llvm::SmallVector<mlir::NamedAttribute, 10> attributes;
-  block_builder.create<mlir::stablehlo::AddOp>(loc, arguments, attributes)
-      .getOperation();
-
-  mlir::Operation* op = block_builder
-                            .create<mlir::stablehlo::AddOp>(
-                                loc, tensorType, arguments, attributes)
-                            .getOperation();
+  mlir::Operation* op =
+      block_builder.create<mlir::stablehlo::AddOp>(loc, arguments, attributes)
+          .getOperation();
   block_builder.create<mlir::func::ReturnOp>(loc, op->getResult(0));
 
   /** verify and dump the module **/
   assert(mlir::succeeded(mlir::verify(module.get())));
 
-  /* interpret the  with concrete inputs **/
-  auto inputValue1 = mlir::DenseElementsAttr::get(
-      tensorType, block_builder.getFloatAttr(tensorType.getElementType(),
-                                             static_cast<double>(10)));
-  auto inputValue2 = mlir::DenseElementsAttr::get(
-      tensorType, block_builder.getFloatAttr(tensorType.getElementType(),
-                                             static_cast<double>(20)));
-  auto expectedValue = mlir::DenseElementsAttr::get(
-      tensorType, block_builder.getFloatAttr(tensorType.getElementType(),
-                                             static_cast<double>(30)));
+  /* interpret the function "main" with concrete inputs **/
+  auto getConstValue = [&](double val) {
+    return mlir::DenseElementsAttr::get(
+        tensorType,
+        block_builder.getFloatAttr(tensorType.getElementType(), val));
+  };
+
+  auto inputValue1 = getConstValue(10.0);
+  auto inputValue2 = getConstValue(20.0);
+  auto expectedValue = getConstValue(30.0);
 
   mlir::stablehlo::InterpreterConfiguration config;
   auto results = evalModule(*module, {inputValue1, inputValue2}, config);

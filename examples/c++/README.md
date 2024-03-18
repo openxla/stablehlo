@@ -33,7 +33,7 @@ Output:
 
 ```mlir
 Program:
- module @test_module {
+module @test_module {
   func.func @main(%arg0: tensor<3x4xf32>, %arg1: tensor<3x4xf32>) -> tensor<3x4xf32> {
     %0 = stablehlo.add %arg0, %arg1 : tensor<3x4xf32>
     %1 = stablehlo.add %arg0, %arg1 : tensor<3x4xf32>
