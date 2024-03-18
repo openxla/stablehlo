@@ -723,7 +723,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name                    | Type                                                        | Constraints |
 |-------|-------------------------|-------------------------------------------------------------|-------------|
-| (I1)  | `operands`               | variadic number of tensors or per-tensor quantized tensors | (C1), (C6)  |
+| (I1)  | `operands`              | variadic number of tensors or per-tensor quantized tensors  | (C1), (C6)  |
 | (I2)  | `all_gather_dim`        | constant of type `si64`                                     | (C1), (C6)  |
 | (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64`                | (C2-C4)     |
 | (I4)  | `channel_id`            | constant of type `si64`                                     | (C5)        |
@@ -731,8 +731,8 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type                                                        | Constraints |
-|----------|-------------------------------------------------------------|-------------|
+| Name      | Type                                                       | Constraints |
+|-----------|------------------------------------------------------------|-------------|
 | `results` | variadic number of tensors or per-tensor quantized tensors | (C6)        |
 
 #### Constraints
@@ -801,7 +801,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name                    | Type                                                             | Constraints |
 |-------|-------------------------|------------------------------------------------------------------|-------------|
-| (I1)  | `operands`               | variadic number of tensors or per-tensor quantized tensors      | (C5), (C6)  |
+| (I1)  | `operands`              | variadic number of tensors or per-tensor quantized tensors       | (C5), (C6)  |
 | (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
 | (I3)  | `channel_id`            | constant of type `si64`                                          | (C4)        |
 | (I4)  | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
@@ -877,7 +877,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name               | Type                                                         | Constraints            |
 |-------|--------------------|--------------------------------------------------------------|------------------------|
-| (I1)  | `operands`          | variadic number of tensors or per-tensor quantized tensors  | (C1-C3), (C9)          |
+| (I1)  | `operands`         |  variadic number of tensors or per-tensor quantized tensors  | (C1-C3), (C9)          |
 | (I2)  | `split_dimension`  | constant of type `si64`                                      | (C1), (C2), (C9)       |
 | (I3)  | `concat_dimension` | constant of type `si64`                                      | (C3), (C9)             |
 | (I4)  | `split_count`      | constant of type `si64`                                      | (C2), (C4), (C8), (C9) |
