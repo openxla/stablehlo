@@ -390,9 +390,12 @@ func.func @tensor_extract_dynamic(%arg0: tensor<?x3xindex>) -> index {
 
 // -----
 
+// CHECK-LABEL: func @shape_of_zero_ranked_tensor
 func.func @shape_of_zero_ranked_tensor(%arg0: tensor<?x3xindex>) -> tensor<0xindex> {
+  //      CHECK: %[[CONST:.*]] = stablehlo.constant dense<> : tensor<0xi32>
+  // CHECK-NEXT: %[[RES_DIM0_INDEX:.*]] = builtin.unrealized_conversion_cast %[[CONST]] : tensor<0xi32> to tensor<0xindex>
+  // CHECK-NEXT: return %[[RES_DIM0_INDEX]] : tensor<0xindex>
   %0 = arith.constant dense<0> : tensor<i32>
-  // expected-error@+1 {{failed to legalize operation 'shape.shape_of' that was explicitly marked illegal}}
   %1 = shape.shape_of %0 : tensor<i32> -> tensor<0xindex>
   func.return %1 : tensor<0xindex>
 }
