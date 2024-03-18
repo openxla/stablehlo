@@ -578,7 +578,7 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
   LogicalResult matchAndRewrite(SliceOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.hasRank() || resultType.getRank() < 1)
+    if (resultType.getRank() < 1)
       return rewriter.notifyMatchFailure(
           op, "expected non-0 ranked tensor result type");
 
