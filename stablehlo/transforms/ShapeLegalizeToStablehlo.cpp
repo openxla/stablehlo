@@ -256,17 +256,25 @@ struct ConvertShapeOfOpPattern : public OpRewritePattern<shape::ShapeOfOp> {
     // Produce a StableHLO equivalent of this shape::ShapeOfOp.
     // This is a very laborious representation because StableHLO is currently
     // lacking convenient tools to express this.
-    SmallVector<Value> sizesI32x1;
-    for (auto i = 0; i < operandType.getRank(); ++i) {
-      auto sizeI32 =
-          rewriter.create<GetDimensionSizeOp>(op.getLoc(), op.getArg(), i);
-      auto sizeI32x1 = rewriter.create<ReshapeOp>(
-          op.getLoc(), RankedTensorType::get({1}, rewriter.getI32Type()),
-          sizeI32);
-      sizesI32x1.push_back(sizeI32x1);
+    Value shapeI32;
+    if (operandType.getRank() > 0) {
+      SmallVector<Value> sizesI32x1;
+      for (auto i = 0; i < operandType.getRank(); ++i) {
+        auto sizeI32 =
+            rewriter.create<GetDimensionSizeOp>(op.getLoc(), op.getArg(), i);
+        auto sizeI32x1 = rewriter.create<ReshapeOp>(
+            op.getLoc(), RankedTensorType::get({1}, rewriter.getI32Type()),
+            sizeI32);
+        sizesI32x1.push_back(sizeI32x1);
+      }
+      shapeI32 = rewriter.create<ConcatenateOp>(op.getLoc(), sizesI32x1,
+                                                /*dimension=*/0);
+    } else {
+      shapeI32 = rewriter.create<ConstantOp>(
+          op.getLoc(), DenseElementsAttr::get(
+                           RankedTensorType::get({0}, rewriter.getI32Type()),
+                           ArrayRef<Attribute>()));
     }
-    auto shapeI32 = rewriter.create<ConcatenateOp>(op.getLoc(), sizesI32x1,
-                                                   /*dimension=*/0);
 
     // Cast result from tensor<Nxi32> to tensor<Nxindex>.
     // This will error out if the result is !shape.shape.
