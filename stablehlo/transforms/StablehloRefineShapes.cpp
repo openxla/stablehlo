@@ -599,10 +599,6 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
     if (failed(hlo::matchInts(operand, operandData)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
 
-    assert(llvm::all_of(op.getStrides().drop_back(),
-                        [](int64_t s) { return s == 1; }) &&
-           "all strides but last must be 1");
-
     const auto dimOffsets = computeSuffixProduct(operandType.getShape());
     auto startIndices = op.getStartIndices();
     auto limitIndices = op.getLimitIndices();
