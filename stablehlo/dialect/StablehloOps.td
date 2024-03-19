@@ -2730,7 +2730,7 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
   let hasVerifier = 1;
 }
 
-def StableHLO_ReverseOp: StableHLO_Op<"reverse",
+def StableHLO_ReverseOp: StableHLO_ShapedInterfaceOp<"reverse",
       [Pure, HLO_CompatibleOperandsAndResultType /*reverse_c1*/]> {
   let summary = "Reverse operation";
   let description = [{
