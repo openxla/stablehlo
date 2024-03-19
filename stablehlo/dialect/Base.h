@@ -118,12 +118,11 @@ LogicalResult inferMostSpecificTypeComponents(
     std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
 
-
 // Matches a constant with integer value and extracts it into int64_t.
-LogicalResult matchInt(Value value, int64_t& result);
+LogicalResult matchInt(Value value, int64_t &result);
 
 // Matches a constant with integer value.
-LogicalResult matchInt(Value value, APInt& result);
+LogicalResult matchInt(Value value, APInt &result);
 
 // Matches a constant tensor with integer values into a 1-dimensional vector.
 // Doesn't preserve the bitness or the signedness of the underlying values,
