@@ -415,37 +415,38 @@ struct EvalComputeReshapeShapeOpPattern
       return rewriter.notifyMatchFailure(
           op, "expected constant number of elements");
 
-    SmallVector<int64_t> dynShape;
-    if (failed(hlo::matchInts(op.getDynamicShape(), dynShape)))
+    SmallVector<int64_t> dynShapeValues;
+    if (failed(hlo::matchInts(op.getDynamicShape(), dynShapeValues)))
       return rewriter.notifyMatchFailure(op, "expected constant dynamic shape");
 
-    std::optional<size_t> unknownDimIdx;
-    int64_t dimensionProduct = 1;
-    for (size_t i = 0; i < dynShape.size(); ++i) {
-      if (dynShape[i] == -1) {
-        if (unknownDimIdx.has_value())
+    std::optional<size_t> unspecifiedDimIdx;
+    int64_t dimProduct = 1;
+    constexpr int64_t kUnspecifiedDimSize = -1;
+    for (size_t i = 0; i < dynShapeValues.size(); ++i) {
+      if (dynShapeValues[i] == kUnspecifiedDimSize) {
+        if (unspecifiedDimIdx.has_value())
           return rewriter.notifyMatchFailure(
               op, "multiple -1 values in dimensions is an undefined behavior");
 
-        unknownDimIdx = i;
+        unspecifiedDimIdx = i;
         continue;
       }
 
-      dimensionProduct *= dynShape[i];
+      dimProduct *= dynShapeValues[i];
     }
 
-    if (numElems % dimensionProduct != 0)
+    if (numElems % dimProduct != 0)
       return rewriter.notifyMatchFailure(
           op,
           "dimensions that can't evenly divide num elements is an undefined "
           "behavior");
 
-    if (unknownDimIdx.has_value())
-      dynShape[unknownDimIdx.value()] = numElems / dimensionProduct;
+    if (unspecifiedDimIdx.has_value())
+      dynShapeValues[unspecifiedDimIdx.value()] = numElems / dimProduct;
 
     const auto resultBitWidth = resultType.getElementTypeBitWidth();
-    auto result =
-        llvm::to_vector(llvm::map_range(dynShape, [&](int64_t value) -> APSInt {
+    auto result = llvm::to_vector(
+        llvm::map_range(dynShapeValues, [&](int64_t value) -> APSInt {
           return APSInt(APInt(resultBitWidth, value), false);
         }));
 
