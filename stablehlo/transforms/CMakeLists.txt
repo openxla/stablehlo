@@ -45,6 +45,7 @@ add_mlir_dialect_library(StablehloPasses
   MLIRArithDialect
   MLIRAsmParser
   MLIRComplexDialect
+  MLIRDialectUtils
   MLIRFuncDialect
   MLIRFunctionInterfaces
   MLIRIR

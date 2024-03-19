@@ -963,6 +963,7 @@ cc_library(
         "@llvm-project//mlir:AsmParser",
         "@llvm-project//mlir:CommonFolders",
         "@llvm-project//mlir:ComplexDialect",
+        "@llvm-project//mlir:DialectUtils",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:FunctionInterfaces",
         "@llvm-project//mlir:IR",
