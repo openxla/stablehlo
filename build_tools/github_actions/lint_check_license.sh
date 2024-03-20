@@ -68,6 +68,7 @@ for file in "${CHANGED_FILES[@]}"; do
   for suffix in "${SKIPPED_SUFFIXES[@]}"; do
     if [[ "$file" = *$suffix ]]; then
       skip=1
+      break
     fi
   done
   if (( skip )); then
