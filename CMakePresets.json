@@ -20,5 +20,5 @@
             "MLIR_DIR": "${sourceDir}/llvm-build/lib/cmake/mlir"
           }
         }
-      ]
-  }
+    ]
+}
