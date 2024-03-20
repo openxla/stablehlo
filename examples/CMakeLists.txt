@@ -13,4 +13,7 @@
 # limitations under the License.
 
 add_subdirectory(c++)
-add_subdirectory(python)
+
+if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
+  add_subdirectory(python)
+endif()
