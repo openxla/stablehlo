@@ -1575,6 +1575,7 @@ static Value getConstantLikeSmallestFiniteValue(OpBuilder &b, Location loc,
 
 static Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
                              ValueRange args) {
+  // Code should match XLA's materializeZeta from chlo_legalize_to_hlo.cc
   assert(args.size() == 2);
   Value x = args[0];
   Value q = args[1];
@@ -1629,9 +1630,9 @@ static Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
   // Using Horner's rule allows to avoid some NaN's and Infs from happening,
   // resulting in more numerically stable code.
   for (int i = 0; i < 11; ++i) {
-    Value factorLhs = rewriter.create<mlir::stablehlo::SubtractOp>(
+    Value factorLhs = rewriter.create<mlir::stablehlo::AddOp>(
         loc, x, getConstantLike(rewriter, loc, 22 - 2 * i, x));
-    Value factorRhs = rewriter.create<mlir::stablehlo::SubtractOp>(
+    Value factorRhs = rewriter.create<mlir::stablehlo::AddOp>(
         loc, x, getConstantLike(rewriter, loc, 21 - 2 * i, x));
     factor = rewriter.create<mlir::stablehlo::MulOp>(loc, factorLhs, factorRhs);
     hornerSum = rewriter.create<mlir::stablehlo::MulOp>(
