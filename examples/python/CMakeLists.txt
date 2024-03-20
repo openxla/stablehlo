@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_stablehlo_python_test(stablehlo-python-add add.py)
+add_stablehlo_python_test(stablehlo-python-add stablehlo_add.py)

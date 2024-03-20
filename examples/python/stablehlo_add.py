@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mlir.ir as ir
+from mlir import ir
 import mlir.dialects.stablehlo as stablehlo
-import mlir.dialects.arith as arith
 import mlir.dialects.func as func
 from mlir.ir import Context, Location, InsertionPoint, Module
 import numpy as np
@@ -23,7 +22,7 @@ with Context() as ctx, Location.unknown():
   stablehlo.register_dialect(ctx)
   module = Module.create()
 
-  with mlir.InsertionPoint(module.body):
+  with InsertionPoint(module.body):
 
     @func.func()
     def main():
