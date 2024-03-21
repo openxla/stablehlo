@@ -150,13 +150,8 @@ bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
 
 LogicalResult matchInt(Value value, int64_t& result) {
   APInt constValue;
-  if (matchInt(value, constValue).failed()) return failure();
+  if (!matchPattern(value, m_ConstantInt(&constValue))) return failure();
   result = constValue.getSExtValue();
-  return success();
-}
-
-LogicalResult matchInt(Value value, APInt& result) {
-  if (!matchPattern(value, m_ConstantInt(&result))) return failure();
   return success();
 }
 
