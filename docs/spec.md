@@ -39,7 +39,7 @@ func.func @main(
   %0 = "stablehlo.reshape"(%image) : (tensor<28x28xf32>) -> tensor<1x784xf32>
   %1 = "stablehlo.dot"(%0, %weights) : (tensor<1x784xf32>, tensor<784x10xf32>) -> tensor<1x10xf32>
   %2 = "stablehlo.add"(%1, %bias) : (tensor<1x10xf32>, tensor<1x10xf32>) -> tensor<1x10xf32>
-  %3 = "stablehlo.constant"() { value = dense<0.0> : tensor<1x10xf32> } : () -> tensor<1x10xf32>
+  %3 = "stablehlo.constant"() {value = dense<0.0> : tensor<1x10xf32>} : () -> tensor<1x10xf32>
   %4 = "stablehlo.maximum"(%2, %3) : (tensor<1x10xf32>, tensor<1x10xf32>) -> tensor<1x10xf32>
   "func.return"(%4): (tensor<1x10xf32>) -> ()
 }
@@ -1965,8 +1965,10 @@ semantics change.
 ```mlir
 %results = "stablehlo.composite"(%input0, %input1) {
   name = "my_namespace.my_op",
+  composite_attributes = {
+    my_attribute = "my_value"
+  },
   decomposition = @my_op,
-  composite_attributes = { my_attribute = "my_value" },
   version = 1 : i32
 } : (tensor<f32>, tensor<f32>) -> tensor<f32>
 ```
@@ -3871,7 +3873,7 @@ Semantics of `outfeed_config` is implementation-defined.
 #### Examples
 
 ```mlir
-%result = "stablehlo.outfeed"(%inputs0, %token) {
+%result = "stablehlo.outfeed"(%input0, %token) {
   outfeed_config = ""
 } : (tensor<2x2x2xi64>, !stablehlo.token) -> !stablehlo.token
 ```
