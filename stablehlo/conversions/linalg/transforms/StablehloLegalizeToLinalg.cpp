@@ -966,11 +966,7 @@ struct RealDynamicSliceConverter final
       mlir::stablehlo::RealDynamicSliceOp realDynamicSliceOp, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Location loc = realDynamicSliceOp.getLoc();
-    auto argType = llvm::dyn_cast<ShapedType>(adaptor.getOperand().getType());
-    if (!argType || !argType.hasRank()) {
-      return rewriter.notifyMatchFailure(realDynamicSliceOp,
-                                         "require known-rank args");
-    }
+    auto argType = llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
 
     Type dimElementType = getElementTypeOrSelf(adaptor.getStartIndices());
     if (getElementTypeOrSelf(adaptor.getLimitIndices()) != dimElementType ||
@@ -1405,10 +1401,7 @@ struct SliceConverter final : OpConversionPattern<mlir::stablehlo::SliceOp> {
       mlir::stablehlo::SliceOp sliceOp, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     auto argType =
-        llvm::dyn_cast<ShapedType>(adaptor.getOperands()[0].getType());
-    if (!argType || !argType.hasRank()) {
-      return rewriter.notifyMatchFailure(sliceOp, "expects known-rank args");
-    }
+        llvm::cast<RankedTensorType>(adaptor.getOperands()[0].getType());
 
     SmallVector<OpFoldResult, 3> offsets, sizes, strides;
     auto startIndices = sliceOp.getStartIndices();
@@ -1442,11 +1435,7 @@ struct DynamicSliceConverter final
       mlir::stablehlo::DynamicSliceOp dynamicSliceOp, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Location loc = dynamicSliceOp.getLoc();
-    auto argType = llvm::dyn_cast<ShapedType>(adaptor.getOperand().getType());
-    if (!argType || !argType.hasRank()) {
-      return rewriter.notifyMatchFailure(dynamicSliceOp,
-                                         "require known-rank args");
-    }
+    auto argType = llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
 
     auto resultType = getTypeConverter()->convertType<RankedTensorType>(
         dynamicSliceOp.getType());

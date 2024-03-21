@@ -276,8 +276,7 @@ template <typename OpType, typename FuncType>
 LogicalResult evalElementwise(PatternRewriter& rewriter, OpType op,
                               FuncType fn) {
   auto resultType = op.getType();
-  if (!resultType.hasRank() ||
-      !resultType.getElementType().template isa<IntegerType>())
+  if (!resultType.getElementType().template isa<IntegerType>())
     return rewriter.notifyMatchFailure(op,
                                        "expected integer result tensor type");
 
@@ -345,7 +344,7 @@ struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
   LogicalResult matchAndRewrite(BroadcastInDimOp op,
                                 PatternRewriter& rewriter) const override {
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank() || operandType.getRank() != 0)
+    if (operandType.getRank() != 0)
       return rewriter.notifyMatchFailure(op, "expected 0-dimensional type");
 
     SmallVector<APSInt> operand;
@@ -409,7 +408,7 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
   LogicalResult matchAndRewrite(ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.hasRank() || op.getDimension() != 0)
+    if (op.getDimension() != 0)
       return rewriter.notifyMatchFailure(op, "expected dimension = 0");
 
     SmallVector<APSInt> result;
@@ -454,8 +453,6 @@ struct EvalGetDimensionSizeOpPattern
   LogicalResult matchAndRewrite(GetDimensionSizeOp op,
                                 PatternRewriter& rewriter) const override {
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank())
-      return rewriter.notifyMatchFailure(op, "expected ranked operand");
     if (operandType.isDynamicDim(op.getDimension()))
       return rewriter.notifyMatchFailure(op, "expected static dimension");
 
@@ -640,8 +637,6 @@ struct RefineAllGatherOpPattern : public OpRewritePattern<AllGatherOp> {
   LogicalResult matchAndRewrite(AllGatherOp op,
                                 PatternRewriter& rewriter) const override {
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank())
-      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
 
     // This represents the cross_replica_and_partition process grouping strategy
     // that requires num_partitions to compute shardCount. Since we don't know
@@ -664,8 +659,6 @@ struct RefineBitcastConvertOpPattern
   LogicalResult matchAndRewrite(BitcastConvertOp op,
                                 PatternRewriter& rewriter) const override {
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank())
-      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
 
     // If bit widths of the operand and the result are different, then
     // operand and result shapes have different ranks.
@@ -962,8 +955,6 @@ struct RefineReduceScatterOpPattern : public OpRewritePattern<ReduceScatterOp> {
   LogicalResult matchAndRewrite(ReduceScatterOp op,
                                 PatternRewriter& rewriter) const override {
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank())
-      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
 
     // This represents the cross_replica_and_partition process grouping strategy
     // that requires num_partitions to compute shardCount. Since we don't know

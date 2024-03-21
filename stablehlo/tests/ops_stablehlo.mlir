@@ -1501,7 +1501,7 @@ func.func @concatenate_c4(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>)  -> tensor
 
 func.func @concatenate_c6(%arg0: tensor<1x3xi32>, %arg1: tensor<2x2xi32>)  -> tensor<3x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{shapes of operand (0) and (1) do not match at non-concat index: (1, 3) != (2, 2) at non-concat index 1}}
+  // expected-error@+1 {{shapes of operand (0) and (1) are not compatible at non-concat index 1: (1, 3) != (2, 2)}}
   %0 = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 0 : i64 } : (tensor<1x3xi32>, tensor<2x2xi32>) -> tensor<3x3xi32>
   func.return %0 : tensor<3x3xi32>
 }

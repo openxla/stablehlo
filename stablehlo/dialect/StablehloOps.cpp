@@ -550,7 +550,6 @@ LogicalResult DotGeneralOp::reifyReturnTypeShapes(
     SmallVectorImpl<Value>& reifiedReturnShapes) {
   auto lhsType = getLhs().getType();
   auto rhsType = getRhs().getType();
-  if (!lhsType.hasRank() || !rhsType.hasRank()) return failure();
 
   Adaptor adaptor(operands);
   auto dimNumbers = getDotDimensionNumbers();
@@ -1520,14 +1519,8 @@ void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
   SmallVector<Type> inferredReturnTypes;
   for (auto [inputTy, elementTy] :
        llvm::zip(inputArgTensorTypes, elementTypes)) {
-    if (inputTy.hasRank()) {
-      inferredReturnTypes.push_back(
-          RankedTensorType::get(newDimensions, elementTy, encoding));
-    } else {
-      if (encoding != nullptr)
-        llvm::report_fatal_error("attribute not supported.");
-      inferredReturnTypes.push_back(UnrankedTensorType::get(elementTy));
-    }
+    inferredReturnTypes.push_back(
+        RankedTensorType::get(newDimensions, elementTy, encoding));
   }
   odsState.addTypes(inferredReturnTypes);
 }

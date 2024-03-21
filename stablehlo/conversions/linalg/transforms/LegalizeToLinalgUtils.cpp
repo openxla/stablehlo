@@ -73,7 +73,7 @@ Value getEmptyTensorFor(OpBuilder &b, Location loc, ShapedType resultType,
   // new tensor initialization operation. This operation only needs the
   // dynamic sizes.
   SmallVector<Value> sizes;
-  if (resultType.hasRank() && !resultType.hasStaticShape()) {
+  if (!resultType.hasStaticShape()) {
     // Ask the op for its output shape.
     auto shapeSource = cast<InferShapedTypeOpInterface>(op);
     SmallVector<Value, 1> reifiedShapes;
