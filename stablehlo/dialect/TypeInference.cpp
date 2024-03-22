@@ -727,7 +727,6 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
   if (inputTypes.empty())
     return emitOptionalError(location, "requires at least 1 input value");
 
-  // Check for unranked tensors in input operands.
   auto witnessType = inputTypes[0].cast<RankedTensorType>();
   // reduce_window_c2
   for (size_t i = 1; i < inputTypes.size(); i++)
@@ -2390,7 +2389,6 @@ LogicalResult inferMapOp(
 
   // map_c3
   ArrayRef<int64_t> resultShape;
-  bool allInputsUnranked = true;
   for (auto operand : inputs) {
     auto operandType = operand.getType().cast<ShapedType>();
     if (dimensions.size() != operandType.getShape().size())
@@ -2401,15 +2399,11 @@ LogicalResult inferMapOp(
           operandType.getShape().size(),
           ", requested map dimensions size = ", dimensions.size());
     resultShape = operandType.getShape();
-    allInputsUnranked = false;
   }
 
   // map_c4
-  if (allInputsUnranked)
-    inferredReturnShapes.emplace_back(computationOutputType.getElementType());
-  else
-    inferredReturnShapes.emplace_back(resultShape,
-                                      computationOutputType.getElementType());
+  inferredReturnShapes.emplace_back(resultShape,
+                                    computationOutputType.getElementType());
   return success();
 }
 
@@ -2981,7 +2975,7 @@ LogicalResult inferUniformDequantizeOp(
   auto operandType = operand.getType().cast<ShapedType>();
   // Trait HLO_QuantizedIntTensor in ODS guarantees QuantizedType;
   auto quantType = operandType.getElementType().cast<quant::QuantizedType>();
-  auto shape = operandType.cast<ShapedType>().getShape();
+  auto shape = operandType.getShape();
   // uniform_dequantize_c1, uniform_dequantize_c2
   inferredReturnShapes.emplace_back(shape, quantType.getExpressedType());
   return success();
@@ -4220,10 +4214,10 @@ LogicalResult verifySelectAndScatterOp(
         location, "expects select-region to return single value, but got: ",
         selectResult.size());
 
-  auto selectResultType = selectResult[0].getType().dyn_cast<ShapedType>();
+  auto selectResultType = selectResult[0].getType().cast<RankedTensorType>();
   // select_and_scatter_c9
   if (!selectResultType || !selectResultType.getElementType().isInteger(1) ||
-      selectResultType.cast<RankedTensorType>().getRank() != 0)
+      selectResultType.getRank() != 0)
     return emitOptionalError(location,
                              "expects the return-type of select-region to be "
                              "tensor<i1>, but got: ",
@@ -4285,9 +4279,8 @@ LogicalResult verifySortOp(std::optional<Location> location, ValueRange inputs,
       return emitOptionalError(location,
                                "dimension attribute value must be in range [-",
                                rank, ", ", rank, "), but found ", cmpDim);
-    else
-      break;  // ODS SameOperandsAndResultShape asserts inputs have same
-              // shape
+    // ODS SameOperandsAndResultShape asserts inputs have same shape
+    break;
   }
 
   Block& block = comparator.front();
