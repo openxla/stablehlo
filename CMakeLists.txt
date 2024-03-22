@@ -89,7 +89,7 @@ if(STABLEHLO_EXTERNAL_PROJECT_BUILD)
   list(APPEND CMAKE_MODULE_PATH "${MLIR_MAIN_SRC_DIR}/cmake/modules")
 elseif(NOT STABLEHLO_BUILD_EMBEDDED)
   message(STATUS "Building StableHLO with an installed MLIR")
-  
+
   # These defaults are moderately important to us, but the user *can*
   # override them (enabling some of these brings in deps that will conflict,
   # so ymmv).
@@ -112,9 +112,11 @@ elseif(NOT STABLEHLO_BUILD_EMBEDDED)
   # Unconditionally enable mlir.
   list(APPEND LLVM_ENABLE_PROJECTS mlir)
 
-  set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
-  set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
-
+  # Setup LLVM lib and bin directories.
+  set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/llvm-project/bin)
+  set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/llvm-project/lib)
+  set(LLVM_TOOLS_BINARY_DIR ${CMAKE_BINARY_DIR}/llvm-project/bin)
+  
   list(APPEND CMAKE_MESSAGE_INDENT "  ")
   set(_BUNDLED_LLVM_CMAKE_SOURCE_SUBDIR "llvm-project/llvm")
   add_subdirectory("${_BUNDLED_LLVM_CMAKE_SOURCE_SUBDIR}" "llvm-project" EXCLUDE_FROM_ALL)
