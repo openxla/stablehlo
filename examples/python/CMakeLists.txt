@@ -12,8 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(c++)
-
-if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
-  add_subdirectory(python)
-endif()
+add_stablehlo_python_test(stablehlo-python-add stablehlo_add.py)
