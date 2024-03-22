@@ -4214,7 +4214,7 @@ LogicalResult verifySelectAndScatterOp(
         location, "expects select-region to return single value, but got: ",
         selectResult.size());
 
-  auto selectResultType = selectResult[0].getType().cast<RankedTensorType>();
+  auto selectResultType = selectResult[0].getType().dyn_cast<RankedTensorType>();
   // select_and_scatter_c9
   if (!selectResultType || !selectResultType.getElementType().isInteger(1) ||
       selectResultType.getRank() != 0)
