@@ -116,7 +116,7 @@ elseif(NOT STABLEHLO_BUILD_EMBEDDED)
   set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/llvm-project/bin)
   set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/llvm-project/lib)
   set(LLVM_TOOLS_BINARY_DIR ${CMAKE_BINARY_DIR}/llvm-project/bin)
-  
+
   list(APPEND CMAKE_MESSAGE_INDENT "  ")
   set(_BUNDLED_LLVM_CMAKE_SOURCE_SUBDIR "llvm-project/llvm")
   add_subdirectory("${_BUNDLED_LLVM_CMAKE_SOURCE_SUBDIR}" "llvm-project" EXCLUDE_FROM_ALL)
