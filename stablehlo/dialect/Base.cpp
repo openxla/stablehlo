@@ -148,6 +148,13 @@ bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
   return isCompatibleForHloTypeInference(tp1, tp2);
 }
 
+LogicalResult matchInt(Value value, int64_t& result) {
+  APInt constValue;
+  if (!matchPattern(value, m_ConstantInt(&constValue))) return failure();
+  result = constValue.getSExtValue();
+  return success();
+}
+
 LogicalResult matchInts(Value value, SmallVector<int64_t>& result) {
   DenseIntElementsAttr attr;
   if (!matchPattern(value, m_Constant(&attr))) return failure();
