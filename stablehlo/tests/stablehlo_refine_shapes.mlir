@@ -343,7 +343,8 @@ func.func @eval_convert_i32_non_exact() -> (tensor<1xf32>, tensor<1xf32>) {
 // CHECK-LABEL: func @eval_convert_f64_precision_loss
 func.func @eval_convert_f64_precision_loss() -> (tensor<1xf32>, tensor<f32>) {
   // CHECK: [[RESULT0:%.*]] = stablehlo.constant dense<9.99999996E-13> : tensor<1xf32>
-  // CHECK: return [[RESULT0]]
+  // CHECK: [[RESULT1:%.*]] = stablehlo.constant dense<8.000000e+00> : tensor<f32>
+  // CHECK: return [[RESULT0]], [[RESULT1]]
   %0 = arith.constant dense<9.9999999999999998E-13> : tensor<1xf64>
   %1 = stablehlo.constant dense<8.000000e+00> : tensor<f64>
   %2 = stablehlo.convert %0 : (tensor<1xf64>) -> tensor<1xf32>
