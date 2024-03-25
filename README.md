@@ -64,7 +64,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
    # first configure the build system
    cmake --preset debug
    # then build the project
-   cmake --build ./build --target check-stablehlo-ci 
+   cmake --build ./build --target check-stablehlo-ci
    ```
 
    You should see results like this:

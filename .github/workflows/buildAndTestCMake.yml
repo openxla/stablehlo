@@ -72,10 +72,10 @@ jobs:
       shell: bash
       run: |
         cmake --preset debug
-        cmake --build ./build --target check-stablehlo-ci 
+        cmake --build ./build --target check-stablehlo-ci
 
     - name: Build and Test StableHLO (with Python bindings)
       shell: bash
       run: |
         cmake --preset debug-python
-        cmake --build ./build --target check-stablehlo-ci 
+        cmake --build ./build --target check-stablehlo-ci
