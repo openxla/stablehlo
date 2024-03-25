@@ -24,6 +24,7 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
+#include "mlir/Dialect/CommonFolders.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -83,6 +84,95 @@ LogicalResult validateResultTypeForEval(PatternRewriter& rewriter,
     return rewriter.notifyMatchFailure(
         op, "unable to fold dynamically shaped result type to constant");
   return success();
+}
+
+template <class AttrElementT, class TargetAttrElementT, class CalculationT,
+          typename OpType>
+LogicalResult evalConvertHelper(PatternRewriter& rewriter, OpType op,
+                                DenseIntOrFPElementsAttr elements, Type resType,
+                                CalculationT&& calculate) {
+  auto result = constFoldCastOp<AttrElementT, TargetAttrElementT,
+                                typename AttrElementT::ValueType,
+                                typename TargetAttrElementT::ValueType, void>(
+      elements, resType, calculate);
+
+  if (!result)
+    return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
+      diag << "cast of " << elements.getElementType() << " to " << resType
+           << " failed";
+    });
+
+  rewriter.replaceOpWithNewOp<ConstantOp>(op, result);
+  return success();
+}
+
+template <typename OpType>
+LogicalResult evalConvert(PatternRewriter& rewriter, OpType op,
+                          DenseIntOrFPElementsAttr elements,
+                          RankedTensorType resultType) {
+  auto oldType = getElementTypeOrSelf(elements);
+  auto newType = getElementTypeOrSelf(resultType);
+  size_t newBitWidth = newType.getIntOrFloatBitWidth();
+
+  bool isOldTypeUnsigned = oldType.isInteger(1) || oldType.isUnsignedInteger();
+  bool isNewTypeUnsigned = newType.isInteger(1) || newType.isUnsignedInteger();
+
+  if (oldType.isa<FloatType>()) {
+    if (auto newFloatType = newType.dyn_cast<FloatType>()) {
+      // Float -> Float
+      const auto& targetSemantics = newFloatType.getFloatSemantics();
+      return evalConvertHelper<FloatAttr, FloatAttr>(
+          rewriter, op, elements, resultType,
+          [&targetSemantics](const APFloat& operand, bool& castStatus) {
+            bool losesInfo;
+            APFloat newValue = operand;
+            castStatus = APFloat::opInvalidOp !=
+                         newValue.convert(targetSemantics,
+                                          llvm::RoundingMode::NearestTiesToEven,
+                                          &losesInfo);
+            return newValue;
+          });
+    }
+
+    // Float -> Int
+    return evalConvertHelper<FloatAttr, IntegerAttr>(
+        rewriter, op, elements, resultType,
+        [&newBitWidth, &isNewTypeUnsigned](const APFloat& operand,
+                                           bool& castStatus) {
+          APSInt api(newBitWidth, isNewTypeUnsigned);
+          if (operand.isInfinity() || operand.isNegZero()) {
+            castStatus = false;
+            return api;
+          }
+          bool ignored;
+          castStatus =
+              APFloat::opInvalidOp !=
+              operand.convertToInteger(api, APFloat::rmTowardZero, &ignored);
+          return api;
+        });
+  }
+
+  if (auto newFloatType = newType.dyn_cast<FloatType>()) {
+    // Int -> Float
+    return evalConvertHelper<IntegerAttr, FloatAttr>(
+        rewriter, op, elements, resultType,
+        [&newFloatType, &isOldTypeUnsigned](const APInt& operand,
+                                            bool& /*castStatus*/) {
+          APFloat apf(newFloatType.getFloatSemantics(),
+                      APInt::getZero(newFloatType.getWidth()));
+          apf.convertFromAPInt(operand, !isOldTypeUnsigned,
+                               APFloat::rmNearestTiesToEven);
+          return apf;
+        });
+  }
+
+  // Int -> Int
+  return evalConvertHelper<IntegerAttr, IntegerAttr>(
+      rewriter, op, elements, resultType,
+      [&newBitWidth, &isOldTypeUnsigned](const APInt& operand,
+                                         bool& /*castStatus*/) {
+        return APSInt(operand, isOldTypeUnsigned).extOrTrunc(newBitWidth);
+      });
 }
 
 // The patterns below implement partial evaluation of shape computations which
@@ -255,17 +345,26 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ConvertOp op,
                                 PatternRewriter& rewriter) const override {
-    auto resultType = op.getType();
+    auto operandType = op.getOperand().getType();
+    RankedTensorType resultType = op.getType();
+
     if (failed(validateResultTypeForEval(rewriter, op, resultType)))
       return failure();
 
-    if (!isa<IntegerType>(resultType.getElementType()))
+    if (!resultType.getElementType().isIntOrFloat())
       return rewriter.notifyMatchFailure(
-          op, "expected integer result tensor type with static shapes");
-    auto resultBitWidth = resultType.getElementType().getIntOrFloatBitWidth();
-    return evalElementwise(rewriter, op, [&](APSInt operand) {
-      return operand.extOrTrunc(resultBitWidth);
-    });
+          op, "expected integer or float result tensor type");
+
+    if (!operandType.getElementType().isIntOrFloat())
+      return rewriter.notifyMatchFailure(
+          op, "expected integer or float operand tensor type");
+
+    DenseIntOrFPElementsAttr elements;
+    if (!matchPattern(op.getOperand(), m_Constant(&elements)))
+      return rewriter.notifyMatchFailure(
+          op, "expected constant integer or float operand");
+
+    return evalConvert(rewriter, op, elements, resultType);
   }
 };
 
