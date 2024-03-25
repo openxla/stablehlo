@@ -534,8 +534,9 @@ LogicalResult verifyReduceOpInputsAndInferShape(
   for (size_t i = 1; i < inputTypes.size(); i++)
     if (failed(mlir::verifyCompatibleShape(witnessType, inputTypes[i])))
       return emitOptionalError(
-          location, "expects all inputs to have compatible shapes. Shape at",
-          " input-index ", i, " is not compatible with shape at input-index 0");
+          location,
+          "expects all inputs to have compatible shapes. Shape at input-index ",
+          i, " is not compatible with shape at input-index 0");
 
   DenseSet<int64_t> dimensionsToReduceSet;
   for (int64_t dimension : dimensions) {
@@ -732,8 +733,9 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
   for (size_t i = 1; i < inputTypes.size(); i++)
     if (failed(mlir::verifyCompatibleShape(witnessType, inputTypes[i])))
       return emitOptionalError(
-          location, "expects all inputs to have compatible shapes. Shape at",
-          " input-index ", i, " is not compatible with shape at input-index 0");
+          location,
+          "expects all inputs to have compatible shapes. Shape at input-index ",
+          i, " is not compatible with shape at input-index 0");
 
   // reduce_window_c12, reduce_window_i7
   auto paddingOrErr = convertPaddingAttribute(padding, location);
@@ -1649,9 +1651,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
       if (d != dimension && !verifyCompatibleDims(witnessShape[d], shape[d]))
         return emitOptionalError(
             location, "shapes of operand (", 0, ") and (", i,
-            ") are not compatible at non-concat "
-            "index ",
-            d, ": (",
+            ") are not compatible at non-concat index ", d, ": (",
             llvm::make_range(witnessShape.begin(), witnessShape.end()),
             ") != (", llvm::make_range(shape.begin(), shape.end()), ")");
     }
@@ -2394,8 +2394,8 @@ LogicalResult inferMapOp(
     if (dimensions.size() != operandType.getShape().size())
       return emitOptionalError(
           location,
-          "applied to a subset of dimensions currently not supported: "
-          "operand dimensions = ",
+          "applied to a subset of dimensions currently not supported: operand "
+          "dimensions = ",
           operandType.getShape().size(),
           ", requested map dimensions size = ", dimensions.size());
     resultShape = operandType.getShape();
@@ -3088,10 +3088,10 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location, Value operand,
 
   // all_reduce_c4
   if (useGlobalDeviceIds && channelId <= 0)
-    return emitOptionalError(location,
-                             "channel_id must be positive when "
-                             "useGlobalDeviceIds is set but got: ",
-                             channelId);
+    return emitOptionalError(
+        location,
+        "channel_id must be positive when useGlobalDeviceIds is set but got: ",
+        channelId);
 
   auto operandType = operand.getType().cast<ShapedType>();
   // all_reduce_c5
@@ -3661,17 +3661,17 @@ LogicalResult verifyInfeedOp(HloDialectInterface* dialect,
   // infeed_c2
   for (auto resultType : results.drop_back().getTypes())
     if (!resultType.isa<TensorType>())
-      return emitOptionalError(location,
-                               "all elements of result types, except the "
-                               "last element, are expected "
-                               "to be of tensor type, but got ",
-                               resultType);
+      return emitOptionalError(
+          location,
+          "all elements of result types, except the last element, are expected "
+          "to be of tensor type, but got ",
+          resultType);
 
   // infeed_c3
   if (!dialect->isTokenType(results.back().getType()))
     return emitOptionalError(location,
-                             "last element of result types is expected to "
-                             "be of token type, but got ",
+                             "last element of result types is expected to be "
+                             "of token type, but got ",
                              results.back().getType());
 
   if (!layout.has_value()) return success();
@@ -3680,19 +3680,18 @@ LogicalResult verifyInfeedOp(HloDialectInterface* dialect,
                              "layout-attribute expected to be of array-type.");
 
   if (layout.value().size() != resultTypes.size() - 1)
-    return emitOptionalError(location, "layout-attribute size must be ",
-                             resultTypes.size() - 1,
-                             " (which is the number of "
-                             "op-results - 1 (for token result)), but got ",
-                             layout.value().size());
+    return emitOptionalError(
+        location, "layout-attribute size must be ", resultTypes.size() - 1,
+        " (which is the number of op-results - 1 (for token result)), but got ",
+        layout.value().size());
 
   for (auto childLayout : layout.value()) {
     mlir::ArrayAttr childLayoutArr = childLayout.dyn_cast<mlir::ArrayAttr>();
     if (!childLayoutArr)
-      return emitOptionalError(location,
-                               "layout-attribute expected to have "
-                               "elements of type array, but got ",
-                               childLayout);
+      return emitOptionalError(
+          location,
+          "layout-attribute expected to have elements of type array, but got ",
+          childLayout);
 
     for (auto i : childLayoutArr) {
       mlir::IntegerAttr attr = i.dyn_cast<mlir::IntegerAttr>();
@@ -3993,10 +3992,10 @@ LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,
   auto outputShape = outputState.getType().dyn_cast<RankedTensorType>();
   if (failed(verifyCompatibleShape(initialShape.getShape(),
                                    outputShape.getShape())))
-    return emitOptionalError(location,
-                             "output state shape must be compatible with "
-                             "initial state shape. Got: ",
-                             initialShape, " and ", outputShape);
+    return emitOptionalError(
+        location,
+        "output state shape must be compatible with initial state shape. Got: ",
+        initialShape, " and ", outputShape);
   return success();
 }
 
@@ -4219,11 +4218,10 @@ LogicalResult verifySelectAndScatterOp(
   // select_and_scatter_c9
   if (!selectResultType || !selectResultType.getElementType().isInteger(1) ||
       selectResultType.getRank() != 0)
-    return emitOptionalError(location,
-                             "expects the return-type of select-region to be "
-                             "tensor<i1>, but got: ",
-                             selectResult[0].getType());
-
+    return emitOptionalError(
+        location,
+        "expects the return-type of select-region to be tensor<i1>, but got: ",
+        selectResult[0].getType());
   // select_and_scatter_c10
   if (failed(verifyReducerShape(
           location, scatter.front(),
@@ -4235,12 +4233,12 @@ LogicalResult verifySelectAndScatterOp(
   auto windowDims = windowDimensionsOpt.value_or(SmallVector<int64_t>{});
   // select_and_scatter_c4
   if (operandType.getRank() != static_cast<int64_t>(windowDims.size()))
-    return emitOptionalError(
-        location,
-        "expects window-dimensions size == operand rank, but got "
-        "window-dimensions size: ",
-        windowDims.size(), " and operand-type: ", operandType,
-        " with rank = ", operandType.getRank(), ".");
+    return emitOptionalError(location,
+                             "expects window-dimensions size == operand rank, "
+                             "but got window-dimensions size: ",
+                             windowDims.size(),
+                             " and operand-type: ", operandType,
+                             " with rank = ", operandType.getRank(), ".");
 
   auto windowStrides = windowStridesOpt.value_or(SmallVector<int64_t>{});
 
