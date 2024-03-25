@@ -80,11 +80,11 @@ FailureOr<PointwiseConversionInfo> checkOperandsAndResults(
   }
 
   // Find result type, if on tensors.
-  auto resultTy = dyn_cast_or_null<ShapedType>(
+  auto resultTy = cast_or_null<RankedTensorType>(
       typeConverter.convertType(op->getResultTypes().front()));
 
   // Check result type compatibility.
-  if (!resultTy || !resultTy.hasRank() || resultTy.getRank() != maxRank ||
+  if (!resultTy || resultTy.getRank() != maxRank ||
       !(resultTy.getElementType().isSignlessIntOrFloat() ||
         isa<ComplexType>(resultTy.getElementType()))) {
     return rewriter.notifyMatchFailure(

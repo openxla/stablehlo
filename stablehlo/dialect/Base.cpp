@@ -601,11 +601,9 @@ LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
 
 ShapedType createShapedType(ShapedTypeComponents components) {
   if (!components.getElementType()) return ShapedType();
-  if (components.hasRank())
-    return RankedTensorType::get(components.getDims(),
-                                 components.getElementType(),
-                                 components.getAttribute());
-  return UnrankedTensorType::get(components.getElementType());
+  return RankedTensorType::get(components.getDims(),
+                               components.getElementType(),
+                               components.getAttribute());
 }
 
 bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {

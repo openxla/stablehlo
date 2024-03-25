@@ -48,12 +48,8 @@ Rewrite positiveFloatInfinityLike(op: Op, type: Type) -> Op [{
 }];
 
 Rewrite changeElementTypeToI1(type: Type) -> Type [{
-  auto tensorType = type.cast<mlir::TensorType>();
-  if (tensorType.hasRank()) {
-    return RankedTensorType::get(tensorType.getShape(), rewriter.getI1Type());
-  } else {
-    return UnrankedTensorType::get(rewriter.getI1Type());
-  }
+  auto tensorType = type.cast<mlir::RankedTensorType>();
+  return RankedTensorType::get(tensorType.getShape(), rewriter.getI1Type());
 }];
 
 // Nullary ops.

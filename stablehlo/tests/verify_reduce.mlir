@@ -166,7 +166,7 @@ func.func @reduce_c2(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
 func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
     -> (tensor<?xf32>) {
 
-  // expected-error@+1 {{Out-of-bounds dimension -1, expected to be less than the input-tensor rank 2}}
+  // expected-error@+1 {{Out-of-bounds dimension -1, expected to be in range [0, 2)}}
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
 
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
@@ -182,7 +182,7 @@ func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
 func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
     -> (tensor<?xf32>) {
 
-  // expected-error@+1 {{Out-of-bounds dimension 2, expected to be less than the input-tensor rank 2}}
+  // expected-error@+1 {{Out-of-bounds dimension 2, expected to be in range [0, 2)}}
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
 
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
