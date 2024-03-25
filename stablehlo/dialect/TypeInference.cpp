@@ -65,25 +65,6 @@ limitations under the License.
 
 namespace mlir {
 namespace hlo {
-namespace {
-//===----------------------------------------------------------------------===//
-// Utils for quantization specific verifications
-//===----------------------------------------------------------------------===//
-template <typename T>
-bool allQuantized(ArrayRef<Type> typeRange) {
-  return llvm::all_of(typeRange, [&](Type val) {
-    return val.cast<ShapedType>().getElementType().isa<T>();
-  });
-}
-
-template <typename T>
-bool noneQuantized(ArrayRef<Type> typeRange) {
-  return llvm::all_of(typeRange, [&](Type val) {
-    return !val.cast<ShapedType>().getElementType().isa<T>();
-  });
-}
-
-}  // namespace
 
 //===----------------------------------------------------------------------===//
 // Utils for shape functions.
@@ -3471,61 +3452,6 @@ LogicalResult verifyConvolutionOp(
                              dimSizesToString(inferredShape.getDims()), "' ",
                              "is incompatible with return type of operation ",
                              shapedResultType, "");
-
-  llvm::SmallVector<Type, 3> typeEntries{lhsType, rhsType, resultType};
-  if (noneQuantized<quant::QuantizedType>(typeEntries)) return success();
-  // convolution_c28
-  if (!allQuantized<quant::QuantizedType>(typeEntries)) {
-    return emitOptionalError(location,
-                             "not all of operands and result are quantized");
-  }
-
-  auto lhsQType =
-      getElementTypeOrSelf(lhsType).dyn_cast<quant::QuantizedType>();
-  auto rhsQType =
-      getElementTypeOrSelf(rhsType).dyn_cast<quant::QuantizedType>();
-  auto resultQType =
-      getElementTypeOrSelf(resultType).dyn_cast<quant::QuantizedType>();
-  // convolution_c29
-  if (lhsQType.getStorageType() != rhsQType.getStorageType())
-    return emitOptionalError(location, "mismatched operand storage types ",
-                             lhsQType.getStorageType(), " and ",
-                             rhsQType.getStorageType());
-  // convolution_c30
-  auto expressedType = lhsQType.getExpressedType();
-  if (expressedType != rhsQType.getExpressedType() ||
-      expressedType != resultQType.getExpressedType())
-    return emitOptionalError(location,
-                             "mismatched operands and result expressed types");
-
-  llvm::SmallVector<Type, 2> typeEntriesPerAxis{rhsType, resultType};
-  if (noneQuantized<quant::UniformQuantizedPerAxisType>(typeEntriesPerAxis))
-    return success();
-  // convolution_c31
-  if (!allQuantized<quant::UniformQuantizedPerAxisType>(typeEntriesPerAxis)) {
-    return emitOptionalError(location,
-                             "rhs and result are of mixed per_tensor and "
-                             "per_axis quantized tensor type ",
-                             rhsType, " and ", resultType);
-  }
-
-  auto rhsQPAType = rhsQType.dyn_cast<quant::UniformQuantizedPerAxisType>();
-  auto resultQPAType =
-      resultQType.dyn_cast<quant::UniformQuantizedPerAxisType>();
-  // convolution_c32
-  if (rhsQPAType &&
-      rhsQPAType.getQuantizedDimension() != kernelOutputFeatureDimension)
-    return emitOptionalError(
-        location, "mismatched kernel_output_feature_dimension ",
-        kernelOutputFeatureDimension, " and rhs quantized dimension ",
-        rhsQPAType.getQuantizedDimension());
-  // convolution_c33
-  if (resultQPAType &&
-      resultQPAType.getQuantizedDimension() != outputFeatureDimension)
-    return emitOptionalError(location, "mismatched output_feature_dimension ",
-                             outputFeatureDimension,
-                             " and result quantized dimension ",
-                             resultQPAType.getQuantizedDimension());
 
   return success();
 }
