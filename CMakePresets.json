@@ -19,7 +19,8 @@
             "CMAKE_PLATFORM_NO_VERSIONED_SONAME": "ON",
             "LLVM_VERSION_SUFFIX": "",
             "LLVM_USE_SPLIT_DWARF": "ON",
-            "STABLEHLO_ENABLE_SPLIT_DWARF": "ON"
+            "STABLEHLO_ENABLE_SPLIT_DWARF": "ON",
+            "STABLEHLO_ENABLE_SANITIZER": "address"
           }
         },
         {
@@ -32,17 +33,5 @@
             "STABLEHLO_ENABLE_SANITIZER": "OFF"
           }
         }
-      ],
-      "buildPresets": [
-        {
-          "name": "debug",
-          "displayName": "Build Debug",
-          "configurePreset": "debug"
-        },
-        {
-          "name": "debug-python",
-          "displayName": "Build Debug w/ python bindings",
-          "configurePreset": "debug-python"
-        }
-    ]
+      ]
 }

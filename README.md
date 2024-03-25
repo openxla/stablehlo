@@ -58,16 +58,13 @@ Here's how to build the StableHLO repo on Linux or macOS:
 
    You need to do this every time `llvm_version.txt` changes.
 
-4. Build StableHLO as a standalone library:
+4. Build StableHLO as a standalone library and run all the tests:
 
    ```sh
-   cmake --build --preset debug
-   ```
-
-5. Now you can make sure it works by running some tests:
-
-   ```sh
-   cmake --build --preset debug --target check-stablehlo-tests
+   # first configure the build system
+   cmake --preset debug
+   # then build the project
+   cmake --build ./build --target check-stablehlo-ci 
    ```
 
    You should see results like this:
@@ -79,7 +76,8 @@ Here's how to build the StableHLO repo on Linux or macOS:
    Passed: 137 (100.00%)
    ```
 
-   This runs all the tests in `stablehlo/tests/`.
+   This runs all the tests in `stablehlo/tests/`. You can change the target
+   to build or test specific parts of the project.
 
 ## Python
 

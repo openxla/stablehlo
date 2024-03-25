@@ -71,9 +71,11 @@ jobs:
     - name: Build and Test StableHLO (with AddressSanitizer)
       shell: bash
       run: |
-        cmake --build --preset debug --target check-stablehlo-ci
+        cmake --preset debug
+        cmake --build ./build --target check-stablehlo-ci 
 
     - name: Build and Test StableHLO (with Python bindings)
       shell: bash
       run: |
-        cmake --build --preset debug-python --target check-stablehlo-ci
+        cmake --preset debug-python
+        cmake --build ./build --target check-stablehlo-ci 
