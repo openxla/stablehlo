@@ -5058,7 +5058,7 @@ func.func @is_compatible_dynamism_mix(%arg0: tensor<?xf32>, %arg1: tensor<1xf32>
 // -----
 
 func.func @is_compatible_dynamism_ranked_mismatch(%arg0: tensor<?xf32>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+  // expected-error@+1 {{op requires the same shape for all operands and results}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<?xf32>, tensor<?xf32>) -> tensor<?x?xf32>
   func.return
 }
@@ -5066,7 +5066,7 @@ func.func @is_compatible_dynamism_ranked_mismatch(%arg0: tensor<?xf32>) {
 // -----
 
 func.func @is_compatible_dynamism_dim_mismatch(%arg0: tensor<1x?xf32>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+  // expected-error@+1 {{op requires the same shape for all operands and results}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x?xf32>, tensor<1x?xf32>) -> tensor<2x2xf32>
   func.return
 }
@@ -5097,7 +5097,7 @@ func.func @is_compatible_quant_mix_zero_point(%arg0: tensor<1x!quant.uniform<i8:
 // -----
 
 func.func @is_compatible_quant_expressed_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+  // expected-error@+1 {{mismatched operands and result expressed_type}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:bf16, 1.0:17>>
   func.return
 }
@@ -5105,15 +5105,25 @@ func.func @is_compatible_quant_expressed_mismatch(%arg0: tensor<1x!quant.uniform
 // -----
 
 func.func @is_compatible_quant_storage_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+  // expected-error@+1 {{mismatched operands and result storage_type}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i4:f32, 1.0:17>>
   func.return
 }
 
 // -----
 
+func.func @is_compatible_quant(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+  // expected-error@+1 {{not all of operands and result are quantized}}
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1xf32>
+  func.return
+}
+
+
+// -----
+
 func.func @is_compatible_quant_signedness_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+  // expected-error@+2 {{'stablehlo.add' op failed to infer returned types}}
+  // expected-error@+1 {{'stablehlo.add' op inferred type(s) 'tensor<1x!quant.uniform<i8:f32, 1.000000e+00:17>>' are incompatible with return type(s) of operation 'tensor<1x!quant.uniform<u8:f32, 1.000000e+00:17>>'}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<u8:f32, 1.0:17>>
   func.return
 }
@@ -5135,7 +5145,8 @@ func.func @is_compatible_dynamism_bounds_mismatch(
 func.func @is_compatible_dynamism_bounds_mismatch(
   %arg0: tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>,
   %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>) {
-  // expected-error@+1 {{requires compatible types for all operands and results}}
+  // expected-error@+2 {{op failed to infer returned types}}
+  // expected-error@+1 {{'stablehlo.add' op inferred type(s) 'tensor<?xf32, #stablehlo.bounds<4>>' are incompatible with return type(s) of operation 'tensor<5xf32>'}}
   %0 = "stablehlo.add"(%arg0, %arg1) : (
     tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>,
     tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>) -> tensor<5xf32>

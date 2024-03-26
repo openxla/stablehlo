@@ -65,6 +65,23 @@ limitations under the License.
 
 namespace mlir {
 namespace hlo {
+namespace {
+//===----------------------------------------------------------------------===//
+// Utils for quantization specific verifications
+//===----------------------------------------------------------------------===//
+template <typename T>
+bool allQuantized(ArrayRef<Type> typeRange) {
+  return llvm::all_of(
+      typeRange, [&](Type val) { return getElementTypeOrSelf(val).isa<T>(); });
+}
+
+template <typename T>
+bool noneQuantized(ArrayRef<Type> typeRange) {
+  return llvm::all_of(
+      typeRange, [&](Type val) { return !getElementTypeOrSelf(val).isa<T>(); });
+}
+
+} // namespace
 
 //===----------------------------------------------------------------------===//
 // Utils for shape functions.
@@ -261,6 +278,71 @@ LogicalResult verifyPairwiseCompatibleShapes(TypeRange values) {
   for (auto type1 : values)
     for (auto type2 : values)
       if (failed(verifyCompatibleShape(type1, type2))) return failure();
+  return success();
+}
+
+LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
+                               Type rhsType, Type resultType){
+
+  lhsType = getElementTypeOrSelf(lhsType);
+  rhsType = getElementTypeOrSelf(rhsType);
+  resultType = getElementTypeOrSelf(resultType);
+  llvm::SmallVector<Type, 3> typeEntries{lhsType, rhsType, resultType};
+  // add_c1
+  if (noneQuantized<quant::QuantizedType>(typeEntries)) {
+    if (lhsType != rhsType || lhsType != resultType)
+      return emitOptionalError(
+          location,
+          "op requires compatible types for all operands and results");
+    return success();
+  }
+  // add_c2
+  if (!allQuantized<quant::QuantizedType>(typeEntries)) {
+    return emitOptionalError(location,
+                             "not all of operands and result are quantized");
+  }
+  auto lhsQType = lhsType.dyn_cast<quant::QuantizedType>();
+  auto rhsQType = rhsType.dyn_cast<quant::QuantizedType>();
+  auto resultQType = resultType.dyn_cast<quant::QuantizedType>();
+  // add_c3
+  auto storageType = lhsQType.getStorageType();
+  if (storageType != rhsQType.getStorageType() ||
+      storageType != resultQType.getStorageType())
+    return emitOptionalError(location,
+                             "mismatched operands and result storage_type");
+  // add_c4
+  auto expressedType = lhsQType.getExpressedType();
+  if (expressedType != rhsQType.getExpressedType() ||
+      expressedType != resultQType.getExpressedType())
+    return emitOptionalError(location,
+                             "mismatched operands and result expressed_type");
+
+  auto lhsQPAType = lhsType.dyn_cast<quant::UniformQuantizedPerAxisType>();
+  auto rhsQPAType = rhsType.dyn_cast<quant::UniformQuantizedPerAxisType>();
+  auto resultQPAType =
+      resultType.dyn_cast<quant::UniformQuantizedPerAxisType>();
+  if (resultQPAType) {
+    // add_c5
+    if (!lhsQPAType && !rhsQPAType)
+      return emitOptionalError(location,
+                               "result per_axis quantized but none from rhs "
+                               "and lhs are per_axis quantized");
+    // add_c6
+    if (lhsQPAType)
+      if (resultQPAType.getQuantizedDimension() !=
+          lhsQPAType.getQuantizedDimension())
+        return emitOptionalError(
+            location, "quantization_dimension of lhs and result are not same ",
+            lhsType, " vs ", resultType);
+    // add_c7
+    if (rhsQPAType)
+      if (resultQPAType.getQuantizedDimension() !=
+          rhsQPAType.getQuantizedDimension())
+        return emitOptionalError(
+            location, "quantization_dimension of rhs and result are not same ",
+            rhsType, " vs ", resultType);
+  }
+
   return success();
 }
 

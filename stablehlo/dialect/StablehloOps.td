@@ -660,7 +660,7 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
     OperandType:$rhs
   );
 
-  let extraClassDeclaration = commonClassDeclaration # [{
+  string binElementwiseOpCommonClassDeclaration = commonClassDeclaration # [{
     LogicalResult reifyReturnTypeShapes(
         OpBuilder& builder, ValueRange operands,
         SmallVectorImpl<Value>& reifiedReturnShapes) {
@@ -670,6 +670,8 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
     }
   }];
 
+  let extraClassDeclaration = binElementwiseOpCommonClassDeclaration;
+
   let results = (outs ResultType:$result);
 
   let assemblyFormat = [{
@@ -678,8 +680,9 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
   }];
 }
 
-def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add",
-      [HLO_Commutative, Pure, HLO_CompatibleOperandsAndResultType],
+def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add", [HLO_Commutative, Pure,
+      InferTypeOpInterface,
+      DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>],
       HLO_TensorOrPerAxisQuantizedTensor> {
   let summary = "Add operation";
   let description = [{
@@ -694,6 +697,28 @@ def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add",
     %result = stablehlo.add %lhs, %rhs : tensor<2x2xi32>
     ```
   }];
+
+  let extraClassDeclaration = binElementwiseOpCommonClassDeclaration # [{
+    static LogicalResult inferReturnTypes(
+        MLIRContext * /*context*/, std::optional<Location> location,
+        ValueRange operands, DictionaryAttr /*attributes*/,
+        OpaqueProperties /*properties*/, RegionRange /*regions*/,
+        SmallVectorImpl<Type> &inferredReturnTypes) {
+      if (operands.empty())
+        return emitOptionalError(
+            location,
+            "Expected non-empty operands for [CompatibleOperandsAndResultType]");
+
+      auto inferredTypeOrErr =
+          mlir::hlo::inferMostSpecificType(location, operands.getTypes());
+      if (failed(inferredTypeOrErr)) return failure();
+      inferredReturnTypes.emplace_back(*inferredTypeOrErr);
+      return success();
+    }
+  }];
+
+  let hasVerifier = 1;
+
 }
 
 def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",

@@ -146,7 +146,6 @@ LogicalResult ReduceScatterOp::verify() {
         inferredReturnShapes);                                        \
   }
 
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AddOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AndOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Atan2Op)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CbrtOp)
@@ -185,6 +184,32 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(SqrtOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(SubtractOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(TanhOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(XorOp)
+
+//===----------------------------------------------------------------------===//
+// AddOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult AddOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SmallVector<Type> inferredReturnTypes;
+  if (failed(inferReturnTypes(context, location, operands.getValues(),
+                              attributes, properties, regions,
+                              inferredReturnTypes)))
+    return failure();
+  if (inferredReturnTypes.size() != 1) return failure();
+  auto inferredReturnType = inferredReturnTypes[0].dyn_cast<ShapedType>();
+  if (!inferredReturnType) return failure();
+  inferredReturnShapes.push_back(inferredReturnType);
+  return success();
+}
+
+LogicalResult AddOp::verify() {
+  return hlo::verifyAddOp(getLoc(), getLhs().getType(), getRhs().getType(),
+                          getResult().getType());
+}
 
 //===----------------------------------------------------------------------===//
 // AfterAllOp
