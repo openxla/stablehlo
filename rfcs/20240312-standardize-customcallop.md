@@ -15,7 +15,7 @@ This includes: MHLO
 
 StableHLO `custom_call` op does not support this feature. There are several
 occurrences of users working around this gap in `custom_call` today, examples -
-Jax uses [unregistered attributes](https://github.com/google/jax/blob/1ed27ecebb92e916b45601e3a107971170a4592b/jaxlib/hlo_helpers.py#L191)
+JAX uses [unregistered attributes](https://github.com/google/jax/blob/1ed27ecebb92e916b45601e3a107971170a4592b/jaxlib/hlo_helpers.py#L191)
 to hold the `DictionaryAttr` or serializing the dictionary as a string
 to pass around for StableHLO `custom_call` op.
 
