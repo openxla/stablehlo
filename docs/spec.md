@@ -6238,6 +6238,19 @@ At the moment, StableHLO does not provide guarantees about numerical accuracy,
 but this may change in the future
 ([#1156](https://github.com/openxla/stablehlo/issues/1156)).
 
+### Execution semantics of quantized operation
+
+The interpretation of quantized StableHLO operations may vary depending on the
+hardware requirements and capabilities. For instance, some hardware may opt to
+interpret quantized operations using a "dequantize, perform floating-point
+operation, and finally quantize" strategy. Others may perform the entire
+computation with integer arithmetic. Consequently, the interpretation of
+quantized StableHLO operations is exclusively determined by the specific
+implementation. The interpretation of hybrid quantization
+([#1575](https://github.com/openxla/stablehlo/issues/1575)) should be based on
+the it's semantics as prescribed in the specification (via
+[1792](https://github.com/openxla/stablehlo/pull/1792)).
+
 ### Errors
 
 StableHLO programs are validated through an extensive set of constraints for
