@@ -5073,30 +5073,20 @@ func.func @is_compatible_dynamism_dim_mismatch(%arg0: tensor<1x?xf32>) {
 
 // -----
 
-func.func @is_compatible_quant_mix_non_quant(%arg0: tensor<1xf32>, %arg1: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+func.func @add_positive_tests(%arg0: tensor<1xf32>, %arg1: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1xf32>, tensor<1xf32>) -> tensor<1xf32>
   %1 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
   %2 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+  %3 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 2.0:17>>
+  %4 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:18>>
+
   func.return
 }
 
-// -----
-
-func.func @is_compatible_quant_mix_scale(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 2.0:17>>
-  func.return
-}
 
 // -----
 
-func.func @is_compatible_quant_mix_zero_point(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:18>>
-  func.return
-}
-
-// -----
-
-func.func @is_compatible_quant_expressed_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+func.func @add_c4(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
   // expected-error@+1 {{mismatched operands and result expressed_type}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:bf16, 1.0:17>>
   func.return
@@ -5104,7 +5094,7 @@ func.func @is_compatible_quant_expressed_mismatch(%arg0: tensor<1x!quant.uniform
 
 // -----
 
-func.func @is_compatible_quant_storage_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+func.func @add_c3(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
   // expected-error@+1 {{mismatched operands and result storage_type}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i4:f32, 1.0:17>>
   func.return
@@ -5112,12 +5102,35 @@ func.func @is_compatible_quant_storage_mismatch(%arg0: tensor<1x!quant.uniform<i
 
 // -----
 
-func.func @is_compatible_quant(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+func.func @add_c2(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
   // expected-error@+1 {{not all of operands and result are quantized}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1xf32>
   func.return
 }
 
+// -----
+
+func.func @add_c5(%arg0: tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>) {
+  // expected-error@+1 {{result is not per_axis quantized but lhs or rhs is}}
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+  func.return
+}
+
+// -----
+
+func.func @add_c6(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) {
+  // expected-error@+1 {{quantization_dimension of lhs and result are not same}}
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:2, {1.0:17}>>
+  func.return
+}
+
+// -----
+
+func.func @add_c7(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, %arg1: tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17}>>) {
+  // expected-error@+1 {{quantization_dimension of rhs and result are not same}}
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>
+  func.return
+}
 
 // -----
 

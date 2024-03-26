@@ -341,6 +341,10 @@ LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
             location, "quantization_dimension of rhs and result are not same ",
             rhsType, " vs ", resultType);
   }
+  // add_c5
+  if (!resultQPAType && (lhsQPAType || rhsQPAType))
+    return emitOptionalError(
+        location, "result is not per_axis quantized but lhs or rhs is");
 
   return success();
 }
