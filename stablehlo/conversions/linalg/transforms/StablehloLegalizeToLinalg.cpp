@@ -967,7 +967,7 @@ struct RealDynamicSliceConverter final
       ConversionPatternRewriter &rewriter) const override {
     Location loc = realDynamicSliceOp.getLoc();
     auto argType = llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
-
+    
     Type dimElementType = getElementTypeOrSelf(adaptor.getStartIndices());
     if (getElementTypeOrSelf(adaptor.getLimitIndices()) != dimElementType ||
         getElementTypeOrSelf(adaptor.getStrides()) != dimElementType) {
@@ -1260,6 +1260,11 @@ struct ConcatenateConverter final
     : OpConversionPattern<mlir::stablehlo::ConcatenateOp> {
   using OpConversionPattern::OpConversionPattern;
 
+  ConcatenateConverter(const TypeConverter &converter, MLIRContext *context,
+                       bool enableSparseOps)
+      : OpConversionPattern<mlir::stablehlo::ConcatenateOp>(converter, context),
+        enableSparseOps(enableSparseOps) {}
+
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ConcatenateOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
@@ -1272,6 +1277,21 @@ struct ConcatenateConverter final
     auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
+
+    if (enableSparseOps) {
+      bool isResultSparse =
+          sparse_tensor::getSparseTensorEncoding(resultType) != nullptr;
+      bool isAnyOperandSparse =
+          llvm::any_of(adaptor.getOperands(), [](auto operand) {
+            return sparse_tensor::getSparseTensorEncoding(operand.getType()) !=
+                   nullptr;
+          });
+      if (isResultSparse || isAnyOperandSparse) {
+        rewriter.replaceOpWithNewOp<sparse_tensor::ConcatenateOp>(
+            op, resultType, adaptor.getOperands(), op.getDimension());
+        return success();
+      }
+    }
 
     uint64_t dim = op.getDimension();
     Location loc = op.getLoc();
@@ -1342,6 +1362,10 @@ struct ConcatenateConverter final
         linalg::getPrunedAttributeList(op));
     return success();
   }
+
+ private:
+  /// Option to enable sparse ops.
+  bool enableSparseOps;
 };
 
 struct ConstConverterTensor final
@@ -1402,7 +1426,7 @@ struct SliceConverter final : OpConversionPattern<mlir::stablehlo::SliceOp> {
       ConversionPatternRewriter &rewriter) const override {
     auto argType =
         llvm::cast<RankedTensorType>(adaptor.getOperands()[0].getType());
-
+    
     SmallVector<OpFoldResult, 3> offsets, sizes, strides;
     auto startIndices = sliceOp.getStartIndices();
     auto limitIndices = sliceOp.getLimitIndices();
@@ -1436,7 +1460,7 @@ struct DynamicSliceConverter final
       ConversionPatternRewriter &rewriter) const override {
     Location loc = dynamicSliceOp.getLoc();
     auto argType = llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
-
+    
     auto resultType = getTypeConverter()->convertType<RankedTensorType>(
         dynamicSliceOp.getType());
     if (!resultType)
@@ -2499,11 +2523,11 @@ struct SetDimensionSizeConverter final
 static void populateConversionPatterns(MLIRContext *context,
                                        TypeConverter &typeConverter,
                                        RewritePatternSet *patterns,
-                                       bool enablePrimitiveOps) {
+                                       bool enablePrimitiveOps,
+                                       bool enableSparseOps) {
   // clang-format off
   patterns->add<
       BitcastConvertConverter,
-      ConcatenateConverter,
       ConstConverterTensor,
       EinsumToLinalgConverter,
       GatherConversion,
@@ -2522,6 +2546,8 @@ static void populateConversionPatterns(MLIRContext *context,
 
   detail::populatePointwiseStablehloToLinalgConversionPatterns(
       context, typeConverter, patterns, enablePrimitiveOps);
+
+  patterns->add<ConcatenateConverter>(typeConverter, context, enableSparseOps);
 
   if (enablePrimitiveOps) {
     patterns->add<
@@ -2575,7 +2601,7 @@ struct StablehloLegalizeToLinalgPass
 
     RewritePatternSet patterns_(context);
     populateConversionPatterns(context, converter, &patterns_,
-                               enablePrimitiveOps);
+                               enablePrimitiveOps, enableSparseOps);
     patterns = std::move(patterns_);
 
     return success();

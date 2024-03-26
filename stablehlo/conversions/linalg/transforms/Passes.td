@@ -30,11 +30,16 @@ def StablehloLegalizeToLinalgPass
     "mlir::memref::MemRefDialect",
     "mlir::scf::SCFDialect",
     "mlir::shape::ShapeDialect",
+    "mlir::sparse_tensor::SparseTensorDialect",
   ];
   let options = [Option<"enablePrimitiveOps", "enable-primitive-ops", "bool",
                         /*default=*/"false",
                         "Lower to primitive Linalg ops (map, reduce and "
-                        "transpose) when possible, instead of linalg.generic">];
+                        "transpose) when possible, instead of linalg.generic">,
+                 Option<"enableSparseOps", "enable-sparse-ops", "bool",
+                        /*default=*/"false",
+                        "Lower to Sparse Tensor ops (sparse_tensor.concatenate)"
+                        "when possible, instead of linalg.generic">];
 }
 
 #endif  // STABLEHLO_TO_LINALG_PASSES
