@@ -81,7 +81,7 @@ bool noneQuantized(ArrayRef<Type> typeRange) {
       typeRange, [&](Type val) { return !getElementTypeOrSelf(val).isa<T>(); });
 }
 
-} // namespace
+}  // namespace
 
 //===----------------------------------------------------------------------===//
 // Utils for shape functions.
@@ -282,8 +282,7 @@ LogicalResult verifyPairwiseCompatibleShapes(TypeRange values) {
 }
 
 LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
-                               Type rhsType, Type resultType){
-
+                          Type rhsType, Type resultType) {
   lhsType = getElementTypeOrSelf(lhsType);
   rhsType = getElementTypeOrSelf(rhsType);
   resultType = getElementTypeOrSelf(resultType);
