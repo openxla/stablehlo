@@ -375,7 +375,7 @@ LogicalResult inferWhileOp(std::optional<Location> location, ValueRange operand,
 //===----------------------------------------------------------------------===//
 
 LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
-                               Type rhsType, Type resultType);
+                          Type rhsType, Type resultType);
 
 LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
                                 int64_t allGatherDim,
