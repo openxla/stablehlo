@@ -413,41 +413,6 @@ LogicalResult BroadcastSelectOp::reifyReturnTypeShapes(
 }
 
 //===----------------------------------------------------------------------===//
-// RankSpecializationClusterOp
-//===----------------------------------------------------------------------===//
-
-void RankSpecializationClusterOp::getSuccessorRegions(
-    RegionBranchPoint point, SmallVectorImpl<RegionSuccessor>& regions) {
-  // RankSpecializationClusterOp has unconditional control flows into the region
-  // and back to the parent, so return the correct RegionSuccessor purely based
-  // on the index being None or 0.
-  if (!point.isParent()) {
-    regions.push_back(RegionSuccessor(getResults()));
-    return;
-  }
-  regions.push_back(RegionSuccessor(&getBody()));
-}
-
-LogicalResult RankSpecializationClusterOp::verify() {
-  Block* body = SingleBlock::getBody();
-  if (body->getArgumentTypes() != getOperandTypes())
-    return emitOpError() << "block argument types must match operand types";
-
-  // All operands of nested ops must be defined in the body or declared by the
-  // cluster.
-  for (Operation& nested : body->without_terminator()) {
-    if (!llvm::all_of(nested.getOpOperands(), [&](OpOperand& operand) {
-          Operation* def = operand.get().getDefiningOp();
-          if (def != nullptr && def->getBlock() == body) return true;
-          return llvm::is_contained(body->getArguments(), operand.get());
-        }))
-      return emitOpError() << "nested ops must not depend on implicit operands";
-  }
-
-  return success();
-}
-
-//===----------------------------------------------------------------------===//
 // TopKOp
 //===----------------------------------------------------------------------===//
 
