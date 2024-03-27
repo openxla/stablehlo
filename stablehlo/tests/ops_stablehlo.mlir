@@ -5073,7 +5073,7 @@ func.func @is_compatible_dynamism_dim_mismatch(%arg0: tensor<1x?xf32>) {
 
 // -----
 
-func.func @add_positive_tests(%arg0: tensor<1xf32>, %arg1: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+func.func @is_compatible_quant_mix_non_quant(%arg0: tensor<1xf32>, %arg1: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1xf32>, tensor<1xf32>) -> tensor<1xf32>
   %1 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
   %2 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
@@ -5103,7 +5103,7 @@ func.func @add_c3(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
 // -----
 
 func.func @add_c2(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+1 {{not all of operands and result are quantized}}
+  // expected-error@+1 {{all operands and results to be either quantized or non-quantized}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1xf32>
   func.return
 }
@@ -5111,7 +5111,7 @@ func.func @add_c2(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
 // -----
 
 func.func @add_c5(%arg0: tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>) {
-  // expected-error@+1 {{result is not per_axis quantized but lhs or rhs is}}
+  // expected-error@+1 {{result is not per_axis quantized but lhs or rhs are}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
   func.return
 }
@@ -5135,8 +5135,8 @@ func.func @add_c7(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, %arg1: 
 // -----
 
 func.func @is_compatible_quant_signedness_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+2 {{'stablehlo.add' op failed to infer returned types}}
-  // expected-error@+1 {{'stablehlo.add' op inferred type(s) 'tensor<1x!quant.uniform<i8:f32, 1.000000e+00:17>>' are incompatible with return type(s) of operation 'tensor<1x!quant.uniform<u8:f32, 1.000000e+00:17>>'}}
+  // expected-error@+2 {{op failed to infer returned types}}
+  // expected-error@+1 {{op inferred type(s) 'tensor<1x!quant.uniform<i8:f32, 1.000000e+00:17>>' are incompatible with return type(s) of operation 'tensor<1x!quant.uniform<u8:f32, 1.000000e+00:17>>'}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<u8:f32, 1.0:17>>
   func.return
 }

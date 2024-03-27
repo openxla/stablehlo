@@ -660,7 +660,7 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
     OperandType:$rhs
   );
 
-  string binElementwiseOpCommonClassDeclaration = commonClassDeclaration # [{
+  string binaryElementwiseOpCommonClassDeclaration = commonClassDeclaration # [{
     LogicalResult reifyReturnTypeShapes(
         OpBuilder& builder, ValueRange operands,
         SmallVectorImpl<Value>& reifiedReturnShapes) {
@@ -670,7 +670,7 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
     }
   }];
 
-  let extraClassDeclaration = binElementwiseOpCommonClassDeclaration;
+  let extraClassDeclaration = binaryElementwiseOpCommonClassDeclaration;
 
   let results = (outs ResultType:$result);
 
@@ -698,7 +698,7 @@ def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add", [HLO_Commutative, Pur
     ```
   }];
 
-  let extraClassDeclaration = binElementwiseOpCommonClassDeclaration # [{
+  let extraClassDeclaration = binaryElementwiseOpCommonClassDeclaration # [{
     static LogicalResult inferReturnTypes(
         MLIRContext * /*context*/, std::optional<Location> location,
         ValueRange operands, DictionaryAttr /*attributes*/,
@@ -707,7 +707,7 @@ def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add", [HLO_Commutative, Pur
       if (operands.empty())
         return emitOptionalError(
             location,
-            "Expected non-empty operands for [CompatibleOperandsAndResultType]");
+            "Expected non-empty operands for AddOp::inferReturnTypes");
 
       auto inferredTypeOrErr =
           mlir::hlo::inferMostSpecificType(location, operands.getTypes());

@@ -298,7 +298,8 @@ LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
   // add_c2
   if (!allQuantized<quant::QuantizedType>(typeEntries)) {
     return emitOptionalError(location,
-                             "not all of operands and result are quantized");
+                             "expects  all operands and results to be either "
+                             "quantized or non-quantized");
   }
   auto lhsQType = lhsType.dyn_cast<quant::QuantizedType>();
   auto rhsQType = rhsType.dyn_cast<quant::QuantizedType>();
@@ -320,19 +321,18 @@ LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
   auto rhsQPAType = rhsType.dyn_cast<quant::UniformQuantizedPerAxisType>();
   auto resultQPAType =
       resultType.dyn_cast<quant::UniformQuantizedPerAxisType>();
-  if (resultQPAType) {
-    // add_c5
-    if (!lhsQPAType && !rhsQPAType)
-      return emitOptionalError(location,
-                               "result per_axis quantized but none from rhs "
-                               "and lhs are per_axis quantized");
-    // add_c6
+  if (lhsQPAType || rhsQPAType) {
+    if (!resultQPAType)
+      return emitOptionalError(
+          location, "result is not per_axis quantized but lhs or rhs are");
+
     if (lhsQPAType)
       if (resultQPAType.getQuantizedDimension() !=
           lhsQPAType.getQuantizedDimension())
         return emitOptionalError(
             location, "quantization_dimension of lhs and result are not same ",
             lhsType, " vs ", resultType);
+
     // add_c7
     if (rhsQPAType)
       if (resultQPAType.getQuantizedDimension() !=
@@ -340,13 +340,15 @@ LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
         return emitOptionalError(
             location, "quantization_dimension of rhs and result are not same ",
             rhsType, " vs ", resultType);
-  }
-  // add_c5
-  if (!resultQPAType && (lhsQPAType || rhsQPAType))
-    return emitOptionalError(
-        location, "result is not per_axis quantized but lhs or rhs is");
 
-  return success();
+    return success();
+  }
+
+  return !resultQPAType
+             ? success()
+             : emitOptionalError(location,
+                                 "result per_axis quantized but none from rhs "
+                                 "and lhs are per_axis quantized");
 }
 
 LogicalResult verifyBatchNorm(std::optional<Location> location,
