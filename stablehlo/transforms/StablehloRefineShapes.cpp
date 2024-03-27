@@ -407,25 +407,6 @@ LogicalResult evalConvert(PatternRewriter& rewriter, OpType op,
       });
 }
 
-template <class AttrElementT, class TargetAttrElementT, class CalculationT,
-          typename OpType>
-LogicalResult evalCast(PatternRewriter& rewriter, OpType op, Attribute operand,
-                       Type resType, CalculationT&& calculate) {
-  auto result = constFoldCastOp<AttrElementT, TargetAttrElementT,
-                                typename AttrElementT::ValueType,
-                                typename TargetAttrElementT::ValueType, void>(
-      operand, resType, calculate);
-
-  if (!result)
-    return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
-      diag << "cast of " << op.getOperand().getType() << " to " << resType
-           << " failed";
-    });
-
-  rewriter.replaceOpWithNewOp<ConstantOp>(op, result);
-  return success();
-}
-
 struct EvalAddOpPattern : public OpRewritePattern<AddOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(AddOp op,
