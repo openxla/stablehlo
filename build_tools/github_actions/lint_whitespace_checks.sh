@@ -40,7 +40,7 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 echo "Gathering changed files..."
-mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep -E '.*\.(cpp|h|md|mlir|sh|td|txt|ya?ml|py)$')
+mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep -Ev '.*\.(bc|png|svg)$')
 if (( ${#CHANGED_FILES[@]} == 0 )); then
   echo "No files to check."
   exit 0
