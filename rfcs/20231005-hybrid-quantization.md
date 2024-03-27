@@ -70,9 +70,9 @@ in float. Element type of float lhs tensor and expressed type of quantized rhs
 tensor should be identical.
 
 ```python
-def hybrid_dequantize_then_op(op, *inputs):
-  float_inputs = map(lambda input: input if is_float(element_type(type(input))) else dequantize(input) , inputs)
-  return op(*float_inputs)
+def hybrid_dequantize_then_op(op, lhs, rhs):
+  assert(is_float(lhs) and is_quantized(rhs) and element_type(lhs) == expressed_type(rhs))
+  return op(lhs, dequantize(rhs))
 ```
 
 ### convolution
