@@ -1624,7 +1624,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
     auto type = inputTypes[i].cast<RankedTensorType>();
     if (type.getRank() != rank)
       return emitOptionalError(location, "operands (0) and (", i,
-                               ") do not match rank rank");
+                               ") do not match rank");
 
     auto witnessShape = witnessType.getShape();
     auto shape = type.getShape();
