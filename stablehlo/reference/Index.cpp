@@ -44,14 +44,14 @@ bool Sizes::inBounds(const Sizes &bounds) const {
 
 IndexSpaceIterator Sizes::index_begin() const {
   if (any_of(*this, [](int64_t dimSize) { return dimSize == 0; }))
-    return IndexSpaceIterator(*this, std::nullopt);
+    return IndexSpaceIterator(*this);
 
   Index initialIndex(size());
   return IndexSpaceIterator(*this, initialIndex);
 }
 
 IndexSpaceIterator Sizes::index_end() const {
-  return IndexSpaceIterator(*this, std::nullopt);
+  return IndexSpaceIterator(*this);
 }
 
 Sizes operator+(const Sizes &x, const Sizes &y) {

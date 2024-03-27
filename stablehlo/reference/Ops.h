@@ -77,6 +77,16 @@ Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
                          ShapedType resultType);
 Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, ShapedType resultType);
+Tensor evalConvolutionOp(
+    const Tensor &lhs, const Tensor &rhs, ArrayRef<int64_t> windowStrides,
+    ArrayRef<std::pair<int64_t, int64_t>> padding,
+    ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
+    ArrayRef<bool> windowReversal, Axis inputBatchDimension,
+    Axis inputFeatureDimension, const Axes &inputSpatialDimensions,
+    Axis kernelInputFeatureDimension, Axis kernelOutputFeatureDimension,
+    const Axes &kernelSpatialDimensions, Axis outputBatchDimension,
+    Axis outputFeatureDimension, const Axes &outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount, ShapedType resultType);
 Tensor evalCosineOp(const Tensor &operand, ShapedType resultType);
 Tensor evalDivideOp(const Tensor &lhs, const Tensor &rhs,
                     ShapedType resultType);
