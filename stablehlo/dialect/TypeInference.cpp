@@ -333,7 +333,6 @@ LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
         return emitOptionalError(
             location, "quantization_dimension of lhs and result are not same ",
             lhsType, " vs ", resultType);
-
     // add_c7
     if (rhsQPAType)
       if (resultQPAType.getQuantizedDimension() !=
