@@ -473,6 +473,45 @@ struct EvalSubtractOpPattern : public OpRewritePattern<SubtractOp> {
   }
 };
 
+struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(IotaOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType().cast<RankedTensorType>();
+    auto elementType = resultType.getElementType();
+
+    if (!elementType.isInteger())
+      return rewriter.notifyMatchFailure(op, "expected integer result type");
+
+    auto outputSize = resultType.getNumElements();
+    auto dimension = op.getIotaDimension();
+    auto resultBitWidth = elementType.getIntOrFloatBitWidth();
+
+    llvm::SmallVector<APInt> values;
+    values.reserve(outputSize);
+
+    int64_t sequences = 1;
+    int64_t sequenceMax = resultType.getDimSize(dimension);
+    int64_t elementRepetitions = 1;
+    for (uint64_t i = 0; i < resultType.getShape().size(); i++) {
+      sequences *= i < dimension ? resultType.getDimSize(i) : 1;
+      elementRepetitions *= i > dimension ? resultType.getDimSize(i) : 1;
+    }
+
+    for (int64_t i = 0; i < sequences; ++i) {
+      for (int64_t value = 0; value < sequenceMax; ++value) {
+        for (int64_t k = 0; k < elementRepetitions; ++k) {
+          values.push_back(APInt(resultBitWidth, value));
+        }
+      }
+    }
+
+    rewriter.replaceOpWithNewOp<ConstantOp>(
+        op, DenseIntElementsAttr::get(resultType, values));
+    return success();
+  }
+};
+
 struct StablehloAggressiveFolderPass
     : public impl::StablehloAggressiveFolderPassBase<
           StablehloAggressiveFolderPass> {
@@ -500,6 +539,7 @@ struct StablehloAggressiveFolderPass
 void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
                                                MLIRContext* context) {
   populateStablehloShapeFolderPatterns(patterns, context);
+  patterns->add<EvalIotaOpPattern>(context);
 }
 
 void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
