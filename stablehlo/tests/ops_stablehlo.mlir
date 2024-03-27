@@ -5087,7 +5087,7 @@ func.func @is_compatible_quant_mix_non_quant(%arg0: tensor<1xf32>, %arg1: tensor
 // -----
 
 func.func @add_c4(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+1 {{mismatched operands and result expressed_type}}
+  // expected-error@+1 {{mismatched operands and result quantization expressed types}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:bf16, 1.0:17>>
   func.return
 }
@@ -5095,7 +5095,7 @@ func.func @add_c4(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
 // -----
 
 func.func @add_c3(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+1 {{mismatched operands and result storage_type}}
+  // expected-error@+1 {{mismatched operands and result quantization storage types}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i4:f32, 1.0:17>>
   func.return
 }

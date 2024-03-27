@@ -291,8 +291,7 @@ LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
   if (noneQuantized<quant::QuantizedType>(typeEntries)) {
     if (lhsType != rhsType || lhsType != resultType)
       return emitOptionalError(
-          location,
-          "op requires compatible types for all operands and results");
+          location, "op requires same types for all operands and results");
     return success();
   }
   // add_c2
@@ -308,14 +307,15 @@ LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
   auto storageType = lhsQType.getStorageType();
   if (storageType != rhsQType.getStorageType() ||
       storageType != resultQType.getStorageType())
-    return emitOptionalError(location,
-                             "mismatched operands and result storage_type");
+    return emitOptionalError(
+        location, "mismatched operands and result quantization storage types");
   // add_c4
   auto expressedType = lhsQType.getExpressedType();
   if (expressedType != rhsQType.getExpressedType() ||
       expressedType != resultQType.getExpressedType())
-    return emitOptionalError(location,
-                             "mismatched operands and result expressed_type");
+    return emitOptionalError(
+        location,
+        "mismatched operands and result quantization expressed types");
 
   auto lhsQPAType = lhsType.dyn_cast<quant::UniformQuantizedPerAxisType>();
   auto rhsQPAType = rhsType.dyn_cast<quant::UniformQuantizedPerAxisType>();
