@@ -322,10 +322,11 @@ LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
   auto resultQPAType =
       resultType.dyn_cast<quant::UniformQuantizedPerAxisType>();
   if (lhsQPAType || rhsQPAType) {
+    // add_c5
     if (!resultQPAType)
       return emitOptionalError(
           location, "result is not per_axis quantized but lhs or rhs are");
-
+    // add_c6
     if (lhsQPAType)
       if (resultQPAType.getQuantizedDimension() !=
           lhsQPAType.getQuantizedDimension())
