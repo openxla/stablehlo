@@ -19,7 +19,7 @@ package(
 )
 
 cc_binary(
-    name = "example-add",
+    name = "example_add",
     srcs = [
         "ExampleAdd.cpp",
     ],
@@ -33,7 +33,7 @@ cc_binary(
 )
 
 cc_test(
-    name = "example-add-test",
+    name = "example_add_test",
     srcs = [
         "ExampleAdd.cpp",
     ],
