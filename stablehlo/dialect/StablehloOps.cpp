@@ -2992,5 +2992,13 @@ Operation* StablehloDialect::materializeConstant(OpBuilder& builder,
   return builder.create<ConstantOp>(loc, type, elementsAttr);
 }
 
+std::optional<StablehloDialectVersion> StablehloDialect::getVersion() const {
+  return version;
+}
+
+void StablehloDialect::setVersion(StablehloDialectVersion version) {
+  this->version = version;
+}
+
 }  // namespace stablehlo
 }  // namespace mlir
