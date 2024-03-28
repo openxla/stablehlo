@@ -28,7 +28,6 @@ limitations under the License.
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
-#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace hlo {
