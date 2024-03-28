@@ -81,6 +81,83 @@ bool noneQuantized(ArrayRef<Type> typeRange) {
       typeRange, [&](Type val) { return !getElementTypeOrSelf(val).isa<T>(); });
 }
 
+template <typename T>
+bool anyQuantized(ArrayRef<Type> typeRange) {
+  return llvm::any_of(
+      typeRange, [&](Type val) { return getElementTypeOrSelf(val).isa<T>(); });
+}
+
+LogicalResult verifyBinaryOpQuantizationConstraints(
+    std::optional<Location> location, Type lhsType, Type rhsType,
+    Type resultType) {
+  lhsType = getElementTypeOrSelf(lhsType);
+  rhsType = getElementTypeOrSelf(rhsType);
+  resultType = getElementTypeOrSelf(resultType);
+  llvm::SmallVector<Type, 3> typeEntries{lhsType, rhsType, resultType};
+  // add_c1
+  if (noneQuantized<quant::QuantizedType>(typeEntries)) {
+    if (lhsType != rhsType || lhsType != resultType)
+      return emitOptionalError(
+          location, "op requires same types for all operands and results");
+    return success();
+  }
+  // add_c2
+  if (!allQuantized<quant::QuantizedType>(typeEntries)) {
+    return emitOptionalError(location,
+                             "expects  all operands and results to be either "
+                             "quantized or non-quantized");
+  }
+  auto lhsQType = lhsType.dyn_cast<quant::QuantizedType>();
+  auto rhsQType = rhsType.dyn_cast<quant::QuantizedType>();
+  auto resultQType = resultType.dyn_cast<quant::QuantizedType>();
+  // add_c3
+  auto storageType = lhsQType.getStorageType();
+  if (storageType != rhsQType.getStorageType() ||
+      storageType != resultQType.getStorageType())
+    return emitOptionalError(
+        location, "mismatched operands and result quantization storage types");
+  // add_c4
+  auto expressedType = lhsQType.getExpressedType();
+  if (expressedType != rhsQType.getExpressedType() ||
+      expressedType != resultQType.getExpressedType())
+    return emitOptionalError(
+        location,
+        "mismatched operands and result quantization expressed types");
+
+  auto lhsQPAType = lhsType.dyn_cast<quant::UniformQuantizedPerAxisType>();
+  auto rhsQPAType = rhsType.dyn_cast<quant::UniformQuantizedPerAxisType>();
+  auto resultQPAType =
+      resultType.dyn_cast<quant::UniformQuantizedPerAxisType>();
+  if (lhsQPAType || rhsQPAType) {
+    // add_c5
+    if (!resultQPAType)
+      return emitOptionalError(
+          location, "result is not per_axis quantized but lhs or rhs are");
+    // add_c6
+    if (lhsQPAType)
+      if (resultQPAType.getQuantizedDimension() !=
+          lhsQPAType.getQuantizedDimension())
+        return emitOptionalError(
+            location, "quantization_dimension of lhs and result are not same ",
+            lhsType, " vs ", resultType);
+    // add_c7
+    if (rhsQPAType)
+      if (resultQPAType.getQuantizedDimension() !=
+          rhsQPAType.getQuantizedDimension())
+        return emitOptionalError(
+            location, "quantization_dimension of rhs and result are not same ",
+            rhsType, " vs ", resultType);
+
+    return success();
+  }
+
+  return !resultQPAType
+             ? success()
+             : emitOptionalError(location,
+                                 "result per_axis quantized but none from rhs "
+                                 "and lhs are per_axis quantized");
+}
+
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -281,74 +358,15 @@ LogicalResult verifyPairwiseCompatibleShapes(TypeRange values) {
   return success();
 }
 
-LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
-                          Type rhsType, Type resultType) {
-  lhsType = getElementTypeOrSelf(lhsType);
-  rhsType = getElementTypeOrSelf(rhsType);
-  resultType = getElementTypeOrSelf(resultType);
+LogicalResult verifyAddOp(std::optional<Location> location, Operation* op,
+                          Type lhsType, Type rhsType, Type resultType) {
   llvm::SmallVector<Type, 3> typeEntries{lhsType, rhsType, resultType};
-  // add_c1
-  if (noneQuantized<quant::QuantizedType>(typeEntries)) {
-    if (lhsType != rhsType || lhsType != resultType)
-      return emitOptionalError(
-          location, "op requires same types for all operands and results");
-    return success();
-  }
-  // add_c2
-  if (!allQuantized<quant::QuantizedType>(typeEntries)) {
-    return emitOptionalError(location,
-                             "expects  all operands and results to be either "
-                             "quantized or non-quantized");
-  }
-  auto lhsQType = lhsType.dyn_cast<quant::QuantizedType>();
-  auto rhsQType = rhsType.dyn_cast<quant::QuantizedType>();
-  auto resultQType = resultType.dyn_cast<quant::QuantizedType>();
-  // add_c3
-  auto storageType = lhsQType.getStorageType();
-  if (storageType != rhsQType.getStorageType() ||
-      storageType != resultQType.getStorageType())
-    return emitOptionalError(
-        location, "mismatched operands and result quantization storage types");
-  // add_c4
-  auto expressedType = lhsQType.getExpressedType();
-  if (expressedType != rhsQType.getExpressedType() ||
-      expressedType != resultQType.getExpressedType())
-    return emitOptionalError(
-        location,
-        "mismatched operands and result quantization expressed types");
+  if (anyQuantized<quant::QuantizedType>(typeEntries))
+    return verifyBinaryOpQuantizationConstraints(location, lhsType, rhsType,
+                                                 resultType);
 
-  auto lhsQPAType = lhsType.dyn_cast<quant::UniformQuantizedPerAxisType>();
-  auto rhsQPAType = rhsType.dyn_cast<quant::UniformQuantizedPerAxisType>();
-  auto resultQPAType =
-      resultType.dyn_cast<quant::UniformQuantizedPerAxisType>();
-  if (lhsQPAType || rhsQPAType) {
-    // add_c5
-    if (!resultQPAType)
-      return emitOptionalError(
-          location, "result is not per_axis quantized but lhs or rhs are");
-    // add_c6
-    if (lhsQPAType)
-      if (resultQPAType.getQuantizedDimension() !=
-          lhsQPAType.getQuantizedDimension())
-        return emitOptionalError(
-            location, "quantization_dimension of lhs and result are not same ",
-            lhsType, " vs ", resultType);
-    // add_c7
-    if (rhsQPAType)
-      if (resultQPAType.getQuantizedDimension() !=
-          rhsQPAType.getQuantizedDimension())
-        return emitOptionalError(
-            location, "quantization_dimension of rhs and result are not same ",
-            rhsType, " vs ", resultType);
-
-    return success();
-  }
-
-  return !resultQPAType
-             ? success()
-             : emitOptionalError(location,
-                                 "result per_axis quantized but none from rhs "
-                                 "and lhs are per_axis quantized");
+  return mlir::OpTrait::SameOperandsAndResultElementType<
+      ::mlir::stablehlo::AddOp>::verifyTrait(op);
 }
 
 LogicalResult verifyBatchNorm(std::optional<Location> location,

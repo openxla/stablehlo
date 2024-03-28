@@ -28,6 +28,7 @@ limitations under the License.
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace hlo {
@@ -374,8 +375,8 @@ LogicalResult inferWhileOp(std::optional<Location> location, ValueRange operand,
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
 
-LogicalResult verifyAddOp(std::optional<Location> location, Type lhsType,
-                          Type rhsType, Type resultType);
+LogicalResult verifyAddOp(std::optional<Location> location, Operation* op,
+                          Type lhsType, Type rhsType, Type resultType);
 
 LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
                                 int64_t allGatherDim,
