@@ -62,7 +62,6 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
-#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace hlo {
@@ -360,8 +359,13 @@ LogicalResult verifyAddOp(std::optional<Location> location, Operation* op,
     return verifyBinaryOpQuantizationConstraints(location, lhsType, rhsType,
                                                  resultType);
 
-  return mlir::OpTrait::SameOperandsAndResultElementType<
-      ::mlir::stablehlo::AddOp>::verifyTrait(op);
+  if (getElementTypeOrSelf(lhsType) != getElementTypeOrSelf(rhsType) ||
+      getElementTypeOrSelf(lhsType) != getElementTypeOrSelf(resultType))
+    return emitOptionalError(
+        location,
+        "op requires the same element type for all operands and results");
+
+  return success();
 }
 
 LogicalResult verifyBatchNorm(std::optional<Location> location,
