@@ -1204,7 +1204,8 @@ func.func @add_bounds(
 func.func @add_bounds_mismatch(
   %arg0: tensor<3xf32, #stablehlo.bounds<?>>,
   %arg1: tensor<?xf32, #stablehlo.bounds<2>>) -> tensor<?xindex> {
-  // expected-error@+1 {{requires compatible types for all operands and results}}
+  // expected-error@+2 {{op failed to infer returned types}}
+  // expected-error@+1 {{Mismatched dimension size 3 and bound 2 in dimension 0}}
   %result = "stablehlo.add"(%arg0, %arg1) : (
     tensor<3xf32, #stablehlo.bounds<?>>,
     tensor<?xf32, #stablehlo.bounds<2>>) -> tensor<?xf32>

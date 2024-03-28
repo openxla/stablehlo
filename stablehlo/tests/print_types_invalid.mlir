@@ -11,10 +11,9 @@ func.func @unary_eltwise_two_types(%arg0: tensor<?x?xf64>,
 
 // -----
 
-// TODO(ajcbik): error message is a bit too strict, should be "compatible" type?
 func.func @binary_eltwise_type_mismatch(%arg0: tensor<?x?xf64>,
                                         %arg1: tensor<?x?xf32>) -> tensor<?x?xf64> {
-  // expected-error @+1 {{'stablehlo.add' op requires compatible types for all operands and results}}
+  // expected-error @+1 {{op requires the same element type for all operands and results}}
   %0 = stablehlo.add %arg0, %arg1 : (tensor<?x?xf64>, tensor<?x?xf32>) -> tensor<?x?xf64>
   func.return %0 : tensor<?x?xf64>
 }
