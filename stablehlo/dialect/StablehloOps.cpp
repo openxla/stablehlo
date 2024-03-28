@@ -207,8 +207,8 @@ LogicalResult AddOp::inferReturnTypeComponents(
 }
 
 LogicalResult AddOp::verify() {
-  return hlo::verifyAddOp(getLoc(), getLhs().getType(), getRhs().getType(),
-                          getResult().getType());
+  return hlo::verifyAddOp(getLoc(), getOperation(), getLhs().getType(),
+                          getRhs().getType(), getResult().getType());
 }
 
 //===----------------------------------------------------------------------===//
