@@ -32,20 +32,13 @@ Here's how to build the StableHLO repo on Linux or macOS:
 
    ```sh
    # On Linux
-   sudo apt install cmake ninja-build lld
+   sudo apt install cmake ninja-build lld ccache
 
    # On macOS
-   brew install cmake ninja
+   brew install cmake ninja ccache
    ```
 
-2. Set the `LLVM_ENABLE_LLD` shell variable depending on your preferences. We
-   recommend setting it to `ON` on Linux and to `OFF` on macOS.
-
-   ```sh
-   [[ "$(uname)" != "Darwin" ]] && LLVM_ENABLE_LLD="ON" || LLVM_ENABLE_LLD="OFF"
-   ```
-
-3. Clone the StableHLO repo and the LLVM repository:
+2. Clone the StableHLO repo and the LLVM repository:
 
    ```sh
    git clone https://github.com/openxla/stablehlo
@@ -57,7 +50,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
 
    Cloning the LLVM repository may take a few minutes.
 
-4. Make sure you check out the correct commit in the LLVM repository:
+3. Make sure you check out the correct commit in the LLVM repository:
 
    ```sh
    (cd llvm-project && git fetch && git checkout $(cat ../build_tools/llvm_version.txt))
@@ -65,73 +58,26 @@ Here's how to build the StableHLO repo on Linux or macOS:
 
    You need to do this every time `llvm_version.txt` changes.
 
-5. Configure and build MLIR:
+4. Build StableHLO as a standalone library and run all the tests:
 
    ```sh
-   MLIR_ENABLE_BINDINGS_PYTHON=OFF build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build
-   ```
-
-   This will take a considerable amount of time. For example, on a MacBook Pro
-   with an M1 Pro chip, building MLIR took around 10 minutes at the moment
-   of writing.
-
-   Again, you need to do this every time `llvm_version.txt` changes.
-
-6. Build StableHLO as a standalone library:
-
-   ```sh
-   mkdir -p build && cd build
-
-   cmake .. -GNinja \
-     -DLLVM_ENABLE_LLD="$LLVM_ENABLE_LLD" \
-     -DCMAKE_BUILD_TYPE=Release \
-     -DLLVM_ENABLE_ASSERTIONS=ON \
-     -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=OFF \
-     -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
-
-   cmake --build .
-   ```
-
-   If you are actively developing StableHLO, you may want the following additional
-   CMake settings:
-
-   ```sh
-   cmake .. -GNinja \
-     -DSTABLEHLO_ENABLE_LLD=ON \
-     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-     -DLLVM_ENABLE_ASSERTIONS=ON \
-     -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=OFF \
-     -DSTABLEHLO_ENABLE_SPLIT_DWARF=ON \
-     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-     -DSTABLEHLO_ENABLE_SANITIZER=address \
-     -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
-
-   cmake --build .
-   ```
-
-      This will enable debug symbols and ccache, which can speed up incremental
-      builds. It also creates a GDB index file in the binary to speed up
-      debugging.
-
-      If you build MLIR using the script above it should also set by default
-      `LLVM_USE_SPLIT_DWARF` which does the majority of the size saving for
-      the binary and should also be set.
-
-7. Now you can make sure it works by running some tests:
-
-   ```sh
-   ninja check-stablehlo-tests
+   # first configure the build system
+   cmake --preset debug
+   # then build the project
+   cmake --build ./build --target check-stablehlo-ci
    ```
 
    You should see results like this:
 
    ```txt
-   Testing Time: 5.99s
-     Passed: 47
+   Testing Time: 4.13s
+
+   Total Discovered Tests: 137
+   Passed: 137 (100.00%)
    ```
 
-   This runs all the tests in `stablehlo/tests/`.
+   This runs all the tests in `stablehlo/tests/`. You can change the target
+   to build or test specific parts of the project.
 
 ## Python
 

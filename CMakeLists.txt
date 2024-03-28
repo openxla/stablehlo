@@ -89,13 +89,69 @@ if(STABLEHLO_EXTERNAL_PROJECT_BUILD)
   list(APPEND CMAKE_MODULE_PATH "${MLIR_MAIN_SRC_DIR}/cmake/modules")
 elseif(NOT STABLEHLO_BUILD_EMBEDDED)
   message(STATUS "Building StableHLO with an installed MLIR")
-  find_package(MLIR REQUIRED CONFIG)
+
+  # These defaults are moderately important to us, but the user *can*
+  # override them (enabling some of these brings in deps that will conflict,
+  # so ymmv).
+  # https://github.com/openxla/iree/blob/f3b6bcd79b24ef4a9b355eb3f3496ffafcbd0881/build_tools/cmake/iree_llvm.cmake#L127
+  set(LLVM_INCLUDE_EXAMPLES OFF CACHE BOOL "")
+  set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "")
+  set(LLVM_INCLUDE_BENCHMARKS OFF CACHE BOOL "")
+  set(LLVM_APPEND_VC_REV OFF CACHE BOOL "")
+  set(LLVM_ENABLE_IDE ON CACHE BOOL "")
+  set(LLVM_ENABLE_BINDINGS OFF CACHE BOOL "")
+  # LLVM defaults to building all targets. We always enable targets that we need
+  # as we need them, so default to none. The user can override this as needed,
+  # which is fine.
+  set(LLVM_TARGETS_TO_BUILD "" CACHE STRING "")
+
+  # We enable LLVM projects as needed. The user can override this.
+  set(LLVM_ENABLE_PROJECTS "" CACHE STRING "")
+  set(LLVM_EXTERNAL_PROJECTS "" CACHE STRING "")
+
+  # Unconditionally enable mlir.
+  list(APPEND LLVM_ENABLE_PROJECTS mlir)
+
+  # Setup LLVM lib and bin directories.
+  set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/llvm-project/bin)
+  set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/llvm-project/lib)
+  set(LLVM_TOOLS_BINARY_DIR ${CMAKE_BINARY_DIR}/llvm-project/bin)
+
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  set(_BUNDLED_LLVM_CMAKE_SOURCE_SUBDIR "llvm-project/llvm")
+  add_subdirectory("${_BUNDLED_LLVM_CMAKE_SOURCE_SUBDIR}" "llvm-project" EXCLUDE_FROM_ALL)
+  get_directory_property(LLVM_VERSION_MAJOR DIRECTORY "${_BUNDLED_LLVM_CMAKE_SOURCE_SUBDIR}" LLVM_VERSION_MAJOR)
+  if (NOT LLVM_VERSION_MAJOR)
+    message(SEND_ERROR "Failed to read LLVM_VERSION_MAJOR property on LLVM directory. Should have been set since https://github.com/llvm/llvm-project/pull/83346.")
+  endif()
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+
+  # Set some CMake variables that mirror things exported in the find_package
+  # world. Source of truth for these is in an installed LLVMConfig.cmake,
+  # MLIRConfig.cmake, LLDConfig.cmake (etc) and in the various standalone
+  # build segments of each project's top-level CMakeLists.
+  set(LLVM_CMAKE_DIR "${CMAKE_BINARY_DIR}/llvm-project/lib/cmake/llvm")
+  list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+  # TODO: Fix MLIR upstream so it doesn't spew into the containing project
+  # binary dir. See mlir/cmake/modules/CMakeLists.txt
+  # (and other LLVM sub-projects).
+  set(MLIR_CMAKE_DIR "${CMAKE_BINARY_DIR}/lib/cmake/mlir")
+  if(NOT EXISTS "${MLIR_CMAKE_DIR}/AddMLIR.cmake")
+    message(SEND_ERROR "Could not find AddMLIR.cmake in ${MLIR_CMAKE_DIR}: LLVM sub-projects may have changed their layout. See the mlir_cmake_builddir variable in mlir/cmake/modules/CMakeLists.txt")
+  endif()
+  list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
+
   message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
   message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-  set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
-  set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
-  list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
-  list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+
+  set(LLVM_INCLUDE_DIRS
+  ${CMAKE_SOURCE_DIR}/${_BUNDLED_LLVM_CMAKE_SOURCE_SUBDIR}/include
+  ${CMAKE_BINARY_DIR}/llvm-project/include
+  )
+  set(MLIR_INCLUDE_DIRS
+    ${CMAKE_SOURCE_DIR}/llvm-project/mlir/include
+    ${CMAKE_BINARY_DIR}/llvm-project/tools/mlir/include
+  )
 else()
   message(STATUS "Building StableHLO embedded in another project")
 endif()
