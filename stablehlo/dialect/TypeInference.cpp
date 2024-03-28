@@ -62,6 +62,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
+#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace hlo {
@@ -94,13 +95,7 @@ LogicalResult verifyBinaryOpQuantizationConstraints(
   rhsType = getElementTypeOrSelf(rhsType);
   resultType = getElementTypeOrSelf(resultType);
   llvm::SmallVector<Type, 3> typeEntries{lhsType, rhsType, resultType};
-  // add_c1
-  if (noneQuantized<quant::QuantizedType>(typeEntries)) {
-    if (lhsType != rhsType || lhsType != resultType)
-      return emitOptionalError(
-          location, "op requires same types for all operands and results");
-    return success();
-  }
+
   // add_c2
   if (!allQuantized<quant::QuantizedType>(typeEntries)) {
     return emitOptionalError(location,
