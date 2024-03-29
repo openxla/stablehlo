@@ -7,7 +7,7 @@ Last updated: 10/31/2023<br/>
 ## Version log
 
 * 10/05/2023: Initial version.
-* 10/17/2023: Minor fixes and add proposed operation semantics. 
+* 10/17/2023: Minor fixes and add proposed operation semantics.
 
 ## Introduction
 
@@ -61,7 +61,7 @@ op.
 ### hybrid_dequantize_then_op semantics
 
 We propose to define `hybrid_dequantize_then_op` semantics as part of quantization
-computations. 
+computations.
 
 * `hybrid_dequantize_then_op` is used to specify weight-only quantization for
 hybrid op which accepts lhs in floating-point and rhs in quantized types. It
@@ -107,7 +107,7 @@ feature_group_count, batch_group_count, precision_config), lhs, rhs)`.
   * (C28) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
   * (C29) If `is_per_axis_quantized(rhs)`,
     then `quantization_dimension(rhs) = kernel_output_feature_dimension`.
-  * (C30) If `is_per_axis_quantized(result)`, then 
+  * (C30) If `is_per_axis_quantized(result)`, then
     `quantization_dimension(result) = output_feature_dimension`.
   * If `is_quantized(lhs)`:
     * (C31) `storage_type(lhs) = storage_type(rhs)`.
@@ -154,4 +154,4 @@ graph also accepts input in float and weight in quantized type. Instead of
 dequantizing weights, inputs are quantized on-the-fly based on input range and
 computation is done in quantized type. To represent DRQ in StableHLO, we can consider
 utilizing custom call, but this issue will be considered separately from this
-RFC as more discussion is needed. 
+RFC as more discussion is needed.
