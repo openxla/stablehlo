@@ -4576,7 +4576,7 @@ ordering of `index_space(result)` and `index_space(operand)`.
 #### Examples
 
 ```mlir
-// %operand: [[1, 2, 3], [4, 5, 6]]]
+// %operand: [[1, 2, 3], [4, 5, 6]]
 %result = "stablehlo.reshape"(%operand) : (tensor<2x3xi32>) -> tensor<3x2xi32>
 // %result: [[1, 2], [3, 4], [5, 6]]
 ```
