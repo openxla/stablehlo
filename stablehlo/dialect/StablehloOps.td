@@ -2852,7 +2852,7 @@ def StableHLO_TraceOp: StableHLO_Op<"trace"> {
 }
 
 def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
-      [Pure, HLO_CompatibleOperandsAndResultElementType,
+      [Pure, HLO_CompatibleOperandsAndResultElementType, /*transpose_c1*/
       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Transpose operation";
   let description = [{
@@ -2871,7 +2871,9 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
     HLO_TensorOrPerAxisQuantizedTensor:$operand,
     DenseI64ArrayAttr:$permutation
   );
-  let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor:$result);
+
+  let hasVerifier = 1;
 
   let assemblyFormat = [{
     $operand `,` `dims` `=` $permutation
@@ -3009,7 +3011,7 @@ def StableHLO_ReturnOp : StableHLO_Op<"return", [Pure, Terminator]> {
   }];
 
   let arguments = (ins
-    Variadic<HLO_TensorOrTokenOrTuple >:$results
+    Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>:$results
   );
 
   let assemblyFormat = "$results attr-dict (`:` type($results)^)?";

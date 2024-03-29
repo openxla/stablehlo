@@ -1703,6 +1703,15 @@ LogicalResult SetDimensionSizeOp::inferReturnTypeComponents(
 }
 
 //===----------------------------------------------------------------------===//
+// TransposeOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult TransposeOp::verify() {
+  return hlo::verifyTransposeOp(getLoc(), getOperand().getType(),
+                                getPermutation(), getResult().getType());
+}
+
+//===----------------------------------------------------------------------===//
 // PadOp
 //===----------------------------------------------------------------------===//
 
