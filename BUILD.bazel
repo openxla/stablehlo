@@ -1075,6 +1075,7 @@ cc_library(
         "@llvm-project//mlir:InliningUtils",
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:ShapeDialect",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:SparseTensorDialect",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TensorDialect",

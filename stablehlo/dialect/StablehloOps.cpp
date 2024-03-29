@@ -68,6 +68,7 @@ limitations under the License.
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Interfaces/FunctionInterfaces.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
@@ -769,6 +770,27 @@ LogicalResult DynamicIotaOp::reifyReturnTypeShapes(
 LogicalResult DynamicIotaOp::verify() {
   return hlo::verifyDynamicIotaOp(getLoc(), getOutputShape(),
                                   getIotaDimension(), getResult());
+}
+
+mlir::Speculation::Speculatability DynamicIotaOp::getSpeculatability() {
+  // If the output shape operand is constant, each of its dimensions is static.
+  // For each dimension in the result type's shape:
+  // 1. If it is static, the verifier has already checked that it matches the
+  //    corresponding dimension in the output shape operand.
+  // 2. Otherwise, it is dynamic, so there cannot be a mismatch.
+  // (In fact, the result type's shape can be inferred from the operand.)
+  if (matchPattern(getOperand(), m_Constant()))
+    return mlir::Speculation::Speculatable;
+
+  // The result type's shape is fully dynamic, so there cannot be a mismatch
+  // with the output shape operand at runtime (the type has no expectations).
+  if (llvm::all_of(llvm::seq(getType().getRank()),
+                   [this](int64_t i) { return getType().isDynamicDim(i); }))
+    return mlir::Speculation::Speculatable;
+
+  // The output shape operand's value is unknown and at least one of the result
+  // type's dimensions is static, so the dimensions could disagree at runtime.
+  return mlir::Speculation::NotSpeculatable;
 }
 
 //===----------------------------------------------------------------------===//

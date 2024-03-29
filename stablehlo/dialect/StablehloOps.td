@@ -121,7 +121,7 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
   let assemblyFormat = "`dim` `=` $iota_dimension attr-dict `:` type($output)";
 }
 
-def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Pure]> {
+def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "DynamicIota operation";
   let description = [{
     This operation is a work in progress, so it is not yet included in
@@ -143,6 +143,11 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Pure]>
 
   let assemblyFormat = [{
     $output_shape `,` `dim` `=` $iota_dimension attr-dict `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
   }];
 }
 
