@@ -128,28 +128,29 @@ LogicalResult verifyBinaryOpQuantizationConstraints(
       return emitOptionalError(
           location, "result is not per_axis quantized but lhs or rhs are");
     // add_c6
-    if (lhsQPAType)
+    if (lhsQPAType) {
       if (resultQPAType.getQuantizedDimension() !=
           lhsQPAType.getQuantizedDimension())
         return emitOptionalError(
             location, "quantization_dimension of lhs and result are not same ",
             lhsType, " vs ", resultType);
+    }
     // add_c7
-    if (rhsQPAType)
+    if (rhsQPAType) {
       if (resultQPAType.getQuantizedDimension() !=
           rhsQPAType.getQuantizedDimension())
         return emitOptionalError(
             location, "quantization_dimension of rhs and result are not same ",
             rhsType, " vs ", resultType);
-
+    }
     return success();
   }
 
-  return !resultQPAType
-             ? success()
-             : emitOptionalError(location,
-                                 "result per_axis quantized but none from rhs "
-                                 "and lhs are per_axis quantized");
+  if (resultQPAType)
+    return emitOptionalError(location,
+                             "result per_axis quantized but none from rhs "
+                             "and lhs are per_axis quantized");
+  return success();
 }
 
 }  // namespace
