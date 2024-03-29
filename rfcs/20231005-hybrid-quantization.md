@@ -149,10 +149,9 @@ rhs)`.
 
 ### Dynamic Range Quantization
 
-Dynamic range quantization(DRQ) is a different quantization scheme, which has
-the same type signature as weight-only quantization. A dynamic range quantized
+Dynamic range quantization(DRQ) is a different quantization scheme, which is represented in comparable MLIR dialects using the same type signature as this proposed weight-only quantization representation. A dynamic range quantized
 graph also accepts input in float and weight in quantized type. Instead of
 dequantizing weights, inputs are quantized on-the-fly based on input range and
-computation is done in quantized type. To represent DRQ, we can consider
+computation is done in quantized type. To represent DRQ in StableHLO, we can consider
 utilizing custom call, but this issue will be considered separately from this
 RFC as more discussion is needed. 
