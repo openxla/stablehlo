@@ -6271,7 +6271,7 @@ As a specific example, the below program is valid. However, at runtime, the
 exact shapes of `%arg0` and `%arg1` will have to be the same, otherwise the
 behavior of the program is undefined:
 
-```
+```mlir
 func.func @foo(%arg0: tensor<?xi32>, %arg1: tensor<?xi32>) -> tensor<?xi32> {
     %0 = stablehlo.add %arg0, %arg1 : tensor<?xi32>
     return %0 : tensor<?xi32>
