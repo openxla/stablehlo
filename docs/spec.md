@@ -6263,13 +6263,13 @@ future ([#1157](https://github.com/openxla/stablehlo/issues/1157)).
 #### Shape mismatches
 
 StableHLO supports dynamically-shaped tensors. However, shapes have to agree at
-runtime, otherwise the behavior is implementation-defined. StableHLO does not
-explicitly provide an op that can assert that a tensor has a given shape at
-runtime. Generating correct code is the responsibility of the producer.
+runtime, otherwise the behavior is undefined. StableHLO does not explicitly
+provide an op that can assert that a tensor has a given shape at runtime.
+Generating correct code is the responsibility of the producer.
 
 As a specific example, the below program is valid. However, at runtime, the
 exact shapes of `%arg0` and `%arg1` will have to be the same, otherwise the
-result is unspecified:
+behavior of the program is undefined:
 
 ```
 func.func @foo(%arg0: tensor<?xi32>, %arg1: tensor<?xi32>) -> tensor<?xi32> {
