@@ -3858,8 +3858,6 @@ LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
   // If the operand type is statically shaped (not required) the number of
   // elements must match that of the result type.
   auto resultTy = result.getType().cast<RankedTensorType>();
-  assert(resultTy && resultTy.hasStaticShape() &&
-         "result type must be statically shaped");
   int64_t numResultElements = resultTy.getNumElements();
   int64_t numOperandElements = operandTy.getNumElements();
   if (numResultElements != numOperandElements)
