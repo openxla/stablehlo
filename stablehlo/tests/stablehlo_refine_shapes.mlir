@@ -3,7 +3,7 @@
 func.func @error_illformed(%arg0: tensor<3xf32>, %arg1: tensor<4xf32>) -> tensor<?xf32> {
   %0 = stablehlo.abs %arg0 : (tensor<3xf32>) -> tensor<?xf32>
   %1 = stablehlo.abs %arg1 : (tensor<4xf32>) -> tensor<?xf32>
-  // expected-error@+1{{requires compatible types for all operands and results}}
+  // expected-error@+1{{requires the same shape for all operands and results}}
   %2 = stablehlo.add %0, %1 : (tensor<?xf32>, tensor<?xf32>) -> tensor<?xf32>
   func.return %2 : tensor<?xf32>
 }
