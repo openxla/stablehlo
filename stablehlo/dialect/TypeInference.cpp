@@ -2891,13 +2891,7 @@ LogicalResult inferTriangularSolveOp(
     bool isTransposeAInvalid,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // ODS enforces that a and b are of same element type: float or complex.
-  auto elementType = a.getType().cast<ShapedType>().getElementType();
-  auto aType = a.getType().dyn_cast<RankedTensorType>();
-  if (!aType) {
-    inferredReturnShapes.emplace_back(elementType);
-    return success();
-  }
-
+  auto aType = a.getType().cast<RankedTensorType>();
   auto aRank = aType.getRank();
   if (aRank < 2)
     return emitOptionalError(
@@ -2909,12 +2903,7 @@ LogicalResult inferTriangularSolveOp(
                              "two minor dimensions of operand 'a' must ",
                              "be compatible, but got ", aType);
 
-  auto bType = b.getType().dyn_cast<RankedTensorType>();
-  if (!bType) {
-    inferredReturnShapes.emplace_back(elementType);
-    return success();
-  }
-
+  auto bType = b.getType().cast<RankedTensorType>();
   auto bRank = bType.getRank();
   if (aRank != bRank)
     return emitOptionalError(location,
