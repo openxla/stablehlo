@@ -2038,7 +2038,8 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
 
 def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
-    [HLO_CompatibleOperandsAndResultType /*collective_broadcast_c3*/]> {
+    [HLO_CompatibleOperandsAndResultType,
+     SameOperandsAndResultElementType /*collective_broadcast_c3*/]> {
   let summary = "CollectiveBroadcast operation";
   let description = [{
     Within each process group in the process grid, send the value of the
@@ -2073,7 +2074,8 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
 }
 
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
-    [HLO_CompatibleOperandsAndResultType /*collective_permute_c5*/]> {
+    [HLO_CompatibleOperandsAndResultType,
+     SameOperandsAndResultElementType /*collective_permute_c5*/]> {
   let summary = "CollectivePermute operation";
   let description = [{
     Within each process group in the process grid, sends the value of the
@@ -2758,7 +2760,8 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
 }
 
 def StableHLO_ReverseOp: StableHLO_ShapedInterfaceOp<"reverse",
-      [Pure, HLO_CompatibleOperandsAndResultType /*reverse_c1*/]> {
+      [Pure, HLO_CompatibleOperandsAndResultType,
+       SameOperandsAndResultElementType /*reverse_c1*/]> {
   let summary = "Reverse operation";
   let description = [{
     Reverses the order of elements in the `operand` along the specified
