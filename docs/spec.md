@@ -6260,6 +6260,26 @@ out-of-bounds accesses, etc. Unless explicitly called out, all these errors
 result in implementation-defined behavior, but this may change in the
 future ([#1157](https://github.com/openxla/stablehlo/issues/1157)).
 
+#### Shape mismatches
+
+StableHLO supports dynamically-shaped tensors. However, shapes have to agree at
+runtime, otherwise the behavior is implementation-defined. StableHLO does not
+explicitly provide an op that can assert that a tensor has a given shape at
+runtime. Generating correct code is the responsibility of the producer.
+
+As a specific example, the below program is valid. However, at runtime, the
+exact shapes of `%arg0` and `%arg1` will have to be the same, otherwise the
+result is unspecified:
+
+```
+func.func @foo(%arg0: tensor<?xi32>, %arg1: tensor<?xi32>) -> tensor<?xi32> {
+    %0 = stablehlo.add %arg0, %arg1 : tensor<?xi32>
+    return %0 : tensor<?xi32>
+}
+``
+
+#### Floating-point exceptions
+
 As an exception to this rule, floating-point exceptions in StableHLO programs
 have well-defined behavior. Operations which result in exceptions defined by the
 IEEE-754 standard (invalid operation, division-by-zero, overflow, underflow, or
