@@ -1517,16 +1517,8 @@ LogicalResult inferCaseOp(std::optional<Location> location, Value index,
 LogicalResult inferCholeskyOp(
     std::optional<Location> location, Value a,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  Type aType = a.getType();
-  RankedTensorType aRankedType = aType.dyn_cast<RankedTensorType>();
-  if (!aRankedType) {
-    // cholesky_c1
-    inferredReturnShapes.emplace_back(
-        aType.cast<ShapedType>().getElementType());
-    return success();
-  }
-
-  ArrayRef<int64_t> aShape = aRankedType.getShape();
+  auto aType = a.getType().cast<RankedTensorType>();
+  ArrayRef<int64_t> aShape = aType.getShape();
   // cholesky_c2
   if (aShape.size() < 2)
     return emitOptionalError(
@@ -1540,9 +1532,8 @@ LogicalResult inferCholeskyOp(
         aShape, ".");
 
   // cholesky_c1
-  inferredReturnShapes.emplace_back(aRankedType.getShape(),
-                                    aRankedType.getElementType(),
-                                    aRankedType.getEncoding());
+  inferredReturnShapes.emplace_back(aType.getShape(), aType.getElementType(),
+                                    aType.getEncoding());
   return success();
 }
 
