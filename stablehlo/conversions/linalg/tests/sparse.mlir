@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt %s --stablehlo-legalize-to-linalg=enable-sparse-ops --split-input-file --canonicalize | FileCheck %s -dump-input=always
+// RUN: stablehlo-opt %s --stablehlo-legalize-to-linalg=enable-sparse-ops --split-input-file --canonicalize | FileCheck %s
 
 #CSR = #sparse_tensor.encoding<{
   map = (d0, d1) -> (d0 : dense, d1 : compressed)

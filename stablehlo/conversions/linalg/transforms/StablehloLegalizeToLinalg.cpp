@@ -967,7 +967,7 @@ struct RealDynamicSliceConverter final
       ConversionPatternRewriter &rewriter) const override {
     Location loc = realDynamicSliceOp.getLoc();
     auto argType = llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
-    
+
     Type dimElementType = getElementTypeOrSelf(adaptor.getStartIndices());
     if (getElementTypeOrSelf(adaptor.getLimitIndices()) != dimElementType ||
         getElementTypeOrSelf(adaptor.getStrides()) != dimElementType) {
@@ -1260,11 +1260,6 @@ struct ConcatenateConverter final
     : OpConversionPattern<mlir::stablehlo::ConcatenateOp> {
   using OpConversionPattern::OpConversionPattern;
 
-  ConcatenateConverter(const TypeConverter &converter, MLIRContext *context,
-                       bool enableSparseOps)
-      : OpConversionPattern<mlir::stablehlo::ConcatenateOp>(converter, context),
-        enableSparseOps(enableSparseOps) {}
-
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ConcatenateOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
@@ -1277,21 +1272,6 @@ struct ConcatenateConverter final
     auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
-
-    if (enableSparseOps) {
-      bool isResultSparse =
-          sparse_tensor::getSparseTensorEncoding(resultType) != nullptr;
-      bool isAnyOperandSparse =
-          llvm::any_of(adaptor.getOperands(), [](auto operand) {
-            return sparse_tensor::getSparseTensorEncoding(operand.getType()) !=
-                   nullptr;
-          });
-      if (isResultSparse || isAnyOperandSparse) {
-        rewriter.replaceOpWithNewOp<sparse_tensor::ConcatenateOp>(
-            op, resultType, adaptor.getOperands(), op.getDimension());
-        return success();
-      }
-    }
 
     uint64_t dim = op.getDimension();
     Location loc = op.getLoc();
@@ -1362,10 +1342,45 @@ struct ConcatenateConverter final
         linalg::getPrunedAttributeList(op));
     return success();
   }
+};
 
- private:
-  /// Option to enable sparse ops.
-  bool enableSparseOps;
+/// Converts stablehlo.concatenate operation to a sparse_tensor.concatenate op.
+struct SparseConcatenateConverter final
+    : OpConversionPattern<mlir::stablehlo::ConcatenateOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  SparseConcatenateConverter(const TypeConverter &converter,
+                             MLIRContext *context)
+      : OpConversionPattern<mlir::stablehlo::ConcatenateOp>(converter, context,
+                                                            /*benefit=*/10) {}
+
+  LogicalResult matchAndRewrite(
+      mlir::stablehlo::ConcatenateOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override {
+    // Shortcut the one-operand case, simplifies code below.
+    if (adaptor.getOperands().size() == 1) {
+      rewriter.replaceOp(op, adaptor.getOperands()[0]);
+      return success();
+    }
+
+    auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
+    if (!resultType)
+      return rewriter.notifyMatchFailure(op, "type conversion failed");
+    bool isResultSparse =
+        sparse_tensor::getSparseTensorEncoding(resultType) != nullptr;
+    bool isAnyOperandSparse =
+        llvm::any_of(adaptor.getOperands(), [](auto operand) {
+          return sparse_tensor::getSparseTensorEncoding(operand.getType()) !=
+                 nullptr;
+        });
+
+    if (isResultSparse || isAnyOperandSparse) {
+      rewriter.replaceOpWithNewOp<sparse_tensor::ConcatenateOp>(
+          op, resultType, adaptor.getOperands(), op.getDimension());
+      return success();
+    }
+    return failure();
+  }
 };
 
 struct ConstConverterTensor final
@@ -1426,7 +1441,7 @@ struct SliceConverter final : OpConversionPattern<mlir::stablehlo::SliceOp> {
       ConversionPatternRewriter &rewriter) const override {
     auto argType =
         llvm::cast<RankedTensorType>(adaptor.getOperands()[0].getType());
-    
+
     SmallVector<OpFoldResult, 3> offsets, sizes, strides;
     auto startIndices = sliceOp.getStartIndices();
     auto limitIndices = sliceOp.getLimitIndices();
@@ -1460,7 +1475,7 @@ struct DynamicSliceConverter final
       ConversionPatternRewriter &rewriter) const override {
     Location loc = dynamicSliceOp.getLoc();
     auto argType = llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
-    
+
     auto resultType = getTypeConverter()->convertType<RankedTensorType>(
         dynamicSliceOp.getType());
     if (!resultType)
@@ -2528,6 +2543,7 @@ static void populateConversionPatterns(MLIRContext *context,
   // clang-format off
   patterns->add<
       BitcastConvertConverter,
+      ConcatenateConverter,
       ConstConverterTensor,
       EinsumToLinalgConverter,
       GatherConversion,
@@ -2547,7 +2563,9 @@ static void populateConversionPatterns(MLIRContext *context,
   detail::populatePointwiseStablehloToLinalgConversionPatterns(
       context, typeConverter, patterns, enablePrimitiveOps);
 
-  patterns->add<ConcatenateConverter>(typeConverter, context, enableSparseOps);
+  if (enableSparseOps) {
+    patterns->add<SparseConcatenateConverter>(typeConverter, context);
+  }
 
   if (enablePrimitiveOps) {
     patterns->add<
