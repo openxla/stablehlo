@@ -18,6 +18,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_BASE
 
 include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 
@@ -319,5 +320,11 @@ def HLO_BoundedAttrInterface : AttrInterface<"BoundedAttrInterface"> {
     "::llvm::ArrayRef<int64_t>", "getBounds"
   >];
 }
+
+def HLO_UnaryElementwiseSpeculatableImplTrait
+  : HLO_NativeOpTrait<"UnaryElementwiseSpeculatableImplTrait">;
+
+def HLO_UnaryElementwiseSpeculatable : TraitList<[
+    ConditionallySpeculatable, HLO_UnaryElementwiseSpeculatableImplTrait]>;
 
 #endif // STABLEHLO_DIALECT_BASE

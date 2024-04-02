@@ -38,6 +38,7 @@ limitations under the License.
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 
 // Include order matters
@@ -393,6 +394,29 @@ class CompatibleOperandsAndResultType
     if (!inferredReturnType) return failure();
     inferredReturnShapes.push_back(inferredReturnType);
     return success();
+  }
+};
+
+template <typename ConcreteType>
+struct UnaryElementwiseSpeculatableImplTrait
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      UnaryElementwiseSpeculatableImplTrait> {
+  // A unary elementwise op is not speculatable if a dimension of the result
+  // type is static while the corresponding dimension in the input type is
+  // dynamic. Indeed, the input dimension could differ at runtime.
+  // If the output dimension is dynamic, there is no expectation, so there
+  // cannot be a mismatch.
+  // If the input dimension is static, the output dimension can be inferred from
+  // it, so there cannot be a mismatch.
+  mlir::Speculation::Speculatability getSpeculatability() {
+    auto op = this->getOperation();
+    auto inputType = cast<RankedTensorType>(op->getOperand(0).getType());
+    auto resultType = cast<RankedTensorType>(op->getResult(0).getType());
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
+    return mlir::Speculation::Speculatable;
   }
 };
 
