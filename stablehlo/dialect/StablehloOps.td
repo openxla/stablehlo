@@ -659,7 +659,8 @@ def StableHLO_TanhOp: StableHLO_UnaryElementwiseOp<"tanh",
 class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
     Type OperandType = HLO_Tensor, Type ResultType = OperandType> :
     StableHLO_Op<mnemonic, traits # [InferShapedTypeOpInterface,
-    SameOperandsAndResultShape, Elementwise]> {
+    SameOperandsAndResultShape, Elementwise,
+    HLO_BinaryElementwiseSpeculatable, NoMemoryEffect]> {
   let arguments = (ins
     OperandType:$lhs,
     OperandType:$rhs
@@ -685,7 +686,7 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
   }];
 }
 
-def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add", [HLO_Commutative, Pure,
+def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add", [HLO_Commutative,
       InferTypeOpInterface,
       DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>],
       HLO_TensorOrPerAxisQuantizedTensor> {
@@ -727,7 +728,7 @@ def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add", [HLO_Commutative, Pur
 }
 
 def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
-      [Pure, HLO_CompatibleOperandsAndResultType /*atan2_c1*/],
+      [HLO_CompatibleOperandsAndResultType /*atan2_c1*/],
       HLO_FpComplexOrQuantizedIntTensor /*atan2_i1, atan2_i2*/> { /*atan2_c1*/
   let summary = "Atan2 operation";
   let description = [{
@@ -744,8 +745,8 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
   }];
 }
 
-def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
-    SameOperandsElementType /*complex_c1*/,
+def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex",
+    [SameOperandsElementType /*complex_c1*/,
     SameOperandsAndResultShape /*complex_c2*/,
     DeclareOpInterfaceMethods<InferTypeOpInterface> /*complex_c3*/]> {
   let summary = "Complex operation";
@@ -773,8 +774,8 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
   }];
 }
 
-def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide", [Pure,
-    HLO_CompatibleOperandsAndResultType /* div_c1 */],
+def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
+    [HLO_CompatibleOperandsAndResultType /* div_c1 */],
     HLO_IntFpOrComplexOrQuantizedIntTensor /* div_i1, div_i2 */> {
   let summary = "Div operation";
   let description = [{
@@ -792,7 +793,7 @@ def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide", [Pure,
 }
 
 def StableHLO_MaxOp : StableHLO_BinaryElementwiseOp<"maximum",
-      [HLO_Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
+      [HLO_Commutative, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Max operation";
   let description = [{
     Performs element-wise max operation on tensors `lhs` and `rhs` and produces
@@ -809,7 +810,7 @@ def StableHLO_MaxOp : StableHLO_BinaryElementwiseOp<"maximum",
 }
 
 def StableHLO_MinOp : StableHLO_BinaryElementwiseOp<"minimum",
-      [HLO_Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
+      [HLO_Commutative, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Min operation";
   let description = [{
     Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
@@ -826,7 +827,7 @@ def StableHLO_MinOp : StableHLO_BinaryElementwiseOp<"minimum",
 }
 
 def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",
-      [HLO_Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
+      [HLO_Commutative, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Mul operation";
   let description = [{
     Performs element-wise product of two tensors `lhs` and `rhs` and produces a
@@ -843,7 +844,7 @@ def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",
 }
 
 def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
-      [Pure, HLO_CompatibleOperandsAndResultType /* pow_c1 */],
+      [HLO_CompatibleOperandsAndResultType /* pow_c1 */],
       HLO_IntFpOrComplexOrQuantizedIntTensor /* pow_i1, pow_i2 */> {
   let summary = "Power operation";
   let description = [{
@@ -861,8 +862,8 @@ def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
 }
 
 def StableHLO_RemOp : StableHLO_BinaryElementwiseOp<"remainder",
-      [Pure, HLO_CompatibleOperandsAndResultType /*remainder_c1*/],
-       HLO_IntFpOrComplexOrQuantizedIntTensor /*remainder_i1, remainder_i2*/> {
+      [HLO_CompatibleOperandsAndResultType /*remainder_c1*/],
+      HLO_IntFpOrComplexOrQuantizedIntTensor /*remainder_i1, remainder_i2*/> {
   let summary = "Rem operation";
   let description = [{
     Performs element-wise remainder of dividend `lhs` and divisor `rhs` tensors
@@ -879,7 +880,7 @@ def StableHLO_RemOp : StableHLO_BinaryElementwiseOp<"remainder",
 }
 
 def StableHLO_ShiftLeftOp : StableHLO_BinaryElementwiseOp<"shift_left",
-      [Pure, HLO_CompatibleOperandsAndResultType /*shift_left_c1*/],
+      [HLO_CompatibleOperandsAndResultType /*shift_left_c1*/],
       HLO_IntTensor /*shift_left_i1, shift_left_i2*/> { /*shift_left_c1*/
   let summary = "ShiftLeft operation";
   let description = [{
@@ -897,7 +898,7 @@ def StableHLO_ShiftLeftOp : StableHLO_BinaryElementwiseOp<"shift_left",
 }
 
 def StableHLO_ShiftRightArithmeticOp : StableHLO_BinaryElementwiseOp<"shift_right_arithmetic",
-      [Pure, HLO_CompatibleOperandsAndResultType /*shift_right_arithmetic_c1*/],
+      [HLO_CompatibleOperandsAndResultType /*shift_right_arithmetic_c1*/],
       HLO_IntTensor /*shift_right_arithmetic_i1, shift_right_arithmetic_i2*/> { /*shift_right_arithmetic_c1*/
   let summary = "ShiftRightArithmetic operation";
   let description = [{
@@ -915,7 +916,7 @@ def StableHLO_ShiftRightArithmeticOp : StableHLO_BinaryElementwiseOp<"shift_righ
 }
 
 def StableHLO_ShiftRightLogicalOp : StableHLO_BinaryElementwiseOp<"shift_right_logical",
-      [Pure, HLO_CompatibleOperandsAndResultType /*shift_right_logical_c1*/],
+      [HLO_CompatibleOperandsAndResultType /*shift_right_logical_c1*/],
       HLO_IntTensor /*shift_right_logical_i1, shift_right_logical_i2*/> { /*shift_right_logical_c1*/
   let summary = "ShiftRightLogical operation";
   let description = [{
@@ -933,7 +934,7 @@ def StableHLO_ShiftRightLogicalOp : StableHLO_BinaryElementwiseOp<"shift_right_l
 }
 
 def StableHLO_SubtractOp : StableHLO_BinaryElementwiseOp<"subtract",
-      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexOrQuantizedIntTensor> {
+      [HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexOrQuantizedIntTensor> {
   let summary = "Subtract operation";
   let description = [{
     Performs element-wise subtraction of two tensors `lhs` and `rhs` and
@@ -956,7 +957,8 @@ def StableHLO_SubtractOp : StableHLO_BinaryElementwiseOp<"subtract",
 // See https://www.tensorflow.org/xla/operation_semantics#element-wise_binary_arithmetic_operations
 class StableHLO_BinaryBiwiseOrLogicalElementwiseOp<string mnemonic> :
         StableHLO_BinaryElementwiseOp<mnemonic,
-          [HLO_Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
+          [HLO_Commutative, HLO_CompatibleOperandsAndResultType,
+           HLO_BinaryElementwiseSpeculatable, NoMemoryEffect]> {
   let arguments = (ins
     HLO_PredOrIntTensor:$lhs,
     HLO_PredOrIntTensor:$rhs

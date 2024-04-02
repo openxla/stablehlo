@@ -416,6 +416,404 @@ func.func @tanh(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
 
 // -----
 
+// BinaryElementwise and BinaryBitwiseOrLogicalElementwise ops
+
+// -----
+
+// CHECK-LABEL: func @add_multidim
+// CHECK-NEXT: return
+func.func @add_multidim(%static_arg: tensor<2x2xf64>, %partially_dynamic_arg: tensor<2x?xf64>) {
+  %not_speculatable = stablehlo.add %static_arg, %partially_dynamic_arg : (tensor<2x2xf64>, tensor<2x?xf64>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable) : (tensor<?x?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @add
+// CHECK-NEXT: return
+func.func @add(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.add %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.add %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.add %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_1 = stablehlo.add %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.add %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %not_speculatable_3 = stablehlo.add %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_4 = stablehlo.add %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_5 = stablehlo.add %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @atan2
+// CHECK-NEXT: return
+func.func @atan2(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.atan2 %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.atan2 %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.atan2 %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_1 = stablehlo.atan2 %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.atan2 %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %not_speculatable_3 = stablehlo.atan2 %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_4 = stablehlo.atan2 %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_5 = stablehlo.atan2 %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @complex
+// CHECK-NEXT: return
+func.func @complex(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.complex %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xcomplex<f64>>
+  %speculatable_1 = stablehlo.complex %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xcomplex<f64>>
+  %not_speculatable_0 = stablehlo.complex %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xcomplex<f64>>
+  %not_speculatable_1 = stablehlo.complex %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xcomplex<f64>>
+  %not_speculatable_2 = stablehlo.complex %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xcomplex<f64>>
+  %not_speculatable_3 = stablehlo.complex %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xcomplex<f64>>
+  %not_speculatable_4 = stablehlo.complex %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xcomplex<f64>>
+  %not_speculatable_5 = stablehlo.complex %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xcomplex<f64>>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xcomplex<f64>>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @divide
+// CHECK-NEXT: return
+func.func @divide(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.divide %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.divide %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.divide %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_1 = stablehlo.divide %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.divide %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %not_speculatable_3 = stablehlo.divide %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_4 = stablehlo.divide %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_5 = stablehlo.divide %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @maximum
+// CHECK-NEXT: return
+func.func @maximum(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.maximum %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.maximum %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.maximum %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_1 = stablehlo.maximum %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.maximum %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %not_speculatable_3 = stablehlo.maximum %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_4 = stablehlo.maximum %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_5 = stablehlo.maximum %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @minimum
+// CHECK-NEXT: return
+func.func @minimum(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.minimum %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.minimum %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.minimum %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_1 = stablehlo.minimum %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.minimum %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %not_speculatable_3 = stablehlo.minimum %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_4 = stablehlo.minimum %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_5 = stablehlo.minimum %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @multiply
+// CHECK-NEXT: return
+func.func @multiply(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.multiply %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.multiply %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.multiply %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_1 = stablehlo.multiply %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.multiply %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %not_speculatable_3 = stablehlo.multiply %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_4 = stablehlo.multiply %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_5 = stablehlo.multiply %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @power
+// CHECK-NEXT: return
+func.func @power(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.power %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.power %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.power %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_1 = stablehlo.power %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.power %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %not_speculatable_3 = stablehlo.power %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_4 = stablehlo.power %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_5 = stablehlo.power %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @remainder
+// CHECK-NEXT: return
+func.func @remainder(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.remainder %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.remainder %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.remainder %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_1 = stablehlo.remainder %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.remainder %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %not_speculatable_3 = stablehlo.remainder %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_4 = stablehlo.remainder %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_5 = stablehlo.remainder %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @shift_left
+// CHECK-NEXT: return
+func.func @shift_left(%static_arg: tensor<2xi64>, %dynamic_arg: tensor<?xi64>) {
+  %speculatable_0 = stablehlo.shift_left %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %speculatable_1 = stablehlo.shift_left %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_0 = stablehlo.shift_left %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_1 = stablehlo.shift_left %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<?xi64>
+  %not_speculatable_2 = stablehlo.shift_left %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %not_speculatable_3 = stablehlo.shift_left %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_4 = stablehlo.shift_left %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_5 = stablehlo.shift_left %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<?xi64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xi64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @shift_right_arithmetic
+// CHECK-NEXT: return
+func.func @shift_right_arithmetic(%static_arg: tensor<2xi64>, %dynamic_arg: tensor<?xi64>) {
+  %speculatable_0 = stablehlo.shift_right_arithmetic %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %speculatable_1 = stablehlo.shift_right_arithmetic %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_0 = stablehlo.shift_right_arithmetic %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_1 = stablehlo.shift_right_arithmetic %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<?xi64>
+  %not_speculatable_2 = stablehlo.shift_right_arithmetic %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %not_speculatable_3 = stablehlo.shift_right_arithmetic %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_4 = stablehlo.shift_right_arithmetic %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_5 = stablehlo.shift_right_arithmetic %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<?xi64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xi64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @shift_right_logical
+// CHECK-NEXT: return
+func.func @shift_right_logical(%static_arg: tensor<2xi64>, %dynamic_arg: tensor<?xi64>) {
+  %speculatable_0 = stablehlo.shift_right_logical %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %speculatable_1 = stablehlo.shift_right_logical %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_0 = stablehlo.shift_right_logical %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_1 = stablehlo.shift_right_logical %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<?xi64>
+  %not_speculatable_2 = stablehlo.shift_right_logical %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %not_speculatable_3 = stablehlo.shift_right_logical %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_4 = stablehlo.shift_right_logical %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_5 = stablehlo.shift_right_logical %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<?xi64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xi64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @subtract
+// CHECK-NEXT: return
+func.func @subtract(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.subtract %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.subtract %static_arg, %static_arg : (tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.subtract %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_1 = stablehlo.subtract %static_arg, %dynamic_arg : (tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.subtract %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<2xf64>
+  %not_speculatable_3 = stablehlo.subtract %dynamic_arg, %static_arg : (tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_4 = stablehlo.subtract %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<2xf64>
+  %not_speculatable_5 = stablehlo.subtract %dynamic_arg, %dynamic_arg : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @and
+// CHECK-NEXT: return
+func.func @and(%static_arg: tensor<2xi64>, %dynamic_arg: tensor<?xi64>) {
+  %speculatable_0 = stablehlo.and %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %speculatable_1 = stablehlo.and %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_0 = stablehlo.and %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_1 = stablehlo.and %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<?xi64>
+  %not_speculatable_2 = stablehlo.and %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %not_speculatable_3 = stablehlo.and %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_4 = stablehlo.and %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_5 = stablehlo.and %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<?xi64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xi64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @or
+// CHECK-NEXT: return
+func.func @or(%static_arg: tensor<2xi64>, %dynamic_arg: tensor<?xi64>) {
+  %speculatable_0 = stablehlo.or %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %speculatable_1 = stablehlo.or %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_0 = stablehlo.or %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_1 = stablehlo.or %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<?xi64>
+  %not_speculatable_2 = stablehlo.or %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %not_speculatable_3 = stablehlo.or %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_4 = stablehlo.or %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_5 = stablehlo.or %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<?xi64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xi64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @xor
+// CHECK-NEXT: return
+func.func @xor(%static_arg: tensor<2xi64>, %dynamic_arg: tensor<?xi64>) {
+  %speculatable_0 = stablehlo.xor %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %speculatable_1 = stablehlo.xor %static_arg, %static_arg : (tensor<2xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_0 = stablehlo.xor %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_1 = stablehlo.xor %static_arg, %dynamic_arg : (tensor<2xi64>, tensor<?xi64>) -> tensor<?xi64>
+  %not_speculatable_2 = stablehlo.xor %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<2xi64>
+  %not_speculatable_3 = stablehlo.xor %dynamic_arg, %static_arg : (tensor<?xi64>, tensor<2xi64>) -> tensor<?xi64>
+  %not_speculatable_4 = stablehlo.xor %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<2xi64>
+  %not_speculatable_5 = stablehlo.xor %dynamic_arg, %dynamic_arg : (tensor<?xi64>, tensor<?xi64>) -> tensor<?xi64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?xi64>) -> ()
+  return
+}
+
+// -----
+
 // Ops that take an output shape as operand
 
 // -----
