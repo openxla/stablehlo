@@ -664,6 +664,237 @@ func.func @reduce_zero_ext(%arg0: tensor<0xi1>) -> tensor<i32> {
 
 // -----
 
+//  (a, a1) (b, b1) (c, c1)
+//    ▴       ▴
+//    │       │
+//    │       │
+//    │       │◄──────┐
+//    │       │       │
+//    r0      r1      r2
+//                    U
+//
+// To drop r0 and r1 use pairs (a, a1) (c, c1).
+
+// CHECK-LABEL: func.func @reduce_unused_case1
+func.func @reduce_unused_case1(%arg0: tensor<8xf32>,
+                               %arg1: tensor<8xi64>,
+                               %arg2: tensor<8xi64>) -> tensor<i64> {
+  // CHECK: [[R0:%.+]] = stablehlo.constant dense<2> : tensor<i64>
+  // CHECK: [[R1:%.+]] = stablehlo.reduce(%arg1 init: [[R0]]) applies stablehlo.maximum
+  %0 = stablehlo.constant dense<1.0> : tensor<f32>
+  %1 = stablehlo.constant dense<2> : tensor<i64>
+  %2 = stablehlo.constant dense<3> : tensor<i64>
+  %3:3 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1), (%arg2 init: %2) across dimensions = [0] :
+  (tensor<8xf32>, tensor<8xi64>, tensor<8xi64>, tensor<f32>, tensor<i64>, tensor<i64>) ->
+  (tensor<f32>, tensor<i64>, tensor<i64>)
+   reducer(%arg3: tensor<f32>, %arg6: tensor<f32>)
+          (%arg4: tensor<i64>, %arg7: tensor<i64>)
+          (%arg5: tensor<i64>, %arg8: tensor<i64>)
+  {
+    %4 = stablehlo.add %arg3, %arg6 : tensor<f32>
+    %5 = stablehlo.minimum %arg4, %arg7 : tensor<i64>
+    %6 = stablehlo.maximum %arg4, %arg7 : tensor<i64>
+    stablehlo.return %4, %5, %6 : tensor<f32>, tensor<i64>, tensor<i64>
+  }
+  return %3#2 : tensor<i64>
+}
+
+// -----
+
+//  (a, a1) (b, b1) (c, c1)
+//    ▴       ▴       ▴
+//    │       │       │
+//    ├───────┼───────┘
+//    │       │◄──────┐
+//    │       │       │
+//    r0      r1      r2
+//    U               U
+//
+// There is no suitable pair to drop r1.
+
+// CHECK-LABEL: func.func @reduce_unused_case2
+func.func @reduce_unused_case2(%arg0: tensor<8xf32>,
+                               %arg1: tensor<8xi64>,
+                               %arg2: tensor<8xi64>) -> (tensor<f32>, tensor<i64>) {
+  // CHECK: [[R:%.+]]:3 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1), (%arg2 init: %2)
+  %0 = stablehlo.constant dense<1.0> : tensor<f32>
+  %1 = stablehlo.constant dense<2> : tensor<i64>
+  %2 = stablehlo.constant dense<3> : tensor<i64>
+  %3:3 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1), (%arg2 init: %2) across dimensions = [0] :
+  (tensor<8xf32>, tensor<8xi64>, tensor<8xi64>, tensor<f32>, tensor<i64>, tensor<i64>) ->
+  (tensor<f32>, tensor<i64>, tensor<i64>)
+   reducer(%arg3: tensor<f32>, %arg6: tensor<f32>)
+          (%arg4: tensor<i64>, %arg7: tensor<i64>)
+          (%arg5: tensor<i64>, %arg8: tensor<i64>)
+  {
+    %4 = stablehlo.add %arg3, %arg6 : tensor<f32>
+    %5 = stablehlo.convert %arg8 : (tensor<i64>) -> (tensor<f32>)
+    %6 = stablehlo.add %4, %5 : tensor<f32>
+    %7 = stablehlo.minimum %arg4, %arg7 : tensor<i64>
+    %8 = stablehlo.maximum %arg4, %arg7 : tensor<i64>
+    stablehlo.return %6, %7, %8 : tensor<f32>, tensor<i64>, tensor<i64>
+  }
+  return %3#0, %3#2 : tensor<f32>, tensor<i64>
+}
+
+// -----
+
+//  (a, a1) (b, b1) (c, c1)
+//    ▴       ▴       ▴
+//    │       │       │
+//    ├───────┼───────┘
+//    │       │◄──────┐
+//    │       │       │
+//    r0      r1      r2
+//    U
+//
+// There is 1 suitable pair, but used by 2 return operands.
+
+// CHECK-LABEL: func.func @reduce_unused_case3
+func.func @reduce_unused_case3(%arg0: tensor<8xf32>,
+                               %arg1: tensor<8xi64>,
+                               %arg2: tensor<8xi64>) -> tensor<f32> {
+  // CHECK: [[R:%.+]]:3 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1), (%arg2 init: %2)
+  %0 = stablehlo.constant dense<1.0> : tensor<f32>
+  %1 = stablehlo.constant dense<2> : tensor<i64>
+  %2 = stablehlo.constant dense<3> : tensor<i64>
+  %3:3 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1), (%arg2 init: %2) across dimensions = [0] :
+  (tensor<8xf32>, tensor<8xi64>, tensor<8xi64>, tensor<f32>, tensor<i64>, tensor<i64>) ->
+  (tensor<f32>, tensor<i64>, tensor<i64>)
+   reducer(%arg3: tensor<f32>, %arg6: tensor<f32>)
+          (%arg4: tensor<i64>, %arg7: tensor<i64>)
+          (%arg5: tensor<i64>, %arg8: tensor<i64>)
+  {
+    %4 = stablehlo.add %arg3, %arg6 : tensor<f32>
+    %5 = stablehlo.convert %arg8 : (tensor<i64>) -> (tensor<f32>)
+    %6 = stablehlo.add %4, %5 : tensor<f32>
+    %7 = stablehlo.minimum %arg4, %arg7 : tensor<i64>
+    %8 = stablehlo.maximum %arg4, %arg7 : tensor<i64>
+    stablehlo.return %6, %7, %8 : tensor<f32>, tensor<i64>, tensor<i64>
+  }
+  return %3#0 : tensor<f32>
+}
+
+// -----
+
+//  (a, a1) (b, b1) (c, c1)
+//    ▴               ▴
+//    │               │
+//    │       ┌───────┘
+//    │◄──────┼───────┐
+//    │       │       │
+//    r0      r1      r2
+//    U
+//
+// Both r1 and r2 can be dropped using (c, c1) & (b, b1) pairs.
+
+// CHECK-LABEL: func.func @reduce_unused_case4
+func.func @reduce_unused_case4(%arg0: tensor<8xf32>,
+                               %arg1: tensor<8xi64>,
+                               %arg2: tensor<8xi64>) -> tensor<f32> {
+  // CHECK: [[R0:%.+]] = stablehlo.constant dense<1.{{0+}}e+00> : tensor<f32>
+  // CHECK: [[R1:%.+]] = stablehlo.reduce(%arg0 init: [[R0]]) applies stablehlo.add
+  %0 = stablehlo.constant dense<1.0> : tensor<f32>
+  %1 = stablehlo.constant dense<2> : tensor<i64>
+  %2 = stablehlo.constant dense<3> : tensor<i64>
+  %3:3 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1), (%arg2 init: %2) across dimensions = [0] :
+  (tensor<8xf32>, tensor<8xi64>, tensor<8xi64>, tensor<f32>, tensor<i64>, tensor<i64>) ->
+  (tensor<f32>, tensor<i64>, tensor<i64>)
+   reducer(%arg3: tensor<f32>, %arg6: tensor<f32>)
+          (%arg4: tensor<i64>, %arg7: tensor<i64>)
+          (%arg5: tensor<i64>, %arg8: tensor<i64>)
+  {
+    %4 = stablehlo.add %arg3, %arg6 : tensor<f32>
+    %5 = stablehlo.minimum %arg3, %arg6 : tensor<f32>
+    %6 = stablehlo.convert %5 : (tensor<f32>) -> (tensor<i64>)
+    %8 = stablehlo.maximum %arg5, %arg8 : tensor<i64>
+    stablehlo.return %4, %8, %6 : tensor<f32>, tensor<i64>, tensor<i64>
+  }
+  return %3#0 : tensor<f32>
+}
+
+// -----
+
+//  (a, a1) (b, b1) (c, c1)
+//    ▴       ▴       ▴
+//    │       │       │
+//    │       ├──────►│
+//    │       │◄──────┤
+//    │       │       │
+//    r0      r1      r2
+//    U
+//
+// Both r1 and r2 can be dropped despite circular dependency.
+
+// CHECK-LABEL: func.func @reduce_unused_case5
+func.func @reduce_unused_case5(%arg0: tensor<8xf32>,
+                               %arg1: tensor<8xi64>,
+                               %arg2: tensor<8xi64>) -> tensor<f32> {
+  // CHECK: [[R0:%.+]] = stablehlo.constant dense<1.{{0+}}e+00> : tensor<f32>
+  // CHECK: [[R1:%.+]] = stablehlo.reduce(%arg0 init: [[R0]]) applies stablehlo.add
+  %0 = stablehlo.constant dense<1.0> : tensor<f32>
+  %1 = stablehlo.constant dense<2> : tensor<i64>
+  %2 = stablehlo.constant dense<3> : tensor<i64>
+  %3:3 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1), (%arg2 init: %2) across dimensions = [0] :
+  (tensor<8xf32>, tensor<8xi64>, tensor<8xi64>, tensor<f32>, tensor<i64>, tensor<i64>) ->
+  (tensor<f32>, tensor<i64>, tensor<i64>)
+   reducer(%arg3: tensor<f32>, %arg6: tensor<f32>)
+          (%arg4: tensor<i64>, %arg7: tensor<i64>)
+          (%arg5: tensor<i64>, %arg8: tensor<i64>)
+  {
+    %4 = stablehlo.add %arg3, %arg6 : tensor<f32>
+    %5 = stablehlo.add %arg4, %arg7 : tensor<i64>
+    %6 = stablehlo.add %arg5, %arg8 : tensor<i64>
+    %7 = stablehlo.minimum %5, %6 : tensor<i64>
+    %8 = stablehlo.maximum %5, %6 : tensor<i64>
+    stablehlo.return %4, %7, %8 : tensor<f32>, tensor<i64>, tensor<i64>
+  }
+  return %3#0 : tensor<f32>
+}
+
+// -----
+
+//  (a, a1) (b, b1) (c, c1)
+//    ▴       ▴       ▴
+//    │       ├──────►│
+//    │       │◄──────│
+//    │◄──────┼───────┤
+//    │       │       │
+//    r0      r1      r2
+//            U
+//
+// Non-conservative case. In theory r0 can be removed.
+// But what should be done with r2?
+
+// CHECK-LABEL: func.func @reduce_unused_case6
+func.func @reduce_unused_case6(%arg0: tensor<8xf32>,
+                               %arg1: tensor<8xi64>,
+                               %arg2: tensor<8xi64>) -> tensor<i64> {
+  // CHECK: [[R:%.+]]:3 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1), (%arg2 init: %2)
+  %0 = stablehlo.constant dense<1.0> : tensor<f32>
+  %1 = stablehlo.constant dense<2> : tensor<i64>
+  %2 = stablehlo.constant dense<3> : tensor<i64>
+  %3:3 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1), (%arg2 init: %2) across dimensions = [0] :
+  (tensor<8xf32>, tensor<8xi64>, tensor<8xi64>, tensor<f32>, tensor<i64>, tensor<i64>) ->
+  (tensor<f32>, tensor<i64>, tensor<i64>)
+   reducer(%arg3: tensor<f32>, %arg6: tensor<f32>)
+          (%arg4: tensor<i64>, %arg7: tensor<i64>)
+          (%arg5: tensor<i64>, %arg8: tensor<i64>)
+  {
+    %4 = stablehlo.add %arg3, %arg6 : tensor<f32>
+    %5 = stablehlo.add %arg4, %arg7 : tensor<i64>
+    %6 = stablehlo.add %arg5, %arg8 : tensor<i64>
+    %7 = stablehlo.minimum %5, %6 : tensor<i64>
+    %8 = stablehlo.maximum %5, %6 : tensor<i64>
+    %9 = stablehlo.convert %4 : (tensor<f32>) -> (tensor<i64>)
+    %10 = stablehlo.subtract %8, %9 : tensor<i64>
+    stablehlo.return %4, %7, %10 : tensor<f32>, tensor<i64>, tensor<i64>
+  }
+  return %3#1 : tensor<i64>
+}
+
+// -----
+
 // CHECK-LABEL: func.func @add_zero_ext
 func.func @add_zero_ext(%arg0 : tensor<5x0xi32>, %arg1 : tensor<5x0xi32>) -> tensor<5x0xi32> {
   %0 = stablehlo.add %arg0, %arg1 : tensor<5x0xi32>
