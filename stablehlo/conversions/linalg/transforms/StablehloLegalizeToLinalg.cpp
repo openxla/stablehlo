@@ -1273,6 +1273,18 @@ struct ConcatenateConverter final
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
 
+    bool isResultSparse =
+        sparse_tensor::getSparseTensorEncoding(resultType) != nullptr;
+    bool isAnyOperandSparse =
+        llvm::any_of(adaptor.getOperands(), [](auto operand) {
+          return sparse_tensor::getSparseTensorEncoding(operand.getType()) !=
+                 nullptr;
+        });
+
+    if (isResultSparse || isAnyOperandSparse)
+      return rewriter.notifyMatchFailure(
+          op, "ConcatenateConverter cannot legalize sparse types");
+
     uint64_t dim = op.getDimension();
     Location loc = op.getLoc();
     Value zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
@@ -1348,11 +1360,6 @@ struct ConcatenateConverter final
 struct SparseConcatenateConverter final
     : OpConversionPattern<mlir::stablehlo::ConcatenateOp> {
   using OpConversionPattern::OpConversionPattern;
-
-  SparseConcatenateConverter(const TypeConverter &converter,
-                             MLIRContext *context)
-      : OpConversionPattern<mlir::stablehlo::ConcatenateOp>(converter, context,
-                                                            /*benefit=*/10) {}
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ConcatenateOp op, OpAdaptor adaptor,
