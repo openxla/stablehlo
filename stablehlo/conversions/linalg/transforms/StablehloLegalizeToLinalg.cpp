@@ -1273,6 +1273,18 @@ struct ConcatenateConverter final
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
 
+    bool isResultSparse =
+        sparse_tensor::getSparseTensorEncoding(resultType) != nullptr;
+    bool isAnyOperandSparse =
+        llvm::any_of(adaptor.getOperands(), [](auto operand) {
+          return sparse_tensor::getSparseTensorEncoding(operand.getType()) !=
+                 nullptr;
+        });
+
+    if (isResultSparse || isAnyOperandSparse)
+      return rewriter.notifyMatchFailure(
+          op, "ConcatenateConverter cannot legalize sparse types");
+
     uint64_t dim = op.getDimension();
     Location loc = op.getLoc();
     Value zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
@@ -1341,6 +1353,40 @@ struct ConcatenateConverter final
         },
         linalg::getPrunedAttributeList(op));
     return success();
+  }
+};
+
+/// Converts stablehlo.concatenate operation to a sparse_tensor.concatenate op.
+struct SparseConcatenateConverter final
+    : OpConversionPattern<mlir::stablehlo::ConcatenateOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      mlir::stablehlo::ConcatenateOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override {
+    // Shortcut the one-operand case, simplifies code below.
+    if (adaptor.getOperands().size() == 1) {
+      rewriter.replaceOp(op, adaptor.getOperands()[0]);
+      return success();
+    }
+
+    auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
+    if (!resultType)
+      return rewriter.notifyMatchFailure(op, "type conversion failed");
+    bool isResultSparse =
+        sparse_tensor::getSparseTensorEncoding(resultType) != nullptr;
+    bool isAnyOperandSparse =
+        llvm::any_of(adaptor.getOperands(), [](auto operand) {
+          return sparse_tensor::getSparseTensorEncoding(operand.getType()) !=
+                 nullptr;
+        });
+
+    if (isResultSparse || isAnyOperandSparse) {
+      rewriter.replaceOpWithNewOp<sparse_tensor::ConcatenateOp>(
+          op, resultType, adaptor.getOperands(), op.getDimension());
+      return success();
+    }
+    return failure();
   }
 };
 
@@ -2499,7 +2545,8 @@ struct SetDimensionSizeConverter final
 static void populateConversionPatterns(MLIRContext *context,
                                        TypeConverter &typeConverter,
                                        RewritePatternSet *patterns,
-                                       bool enablePrimitiveOps) {
+                                       bool enablePrimitiveOps,
+                                       bool enableSparseOps) {
   // clang-format off
   patterns->add<
       BitcastConvertConverter,
@@ -2522,6 +2569,10 @@ static void populateConversionPatterns(MLIRContext *context,
 
   detail::populatePointwiseStablehloToLinalgConversionPatterns(
       context, typeConverter, patterns, enablePrimitiveOps);
+
+  if (enableSparseOps) {
+    patterns->add<SparseConcatenateConverter>(typeConverter, context);
+  }
 
   if (enablePrimitiveOps) {
     patterns->add<
@@ -2575,7 +2626,7 @@ struct StablehloLegalizeToLinalgPass
 
     RewritePatternSet patterns_(context);
     populateConversionPatterns(context, converter, &patterns_,
-                               enablePrimitiveOps);
+                               enablePrimitiveOps, enableSparseOps);
     patterns = std::move(patterns_);
 
     return success();
