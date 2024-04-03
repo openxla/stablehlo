@@ -140,7 +140,7 @@ If you'd like to build the Python bindings, you'll need to install a few
 additional dependencies.
 
 ```sh
-pip install  install -r ./llvm-project/mlir/python/requirements.txt
+pip install -r ./llvm-project/mlir/python/requirements.txt
 ```
 
 If you've built MLIR & StableHLO using the script above, the Python bindings
@@ -164,6 +164,14 @@ We also make nightly wheels available on our GitHub Releases page.
 ```shell
 pip install stablehlo -f https://github.com/openxla/stablehlo/releases/expanded_assets/dev-wheels
 ```
+
+## StableHLO to TensorFLow SavedModel
+
+This repository offers tooling for the conversion of a StableHLO program,
+including its metadata (representing trained weights and biases), into a
+TensorFlow SavedModel. Please refer to
+[README.md](https://github.com/openxla/stablehlo/blob/main/stablehlo/integrations/python/stablehlo/savedmodel/README.md)
+for details.
 
 ## Community
 
