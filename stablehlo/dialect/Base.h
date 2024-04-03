@@ -420,6 +420,27 @@ struct UnaryElementwiseSpeculatableImplTrait
   }
 };
 
+template <typename ConcreteType>
+struct BinaryElementwiseSpeculatableImplTrait
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      BinaryElementwiseSpeculatableImplTrait> {
+  // A binary elementwise op is only speculatable if both operands have static
+  // shapes. If any dimension of either input is dynamic, it could disagree with
+  // the corresponding dimension in the other input at runtime.
+  // If the operands' shapes are both static, the verifier will make sure they
+  // are equal, and that the result is equal as well.
+  mlir::Speculation::Speculatability getSpeculatability() {
+    auto op = this->getOperation();
+    auto lhsType = cast<RankedTensorType>(op->getOperand(0).getType());
+    auto rhsType = cast<RankedTensorType>(op->getOperand(1).getType());
+    for (size_t i : llvm::seq(lhsType.getRank())) {
+      if (lhsType.isDynamicDim(i) || rhsType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
+    return mlir::Speculation::Speculatable;
+  }
+};
+
 }  // namespace OpTrait
 }  // namespace hlo
 }  // namespace mlir

@@ -327,4 +327,10 @@ def HLO_UnaryElementwiseSpeculatableImplTrait
 def HLO_UnaryElementwiseSpeculatable : TraitList<[
     ConditionallySpeculatable, HLO_UnaryElementwiseSpeculatableImplTrait]>;
 
+def HLO_BinaryElementwiseSpeculatableImplTrait
+  : HLO_NativeOpTrait<"BinaryElementwiseSpeculatableImplTrait">;
+
+def HLO_BinaryElementwiseSpeculatable : TraitList<[
+    ConditionallySpeculatable, HLO_BinaryElementwiseSpeculatableImplTrait]>;
+
 #endif // STABLEHLO_DIALECT_BASE
