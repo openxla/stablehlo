@@ -184,6 +184,28 @@ bool isSameQuantPerAxisScaleZeroPoint(Type ty1, Type ty2) {
   return true;
 }
 
+LogicalResult verifyQPerTensorScaleAndZeroPointConstraints(
+    std::optional<Location> location, Type ty1, Type ty2) {
+  if (allQuantized<quant::UniformQuantizedType>(ty1, ty2)) {
+    if (getElementTypeOrSelf(ty1) != getElementTypeOrSelf(ty2))
+      return emitOptionalError(
+          location, "expect same quantization scale and zero_point but got ",
+          ty1, " vs ", ty2);
+  }
+  return success();
+}
+
+LogicalResult verifyQPerAxisScaleAndZeroPointConstraints(
+    std::optional<Location> location, Type ty1, Type ty2) {
+  if (allQuantized<quant::UniformQuantizedPerAxisType>(ty1, ty2)) {
+    if (!isSameQuantPerAxisScaleZeroPoint(ty1, ty2))
+      return emitOptionalError(
+          location, "expect same quantization scales and zero_points but got ",
+          ty1, " vs ", ty2);
+  }
+  return success();
+}
+
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -404,19 +426,13 @@ LogicalResult verifyTransposeOp(std::optional<Location> location,
                                 Type operandType, ArrayRef<int64_t> permutation,
                                 Type resultType) {
   // transpose_c1
-  if (allQuantized<quant::UniformQuantizedType>(operandType, resultType))
-    if (operandType != resultType)
-      return emitOptionalError(location,
-                               "expect same quantization scale and zero_point "
-                               "for operand and result but got ",
-                               operandType, " vs ", resultType);
+  if (failed(verifyQPerTensorScaleAndZeroPointConstraints(location, operandType,
+                                                          resultType)))
+    return failure();
 
-  if (allQuantized<quant::UniformQuantizedPerAxisType>(operandType, resultType))
-    if (!isSameQuantPerAxisScaleZeroPoint(operandType, resultType))
-      return emitOptionalError(location,
-                               "expect same quantization scales and "
-                               "zero_points for operand and result but got ",
-                               operandType, " vs ", resultType);
+  if (failed(verifyQPerAxisScaleAndZeroPointConstraints(location, operandType,
+                                                        resultType)))
+    return failure();
 
   // transpose_c4
   if (auto resultQType = getElementTypeOrSelf(resultType)
@@ -3247,15 +3263,8 @@ LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
         location, "cannot convert between real and complex types, but got: ",
         operandShapedType, " and ", targetShapedType);
 
-  auto targetEltBitWidth =
-      targetElt.isa<quant::QuantizedType>()
-          ? getBitWidth(targetElt.cast<quant::QuantizedType>().getStorageType())
-          : getBitWidth(targetElt);
-  auto operandEltBitWidth =
-      operandElt.isa<quant::QuantizedType>()
-          ? getBitWidth(
-                operandElt.cast<quant::QuantizedType>().getStorageType())
-          : getBitWidth(operandElt);
+  auto targetEltBitWidth = getBitWidth(targetElt);
+  auto operandEltBitWidth = getBitWidth(operandElt);
 
   auto operandType = operandShapedType.dyn_cast<RankedTensorType>();
   auto targetType = targetShapedType.dyn_cast<RankedTensorType>();
@@ -3323,13 +3332,9 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
   }
 
   // broadcast_in_dim_c1
-  if (allQuantized<quant::UniformQuantizedType>(operand.getType(),
-                                                result.getType()))
-    if (operand.getType() != result.getType())
-      return emitOptionalError(location,
-                               "expect same quantization scale and zero_point "
-                               "for operand and result but got ",
-                               operand.getType(), " vs ", result.getType());
+  if (failed(verifyQPerTensorScaleAndZeroPointConstraints(location, operandType,
+                                                          result.getType())))
+    return failure();
 
   // broadcast_in_dim_c2
   auto dimensionsSize = broadcastDimensions.size();
@@ -4065,23 +4070,17 @@ LogicalResult verifyReduceWindowOp(
 LogicalResult verifyReshapeOpQuantizationConstraints(
     std::optional<Location> location, Type operandTy, Type resultTy) {
   // reshape_c1
-  if (allQuantized<quant::UniformQuantizedType>(operandTy, resultTy))
-    if (getElementTypeOrSelf(operandTy) != getElementTypeOrSelf(resultTy))
-      return emitOptionalError(location,
-                               "expect same quantization scale and zero_point "
-                               "for operand and result but got ",
-                               operandTy, " vs ", resultTy);
+  if (failed(verifyQPerTensorScaleAndZeroPointConstraints(location, operandTy,
+                                                          resultTy)))
+    return failure();
 
   // reshape_c1
+  if (failed(verifyQPerAxisScaleAndZeroPointConstraints(location, operandTy,
+                                                        resultTy)))
+    return failure();
+
+  // reshape_c3
   if (allQuantized<quant::UniformQuantizedPerAxisType>(operandTy, resultTy)) {
-    if (!isSameQuantPerAxisScaleZeroPoint(operandTy, resultTy)) {
-      return emitOptionalError(
-          location,
-          "expect same quantization scales and zero_points "
-          "for operand and result but got ",
-          operandTy, " vs ", resultTy);
-    }
-    // reshape_c3
     auto operandQDim = getElementTypeOrSelf(operandTy)
                            .cast<quant::UniformQuantizedPerAxisType>()
                            .getQuantizedDimension();

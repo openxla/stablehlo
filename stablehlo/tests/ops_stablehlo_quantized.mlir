@@ -837,7 +837,7 @@ func.func @bitcast_convert_c1(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f3
 
 func.func @broadcast_in_dim_c1(
   %arg0: tensor<1x2x1x!quant.uniform<i8<-128:127>:f32, 0.2:-30>>) {
-  // expected-error@+1 {{expect same quantization scale and zero_point for operand and result but got}}
+  // expected-error@+1 {{expect same quantization scale and zero_point}}
   %broadcast_in_dim = "stablehlo.broadcast_in_dim" (%arg0) {broadcast_dimensions = array<i64: 0, 1, 2>
   } : (tensor<1x2x1x!quant.uniform<i8<-128:127>:f32, 0.2:-30>>) -> tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32, 0.1:-30>>
   func.return
@@ -847,7 +847,7 @@ func.func @broadcast_in_dim_c1(
 
 func.func @broadcast_in_dim_c1(
   %arg0: tensor<1x2x1x!quant.uniform<i8<-128:127>:f32, 0.2:-30>>) {
-  // expected-error@+1 {{expect same quantization scale and zero_point for operand and result but got}}
+  // expected-error@+1 {{expect same quantization scale and zero_point}}
   %broadcast_in_dim = "stablehlo.broadcast_in_dim" (%arg0) {broadcast_dimensions = array<i64: 0, 1, 2>
   } : (tensor<1x2x1x!quant.uniform<i8<-128:127>:f32, 0.2:-30>>) -> tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32, 0.2:-20>>
   func.return
@@ -886,7 +886,7 @@ func.func @broadcast_in_dim_c6(
 // -----
 
 func.func @transpose_c1_mismatched_scale(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32, 0.2:-30>>) {
-  // expected-error@+1 {{expect same quantization scale and zero_point for operand and result but got}}
+  // expected-error@+1 {{expect same quantization scale and zero_point}}
   %transpose = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>
   } : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32, 0.2:-30>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32, 0.1:-30>>
   func.return
@@ -895,7 +895,7 @@ func.func @transpose_c1_mismatched_scale(%arg0: tensor<1x2x2x!quant.uniform<i8<-
 // -----
 
 func.func @transpose_c1_mismatched_zp(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32, 0.1:-30>>) {
-  // expected-error@+1 {{expect same quantization scale and zero_point for operand and result but got}}
+  // expected-error@+1 {{expect same quantization scale and zero_point}}
   %transpose = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>
   } : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32, 0.1:-30>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32, 0.1:-20>>
   func.return
@@ -904,7 +904,7 @@ func.func @transpose_c1_mismatched_zp(%arg0: tensor<1x2x2x!quant.uniform<i8<-128
 // -----
 
 func.func @transpose_c1_mismatched_scales(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) {
-  // expected-error@+1 {{expect same quantization scales and zero_points for operand and result}}
+  // expected-error@+1 {{expect same quantization scales and zero_points}}
   %transpose = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>
   } : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.9:-20}>>
   func.return
@@ -913,7 +913,7 @@ func.func @transpose_c1_mismatched_scales(%arg0: tensor<1x2x2x!quant.uniform<i8<
 // -----
 
 func.func @transpose_c1_mismatched_zps(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) {
-  // expected-error@+1 {{expect same quantization scales and zero_points for operand and result}}
+  // expected-error@+1 {{expect same quantization scales and zero_points}}
   %transpose = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>
   } : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-10}>>
   func.return
@@ -931,7 +931,7 @@ func.func @transpose_c4(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {
 // -----
 
 func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
-  // expected-error@+1 {{expect same quantization scale and zero_point for operand and result}}
+  // expected-error@+1 {{expect same quantization scale and zero_point}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 0.2:17>>
   func.return
 }
@@ -939,7 +939,7 @@ func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
 // -----
 
 func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
-  // expected-error@+1 {{expect same quantization scale and zero_point for operand and result}}
+  // expected-error@+1 {{expect same quantization scale and zero_point}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:18>>
   func.return
 }
@@ -947,7 +947,7 @@ func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
 // -----
 
 func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:0, {1.0:17}>>){
-  // expected-error@+1 {{expect same quantization scales and zero_points for operand and result}}
+  // expected-error@+1 {{expect same quantization scales and zero_points}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x2x2x!quant.uniform<i8:f32:0, {1.0:18}>>
   func.return
 }
