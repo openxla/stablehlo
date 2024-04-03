@@ -713,7 +713,7 @@ std::unique_ptr<DialectVersion> StablehloBytecodeInterface::readVersion(
   auto version = std::make_unique<StablehloDialectVersion>(
       /*major=*/major, /*minor=*/minor, /*patch=*/patch);
   if (version && StablehloDialectVersion::getCurrentVersion() < *version) {
-    return reader.emitError("reading newer dialect than supported"), nullptr;
+    return reader.emitWarning("reading newer dialect than supported"), nullptr;
   }
 
   return version;

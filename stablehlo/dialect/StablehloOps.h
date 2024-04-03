@@ -103,7 +103,7 @@ class StablehloDialect : public Dialect {
 
   // Set dialect version.
   // Note: there is currently no validation.
-  void setVersion(StablehloDialectVersion version);
+  void setVersion(std::optional<StablehloDialectVersion> version);
 
  private:
   std::optional<StablehloDialectVersion> version;

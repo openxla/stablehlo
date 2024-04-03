@@ -3346,7 +3346,7 @@ std::optional<StablehloDialectVersion> StablehloDialect::getVersion() const {
   return version;
 }
 
-void StablehloDialect::setVersion(StablehloDialectVersion version) {
+void StablehloDialect::setVersion(std::optional<StablehloDialectVersion> version) {
   this->version = version;
 }
 
