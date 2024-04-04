@@ -525,8 +525,7 @@ LogicalResult verifySortOp(std::optional<Location> location, ValueRange inputs,
                            int64_t dimension, Region& comparator);
 
 LogicalResult verifyTransposeOp(std::optional<Location> location,
-                                Type operandType,
-                                ArrayRef<int64_t> permutations,
+                                Type operandType, ArrayRef<int64_t> permutation,
                                 Type resultType);
 
 LogicalResult verifyWhileOp(std::optional<Location> location,
