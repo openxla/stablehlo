@@ -2529,7 +2529,8 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
 }
 
 def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
-      [Pure, HLO_CompatibleOperandsAndResultElementType]> {
+      [ConditionallySpeculatable, NoMemoryEffect,
+       HLO_CompatibleOperandsAndResultElementType]> {
   let summary = "Reshape operation";
   let description = [{
     Performs reshape of `operand` tensor to a `result` tensor.
@@ -2549,6 +2550,11 @@ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
   let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
+
+  let extraClassDeclaration = [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [Pure]> {
