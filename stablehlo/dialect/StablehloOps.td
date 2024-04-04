@@ -661,7 +661,7 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
     Type OperandType = HLO_Tensor, Type ResultType = OperandType> :
     StableHLO_Op<mnemonic, traits # [InferShapedTypeOpInterface,
     SameOperandsAndResultShape, Elementwise,
-    HLO_BinaryElementwiseSpeculatable, NoMemoryEffect]> {
+    HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect]> {
   let arguments = (ins
     OperandType:$lhs,
     OperandType:$rhs
@@ -959,7 +959,7 @@ def StableHLO_SubtractOp : StableHLO_BinaryElementwiseOp<"subtract",
 class StableHLO_BinaryBiwiseOrLogicalElementwiseOp<string mnemonic> :
         StableHLO_BinaryElementwiseOp<mnemonic,
           [HLO_Commutative, HLO_CompatibleOperandsAndResultType,
-           HLO_BinaryElementwiseSpeculatable, NoMemoryEffect]> {
+           HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect]> {
   let arguments = (ins
     HLO_PredOrIntTensor:$lhs,
     HLO_PredOrIntTensor:$rhs
@@ -1718,7 +1718,8 @@ def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
 // StableHLO Other op definitions.
 //===----------------------------------------------------------------------===//
 
-def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
+def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad",
+   [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
     HLO_CompatibleOperandsAndResultElementType /*batch_norm_grad_c2*/,
     InferTensorType /*batch_norm_grad_c3, batch_norm_grad_c4*/]> {
   let summary = "BatchNormGrad operation";
@@ -1758,7 +1759,8 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
 }
 
 def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
-    [Pure, HLO_CompatibleOperandsAndResultElementType /*batch_norm_inference_c2*/,
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+     HLO_CompatibleOperandsAndResultElementType /*batch_norm_inference_c2*/,
      InferTensorType /*batch_norm_inference_c7*/]> {
   let summary = "BatchNormInference operation";
   let description = [{
@@ -1791,7 +1793,8 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
 }
 
 def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
-    [Pure, HLO_CompatibleOperandsAndResultElementType /*batch_norm_training_c2*/,
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+     HLO_CompatibleOperandsAndResultElementType /*batch_norm_training_c2*/,
      InferTensorType /*batch_norm_training_c5, batch_norm_training_c6, batch_norm_training_c7*/]> {
   let summary = "BatchNormTraining operation";
   let description = [{

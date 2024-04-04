@@ -334,10 +334,10 @@ def HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
 def HLO_SpeculatableIfStaticDimInOutputIsStaticInInput : TraitList<[
     ConditionallySpeculatable, HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait]>;
 
-def HLO_BinaryElementwiseSpeculatableImplTrait
-  : HLO_NativeOpTrait<"BinaryElementwiseSpeculatableImplTrait">;
+def HLO_SpeculatableIfAllInputsStaticImplTrait
+  : HLO_NativeOpTrait<"SpeculatableIfAllInputsStaticImplTrait">;
 
-def HLO_BinaryElementwiseSpeculatable : TraitList<[
-    ConditionallySpeculatable, HLO_BinaryElementwiseSpeculatableImplTrait]>;
+def HLO_SpeculatableIfAllInputsStatic : TraitList<[
+    ConditionallySpeculatable, HLO_SpeculatableIfAllInputsStaticImplTrait]>;
 
 #endif // STABLEHLO_DIALECT_BASE
