@@ -321,11 +321,18 @@ def HLO_BoundedAttrInterface : AttrInterface<"BoundedAttrInterface"> {
   >];
 }
 
-def HLO_UnaryElementwiseSpeculatableImplTrait
-  : HLO_NativeOpTrait<"UnaryElementwiseSpeculatableImplTrait">;
+def HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
+  : HLO_NativeOpTrait<"SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait">;
 
-def HLO_UnaryElementwiseSpeculatable : TraitList<[
-    ConditionallySpeculatable, HLO_UnaryElementwiseSpeculatableImplTrait]>;
+// This trait can be used with ops where the result has the same rank as the
+// input and each dimension of the input maps to the same dimension in the
+// result. In that case, if a dim is static in the output but dynamic in the
+// input, the dimension could differ at runtime, leading to undefined behavior.
+// If the output dimension is dynamic, there is no expectation, so there
+// cannot be a mismatch. If the input dimension is static, the output dimension
+// can be inferred from it, so there cannot be a mismatch either.
+def HLO_SpeculatableIfStaticDimInOutputIsStaticInInput : TraitList<[
+    ConditionallySpeculatable, HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait]>;
 
 def HLO_BinaryElementwiseSpeculatableImplTrait
   : HLO_NativeOpTrait<"BinaryElementwiseSpeculatableImplTrait">;

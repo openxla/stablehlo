@@ -416,6 +416,42 @@ func.func @tanh(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
 
 // -----
 
+// Other unary ops
+
+// -----
+
+// CHECK-LABEL: func @reduce_precision
+// CHECK-NEXT:  return
+func.func @reduce_precision(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.reduce_precision %static_arg, format = e5m10 : (tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.reduce_precision %static_arg, format = e5m10 : (tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.reduce_precision %dynamic_arg, format = e5m10 : (tensor<?xf64>) -> tensor<2xf64>
+  %speculatable_2 = stablehlo.reduce_precision %dynamic_arg, format = e5m10 : (tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @reverse
+// CHECK-NEXT:  return
+func.func @reverse(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.reverse %static_arg, dims = [0] : (tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.reverse %static_arg, dims = [0] : (tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.reverse %dynamic_arg, dims = [0] : (tensor<?xf64>) -> tensor<2xf64>
+  %speculatable_2 = stablehlo.reverse %dynamic_arg, dims = [0] : (tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
 // BinaryElementwise and BinaryBitwiseOrLogicalElementwise ops
 
 // -----
