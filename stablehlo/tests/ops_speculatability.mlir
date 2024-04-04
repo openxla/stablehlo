@@ -899,6 +899,34 @@ func.func @reshape(
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<12xi64>) -> ()
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<12xi64>) -> ()
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<12xi64>) -> ()
+}
+
+// CHECK-LABEL: func @triangular_solve
+// CHECK-NEXT:  return
+func.func @triangular_solve(
+  %static: tensor<2x2xf64>,
+  %dynamic: tensor<?x?xf64>
+) {
+  %static_inputs = "stablehlo.triangular_solve"(%static, %static) {
+    left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = false
+  } : (tensor<2x2xf64>, tensor<2x2xf64>) -> tensor<?x?xf64>
+  %dynamic_inputs_0 = "stablehlo.triangular_solve"(%dynamic, %static) {
+    left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = false
+  } : (tensor<?x?xf64>, tensor<2x2xf64>) -> tensor<?x?xf64>
+  %dynamic_inputs_1 = "stablehlo.triangular_solve"(%static, %dynamic) {
+    left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = false
+  } : (tensor<2x2xf64>, tensor<?x?xf64>) -> tensor<?x?xf64>
+  %dynamic_inputs_2 = "stablehlo.triangular_solve"(%dynamic, %dynamic) {
+    left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = false
+  } : (tensor<?x?xf64>, tensor<?x?xf64>) -> tensor<?x?xf64>
+  %unit_diagonal = "stablehlo.triangular_solve"(%static, %static) {
+    left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true
+  } : (tensor<2x2xf64>, tensor<2x2xf64>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%static_inputs) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%dynamic_inputs_0) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%dynamic_inputs_1) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%dynamic_inputs_2) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%unit_diagonal) : (tensor<?x?xf64>) -> ()
   return
 }
 

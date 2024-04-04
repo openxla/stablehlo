@@ -2038,6 +2038,23 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
                                      inferredReturnShapes);
 }
 
+mlir::Speculation::Speculatability TriangularSolveOp::getSpeculatability() {
+  // Diagonal could be non-unit at runtime, leading to undefined behavior.
+  // If `a` is constant, we could check the diagonal to confirm that it
+  // is unit, but this may be costly and should go in the op's verifier.
+  if (getUnitDiagonal())
+    return mlir::Speculation::NotSpeculatable;
+
+  // If the inputs are statically shaped, they will be fully verified
+  // statically. If the inputs are dynamic, then mismatches could occur at
+  // runtime.
+  auto lhsType = cast<RankedTensorType>(getOperand(0).getType());
+  auto rhsType = cast<RankedTensorType>(getOperand(1).getType());
+  if (lhsType.hasStaticShape() && rhsType.hasStaticShape())
+    return mlir::Speculation::Speculatable;
+  return mlir::Speculation::NotSpeculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // GetTupleElementOp
 //===----------------------------------------------------------------------===//
