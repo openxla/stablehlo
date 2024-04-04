@@ -55,8 +55,6 @@ Index evalIndex(Tensor tensor) {
 }
 
 Tensor evalDotGeneralOp(const Tensor &lhs, const Tensor &rhs,
-                        const Axes &lhsBatchingDimensions,
-                        const Axes &rhsBatchingDimensions,
                         const Axes &lhsContractingDimensions,
                         const Axes &rhsContractingDimensions) {
   SmallVector<ShapedTypeComponents> inferredDotGeneralType;
@@ -69,7 +67,7 @@ Tensor evalDotGeneralOp(const Tensor &lhs, const Tensor &rhs,
         invalidArgument("Could not infer DotGeneralOp's return type"));
 
   return evalDotGeneralOp(
-      lhs, rhs, lhsBatchingDimensions, rhsBatchingDimensions,
+      lhs, rhs, /*lhsBatchingDimensions=*/{}, /*rhsBatchingDimensions*/ {},
       lhsContractingDimensions, rhsContractingDimensions,
       RankedTensorType::get(inferredDotGeneralType[0].getDims(),
                             lhs.getElementType()));
@@ -1489,8 +1487,7 @@ Tensor evalConvolutionOp(
     rhsContractingDimensions.push_back(kernelInputFeatureDimension);
 
     auto dotProduct =
-        evalDotGeneralOp(reversedLhsWindow, rhs, /*lhsBatchingDimensions=*/{},
-                         /*rhsBatchingDimensions=*/{}, lhsContractingDimensions,
+        evalDotGeneralOp(reversedLhsWindow, rhs, lhsContractingDimensions,
                          rhsContractingDimensions);
 
     Sizes resultNonSpatialDims;
