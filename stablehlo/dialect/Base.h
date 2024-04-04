@@ -433,11 +433,9 @@ struct BinaryElementwiseSpeculatableImplTrait
     auto op = this->getOperation();
     auto lhsType = cast<RankedTensorType>(op->getOperand(0).getType());
     auto rhsType = cast<RankedTensorType>(op->getOperand(1).getType());
-    for (size_t i : llvm::seq(lhsType.getRank())) {
-      if (lhsType.isDynamicDim(i) || rhsType.isDynamicDim(i))
-        return mlir::Speculation::NotSpeculatable;
-    }
-    return mlir::Speculation::Speculatable;
+    if (lhsType.hasStaticShape() && rhsType.hasStaticShape())
+      return mlir::Speculation::Speculatable;
+    return mlir::Speculation::NotSpeculatable;
   }
 };
 
