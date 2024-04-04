@@ -329,7 +329,8 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
   the StableHLO opset but have been later deemed to not fit it well:
   `broadcast`, `create_token`, `cross-replica-sum`, `dot`, `einsum`,
   `torch_index_select`, `unary_einsum`
-  ([#3](https://github.com/openxla/stablehlo/issues/3)).
+  ([#3](https://github.com/openxla/stablehlo/issues/3)), and
+  `trace` ([#604](https://github.com/openxla/stablehlo/issues/604)).
 * "Dynamism" category of StableHLO operations - they were bootstrapped from
    MHLO, but we haven't specced them yet: `compute_reshape_shape`,
   `cstr_reshapable`, `dynamic_broadcast_in_dim`, `dynamic_conv`,
