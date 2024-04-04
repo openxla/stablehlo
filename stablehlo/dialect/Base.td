@@ -337,6 +337,12 @@ def HLO_SpeculatableIfStaticDimInOutputIsStaticInInput : TraitList<[
 def HLO_SpeculatableIfAllInputsStaticImplTrait
   : HLO_NativeOpTrait<"SpeculatableIfAllInputsStaticImplTrait">;
 
+// This trait is appropriate to use for ops where the op is only speculatable
+// if all the inputs are static. This can happen if e.g. the inputs are expected
+// to all have the same shape. If all the inputs are static, the verifier can
+// validate statically that all the static dimensions are the same. However,
+// if there is any dynamic dimension, it could differ from the shape of another
+// input at runtime, leading to undefined behavior.
 def HLO_SpeculatableIfAllInputsStatic : TraitList<[
     ConditionallySpeculatable, HLO_SpeculatableIfAllInputsStaticImplTrait]>;
 
