@@ -2042,8 +2042,7 @@ mlir::Speculation::Speculatability TriangularSolveOp::getSpeculatability() {
   // Diagonal could be non-unit at runtime, leading to undefined behavior.
   // If `a` is constant, we could check the diagonal to confirm that it
   // is unit, but this may be costly and should go in the op's verifier.
-  if (getUnitDiagonal())
-    return mlir::Speculation::NotSpeculatable;
+  if (getUnitDiagonal()) return mlir::Speculation::NotSpeculatable;
 
   // If the inputs are statically shaped, they will be fully verified
   // statically. If the inputs are dynamic, then mismatches could occur at
