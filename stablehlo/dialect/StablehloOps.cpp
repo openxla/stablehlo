@@ -1876,6 +1876,12 @@ LogicalResult ReshapeOp::verify() {
   return hlo::verifyReshapeOp(getLoc(), getOperand(), getResult());
 }
 
+mlir::Speculation::Speculatability ReshapeOp::getSpeculatability() {
+  if (cast<RankedTensorType>(getOperand().getType()).hasStaticShape())
+    return mlir::Speculation::Speculatable;
+  return mlir::Speculation::NotSpeculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // ReplicaId Op
 //===----------------------------------------------------------------------===//

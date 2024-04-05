@@ -840,3 +840,28 @@ func.func @dynamic_iota(%unknown_shape: tensor<2xi32>) {
   "hlo_test_speculatability.is_speculatable"(%speculatable_4) : (tensor<?x?xi64>) -> ()
   return
 }
+
+// -----
+
+// Miscellaneous ops
+
+// -----
+
+// CHECK-LABEL: func @reshape
+// CHECK-NEXT:  return
+func.func @reshape(
+  %static: tensor<3x4xi64>,
+  %dynamic_0: tensor<?x4xi64>,
+  %dynamic_1: tensor<3x?xi64>,
+  %dynamic_2: tensor<?x?xi64>
+) {
+  %speculatable = stablehlo.reshape %static : (tensor<3x4xi64>) -> tensor<12xi64>
+  %not_speculatable_0 = stablehlo.reshape %dynamic_0 : (tensor<?x4xi64>) -> tensor<12xi64>
+  %not_speculatable_1 = stablehlo.reshape %dynamic_1 : (tensor<3x?xi64>) -> tensor<12xi64>
+  %not_speculatable_2 = stablehlo.reshape %dynamic_2 : (tensor<?x?xi64>) -> tensor<12xi64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable) : (tensor<12xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<12xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<12xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<12xi64>) -> ()
+  return
+}
