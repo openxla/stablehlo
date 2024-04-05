@@ -178,8 +178,9 @@ def StableHLO_CreateTokenOp : StableHLO_Op<"create_token", [Pure,
 // See https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions
 
 class StableHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
-    Type OperandType, Type ResultType = OperandType> : StableHLO_Op<mnemonic, traits # [Elementwise,
-    InferShapedTypeOpInterface, SameOperandsAndResultShape, HLO_UnaryElementwiseSpeculatable, NoMemoryEffect]> {
+    Type OperandType, Type ResultType = OperandType> : StableHLO_Op<mnemonic,
+    traits # [Elementwise, InferShapedTypeOpInterface, SameOperandsAndResultShape,
+              HLO_SpeculatableIfStaticDimInOutputIsStaticInInput, NoMemoryEffect]> {
   let arguments = (ins OperandType:$operand);
   let results = (outs ResultType:$result);
   let extraClassDeclaration = commonClassDeclaration # [{
@@ -2774,7 +2775,8 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
 }
 
 def StableHLO_ReverseOp: StableHLO_ShapedInterfaceOp<"reverse",
-      [Pure, HLO_CompatibleOperandsAndResultType,
+      [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput, NoMemoryEffect,
+       HLO_CompatibleOperandsAndResultType,
        SameOperandsAndResultElementType /*reverse_c1*/]> {
   let summary = "Reverse operation";
   let description = [{
@@ -3209,7 +3211,8 @@ def StableHLO_UniformDequantizeOp : StableHLO_UnaryElementwiseOp<"uniform_dequan
 }
 
 def StableHLO_ReducePrecisionOp : StableHLO_Op<"reduce_precision",
-      [Pure, Elementwise,
+      [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput, NoMemoryEffect,
+       Elementwise,
        HLO_CompatibleOperandsAndResultType /*reduce_precision_c1*/]> {
   let summary = "ReducePrecision operation";
   let description = [{

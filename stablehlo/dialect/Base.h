@@ -398,9 +398,10 @@ class CompatibleOperandsAndResultType
 };
 
 template <typename ConcreteType>
-struct UnaryElementwiseSpeculatableImplTrait
-    : public mlir::OpTrait::TraitBase<ConcreteType,
-                                      UnaryElementwiseSpeculatableImplTrait> {
+struct SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType,
+          SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait> {
   // A unary elementwise op is not speculatable if a dimension of the result
   // type is static while the corresponding dimension in the input type is
   // dynamic. Indeed, the input dimension could differ at runtime.
