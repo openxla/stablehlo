@@ -2039,9 +2039,9 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
 }
 
 mlir::Speculation::Speculatability TriangularSolveOp::getSpeculatability() {
-  // Diagonal could be non-unit at runtime, leading to undefined behavior.
-  // If `a` is constant, we could check the diagonal to confirm that it
-  // is unit, but this may be costly and should go in the op's verifier.
+  // If `unit_diagonal` is true, the implementation can assume that the diagonal
+  // elements of `a` are equal to 1, which may not be the case at runtime, which
+  // may lead to undefined behavior.
   if (getUnitDiagonal()) return mlir::Speculation::NotSpeculatable;
 
   // If the inputs are statically shaped, they will be fully verified
