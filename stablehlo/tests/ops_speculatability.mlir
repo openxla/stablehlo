@@ -901,3 +901,51 @@ func.func @reshape(
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<12xi64>) -> ()
   return
 }
+
+// -----
+
+// CHECK-LABEL: func @batch_norm_grad
+// CHECK-NEXT:  return
+func.func @batch_norm_grad(%static: tensor<2xf64>, %dynamic: tensor<?xf64>) {
+  %all_inputs_static:3 = "stablehlo.batch_norm_grad" (%static, %static, %static, %static, %static) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>) -> (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>)
+  %first_input_dynamic:3 = "stablehlo.batch_norm_grad" (%dynamic, %static, %static, %static, %static) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<?xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>) -> (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>)
+  %last_input_dynamic:3 = "stablehlo.batch_norm_grad" (%static, %static, %static, %static, %dynamic) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<?xf64>) -> (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>)
+  %all_inputs_dynamic:3 = "stablehlo.batch_norm_grad" (%dynamic, %dynamic, %dynamic, %dynamic, %dynamic) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>, tensor<?xf64>, tensor<?xf64>) -> (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>)
+  "hlo_test_speculatability.is_speculatable"(%all_inputs_static#0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%first_input_dynamic#0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%last_input_dynamic#0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%all_inputs_dynamic#0) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @batch_norm_inference
+// CHECK-NEXT:  return
+func.func @batch_norm_inference(%static: tensor<2xf64>, %dynamic: tensor<?xf64>) {
+  %all_inputs_static = "stablehlo.batch_norm_inference" (%static, %static, %static, %static, %static) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>) -> (tensor<?xf64>)
+  %first_input_dynamic = "stablehlo.batch_norm_inference" (%dynamic, %static, %static, %static, %static) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<?xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>) -> (tensor<?xf64>)
+  %last_input_dynamic = "stablehlo.batch_norm_inference" (%static, %static, %static, %static, %dynamic) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<?xf64>) -> (tensor<?xf64>)
+  %all_inputs_dynamic = "stablehlo.batch_norm_inference" (%dynamic, %dynamic, %dynamic, %dynamic, %dynamic) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>, tensor<?xf64>, tensor<?xf64>) -> (tensor<?xf64>)
+  "hlo_test_speculatability.is_speculatable"(%all_inputs_static) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%first_input_dynamic) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%last_input_dynamic) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%all_inputs_dynamic) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @batch_norm_training
+// CHECK-NEXT:  return
+func.func @batch_norm_training(%static: tensor<2xf64>, %dynamic: tensor<?xf64>) {
+  %all_inputs_static:3 = "stablehlo.batch_norm_training" (%static, %static, %static) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2xf64>, tensor<2xf64>, tensor<2xf64>) -> (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>)
+  %first_input_dynamic:3 = "stablehlo.batch_norm_training" (%dynamic, %static, %static) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<?xf64>, tensor<2xf64>, tensor<2xf64>) -> (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>)
+  %last_input_dynamic:3 = "stablehlo.batch_norm_training" (%static, %static, %dynamic) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2xf64>, tensor<2xf64>, tensor<?xf64>) -> (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>)
+  %all_inputs_dynamic:3 = "stablehlo.batch_norm_training" (%dynamic, %dynamic, %dynamic) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>) -> (tensor<?xf64>, tensor<?xf64>, tensor<?xf64>)
+  "hlo_test_speculatability.is_speculatable"(%all_inputs_static#0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%first_input_dynamic#0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%last_input_dynamic#0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%all_inputs_dynamic#0) : (tensor<?xf64>) -> ()
+  return
+}

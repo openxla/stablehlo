@@ -334,10 +334,16 @@ def HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
 def HLO_SpeculatableIfStaticDimInOutputIsStaticInInput : TraitList<[
     ConditionallySpeculatable, HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait]>;
 
-def HLO_BinaryElementwiseSpeculatableImplTrait
-  : HLO_NativeOpTrait<"BinaryElementwiseSpeculatableImplTrait">;
+def HLO_SpeculatableIfAllInputsStaticImplTrait
+  : HLO_NativeOpTrait<"SpeculatableIfAllInputsStaticImplTrait">;
 
-def HLO_BinaryElementwiseSpeculatable : TraitList<[
-    ConditionallySpeculatable, HLO_BinaryElementwiseSpeculatableImplTrait]>;
+// This trait is appropriate to use for ops where the op is only speculatable
+// if all the inputs are static. This can happen if e.g. the inputs are expected
+// to all have the same shape. If all the inputs are static, the verifier can
+// validate statically that all the static dimensions are the same. However,
+// if there is any dynamic dimension, it could differ from the shape of another
+// input at runtime, leading to undefined behavior.
+def HLO_SpeculatableIfAllInputsStatic : TraitList<[
+    ConditionallySpeculatable, HLO_SpeculatableIfAllInputsStaticImplTrait]>;
 
 #endif // STABLEHLO_DIALECT_BASE
