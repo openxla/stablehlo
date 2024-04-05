@@ -1957,7 +1957,8 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
 // directly.
 
 def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
-      [Pure, HLO_CompatibleOperandsAndResultElementType /*cholesky_c1*/,
+      [NoMemoryEffect,
+       HLO_CompatibleOperandsAndResultElementType /*cholesky_c1*/,
        InferTensorType /*cholesky_c1*/]> {
   let summary = "Cholesky operation";
   let description = [{
