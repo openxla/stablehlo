@@ -2051,6 +2051,7 @@ mlir::Speculation::Speculatability TriangularSolveOp::getSpeculatability() {
   auto rhsType = cast<RankedTensorType>(getOperand(1).getType());
   if (lhsType.hasStaticShape() && rhsType.hasStaticShape())
     return mlir::Speculation::Speculatable;
+
   return mlir::Speculation::NotSpeculatable;
 }
 
