@@ -899,7 +899,10 @@ func.func @reshape(
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<12xi64>) -> ()
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<12xi64>) -> ()
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<12xi64>) -> ()
+  return
 }
+
+// -----
 
 // CHECK-LABEL: func @triangular_solve
 // CHECK-NEXT:  return
