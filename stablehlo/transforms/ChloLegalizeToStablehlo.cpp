@@ -1575,11 +1575,21 @@ static Value getConstantLikeSmallestFiniteValue(OpBuilder &b, Location loc,
 
 static Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
                              ValueRange args) {
-  // Code should match XLA's materializeZeta from chlo_legalize_to_hlo.cc
+  // Implementation ported from:
+  // https://github.com/openxla/xla/blob/7a067a7b88d2ffb15b1dc5e3c06f701a15f0391d/xla/client/lib/math.cc#L1912-L1917
+  // Reference: Johansson, Fredrik.
+  // "Rigorous high-precision computation of the Hurwitz zeta function and its
+  // derivatives." Numerical Algorithms 69.2 (2015): 253-270.
+  // https://arxiv.org/abs/1309.2877 - formula (5)
+  // Notation is more or less kept as a reference to the whitepaper.
   assert(args.size() == 2);
   Value x = args[0];
   Value q = args[1];
-  static const std::array<double, 12> kZetaCoeffs{
+
+  static constexpr auto kTerms = 12;
+  static constexpr auto kIters = 9;
+  static constexpr auto kTwoTermsMinusOne = 2 * kTerms - 1;
+  static constexpr auto kZetaCoeffs = std::array<double, kTerms>{
       -7.1661652561756670113e18,
       1.8152105401943546773e17,
       -4.5979787224074726105e15,
@@ -1596,131 +1606,119 @@ static Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
 
   // For speed we'll always use 9 iterations for the initial series estimate,
   // and a 12 term expansion for the Euler-Maclaurin formula.
-  Value a = q;
-  Value zero = getConstantLike(rewriter, loc, 0.0, a);
-  Value negPower = zero;
-  Value negX = rewriter.create<mlir::stablehlo::NegOp>(loc, x);
-  Value initialSum = rewriter.create<mlir::stablehlo::PowOp>(loc, q, negX);
-  Value one = getConstantLike(rewriter, loc, 1.0, a);
-  for (int i = 0; i < 9; ++i) {
-    a = rewriter.create<mlir::stablehlo::AddOp>(loc, a, one);
-    negPower = rewriter.create<mlir::stablehlo::PowOp>(loc, a, negX);
-    initialSum =
-        rewriter.create<mlir::stablehlo::AddOp>(loc, initialSum, negPower);
+  Value zero = getConstantLike(rewriter, loc, 0.0, q);
+  Value one = getConstantLike(rewriter, loc, 1.0, q);
+  Value acc = q;
+  Value qNegPower = zero;
+  Value negX = rewriter.create<NegOp>(loc, x);
+  Value powerSum = rewriter.create<PowOp>(loc, q, negX);
+  for (int i = 0; i < kIters; ++i) {
+    acc = rewriter.create<AddOp>(loc, acc, one);
+    qNegPower = rewriter.create<PowOp>(loc, acc, negX);
+    powerSum = rewriter.create<AddOp>(loc, powerSum, qNegPower);
   }
-
-  a = rewriter.create<mlir::stablehlo::AddOp>(loc, a, one);
-  negPower = rewriter.create<mlir::stablehlo::PowOp>(loc, a, negX);
+  acc = rewriter.create<AddOp>(loc, acc, one);
+  qNegPower = rewriter.create<PowOp>(loc, acc, negX);
   Value oneLikeX = getConstantLike(rewriter, loc, 1.0, x);
-  Value xMinusOne =
-      rewriter.create<mlir::stablehlo::SubtractOp>(loc, x, oneLikeX);
-  Value negPowerMulA =
-      rewriter.create<mlir::stablehlo::MulOp>(loc, negPower, a);
-  Value negPowerMulADivXMinusOne =
-      rewriter.create<mlir::stablehlo::DivOp>(loc, negPowerMulA, xMinusOne);
-  Value s = rewriter.create<mlir::stablehlo::AddOp>(loc, initialSum,
-                                                    negPowerMulADivXMinusOne);
-  Value aInverseSquare = rewriter.create<mlir::stablehlo::DivOp>(
-      loc, one, rewriter.create<mlir::stablehlo::MulOp>(loc, a, a));
+  Value correctionEulerMaclaurin =
+      rewriter.create<DivOp>(loc, rewriter.create<MulOp>(loc, qNegPower, acc),
+                             rewriter.create<SubtractOp>(loc, x, oneLikeX));
 
-  Value hornerSum = zero;
-  Value factor = one;
+  // Manual reciprocal of the square root as RsqrtOp produces different results
+  Value rsqrtAcc =
+      rewriter.create<DivOp>(loc, one, rewriter.create<MulOp>(loc, acc, acc));
+
   // Use Horner's rule for this.
   // Note this differs from Cephes which does a 'naive' polynomial evaluation.
   // Using Horner's rule allows to avoid some NaN's and Infs from happening,
   // resulting in more numerically stable code.
-  for (int i = 0; i < 11; ++i) {
-    Value factorLhs = rewriter.create<mlir::stablehlo::AddOp>(
-        loc, x, getConstantLike(rewriter, loc, 22 - 2 * i, x));
-    Value factorRhs = rewriter.create<mlir::stablehlo::AddOp>(
-        loc, x, getConstantLike(rewriter, loc, 21 - 2 * i, x));
-    factor = rewriter.create<mlir::stablehlo::MulOp>(loc, factorLhs, factorRhs);
-    hornerSum = rewriter.create<mlir::stablehlo::MulOp>(
-        loc, factor,
-        rewriter.create<mlir::stablehlo::MulOp>(
-            loc, aInverseSquare,
-            rewriter.create<mlir::stablehlo::AddOp>(
+  Value hornerSum = zero;
+  Value hornerProduct = one;
+
+  for (int i = 0; i < kTerms - 1; ++i) {
+    Value factorLhs = rewriter.create<AddOp>(
+        loc, x,
+        getConstantLike(rewriter, loc, kTwoTermsMinusOne - 1 - 2 * i, x));
+    Value factorRhs = rewriter.create<AddOp>(
+        loc, x,
+        getConstantLike(rewriter, loc, kTwoTermsMinusOne - 2 - 2 * i, x));
+    hornerProduct = rewriter.create<MulOp>(loc, factorLhs, factorRhs);
+    hornerSum = rewriter.create<MulOp>(
+        loc, hornerProduct,
+        rewriter.create<MulOp>(
+            loc, rsqrtAcc,
+            rewriter.create<AddOp>(
                 loc, hornerSum,
-                getConstantLike(rewriter, loc, 1. / kZetaCoeffs[i], a))));
+                getConstantLike(rewriter, loc, 1. / kZetaCoeffs[i], acc))));
   }
-  Value zeroPointFiveLikeNegPower =
-      getConstantLike(rewriter, loc, .5, negPower);
-  Value xDivA = rewriter.create<mlir::stablehlo::DivOp>(loc, x, a);
-  s = rewriter.create<mlir::stablehlo::AddOp>(
-      loc, s,
-      rewriter.create<mlir::stablehlo::MulOp>(
-          loc, negPower,
-          rewriter.create<mlir::stablehlo::AddOp>(
-              loc, zeroPointFiveLikeNegPower,
-              rewriter.create<mlir::stablehlo::MulOp>(
-                  loc, xDivA,
-                  rewriter.create<mlir::stablehlo::AddOp>(
-                      loc,
-                      getConstantLike(rewriter, loc, 1. / kZetaCoeffs[11], a),
-                      hornerSum)))));
+  Value zeroPointFiveLikeQNegPower =
+      getConstantLike(rewriter, loc, .5, qNegPower);
+  Value xDivAcc = rewriter.create<DivOp>(loc, x, acc);
+  Value bernoulliTailTerm = rewriter.create<MulOp>(
+      loc, qNegPower,
+      rewriter.create<AddOp>(
+          loc, zeroPointFiveLikeQNegPower,
+          rewriter.create<MulOp>(
+              loc, xDivAcc,
+              rewriter.create<AddOp>(
+                  loc,
+                  getConstantLike(rewriter, loc, 1. / kZetaCoeffs[kTerms - 1],
+                                  acc),
+                  hornerSum))));
+  Value accurateResult = rewriter.create<AddOp>(
+      loc, rewriter.create<AddOp>(loc, powerSum, correctionEulerMaclaurin),
+      bernoulliTailTerm);
 
   // Use the initial zeta sum without the correction term coming
   // from Euler-Maclaurin if it is accurate enough.
-  Value absNegPower = rewriter.create<mlir::stablehlo::AbsOp>(loc, negPower);
-  Value absInitialSum =
-      rewriter.create<mlir::stablehlo::AbsOp>(loc, initialSum);
-  Value output = rewriter.create<mlir::stablehlo::SelectOp>(
+  Value absQNegPower = rewriter.create<AbsOp>(loc, qNegPower);
+  Value absPowerSum = rewriter.create<AbsOp>(loc, powerSum);
+  Value output = rewriter.create<SelectOp>(
       loc,
-      rewriter.create<mlir::stablehlo::CompareOp>(
-          loc, absNegPower,
-          rewriter.create<mlir::stablehlo::MulOp>(
-              loc, absInitialSum,
-              getConstantLikeSmallestFiniteValue(rewriter, loc, a)),
-          mlir::stablehlo::ComparisonDirection::LT),
-      initialSum, s);
+      rewriter.create<CompareOp>(
+          loc, absQNegPower,
+          rewriter.create<MulOp>(
+              loc, absPowerSum,
+              getConstantLikeSmallestFiniteValue(rewriter, loc, acc)),
+          ComparisonDirection::LT),
+      powerSum, accurateResult);
 
   // Function is not defined for x < 1.
   Value nan = getConstantLike(rewriter, loc,
                               std::numeric_limits<double>::quiet_NaN(), x);
-  output = rewriter.create<mlir::stablehlo::SelectOp>(
+  output = rewriter.create<SelectOp>(
       loc,
-      rewriter.create<mlir::stablehlo::CompareOp>(
-          loc, x, oneLikeX, mlir::stablehlo::ComparisonDirection::LT),
+      rewriter.create<CompareOp>(loc, x, oneLikeX, ComparisonDirection::LT),
       nan, output);
 
   // For q <= 0, x must be an integer.
-  Value qLeZero = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, q, zero, mlir::stablehlo::ComparisonDirection::LE);
-  Value xNotInt = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, x, rewriter.create<mlir::stablehlo::FloorOp>(loc, x),
-      mlir::stablehlo::ComparisonDirection::NE);
-  Value xDomainError =
-      rewriter.create<mlir::stablehlo::AndOp>(loc, qLeZero, xNotInt);
-  output = rewriter.create<mlir::stablehlo::SelectOp>(loc, xDomainError, nan,
-                                                      output);
+  Value qLeZero =
+      rewriter.create<CompareOp>(loc, q, zero, ComparisonDirection::LE);
+  Value xNotInt = rewriter.create<CompareOp>(
+      loc, x, rewriter.create<FloorOp>(loc, x), ComparisonDirection::NE);
+  Value xDomainError = rewriter.create<AndOp>(loc, qLeZero, xNotInt);
+  output = rewriter.create<SelectOp>(loc, xDomainError, nan, output);
 
   // For all integer q <= 0, zeta has a pole. The limit is only defined as
   // +inf if x is and even integer.
   Value inf = getConstantLike(rewriter, loc,
                               std::numeric_limits<double>::infinity(), x);
-  Value qIsInt = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, q, rewriter.create<mlir::stablehlo::FloorOp>(loc, q),
-      mlir::stablehlo::ComparisonDirection::EQ);
-  Value atPole = rewriter.create<mlir::stablehlo::AndOp>(loc, qLeZero, qIsInt);
+  Value qIsInt = rewriter.create<CompareOp>(
+      loc, q, rewriter.create<FloorOp>(loc, q), ComparisonDirection::EQ);
+  Value atPole = rewriter.create<AndOp>(loc, qLeZero, qIsInt);
   Value two = getConstantLike(rewriter, loc, 2.0, x);
-  Value xIsInt = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, x, rewriter.create<mlir::stablehlo::FloorOp>(loc, x),
-      mlir::stablehlo::ComparisonDirection::EQ);
-  Value xIsEven = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, rewriter.create<mlir::stablehlo::RemOp>(loc, x, two), zero,
-      mlir::stablehlo::ComparisonDirection::EQ);
-  Value xIsEvenInt =
-      rewriter.create<mlir::stablehlo::AndOp>(loc, xIsInt, xIsEven);
-  output = rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, atPole,
-      rewriter.create<mlir::stablehlo::SelectOp>(loc, xIsEvenInt, inf, nan),
+  Value xIsInt = rewriter.create<CompareOp>(
+      loc, x, rewriter.create<FloorOp>(loc, x), ComparisonDirection::EQ);
+  Value xIsEven = rewriter.create<CompareOp>(
+      loc, rewriter.create<RemOp>(loc, x, two), zero, ComparisonDirection::EQ);
+  Value xIsEvenInt = rewriter.create<AndOp>(loc, xIsInt, xIsEven);
+  output = rewriter.create<SelectOp>(
+      loc, atPole, rewriter.create<SelectOp>(loc, xIsEvenInt, inf, nan),
       output);
 
   // For x = 1, this is the harmonic series and diverges.
-  output = rewriter.create<mlir::stablehlo::SelectOp>(
-      loc,
-      rewriter.create<mlir::stablehlo::CompareOp>(
-          loc, x, one, mlir::stablehlo::ComparisonDirection::EQ),
+  output = rewriter.create<SelectOp>(
+      loc, rewriter.create<CompareOp>(loc, x, one, ComparisonDirection::EQ),
       inf, output);
 
   return output;
