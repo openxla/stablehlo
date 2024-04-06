@@ -2556,7 +2556,7 @@ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 
-  let extraClassDeclaration = [{
+  let extraClassDeclaration = commonClassDeclaration # [{
     /// Interface method for ConditionallySpeculatable.
     mlir::Speculation::Speculatability getSpeculatability();
   }];
