@@ -130,6 +130,19 @@ LogicalResult ReduceScatterOp::verify() {
       channelId, getUseGlobalDeviceIds(), getComputation(), getResult());
 }
 
+mlir::Speculation::Speculatability ReduceScatterOp::getSpeculatability() {
+    auto inputType = cast<RankedTensorType>(getOperand().getType());
+    auto resultType = cast<RankedTensorType>(getResult().getType());
+    auto scatterDim = getScatterDimension();
+    if (!resultType.isDynamicDim(scatterDim)) return mlir::Speculation::NotSpeculatable;
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (i == scatterDim) continue;
+      if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
+    return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // CompatibleOperandsAndResultType
 //===----------------------------------------------------------------------===//
@@ -933,6 +946,20 @@ void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                     /*channel_handle=*/nullptr);
 }
 
+mlir::Speculation::Speculatability AllToAllOp::getSpeculatability() {
+    auto inputType = cast<RankedTensorType>(getOperand().getType());
+    auto resultType = cast<RankedTensorType>(getResult().getType());
+    auto splitDim = getSplitDimension();
+    auto concatDim = getConcatDimension();
+    if (!resultType.isDynamicDim(splitDim) || !resultType.isDynamicDim(concatDim)) return mlir::Speculation::NotSpeculatable;
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (i == splitDim || i == concatDim) continue;
+      if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
+    return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // AllGatherOp
 //===----------------------------------------------------------------------===//
@@ -945,6 +972,18 @@ LogicalResult AllGatherOp::verify() {
   return hlo::verifyAllGatherOp(getLoc(), getOperand(), getAllGatherDim(),
                                 getReplicaGroups(), channelId,
                                 getUseGlobalDeviceIds(), getResult());
+}
+
+mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
+    auto inputType = cast<RankedTensorType>(getOperand().getType());
+    auto resultType = cast<RankedTensorType>(getResult().getType());
+    auto allGatherDim = getAllGatherDim();
+    if (!resultType.isDynamicDim(allGatherDim)) return mlir::Speculation::NotSpeculatable;
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (i != allGatherDim && !resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
+    return mlir::Speculation::Speculatable;
 }
 
 //===----------------------------------------------------------------------===//

@@ -99,6 +99,7 @@ LogicalResult checkSpeculatability(PatternRewriter &rewriter, Operation *op,
 
   if (definingOp.getSpeculatability() == spec) {
     rewriter.eraseOp(op);
+    rewriter.eraseOp(definingOp);
     return success();
   }
 

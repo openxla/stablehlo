@@ -452,6 +452,263 @@ func.func @reverse(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
 
 // -----
 
+// CHECK-LABEL: func @all_reduce
+// CHECK-NEXT:  return
+func.func @all_reduce(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = "stablehlo.all_reduce"(%static_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      %0 = stablehlo.add %arg0, %arg1 : tensor<f64>
+      stablehlo.return %0 : tensor<f64>
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = "stablehlo.all_reduce"(%static_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      %0 = stablehlo.add %arg0, %arg1 : tensor<f64>
+      stablehlo.return %0 : tensor<f64>
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = "stablehlo.all_reduce"(%dynamic_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      %0 = stablehlo.add %arg0, %arg1 : tensor<f64>
+      stablehlo.return %0 : tensor<f64>
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<?xf64>) -> tensor<2xf64>
+  %speculatable_2 = "stablehlo.all_reduce"(%dynamic_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      %0 = stablehlo.add %arg0, %arg1 : tensor<f64>
+      stablehlo.return %0 : tensor<f64>
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_broadcast
+// CHECK-NEXT:  return
+func.func @collective_broadcast(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = "stablehlo.collective_broadcast"(%static_arg) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = "stablehlo.collective_broadcast"(%static_arg) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = "stablehlo.collective_broadcast"(%dynamic_arg) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<?xf64>) -> tensor<2xf64>
+  %speculatable_2 = "stablehlo.collective_broadcast"(%dynamic_arg) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_permute
+// CHECK-NEXT:  return
+func.func @collective_permute(%static_arg: tensor<2x2xf64>, %dynamic_arg: tensor<?x?xf64>) {
+  %speculatable_0 = "stablehlo.collective_permute"(%static_arg) {
+    source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<2x2xf64>) -> tensor<2x2xf64>
+  %speculatable_1 = "stablehlo.collective_permute"(%static_arg) {
+    source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<2x2xf64>) -> tensor<?x?xf64>
+  %not_speculatable_0 = "stablehlo.collective_permute"(%dynamic_arg) {
+    source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<?x?xf64>) -> tensor<2x2xf64>
+  %speculatable_2 = "stablehlo.collective_permute"(%dynamic_arg) {
+    source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<?x?xf64>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2x2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2x2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?x?xf64>) -> ()
+  return
+}
+
+// -----
+
+// Unary ops with special restrictions
+
+// -----
+
+// CHECK-LABEL: func @all_gather
+// CHECK-NEXT:  return
+func.func @all_gather(%static_arg: tensor<2x2xf64>, %dynamic_arg: tensor<?x?xf64>) {
+    %static_all_gather_dim = "stablehlo.all_gather"(%static_arg) {
+      all_gather_dim = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<2x2xf64>) -> tensor<2x8xf64>
+    %dynamic_all_gather_dim = "stablehlo.all_gather"(%static_arg) {
+      all_gather_dim = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<2x2xf64>) -> tensor<2x?xf64>
+    %dynamic_all_gather_dim_not_speculatable = "stablehlo.all_gather"(%dynamic_arg) {
+      all_gather_dim = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<?x?xf64>) -> tensor<2x?xf64>
+    %result_dynamic_input_static = "stablehlo.all_gather"(%static_arg) {
+      all_gather_dim = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<2x2xf64>) -> tensor<?x?xf64>
+    %result_dynamic_input_dynamic = "stablehlo.all_gather"(%dynamic_arg) {
+      all_gather_dim = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<?x?xf64>) -> tensor<?x?xf64>
+    "hlo_test_speculatability.is_not_speculatable"(%static_all_gather_dim) : (tensor<2x8xf64>) -> ()
+    "hlo_test_speculatability.is_speculatable"(%dynamic_all_gather_dim) : (tensor<2x?xf64>) -> ()
+    "hlo_test_speculatability.is_not_speculatable"(%dynamic_all_gather_dim_not_speculatable) : (tensor<2x?xf64>) -> ()
+    "hlo_test_speculatability.is_speculatable"(%result_dynamic_input_static) : (tensor<?x?xf64>) -> ()
+    "hlo_test_speculatability.is_speculatable"(%result_dynamic_input_dynamic) : (tensor<?x?xf64>) -> ()
+    return
+}
+
+// -----
+
+// CHECK-LABEL: func @reduce_scatter
+// CHECK-NEXT:  return
+func.func @reduce_scatter(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?xf64>) {
+    %static_scatter_dim = "stablehlo.reduce_scatter"(%static_arg) ({
+      ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<f64>
+        stablehlo.return %0 : tensor<f64>
+    }) {
+      scatter_dimension = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<2x4xf64>) -> tensor<2x2xf64>
+    %dynamic_scatter_dim = "stablehlo.reduce_scatter"(%static_arg) ({
+      ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<f64>
+        stablehlo.return %0 : tensor<f64>
+    }) {
+      scatter_dimension = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<2x4xf64>) -> tensor<2x?xf64>
+    %dynamic_scatter_dim_not_speculatable = "stablehlo.reduce_scatter"(%dynamic_arg) ({
+      ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<f64>
+        stablehlo.return %0 : tensor<f64>
+    }) {
+      scatter_dimension = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<?x?xf64>) -> tensor<2x?xf64>
+    %result_dynamic_input_static = "stablehlo.reduce_scatter"(%static_arg) ({
+      ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<f64>
+        stablehlo.return %0 : tensor<f64>
+    }) {
+      scatter_dimension = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<2x4xf64>) -> tensor<?x?xf64>
+    %result_dynamic_input_dynamic = "stablehlo.reduce_scatter"(%dynamic_arg) ({
+      ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<f64>
+        stablehlo.return %0 : tensor<f64>
+    }) {
+      scatter_dimension = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle=1, type=0>
+    } : (tensor<?x?xf64>) -> tensor<?x?xf64>
+    "hlo_test_speculatability.is_not_speculatable"(%static_scatter_dim) : (tensor<2x2xf64>) -> ()
+    "hlo_test_speculatability.is_speculatable"(%dynamic_scatter_dim) : (tensor<2x?xf64>) -> ()
+    "hlo_test_speculatability.is_not_speculatable"(%dynamic_scatter_dim_not_speculatable) : (tensor<2x?xf64>) -> ()
+    "hlo_test_speculatability.is_speculatable"(%result_dynamic_input_static) : (tensor<?x?xf64>) -> ()
+    "hlo_test_speculatability.is_speculatable"(%result_dynamic_input_dynamic) : (tensor<?x?xf64>) -> ()
+    return
+}
+
+// -----
+
+// CHECK-LABEL: func @all_to_all
+// CHECK-NEXT:  return
+func.func @all_to_all(%static_arg: tensor<2x4x8xf64>, %dynamic_arg: tensor<?x?x?xf64>) {
+    %concat_and_split_are_static = "stablehlo.all_to_all"(%static_arg) {
+      concat_dimension = 0 : i64,
+      split_dimension = 1 : i64,
+      split_count = 2 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<2x4x8xf64>) -> tensor<4x2x8xf64>
+    %concat_is_static = "stablehlo.all_to_all"(%static_arg) {
+      concat_dimension = 0 : i64,
+      split_dimension = 1 : i64,
+      split_count = 2 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<2x4x8xf64>) -> tensor<4x?x8xf64>
+    %split_is_static = "stablehlo.all_to_all"(%static_arg) {
+      concat_dimension = 0 : i64,
+      split_dimension = 1 : i64,
+      split_count = 2 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<2x4x8xf64>) -> tensor<?x2x8xf64>
+    %concat_and_split_are_dynamic = "stablehlo.all_to_all"(%static_arg) {
+      concat_dimension = 0 : i64,
+      split_dimension = 1 : i64,
+      split_count = 2 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<2x4x8xf64>) -> tensor<?x?x8xf64>
+    %other_dim_static = "stablehlo.all_to_all"(%dynamic_arg) {
+      concat_dimension = 0 : i64,
+      split_dimension = 1 : i64,
+      split_count = 2 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<?x?x?xf64>) -> tensor<?x?x8xf64>
+    %result_fully_dynamic_0 = "stablehlo.all_to_all"(%static_arg) {
+      concat_dimension = 0 : i64,
+      split_dimension = 1 : i64,
+      split_count = 2 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<2x4x8xf64>) -> tensor<?x?x?xf64>
+    %result_fully_dynamic_1 = "stablehlo.all_to_all"(%dynamic_arg) {
+      concat_dimension = 0 : i64,
+      split_dimension = 1 : i64,
+      split_count = 2 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<?x?x?xf64>) -> tensor<?x?x?xf64>
+    "hlo_test_speculatability.is_not_speculatable"(%concat_and_split_are_static) : (tensor<4x2x8xf64>) -> ()
+    "hlo_test_speculatability.is_not_speculatable"(%concat_is_static) : (tensor<4x?x8xf64>) -> ()
+    "hlo_test_speculatability.is_not_speculatable"(%split_is_static) : (tensor<?x2x8xf64>) -> ()
+    "hlo_test_speculatability.is_speculatable"(%concat_and_split_are_dynamic) : (tensor<?x?x8xf64>) -> ()
+    "hlo_test_speculatability.is_not_speculatable"(%other_dim_static) : (tensor<?x?x8xf64>) -> ()
+    "hlo_test_speculatability.is_speculatable"(%result_fully_dynamic_0) : (tensor<?x?x?xf64>) -> ()
+    "hlo_test_speculatability.is_speculatable"(%result_fully_dynamic_1) : (tensor<?x?x?xf64>) -> ()
+    return
+}
+
+// -----
+
 // BinaryElementwise and BinaryBitwiseOrLogicalElementwise ops
 
 // -----
