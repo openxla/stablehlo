@@ -686,6 +686,7 @@ func.func @reduce_zero_ext(%arg0: tensor<0xi1>) -> tensor<i32> {
 //
 // To drop r1 use pair (b, b1).
 
+// CHECK-LABEL: func.func @reduce_unused_case0
 func.func @reduce_unused_case0(%arg0: tensor<8xi64>,
                                %arg1: tensor<8xi64>) -> tensor<i64> {
   // CHECK: [[R0:%.+]] = stablehlo.constant dense<1> : tensor<i64>
@@ -791,7 +792,7 @@ func.func @reduce_unused_case2(%arg0: tensor<8xf32>,
 //    r0      r1      r2
 //    U
 //
-// There is 1 suitable pair, but used by 2 return operands.
+// There is 1 suitable pair (b, b1), but used by 2 return operands.
 
 // CHECK-LABEL: func.func @reduce_unused_case3
 func.func @reduce_unused_case3(%arg0: tensor<8xf32>,

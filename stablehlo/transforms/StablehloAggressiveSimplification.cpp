@@ -714,17 +714,13 @@ struct UnusedResultReduceOpCanon final
     Block &reducerBlock = op.getBody().front();
     auto retOp = cast<mlir::stablehlo::ReturnOp>(reducerBlock.getTerminator());
 
-    SmallVector<unsigned> argToPairMap(numOperands);
-    for (auto i : llvm::seq(0u, numOperandPairs)) {
-      argToPairMap[i] = i;
-      argToPairMap[i + numOperandPairs] = i;
-    }
+    assert(numOperandPairs == op.getNumResults() &&
+           numOperandPairs == retOp.getNumOperands());
 
     SmallVector<Value> workList;
     auto addToWorkList = [&workList,
-                          retOpRegion = retOp->getParentRegion()](Value v) {
-      // inspect only values from reducerBlock's body
-      if (v.getParentRegion() == retOpRegion) workList.push_back(v);
+                          reducerBody = retOp->getParentRegion()](Value v) {
+      if (v.getParentRegion() == reducerBody) workList.push_back(v);
     };
 
     SmallPtrSet<Operation *, 16> usedOps;
@@ -740,8 +736,8 @@ struct UnusedResultReduceOpCanon final
       while (!workList.empty()) {
         auto definition = workList.pop_back_val();
         if (auto blockArg = definition.dyn_cast<BlockArgument>()) {
-          const auto pairNo = argToPairMap[blockArg.getArgNumber()];
           // using one argument implies using the whole argument pair
+          const auto pairNo = blockArg.getArgNumber() % numOperandPairs;
           usedArgs.set(pairNo);
           usedArgs.set(pairNo + numOperandPairs);
         } else if (auto *defOp = definition.getDefiningOp()) {
