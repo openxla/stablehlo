@@ -166,6 +166,48 @@ LogicalResult verifyBinaryOpQuantizationConstraints(
   return success();
 }
 
+LogicalResult verifyBinaryOpFullQuantizationConstraints(
+    std::optional<Location> location, Type lhsElementType, Type rhsElementType,
+    Type resultElementType) {
+  auto lhsQuantType = lhsElementType.dyn_cast<quant::QuantizedType>();
+  auto rhsQuantType = rhsElementType.dyn_cast<quant::QuantizedType>();
+  auto resultQuantType = resultElementType.dyn_cast<quant::QuantizedType>();
+  // convolution_c31 and dot_general_c17
+  if (lhsQuantType.getStorageType() != rhsQuantType.getStorageType()) {
+    return emitOptionalError(
+        location, "mismatched lhs and rhs quantization storage types");
+  }
+  // convolution_c32 and dot_general_c18
+  if (lhsQuantType.getExpressedType() != rhsQuantType.getExpressedType() ||
+      lhsQuantType.getExpressedType() != resultQuantType.getExpressedType()) {
+    return emitOptionalError(
+        location,
+        "mismatched lhs, rhs and result quantization expressed types");
+  }
+  // convolution_c33 and dot_general_c19
+  if (rhsQuantType.isa<quant::UniformQuantizedType>() !=
+      resultQuantType.isa<quant::UniformQuantizedType>()) {
+    return emitOptionalError(
+        location, "mismatched rhs and result quantization granularity");
+  }
+  return success();
+}
+
+LogicalResult verifyBinaryOpHybridQuantizationConstraints(
+    std::optional<Location> location, Type lhsElementType, Type rhsElementType,
+    Type resultElementType) {
+  auto rhsQuantType = rhsElementType.dyn_cast<quant::QuantizedType>();
+  Type rhsExpressedType = rhsQuantType.getExpressedType();
+  // convolution_c34 and dot_general_c20
+  if (lhsElementType != rhsExpressedType ||
+      lhsElementType != resultElementType) {
+    return emitOptionalError(location,
+                             "mismatched rhs quantization expressed type and "
+                             "lhs and result element type");
+  }
+  return success();
+}
+
 bool isSameQuantPerAxisScaleZeroPoint(Type ty1, Type ty2) {
   auto qty1 =
       getElementTypeOrSelf(ty1).dyn_cast<quant::UniformQuantizedPerAxisType>();
@@ -3563,6 +3605,60 @@ LogicalResult verifyConvolutionOp(
                              "is incompatible with return type of operation ",
                              shapedResultType, "");
 
+  // If the operation uses quantized tensors:
+  if (!noneQuantized<quant::QuantizedType>({lhsType, rhsType, resultType})) {
+    Type lhsElementType = getElementTypeOrSelf(lhsType);
+    Type rhsElementType = getElementTypeOrSelf(rhsType);
+    Type resultElementType = getElementTypeOrSelf(resultType);
+    // convolution_c28
+    if (!rhsElementType.isa<quant::QuantizedType>() ||
+        (lhsElementType.isa<quant::QuantizedType>() !=
+         resultElementType.isa<quant::QuantizedType>())) {
+      return emitOptionalError(
+          location,
+          "rhs should be quantized for quantized operations and "
+          "is_quantized(lhs)=is_quantized(result) should hold");
+    }
+
+    // convolution_c29
+    if (rhsElementType.isa<quant::UniformQuantizedPerAxisType>()) {
+      auto rhsPerAxisType =
+          rhsElementType.cast<quant::UniformQuantizedPerAxisType>();
+      if (rhsPerAxisType.getQuantizedDimension() !=
+          kernelOutputFeatureDimension) {
+        return emitOptionalError(location,
+                                 "quantization dimension of rhs should be same "
+                                 "with kernel_output_feature_dimension");
+      }
+    }
+
+    // convolution_c30
+    if (resultElementType.isa<quant::UniformQuantizedPerAxisType>()) {
+      auto resultPerAxisType =
+          resultElementType.cast<quant::UniformQuantizedPerAxisType>();
+      if (resultPerAxisType.getQuantizedDimension() != outputFeatureDimension) {
+        return emitOptionalError(location,
+                                 "quantization dimension of result should be "
+                                 "same with output_feature_dimension");
+      }
+    }
+
+    if (lhsElementType.isa<quant::QuantizedType>()) {
+      // convolution_c31 - convolution_c33
+      if (failed(verifyBinaryOpFullQuantizationConstraints(
+              location, lhsElementType, rhsElementType, resultElementType))) {
+        return emitOptionalError(
+            location, "mismatched constraints for fully quantized op");
+      }
+    } else {
+      // convolution_c34
+      if (failed(verifyBinaryOpHybridQuantizationConstraints(
+              location, lhsElementType, rhsElementType, resultElementType))) {
+        return emitOptionalError(
+            location, "mismatched constraints for hybrid quantized op");
+      }
+    }
+  }
   return success();
 }
 
