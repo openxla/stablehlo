@@ -664,6 +664,49 @@ func.func @reduce_zero_ext(%arg0: tensor<0xi1>) -> tensor<i32> {
 
 // -----
 
+// Each reduce_unused_* test case is accompanied by an ASCII diagram that
+// represents the surveyed reduce operation in a compact form:
+//
+//  (a, a1) (b, b1)
+//    ▴       ▴
+//    │       │
+//    │       │
+//    │       │
+//    │       │
+//    r0      r1
+//    U
+//
+// In this case:
+// a,  b  - are the operands to be reduced, i.e. %arg0, %arg1.
+// a1, b1 - are the initial values of the operands, i.e. %0, %1.
+// r0, r1 - are the results of stablehlo.reduce and/or stablehlo.return operation
+//          (they are equivalent in this context), i.e %2#0, %2#1 and %3, %4.
+// Arrows show which results depend on which inputs.
+// U below the result means it is used (live).
+//
+// To drop r1 use pair (b, b1).
+
+func.func @reduce_unused_case0(%arg0: tensor<8xi64>,
+                               %arg1: tensor<8xi64>) -> tensor<i64> {
+  // CHECK: [[R0:%.+]] = stablehlo.constant dense<1> : tensor<i64>
+  // CHECK: [[R1:%.+]] = stablehlo.reduce(%arg0 init: [[R0]]) applies stablehlo.add
+  %0 = stablehlo.constant dense<1> : tensor<i64>
+  %1 = stablehlo.constant dense<2> : tensor<i64>
+  %2:2 = stablehlo.reduce(%arg0 init: %0), (%arg1 init: %1) across dimensions = [0] :
+  (tensor<8xi64>, tensor<8xi64>, tensor<i64>, tensor<i64>) ->
+  (tensor<i64>, tensor<i64>)
+   reducer(%arg2: tensor<i64>, %arg3: tensor<i64>)
+          (%arg4: tensor<i64>, %arg5: tensor<i64>)
+  {
+    %3 = stablehlo.add %arg2, %arg3 : tensor<i64>
+    %4 = stablehlo.subtract %arg4, %arg5 : tensor<i64>
+    stablehlo.return %3, %4 : tensor<i64>, tensor<i64>
+  }
+  return %2#0 : tensor<i64>
+}
+
+// -----
+
 //  (a, a1) (b, b1) (c, c1)
 //    ▴       ▴
 //    │       │
