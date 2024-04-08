@@ -681,7 +681,10 @@ func.func @reduce_zero_ext(%arg0: tensor<0xi1>) -> tensor<i32> {
 // a1, b1 - are the initial values of the operands, i.e. %0, %1.
 // r0, r1 - are the results of stablehlo.reduce and/or stablehlo.return operation
 //          (they are equivalent in this context), i.e %2#0, %2#1 and %3, %4.
-// Arrows show which results depend on which inputs.
+// Arrows show which results depend on which inputs. More specifically it
+// represents a set of instructions followed along the def-use chain starting
+// from the return operand and a set of reachable operand pairs that conclude
+// these chains.
 // U below the result means it is used (live).
 //
 // To drop r1 use pair (b, b1).
