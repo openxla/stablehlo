@@ -1453,7 +1453,7 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 
 #### Semantics
 
-Produces the output from executing exactly one function from `branches`
+Produces the output from executing exactly one region from `branches`
 depending on the value of `index`. More formally, `result = selected_branch()`
 where:
 

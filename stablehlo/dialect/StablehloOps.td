@@ -1235,7 +1235,7 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
     ]> {
   let summary = "Case operation";
   let description = [{
-    Produces the output from executing exactly one `function` from `branches`
+    Produces the output from executing exactly one region from `branches`
     depending on the value of `index`.
 
     See:
