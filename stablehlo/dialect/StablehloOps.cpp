@@ -131,8 +131,8 @@ LogicalResult ReduceScatterOp::verify() {
 }
 
 mlir::Speculation::Speculatability ReduceScatterOp::getSpeculatability() {
-  auto inputType = cast<RankedTensorType>(getOperand().getType());
-  auto resultType = cast<RankedTensorType>(getResult().getType());
+  auto inputType = getOperand().getType();
+  auto resultType = getResult().getType();
   auto scatterDim = getScatterDimension();
   if (!resultType.isDynamicDim(scatterDim))
     return mlir::Speculation::NotSpeculatable;
@@ -948,8 +948,8 @@ void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
 }
 
 mlir::Speculation::Speculatability AllToAllOp::getSpeculatability() {
-  auto inputType = cast<RankedTensorType>(getOperand().getType());
-  auto resultType = cast<RankedTensorType>(getResult().getType());
+  auto inputType = getOperand().getType();
+  auto resultType = getResult().getType();
   auto splitDim = getSplitDimension();
   auto concatDim = getConcatDimension();
   if (!resultType.isDynamicDim(splitDim) || !resultType.isDynamicDim(concatDim))
@@ -977,8 +977,8 @@ LogicalResult AllGatherOp::verify() {
 }
 
 mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
-  auto inputType = cast<RankedTensorType>(getOperand().getType());
-  auto resultType = cast<RankedTensorType>(getResult().getType());
+  auto inputType = getOperand().getType();
+  auto resultType = getResult().getType();
   auto allGatherDim = getAllGatherDim();
   if (!resultType.isDynamicDim(allGatherDim))
     return mlir::Speculation::NotSpeculatable;
