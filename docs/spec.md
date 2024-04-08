@@ -2191,6 +2191,14 @@ For quantized types, performs `dequantize_op_quantize(
         feature_group_count, batch_group_count, precision_config), lhs, rhs,
     type(result))`.
 
+For hybrid quantized types, performs `hybrid_dequantize_then_op(
+  lambda lhs, rhs: convolution(lhs, rhs, window_strides, padding, lhs_dilation, rhs_dilation,
+window_reversal, input_batch_dimension, input_feature_dimension,
+input_spatial_dimensions, kernel_input_feature_dimension,
+kernel_output_feature_dimension, kernel_spatial_dimensions,
+output_batch_dimension, output_feature_dimension, output_spatial_dimensions,
+feature_group_count, batch_group_count, precision_config), lhs, rhs)`.
+
 #### Inputs
 
 | Label | Name                              | Type                                                         | Constraints                             |
@@ -2273,16 +2281,18 @@ For quantized types, performs `dequantize_op_quantize(
 * If the operation uses non-quantized tensors:
   * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)`.
 * If the operation uses quantized tensors:
-  * (C28) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`.
-  * (C29) `storage_type(lhs) =  storage_type(rhs)`.
-  * (C30) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
-  * (C31) If `is_per_tensor_quantized(rhs)`, then
-    `is_per_tensor_quantized(result)`.
-  * (C32) If `is_per_axis_quantized(rhs)`, then
-    `quantization_dimension(rhs) = kernel_output_feature_dimension`.
-  * (C33) If `is_per_axis_quantized(result)`, then
+  * (C28) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
+  * (C29) If `is_per_axis_quantized(rhs)`,
+    then `quantization_dimension(rhs) = kernel_output_feature_dimension`.
+  * (C30) If `is_per_axis_quantized(result)`, then
     `quantization_dimension(result) = output_feature_dimension`.
+  * If `is_quantized(lhs)`:
+    * (C31) `storage_type(lhs) = storage_type(rhs)`.
+    * (C32) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+    * (C33) If `is_per_tensor_quantized(rhs)`, then
+      `is_per_tensor_quantized(result)`.
+  * If `!is_quantized(lhs)`:
+    * (C34) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -6723,6 +6733,18 @@ def dequantize_select_quantize(pred, on_true, on_false, output_type):
   float_on_false = dequantize(on_false)
   float_result = select(pred, float_on_true, float_on_false)
   return quantize(float_result, output_type)
+```
+
+* `hybrid_dequantize_then_op` is used to specify weight-only quantization for
+hybrid op which accepts lhs in floating-point and rhs in quantized types. It
+dequantizes quantized inputs into their expressed types and performs computation
+in float. Element type of float lhs tensor and expressed type of quantized rhs
+tensor should be identical.
+
+```python
+def hybrid_dequantize_then_op(op, lhs, rhs):
+  assert(is_float(lhs) and is_quantized(rhs) and element_type(lhs) == expressed_type(rhs))
+  return op(lhs, dequantize(rhs))
 ```
 
 #### Grid computations
