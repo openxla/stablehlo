@@ -23,10 +23,14 @@ from lit.llvm import llvm_config
 
 # Populate Lit configuration with the minimal required metadata.
 # Some metadata is populated in lit.site.cfg.py.in.
-config.name = 'STABLEHLO_TESTS_SUITE'
+config.name = 'STABLEHLO_TESTDATA_SUITE'
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 config.suffixes = ['.mlir']
 config.test_source_root = os.path.dirname(__file__)
+
+# Disallow reusing variables across CHECK-LABEL matches.
+# A variable can eschew this (be made "global") by prefixing its name with $.
+config.environment["FILECHECK_OPTS"] = "-enable-var-scope"
 
 # Make LLVM and StableHLO tools available in RUN directives
 tools = [

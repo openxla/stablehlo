@@ -35,6 +35,17 @@ def VHLO_VersionedOpInterface : OpInterface<"VersionedOpInterface"> {
   ];
 }
 
+def VHLO_VersionedOpConstraintInterface : OpInterface<"VersionedOpConstraintInterface"> {
+  let cppNamespace = "::mlir::vhlo";
+  let methods = [
+    InterfaceMethod<
+      [{Validate versioned constraints on a versioned op.
+       Used if the spec'ed constraints of an op change over time.}],
+      "mlir::LogicalResult", "validateConstraint",
+      (ins "mlir::Operation*":$op, "mlir::vhlo::Version":$targetVersion)>,
+  ];
+}
+
 class VHLO_Op<string mnemonic, string minVersion, string maxVersion, list<Trait> traits = []> :
     Op<VHLO_Dialect, mnemonic,
       [DeclareOpInterfaceMethods<VHLO_VersionedOpInterface>] # traits> {
@@ -92,7 +103,8 @@ def VHLO_AllGatherOpV1 : VHLO_Op<"all_gather_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce_v1", "0.9.0", "current"> {
+def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce_v1", "0.9.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$replica_groups,
@@ -240,6 +252,15 @@ def VHLO_ClzOpV1 : VHLO_Op<"count_leading_zeros_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
+def VHLO_CollectiveBroadcastOpV1 : VHLO_Op<"collective_broadcast_v1", "0.16.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$replica_groups,
+    VHLO_AnyAttr:$channel_id
+  );
+  let results = (outs VHLO_AnyType:$result);
+}
+
 def VHLO_CollectivePermuteOpV1 : VHLO_Op<"collective_permute_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
@@ -262,6 +283,17 @@ def VHLO_CompareOpV1 : VHLO_Op<"compare_v1", "0.9.0", "current"> {
 def VHLO_ComplexOpV1 : VHLO_Op<"complex_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_CompositeOpV1 : VHLO_Op<"composite_v1", "0.19.0", "current"> {
+  let arguments = (ins
+    Variadic<VHLO_AnyType>:$inputs,
+    VHLO_AnyAttr:$name,
+    VHLO_AnyAttr:$composite_attributes,
+    VHLO_AnyAttr:$decomposition,
+    VHLO_AnyAttr:$version
+  );
+  let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
 // TODO(#8): ComputeReshapeShapeOp is not part of the StableHLO spec.
@@ -745,7 +777,8 @@ def VHLO_RecvOpV1 : VHLO_Op<"recv_v1", "0.9.0", "current"> {
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
-def VHLO_ReduceOpV1 : VHLO_Op<"reduce_v1", "0.9.0", "current", [SameVariadicOperandSize]> {
+def VHLO_ReduceOpV1 : VHLO_Op<"reduce_v1", "0.9.0", "current",
+    [SameVariadicOperandSize,  DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     Variadic<VHLO_AnyType>:$init_values,
@@ -764,7 +797,8 @@ def VHLO_ReducePrecisionOpV1 : VHLO_Op<"reduce_precision_v1", "0.9.0", "current"
   let results = (outs VHLO_AnyType:$output);
 }
 
-def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter_v1", "0.9.0", "current"> {
+def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter_v1", "0.9.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$scatter_dimension,
@@ -776,7 +810,8 @@ def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ReduceWindowOpV1 : VHLO_Op<"reduce_window_v1", "0.9.0", "current", [SameVariadicOperandSize]> {
+def VHLO_ReduceWindowOpV1 : VHLO_Op<"reduce_window_v1", "0.9.0", "current",
+    [SameVariadicOperandSize, DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     Variadic<VHLO_AnyType>:$init_values,
@@ -855,7 +890,8 @@ def VHLO_RsqrtOpV1 : VHLO_Op<"rsqrt_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "current", [SameVariadicOperandSize]> {
+def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "current",
+    [SameVariadicOperandSize, DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyType:$scatter_indices,
@@ -871,7 +907,8 @@ def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "current", [SameVariadicOp
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
-def VHLO_SelectAndScatterOpV1 : VHLO_Op<"select_and_scatter_v1", "0.9.0", "current"> {
+def VHLO_SelectAndScatterOpV1 : VHLO_Op<"select_and_scatter_v1", "0.9.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$source,

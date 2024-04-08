@@ -48,7 +48,7 @@ jobs:
 
     steps:
     - name: Checkout StableHLO
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Get LLVM Version
       id: llvm-version
@@ -70,13 +70,30 @@ jobs:
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_cmake_llvm.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR"
+      env:
+          CMAKE_BUILD_TYPE: Release
+          MLIR_ENABLE_BINDINGS_PYTHON: ON
 
-    - name: Build and Test StableHLO
+    - name: Fix kernel mmap rnd bits
+      # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
+      # high-entropy ASLR in much newer kernels that GitHub runners are
+      # using leading to random crashes: https://reviews.llvm.org/D148280
+      # TODO: remove this once https://github.com/actions/runner-images/issues/9491 is fixed
+      run: sudo sysctl vm.mmap_rnd_bits=28
+
+    - name: Build and Test StableHLO (with AddressSanitizer)
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
+      env:
+          CMAKE_BUILD_TYPE: Release
+          STABLEHLO_ENABLE_BINDINGS_PYTHON: OFF
+          STABLEHLO_ENABLE_SANITIZER: address
 
-    - name: Build and Test StableHLO Python API
+    - name: Build and Test StableHLO (with Python bindings)
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_cmake_python_api.sh "$LLVM_PROJECT_DIR" "$STABLEHLO_PYTHON_BUILD_DIR" "$GITHUB_WORKSPACE"
+        ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
+      env:
+          CMAKE_BUILD_TYPE: Release
+          STABLEHLO_ENABLE_BINDINGS_PYTHON: ON

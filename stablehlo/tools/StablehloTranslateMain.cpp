@@ -13,7 +13,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <memory>
+
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -28,16 +32,26 @@ limitations under the License.
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/dialect/StablehloOps.h"
-#include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/dialect/Version.h"
+#include "stablehlo/reference/Api.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterOps.h"
-#include "stablehlo/reference/InterpreterValue.h"
-#include "stablehlo/reference/Ops.h"
-#include "stablehlo/reference/Scope.h"
-#include "stablehlo/reference/Tensor.h"
 #include "stablehlo/tests/CheckOps.h"
 
 namespace mlir {
+
+llvm::cl::opt<std::string> probeOutputDir(
+    "probe-output-dir",
+    llvm::cl::desc("Directory for storing instrumented tensor values"),
+    llvm::cl::init(""));
+
+llvm::cl::opt<bool> stripDebuginfoOption(
+    "strip-debuginfo", llvm::cl::desc("Strip debug info from all operations"),
+    llvm::cl::init(false));
+
+llvm::cl::opt<std::string> targetOption(
+    "target", llvm::cl::desc("Target version for serialization"),
+    llvm::cl::init(""));
 
 namespace {
 
@@ -46,16 +60,6 @@ stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
   auto type = RankedTensorType::get({}, builder.getI1Type());
   auto res = DenseElementsAttr::get(type, builder.getBoolAttr(true));
   return stablehlo::makeTensor(res);
-}
-
-llvm::Error wrapStatus(llvm::Error status, llvm::StringRef funcName,
-                       llvm::StringRef fallbackName) {
-  if (status)
-    return stablehlo::invalidArgument(
-        "Error evaluating function: %s. \n\tFallback for %s failed: %s",
-        funcName.data(), fallbackName.data(),
-        toString(std::move(status)).c_str());
-  return llvm::Error::success();
 }
 
 llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
@@ -81,115 +85,102 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
   return status;
 }
 
-llvm::Error interpreterFallback(Operation &op, stablehlo::Process *process,
-                                stablehlo::Scope &scope,
-                                llvm::StringRef funcName) {
-  if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
-    if (customCall.getCallTargetName() == "check.eq") {
-      auto status = evalCustomCallCheckEq(customCall, scope);
-      return wrapStatus(std::move(status), funcName,
-                        "stablehlo.custom_call(@check.eq)");
+/// The default fallback callback used by StableHLO for interpreter validation
+/// and module instrumentation.
+class StablehloTranslateInterpreterFallback
+    : public stablehlo::InterpreterFallback {
+ public:
+  StablehloTranslateInterpreterFallback(
+      const std::string &probeInstrumentationDir)
+      : probeInstrumentationDir(probeInstrumentationDir) {}
+  virtual llvm::Error operator()(Operation &op, stablehlo::Scope &scope,
+                                 stablehlo::Process *process) final {
+    llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
+    if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
+      if (customCall.getCallTargetName() == "check.eq") {
+        auto status = evalCustomCallCheckEq(customCall, scope);
+        return stablehlo::wrapFallbackStatus(
+            std::move(status), funcName, "stablehlo.custom_call(@check.eq)");
+      }
+
+      return stablehlo::invalidArgument("Unsupported custom call: %s",
+                                        debugString(op).c_str());
     }
 
-    return stablehlo::invalidArgument("Unsupported custom call: %s",
+    if (auto expectAlmostEqOp =
+            dyn_cast<stablehlo::check::ExpectAlmostEqOp>(op)) {
+      auto runtimeLhs = scope.findTensor(expectAlmostEqOp.getLhs());
+      auto runtimeRhs = scope.findTensor(expectAlmostEqOp.getRhs());
+      auto status =
+          stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_almost_eq");
+    }
+
+    if (auto expectAlmostEqConstOp =
+            dyn_cast<stablehlo::check::ExpectAlmostEqConstOp>(op)) {
+      auto runtimeOperand = scope.findTensor(expectAlmostEqConstOp.getLhs());
+      auto status = stablehlo::check::evalExpectAlmostEqConstOp(
+          runtimeOperand, expectAlmostEqConstOp.getValue());
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_almost_eq_const");
+    }
+
+    if (auto expectEqOp = dyn_cast<stablehlo::check::ExpectEqOp>(op)) {
+      auto runtimeLhs = scope.findTensor(expectEqOp.getLhs());
+      auto runtimeRhs = scope.findTensor(expectEqOp.getRhs());
+      auto status = stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_eq");
+    }
+
+    if (auto expectEqConstOp =
+            dyn_cast<stablehlo::check::ExpectEqConstOp>(op)) {
+      auto runtimeOperand = scope.findTensor(expectEqConstOp.getLhs());
+      auto status = stablehlo::check::evalExpectEqConstOp(
+          runtimeOperand, expectEqConstOp.getValue());
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_eq_const");
+    }
+
+    if (auto expectSerializedEqOp =
+            dyn_cast<stablehlo::check::ExpectSerializedEqOp>(op)) {
+      auto runtimeOperand =
+          scope.findTensor(expectSerializedEqOp.getExpected());
+      auto status = stablehlo::check::evalExpectSerializedEqOp(
+          runtimeOperand, expectSerializedEqOp.getProbeId(),
+          probeInstrumentationDir, expectSerializedEqOp.getIteration());
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_serialized_eq");
+    }
+
+    return stablehlo::invalidArgument("Unsupported op: %s",
                                       debugString(op).c_str());
   }
 
-  if (auto expectAlmostEqOp =
-          dyn_cast<stablehlo::check::ExpectAlmostEqOp>(op)) {
-    auto runtimeLhs = scope.findTensor(expectAlmostEqOp.getLhs());
-    auto runtimeRhs = scope.findTensor(expectAlmostEqOp.getRhs());
-    auto status =
-        stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
-    return wrapStatus(std::move(status), funcName, "check.expect_almost_eq");
-  }
-
-  if (auto expectAlmostEqConstOp =
-          dyn_cast<stablehlo::check::ExpectAlmostEqConstOp>(op)) {
-    auto runtimeOperand = scope.findTensor(expectAlmostEqConstOp.getLhs());
-    auto status = stablehlo::check::evalExpectAlmostEqConstOp(
-        runtimeOperand, expectAlmostEqConstOp.getValue());
-    return wrapStatus(std::move(status), funcName,
-                      "check.expect_almost_eq_const");
-  }
-
-  if (auto expectEqOp = dyn_cast<stablehlo::check::ExpectEqOp>(op)) {
-    auto runtimeLhs = scope.findTensor(expectEqOp.getLhs());
-    auto runtimeRhs = scope.findTensor(expectEqOp.getRhs());
-    auto status = stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
-    return wrapStatus(std::move(status), funcName, "check.expect_eq");
-  }
-
-  if (auto expectEqConstOp = dyn_cast<stablehlo::check::ExpectEqConstOp>(op)) {
-    auto runtimeOperand = scope.findTensor(expectEqConstOp.getLhs());
-    auto status = stablehlo::check::evalExpectEqConstOp(
-        runtimeOperand, expectEqConstOp.getValue());
-    return wrapStatus(std::move(status), funcName, "check.expect_eq_const");
-  }
-
-  if (auto runParallelOp =
-          dyn_cast<stablehlo::interpreter::RunParallelOp>(op)) {
-    auto runtimeOperands = scope.find(runParallelOp.getInputs());
-    std::queue<StringAttr> infeed;
-    if (auto infeedAttr = runParallelOp.getInfeed())
-      for (auto &value : infeedAttr->getValue())
-        infeed.push(value.cast<FlatSymbolRefAttr>().getAttr());
-
-    SmallVector<SmallVector<StringAttr>> programs(
-        runParallelOp.getPrograms().size());
-    for (auto [i, replica] : llvm::enumerate(runParallelOp.getPrograms()))
-      for (auto &program : replica.cast<ArrayAttr>())
-        programs[i].push_back(program.cast<FlatSymbolRefAttr>().getAttr());
-
-    SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
-    auto results = stablehlo::interpreter::evalRunParallelOp(
-        runtimeOperands, infeed, programs, symbolTable);
-    scope.add(runParallelOp.getResults(), results);
-    return wrapStatus(llvm::Error::success(), funcName,
-                      "interpreter.run_parallel");
-  }
-
-  return stablehlo::invalidArgument("Unsupported op: %s",
-                                    debugString(op).c_str());
-}
+ private:
+  // The directory in which tensors instrumented by way of `interpreter.probe`
+  // will have their data serialized to.
+  const std::string probeInstrumentationDir;
+};
 
 }  // namespace
 
 TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
-    [](ModuleOp module, raw_ostream &os) {
-      auto numFuncs = 0;
-      bool hasMain = false;
-      module.walk([&](func::FuncOp funcOp) {
-        if (funcOp.getSymName() == "main") hasMain = true;
-        numFuncs++;
-      });
+    [](ModuleOp module, raw_ostream &os) -> LogicalResult {
+      stablehlo::InterpreterConfiguration config;
+      config.probeInstrumentationDir = probeOutputDir.getValue();
+      config.fallback = std::make_unique<StablehloTranslateInterpreterFallback>(
+          config.probeInstrumentationDir);
 
-      if (numFuncs > 1 && !hasMain)
-        llvm::report_fatal_error(
-            "Must have \"main\" function when multiple FuncOps are present");
+      llvm::SmallVector<stablehlo::InterpreterValue> inputs;
+      auto results = evalModule(module, inputs, config);
+      if (failed(results)) return failure();
 
-      auto walkResult = module.walk([&](func::FuncOp funcOp) {
-        if (numFuncs > 1 && funcOp.getSymName() != "main")
-          return WalkResult::advance();
+      for (auto &result : *results) result.print(os);
 
-        auto interpreterFallbackFn =
-            [&](Operation &op, stablehlo::Process *process,
-                stablehlo::Scope &scope) -> llvm::Error {
-          return interpreterFallback(op, process, scope, funcOp.getSymName());
-        };
-
-        // Run the test model.
-        auto results =
-            stablehlo::eval(funcOp.getBody(), /*args=*/{}, /*process=*/nullptr,
-                            /*parent=*/nullptr, interpreterFallbackFn);
-
-        // Dump the results.
-        for (auto &result : results) result.print(os);
-        return WalkResult::advance();
-      });
-
-      return success(!walkResult.wasInterrupted());
+      return success();
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
@@ -197,14 +188,6 @@ TranslateFromMLIRRegistration interpretRegistration(
       registry.insert<stablehlo::interpreter::InterpreterDialect>();
       registry.insert<stablehlo::StablehloDialect>();
     });
-
-llvm::cl::opt<std::string> targetOption(
-    "target", llvm::cl::desc("Target version for serialization"),
-    llvm::cl::init(""));
-
-llvm::cl::opt<bool> stripDebuginfoOption(
-    "strip-debuginfo", llvm::cl::desc("Strip debug info from all operations"),
-    llvm::cl::init(false));
 
 TranslateFromMLIRRegistration serializeRegistration(
     "serialize", "Serialize StableHLO program into a portable artifact",

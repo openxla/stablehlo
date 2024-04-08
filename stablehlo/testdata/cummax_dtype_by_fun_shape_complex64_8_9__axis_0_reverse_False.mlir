@@ -20,8 +20,8 @@ module @jit_testcase {
     return %0 : tensor<8x9xcomplex<f32>>
   }
   func.func private @cummax(%arg0: tensor<8x9xcomplex<f32>>) -> tensor<8x9xcomplex<f32>> {
-    %0 = "stablehlo.slice"(%arg0) {limit_indices = dense<[7, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<8x9xcomplex<f32>>) -> tensor<4x9xcomplex<f32>>
-    %1 = "stablehlo.slice"(%arg0) {limit_indices = dense<[8, 9]> : tensor<2xi64>, start_indices = dense<[1, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<8x9xcomplex<f32>>) -> tensor<4x9xcomplex<f32>>
+    %0 = "stablehlo.slice"(%arg0) {limit_indices = array<i64: 7, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 2, 1>} : (tensor<8x9xcomplex<f32>>) -> tensor<4x9xcomplex<f32>>
+    %1 = "stablehlo.slice"(%arg0) {limit_indices = array<i64: 8, 9>, start_indices = array<i64: 1, 0>, strides = array<i64: 2, 1>} : (tensor<8x9xcomplex<f32>>) -> tensor<4x9xcomplex<f32>>
     %2 = stablehlo.real %0 : (tensor<4x9xcomplex<f32>>) -> tensor<4x9xf32>
     %3 = stablehlo.real %1 : (tensor<4x9xcomplex<f32>>) -> tensor<4x9xf32>
     %4 = stablehlo.compare  EQ, %2, %3,  FLOAT : (tensor<4x9xf32>, tensor<4x9xf32>) -> tensor<4x9xi1>
@@ -31,8 +31,8 @@ module @jit_testcase {
     %8 = stablehlo.compare  GT, %6, %7,  FLOAT : (tensor<4x9xf32>, tensor<4x9xf32>) -> tensor<4x9xi1>
     %9 = stablehlo.select %4, %8, %5 : tensor<4x9xi1>, tensor<4x9xi1>
     %10 = stablehlo.select %9, %0, %1 : tensor<4x9xi1>, tensor<4x9xcomplex<f32>>
-    %11 = "stablehlo.slice"(%10) {limit_indices = dense<[3, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<4x9xcomplex<f32>>) -> tensor<2x9xcomplex<f32>>
-    %12 = "stablehlo.slice"(%10) {limit_indices = dense<[4, 9]> : tensor<2xi64>, start_indices = dense<[1, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<4x9xcomplex<f32>>) -> tensor<2x9xcomplex<f32>>
+    %11 = "stablehlo.slice"(%10) {limit_indices = array<i64: 3, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 2, 1>} : (tensor<4x9xcomplex<f32>>) -> tensor<2x9xcomplex<f32>>
+    %12 = "stablehlo.slice"(%10) {limit_indices = array<i64: 4, 9>, start_indices = array<i64: 1, 0>, strides = array<i64: 2, 1>} : (tensor<4x9xcomplex<f32>>) -> tensor<2x9xcomplex<f32>>
     %13 = stablehlo.real %11 : (tensor<2x9xcomplex<f32>>) -> tensor<2x9xf32>
     %14 = stablehlo.real %12 : (tensor<2x9xcomplex<f32>>) -> tensor<2x9xf32>
     %15 = stablehlo.compare  EQ, %13, %14,  FLOAT : (tensor<2x9xf32>, tensor<2x9xf32>) -> tensor<2x9xi1>
@@ -42,8 +42,8 @@ module @jit_testcase {
     %19 = stablehlo.compare  GT, %17, %18,  FLOAT : (tensor<2x9xf32>, tensor<2x9xf32>) -> tensor<2x9xi1>
     %20 = stablehlo.select %15, %19, %16 : tensor<2x9xi1>, tensor<2x9xi1>
     %21 = stablehlo.select %20, %11, %12 : tensor<2x9xi1>, tensor<2x9xcomplex<f32>>
-    %22 = "stablehlo.slice"(%21) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<2x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
-    %23 = "stablehlo.slice"(%21) {limit_indices = dense<[2, 9]> : tensor<2xi64>, start_indices = dense<[1, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<2x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
+    %22 = "stablehlo.slice"(%21) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 2, 1>} : (tensor<2x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
+    %23 = "stablehlo.slice"(%21) {limit_indices = array<i64: 2, 9>, start_indices = array<i64: 1, 0>, strides = array<i64: 2, 1>} : (tensor<2x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
     %24 = stablehlo.real %22 : (tensor<1x9xcomplex<f32>>) -> tensor<1x9xf32>
     %25 = stablehlo.real %23 : (tensor<1x9xcomplex<f32>>) -> tensor<1x9xf32>
     %26 = stablehlo.compare  EQ, %24, %25,  FLOAT : (tensor<1x9xf32>, tensor<1x9xf32>) -> tensor<1x9xi1>
@@ -53,8 +53,8 @@ module @jit_testcase {
     %30 = stablehlo.compare  GT, %28, %29,  FLOAT : (tensor<1x9xf32>, tensor<1x9xf32>) -> tensor<1x9xi1>
     %31 = stablehlo.select %26, %30, %27 : tensor<1x9xi1>, tensor<1x9xi1>
     %32 = stablehlo.select %31, %22, %23 : tensor<1x9xi1>, tensor<1x9xcomplex<f32>>
-    %33 = "stablehlo.slice"(%32) {limit_indices = dense<[0, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<1x9xcomplex<f32>>) -> tensor<0x9xcomplex<f32>>
-    %34 = "stablehlo.slice"(%21) {limit_indices = dense<[2, 9]> : tensor<2xi64>, start_indices = dense<[2, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<2x9xcomplex<f32>>) -> tensor<0x9xcomplex<f32>>
+    %33 = "stablehlo.slice"(%32) {limit_indices = array<i64: 0, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<1x9xcomplex<f32>>) -> tensor<0x9xcomplex<f32>>
+    %34 = "stablehlo.slice"(%21) {limit_indices = array<i64: 2, 9>, start_indices = array<i64: 2, 0>, strides = array<i64: 2, 1>} : (tensor<2x9xcomplex<f32>>) -> tensor<0x9xcomplex<f32>>
     %35 = stablehlo.real %33 : (tensor<0x9xcomplex<f32>>) -> tensor<0x9xf32>
     %36 = stablehlo.real %34 : (tensor<0x9xcomplex<f32>>) -> tensor<0x9xf32>
     %37 = stablehlo.compare  EQ, %35, %36,  FLOAT : (tensor<0x9xf32>, tensor<0x9xf32>) -> tensor<0x9xi1>
@@ -64,15 +64,15 @@ module @jit_testcase {
     %41 = stablehlo.compare  GT, %39, %40,  FLOAT : (tensor<0x9xf32>, tensor<0x9xf32>) -> tensor<0x9xi1>
     %42 = stablehlo.select %37, %41, %38 : tensor<0x9xi1>, tensor<0x9xi1>
     %43 = stablehlo.select %42, %33, %34 : tensor<0x9xi1>, tensor<0x9xcomplex<f32>>
-    %44 = "stablehlo.slice"(%21) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<2x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
+    %44 = "stablehlo.slice"(%21) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<2x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
     %45 = stablehlo.concatenate %44, %43, dim = 0 : (tensor<1x9xcomplex<f32>>, tensor<0x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
     %46 = stablehlo.constant dense<(0.000000e+00,0.000000e+00)> : tensor<complex<f32>>
     %47 = stablehlo.pad %45, %46, low = [0, 0], high = [1, 0], interior = [1, 0] : (tensor<1x9xcomplex<f32>>, tensor<complex<f32>>) -> tensor<2x9xcomplex<f32>>
     %48 = stablehlo.constant dense<(0.000000e+00,0.000000e+00)> : tensor<complex<f32>>
     %49 = stablehlo.pad %32, %48, low = [1, 0], high = [0, 0], interior = [1, 0] : (tensor<1x9xcomplex<f32>>, tensor<complex<f32>>) -> tensor<2x9xcomplex<f32>>
     %50 = stablehlo.add %47, %49 : tensor<2x9xcomplex<f32>>
-    %51 = "stablehlo.slice"(%50) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<2x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
-    %52 = "stablehlo.slice"(%10) {limit_indices = dense<[4, 9]> : tensor<2xi64>, start_indices = dense<[2, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<4x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
+    %51 = "stablehlo.slice"(%50) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<2x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
+    %52 = "stablehlo.slice"(%10) {limit_indices = array<i64: 4, 9>, start_indices = array<i64: 2, 0>, strides = array<i64: 2, 1>} : (tensor<4x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
     %53 = stablehlo.real %51 : (tensor<1x9xcomplex<f32>>) -> tensor<1x9xf32>
     %54 = stablehlo.real %52 : (tensor<1x9xcomplex<f32>>) -> tensor<1x9xf32>
     %55 = stablehlo.compare  EQ, %53, %54,  FLOAT : (tensor<1x9xf32>, tensor<1x9xf32>) -> tensor<1x9xi1>
@@ -82,15 +82,15 @@ module @jit_testcase {
     %59 = stablehlo.compare  GT, %57, %58,  FLOAT : (tensor<1x9xf32>, tensor<1x9xf32>) -> tensor<1x9xi1>
     %60 = stablehlo.select %55, %59, %56 : tensor<1x9xi1>, tensor<1x9xi1>
     %61 = stablehlo.select %60, %51, %52 : tensor<1x9xi1>, tensor<1x9xcomplex<f32>>
-    %62 = "stablehlo.slice"(%10) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<4x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
+    %62 = "stablehlo.slice"(%10) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<4x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
     %63 = stablehlo.concatenate %62, %61, dim = 0 : (tensor<1x9xcomplex<f32>>, tensor<1x9xcomplex<f32>>) -> tensor<2x9xcomplex<f32>>
     %64 = stablehlo.constant dense<(0.000000e+00,0.000000e+00)> : tensor<complex<f32>>
     %65 = stablehlo.pad %63, %64, low = [0, 0], high = [1, 0], interior = [1, 0] : (tensor<2x9xcomplex<f32>>, tensor<complex<f32>>) -> tensor<4x9xcomplex<f32>>
     %66 = stablehlo.constant dense<(0.000000e+00,0.000000e+00)> : tensor<complex<f32>>
     %67 = stablehlo.pad %50, %66, low = [1, 0], high = [0, 0], interior = [1, 0] : (tensor<2x9xcomplex<f32>>, tensor<complex<f32>>) -> tensor<4x9xcomplex<f32>>
     %68 = stablehlo.add %65, %67 : tensor<4x9xcomplex<f32>>
-    %69 = "stablehlo.slice"(%68) {limit_indices = dense<[3, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<4x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
-    %70 = "stablehlo.slice"(%arg0) {limit_indices = dense<[8, 9]> : tensor<2xi64>, start_indices = dense<[2, 0]> : tensor<2xi64>, strides = dense<[2, 1]> : tensor<2xi64>} : (tensor<8x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
+    %69 = "stablehlo.slice"(%68) {limit_indices = array<i64: 3, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<4x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
+    %70 = "stablehlo.slice"(%arg0) {limit_indices = array<i64: 8, 9>, start_indices = array<i64: 2, 0>, strides = array<i64: 2, 1>} : (tensor<8x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
     %71 = stablehlo.real %69 : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
     %72 = stablehlo.real %70 : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
     %73 = stablehlo.compare  EQ, %71, %72,  FLOAT : (tensor<3x9xf32>, tensor<3x9xf32>) -> tensor<3x9xi1>
@@ -100,7 +100,7 @@ module @jit_testcase {
     %77 = stablehlo.compare  GT, %75, %76,  FLOAT : (tensor<3x9xf32>, tensor<3x9xf32>) -> tensor<3x9xi1>
     %78 = stablehlo.select %73, %77, %74 : tensor<3x9xi1>, tensor<3x9xi1>
     %79 = stablehlo.select %78, %69, %70 : tensor<3x9xi1>, tensor<3x9xcomplex<f32>>
-    %80 = "stablehlo.slice"(%arg0) {limit_indices = dense<[1, 9]> : tensor<2xi64>, start_indices = dense<0> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>} : (tensor<8x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
+    %80 = "stablehlo.slice"(%arg0) {limit_indices = array<i64: 1, 9>, start_indices = array<i64: 0, 0>, strides = array<i64: 1, 1>} : (tensor<8x9xcomplex<f32>>) -> tensor<1x9xcomplex<f32>>
     %81 = stablehlo.concatenate %80, %79, dim = 0 : (tensor<1x9xcomplex<f32>>, tensor<3x9xcomplex<f32>>) -> tensor<4x9xcomplex<f32>>
     %82 = stablehlo.constant dense<(0.000000e+00,0.000000e+00)> : tensor<complex<f32>>
     %83 = stablehlo.pad %81, %82, low = [0, 0], high = [1, 0], interior = [1, 0] : (tensor<4x9xcomplex<f32>>, tensor<complex<f32>>) -> tensor<8x9xcomplex<f32>>

@@ -181,7 +181,17 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
   auto opInterface = dyn_cast<VersionedOpInterface>(op);
   if (!opInterface) return false;
   if (!isLegalVersion(opInterface, targetVersion)) return false;
-  LLVM_DEBUG(llvm::dbgs() << "Legal version for target. " << op << '\n');
+  LLVM_DEBUG(llvm::dbgs() << "Legal op version for target. " << op << '\n');
+
+  // Validate op constraints
+  auto constraintInterface = dyn_cast<VersionedOpConstraintInterface>(op);
+  if (constraintInterface &&
+      failed(constraintInterface.validateConstraint(op, targetVersion))) {
+    LLVM_DEBUG(llvm::dbgs()
+               << "Op failed to satisfy versioned constraints. " << op << '\n');
+    return false;
+  }
+  LLVM_DEBUG(llvm::dbgs() << "Legal constraints for target. " << op << '\n');
 
   // Validate attributes
   auto isLegalAttrFn = [&](const NamedAttribute& attr) {
@@ -205,6 +215,14 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
   VhloToVersionPass() : VhloToVersionPassBase<VhloToVersionPass>() {}
   VhloToVersionPass(const VhloToVersionPassOptions& opts)
       : VhloToVersionPassBase<VhloToVersionPass>(opts) {}
+
+  LogicalResult initialize(MLIRContext* context) override {
+    RewritePatternSet patterns_(context);
+    stablehlo::populateVhloToVersionPatterns(&patterns_, &converter, context);
+    patterns = std::move(patterns_);
+
+    return success();
+  }
 
   void runOnOperation() override {
     ConversionTarget target(getContext());
@@ -238,16 +256,14 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
           return isLegalOperation(op, targetVersion);
         });
 
-    vhlo::VhloToVersionConverter converter;
-    RewritePatternSet patterns(&getContext());
-    stablehlo::populateVhloToVersionPatterns(&patterns, &converter,
-                                             &getContext());
-
     // Conversions within VHLO may fail if new features or ops are used.
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns))))
+    if (failed(applyPartialConversion(getOperation(), target, patterns)))
       return signalPassFailure();
   }
+
+ private:
+  vhlo::VhloToVersionConverter converter;
+  FrozenRewritePatternSet patterns;
 };
 
 ////////////////////////////////////////////

@@ -40,6 +40,10 @@ limitations under the License.
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/Version.h"
+
+#define GET_TYPEDEF_CLASSES
+#include "stablehlo/dialect/StablehloTypeDefs.h.inc"
 
 // Include order matters.
 #include "stablehlo/dialect/StablehloEnums.h.inc"
@@ -48,6 +52,29 @@ limitations under the License.
 
 namespace mlir {
 namespace stablehlo {
+
+struct StablehloDialectVersion : public mlir::DialectVersion {
+  StablehloDialectVersion(int64_t major, int64_t minor, int64_t patch)
+      : dialectVersion(major, minor, patch) {}
+
+  int64_t getMajor() const { return dialectVersion.getMajor(); }
+  int64_t getMinor() const { return dialectVersion.getMinor(); }
+  int64_t getPatch() const { return dialectVersion.getPatch(); }
+
+  static StablehloDialectVersion getCurrentVersion() {
+    // The same version as VHLO as this is serialization related only.
+    auto vhloVer = vhlo::Version::getCurrentVersion();
+    return {vhloVer.getMajor(), vhloVer.getMinor(), vhloVer.getPatch()};
+  }
+
+  bool operator<(const StablehloDialectVersion &other) const {
+    return this->dialectVersion < other.dialectVersion;
+  }
+
+ private:
+  // The dialect version read from bytecode.
+  vhlo::Version dialectVersion;
+};
 
 class StablehloDialect : public Dialect {
  public:
@@ -70,11 +97,16 @@ class StablehloDialect : public Dialect {
 
   // Prints an attribute registered to this dialect.
   void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
-};
 
-class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
- public:
-  using Base::Base;
+  // Get the set dialect version.
+  std::optional<StablehloDialectVersion> getVersion() const;
+
+  // Set dialect version.
+  // Note: there is currently no validation.
+  void setVersion(std::optional<StablehloDialectVersion> version);
+
+ private:
+  std::optional<StablehloDialectVersion> version;
 };
 
 // Verifies the source target pairs attached to collective permute.
@@ -90,18 +122,18 @@ ParseResult parseConvolutionDimensions(AsmParser &parser,
 
 // Custom formatting for convolution window attributes.
 void printWindowAttributes(OpAsmPrinter &p, Operation *op,
-                           std::optional<DenseIntElementsAttr> windowStrides,
+                           std::optional<DenseI64ArrayAttr> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
-                           std::optional<DenseIntElementsAttr> lhsDilation,
-                           std::optional<DenseIntElementsAttr> rhsDilation,
-                           std::optional<DenseElementsAttr> windowReversal);
+                           std::optional<DenseI64ArrayAttr> lhsDilation,
+                           std::optional<DenseI64ArrayAttr> rhsDilation,
+                           std::optional<DenseBoolArrayAttr> windowReversal);
 
 ParseResult parseWindowAttributes(OpAsmParser &parser,
-                                  DenseIntElementsAttr &windowStrides,
+                                  DenseI64ArrayAttr &windowStrides,
                                   DenseIntElementsAttr &padding,
-                                  DenseIntElementsAttr &lhsDilation,
-                                  DenseIntElementsAttr &rhsDilation,
-                                  DenseElementsAttr &windowReversal);
+                                  DenseI64ArrayAttr &lhsDilation,
+                                  DenseI64ArrayAttr &rhsDilation,
+                                  DenseBoolArrayAttr &windowReversal);
 
 }  // end namespace stablehlo
 }  // end namespace mlir

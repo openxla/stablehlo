@@ -9,7 +9,7 @@ module @jit_testcase {
     %1 = call @expected() : () -> tensor<10x10xf32>
     %2 = stablehlo.constant dense<0> : tensor<i32>
     %3 = stablehlo.broadcast_in_dim %2, dims = [] : (tensor<i32>) -> tensor<1xi32>
-    %4 = "stablehlo.gather"(%0, %3) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = dense<[1, 10, 10]> : tensor<3xi64>} : (tensor<10x10x10xf32>, tensor<1xi32>) -> tensor<10x10xf32>
+    %4 = "stablehlo.gather"(%0, %3) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = array<i64: 1, 10, 10>} : (tensor<10x10x10xf32>, tensor<1xi32>) -> tensor<10x10xf32>
     %5 = stablehlo.custom_call @check.eq(%4, %1) : (tensor<10x10xf32>, tensor<10x10xf32>) -> tensor<i1>
     return %5 : tensor<i1>
   }

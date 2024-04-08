@@ -19,10 +19,10 @@ func.func @main(%arg0 : tensor<100x26x26x32xf32>, %arg1 : tensor<3x3x1x32xf32>) 
       output_spatial_dimensions = [1, 2]
     >,
     feature_group_count = 1 : i64,
-    lhs_dilation = dense<1> : tensor<2xi64>,
+    lhs_dilation = array<i64: 1, 1>,
     padding = dense<2> : tensor<2x2xi64>,
-    rhs_dilation = dense<1> : tensor<2xi64>,
-    window_strides = dense<1> : tensor<2xi64>
+    rhs_dilation = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>
   } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>) ->
     tensor<100x28x28x1xf32>
   func.return %result : tensor<100x28x28x1xf32>
@@ -49,10 +49,10 @@ func.func @convolution_upcast(%arg0 : tensor<100x26x26x32xi8>,
       output_spatial_dimensions = [1, 2]
     >,
     feature_group_count = 1 : i64,
-    lhs_dilation = dense<1> : tensor<2xi64>,
+    lhs_dilation = array<i64: 1, 1>,
     padding = dense<2> : tensor<2x2xi64>,
-    rhs_dilation = dense<1> : tensor<2xi64>,
-    window_strides = dense<1> : tensor<2xi64>
+    rhs_dilation = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>
   } : (tensor<100x26x26x32xi8>, tensor<3x3x1x32xi8>) -> tensor<100x28x28x1xi32>
   func.return %result : tensor<100x28x28x1xi32>
 }
@@ -209,10 +209,10 @@ func.func @invalid_conv_dimensions(%arg0 : tensor<100x26x26x32xf32>,
       output_spatial_dimensions = [1, 2]
     >,
     feature_group_count = 1 : i64,
-    lhs_dilation = dense<1> : tensor<2xi64>,
+    lhs_dilation = array<i64: 1, 1>,
     padding = dense<2> : tensor<2x2xi64>,
-    rhs_dilation = dense<1> : tensor<2xi64>,
-    window_strides = dense<1> : tensor<2xi64>
+    rhs_dilation = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>
   } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>) ->
     tensor<100x28x28x1xf32>
   func.return %result : tensor<100x28x28x1xf32>
@@ -237,10 +237,10 @@ func.func @invalid_conv_dimensions(%arg0 : tensor<100x26x26x32xf32>,
       output_spatial_dimensions = [1, 2]
     >,
     feature_group_count = 1 : i64,
-    lhs_dilation = dense<1> : tensor<2xi64>,
+    lhs_dilation = array<i64: 1, 1>,
     padding = dense<2> : tensor<2x2xi64>,
-    rhs_dilation = dense<1> : tensor<2xi64>,
-    window_strides = dense<1> : tensor<2xi64>
+    rhs_dilation = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>
   } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>) ->
     tensor<100x28x28x1xf32>
   func.return %result : tensor<100x28x28x1xf32>
@@ -265,10 +265,10 @@ func.func @invalid_conv_dimensions(%arg0 : tensor<100x26x26x32xf32>,
       output_spatial_dimensions = [0, 3]
     >,
     feature_group_count = 1 : i64,
-    lhs_dilation = dense<1> : tensor<2xi64>,
+    lhs_dilation = array<i64: 1, 1>,
     padding = dense<2> : tensor<2x2xi64>,
-    rhs_dilation = dense<1> : tensor<2xi64>,
-    window_strides = dense<1> : tensor<2xi64>
+    rhs_dilation = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>
   } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>) ->
     tensor<100x28x28x1xf32>
   func.return %result : tensor<100x28x28x1xf32>
@@ -541,10 +541,10 @@ func.func @invalid_conv_dimensions(%arg0 : tensor<100x26x26x32xf32>, %arg1 : ten
       output_spatial_dimensions = [1, 2]
     >,
     feature_group_count = 1 : i64,
-    lhs_dilation = dense<1> : tensor<2xi64>,
+    lhs_dilation = array<i64: 1, 1>,
     padding = dense<2> : tensor<3x2xi64>,
-    rhs_dilation = dense<1> : tensor<2xi64>,
-    window_strides = dense<1> : tensor<2xi64>
+    rhs_dilation = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>
   } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>) ->
     tensor<100x28x28x1xf32>
   func.return %result : tensor<100x28x28x1xf32>
@@ -820,7 +820,7 @@ func.func @conv2d_generic(%arg0: tensor<1x8x8x32x207xf32>, %arg1: tensor<3x3x32x
       output_batch_dimension = 1,
       output_feature_dimension = 4,
       output_spatial_dimensions = [2, 3]
-    >, feature_group_count = 1 : i64, lhs_dilation = dense<1> : tensor<2xi64>, padding = dense<1> : tensor<2x2xi64>, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>], rhs_dilation = dense<1> : tensor<2xi64>, window_strides = dense<1> : tensor<2xi64>} :
+      >, feature_group_count = 1 : i64, lhs_dilation = array<i64: 1, 1>, padding = dense<1> : tensor<2x2xi64>, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>], rhs_dilation = array<i64: 1, 1>, window_strides = array<i64: 1, 1>} :
        (tensor<1x8x8x32x207xf32>, tensor<3x3x32x207x16xf32>) -> tensor<32x1x8x8x16xf32>
   func.return %0 : tensor<32x1x8x8x16xf32>
 }

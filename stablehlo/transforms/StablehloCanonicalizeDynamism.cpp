@@ -111,7 +111,7 @@ struct CanonicalizeDynamicBroadcastInDimOpPattern
     if (!op.getType().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
     rewriter.replaceOpWithNewOp<BroadcastInDimOp>(
-        op, op.getType(), op.getOperand(), op.getBroadcastDimensions());
+        op, op.getType(), op.getOperand(), op.getBroadcastDimensionsAttr());
     return success();
   }
 };
@@ -152,7 +152,7 @@ struct CanonicalizeDynamicGatherOpPattern
       return rewriter.notifyMatchFailure(op, "expected static slice_sizes");
     rewriter.replaceOpWithNewOp<GatherOp>(
         op, op.getType(), op.getOperand(), op.getStartIndices(),
-        op.getDimensionNumbersAttr(), rewriter.getI64TensorAttr(sliceSizes),
+        op.getDimensionNumbersAttr(), rewriter.getDenseI64ArrayAttr(sliceSizes),
         op.getIndicesAreSortedAttr());
     return success();
   }
@@ -189,11 +189,9 @@ struct CanonicalizeDynamicPadOpPattern : public OpRewritePattern<DynamicPadOp> {
       return rewriter.notifyMatchFailure(op, "expected static high");
     if (!succeeded(hlo::matchInts(op.getInteriorPadding(), interiorPadding)))
       return rewriter.notifyMatchFailure(op, "expected static interior");
-    rewriter.replaceOpWithNewOp<PadOp>(
-        op, op.getType(), op.getOperand(), op.getPaddingValue(),
-        rewriter.getI64TensorAttr(edgePaddingLow),
-        rewriter.getI64TensorAttr(edgePaddingHigh),
-        rewriter.getI64TensorAttr(interiorPadding));
+    rewriter.replaceOpWithNewOp<PadOp>(op, op.getType(), op.getOperand(),
+                                       op.getPaddingValue(), edgePaddingLow,
+                                       edgePaddingHigh, interiorPadding);
     return success();
   }
 };
@@ -261,8 +259,7 @@ struct CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern
       auto startIndex1DType = RankedTensorType::get({1}, startIndexElementType);
       auto startIndex1D = rewriter.create<SliceOp>(
           op.getLoc(), startIndex1DType, op.getStartIndices(),
-          rewriter.getI64TensorAttr(i), rewriter.getI64TensorAttr(i + 1),
-          rewriter.getI64TensorAttr(1));
+          ArrayRef<int64_t>{i}, ArrayRef<int64_t>{i + 1}, ArrayRef<int64_t>{1});
       auto startIndex0DType = RankedTensorType::get({}, startIndexElementType);
       auto startIndex0D = rewriter.create<ReshapeOp>(
           op.getLoc(), startIndex0DType, startIndex1D);
@@ -270,8 +267,7 @@ struct CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern
     }
 
     rewriter.replaceOpWithNewOp<DynamicSliceOp>(
-        op, op.getType(), op.getOperand(), startIndices,
-        rewriter.getI64TensorAttr(sliceSizes));
+        op, op.getType(), op.getOperand(), startIndices, sliceSizes);
     return success();
   }
 };
@@ -290,11 +286,8 @@ struct CanonicalizeRealDynamicSliceOpToSliceOpPattern
       return rewriter.notifyMatchFailure(op, "expected static limit");
     if (!succeeded(hlo::matchInts(op.getStrides(), strides)))
       return rewriter.notifyMatchFailure(op, "expected static strides");
-    rewriter.replaceOpWithNewOp<SliceOp>(
-        op, op.getType(), op.getOperand(),
-        rewriter.getI64TensorAttr(startIndices),
-        rewriter.getI64TensorAttr(limitIndices),
-        rewriter.getI64TensorAttr(strides));
+    rewriter.replaceOpWithNewOp<SliceOp>(op, op.getType(), op.getOperand(),
+                                         startIndices, limitIndices, strides);
     return success();
   }
 };
@@ -305,32 +298,47 @@ struct StablehloCanonicalizeDynamismPass
   using StablehloCanonicalizeDynamismPassBase::
       StablehloCanonicalizeDynamismPassBase;
 
-  void runOnOperation() override {
-    GreedyRewriteConfig config;
+  LogicalResult initialize(MLIRContext* context) override {
     config.useTopDownTraversal = true;
     config.enableRegionSimplification = true;
     config.maxIterations = 2;
     config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
     config.strictMode = GreedyRewriteStrictness::AnyOp;
 
-    RewritePatternSet patterns(&getContext());
-    patterns.add<CanonicalizeCustomCallOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicBroadcastInDimOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicConvOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicGatherOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicIotaOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicPadOpPattern>(&getContext());
-    patterns.add<CanonicalizeDynamicReshapeOpPattern>(&getContext());
-    patterns.add<CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern>(
-        &getContext());
-    patterns.add<CanonicalizeRealDynamicSliceOpToSliceOpPattern>(&getContext());
-    if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns),
-                                            config))) {
-      return signalPassFailure();
+    RewritePatternSet patterns_(context);
+    populateStablehloCanonicalizeDynamismPatterns(&patterns_, context);
+    patterns = std::move(patterns_);
+
+    return success();
+  }
+
+  void runOnOperation() override {
+    auto func = getOperation();
+    if (failed(applyPatternsAndFoldGreedily(func, patterns, config))) {
+      func.emitError("Failed to converge StablehloCanonicalizeDynamism in ")
+          << config.maxIterations << " iterations";
     }
   }
+
+ private:
+  FrozenRewritePatternSet patterns;
+  GreedyRewriteConfig config;
 };
 
 }  // namespace
+
+void populateStablehloCanonicalizeDynamismPatterns(RewritePatternSet* patterns,
+                                                   MLIRContext* context) {
+  patterns->add<CanonicalizeCustomCallOpPattern>(context);
+  patterns->add<CanonicalizeDynamicBroadcastInDimOpPattern>(context);
+  patterns->add<CanonicalizeDynamicConvOpPattern>(context);
+  patterns->add<CanonicalizeDynamicGatherOpPattern>(context);
+  patterns->add<CanonicalizeDynamicIotaOpPattern>(context);
+  patterns->add<CanonicalizeDynamicPadOpPattern>(context);
+  patterns->add<CanonicalizeDynamicReshapeOpPattern>(context);
+  patterns->add<CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern>(context);
+  patterns->add<CanonicalizeRealDynamicSliceOpToSliceOpPattern>(context);
+}
+
 }  // namespace stablehlo
 }  // namespace mlir

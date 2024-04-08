@@ -1,0 +1,45 @@
+# Copyright 2024 The StableHLO Authors.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+toc:
+- heading: StableHLO developer guide
+- title: Getting started
+  section:
+  - title: Overview and build instructions
+    path: /stablehlo
+  - title: Specification
+    path: /stablehlo/spec
+  - title: Compatibility guarantees
+    path: /stablehlo/compatibility
+  - title: Reference interpreter
+    path: /stablehlo/reference
+  - title: Roadmap
+    path: /stablehlo/roadmap
+- title: Contributing
+  section:
+  - title: Governance
+    path: /stablehlo/governance
+  - title: Specification checklist
+    path: /stablehlo/spec_checklist
+  - title: Interpreter checklist
+    path: /stablehlo/reference_checklist
+  - title: Implementation status
+    path: /stablehlo/status
+- title: Developer details
+  section:
+  - title: Bytecode format
+    path: /stablehlo/bytecode
+  - title: Type inference
+    path: /stablehlo/type_inference
+  - title: The VHLO dialect
+    path: /stablehlo/vhlo

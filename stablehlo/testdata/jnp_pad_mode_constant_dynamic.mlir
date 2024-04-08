@@ -16,7 +16,7 @@ module @jit_fun_flat_jax {
     %4 = stablehlo.constant dense<0> : tensor<i32>
     %5 = stablehlo.broadcast_in_dim %4, dims = [] : (tensor<i32>) -> tensor<1xi32>
     %6 = stablehlo.concatenate %3, %5, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %7 = "stablehlo.gather"(%1, %6) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1], start_index_map = [0, 1]>, indices_are_sorted = true, slice_sizes = dense<1> : tensor<2xi64>} : (tensor<2x2xf32>, tensor<2xi32>) -> tensor<f32>
+    %7 = "stablehlo.gather"(%1, %6) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1], start_index_map = [0, 1]>, indices_are_sorted = true, slice_sizes = array<i64: 1, 1>} : (tensor<2x2xf32>, tensor<2xi32>) -> tensor<f32>
     %8 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %9 = stablehlo.reshape %8 : (tensor<i32>) -> tensor<1xi32>
     %10 = stablehlo.constant dense<0> : tensor<1xi32>
@@ -33,21 +33,21 @@ module @jit_fun_flat_jax {
     %21 = stablehlo.constant dense<1> : tensor<i32>
     %22 = stablehlo.broadcast_in_dim %21, dims = [] : (tensor<i32>) -> tensor<1xi32>
     %23 = stablehlo.concatenate %20, %22, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %24 = "stablehlo.gather"(%1, %23) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1], start_index_map = [0, 1]>, indices_are_sorted = true, slice_sizes = dense<1> : tensor<2xi64>} : (tensor<2x2xf32>, tensor<2xi32>) -> tensor<f32>
+    %24 = "stablehlo.gather"(%1, %23) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1], start_index_map = [0, 1]>, indices_are_sorted = true, slice_sizes = array<i64: 1, 1>} : (tensor<2x2xf32>, tensor<2xi32>) -> tensor<f32>
     %25 = stablehlo.pad %18, %24, low = [0, 0], high = [0, 0], interior = [0, 0] : (tensor<?x5xf32>, tensor<f32>) -> tensor<?x5xf32>
     %26 = stablehlo.constant dense<1> : tensor<i32>
     %27 = stablehlo.broadcast_in_dim %26, dims = [] : (tensor<i32>) -> tensor<1xi32>
     %28 = stablehlo.constant dense<0> : tensor<i32>
     %29 = stablehlo.broadcast_in_dim %28, dims = [] : (tensor<i32>) -> tensor<1xi32>
     %30 = stablehlo.concatenate %27, %29, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %31 = "stablehlo.gather"(%1, %30) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1], start_index_map = [0, 1]>, indices_are_sorted = true, slice_sizes = dense<1> : tensor<2xi64>} : (tensor<2x2xf32>, tensor<2xi32>) -> tensor<f32>
+    %31 = "stablehlo.gather"(%1, %30) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1], start_index_map = [0, 1]>, indices_are_sorted = true, slice_sizes = array<i64: 1, 1>} : (tensor<2x2xf32>, tensor<2xi32>) -> tensor<f32>
     %32 = stablehlo.pad %25, %31, low = [0, 5], high = [0, 0], interior = [0, 0] : (tensor<?x5xf32>, tensor<f32>) -> tensor<?x10xf32>
     %33 = stablehlo.constant dense<1> : tensor<i32>
     %34 = stablehlo.broadcast_in_dim %33, dims = [] : (tensor<i32>) -> tensor<1xi32>
     %35 = stablehlo.constant dense<1> : tensor<i32>
     %36 = stablehlo.broadcast_in_dim %35, dims = [] : (tensor<i32>) -> tensor<1xi32>
     %37 = stablehlo.concatenate %34, %36, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %38 = "stablehlo.gather"(%1, %37) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1], start_index_map = [0, 1]>, indices_are_sorted = true, slice_sizes = dense<1> : tensor<2xi64>} : (tensor<2x2xf32>, tensor<2xi32>) -> tensor<f32>
+    %38 = "stablehlo.gather"(%1, %37) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0, 1], start_index_map = [0, 1]>, indices_are_sorted = true, slice_sizes = array<i64: 1, 1>} : (tensor<2x2xf32>, tensor<2xi32>) -> tensor<f32>
     %39 = stablehlo.pad %32, %38, low = [0, 0], high = [0, 1], interior = [0, 0] : (tensor<?x10xf32>, tensor<f32>) -> tensor<?x11xf32>
     return %39 : tensor<?x11xf32>
   }

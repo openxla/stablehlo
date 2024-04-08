@@ -17,6 +17,9 @@ limitations under the License.
 
 #include <queue>
 
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/ThreadPool.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -25,10 +28,12 @@ limitations under the License.
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/Region.h"
 #include "mlir/IR/SymbolTable.h"
+#include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Support/LLVM.h"
-#include "stablehlo/reference/InterpreterValue.h"
+#include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/ProcessGrid.h"
+#include "stablehlo/reference/Value.h"
 
 #define GET_OP_CLASSES
 #include "stablehlo/reference/InterpreterOps.cpp.inc"
@@ -36,6 +41,33 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 namespace interpreter {
+namespace {
+
+// Appends a new line item to an instrumentation metadata file, `index.json` in
+// the form: `probeId,probeOutputDir/filename`.
+llvm::Error writeProbeMetadata(StringRef probeId, Type type, StringRef filename,
+                               StringRef probeOutputDir) {
+  if (probeOutputDir.empty())
+    return createStringError(llvm::errc::invalid_argument,
+                             "Probe serialization directory cannot be empty.");
+
+  llvm::SmallString<128> filepath(probeOutputDir);
+  llvm::sys::path::append(filepath, numpy::kInstrumentationMetadataFilename);
+
+  int fd;
+  if (llvm::sys::fs::openFileForWrite(filepath, fd,
+                                      llvm::sys::fs::CD_CreateAlways,
+                                      llvm::sys::fs::OF_Append))
+    return createStringError(llvm::errc::io_error,
+                             "Failed to open instrumentation metadata file.");
+
+  llvm::raw_fd_ostream out(fd, /*shouldClose=*/true);
+  out << probeId.str() << ',' << debugString(type) << ',' << filename.str()
+      << '\n';
+
+  return llvm::Error::success();
+}
+}  // namespace
 
 //===----------------------------------------------------------------------===//
 // Interpreter Dialect Constructor
@@ -128,7 +160,7 @@ LogicalResult RunParallelOp::verify() {
 SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable) {
-  llvm::ThreadPool threadPool;
+  llvm::DefaultThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
 
   uint32_t numReplicas = programs.size();
@@ -144,8 +176,8 @@ SmallVector<InterpreterValue> evalRunParallelOp(
       auto evalWrapper = [&](Region &region, ArrayRef<InterpreterValue> args,
                              ProcessId processId) {
         Process process{processId, &processGrid};
-        return eval(region, args, &process, /*parent=*/nullptr,
-                    /*fallback=*/nullptr);
+        return eval(region, args, /*config=*/nullptr, &process,
+                    /*parent=*/nullptr);
       };
 
       auto numArgs = func.getBody().front().getArguments().size();
@@ -161,6 +193,28 @@ SmallVector<InterpreterValue> evalRunParallelOp(
   for (auto &future : futures) results.append(future.get());
   // TODO(#1725): Figure out how to test the outfeed queue.
   return results;
+}
+
+// `serializedProbeFileId` should be a unique positive integer which can be used
+// to unambiguously derive a serialized filename for a given `probeId`.
+llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
+                        StringRef probeOutputDir,
+                        int64_t serializedProbeFileId) {
+  llvm::SmallString<128> filepath(probeOutputDir);
+
+  // Use an increasing unique integer to write to disk to avoid any odd file
+  // names as a result of unsafe probe_id values.
+  llvm::sys::path::append(
+      filepath, "probe" + std::to_string(serializedProbeFileId) + ".npy");
+  auto tensor = input.getTensor();
+  if (auto serializationResultError =
+          numpy::serializeTensor(filepath, tensor.getType(), tensor.getData()))
+    return serializationResultError;
+
+  // After the tensor has been serialized to disk, append it to a metadata file
+  // to associate the serialized probe_id with the filepath. By default, this
+  // will live in an `index.csv` file generated in specified `probeOutputDir`.
+  return writeProbeMetadata(probeId, input.getType(), filepath, probeOutputDir);
 }
 
 }  // namespace interpreter

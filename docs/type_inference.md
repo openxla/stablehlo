@@ -22,8 +22,8 @@ existing verifiers and shape functions of every op need to be revisited to be
 fully aligned with the specification. Note that the specification document keeps
 evolving. In cases where the spec for an op is not available, the XLA
 implementation should be used as the source of truth instead, including
-[xla/service/shape\_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc)
-and [xla/service/hlo\_verifier.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/hlo_verifier.cc).
+[xla/service/shape\_inference.cc](https://github.com/openxla/xla/blob/main/xla/service/shape_inference.cc)
+and [xla/service/hlo\_verifier.cc](https://github.com/openxla/xla/blob/main/xla/service/hlo_verifier.cc).
 The XLA implementation doesn't cover unbounded dynamism, so for unbounded
 dynamism we'll apply common sense until the dynamism RFC is available.
 

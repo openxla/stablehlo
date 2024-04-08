@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2022 The StableHLO Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 print_usage() {
-  echo "Usage: $0 [-fd]"
+  echo "Usage: $0 [-fb]"
   echo "    -f           Auto-fix clang-format issues."
-  echo "    -b <branch>  Base branch name, default to origin/main."
+  echo "    -b <branch>  Base branch name, defaults to main."
 }
 
 FORMAT_MODE='validate'
-BASE_BRANCH="$(git merge-base HEAD origin/main)"
+BASE_BRANCH=main
 while getopts 'fb:' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;
@@ -34,17 +39,19 @@ if [[ $# -ne 0 ]] ; then
   exit 1
 fi
 
+clang-format --version
+
 echo "Gathering changed files..."
-CHANGED_FILES=$(git diff $BASE_BRANCH HEAD --name-only --diff-filter=d | grep '.*\.h\|.*\.cpp' | xargs)
-if [[ -z "$CHANGED_FILES" ]]; then
+mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep '.*\.h\|.*\.cpp')
+if (( ${#CHANGED_FILES[@]} == 0 )); then
   echo "No files to format."
   exit 0
 fi
 
 echo "Running clang-format [mode=$FORMAT_MODE]..."
-echo "  Files: $CHANGED_FILES"
+echo "  Files: " "${CHANGED_FILES[@]}"
 if [[ $FORMAT_MODE == 'fix' ]]; then
-  clang-format --style=google -i $CHANGED_FILES
+  clang-format --style=google -i "${CHANGED_FILES[@]}"
 else
-  clang-format --style=google --dry-run --Werror $CHANGED_FILES
+  clang-format --style=google --dry-run --Werror "${CHANGED_FILES[@]}"
 fi

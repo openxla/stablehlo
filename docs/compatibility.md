@@ -3,7 +3,7 @@
 StableHLO is a backward compatible ML compute opset inspired by HLO/MHLO.
 This document explains the kind and the extent of the compatibility guarantees
 that StableHLO provides, based on the process established in
-[the compatibility RFC](../rfcs/20220912-compatibility.md).
+[the compatibility RFC](https://github.com/openxla/stablehlo/tree/main/rfcs/20220912-compatibility.md).
 
 ## Versions
 
@@ -40,8 +40,9 @@ covered by this definition of compatibility.
 Portable artifacts can be created using either the `stablehlo-translate` tool,
 or directly in C++ or Python APIs. Serialization needs a target version of
 StableHLO to write an artifact written in `#.#.#` format (See [Version.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.h#:~:text=getCurrentVersion)
-for current version). Deserialization uses the current version of StableHLO to
-read an artifact.
+for current version). Since patch versions do not impact compatibility, any
+target with non-zero patch version defaults to zero during serialization.
+Deserialization uses the current version of StableHLO to read an artifact.
 
 ### `stablehlo-translate`
 
@@ -125,8 +126,8 @@ for roundtrip examples of using the Python Serialization APIs.
 
 ## Tests
 
-We have a compatibility suite in [stablehlo/tests](../stablehlo/tests)
-that involves [a comprehensive compendium of StableHLO ops](../stablehlo/tests/stablehlo_legalize_to_vhlo.mlir)
+We have a compatibility suite in [stablehlo/tests/vhlo](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/vhlo)
+that involves [a comprehensive compendium of StableHLO ops](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.mlir)
 serialized for all supported StableHLO versions. For every pull request, we are
 testing both backward and forward compatibility - i.e. that the suite can be
 deserialized targeting HEAD (backward compatibility), that the compendium

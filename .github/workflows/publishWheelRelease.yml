@@ -1,0 +1,132 @@
+# Copyright 2024 The StableHLO Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Publish Python Wheel Release
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Runs at 6:00 AM UTC, which is 10:00 PM previous day PST (UTC-8)
+    - cron: '0 6 * * *' 
+
+# Ensure that only a single job or workflow using the same
+# concurrency group will run at a time. This would cancel
+# any in-progress jobs in the same github workflow and github
+# ref (e.g. refs/heads/main or refs/pull/<pr_number>/merge).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # TODO(fzakaria): Consider running this job only if a new commit for the day has been done
+  cmake-build-wheel:
+    # Only run scheduled CI on main repo
+    if: (github.repository == 'openxla/stablehlo' || github.event_name != 'schedule')
+    name: "cmake-build ${{ github.event_name == 'schedule' && '(llvm-project@HEAD)' || ''}}"
+    env:
+      LLVM_PROJECT_DIR: "llvm-project"
+      LLVM_BUILD_DIR: "llvm-build"
+      # The setup.py script expects the StableHLO build to be in 'build'
+      STABLEHLO_BUILD_DIR: "build"
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.11" ]
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+
+    steps:
+    - name: Checkout StableHLO
+      uses: actions/checkout@v4
+      # TODO(fzakaria): We need all the commits and the tags for the
+      # git describe` command to work to find the correct version.
+      # This can be removed if the version can be determmined in another way.
+      with:
+        fetch-depth: 0
+    - name: Get LLVM Version
+      id: llvm-version
+      shell: bash
+      run: |
+        echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
+
+    - name: Setup workspace
+      uses: ./.github/actions/setup-build
+      with:
+        llvm-version: ${{ steps.llvm-version.outputs.version }}
+        python-version: ${{ matrix.python-version }}
+
+    # The actual tool need to execute the python build
+    # TODO(fzakaria): Consider using cibuildwheel to build multiple wheels at
+    # once and mark them as manylinux compatible.
+    - name: Install build dependencies
+      shell: bash
+      run: pip install build
+
+    - name: Configure and Build LLVM
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_cmake_llvm.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR"
+      env:
+          CMAKE_BUILD_TYPE: Release
+          MLIR_ENABLE_BINDINGS_PYTHON: ON
+
+    - name: Build and Test StableHLO with Python
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
+      env:
+          CMAKE_BUILD_TYPE: Release
+          STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
+
+    - name: Build and Test Python Wheel
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_python_wheel.sh "$GITHUB_WORKSPACE/${{ github.sha }}"
+    
+    - name: Upload an artifact
+      uses: actions/upload-artifact@v4
+      with:
+        if-no-files-found: error
+        name: build_artifact-${{ matrix.python-version }}
+        path: ${{ github.sha }}
+
+  upload-tarballs:
+    runs-on: ubuntu-20.04
+    needs: cmake-build-wheel
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.11" ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build_artifact-${{ matrix.python-version }}
+          path: ${{ github.sha }}
+
+      - name: Release current commit
+        uses: ncipollo/release-action@v1.13.0
+        with:
+          artifacts: "${{ github.sha }}/*.whl"
+          token: "${{ secrets.PUBLISH_ACCESS_TOKEN }}"
+          # git describe in setup.py explicitly filters out this tag
+          tag: "dev-wheels"
+          name: "dev-wheels"
+          removeArtifacts: false
+          allowUpdates: true
+          replacesArtifacts: true
+          makeLatest: true

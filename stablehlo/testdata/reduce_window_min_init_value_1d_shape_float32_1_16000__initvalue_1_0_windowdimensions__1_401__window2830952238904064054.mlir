@@ -12,7 +12,7 @@ module @jit_testcase {
     ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
       %5 = stablehlo.minimum %arg0, %arg1 : tensor<f32>
       stablehlo.return %5 : tensor<f32>
-    }) {window_dimensions = dense<[1, 401]> : tensor<2xi64>, window_strides = dense<[1, 160]> : tensor<2xi64>} : (tensor<1x16000xf32>, tensor<f32>) -> tensor<1x98xf32>
+    }) {window_dimensions = array<i64: 1, 401>, window_strides = array<i64: 1, 160>} : (tensor<1x16000xf32>, tensor<f32>) -> tensor<1x98xf32>
     %4 = stablehlo.custom_call @check.eq(%3, %1) : (tensor<1x98xf32>, tensor<1x98xf32>) -> tensor<i1>
     return %4 : tensor<i1>
   }

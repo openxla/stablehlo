@@ -22,7 +22,7 @@ module @jit_testcase {
   }
   func.func private @_take(%arg0: tensor<10x10x10xf32>, %arg1: tensor<i32>) -> tensor<10x10xf32> {
     %0 = stablehlo.broadcast_in_dim %arg1, dims = [] : (tensor<i32>) -> tensor<1xi32>
-    %1 = "stablehlo.gather"(%arg0, %0) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [2], start_index_map = [2]>, slice_sizes = dense<[10, 10, 1]> : tensor<3xi64>} : (tensor<10x10x10xf32>, tensor<1xi32>) -> tensor<10x10xf32>
+    %1 = "stablehlo.gather"(%arg0, %0) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [2], start_index_map = [2]>, slice_sizes = array<i64: 10, 10, 1>} : (tensor<10x10x10xf32>, tensor<1xi32>) -> tensor<10x10xf32>
     return %1 : tensor<10x10xf32>
   }
 }

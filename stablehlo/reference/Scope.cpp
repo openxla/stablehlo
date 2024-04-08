@@ -17,7 +17,7 @@ limitations under the License.
 
 #include "llvm/Support/FormatVariadic.h"
 #include "mlir/Support/DebugStringHelper.h"
-#include "stablehlo/reference/InterpreterValue.h"
+#include "stablehlo/reference/Value.h"
 
 namespace mlir {
 namespace stablehlo {

@@ -142,6 +142,28 @@ Attribute convertGeneric(Attribute stablehloAttr,
     return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
                                    attr.getRawData());
   }
+  if (auto attr = stablehloAttr.dyn_cast<DenseI64ArrayAttr>()) {
+    auto vhloType = vhlo::RankedTensorV1Type::get(
+        attr.getContext(), {attr.size()},
+        vhlo::IntegerSI64V1Type::get(attr.getContext()), Attribute{});
+    LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
+    if (!vhloType) return {};
+    return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
+                                   attr.getRawData());
+  }
+  if (auto attr = stablehloAttr.dyn_cast<DenseBoolArrayAttr>()) {
+    // Dense arrays of bool need special handling as their raw data is
+    // encoded differently from a DenseElementsAttr of bool. Using a similar
+    // conversion as for DenseI64ArrayAttr causes issues when attempting to
+    // construct a DenseIntOrFPElementsAttr from the underlying raw data.
+    // Converting to a DenseElementsAttr up front avoids issues.
+    auto data = attr.asArrayRef();
+    auto ty =
+        RankedTensorType::get({static_cast<int64_t>(attr.asArrayRef().size())},
+                              IntegerType::get(attr.getContext(), 1));
+    auto dense = DenseElementsAttr::get(ty, data);
+    return convertGeneric(dense, typeConverter);
+  }
   if (auto attr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
     SmallVector<std::pair<Attribute, Attribute>> vhloAttrs;
     for (auto namedAttr : attr.getValue()) {
@@ -168,6 +190,9 @@ Attribute convertGeneric(Attribute stablehloAttr,
       return vhlo::IntegerV1Attr::get(integerAttr.getContext(), vhloIntegerType,
                                       integerAttr.getValue());
     }
+  }
+  if (auto attr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
+    return convertGeneric(attr.getAttr(), typeConverter);
   }
   if (auto attr = stablehloAttr.dyn_cast<StringAttr>()) {
     if (!attr.getType().isa<NoneType>()) {
@@ -491,7 +516,7 @@ SpecialResult convertUseGlobalDeviceIds(
 
 template <typename StablehloOpTy>
 SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
-                             StringRef stablehloName, Attribute stablehloAttr,
+                             StringAttr stablehloName, Attribute stablehloAttr,
                              SmallVector<NamedAttribute>& vhloAttrs) {
   if constexpr (std::is_same<StablehloOpTy, stablehlo::AllGatherOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::AllReduceOp>::value ||
@@ -499,7 +524,9 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
                 std::is_same<StablehloOpTy,
                              stablehlo::CollectivePermuteOp>::value ||
                 std::is_same<StablehloOpTy,
-                             stablehlo::ReduceScatterOp>::value) {
+                             stablehlo::ReduceScatterOp>::value ||
+                std::is_same<StablehloOpTy,
+                             stablehlo::CollectiveBroadcastOp>::value) {
     if (stablehloName == "channel_handle")
       return convertChannelId(pattern, stablehloAttr, vhloAttrs);
     if (stablehloName == "use_global_device_ids")
@@ -581,7 +608,9 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::AllToAllOp>::value ||
                 std::is_same<StablehloOpTy,
-                             stablehlo::CollectivePermuteOp>::value) {
+                             stablehlo::CollectivePermuteOp>::value ||
+                std::is_same<StablehloOpTy,
+                             stablehlo::CollectiveBroadcastOp>::value) {
     if (!stablehloOp.getChannelHandleAttr())
       addDefaultAttr("channel_id", builder.getI64IntegerAttr(0));
   }
@@ -595,14 +624,21 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                                          pattern.getContext(),
                                          stablehlo::ComparisonType::NOTYPE));
   }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::CompositeOp>::value) {
+    if (!stablehloOp.getVersionAttr())
+      addDefaultAttr("version", builder.getI64IntegerAttr(0));
+    if (!stablehloOp.getCompositeAttributesAttr())
+      addDefaultAttr("composite_attributes", builder.getDictionaryAttr({}));
+  }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ConvolutionOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::DynamicConvOp>::value) {
     auto numSpatialDimensions = static_cast<int64_t>(
         stablehloOp.getDimensionNumbers().getInputSpatialDimensions().size());
-    if (!stablehloOp.getWindowStridesAttr())
+    if (!stablehloOp.getWindowStridesAttr()) {
       addDefaultAttr("window_strides",
-                     builder.getI64TensorAttr(
+                     builder.getDenseI64ArrayAttr(
                          SmallVector<int64_t>(numSpatialDimensions, 1ll)));
+    }
     if (!stablehloOp.getPaddingAttr())
       addDefaultAttr("padding",
                      DenseIntElementsAttr::get(
@@ -611,11 +647,11 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                          SmallVector<int64_t>(numSpatialDimensions * 2, 0ll)));
     if (!stablehloOp.getLhsDilationAttr())
       addDefaultAttr("lhs_dilation",
-                     builder.getI64TensorAttr(
+                     builder.getDenseI64ArrayAttr(
                          SmallVector<int64_t>(numSpatialDimensions, 1ll)));
     if (!stablehloOp.getRhsDilationAttr())
       addDefaultAttr("rhs_dilation",
-                     builder.getI64TensorAttr(
+                     builder.getDenseI64ArrayAttr(
                          SmallVector<int64_t>(numSpatialDimensions, 1ll)));
     if (!stablehloOp.getWindowReversalAttr())
       addDefaultAttr("window_reversal",
@@ -766,10 +802,6 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
       return failure();
     }
 
-    // These operands have already been converted to VHLO by
-    // the dialect conversion infrastructure.
-    ValueRange vhloOperands = adaptor.getOperands();
-
     // Convert StableHLO attributes to VHLO equivalents.
     // There are two paths:
     //   1) Generic path where default logic applies, and there is a 1:1
@@ -778,6 +810,7 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
     //      mapping from StableHLO to VHLO.
     SmallVector<NamedAttribute> vhloAttrs;
     if (failed(addDefaults(*this, stablehloOp, vhloAttrs))) return failure();
+
     for (NamedAttribute stablehloAttr : stablehloOp->getAttrs()) {
       auto result = convertSpecial(*this, stablehloAttr.getName(),
                                    stablehloAttr.getValue(), vhloAttrs);
@@ -795,18 +828,22 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
       }
     }
 
+    // These operands have already been converted to VHLO by
+    // the dialect conversion infrastructure.
+    ValueRange vhloOperands = adaptor.getOperands();
+
     // Convert the StableHLO operation to a VHLO equivalent.
     // This can almost be done in a generic fashion, except for
     // stablehlo.case that uses a variadic number of regions which means an
     // additional argument for the generic builder.
     StablehloToVhloOp<StablehloOpTy> vhloOp;
     if constexpr (std::is_same<StablehloOpTy, stablehlo::CaseOp>::value) {
-      vhloOp = rewriter.replaceOpWithNewOp<vhlo::CaseOpV1>(
-          stablehloOp, vhloTypes, vhloOperands, vhloAttrs,
+      vhloOp = rewriter.create<vhlo::CaseOpV1>(
+          stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs,
           stablehloOp.getBranches().size());
     } else {
-      vhloOp = rewriter.replaceOpWithNewOp<StablehloToVhloOp<StablehloOpTy>>(
-          stablehloOp, vhloTypes, vhloOperands, vhloAttrs);
+      vhloOp = rewriter.create<StablehloToVhloOp<StablehloOpTy>>(
+          stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs);
     }
 
     for (auto [stablehloRegion, vhloRegion] :
@@ -818,6 +855,7 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
                                              /*entryConversion=*/nullptr)))
         return failure();
     }
+    rewriter.replaceOp(stablehloOp, vhloOp);
     return success();
   }
 };
@@ -835,24 +873,31 @@ void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
 struct StablehloLegalizeToVhloPass
     : public impl::StablehloLegalizeToVhloPassBase<
           StablehloLegalizeToVhloPass> {
+  LogicalResult initialize(MLIRContext* context) override {
+    target = std::make_shared<ConversionTarget>(*context);
+    target->addIllegalDialect<stablehlo::StablehloDialect>();
+    target->addIllegalDialect<func::FuncDialect>();
+    target->addLegalDialect<vhlo::VhloDialect>();
+
+    RewritePatternSet patterns_(context);
+    stablehlo::populateStablehloToVhloPatterns(&patterns_, &converter, context);
+    patterns = std::move(patterns_);
+
+    return success();
+  }
+
   void runOnOperation() override {
-    ConversionTarget target(getContext());
-    target.addIllegalDialect<stablehlo::StablehloDialect>();
-    target.addIllegalDialect<func::FuncDialect>();
-    target.addLegalDialect<vhlo::VhloDialect>();
-
-    StablehloToVhloTypeConverter converter;
-    RewritePatternSet patterns(&getContext());
-    stablehlo::populateStablehloToVhloPatterns(&patterns, &converter,
-                                               &getContext());
-
     // StableHLO should always be convertible to VHLO.
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns)))) {
+    if (failed(applyPartialConversion(getOperation(), *target, patterns))) {
       LLVM_DEBUG(llvm::dbgs() << "Failed partial conversion\n");
       return signalPassFailure();
     }
   }
+
+ private:
+  StablehloToVhloTypeConverter converter;
+  FrozenRewritePatternSet patterns;
+  std::shared_ptr<ConversionTarget> target;
 };
 
 void populateStablehloToVhloPatterns(RewritePatternSet* patterns,

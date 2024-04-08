@@ -20,3 +20,14 @@ def HloTestInferPass : Pass<"hlo-test-infer", "func::FuncOp"> {
   let summary = "Uses test ops to invoke InferShapedTypeOpInterface methods.";
   let dependentDialects = ["shape::ShapeDialect"];
 }
+
+def HloTestSpeculatabilityPass : Pass<"hlo-test-speculatability", "func::FuncOp"> {
+  let summary = "Uses test ops to invoke ConditionallySpeculatable::getSpeculatability.";
+  let description = [{
+    The hlo-test-speculatability pass looks for ops like "hlo_test_speculatability.is_speculatable"(%arg)
+    and "hlo_test_speculatability.is_not_speculatable"(%arg) and checks that
+    their single operand's defining op has the expected speculatability. If it
+    does, the op is deleted, otherwise the op is untouched.
+  }];
+  let dependentDialects = [];
+}

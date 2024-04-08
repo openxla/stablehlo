@@ -24,6 +24,10 @@ on:
     - cron:  '0 12 * * *'
   workflow_dispatch:
 
+env:
+  # Have `go install` place binaries in $PATH
+  GOBIN: "/usr/local/bin"
+
 jobs:
   clang-format:
     # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
@@ -32,7 +36,7 @@ jobs:
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
     steps:
       - name: Checking out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Run clang-format
         run: |
@@ -40,25 +44,69 @@ jobs:
           ./build_tools/github_actions/lint_clang_format.sh -b "${GITHUB_BASE_REF}"
 
   whitespace-checks:
-    # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
     if: "github.event_name == 'pull_request'"
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
     steps:
       - name: Checking out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Run Whitespace Checks
         run: |
+          git fetch --no-tags --prune --depth=1 origin "${GITHUB_BASE_REF?}:${GITHUB_BASE_REF?}"
           ./build_tools/github_actions/lint_whitespace_checks.sh
 
   version-checks:
-    # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
     if: "github.event_name == 'pull_request'"
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
     steps:
       - name: Checking out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Run Version Checks
         run: |
           ./build_tools/github_actions/lint_version.sh
+
+  buildifier-check:
+    if: "github.event_name == 'pull_request'"
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checking out repository
+        uses: actions/checkout@v4
+
+      - name: Install buildifier
+        run: go install github.com/bazelbuild/buildtools/buildifier@433ea85 # 6.4.0
+
+      - name: Run buildifier checks
+        run: ./build_tools/github_actions/lint_buildifier.sh
+
+  license-check:
+    if: "github.event_name == 'pull_request'"
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checking out repository
+        uses: actions/checkout@v4
+
+      - name: Run license checks
+        run: |
+          git fetch --no-tags --prune --depth=1 origin "${GITHUB_BASE_REF?}:${GITHUB_BASE_REF?}"
+          ./build_tools/github_actions/lint_check_license.sh -b "${GITHUB_BASE_REF}"
+
+  shell-script-check:
+    if: "github.event_name == 'pull_request'"
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checking out repository
+        uses: actions/checkout@v4
+
+      # shellcheck is installed by default on Ubuntu runners: https://github.com/actions/runner-images/blob/37a171e44de1f134793d7f0cbff137ca481942ab/images/ubuntu/Ubuntu2204-Readme.md
+      - name: Run shellcheck
+        run: ./build_tools/github_actions/lint_shellcheck.sh

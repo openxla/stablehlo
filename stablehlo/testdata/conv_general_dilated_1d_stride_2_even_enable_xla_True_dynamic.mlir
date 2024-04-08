@@ -96,7 +96,7 @@ module @jit_fun_flat_jax {
     %89 = stablehlo.concatenate %86, %88, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
     %90 = stablehlo.reshape %89 : (tensor<2xi32>) -> tensor<1x2xi32>
     %91 = stablehlo.concatenate %90, dim = 0 : (tensor<1x2xi32>) -> tensor<1x2xi32>
-    %92 = "stablehlo.dynamic_conv"(%arg1, %arg2, %91) {batch_group_count = 1 : i64, dimension_numbers = #stablehlo.conv<[b, 0, f]x[0, i, o]->[b, 0, f]>, feature_group_count = 1 : i64, window_strides = dense<2> : tensor<1xi64>} : (tensor<1x?x16xf32>, tensor<4x16x16xf32>, tensor<1x2xi32>) -> tensor<1x?x16xf32>
+    %92 = "stablehlo.dynamic_conv"(%arg1, %arg2, %91) {batch_group_count = 1 : i64, dimension_numbers = #stablehlo.conv<[b, 0, f]x[0, i, o]->[b, 0, f]>, feature_group_count = 1 : i64, window_strides = array<i64: 2, 2>} : (tensor<1x?x16xf32>, tensor<4x16x16xf32>, tensor<1x2xi32>) -> tensor<1x?x16xf32>
     return %92 : tensor<1x?x16xf32>
   }
 }

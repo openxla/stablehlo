@@ -34,12 +34,20 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 OLD)
 endif()
 
+# Support for return(PROPAGATE ...) in functions.
+if (POLICY CMP0140)
+  cmake_policy(SET CMP0140 NEW)
+endif()
+
 #-------------------------------------------------------------------------------
 # Options and settings
 #-------------------------------------------------------------------------------
 option(STABLEHLO_BUILD_EMBEDDED "Build StableHLO as part of another project" OFF)
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
+option(STABLEHLO_ENABLE_SANITIZER "Enable a sanitizer [OFF, address]" OFF)
+option(STABLEHLO_ENABLE_SPLIT_DWARF "Enable split DWARF if the platform supports it" OFF)
+option(STABLEHLO_ENABLE_LLD "Use LLD as the linker if available" OFF)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
@@ -54,29 +62,6 @@ else()
   project(stablehlo LANGUAGES CXX C)
   set(CMAKE_C_STANDARD 11)
   set(CMAKE_CXX_STANDARD 17)
-endif()
-
-# Build with ccache if the package is present
-set(LLVM_CCACHE_BUILD OFF CACHE BOOL "Set to ON for a ccache enabled build")
-if(LLVM_CCACHE_BUILD)
-  find_program(CCACHE_PROGRAM ccache)
-  if(CCACHE_PROGRAM)
-      set(LLVM_CCACHE_MAXSIZE "" CACHE STRING "Size of ccache")
-      set(LLVM_CCACHE_DIR "" CACHE STRING "Directory to keep ccached data")
-      set(LLVM_CCACHE_PARAMS "CCACHE_CPP2=yes CCACHE_HASHDIR=yes"
-          CACHE STRING "Parameters to pass through to ccache")
-
-      set(CCACHE_PROGRAM "${LLVM_CCACHE_PARAMS} ${CCACHE_PROGRAM}")
-      if (LLVM_CCACHE_MAXSIZE)
-        set(CCACHE_PROGRAM "CCACHE_MAXSIZE=${LLVM_CCACHE_MAXSIZE} ${CCACHE_PROGRAM}")
-      endif()
-      if (LLVM_CCACHE_DIR)
-        set(CCACHE_PROGRAM "CCACHE_DIR=${LLVM_CCACHE_DIR} ${CCACHE_PROGRAM}")
-      endif()
-      set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE_PROGRAM})
-  else()
-    message(FATAL_ERROR "Unable to find the program ccache. Set LLVM_CCACHE_BUILD to OFF")
-  endif()
 endif()
 
 #-------------------------------------------------------------------------------
@@ -115,8 +100,37 @@ else()
   message(STATUS "Building StableHLO embedded in another project")
 endif()
 
+# Add the CMake modules specific to StableHLO
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
 if(LLVM_ENABLE_ZLIB)
   find_package(ZLIB)
+endif()
+
+#-------------------------------------------------------------------------------
+# Performance configuration
+#-------------------------------------------------------------------------------
+
+include(CheckCXXCompilerFlag)
+include(CheckLinkerFlag)
+if (STABLEHLO_ENABLE_LLD)
+  message(STATUS "Enabling LLD as the linker")
+  add_link_options("-fuse-ld=lld")
+endif()
+
+if(STABLEHLO_ENABLE_SPLIT_DWARF)
+    check_cxx_compiler_flag(-gsplit-dwarf STABLEHLO_SUPPORTS_SPLIT_DWARF)
+    if (STABLEHLO_SUPPORTS_SPLIT_DWARF)
+      message(STATUS "Enabling split-dwarf build")
+      add_compile_options(-gsplit-dwarf -ggnu-pubnames)
+    endif()
+    check_linker_flag(CXX "-Wl,--gdb-index" STABLEHLO_SUPPORTS_GDB_INDEX)
+    # If we set LLD it doesn't seem to affect the check_linker_flag above.
+    # Account for it with the generator expression OR
+    if (STABLEHLO_SUPPORTS_GDB_INDEX OR STABLEHLO_ENABLE_LLD)
+      message(STATUS "Enabling GDB index in binary")
+      add_link_options("-Wl,--gdb-index")
+    endif()
 endif()
 
 include(TableGen)
@@ -130,15 +144,19 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
 
+
+#-------------------------------------------------------------------------------
+# Sanitizer configuration
+#-------------------------------------------------------------------------------
+
+include(SetupSanitizers)
+setup_sanitizers()
+
 #-------------------------------------------------------------------------------
 # Python configuration
 #-------------------------------------------------------------------------------
 
 if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
-  if(NOT STABLEHLO_EXTERNAL_PROJECT_BUILD)
-    message(WARNING "StableHLO Python bindings are not supported in standalone mode")
-  endif()
-
   include(MLIRDetectPythonEnv)
   mlir_configure_python_dev_packages()
 endif()
@@ -169,3 +187,4 @@ add_custom_target(check-stablehlo-quick)
 add_dependencies(check-stablehlo-ci check-stablehlo-quick)
 
 add_subdirectory(stablehlo)
+add_subdirectory(examples)

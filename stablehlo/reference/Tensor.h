@@ -110,6 +110,9 @@ class Tensor {
   /// Provides read access to the tensor element indexed at 'index'.
   Element get(const Index &index) const;
 
+  /// Provides read access to underlying tensor data buffer.
+  const char *getData() const { return impl_->getData().data(); }
+
   /// Provides write access to the tensor element indexed at 'index'.
   ///
   /// \param index The multi-dimensional index to write to.
@@ -135,8 +138,11 @@ inline raw_ostream &operator<<(raw_ostream &os, Tensor tensor) {
   return os;
 }
 
-/// Creates a Tensor using 'DenseElementsAttr' object 'attr'.
+/// Creates a Tensor from a DenseElementsAttr.
 Tensor makeTensor(DenseElementsAttr attr);
+
+/// Creates a DenseElementsAttr from a Tensor.
+DenseElementsAttr makeDenseElementsAttr(Tensor tensor);
 
 }  // namespace stablehlo
 }  // namespace mlir

@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Traits.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/InliningUtils.h"
@@ -162,10 +163,10 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
   auto rhs = operands[1];
 
   // Check for "numpy"-style rank broadcast.
-  auto broadcastDimensions = op->getAttr("broadcast_dimensions")
-                                 .dyn_cast_or_null<DenseIntElementsAttr>();
-  if (broadcastDimensions &&
-      !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, broadcastDimensions)) {
+  auto broadcastDimensionsAttr = op->getAttr("broadcast_dimensions");
+  if (broadcastDimensionsAttr &&
+      !hlo::isLegalNumpyRankedBroadcast(
+          lhs, rhs, broadcastDimensionsAttr.cast<mlir::DenseI64ArrayAttr>())) {
     // Note: It is unclear whether the general specification of explicit
     // broadcast_dimensions on binary ops is a feature we want to carry
     // forward. While it can technically be implemented for ranked-dynamic,
@@ -175,7 +176,7 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
     // of numpy-like prefix-padding.
     return op->emitWarning()
            << "unsupported non prefix-padded dynamic rank "
-           << "broadcast_dimensions = " << broadcastDimensions;
+           << "broadcast_dimensions = " << broadcastDimensionsAttr;
   }
 
   result.push_back(hlo::computeBinaryElementwiseBroadcastingResultExtents(
@@ -212,7 +213,7 @@ LogicalResult BroadcastComplexOp::reifyReturnTypeShapes(
 
 void BroadcastCompareOp::build(OpBuilder& builder, OperationState& result,
                                Value lhs, Value rhs,
-                               DenseIntElementsAttr broadcastDimensions,
+                               DenseI64ArrayAttr broadcastDimensions,
                                chlo::ComparisonDirection comparisonDirection,
                                chlo::ComparisonType compareType) {
   build(builder, result, lhs, rhs, broadcastDimensions,
@@ -408,41 +409,6 @@ LogicalResult BroadcastSelectOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands, SmallVectorImpl<Value>& result) {
   result.push_back(hlo::computeNaryElementwiseBroadcastingResultExtents(
       getLoc(), operands, builder));
-  return success();
-}
-
-//===----------------------------------------------------------------------===//
-// RankSpecializationClusterOp
-//===----------------------------------------------------------------------===//
-
-void RankSpecializationClusterOp::getSuccessorRegions(
-    RegionBranchPoint point, SmallVectorImpl<RegionSuccessor>& regions) {
-  // RankSpecializationClusterOp has unconditional control flows into the region
-  // and back to the parent, so return the correct RegionSuccessor purely based
-  // on the index being None or 0.
-  if (!point.isParent()) {
-    regions.push_back(RegionSuccessor(getResults()));
-    return;
-  }
-  regions.push_back(RegionSuccessor(&getBody()));
-}
-
-LogicalResult RankSpecializationClusterOp::verify() {
-  Block* body = SingleBlock::getBody();
-  if (body->getArgumentTypes() != getOperandTypes())
-    return emitOpError() << "block argument types must match operand types";
-
-  // All operands of nested ops must be defined in the body or declared by the
-  // cluster.
-  for (Operation& nested : body->without_terminator()) {
-    if (!llvm::all_of(nested.getOpOperands(), [&](OpOperand& operand) {
-          Operation* def = operand.get().getDefiningOp();
-          if (def != nullptr && def->getBlock() == body) return true;
-          return llvm::is_contained(body->getArguments(), operand.get());
-        }))
-      return emitOpError() << "nested ops must not depend on implicit operands";
-  }
-
   return success();
 }
 

@@ -120,6 +120,18 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
         convertedExpressedType, APFloat(type.getScale()), type.getZeroPoint(),
         type.getStorageTypeMin(), type.getStorageTypeMax());
   });
+  addConversion([&](quant::UniformQuantizedPerAxisType type) -> Type {
+    Type convertedStorageType = convertType(type.getStorageType());
+    Type convertedExpressedType = convertType(type.getExpressedType());
+    if (!convertedStorageType || !convertedExpressedType) return {};
+    SmallVector<APFloat> scales = llvm::to_vector(llvm::map_range(
+        type.getScales(), [](double scale) { return APFloat(scale); }));
+    return vhlo::UniformQuantizedPerAxisV1Type::get(
+        type.getContext(), type.getFlags(), convertedStorageType,
+        convertedExpressedType, type.getQuantizedDimension(), scales,
+        type.getZeroPoints(), type.getStorageTypeMin(),
+        type.getStorageTypeMax());
+  });
   addConversion([&](UnrankedTensorType type) -> Type {
     auto convertedElementType = convertType(type.getElementType());
     if (!convertedElementType) return {};
@@ -221,6 +233,18 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
     return quant::UniformQuantizedType::get(
         type.getFlags(), convertedStorageType, convertedExpressedType,
         type.getScale().convertToDouble(), type.getZeroPoint(),
+        type.getStorageTypeMin(), type.getStorageTypeMax());
+  });
+  addConversion([&](UniformQuantizedPerAxisV1Type type) -> Type {
+    Type convertedStorageType = convertType(type.getStorageType());
+    Type convertedExpressedType = convertType(type.getExpressedType());
+    if (!convertedStorageType || !convertedExpressedType) return {};
+    SmallVector<double> scales = llvm::to_vector(llvm::map_range(
+        type.getScales(),
+        [](const APFloat& scale) { return scale.convertToDouble(); }));
+    return quant::UniformQuantizedPerAxisType::get(
+        type.getFlags(), convertedStorageType, convertedExpressedType, scales,
+        type.getZeroPoints(), type.getQuantizedDimension(),
         type.getStorageTypeMin(), type.getStorageTypeMax());
   });
   addConversion([&](UnrankedTensorV1Type type) -> Type {

@@ -7,7 +7,7 @@ module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0 = call @inputs() : () -> tensor<7xf32>
     %1 = call @expected() : () -> tensor<3xf32>
-    %2 = "stablehlo.slice"(%0) {limit_indices = dense<7> : tensor<1xi64>, start_indices = dense<4> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<7xf32>) -> tensor<3xf32>
+    %2 = "stablehlo.slice"(%0) {limit_indices = array<i64: 7>, start_indices = array<i64: 4>, strides = array<i64: 1>} : (tensor<7xf32>) -> tensor<3xf32>
     %3 = stablehlo.custom_call @check.eq(%2, %1) : (tensor<3xf32>, tensor<3xf32>) -> tensor<i1>
     return %3 : tensor<i1>
   }

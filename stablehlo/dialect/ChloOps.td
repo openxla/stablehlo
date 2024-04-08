@@ -59,13 +59,14 @@ def CHLO_Dialect : Dialect {
 
 class CHLO_Op<string mnemonic, list<Trait> traits> :
     Op<CHLO_Dialect, mnemonic, traits> {
-  let extraClassDeclaration = [{
+  string commonClassDeclaration = [{
     // Relax the strict default implementation with one that allows
     // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
+  let extraClassDeclaration = commonClassDeclaration;
 }
 
 include "stablehlo/dialect/ChloEnums.td"
@@ -97,25 +98,20 @@ class CHLO_BroadcastBinaryElementwiseOp<
       HLO_BroadcastingElementwise, CHLO_Broadcasting,
       InferTensorTypeWithReify]> {
   let arguments = (ins
-    HLO_Tensor:$lhs,
-    HLO_Tensor:$rhs,
+    HLO_AnyTensor:$lhs,
+    HLO_AnyTensor:$rhs,
     // Explicit rank-broadcast dimension mappings. Defaults to "numpy" prefix
     // padded rank-broadcast semantics if omitted.
-    OptionalAttr<BroadcastDimAttr>:$broadcast_dimensions
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_AnyTensor);
 
   let assemblyFormat = [{
     $lhs `,` $rhs attr-dict `:`
     `(` type($lhs) `,` type($rhs) `)` `->` type(results)
   }];
 
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
-    }
-  }];
 }
 
 def CHLO_BroadcastAddOp : CHLO_BroadcastBinaryElementwiseOp<"broadcast_add",
@@ -309,13 +305,13 @@ def CHLO_BroadcastZetaOp : CHLO_BroadcastBinaryElementwiseOp<
   }];
 
   let arguments = (ins
-    HLO_FpTensor:$lhs,
-    HLO_FpTensor:$rhs,
+    HLO_AnyFpTensor:$lhs,
+    HLO_AnyFpTensor:$rhs,
     // Explicit rank-broadcast dimension mappings. Defaults to "numpy" prefix
     // padded rank-broadcast semantics if omitted.
-    OptionalAttr<BroadcastDimAttr>:$broadcast_dimensions
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions
   );
-  let results = (outs HLO_FpTensor);
+  let results = (outs HLO_AnyFpTensor);
 }
 
 //===----------------------------------------------------------------------===//
@@ -327,11 +323,11 @@ class CHLO_BroadcastBinaryLogicalElementwiseOp<string mnemonic> :
     CHLO_BroadcastBinaryElementwiseOp<
       mnemonic, [Commutative, Pure]> {
   let arguments = (ins
-    HLO_PredOrIntTensor:$lhs,
-    HLO_PredOrIntTensor:$rhs,
+    HLO_AnyPredOrIntTensor:$lhs,
+    HLO_AnyPredOrIntTensor:$rhs,
     // Explicit rank-broadcast dimension mappings. Defaults to "numpy" prefix
     // padded rank-broadcast semantics if omitted.
-    OptionalAttr<BroadcastDimAttr>:$broadcast_dimensions
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions
   );
 }
 
@@ -388,8 +384,8 @@ def CHLO_NextAfterOp : CHLO_Op<"next_after", [Pure,
     Equivalent to the C++ std::nextafter function.
   }];
 
-  let arguments = (ins HLO_FpTensor:$x, HLO_FpTensor:$y);
-  let results = (outs HLO_FpTensor:$result);
+  let arguments = (ins HLO_AnyFpTensor:$x, HLO_AnyFpTensor:$y);
+  let results = (outs HLO_AnyFpTensor:$result);
 
   let assemblyFormat = [{
     $x `,` $y attr-dict `:` type($x) `,` type($y) `->` type(results)
@@ -403,8 +399,8 @@ def CHLO_PolygammaOp : CHLO_Op<"polygamma", [Pure,
     Returns `Polygamma(operand, operand)` element-wise.
   }];
 
-  let arguments = (ins HLO_FpTensor:$n, HLO_FpTensor:$x);
-  let results = (outs HLO_FpTensor:$result);
+  let arguments = (ins HLO_AnyFpTensor:$n, HLO_AnyFpTensor:$x);
+  let results = (outs HLO_AnyFpTensor:$result);
 
   let assemblyFormat = [{
     $n `,` $x attr-dict `:` type($n) `,` type($x) `->` type(results)
@@ -422,8 +418,8 @@ def CHLO_ZetaOp : CHLO_Op<"zeta", [Pure,
     $$
   }];
 
-  let arguments = (ins HLO_FpTensor:$x, HLO_FpTensor:$q);
-  let results = (outs HLO_FpTensor:$result);
+  let arguments = (ins HLO_AnyFpTensor:$x, HLO_AnyFpTensor:$q);
+  let results = (outs HLO_AnyFpTensor:$result);
 
   let assemblyFormat = [{
     $x `,` $q attr-dict `:` type($x) `,` type($q) `->` type(results)
@@ -444,13 +440,13 @@ def CHLO_BroadcastComplexOp : CHLO_BroadcastBinaryElementwiseOp<
   }];
 
   let arguments = (ins
-    HLO_FpTensor:$lhs,
-    HLO_FpTensor:$rhs,
+    HLO_AnyFpTensor:$lhs,
+    HLO_AnyFpTensor:$rhs,
     // Explicit rank-broadcast dimension mappings. Defaults to "numpy" prefix
     // padded rank-broadcast semantics if omitted.
-    OptionalAttr<BroadcastDimAttr>:$broadcast_dimensions
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions
   );
-  let results = (outs HLO_ComplexTensor);
+  let results = (outs HLO_AnyComplexTensor);
 }
 
 //===----------------------------------------------------------------------===//
@@ -458,7 +454,7 @@ def CHLO_BroadcastComplexOp : CHLO_BroadcastBinaryElementwiseOp<
 //===----------------------------------------------------------------------===//
 
 class CHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
-    Type ArgTensorType, Type ResultTensorType> : CHLO_Op<mnemonic,
+    Type ArgTensorType, Type ResultTensorType = ArgTensorType> : CHLO_Op<mnemonic,
     traits # [Pure, Elementwise, SameOperandsAndResultShape,
     InferShapedTypeOpInterface]> {
   let arguments = (ins ArgTensorType:$operand);
@@ -468,20 +464,17 @@ class CHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
     $operand attr-dict `:` type($operand) `->` type($result)
   }];
 
-  let extraClassDeclaration = [{
+  let extraClassDeclaration = commonClassDeclaration # [{
     LogicalResult reifyReturnTypeShapes(OpBuilder& builder, ValueRange operands,
         SmallVectorImpl<Value>& reifiedReturnShapes) {
       return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
           operands.front(), &reifiedReturnShapes);
     }
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
-    }
   }];
 }
 
 def CHLO_AcosOp : CHLO_UnaryElementwiseOp<"acos",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Acos operator";
 
   let description = [{
@@ -495,7 +488,7 @@ def CHLO_AcosOp : CHLO_UnaryElementwiseOp<"acos",
 }
 
 def CHLO_AcoshOp : CHLO_UnaryElementwiseOp<"acosh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Acosh operation";
 
   let description = [{
@@ -509,7 +502,7 @@ def CHLO_AcoshOp : CHLO_UnaryElementwiseOp<"acosh",
 }
 
 def CHLO_AsinOp : CHLO_UnaryElementwiseOp<"asin",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Asin operator";
 
   let description = [{
@@ -522,7 +515,7 @@ def CHLO_AsinOp : CHLO_UnaryElementwiseOp<"asin",
 }
 
 def CHLO_AsinhOp : CHLO_UnaryElementwiseOp<"asinh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Asinh operation";
 
   let description = [{
@@ -535,7 +528,7 @@ def CHLO_AsinhOp : CHLO_UnaryElementwiseOp<"asinh",
 }
 
 def CHLO_AtanOp : CHLO_UnaryElementwiseOp<"atan",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Atan operator";
 
   let description = [{
@@ -548,7 +541,7 @@ def CHLO_AtanOp : CHLO_UnaryElementwiseOp<"atan",
 }
 
 def CHLO_AtanhOp : CHLO_UnaryElementwiseOp<"atanh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Atanh operator";
 
   let description = [{
@@ -562,7 +555,7 @@ def CHLO_AtanhOp : CHLO_UnaryElementwiseOp<"atanh",
 }
 
 def CHLO_BesselI1eOp : CHLO_UnaryElementwiseOp<"bessel_i1e",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Bessel function of order 1";
 
   let description = [{
@@ -571,7 +564,7 @@ def CHLO_BesselI1eOp : CHLO_UnaryElementwiseOp<"bessel_i1e",
 }
 
 def CHLO_ConjOp : CHLO_UnaryElementwiseOp<"conj",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Conj operator";
 
   let description = [{
@@ -584,7 +577,7 @@ def CHLO_ConjOp : CHLO_UnaryElementwiseOp<"conj",
 }
 
 def CHLO_CoshOp : CHLO_UnaryElementwiseOp<"cosh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Cosh operator";
 
   let description = [{
@@ -597,7 +590,7 @@ def CHLO_CoshOp : CHLO_UnaryElementwiseOp<"cosh",
 }
 
 def CHLO_SinhOp : CHLO_UnaryElementwiseOp<"sinh",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Sinh operation";
 
   let description = [{
@@ -611,7 +604,7 @@ def CHLO_SinhOp : CHLO_UnaryElementwiseOp<"sinh",
 }
 
 def CHLO_TanOp : CHLO_UnaryElementwiseOp<"tan",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor, HLO_FpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Tan operation";
 
   let description = [{
@@ -647,15 +640,15 @@ def CHLO_ConstantLikeOp : CHLO_Op<"constant_like", [Pure,
   }];
 
   // TODO(jpienaar): value's type could be tightened.
-  let arguments = (ins TypedAttrInterface:$value, HLO_Tensor:$operand);
-  let results = (outs HLO_Tensor);
+  let arguments = (ins TypedAttrInterface:$value, HLO_AnyTensor:$operand);
+  let results = (outs HLO_AnyTensor);
 
   let hasFolder = 1;
   let hasVerifier = 1;
 }
 
 def CHLO_DigammaOp : CHLO_UnaryElementwiseOp<"digamma",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpTensor> {
   let summary = "Digamma function";
 
   let description = [{
@@ -664,7 +657,7 @@ def CHLO_DigammaOp : CHLO_UnaryElementwiseOp<"digamma",
 }
 
 def CHLO_ErfOp : CHLO_UnaryElementwiseOp<"erf",
-   [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+   [HLO_CompatibleOperandsAndResultType], HLO_AnyFpTensor> {
   let summary = "Erfc operator";
 
   let description = [{
@@ -676,7 +669,7 @@ def CHLO_ErfOp : CHLO_UnaryElementwiseOp<"erf",
 }
 
 def CHLO_ErfInvOp : CHLO_UnaryElementwiseOp<"erf_inv",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpTensor> {
   let summary = "Inverse Erf";
   let description = [{
     Returns `ErfInv(operand)` element-wise.
@@ -684,7 +677,7 @@ def CHLO_ErfInvOp : CHLO_UnaryElementwiseOp<"erf_inv",
 }
 
 def CHLO_ErfcOp : CHLO_UnaryElementwiseOp<"erfc",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpTensor> {
   let summary = "Erfc operator";
 
   let description = [{
@@ -696,8 +689,8 @@ def CHLO_ErfcOp : CHLO_UnaryElementwiseOp<"erfc",
 }
 
 def CHLO_IsInfOp : CHLO_UnaryElementwiseOp<"is_inf",
-    [DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_FpTensor,
-    HLO_PredTensor> {
+    [DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_AnyFpTensor,
+    HLO_AnyPredTensor> {
   let summary = "IsInf predicate";
 
   let description = [{
@@ -706,8 +699,8 @@ def CHLO_IsInfOp : CHLO_UnaryElementwiseOp<"is_inf",
 }
 
 def CHLO_IsNegInfOp : CHLO_UnaryElementwiseOp<"is_neg_inf",
-    [DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_FpTensor,
-    HLO_PredTensor> {
+    [DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_AnyFpTensor,
+    HLO_AnyPredTensor> {
   let summary = "IsNegInf predicate";
 
   let description = [{
@@ -716,8 +709,8 @@ def CHLO_IsNegInfOp : CHLO_UnaryElementwiseOp<"is_neg_inf",
 }
 
 def CHLO_IsPosInfOp : CHLO_UnaryElementwiseOp<"is_pos_inf",
-    [DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_FpTensor,
-    HLO_PredTensor> {
+    [DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_AnyFpTensor,
+    HLO_AnyPredTensor> {
   let summary = "IsPosInf predicate";
 
   let description = [{
@@ -726,7 +719,7 @@ def CHLO_IsPosInfOp : CHLO_UnaryElementwiseOp<"is_pos_inf",
 }
 
 def CHLO_LgammaOp : CHLO_UnaryElementwiseOp<"lgamma",
-    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpTensor> {
   let summary = "Lgamma function";
 
   let description = [{
@@ -753,17 +746,17 @@ def CHLO_BroadcastCompareOp : CHLO_BroadcastBinaryElementwiseOp<
   }];
 
   let arguments = (ins
-    HLO_Tensor:$lhs,
-    HLO_Tensor:$rhs,
-    OptionalAttr<BroadcastDimAttr>:$broadcast_dimensions,
+    HLO_AnyTensor:$lhs,
+    HLO_AnyTensor:$rhs,
+    OptionalAttr<DenseI64ArrayAttr>:$broadcast_dimensions,
     CHLO_ComparisonDirectionAttr:$comparison_direction,
     OptionalAttr<CHLO_ComparisonTypeAttr>:$compare_type
   );
-  let results = (outs HLO_PredTensor);
+  let results = (outs HLO_AnyPredTensor);
 
   let builders = [
     OpBuilder<(ins "Value":$lhs, "Value":$rhs,
-      "DenseIntElementsAttr":$broadcast_dimensions,
+      "DenseI64ArrayAttr":$broadcast_dimensions,
       "::mlir::chlo::ComparisonDirection":$comparison_direction,
       CArg<"::mlir::chlo::ComparisonType",
       "::mlir::chlo::ComparisonType::NOTYPE">:$compare_type)>,
@@ -788,11 +781,11 @@ def CHLO_BroadcastSelectOp : CHLO_Op<"broadcast_select",
 
   let arguments = (ins
     HLO_PredTensor:$pred,
-    HLO_Tensor:$on_true,
-    HLO_Tensor:$on_false
+    HLO_AnyTensor:$on_true,
+    HLO_AnyTensor:$on_false
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_AnyTensor);
 
   let assemblyFormat = [{
     $pred `,` $on_true `,` $on_false attr-dict `:`
@@ -828,14 +821,14 @@ If two elements are equal, the lower-index element appears first.
   }];
 
   let arguments = (ins
-    Arg<HLO_Tensor, [{1-D or higher with last dimension at least `k`.}]>:$operand,
+    Arg<HLO_AnyTensor, [{1-D or higher with last dimension at least `k`.}]>:$operand,
     Arg<I64Attr, [{0-D.  Number of top elements to look for along the last dimension (along each
 row for matrices).}]>:$k
   );
 
   let results = (outs
-    HLO_Tensor:$values,
-    HLO_Tensor:$indices);
+    HLO_AnyTensor:$values,
+    HLO_AnyTensor:$indices);
 
   let assemblyFormat = [{
     `(`$operand `,` `k` `=` $k`)` attr-dict `:`
@@ -889,59 +882,6 @@ def CHLO_MinimumBroadcastShapesOp :
   let hasVerifier = 1;
 }
 
-def CHLO_RankSpecializationClusterOp
-    : CHLO_Op<"rank_specialization_cluster", [
-    DeclareOpInterfaceMethods<RegionBranchOpInterface>,
-    SingleBlockImplicitTerminator<"RankSpecializationClusterYieldOp">,
-    RecursiveMemoryEffects]> {
-
-  let summary = "Cluster of operations that will be rank-specialized together.";
-
-  let description = [{
-    Groups compatible element-wise operatons together so that they can be
-    rank-specialized together. The operation takes and yields a variadic number
-    of (unranked) tensor operands. Its body region holds one block with one
-    block argument per input tensor of the same type. All operations in this
-    block must only operate on these block arguments. Results are returned
-    through the `rank_specialization_cluster_yield` operation.
-
-    Example:
-
-    ```
-    %0 = "chlo.rank_specialization_cluster"(%arg0, %arg1, %arg2) ({
-    ^bb0(%arg0_ : tensor<*xf32>, %arg1_ : tensor<*xf32>, %arg2_ : tensor<*xf32>):
-      %1 = chlo.broadcast_multiply %arg0_, %arg1_
-          : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-      %2 = chlo.broadcast_add %1, %arg2_
-          : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-      "chlo.rank_specialization_cluster_yield"(%2) : (tensor<*xf32>) -> ()
-    }) : (tensor<*xf32>, tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-    ```
-  }];
-
-  let arguments = (ins Variadic<HLO_Tensor>);
-  let results = (outs Variadic<HLO_Tensor>);
-  let regions = (region SizedRegion<1>:$body);
-
-  let hasVerifier = 1;
-}
-
-def CHLO_RankSpecializationClusterYieldOp
-    : CHLO_Op<"rank_specialization_cluster_yield", [Pure,
-    ReturnLike, Terminator, HasParent<"RankSpecializationClusterOp">]> {
-
-  let summary = "Yield operation for `rank_specialization_cluster`";
-  let description = [{
-    This operation yields the results from within the
-    `chlo.rank_specialization_cluster` operation's region. The operation takes
-    an arbitrary number of operands and produces no results. The operand number
-    and types must match the number and types of the parent
-    `rank_specialization_cluster` operation's results.
-  }];
-
-  let arguments = (ins Variadic<HLO_Tensor>:$results);
-}
-
 def CHLO_DynamicReshapeOp: CHLO_Op<"dynamic_reshape", [Pure,
     DeclareOpInterfaceMethods<InferShapedTypeOpInterface>]> {
   let summary = "Reshape a tensor to a given, possibly dynamic, shape.";
@@ -959,8 +899,8 @@ def CHLO_DynamicReshapeOp: CHLO_Op<"dynamic_reshape", [Pure,
     - All shape values should be at least -1, and only one extent can be -1.
   }];
 
-  let arguments = (ins HLO_Tensor:$operand, HLO_DimensionTensor:$output_shape);
-  let results = (outs HLO_Tensor:$result);
+  let arguments = (ins HLO_AnyTensor:$operand, HLO_DimensionTensor:$output_shape);
+  let results = (outs HLO_AnyTensor:$result);
 }
 
 #endif  // STABLEHLO_DIALECT_CHLO_OPS

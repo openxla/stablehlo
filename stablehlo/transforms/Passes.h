@@ -18,20 +18,28 @@ limitations under the License.
 
 #include <memory>
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/QuantOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace mlir {
 namespace stablehlo {
-#define GEN_PASS_DECL_STABLEHLOCANONICALIZEDYNAMISMPASS
-#define GEN_PASS_DECL_STABLEHLOLEGALIZETOVHLOPASS
-#define GEN_PASS_DECL_STABLEHLOREFINESHAPESPASS
-#define GEN_PASS_DECL_VHLOLEGALIZETOSTABLEHLOPASS
-#define GEN_PASS_DECL_VHLOTOVERSIONPASS
+
+#define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/transforms/Passes.h.inc"
+
+// Populates --stablehlo-canonicalize-dynamism patterns.
+void populateStablehloCanonicalizeDynamismPatterns(RewritePatternSet *patterns,
+                                                   MLIRContext *context);
+
+// Populates --stablehlo-refine-shapes patterns.
+void populateStablehloRefineShapesPatterns(RewritePatternSet *patterns,
+                                           MLIRContext *context);
 
 // Populates StableHLO ops to VHLO ops rewriting patterns.
 void populateStablehloToVhloPatterns(RewritePatternSet *patterns,
@@ -47,6 +55,25 @@ void populateVhloToStablehloPatterns(RewritePatternSet *patterns,
 void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                    TypeConverter *converter,
                                    MLIRContext *contexts);
+
+/// Collection of rewrite patterns for lowering of CHLO ops to StableHLO and
+/// Shape ops.
+void populateChloToStablehloPatterns(MLIRContext *context,
+                                     RewritePatternSet *patterns);
+
+/// Collection of canonicalization patterns for StableHLO.
+void populateStablehloCanonicalizationPatterns(MLIRContext *context,
+                                               RewritePatternSet *patterns,
+                                               PatternBenefit benefit = 1);
+
+/// Collection of shape dialect to StableHLO patterns.
+void populateShapeToStablehloPatterns(MLIRContext *context,
+                                      RewritePatternSet *patterns);
+
+//// Additional pass constructors ////
+
+std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
+    TypeRange refinedTypes);
 
 //// Pass pipelines ////
 
@@ -66,4 +93,4 @@ void registerPassPipelines();
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_DIALECT_VHLO_OPS_H
+#endif  // STABLEHLO_TRANSFORMS_PASSES_H

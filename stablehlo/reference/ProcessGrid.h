@@ -1,4 +1,4 @@
-/* Copyright 2023 The StableHLO Authors.
+/* Copyright 2023-2024 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,11 +33,36 @@ namespace mlir {
 namespace stablehlo {
 
 struct ProcessId;
-class RendezvousResult;
+
+/// Represents a result of a `ProcessGrid::rendezvous` where multiple processes
+/// synchronize at a barrier and contribute a Tensor each.
+/// This class is pretty much a map from ProcessId to Tensor, with the
+/// map-like API.
+class RendezvousResult {
+ public:
+  RendezvousResult() = default;
+  RendezvousResult(std::map<ProcessId, Tensor> const &result);
+
+  /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
+  /// of Tensors sorted by ProcessId--(replicaId, partitionId) pair--in
+  /// lexicographical order.
+  SmallVector<Tensor> getSortedTensors() const;
+
+  /// Inserts `tensor` into the map using the key `processId`.
+  void insert(ProcessId processId, Tensor tensor);
+
+  /// Iterates through the map and returns the value associated with the key
+  /// `processId`. If key is not found, return an empty `Tensor`.
+  Tensor lookup(ProcessId processId) const;
+
+ private:
+  /// Internal map representation of the result of `ProcessGrid::rendezvous`.
+  std::map<ProcessId, Tensor> result_;
+};
 
 namespace detail {
 
-/// Internal storate used in `rendezvous` to manage concurrent access to the
+/// Internal storage used in `rendezvous` to manage concurrent access to the
 /// shared resource. Processes contribute their data to `values` concurrently.
 /// Once all processes have added their data, the data in `values` is moved to
 /// `result` that multiple processes can concurrently read from.
@@ -49,8 +74,12 @@ struct RendezvousState {
   /// Internal storage used to store data contributed by the processes.
   std::map<ProcessId, Tensor> values;
 
-  /// Shared pointer to the result of `rendezvous`.
-  std::shared_ptr<RendezvousResult> result;
+  /// Internal state management counter which counts the number of processes
+  /// that contributed already.
+  size_t useCount;
+
+  /// Stores the result of `rendezvous`.
+  RendezvousResult result;
 };
 
 struct SendRecvState {
@@ -164,31 +193,6 @@ class ProcessGroups : public SmallVector<ProcessGroup> {
   std::optional<ProcessGroup> findGroup(ProcessId processId);
 };
 
-/// Represents a result of a `ProcessGrid::rendezvous` where multiple processes
-/// synchronize at a barrier and contribute a Tensor each.
-/// This class is pretty much a map from ProcessId to Tensor, with the
-/// map-like API.
-class RendezvousResult {
- public:
-  RendezvousResult(std::map<ProcessId, Tensor> const &result);
-
-  /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
-  /// of Tensors sorted by ProcessId--(replicaId, partitionId) pair--in
-  /// lexicographical order.
-  SmallVector<Tensor> getSortedTensors() const;
-
-  /// Inserts `tensor` into the map using the key `processId`.
-  void insert(ProcessId processId, Tensor tensor);
-
-  /// Iterates through the map and returns the value associated with the key
-  /// `processId`. If key is not found, return an empty `Tensor`.
-  Tensor lookup(ProcessId processId) const;
-
- private:
-  /// Internal map representation of the result of `ProcessGrid::rendezvous`.
-  std::map<ProcessId, Tensor> result_;
-};
-
 /// StableHLO process grid.
 class ProcessGrid {
  public:
@@ -242,13 +246,11 @@ class ProcessGrid {
   /// deadlock the interpreter.
   ///
   /// At the barrier, each StableHLO process contributes a tensor, and these
-  /// tensors are accumulated in `RendezvousResult` whose shard pointer is
+  /// tensors are accumulated in `RendezvousResult` whose shared pointer is
   /// returned to all callers once the barrier has been reached by all StableHLO
   /// processes.
-  std::shared_ptr<RendezvousResult const> rendezvous(ProcessGroup processGroup,
-                                                     ChannelId channelId,
-                                                     ProcessId processId,
-                                                     const Tensor &operand);
+  RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
+                              ProcessId processId, const Tensor &operand);
 
   /// Sends `inputs` to a channel with `channelId`.
   /// The channel with `channelId` is emptied before the receiving process can

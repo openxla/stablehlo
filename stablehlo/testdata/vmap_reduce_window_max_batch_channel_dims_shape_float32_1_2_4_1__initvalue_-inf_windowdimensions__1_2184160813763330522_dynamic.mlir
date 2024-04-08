@@ -10,7 +10,7 @@ module @jit_fun_flat_jax {
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
       %3 = stablehlo.maximum %arg2, %arg3 : tensor<f32>
       stablehlo.return %3 : tensor<f32>
-    }) {window_dimensions = dense<[1, 1, 2, 2, 1]> : tensor<5xi64>} : (tensor<?x1x2x4x1xf32>, tensor<f32>) -> tensor<?x1x1x3x1xf32>
+    }) {window_dimensions = array<i64: 1, 1, 2, 2, 1>} : (tensor<?x1x2x4x1xf32>, tensor<f32>) -> tensor<?x1x1x3x1xf32>
     return %2 : tensor<?x1x1x3x1xf32>
   }
 }

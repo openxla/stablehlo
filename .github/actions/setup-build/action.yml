@@ -14,20 +14,25 @@
 
 # The setup-build action gets everything needed by buildAndTest into the workspace.
 name: "Setup build environment (ninja, ccache, llvm, lld)"
+description: "Setup build environment (ninja, ccache, llvm, lld)"
 
 inputs:
   llvm-version:
     description: |
       LLVM version for checkout and build. Used for ccache value and checkout.
     required: true
-
+  python-version:
+    description: |
+      Python version to install
+    required: false
+    default: '3.10.6'
 runs:
   # This is a composite action - has a list of steps to execute.
   using: "composite"
 
   steps:
   # Checkout llvm at version specified in input argument.
-  - uses: actions/checkout@v2
+  - uses: actions/checkout@v4
     with:
       repository: llvm/llvm-project
       ref: ${{ inputs.llvm-version }}
@@ -36,7 +41,7 @@ runs:
 
   # Get ninja for cmake build.
   - name: Install Ninja
-    uses: llvm/actions/install-ninja@55d844821959226fab4911f96f37071c1d4c3268
+    uses: llvm/actions/install-ninja@6a57890d0e3f9f35dfc72e7e48bc5e1e527cdd6c
 
   # Get LLD - Improves build speed on Linux
   - name: Install LLD
@@ -54,9 +59,9 @@ runs:
 
   # Install Python/Numpy for API tests
   - name: Install Python and Pip
-    uses: actions/setup-python@v4
+    uses: actions/setup-python@v5
     with:
-      python-version: '3.10.6'
+      python-version: ${{ inputs.python-version }}
       cache: 'pip' # caching pip dependencies
   - name: Install MLIR python requirements
     shell: bash

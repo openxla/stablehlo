@@ -1,4 +1,4 @@
-/* Copyright 2023 The StableHLO Authors.
+/* Copyright 2023-2024 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -26,6 +27,7 @@ limitations under the License.
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/reference/Axes.h"
+#include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
@@ -52,16 +54,33 @@ Index evalIndex(Tensor tensor) {
   return result;
 }
 
+Tensor evalDotGeneralOp(const Tensor &lhs, const Tensor &rhs,
+                        const Axes &lhsContractingDimensions,
+                        const Axes &rhsContractingDimensions) {
+  SmallVector<ShapedTypeComponents> inferredDotGeneralType;
+  if (failed(hlo::inferDotGeneralOp(
+          /*location=*/{}, lhs.getType(), rhs.getType(),
+          /*lhsBatchingDimensions=*/{}, /*rhsBatchingDimensions*/ {},
+          lhsContractingDimensions, rhsContractingDimensions,
+          /*precisionConfig=*/{}, inferredDotGeneralType)))
+    report_fatal_error(
+        invalidArgument("Could not infer DotGeneralOp's return type"));
+
+  return evalDotGeneralOp(
+      lhs, rhs, /*lhsBatchingDimensions=*/{}, /*rhsBatchingDimensions*/ {},
+      lhsContractingDimensions, rhsContractingDimensions,
+      RankedTensorType::get(inferredDotGeneralType[0].getDims(),
+                            lhs.getElementType()));
+}
+
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  const Sizes &edgePaddingLow, const Sizes &edgePaddingHigh,
                  const Sizes &interiorPadding) {
   SmallVector<Type> inferredTypes;
   Builder builder(operand.getType().getContext());
-  auto inferStatus =
-      hlo::inferPadOp({}, operand.getType(), paddingValue.getType(),
-                      builder.getI64TensorAttr(edgePaddingLow),
-                      builder.getI64TensorAttr(edgePaddingHigh),
-                      builder.getI64TensorAttr(interiorPadding), inferredTypes);
+  auto inferStatus = hlo::inferPadOp(
+      {}, operand.getType(), paddingValue.getType(), edgePaddingLow,
+      edgePaddingHigh, interiorPadding, inferredTypes);
   if (failed(inferStatus))
     report_fatal_error(invalidArgument("Could not infer PadOp's return type"));
   return evalPadOp(operand, paddingValue, edgePaddingLow, interiorPadding,
@@ -82,8 +101,7 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
   SmallVector<ShapedTypeComponents> inferredReduceTypes;
   Builder builder(inputs[0].getType().getContext());
   auto reduceStatus = hlo::inferReduceOp(
-      /*location=*/{}, inputTypes, initValueTypes,
-      builder.getI64TensorAttr(dimensions), inferredReduceTypes);
+      /*location=*/{}, inputTypes, dimensions, body, inferredReduceTypes);
   if (failed(reduceStatus))
     report_fatal_error(
         invalidArgument("Could not infer ReduceOp's return type"));
@@ -103,15 +121,27 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                    const Sizes &limitIndices, const Sizes &strides) {
   SmallVector<Type> inferredTypes;
   Builder builder(operand.getType().getContext());
-  auto inferStatus = hlo::inferSliceOp(
-      {}, operand.getType(), builder.getI64TensorAttr(startIndices),
-      builder.getI64TensorAttr(limitIndices), builder.getI64TensorAttr(strides),
-      inferredTypes);
+  auto inferStatus = hlo::inferSliceOp({}, operand.getType(), startIndices,
+                                       limitIndices, strides, inferredTypes);
   if (failed(inferStatus))
     report_fatal_error(
         invalidArgument("Could not infer SliceOp's return type"));
   return evalSliceOp(operand, startIndices, strides,
                      inferredTypes[0].cast<ShapedType>());
+}
+
+SmallVector<InterpreterValue> evalCallOp(ArrayRef<Tensor> inputs,
+                                         InterpreterFallback *fallback,
+                                         Process *process, Operation *op,
+                                         StringRef funcName) {
+  SymbolTableCollection symbolTableCollection;
+  auto symbolTable =
+      symbolTableCollection.getSymbolTable(op->getParentOfType<ModuleOp>());
+  auto func = symbolTable.lookupNearestSymbolFrom<func::FuncOp>(
+      op, StringAttr::get(op->getContext(), funcName));
+  SmallVector<InterpreterValue> values = llvm::to_vector(llvm::map_range(
+      inputs, [](const Tensor &t) { return InterpreterValue(t); }));
+  return eval(func.getBody(), values, fallback, process, nullptr);
 }
 
 // Experimental notation for slices, roughly following the spec notation.
@@ -132,6 +162,12 @@ Tensor evalSliceOp(const Tensor &operand, const Index &index) {
   return evalSliceOp(operand, start, limit, strides);
 }
 
+Sizes extractElements(ArrayRef<int64_t> arr, ArrayRef<int64_t> indices) {
+  Sizes elements;
+  for (int64_t index : indices) elements.push_back(arr[index]);
+  return elements;
+}
+
 void failOnDecomposableOp(Operation &op) {
   report_fatal_error(invalidArgument(
       "Operation %s is unsupported at the moment. "
@@ -140,6 +176,13 @@ void failOnDecomposableOp(Operation &op) {
       "Visit https://github.com/openxla/stablehlo/issues/1571 to learn more "
       "about the workaround and the roadmap for supporting this operation.",
       op.getName().getStringRef().str().c_str()));
+}
+
+template <typename T>
+DenseIntElementsAttr getDenseIntElementsAttr(Type elementType, T values,
+                                             SmallVector<int64_t> valuesShape) {
+  return DenseIntElementsAttr::get(
+      RankedTensorType::get(valuesShape, elementType), values);
 }
 
 SmallVector<SmallVector<uint32_t>> getReplicaGroups(
@@ -157,10 +200,74 @@ SmallVector<SmallVector<uint32_t>> getReplicaGroups(
   return replicaGroups;
 }
 
-Tensor makeScalar(const Element &initValue) {
+Tensor evalConvolutionOp(
+    const Tensor &lhs, const Tensor &rhs, ArrayRef<int64_t> windowStrides,
+    ArrayRef<std::pair<int64_t, int64_t>> padding,
+    ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
+    ArrayRef<bool> windowReversal, Axis inputBatchDimension,
+    Axis inputFeatureDimension, const Axes &inputSpatialDimensions,
+    Axis kernelInputFeatureDimension, Axis kernelOutputFeatureDimension,
+    const Axes &kernelSpatialDimensions, Axis outputBatchDimension,
+    Axis outputFeatureDimension, const Axes &outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount,
+    std::optional<ArrayAttr> precisionConfig, ShapedType resultType) {
+  SmallVector<int64_t> paddingVector;
+  for (auto pair : padding) {
+    paddingVector.push_back(pair.first);
+    paddingVector.push_back(pair.second);
+  }
+
+  SmallVector<ShapedTypeComponents> inferredConvolutionType;
+  if (failed(hlo::inferConvolutionOp(
+          /*location=*/{}, lhs.getType(), rhs.getType(), windowStrides,
+          /*padding=*/
+          getDenseIntElementsAttr(
+              IntegerType::get(lhs.getType().getContext(), 64), paddingVector,
+              SmallVector<int64_t>(padding.size(), 2)),
+          lhsDilation, rhsDilation, windowReversal, inputBatchDimension,
+          inputFeatureDimension, ArrayRef<int64_t>(inputSpatialDimensions),
+          kernelInputFeatureDimension, kernelOutputFeatureDimension,
+          ArrayRef<int64_t>(kernelSpatialDimensions), outputBatchDimension,
+          outputFeatureDimension, ArrayRef<int64_t>(outputSpatialDimensions),
+          featureGroupCount, batchGroupCount,
+          /*precisionConfig=*/{}, inferredConvolutionType)))
+    report_fatal_error(
+        invalidArgument("Could not infer ConvolutionOp's return type"));
+
+  return evalConvolutionOp(
+      lhs, rhs, windowStrides, padding, lhsDilation, rhsDilation,
+      windowReversal, inputBatchDimension, inputFeatureDimension,
+      inputSpatialDimensions, kernelInputFeatureDimension,
+      kernelOutputFeatureDimension, kernelSpatialDimensions,
+      outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
+      featureGroupCount, batchGroupCount,
+      RankedTensorType::get(inferredConvolutionType[0].getDims(),
+                            resultType.getElementType()));
+}
+
+// Returns `result` with the effect of applying `permutation`
+// (= [dimA] + dimsB + [dimC]) to `input` (= [n] + hw + [c]) such that
+// result[permutation[i]] = input[i].
+template <typename T>
+SmallVector<T> concatAndPermute(T n, SmallVector<T> hw, T c,
+                                const Axes &permutation) {
+  SmallVector<T> result(permutation.size());
+  result[permutation[0]] = n;
+  result[permutation[permutation.size() - 1]] = c;
+  for (uint64_t i = 1; i < permutation.size() - 1; ++i)
+    result[permutation[i]] = hw[i - 1];
+  return result;
+}
+
+Tensor constant(Element initValue) {
   Tensor result(RankedTensorType::get({}, initValue.getType()));
   result.set({}, initValue);
   return result;
+}
+
+template <typename T>
+Tensor constant(T value, Type elementType) {
+  return constant(convert(elementType, value));
 }
 
 Tensor makeSplat(ShapedType type, const Element &initValue) {
@@ -185,9 +292,9 @@ SmallVector<Tensor> split(const Tensor &x, int64_t numResults, Axis axis,
   SmallVector<Tensor> results;
   for (auto i = 0; i < numResults; ++i) {
     SmallVector<Tensor> inputStartIndices(
-        x.getRank(), makeScalar(convert(IntegerType::get(context, 64), 0.0)));
-    inputStartIndices[axis] = makeScalar(
-        convert(IntegerType::get(context, 64), i * resultShape[axis]));
+        x.getRank(), constant(0.0, IntegerType::get(context, 64)));
+    inputStartIndices[axis] =
+        constant(i * resultShape[axis], IntegerType::get(context, 64));
 
     auto result = evalDynamicSliceOp(
         x, inputStartIndices, resultShape,
@@ -199,10 +306,10 @@ SmallVector<Tensor> split(const Tensor &x, int64_t numResults, Axis axis,
 
 }  // namespace
 
-SmallVector<InterpreterValue> eval(
-    Region &region, ArrayRef<InterpreterValue> args, Process *process,
-    Scope *parent,
-    llvm::function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback) {
+SmallVector<InterpreterValue> eval(Region &region,
+                                   ArrayRef<InterpreterValue> args,
+                                   InterpreterFallback *fallback,
+                                   Process *process, Scope *parent) {
   Block &block = region.front();
   if (block.getArguments().size() != args.size())
     report_fatal_error(invalidArgument(
@@ -306,6 +413,11 @@ SmallVector<InterpreterValue> eval(
       scope.add(broadcastInDimOp.getResult(), result);
     } else if (isa<BroadcastOp>(op)) {
       failOnDecomposableOp(op);
+    } else if (auto callOp = dyn_cast<func::CallOp>(op)) {
+      auto operands = scope.findTensors(callOp.getOperands());
+      auto results =
+          evalCallOp(operands, fallback, process, &op, callOp.getCallee());
+      scope.add(callOp.getResults(), results);
     } else if (auto caseOp = dyn_cast<CaseOp>(op)) {
       auto index = scope.findTensor(caseOp.getIndex());
       auto branches = caseOp.getBranches();
@@ -331,6 +443,25 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.findTensor(clzOp.getOperand());
       auto result = evalClzOp(operand, clzOp.getType());
       scope.add(clzOp.getResult(), result);
+    } else if (auto collectiveBroadcastOp =
+                   dyn_cast<CollectiveBroadcastOp>(op)) {
+      auto operand = scope.findTensor(collectiveBroadcastOp.getOperand());
+
+      auto replicaGroupsAttr = collectiveBroadcastOp.getReplicaGroups();
+      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
+      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
+      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
+      for (auto &replicaGroup : replicaGroups)
+        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt)
+          replicaGroup.push_back(*replicaGroupsIt);
+
+      ChannelId channelId = 0;
+      if (auto channelHandle = collectiveBroadcastOp.getChannelHandle())
+        channelId = channelHandle->getHandle();
+
+      auto result =
+          evalCollectiveBroadcastOp(operand, replicaGroups, channelId, process);
+      scope.add(collectiveBroadcastOp.getResult(), result);
     } else if (auto collectivePermuteOp = dyn_cast<CollectivePermuteOp>(op)) {
       auto operand = scope.findTensor(collectivePermuteOp.getOperand());
 
@@ -363,6 +494,11 @@ SmallVector<InterpreterValue> eval(
       auto rhs = scope.findTensor(complexOp.getRhs());
       auto result = evalComplexOp(lhs, rhs, complexOp.getType());
       scope.add(complexOp.getResult(), result);
+    } else if (auto compositeOp = dyn_cast<CompositeOp>(op)) {
+      auto operands = scope.findTensors(compositeOp.getOperands());
+      auto results = evalCallOp(operands, fallback, process, &op,
+                                compositeOp.getDecomposition());
+      scope.add(compositeOp.getResults(), results);
     } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
       auto operands = scope.findTensors(concatenateOp.getOperands());
       auto result = evalConcatenateOp(operands, concatenateOp.getDimension(),
@@ -375,6 +511,50 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.findTensor(convertOp.getOperand());
       auto result = evalConvertOp(operand, convertOp.getType());
       scope.add(convertOp.getResult(), result);
+    } else if (auto convolutionOp = dyn_cast<ConvolutionOp>(op)) {
+      auto lhs = scope.findTensor(convolutionOp.getLhs());
+      auto rhs = scope.findTensor(convolutionOp.getRhs());
+      auto rank = lhs.getRank();
+
+      SmallVector<int64_t> windowStrides(rank - 2, 1);
+      if (auto windowStridesAttr = convolutionOp.getWindowStridesAttr())
+        windowStrides = SmallVector<int64_t>(windowStridesAttr.asArrayRef());
+
+      SmallVector<std::pair<int64_t, int64_t>> padding(rank - 2, {0, 0});
+      if (auto paddingAttr = convolutionOp.getPaddingAttr()) {
+        auto paddingOrErr = hlo::convertPaddingAttribute(paddingAttr, {});
+        if (failed(paddingOrErr))
+          report_fatal_error(invalidArgument("Invalid padding format found."));
+        padding = *paddingOrErr;
+      }
+
+      SmallVector<int64_t> lhsDilation(rank - 2, 1);
+      if (auto lhsDilationAttr = convolutionOp.getLhsDilationAttr())
+        lhsDilation = SmallVector<int64_t>(lhsDilationAttr.asArrayRef());
+
+      SmallVector<int64_t> rhsDilation(rank - 2, 1);
+      if (auto rhsDilationAttr = convolutionOp.getRhsDilationAttr())
+        rhsDilation = SmallVector<int64_t>(rhsDilationAttr.asArrayRef());
+
+      SmallVector<bool> windowReversal(rank - 2, false);
+      if (auto windowReversalAttr = convolutionOp.getWindowReversalAttr())
+        windowReversal = SmallVector<bool>(windowReversalAttr.asArrayRef());
+
+      auto dimensionNumbers = convolutionOp.getDimensionNumbers();
+      auto result = evalConvolutionOp(
+          lhs, rhs, windowStrides, padding, lhsDilation, rhsDilation,
+          windowReversal, dimensionNumbers.getInputBatchDimension(),
+          dimensionNumbers.getInputFeatureDimension(),
+          Axes(dimensionNumbers.getInputSpatialDimensions()),
+          dimensionNumbers.getKernelInputFeatureDimension(),
+          dimensionNumbers.getKernelOutputFeatureDimension(),
+          Axes(dimensionNumbers.getKernelSpatialDimensions()),
+          dimensionNumbers.getOutputBatchDimension(),
+          dimensionNumbers.getOutputFeatureDimension(),
+          Axes(dimensionNumbers.getOutputSpatialDimensions()),
+          convolutionOp.getFeatureGroupCount(),
+          convolutionOp.getBatchGroupCount(), convolutionOp.getType());
+      scope.add(convolutionOp.getResult(), result);
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
       auto operand = scope.findTensor(cosineOp.getOperand());
       auto result = evalCosineOp(operand, cosineOp.getType());
@@ -606,18 +786,15 @@ SmallVector<InterpreterValue> eval(
 
       Sizes windowStrides(rank, 1);
       if (auto windowStridesAttr = reduceWindowOp.getWindowStrides())
-        windowStrides.assign(windowStridesAttr->value_begin<int64_t>(),
-                             windowStridesAttr->value_end<int64_t>());
+        windowStrides = Sizes(*windowStridesAttr);
 
       Sizes baseDilations(rank, 1);
       if (auto baseDilationsAttr = reduceWindowOp.getBaseDilations())
-        baseDilations.assign(baseDilationsAttr->value_begin<int64_t>(),
-                             baseDilationsAttr->value_end<int64_t>());
+        baseDilations = Sizes(*baseDilationsAttr);
 
       Sizes windowDilations(rank, 1);
       if (auto windowDilationsAttr = reduceWindowOp.getWindowDilations())
-        windowDilations.assign(windowDilationsAttr->value_begin<int64_t>(),
-                               windowDilationsAttr->value_end<int64_t>());
+        windowDilations = Sizes(*windowDilationsAttr);
 
       Sizes paddingLow(rank, 0), paddingHigh(rank, 0);
       if (auto paddingAttr = reduceWindowOp.getPadding()) {
@@ -702,14 +879,13 @@ SmallVector<InterpreterValue> eval(
 
       Sizes windowDimensions(rank, 1);
       if (auto windowDimensionsAttr = selectAndScatterOp.getWindowDimensions())
-        windowDimensions.assign(
-            windowDimensionsAttr->getValues<int64_t>().begin(),
-            windowDimensionsAttr->getValues<int64_t>().end());
+        windowDimensions.assign(windowDimensionsAttr->begin(),
+                                windowDimensionsAttr->end());
 
       Sizes windowStrides(rank, 1);
       if (auto windowStridesAttr = selectAndScatterOp.getWindowStrides())
-        windowStrides.assign(windowStridesAttr->getValues<int64_t>().begin(),
-                             windowStridesAttr->getValues<int64_t>().end());
+        windowStrides.assign(windowStridesAttr->begin(),
+                             windowStridesAttr->end());
 
       Sizes paddingLow(rank, 0);
       if (auto padding = selectAndScatterOp.getPadding()) {
@@ -817,7 +993,7 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.find(whileOp.getOperand());
       auto &cond = whileOp.getCond();
       auto &body = whileOp.getBody();
-      auto results = evalWhileOp(operand, cond, body, process, scope);
+      auto results = evalWhileOp(operand, cond, body, fallback, process, scope);
       scope.add(whileOp.getResults(), results);
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
       auto lhs = scope.findTensor(xorOp.getLhs());
@@ -828,7 +1004,7 @@ SmallVector<InterpreterValue> eval(
       if (!fallback)
         report_fatal_error(
             invalidArgument("Unsupported op: %s", debugString(op).c_str()));
-      auto status = fallback(op, process, scope);
+      auto status = (*fallback)(op, scope, process);
       if (status) llvm::report_fatal_error(std::move(status));
     }
   }
@@ -876,8 +1052,11 @@ Tensor evalAllGatherOp(const Tensor &operand, int64_t allGatherDim,
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
 
-  auto groupOperands = process->rendezvous(*processGroup, channelId, operand)
-                           ->getSortedTensors();
+  auto rendezvousResult =
+      process->rendezvous(*processGroup, channelId, operand);
+  SmallVector<Tensor> groupOperands(llvm::map_range(
+      *processGroup,
+      [&](const ProcessId &id) { return rendezvousResult.lookup(id); }));
 
   return evalConcatenateOp(groupOperands, allGatherDim, resultType);
 }
@@ -905,18 +1084,18 @@ Tensor evalAllReduceOp(const Tensor &operand,
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
 
-  auto groupOperands = process->rendezvous(*processGroup, channelId, operand)
-                           ->getSortedTensors();
+  auto groupOperands =
+      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
 
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
     Tensor resultElement;
     for (const auto &groupOperand : groupOperands) {
-      auto groupOperandElement = makeScalar(groupOperand.get(*resultIt));
+      auto groupOperandElement = constant(groupOperand.get(*resultIt));
       if (resultElement)
         resultElement = eval(computation, {resultElement, groupOperandElement},
-                             process, &scope)[0]
+                             /*fallback=*/nullptr, process, &scope)[0]
                             .getTensor();
       else
         resultElement = groupOperandElement;
@@ -946,8 +1125,8 @@ Tensor evalAllToAllOp(const Tensor &operand, Axis splitDimension,
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
 
-  auto groupOperands = process->rendezvous(*processGroup, channelId, operand)
-                           ->getSortedTensors();
+  auto groupOperands =
+      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
 
   SmallVector<Tensor> scatteredParts;
   for (const auto &groupOperand : groupOperands) {
@@ -1037,7 +1216,7 @@ SmallVector<InterpreterValue> evalCaseOp(const Tensor &index,
   if (indexValue < 0 || indexValue >= static_cast<int64_t>(branches.size()))
     indexValue = branches.size() - 1;
 
-  return eval(*branches[indexValue], {}, process, &scope);
+  return eval(*branches[indexValue], {}, /*fallback=*/nullptr, process, &scope);
 }
 
 Tensor evalCbrtOp(const Tensor &operand, ShapedType resultType) {
@@ -1078,6 +1257,27 @@ Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
+Tensor evalCollectiveBroadcastOp(
+    const Tensor &operand, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, Process *process) {
+  if (!process)
+    llvm::report_fatal_error(
+        "collective_broadcast is only supported when run via "
+        "interpreter.run_parallel");
+
+  ProcessGroups processGroups;
+  if (channelId <= 0) processGroups = process->crossReplica(replicaGroups);
+  if (channelId > 0) processGroups = process->crossPartition(replicaGroups);
+
+  auto processGroup = processGroups.findGroup(process->getId());
+  if (processGroup)
+    return process->rendezvous(*processGroup, channelId, operand)
+        .lookup((*processGroup)[0]);
+
+  return evalBroadcastInDimOp(constant(0.0, operand.getElementType()), {},
+                              operand.getType());
+}
+
 Tensor evalCollectivePermuteOp(
     const Tensor &operand, SmallVector<SmallVector<uint32_t>> sourceTargetPairs,
     ChannelId channelId, Process *process) {
@@ -1097,15 +1297,14 @@ Tensor evalCollectivePermuteOp(
     if (from != process->getId() && to != process->getId()) continue;
 
     auto rendezvousResult =
-        *process->rendezvous(processGroup, channelId, operand);
+        process->rendezvous(processGroup, channelId, operand);
     if (to != process->getId()) continue;
     result = rendezvousResult.lookup(from);
   }
 
   if (result) return result;
-  return evalBroadcastInDimOp(
-      makeScalar(convert(operand.getElementType(), 0.0)), {},
-      operand.getType());
+  return evalBroadcastInDimOp(constant(0.0, operand.getElementType()), {},
+                              operand.getType());
 }
 
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
@@ -1170,6 +1369,150 @@ Tensor evalConvertOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, convert(result.getElementType(), operand.get(*it)));
+  return result;
+}
+
+Tensor evalConvolutionOp(
+    const Tensor &lhs, const Tensor &rhs, ArrayRef<int64_t> windowStrides,
+    ArrayRef<std::pair<int64_t, int64_t>> padding,
+    ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
+    ArrayRef<bool> windowReversal, Axis inputBatchDimension,
+    Axis inputFeatureDimension, const Axes &inputSpatialDimensions,
+    Axis kernelInputFeatureDimension, Axis kernelOutputFeatureDimension,
+    const Axes &kernelSpatialDimensions, Axis outputBatchDimension,
+    Axis outputFeatureDimension, const Axes &outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount, ShapedType resultType) {
+  Tensor result(resultType);
+
+  if (featureGroupCount > 1) {
+    auto lhses = split(lhs, featureGroupCount, inputFeatureDimension,
+                       resultType.getContext());
+    auto rhses = split(rhs, featureGroupCount, kernelOutputFeatureDimension,
+                       resultType.getContext());
+    SmallVector<Tensor> results;
+    for (auto [left, right] : llvm::zip(lhses, rhses))
+      results.push_back(evalConvolutionOp(
+          left, right, windowStrides, padding, lhsDilation, rhsDilation,
+          windowReversal, inputBatchDimension, inputFeatureDimension,
+          inputSpatialDimensions, kernelInputFeatureDimension,
+          kernelOutputFeatureDimension, kernelSpatialDimensions,
+          outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
+          /*featureGroupCount=*/1, batchGroupCount, /*precisionConfig=*/{},
+          resultType));
+
+    return evalConcatenateOp(results, outputFeatureDimension, result.getType());
+  }
+
+  if (batchGroupCount > 1) {
+    auto lhses = split(lhs, batchGroupCount, inputBatchDimension,
+                       resultType.getContext());
+    auto rhses = split(rhs, batchGroupCount, kernelOutputFeatureDimension,
+                       resultType.getContext());
+    SmallVector<Tensor> results;
+    for (auto [left, right] : llvm::zip(lhses, rhses))
+      results.push_back(evalConvolutionOp(
+          left, right, windowStrides, padding, lhsDilation, rhsDilation,
+          windowReversal, inputBatchDimension, inputFeatureDimension,
+          inputSpatialDimensions, kernelInputFeatureDimension,
+          kernelOutputFeatureDimension, kernelSpatialDimensions,
+          outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
+          featureGroupCount, /*batchGroupCount=*/1, /*precisionConfig=*/{},
+          resultType));
+
+    return evalConcatenateOp(results, outputFeatureDimension, result.getType());
+  }
+
+  Axes lhsPermutation;
+  lhsPermutation.push_back(inputBatchDimension);
+  lhsPermutation.append(inputSpatialDimensions.begin(),
+                        inputSpatialDimensions.end());
+  lhsPermutation.push_back(inputFeatureDimension);
+
+  auto lhsWindowDimensions =
+      concatAndPermute(lhs.getShape()[inputBatchDimension],
+                       extractElements(rhs.getShape(), kernelSpatialDimensions),
+                       lhs.getShape()[inputFeatureDimension], lhsPermutation);
+
+  auto lhsWindowStrides =
+      concatAndPermute(1L, llvm::to_vector(windowStrides), 1L, lhsPermutation);
+
+  auto lhsBaseDilations =
+      concatAndPermute(0L, Sizes(lhsDilation) - 1, 0L, lhsPermutation);
+
+  auto lhsWindowDilations =
+      concatAndPermute(1L, llvm::to_vector(rhsDilation), 1L, lhsPermutation);
+
+  Sizes lhsPaddingLow, lhsPaddingHigh;
+  for (auto paddingPair : concatAndPermute({0, 0}, llvm::to_vector(padding),
+                                           {0, 0}, lhsPermutation)) {
+    lhsPaddingLow.push_back(paddingPair.first);
+    lhsPaddingHigh.push_back(paddingPair.second);
+  }
+
+  auto paddingValue = constant(0.0, result.getElementType());
+  auto paddedLhs = evalPadOp(lhs, paddingValue, lhsPaddingLow, lhsPaddingHigh,
+                             Sizes(lhsBaseDilations));
+
+  IndexSpaceIterator outputSpatialIndexIt(
+      extractElements(result.getShape(), outputSpatialDimensions),
+      Index(outputSpatialDimensions.size()));
+  IndexSpaceIterator outputSpatialIndexItEnd(
+      extractElements(result.getShape(), outputSpatialDimensions));
+  for (; outputSpatialIndexIt != outputSpatialIndexItEnd;
+       ++outputSpatialIndexIt) {
+    Sizes lhsWindowStart;
+    for (auto [i, offset] : llvm::enumerate(
+             concatAndPermute(0L, *outputSpatialIndexIt, 0L, lhsPermutation)))
+      lhsWindowStart.push_back(lhsWindowStrides[i] * offset);
+
+    Sizes limitIndices;
+    for (size_t i = 0; i < lhsWindowStart.size(); ++i)
+      limitIndices.push_back(std::min(
+          lhsWindowStart[i] + lhsWindowDimensions[i] * lhsWindowDilations[i],
+          paddedLhs.getShape()[i]));
+
+    auto lhsWindow = evalSliceOp(paddedLhs, lhsWindowStart, limitIndices,
+                                 Sizes(lhsWindowDilations));
+
+    Axes reverseDims;
+    for (auto [i, isReverse] : llvm::enumerate(windowReversal))
+      if (isReverse) reverseDims.push_back(inputSpatialDimensions[i]);
+    auto reversedLhsWindow =
+        evalReverseOp(lhsWindow, reverseDims, lhsWindow.getType());
+
+    Axes lhsContractingDimensions(inputSpatialDimensions);
+    lhsContractingDimensions.push_back(inputFeatureDimension);
+
+    Axes rhsContractingDimensions(kernelSpatialDimensions);
+    rhsContractingDimensions.push_back(kernelInputFeatureDimension);
+
+    auto dotProduct =
+        evalDotGeneralOp(reversedLhsWindow, rhs, lhsContractingDimensions,
+                         rhsContractingDimensions);
+
+    Sizes resultNonSpatialDims;
+    for (auto i = 0; i < result.getRank(); ++i)
+      if (llvm::find(outputSpatialDimensions, i) ==
+          outputSpatialDimensions.end())
+        resultNonSpatialDims.push_back(result.getShape()[i]);
+
+    Axes resultPermutation;
+    resultPermutation.push_back(outputBatchDimension);
+    resultPermutation.append(outputSpatialDimensions.begin(),
+                             outputSpatialDimensions.end());
+    resultPermutation.push_back(outputFeatureDimension);
+
+    IndexSpaceIterator resultNonSpatialIt(resultNonSpatialDims,
+                                          Index(resultNonSpatialDims.size()));
+    for (auto dotProductIt = dotProduct.index_begin();
+         dotProductIt != dotProduct.index_end();
+         ++dotProductIt, ++resultNonSpatialIt) {
+      Index resultIndex(
+          concatAndPermute((*resultNonSpatialIt)[0], *outputSpatialIndexIt,
+                           (*resultNonSpatialIt)[1], resultPermutation));
+      result.set(resultIndex, dotProduct.get(*dotProductIt));
+    }
+  }
   return result;
 }
 
@@ -1378,8 +1721,8 @@ SmallVector<InterpreterValue> evalIfOp(const Tensor &pred, Region &trueBranch,
                                        Region &falseBranch, Process *process,
                                        Scope &scope) {
   return pred.get({}).getBooleanValue()
-             ? eval(trueBranch, {}, process, &scope)
-             : eval(falseBranch, {}, process, &scope);
+             ? eval(trueBranch, {}, /*fallback=*/nullptr, process, &scope)
+             : eval(falseBranch, {}, /*fallback=*/nullptr, process, &scope);
 }
 
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType) {
@@ -1399,7 +1742,7 @@ SmallVector<InterpreterValue> evalInfeedOp(Token token, Process *process,
   auto results = eval(region.getParentOfType<ModuleOp>()
                           .lookupSymbol<func::FuncOp>(mnemonic)
                           .getBody(),
-                      {}, process, &scope);
+                      {}, /*fallback=*/nullptr, process, &scope);
   results.push_back(token);
   return results;
 }
@@ -1451,7 +1794,9 @@ Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Process *process,
       args.emplace_back(tensor);
     }
     result.set(*it,
-               eval(computation, args, process, &scope)[0].getTensor().get({}));
+               eval(computation, args, /*fallback=*/nullptr, process, &scope)[0]
+                   .getTensor()
+                   .get({}));
   }
   return result;
 }
@@ -1535,7 +1880,7 @@ Tensor evalPartitionIdOp(Process *process, MLIRContext *context) {
         "partition_id is only supported when run via interpreter.run_parallel");
   auto partitionId = process->getId().partitionId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
-  return makeScalar(Element(elementType, APInt(32, partitionId)));
+  return constant(APInt(32, partitionId), elementType);
 }
 
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType) {
@@ -1593,7 +1938,8 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
       bodyArgs.emplace_back(
           makeSplat(initValue.getType(), input.get(*inputIt)));
 
-    auto bodyResult = eval(body, bodyArgs, process, &scope);
+    auto bodyResult =
+        eval(body, bodyArgs, /*fallback=*/nullptr, process, &scope);
     for (auto [result, value] : llvm::zip(results, bodyResult))
       result.set(resultIndex, value.getTensor().get({}));
   }
@@ -1695,7 +2041,7 @@ Tensor evalReplicaIdOp(Process *process, MLIRContext *context) {
         "replica_id is only supported when run via interpreter.run_parallel");
   auto replicaId = process->getId().replicaId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
-  return makeScalar(Element(elementType, APInt(32, replicaId)));
+  return constant(APInt(32, replicaId), elementType);
 }
 
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType) {
@@ -1794,12 +2140,12 @@ SmallVector<Tensor> evalScatterOp(
 
     SmallVector<InterpreterValue> updateComputationArgs;
     for (const auto &result : results)
-      updateComputationArgs.push_back(makeScalar(result.get(resultIndex)));
+      updateComputationArgs.push_back(constant(result.get(resultIndex)));
     for (const auto &update : updates)
-      updateComputationArgs.push_back(makeScalar(update.get(updateIndex)));
+      updateComputationArgs.push_back(constant(update.get(updateIndex)));
 
-    auto updatedValues =
-        eval(updateComputation, updateComputationArgs, process, &scope);
+    auto updatedValues = eval(updateComputation, updateComputationArgs,
+                              /*fallback=*/nullptr, process, &scope);
     for (auto [result, updatedValue] : llvm::zip(results, updatedValues))
       result.set(resultIndex, updatedValue.getTensor().get({}));
   }
@@ -1835,11 +2181,11 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
         selectedIndex = operandIndex;
       }
 
-      InterpreterValue selectedInterpreterVal(makeScalar(selectedVal.value()));
-      InterpreterValue currInterpreterVal(makeScalar(currVal));
+      InterpreterValue selectedInterpreterVal(constant(selectedVal.value()));
+      InterpreterValue currInterpreterVal(constant(currVal));
       auto selectResult =
-          eval(select, {selectedInterpreterVal, currInterpreterVal}, process,
-               &scope);
+          eval(select, {selectedInterpreterVal, currInterpreterVal},
+               /*fallback=*/nullptr, process, &scope);
 
       bool selected = !selectResult[0].getTensor().get({}).getBooleanValue();
       if (selected) {
@@ -1961,10 +2307,11 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
       lhsIndex[adjustedDimension] = lhsHandle;
       rhsIndex[adjustedDimension] = rhsHandle;
       for (const auto &input : inputs) {
-        args.emplace_back(makeScalar(input.get(lhsIndex)));
-        args.emplace_back(makeScalar(input.get(rhsIndex)));
+        args.emplace_back(constant(input.get(lhsIndex)));
+        args.emplace_back(constant(input.get(rhsIndex)));
       }
-      auto comparatorResult = eval(comparator, args, process, &scope);
+      auto comparatorResult =
+          eval(comparator, args, /*fallback=*/nullptr, process, &scope);
       return comparatorResult[0].getTensor().get({}).getBooleanValue();
     };
     if (isStable)
@@ -2032,14 +2379,15 @@ Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType) {
 
 SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
                                           Region &cond, Region &body,
+                                          InterpreterFallback *fallback,
                                           Process *process, Scope &scope) {
   SmallVector<InterpreterValue> results(operand);
 
-  auto condResults = eval(cond, operand, process, &scope);
+  auto condResults = eval(cond, operand, fallback, process, &scope);
 
   while (condResults[0].getTensor().get({}).getBooleanValue()) {
-    results = eval(body, results, process, &scope);
-    condResults = eval(cond, results, process, &scope);
+    results = eval(body, results, fallback, process, &scope);
+    condResults = eval(cond, results, fallback, process, &scope);
   }
 
   return results;

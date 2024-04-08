@@ -63,7 +63,8 @@ FailureOr<int64_t> Version::getBytecodeVersion() const {
   if (*this < Version(0, 10, 0)) return 0;
   if (*this < Version(0, 12, 0)) return 1;
   if (*this < Version(0, 14, 0)) return 3;
-  if (*this <= getCurrentVersion()) return 5;
+  if (*this < Version(0, 15, 0)) return 4;  // (revised from 5 to 4 in #1827)
+  if (*this <= getCurrentVersion()) return 6;
   return failure();
 }
 

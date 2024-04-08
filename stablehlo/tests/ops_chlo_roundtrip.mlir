@@ -367,12 +367,12 @@ func.func @chlo_broadcast_complex(%arg0: tensor<2x3x4xf64>, %arg1: tensor<2x3x4x
 // CHECK-SAME:  %[[A1:.*]]: tensor<2x3x4xf64>
 // CHECK:       %[[T0:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
 // CHECK:       %[[T1:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {compare_type = #chlo<comparison_type TOTALORDER>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
-// CHECK:       %[[T2:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {broadcast_dimensions = dense<1> : tensor<1xi64>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
+// CHECK:       %[[T2:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {broadcast_dimensions = array<i64: 1>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
 // CHECK:       return %[[T0]] : tensor<2x3x4xi1>
 func.func @chlo_broadcast_compare(%arg0: tensor<2x3x4xf64>, %arg1: tensor<2x3x4xf64>) -> tensor<2x3x4xi1> {
   %0 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
   %1 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, compare_type = #chlo<comparison_type TOTALORDER>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
-  %2 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, broadcast_dimensions = dense<1> : tensor<1xi64>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
+  %2 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, broadcast_dimensions = array<i64: 1>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
   return %0 : tensor<2x3x4xi1>
 }
 
@@ -415,24 +415,6 @@ func.func @chlo_minimum_broadcast_shapes(%lhs: tensor<?xindex>, %rhs: tensor<?xi
 func.func @chlo_reshape_dynamic(%arg0: tensor<?xf32>, %arg1: tensor<2xi32>) -> tensor<?x?xf32> {
   %0 = "chlo.dynamic_reshape"(%arg0, %arg1) : (tensor<?xf32>, tensor<2xi32>) -> tensor<?x?xf32>
   func.return %0 : tensor<?x?xf32>
-}
-
-// CHECK-LABEL:  func @chlo_rank_specialization_cluster
-// CHECK-SAME:   %[[A0:.*0]]: tensor<*xf32>,
-// CHECK-SAME:   %[[A1:.*1]]: tensor<*xf32>,
-// CHECK-SAME:   %[[A2:.*2]]: tensor<*xf32>)
-// CHECK-NEXT:   %[[T:.*]] = "chlo.rank_specialization_cluster"(%[[A0]], %[[A1]], %[[A2]])
-// CHECK:        ^bb0(%[[A3:.*]]: tensor<*xf32>, %[[A4:.*]]: tensor<*xf32>, %[[A5:.*]]: tensor<*xf32>):
-// CHECK:          "chlo.rank_specialization_cluster_yield"(%[[A3]]) : (tensor<*xf32>) -> ()
-// CHECK:        }) : (tensor<*xf32>, tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-// CHECK:        return %[[T]] : tensor<*xf32>
-func.func @chlo_rank_specialization_cluster(%arg0 : tensor<*xf32>, %arg1 : tensor<*xf32>,
-    %arg2 : tensor<*xf32>) -> tensor<*xf32> {
-  %0 = "chlo.rank_specialization_cluster"(%arg0, %arg1, %arg2) ({
-  ^bb0(%arg0_ : tensor<*xf32>, %arg1_ : tensor<*xf32>, %arg2_ : tensor<*xf32>):
-    "chlo.rank_specialization_cluster_yield"(%arg0_) : (tensor<*xf32>) -> ()
-  }) : (tensor<*xf32>, tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return %0 : tensor<*xf32>
 }
 
 // CHECK-LABEL:  func @chlo_erf_inv

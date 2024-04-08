@@ -19,7 +19,7 @@ one of the following tracking labels.
 - Generic labels
   - **yes**: there is a comprehensive implementation.
   - **no**: there is no implementation, but working on that is part of
-    [the roadmap](https://github.com/openxla/stablehlo#roadmap).
+    [the roadmap](https://github.com/openxla/stablehlo/blob/main/docs/roadmap.md).
     Note that Verifier can never be labeled as "no" because the ODS already
     implements some verification.
 - Customized labels for Verifier and Type Inference
@@ -28,8 +28,8 @@ one of the following tracking labels.
   - **yes\***: there is an implementation, and it's in sync with
     [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
     Since XLA semantics is oftentimes underdocumented, we are using
-    [hlo_verifier.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/hlo_verifier.cc)
-    and [shape_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc)
+    [hlo_verifier.cc](https://github.com/openxla/xla/blob/main/xla/service/hlo_verifier.cc)
+    and [shape_inference.cc](https://github.com/openxla/xla/blob/main/xla/service/shape_inference.cc)
     as the reference.
   - **revisit**: there is an implementation, but it doesn't fall under "yes"
     or "yes\*" - either because we haven't audited it yet, or because we have
@@ -61,14 +61,16 @@ one of the following tracking labels.
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
 | cholesky                 | yes           | yes          | yes            | yes             | revisit     |
 | clamp                    | yes           | revisit      | yes            | yes             | yes         |
+| collective_broadcast     | yes           | revisit      | yes            | no              | yes         |
 | collective_permute       | yes           | revisit      | yes            | no              | yes         |
 | compare                  | yes           | yes          | yes            | yes             | yes         |
 | complex                  | yes           | yes          | yes            | yes             | yes         |
+| composite                | yes           | yes          | infeasible     | yes             | yes         |
 | compute_reshape_shape    | no            | revisit      | no             | yes             | no          |
 | concatenate              | yes           | yes          | yes            | yes             | yes         |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
 | convert                  | yes           | yes          | infeasible     | yes             | yes         |
-| convolution              | yes           | yes          | infeasible     | revisit         | no          |
+| convolution              | yes           | yes          | infeasible     | revisit         | yes         |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | yes         |
 | create_token             | no            | yes\*        | yes\*          | yes             | revisit     |

@@ -7,3 +7,7 @@ llvm-project
 llvm-build
 .vscode
 .cache
+.idea/
+**/__pycache__
+*.whl
+**/*.egg-info/

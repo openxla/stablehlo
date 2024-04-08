@@ -9,7 +9,7 @@ module @jit_fun_flat_jax {
     %2 = stablehlo.dynamic_iota %1, dim = 0 : (tensor<1xi32>) -> tensor<?xi64>
     %3 = stablehlo.constant dense<0> : tensor<i64>
     %4 = stablehlo.broadcast_in_dim %3, dims = [] : (tensor<i64>) -> tensor<1xi64>
-    %5 = "stablehlo.gather"(%arg1, %4) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
+    %5 = "stablehlo.gather"(%arg1, %4) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = true, slice_sizes = array<i64: 1>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
     %6 = stablehlo.convert %2 : (tensor<?xi64>) -> tensor<?xf32>
     %7 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %8 = stablehlo.reshape %7 : (tensor<i32>) -> tensor<1xi32>

@@ -14,3 +14,21 @@
 
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17
+# support layering_check similar to Google internal
+# this only works for Clang toolchain AFAIK
+# https://github.com/bazelbuild/bazel/pull/11440
+build --features=layering_check
+# Set the default compiler to the `clang` binary on the `PATH`.
+# TODO(fzakaria): Make this a toolchain or hermetic somehow
+build --repo_env=CC=clang
+
+# Disabling runfiles links drastically increases performance in slow disk IO situations
+# Do not build runfile trees by default. If an execution strategy relies on runfile
+# symlink tree, the tree is created on-demand. See: https://github.com/bazelbuild/bazel/issues/6627
+# and https://github.com/bazelbuild/bazel/commit/03246077f948f2790a83520e7dccc2625650e6df
+build --nobuild_runfile_links
+test --nobuild_runfile_links
+
+# https://bazel.build/reference/command-line-reference#flag--legacy_external_runfiles
+build --nolegacy_external_runfiles
+test --nolegacy_external_runfiles

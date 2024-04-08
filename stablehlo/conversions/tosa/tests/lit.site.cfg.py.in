@@ -17,4 +17,4 @@ import lit.llvm
 lit.llvm.initialize(lit_config, config)
 config.llvm_tools_dir = "@LLVM_TOOLS_DIR@"
 config.stablehlo_tools_dir = "@STABLEHLO_TOOLS_DIR@"
-lit_config.load_config(config, "@STABLEHLO_SOURCE_DIR@/stablehlo/conversions/tosa/tests/lit.cfg.py")
+lit_config.load_config(config, "@STABLEHLO_SOURCE_DIR@" + "/stablehlo/conversions/tosa/tests/lit.cfg.py")

@@ -10,7 +10,7 @@ module @jit_fun_flat_jax {
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
       %3 = stablehlo.add %arg2, %arg3 : tensor<f32>
       stablehlo.return %3 : tensor<f32>
-    }) {base_dilations = dense<[1, 1, 2]> : tensor<3xi64>, window_dimensions = dense<[1, 2, 2]> : tensor<3xi64>} : (tensor<?x4x6xf32>, tensor<f32>) -> tensor<?x3x10xf32>
+    }) {base_dilations = array<i64: 1, 1, 2>, window_dimensions = array<i64: 1, 2, 2>} : (tensor<?x4x6xf32>, tensor<f32>) -> tensor<?x3x10xf32>
     return %2 : tensor<?x3x10xf32>
   }
 }

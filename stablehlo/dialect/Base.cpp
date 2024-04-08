@@ -33,13 +33,6 @@ limitations under the License.
 namespace mlir {
 namespace hlo {
 
-namespace {
-Type getExpressedTypeOrSelf(Type type) {
-  auto quantType = type.dyn_cast<quant::QuantizedType>();
-  return quantType ? quantType.getExpressedType() : type;
-}
-}  // namespace
-
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
   if (failed(verifyCompatibleShape(type1, type2))) return failure();
 
@@ -72,20 +65,32 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
   tp1 = getElementTypeOrSelf(tp1);
   tp2 = getElementTypeOrSelf(tp2);
 
-  // Quantization: In the most general case, we allow any combination of
-  // quantized/non-quantized across any combination of operands/results,
-  // and some differences in quantization parameters across operands/results.
-  // Individual ops may introduce additional constraints.
+  // For quantized types:
+  //   a. both `tp1` and `tp2` should be quantized types
+  //   b. with similar quantization granularity (i.e. both per-tensor or both
+  //   per-axis)
+  //   c. with equal storage_type, storage_type_min, storage_type_max, and
+  //   expressed_type
   auto qtp1 = tp1.dyn_cast<quant::QuantizedType>();
   auto qtp2 = tp2.dyn_cast<quant::QuantizedType>();
   if (qtp1 && qtp2) {
     if (qtp1.getStorageType() != qtp2.getStorageType() ||
         qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
-        qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax())
+        qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax() ||
+        qtp1.getExpressedType() != qtp2.getExpressedType()) {
       return false;
+    }
+
+    auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
+    auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
+    bool quantizationGranularityMatches =
+        (qpatp1 && qpatp2) || (!qpatp1 && !qpatp2);
+
+    return quantizationGranularityMatches;
   }
-  auto etp1 = getExpressedTypeOrSelf(tp1);
-  auto etp2 = getExpressedTypeOrSelf(tp2);
+
+  // return false if only one is of quantized type
+  if (qtp1 || qtp2) return false;
 
   // Sparsity: In the most general case, we allow any combination of
   // sparsity/denseness across any combination of operands/results, as well as
@@ -96,7 +101,7 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
 
   // Default case: Unless dynamism, quantization and/or sparsity are involved,
   // the types are required to be exactly equal.
-  return etp1 == etp2;
+  return tp1 == tp2;
 }
 
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
@@ -141,6 +146,13 @@ bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
   if (!stp2) return false;
   auto tp1 = RankedTensorType::get(shapeVec1, stp2.getElementType());
   return isCompatibleForHloTypeInference(tp1, tp2);
+}
+
+LogicalResult matchInt(Value value, int64_t& result) {
+  APInt constValue;
+  if (!matchPattern(value, m_ConstantInt(&constValue))) return failure();
+  result = constValue.getSExtValue();
+  return success();
 }
 
 LogicalResult matchInts(Value value, SmallVector<int64_t>& result) {
@@ -188,11 +200,7 @@ LogicalResult deriveShapeFromOperand(
 }
 
 ShapedType getSameShapeTensorType(ShapedType shapedType, Type elementType) {
-  if (auto rankedTensorTy = shapedType.dyn_cast<RankedTensorType>())
-    return RankedTensorType::get(rankedTensorTy.getShape(), elementType,
-                                 rankedTensorTy.getEncoding());
-  if (auto unrankedTensorTy = shapedType.dyn_cast<UnrankedTensorType>())
-    return UnrankedTensorType::get(elementType);
+  if (shapedType.isa<TensorType>()) return shapedType.clone(elementType);
   llvm::report_fatal_error("unsupported type");
 }
 
@@ -593,11 +601,14 @@ LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
 
 ShapedType createShapedType(ShapedTypeComponents components) {
   if (!components.getElementType()) return ShapedType();
-  if (components.hasRank())
-    return RankedTensorType::get(components.getDims(),
-                                 components.getElementType(),
-                                 components.getAttribute());
-  return UnrankedTensorType::get(components.getElementType());
+  return RankedTensorType::get(components.getDims(),
+                               components.getElementType(),
+                               components.getAttribute());
+}
+
+bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {
+  return std::all_of(arr.begin(), arr.end(),
+                     [val](int64_t x) { return x == val; });
 }
 
 }  // namespace hlo

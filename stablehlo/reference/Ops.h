@@ -19,12 +19,13 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Axes.h"
-#include "stablehlo/reference/InterpreterValue.h"
+#include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/ProcessGrid.h"
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Token.h"
+#include "stablehlo/reference/Value.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -61,6 +62,9 @@ Tensor evalCeilOp(const Tensor &operand, ShapedType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    ShapedType resultType);
 Tensor evalClzOp(const Tensor &operand, ShapedType resultType);
+Tensor evalCollectiveBroadcastOp(
+    const Tensor &operand, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, Process *process);
 Tensor evalCollectivePermuteOp(
     const Tensor &operand, SmallVector<SmallVector<uint32_t>> sourceTargetPairs,
     ChannelId channelId, Process *process);
@@ -73,6 +77,16 @@ Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
                          ShapedType resultType);
 Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, ShapedType resultType);
+Tensor evalConvolutionOp(
+    const Tensor &lhs, const Tensor &rhs, ArrayRef<int64_t> windowStrides,
+    ArrayRef<std::pair<int64_t, int64_t>> padding,
+    ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
+    ArrayRef<bool> windowReversal, Axis inputBatchDimension,
+    Axis inputFeatureDimension, const Axes &inputSpatialDimensions,
+    Axis kernelInputFeatureDimension, Axis kernelOutputFeatureDimension,
+    const Axes &kernelSpatialDimensions, Axis outputBatchDimension,
+    Axis outputFeatureDimension, const Axes &outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount, ShapedType resultType);
 Tensor evalCosineOp(const Tensor &operand, ShapedType resultType);
 Tensor evalDivideOp(const Tensor &lhs, const Tensor &rhs,
                     ShapedType resultType);
@@ -195,6 +209,7 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
 Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType);
 SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
                                           Region &cond, Region &body,
+                                          InterpreterFallback *fallback,
                                           Process *process, Scope &scope);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 
@@ -204,11 +219,11 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 /// values for the terminator's arguments. The optional callback `fallback` is
 /// used for evaluating ops which are not supported by the interpreter.
 /// Assumes that `region` has only one block.
-SmallVector<InterpreterValue> eval(
-    Region &region, ArrayRef<InterpreterValue> args, Process *process = nullptr,
-    Scope *parent = nullptr,
-    function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback =
-        nullptr);
+SmallVector<InterpreterValue> eval(Region &region,
+                                   ArrayRef<InterpreterValue> args,
+                                   InterpreterFallback *fallback = nullptr,
+                                   Process *process = nullptr,
+                                   Scope *parent = nullptr);
 
 }  // namespace stablehlo
 }  // namespace mlir

@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2022 The StableHLO Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 print_usage() {
-  echo "Usage: $0 [-f]"
+  echo "Usage: $0 [-fb]"
   echo "    -f           Auto-fix whitespace issues."
+  echo "    -b <branch>  Base branch name, defaults to main."
 }
 
 FORMAT_MODE='validate'
-BASE_BRANCH="$(git merge-base HEAD origin/main)"
+BASE_BRANCH=main
 while getopts 'fb:' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;
@@ -33,42 +39,47 @@ if [[ $# -ne 0 ]] ; then
   exit 1
 fi
 
-get_source_files() {
-  git diff $BASE_BRANCH HEAD --name-only --diff-filter=d | grep '.*\.cpp$\|.*\.h$\|.*\.md$\|.*\.mlir$\|.*\.sh$\|.*\.td$\|.*\.txt$\|.*\.yml$\|.*\.yaml$' | xargs
-}
-echo "Checking whitespace:"
-echo "  $(get_source_files)"
+echo "Gathering changed files..."
+mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep -Ev '.*\.(bc|png|svg)$')
+if (( ${#CHANGED_FILES[@]} == 0 )); then
+  echo "No files to check."
+  exit 0
+fi
+
+echo "${CHANGED_FILES[@]}"
 
 files_without_eof_newline() {
-  [[ -z $(get_source_files) ]] || get_source_files | xargs -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "$0"'
+  # shellcheck disable=SC2016
+  printf "%s\n" "${CHANGED_FILES[@]}" | xargs -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "$0"'
 }
 
 files_with_trailing_whitespace() {
-  get_source_files | xargs grep -lP '[ \t]+$'
+  printf "%s\n" "${CHANGED_FILES[@]}" | xargs -L1 grep -lP '[ \t]+$'
 }
 
 fix_files_without_eof_newline() {
-  echo $1 | xargs  --no-run-if-empty sed -i -e '$a\'
+  # shellcheck disable=SC2016,SC1003
+  echo "$@" | xargs --no-run-if-empty sed -i -e '$a\'
 }
 
 fix_files_with_trailing_whitespace() {
-  echo $1 | xargs --no-run-if-empty sed -i 's/[ \t]*$//'
+  echo "$@" | xargs --no-run-if-empty sed -i 's/[ \t]*$//'
 }
 
-EOF_NL=$(files_without_eof_newline)
-TRAIL_WS=$(files_with_trailing_whitespace)
+mapfile -t EOF_NL < <(files_without_eof_newline)
+mapfile -t TRAIL_WS < <(files_with_trailing_whitespace)
 
 if [[ $FORMAT_MODE == 'fix' ]]; then
   echo "Fixing EOF newlines..."
-  fix_files_without_eof_newline "$EOF_NL"
+  fix_files_without_eof_newline "${EOF_NL[@]}"
   echo "Fixing trailing whitespaces..."
-  fix_files_with_trailing_whitespace "$TRAIL_WS"
+  fix_files_with_trailing_whitespace "${TRAIL_WS[@]}"
 else
-  if [ ! -z "$EOF_NL$TRAIL_WS" ]; then
+  if (( ${#EOF_NL[@]} + ${#TRAIL_WS[@]} )); then
     echo "Missing newline at EOF:"
-    echo $EOF_NL
+    echo "${EOF_NL[@]}"
     echo "Has trailing whitespace:"
-    echo $TRAIL_WS
+    echo "${TRAIL_WS[@]}"
     echo
     echo "Auto-fix using:"
     echo "  $ ./build_tools/github_actions/lint_whitespace_checks.sh -f"

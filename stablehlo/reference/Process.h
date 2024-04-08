@@ -1,4 +1,4 @@
-/* Copyright 2023 The StableHLO Authors.
+/* Copyright 2023-2024 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -60,9 +60,8 @@ class Process {
   SmallVector<Tensor> recv(ChannelId channelId);
 
   /// See `ProcessGrid::rendezvous`.
-  std::shared_ptr<RendezvousResult const> rendezvous(ProcessGroup processGroup,
-                                                     ChannelId channelId,
-                                                     const Tensor &operand);
+  RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
+                              const Tensor &operand);
 
   /// See `ProcessGrid::send`.
   void send(ArrayRef<Tensor> inputs, ChannelId channelId);

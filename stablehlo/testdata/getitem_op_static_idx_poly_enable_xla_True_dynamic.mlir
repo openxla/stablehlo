@@ -20,7 +20,7 @@ module @jit_fun_flat_jax {
     %13 = stablehlo.constant dense<1> : tensor<1xi32>
     %14 = stablehlo.concatenate %12, %13, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
     %15 = stablehlo.dynamic_broadcast_in_dim %10, %14, dims = [0] : (tensor<?xi32>, tensor<2xi32>) -> tensor<?x1xi32>
-    %16 = "stablehlo.gather"(%arg1, %15) {dimension_numbers = #stablehlo.gather<offset_dims = [1], collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xf32>, tensor<?x1xi32>) -> tensor<?x4xf32>
+    %16 = "stablehlo.gather"(%arg1, %15) {dimension_numbers = #stablehlo.gather<offset_dims = [1], collapsed_slice_dims = [0], start_index_map = [0], index_vector_dim = 1>, slice_sizes = array<i64: 1, 4>} : (tensor<3x4xf32>, tensor<?x1xi32>) -> tensor<?x4xf32>
     return %16 : tensor<?x4xf32>
   }
 }

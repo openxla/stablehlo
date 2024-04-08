@@ -38,6 +38,7 @@ limitations under the License.
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 
 // Include order matters
@@ -55,6 +56,9 @@ inline static bool isDynamicDimSize(int64_t val) {
 inline static bool isStaticDimSize(int64_t val) {
   return !isDynamicDimSize(val);
 }
+
+// Checks whether every position in the given array contains the given value.
+bool isSplatArray(ArrayRef<int64_t> arr, int64_t val);
 
 //  Verifies that the two types have compatible shape with bounds but allows
 //  different element types.
@@ -114,6 +118,9 @@ FailureOr<Type> inferMostSpecificType(std::optional<Location> location,
 LogicalResult inferMostSpecificTypeComponents(
     std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
+
+// Matches a constant with integer value into int64_t.
+LogicalResult matchInt(Value value, int64_t &result);
 
 // Matches a constant tensor with integer values into a 1-dimensional vector.
 // Doesn't preserve the bitness or the signedness of the underlying values,
@@ -304,6 +311,29 @@ class CompatibleOperandsAndResultElementType
 };
 
 template <typename ConcreteType>
+class CompatibleOperandsElementType
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      CompatibleOperandsElementType> {
+ public:
+  static LogicalResult verifyTrait(Operation *op) {
+    if (failed(mlir::OpTrait::impl::verifyAtLeastNOperands(op, 1)))
+      return failure();
+
+    Type expected = op->getOperand(0).getType();
+    auto typeMatch = [&](Type actual) {
+      return isCompatibleElementTypeForHloTypeInference(actual, expected);
+    };
+    auto allMatch = llvm::all_of(op->getOperandTypes(), typeMatch);
+    if (!allMatch) {
+      return op->emitOpError(
+          "requires compatible element types for all operands");
+    }
+
+    return success();
+  }
+};
+
+template <typename ConcreteType>
 class CompatibleOperandsAndResultType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       CompatibleOperandsAndResultType> {
@@ -367,8 +397,46 @@ class CompatibleOperandsAndResultType
   }
 };
 
+template <typename ConcreteType>
+struct SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType,
+          SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait> {
+  // A unary elementwise op is not speculatable if a dimension of the result
+  // type is static while the corresponding dimension in the input type is
+  // dynamic. Indeed, the input dimension could differ at runtime.
+  // If the output dimension is dynamic, there is no expectation, so there
+  // cannot be a mismatch.
+  // If the input dimension is static, the output dimension can be inferred from
+  // it, so there cannot be a mismatch.
+  mlir::Speculation::Speculatability getSpeculatability() {
+    auto op = this->getOperation();
+    auto inputType = cast<RankedTensorType>(op->getOperand(0).getType());
+    auto resultType = cast<RankedTensorType>(op->getResult(0).getType());
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
+    return mlir::Speculation::Speculatable;
+  }
+};
+
+template <typename ConcreteType>
+struct SpeculatableIfAllInputsStaticImplTrait
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      SpeculatableIfAllInputsStaticImplTrait> {
+  mlir::Speculation::Speculatability getSpeculatability() {
+    return llvm::all_of(this->getOperation()->getOperandTypes(),
+                        [](Type t) {
+                          return cast<RankedTensorType>(t).hasStaticShape();
+                        })
+               ? mlir::Speculation::Speculatable
+               : mlir::Speculation::NotSpeculatable;
+  }
+};
+
 }  // namespace OpTrait
 }  // namespace hlo
 }  // namespace mlir
 
-#endif
+#endif  // STABLEHLO_DIALECT_BASE_H
