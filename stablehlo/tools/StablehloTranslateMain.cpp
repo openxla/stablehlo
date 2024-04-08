@@ -70,7 +70,7 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
 
   auto actualResult = scope.findTensors(op->getOperands())[0];
   auto expectedResult = scope.findTensors(op->getOperands())[1];
-  bool isInt = expectedResult.getElementType().isa<IntegerType>();
+  bool isInt = isa<IntegerType>(expectedResult.getElementType());
   auto status =
       isInt ? stablehlo::check::evalExpectEqOp(actualResult, expectedResult)
             : stablehlo::check::evalExpectAlmostEqOp(actualResult,

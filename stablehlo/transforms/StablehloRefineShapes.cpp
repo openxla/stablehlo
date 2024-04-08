@@ -172,7 +172,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
   for (auto it : llvm::zip(flattenedTypes, refinements)) {
     // Cannot use structured bindings to simplify this because capturing
     // structured bindings in a lambda is a C++ 20 extension.
-    ShapedType currentType = std::get<0>(it).dyn_cast<ShapedType>();
+    ShapedType currentType = dyn_cast<ShapedType>(std::get<0>(it));
     ShapedTypeComponents refinement = std::get<1>(it);
     auto failWithReason = [&](StringRef reason) {
       return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
@@ -218,7 +218,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
     // If either the current type or the refinement have encodings, then
     // we fail. Encodings are left for future work.
     Attribute currentEncoding = nullptr;
-    if (auto currentRankedType = currentType.dyn_cast<RankedTensorType>()) {
+    if (auto currentRankedType = dyn_cast<RankedTensorType>(currentType)) {
       currentEncoding = currentRankedType.getEncoding();
     }
     Attribute refinedEncoding = refinement.getAttribute();
@@ -256,7 +256,7 @@ DenseIntElementsAttr getTensorAttr(ShapedType type, ArrayRef<APSInt> values) {
 APSInt getAPSInt(Type type, uint64_t value) {
   unsigned numBits;
   bool isUnsigned;
-  if (auto integerType = type.dyn_cast<IntegerType>()) {
+  if (auto integerType = dyn_cast<IntegerType>(type)) {
     numBits = integerType.getWidth();
     // Signless types are treated as signed, per StableHLO convention.
     isUnsigned = integerType.isUnsignedInteger();
@@ -482,7 +482,7 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
   LogicalResult matchAndRewrite(ConvertOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.getElementType().isa<IntegerType>())
+    if (!isa<IntegerType>(resultType.getElementType()))
       return rewriter.notifyMatchFailure(op,
                                          "expected integer result tensor type");
     auto resultBitWidth = resultType.getElementType().getIntOrFloatBitWidth();
@@ -608,7 +608,7 @@ struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
   LogicalResult matchAndRewrite(SignOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.getElementType().isa<IntegerType>())
+    if (!isa<IntegerType>(resultType.getElementType()))
       return rewriter.notifyMatchFailure(op,
                                          "expected integer result tensor type");
     return evalElementwise(rewriter, op, [&](APSInt operand) {
@@ -633,7 +633,7 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
       return rewriter.notifyMatchFailure(
           op, "expected non-0 ranked tensor result type");
 
-    auto operand = op.getOperand().cast<TypedValue<RankedTensorType>>();
+    auto operand = cast<TypedValue<RankedTensorType>>(op.getOperand());
     RankedTensorType operandType = operand.getType();
     if (!operandType.hasStaticShape())
       return rewriter.notifyMatchFailure(
@@ -721,7 +721,7 @@ struct RefineBitcastConvertOpPattern
     auto resultType = op.getType();
     auto getBitWidthFn = [](ShapedType type) {
       auto elementType = type.getElementType();
-      if (auto complexType = elementType.dyn_cast<ComplexType>())
+      if (auto complexType = dyn_cast<ComplexType>(elementType))
         return complexType.getElementType().getIntOrFloatBitWidth();
       return elementType.getIntOrFloatBitWidth();
     };

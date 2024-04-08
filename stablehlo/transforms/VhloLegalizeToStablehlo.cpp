@@ -54,7 +54,7 @@ class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
   }
 
   Attribute convertEncoding(Attribute attr) const final {
-    if (auto vhloAttr = attr.dyn_cast_or_null<vhlo::TypeExtensionsV1Attr>()) {
+    if (auto vhloAttr = dyn_cast_or_null<vhlo::TypeExtensionsV1Attr>(attr)) {
       return stablehlo::TypeExtensionsAttr::get(vhloAttr.getContext(),
                                                 vhloAttr.getBounds());
     }
@@ -78,7 +78,7 @@ class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
 Attribute convertGeneric(Attribute vhloAttr,
                          const TypeConverter* typeConverter) {
   LLVM_DEBUG(llvm::dbgs() << "Converting attr " << vhloAttr);
-  if (auto vhloAttrs = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
+  if (auto vhloAttrs = dyn_cast<vhlo::ArrayV1Attr>(vhloAttr)) {
     SmallVector<Attribute> stablehloAttrs;
     for (auto vhloAttr : vhloAttrs.getValue()) {
       auto stablehloAttr = convertGeneric(vhloAttr, typeConverter);
@@ -87,73 +87,73 @@ Attribute convertGeneric(Attribute vhloAttr,
     }
     return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::BooleanV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr)) {
     return BoolAttr::get(attr.getContext(), attr.getValue());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonDirectionV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::ComparisonDirectionV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonTypeV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::ComparisonTypeV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonType, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::CustomCallApiVersionV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::CustomCallApiVersionV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::DictionaryV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::DictionaryV1Attr>(vhloAttr)) {
     SmallVector<NamedAttribute> vhloAttrs;
     for (auto namedAttr : attr.getValue()) {
-      auto builtinName = convertGeneric(namedAttr.first, typeConverter)
-                             .dyn_cast_or_null<StringAttr>();
+      auto builtinName = dyn_cast_or_null<StringAttr>(
+          convertGeneric(namedAttr.first, typeConverter));
       auto builtinValue = convertGeneric(namedAttr.second, typeConverter);
       if (!builtinName || !builtinValue) return {};
       vhloAttrs.push_back({builtinName, builtinValue});
     }
     return DictionaryAttr::get(attr.getContext(), vhloAttrs);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::FftTypeV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::FftTypeV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(FftType, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::FloatV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::FloatV1Attr>(vhloAttr)) {
     auto builtinFloatType = typeConverter->convertType(attr.getType());
     if (!builtinFloatType) return {};
     // FIXME: What is the proper way to reconstruct a attr?
     return FloatAttr::get(builtinFloatType, attr.getValue().convertToDouble());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::IntegerV1Attr>(vhloAttr)) {
     auto builtinIntegerType = typeConverter->convertType(attr.getType());
     if (!builtinIntegerType) return {};
     return IntegerAttr::get(builtinIntegerType, attr.getValue());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::OutputOperandAliasV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::OutputOperandAliasV1Attr>(vhloAttr)) {
     return stablehlo::OutputOperandAliasAttr::get(
         attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
         attr.getOperandTupleIndices());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::PrecisionV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::PrecisionV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(Precision, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::RngAlgorithmV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::RngAlgorithmV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::RngDistributionV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::RngDistributionV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(RngDistribution, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::StringV1Attr>(vhloAttr)) {
     return StringAttr::get(attr.getContext(), attr.getValue());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::TensorV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::TensorV1Attr>(vhloAttr)) {
     auto builtinType =
-        typeConverter->convertType(attr.getType()).cast<ShapedType>();
+        cast<ShapedType>(typeConverter->convertType(attr.getType()));
     if (!builtinType) return {};
     return DenseIntOrFPElementsAttr::getFromRawBuffer(builtinType,
                                                       attr.getData());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::TransposeV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
   }
   // NOTE: TypeExtensionsV1Attr is only used as a RankedTensorType's encoding,
   // so it's handled during type conversion (see convertEncoding above).
-  if (auto attr = vhloAttr.dyn_cast<vhlo::TypeV1Attr>()) {
+  if (auto attr = dyn_cast<vhlo::TypeV1Attr>(vhloAttr)) {
     auto builtinType = typeConverter->convertType(attr.getValue());
     if (!builtinType) return {};
     return TypeAttr::get(builtinType);
@@ -192,7 +192,7 @@ SpecialResult specialFailure() { return SpecialResult::SPECIAL_FAILURE; }
 SpecialResult notSpecial() { return SpecialResult::NOT_SPECIAL; }
 
 LogicalResult convertInt(Attribute vhloAttr, int64_t& result) {
-  auto vhloIntegerAttr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>();
+  auto vhloIntegerAttr = dyn_cast<vhlo::IntegerV1Attr>(vhloAttr);
   if (!vhloIntegerAttr) return failure();
   result = vhloIntegerAttr.getValue().getSExtValue();
   return success();
@@ -201,10 +201,10 @@ LogicalResult convertInt(Attribute vhloAttr, int64_t& result) {
 LogicalResult convertInts(Attribute vhloAttr,
                           const TypeConverter* typeConverter,
                           SmallVector<int64_t>& result) {
-  auto vhloTensorAttr = vhloAttr.dyn_cast<vhlo::TensorV1Attr>();
+  auto vhloTensorAttr = dyn_cast<vhlo::TensorV1Attr>(vhloAttr);
   if (!vhloTensorAttr) return failure();
-  auto stablehloAttr = convertGeneric(vhloAttr, typeConverter)
-                           .dyn_cast_or_null<DenseIntElementsAttr>();
+  auto stablehloAttr = dyn_cast_or_null<DenseIntElementsAttr>(
+      convertGeneric(vhloAttr, typeConverter));
   if (!stablehloAttr) return failure();
   llvm::append_range(result, stablehloAttr.getValues<int64_t>());
   return success();
@@ -212,10 +212,10 @@ LogicalResult convertInts(Attribute vhloAttr,
 
 Attribute convertSymbol(Attribute vhloAttr,
                         const TypeConverter* typeConverter) {
-  auto vhloStringAttr = vhloAttr.dyn_cast<vhlo::StringV1Attr>();
+  auto vhloStringAttr = dyn_cast<vhlo::StringV1Attr>(vhloAttr);
   if (!vhloStringAttr) return {};
-  auto stablehloStringAttr = convertGeneric(vhloStringAttr, typeConverter)
-                                 .dyn_cast_or_null<StringAttr>();
+  auto stablehloStringAttr = dyn_cast_or_null<StringAttr>(
+      convertGeneric(vhloStringAttr, typeConverter));
   if (!stablehloStringAttr) return {};
   return FlatSymbolRefAttr::get(stablehloStringAttr);
 }
@@ -279,7 +279,7 @@ Attribute convertConvDimensionNumbers(OpType vhloOp,
 
 Attribute convertCustomCallCalledComputations(
     Attribute vhloAttr, const TypeConverter* typeConverter) {
-  if (auto vhloArrayAttr = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
+  if (auto vhloArrayAttr = dyn_cast<vhlo::ArrayV1Attr>(vhloAttr)) {
     SmallVector<Attribute> stablehloAttrs;
     for (auto vhloAttr : vhloArrayAttr.getValue()) {
       auto stablehloAttr = convertSymbol(vhloAttr, typeConverter);
@@ -444,7 +444,7 @@ SpecialResult convertDenseArray(StringAttr vhloName, Attribute vhloAttr,
 
   // Handle splats
   if (data.size() == 1) {
-    auto tensorType = tensorAttr.getType().dyn_cast<vhlo::RankedTensorV1Type>();
+    auto tensorType = dyn_cast<vhlo::RankedTensorV1Type>(tensorAttr.getType());
     if (!tensorType || (tensorType.getShape().size() != 1))
       return specialFailure();
     auto size = tensorType.getShape()[0];
@@ -487,7 +487,7 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
       if (!stablehloAttr) return specialFailure();
     }
     if (vhloName == "use_global_device_ids") {
-      auto vhloBooleanAttr = vhloAttr.dyn_cast<vhlo::BooleanV1Attr>();
+      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
       if (!vhloBooleanAttr) return specialFailure();
       if (!vhloBooleanAttr.getValue()) return specialSuccess();
       stablehloAttr = UnitAttr::get(pattern.getContext());
@@ -600,22 +600,22 @@ bool isBoolean(Attribute vhloAttr, bool value) {
 }
 
 bool isEmptyArray(Attribute vhloAttr) {
-  auto attr = vhloAttr.dyn_cast_or_null<vhlo::ArrayV1Attr>();
+  auto attr = dyn_cast_or_null<vhlo::ArrayV1Attr>(vhloAttr);
   return attr && attr.getValue().empty();
 }
 
 bool isEmptyDictionary(Attribute vhloAttr) {
-  auto attr = vhloAttr.dyn_cast_or_null<vhlo::DictionaryV1Attr>();
+  auto attr = dyn_cast_or_null<vhlo::DictionaryV1Attr>(vhloAttr);
   return attr && attr.getValue().empty();
 }
 
 bool isEmptyString(Attribute vhloAttr) {
-  auto attr = vhloAttr.dyn_cast_or_null<vhlo::StringV1Attr>();
+  auto attr = dyn_cast_or_null<vhlo::StringV1Attr>(vhloAttr);
   return attr && attr.getValue().empty();
 }
 
 bool isEmptyTensor(Attribute vhloAttr) {
-  auto attr = vhloAttr.dyn_cast_or_null<vhlo::TensorV1Attr>();
+  auto attr = dyn_cast_or_null<vhlo::TensorV1Attr>(vhloAttr);
   return attr && attr.getData().empty();
 }
 
@@ -627,7 +627,7 @@ bool isInteger(Attribute vhloAttr, int64_t value) {
 }
 
 bool isSplatArray(Attribute vhloAttr, Attribute splatValue) {
-  auto attr = vhloAttr.dyn_cast_or_null<vhlo::ArrayV1Attr>();
+  auto attr = dyn_cast_or_null<vhlo::ArrayV1Attr>(vhloAttr);
   return attr && llvm::all_of(attr.getValue(), [&](Attribute attr) {
            return attr == splatValue;
          });
@@ -643,7 +643,7 @@ bool isSplatTensor(const ConversionPattern& pattern, Attribute vhloAttr,
 }
 
 bool isString(Attribute vhloAttr, StringRef value) {
-  auto attr = vhloAttr.dyn_cast_or_null<vhlo::StringV1Attr>();
+  auto attr = dyn_cast_or_null<vhlo::StringV1Attr>(vhloAttr);
   return attr && attr.getValue() == value;
 }
 

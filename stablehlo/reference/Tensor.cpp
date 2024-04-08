@@ -32,14 +32,14 @@ namespace stablehlo {
 namespace {
 
 int64_t getSizeInBytes(Type type) {
-  if (auto shapedType = type.dyn_cast<ShapedType>())
+  if (auto shapedType = dyn_cast<ShapedType>(type))
     return shapedType.getNumElements() *
            getSizeInBytes(shapedType.getElementType());
 
   if (type.isIntOrFloat())
     return std::max(type.getIntOrFloatBitWidth(), (unsigned)8) / 8;
 
-  if (auto complexType = type.dyn_cast<mlir::ComplexType>())
+  if (auto complexType = dyn_cast<mlir::ComplexType>(type))
     return getSizeInBytes(complexType.getElementType()) * 2;
 
   report_fatal_error(
@@ -155,7 +155,7 @@ Element Tensor::get(const Index &index) const {
   // StableHLO will adopt signfull integer semantics with signed and unsigned
   // integer variants.
   if (isSupportedIntegerType(elementType)) {
-    IntegerType intTy = elementType.cast<IntegerType>();
+    IntegerType intTy = cast<IntegerType>(elementType);
 
     if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
       auto elementData = reinterpret_cast<const int8_t *>(elementPtr);
@@ -203,8 +203,8 @@ Element Tensor::get(const Index &index) const {
   }
 
   // Handle complex types.
-  if (elementType.isa<ComplexType>()) {
-    auto complexElemTy = elementType.cast<ComplexType>().getElementType();
+  if (isa<ComplexType>(elementType)) {
+    auto complexElemTy = cast<ComplexType>(elementType).getElementType();
 
     if (complexElemTy.isF32()) {
       auto elementData =
@@ -335,8 +335,8 @@ void Tensor::set(const Index &index, const Element &element) {
   }
 
   // Handle complex types.
-  if (elementType.isa<ComplexType>()) {
-    auto complexElemTy = elementType.cast<ComplexType>().getElementType();
+  if (isa<ComplexType>(elementType)) {
+    auto complexElemTy = cast<ComplexType>(elementType).getElementType();
     auto complexValue = element.getComplexValue();
 
     if (complexElemTy.isF32()) {
@@ -505,8 +505,8 @@ Tensor makeTensor(DenseElementsAttr attr) {
   }
 
   // Handle complex types.
-  if (elementType.isa<ComplexType>()) {
-    auto complexElemTy = elementType.cast<ComplexType>().getElementType();
+  if (isa<ComplexType>(elementType)) {
+    auto complexElemTy = cast<ComplexType>(elementType).getElementType();
     if (complexElemTy.isF32()) {
       auto complexValues = llvm::to_vector(llvm::map_range(
           attr.getValues<std::complex<APFloat>>(),
@@ -541,7 +541,7 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
   auto type = tensor.getType();
   auto elementType = type.getElementType();
 
-  if (elementType.isa<FloatType>()) {
+  if (isa<FloatType>(elementType)) {
     std::vector<llvm::APFloat> values;
     for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
       Element element = tensor.get(*it);
@@ -549,7 +549,7 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
     }
     return DenseFPElementsAttr::get(tensor.getType(), values);
   }
-  if (elementType.isa<IntegerType>()) {
+  if (isa<IntegerType>(elementType)) {
     std::vector<llvm::APInt> values;
     for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
       Element element = tensor.get(*it);

@@ -390,7 +390,7 @@ class CompatibleOperandsAndResultType
                                 inferredReturnTypes)))
       return failure();
     if (inferredReturnTypes.size() != 1) return failure();
-    auto inferredReturnType = inferredReturnTypes[0].dyn_cast<ShapedType>();
+    auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
     if (!inferredReturnType) return failure();
     inferredReturnShapes.push_back(inferredReturnType);
     return success();

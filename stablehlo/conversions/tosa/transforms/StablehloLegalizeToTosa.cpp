@@ -95,13 +95,13 @@ struct ConvertStablehloDotOp : public OpRewritePattern<stablehlo::DotOp> {
 
   LogicalResult matchAndRewrite(stablehlo::DotOp op,
                                 PatternRewriter& rewriter) const override {
-    auto lhsType = op.getLhs().getType().dyn_cast<RankedTensorType>();
-    auto rhsType = op.getRhs().getType().dyn_cast<RankedTensorType>();
+    auto lhsType = dyn_cast<RankedTensorType>(op.getLhs().getType());
+    auto rhsType = dyn_cast<RankedTensorType>(op.getRhs().getType());
     if (!lhsType || !rhsType) {
       return rewriter.notifyMatchFailure(op, "input tensors are not ranked");
     }
 
-    auto resultType = op.getResult().getType().dyn_cast<ShapedType>();
+    auto resultType = dyn_cast<ShapedType>(op.getResult().getType());
     if (!resultType) {
       return rewriter.notifyMatchFailure(op,
                                          "result tensor does not have shape");
@@ -188,8 +188,8 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
   LogicalResult matchAndRewrite(stablehlo::IotaOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getResult().getType();
-    auto elementType = resultType.cast<ShapedType>().getElementType();
-    auto resultRankedType = resultType.dyn_cast<RankedTensorType>();
+    auto elementType = cast<ShapedType>(resultType).getElementType();
+    auto resultRankedType = dyn_cast<RankedTensorType>(resultType);
 
     if (!resultRankedType) {
       return rewriter.notifyMatchFailure(op, "result tensor must be ranked");
@@ -206,7 +206,7 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
     llvm::SmallVector<Attribute, 4> constValues;
     constValues.resize(iotaArrayLength);
     for (int i = 0; i < iotaArrayLength; i++) {
-      if (elementType.isa<FloatType>()) {
+      if (isa<FloatType>(elementType)) {
         constValues[i] = rewriter.getFloatAttr(elementType, i);
       } else {
         constValues[i] = rewriter.getIntegerAttr(elementType, i);
@@ -249,7 +249,7 @@ struct ConvertStablehloGatherOp : public OpRewritePattern<stablehlo::GatherOp> {
                                 PatternRewriter& rewriter) const override {
     // The input operand must be 3D, with shape [N, K, C].
     auto operand = op.getOperand();
-    auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+    auto operandType = dyn_cast<RankedTensorType>(operand.getType());
     if (!operandType) {
       return rewriter.notifyMatchFailure(op, "requires ranked operand shape");
     }
@@ -259,7 +259,7 @@ struct ConvertStablehloGatherOp : public OpRewritePattern<stablehlo::GatherOp> {
 
     // The indices tensor must be 2D, with shape [N, W].
     auto startIndices = op.getStartIndices();
-    auto startIndicesType = startIndices.getType().dyn_cast<RankedTensorType>();
+    auto startIndicesType = dyn_cast<RankedTensorType>(startIndices.getType());
     if (!startIndicesType) {
       return rewriter.notifyMatchFailure(op,
                                          "requires ranked start_indices shape");
@@ -270,7 +270,7 @@ struct ConvertStablehloGatherOp : public OpRewritePattern<stablehlo::GatherOp> {
     }
 
     // The result tensor must be 3D, with shape [N, W, C].
-    auto resultType = op.getResult().getType().dyn_cast<RankedTensorType>();
+    auto resultType = dyn_cast<RankedTensorType>(op.getResult().getType());
     if (!resultType) {
       return rewriter.notifyMatchFailure(op, "requires ranked output shape");
     }
@@ -324,7 +324,7 @@ struct ConvertStablehloReduceOp : public OpRewritePattern<stablehlo::ReduceOp> {
     }
 
     auto operand = op.getInputs().front();
-    ShapedType inputType = operand.getType().cast<ShapedType>();
+    ShapedType inputType = cast<ShapedType>(operand.getType());
     Operation& innerOp = bodyBlock.front();
     uint64_t dimension = op.getDimensions()[0];
     SmallVector<int64_t> innerShape(inputType.getShape());

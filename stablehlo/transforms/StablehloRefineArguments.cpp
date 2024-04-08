@@ -108,14 +108,14 @@ LogicalResult validateRefinedTypes(func::FuncOp func, TypeRange refinedTypes) {
     if (type == refinedType) continue;
 
     // If mismatched, must be tensor types
-    auto tensorType = type.dyn_cast<TensorType>();
-    auto refinedTensorType = refinedType.dyn_cast<TensorType>();
+    auto tensorType = dyn_cast<TensorType>(type);
+    auto refinedTensorType = dyn_cast<TensorType>(refinedType);
     if (!tensorType || !refinedTensorType) {
       return refinementError(func, i, type, refinedType, "must be a tensor");
     }
 
     // Refined rank cannot be unranked if mismatch
-    if (refinedType.isa<UnrankedTensorType>()) {
+    if (isa<UnrankedTensorType>(refinedType)) {
       return refinementError(func, i, type, refinedType, "must be ranked");
     }
 
@@ -162,7 +162,7 @@ void wrapRefinedOperands(func::FuncOp func, TypeRange refinedTypes) {
     Type argType = arg.getType();
     Type refinedType = refinedTypes[i];
     if (argType != refinedType) {
-      auto rankedRefinedType = refinedType.cast<RankedTensorType>();
+      auto rankedRefinedType = cast<RankedTensorType>(refinedType);
       auto customCall =
           makeShapeRefinementOperandWrapper(builder, arg, rankedRefinedType);
       auto callResult = customCall.getResult(0);

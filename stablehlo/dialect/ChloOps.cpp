@@ -86,8 +86,8 @@ namespace {
 ShapedTypeComponents getBroadcastType(
     Type x, Type y, Type elementType,
     DenseIntElementsAttr broadcastDimensionsAttr) {
-  auto xRanked = x.dyn_cast<RankedTensorType>();
-  auto yRanked = y.dyn_cast<RankedTensorType>();
+  auto xRanked = dyn_cast<RankedTensorType>(x);
+  auto yRanked = dyn_cast<RankedTensorType>(y);
   if (!xRanked || !yRanked) return {elementType};
 
   auto shapeX = xRanked.getShape();
@@ -139,11 +139,11 @@ LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // Find broadcast_dimensions.
   DenseIntElementsAttr broadcastDimensions =
-      attributes.get("broadcast_dimensions")
-          .dyn_cast_or_null<DenseIntElementsAttr>();
+      dyn_cast_or_null<DenseIntElementsAttr>(
+          attributes.get("broadcast_dimensions"));
 
-  ShapedType lhsType = operands[0].getType().cast<ShapedType>();
-  ShapedType rhsType = operands[1].getType().cast<ShapedType>();
+  ShapedType lhsType = cast<ShapedType>(operands[0].getType());
+  ShapedType rhsType = cast<ShapedType>(operands[1].getType());
   if (!lhsType || !rhsType ||
       !hlo::isCompatibleElementTypeForHloTypeInference(
           lhsType.getElementType(), rhsType.getElementType()))
@@ -166,7 +166,7 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
   auto broadcastDimensionsAttr = op->getAttr("broadcast_dimensions");
   if (broadcastDimensionsAttr &&
       !hlo::isLegalNumpyRankedBroadcast(
-          lhs, rhs, broadcastDimensionsAttr.cast<mlir::DenseI64ArrayAttr>())) {
+          lhs, rhs, cast<mlir::DenseI64ArrayAttr>(broadcastDimensionsAttr))) {
     // Note: It is unclear whether the general specification of explicit
     // broadcast_dimensions on binary ops is a feature we want to carry
     // forward. While it can technically be implemented for ranked-dynamic,
@@ -194,7 +194,7 @@ LogicalResult BroadcastComplexOp::inferReturnTypeComponents(
     ValueShapeRange operands, DictionaryAttr attributes,
     OpaqueProperties properties, RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  ShapedType lhsType = operands[0].getType().cast<ShapedType>();
+  ShapedType lhsType = cast<ShapedType>(operands[0].getType());
   Type elementType = ComplexType::get(lhsType.getElementType());
   return InferBroadcastBinaryOpReturnTypeComponents(
       context, location, operands, attributes, properties, elementType,
@@ -246,7 +246,7 @@ LogicalResult BroadcastCompareOp::reifyReturnTypeShapes(
 
 static Type getIsInfLikeReturnType(Value operand) {
   Builder b(operand.getContext());
-  return hlo::getSameShapeTensorType(operand.getType().cast<ShapedType>(),
+  return hlo::getSameShapeTensorType(cast<ShapedType>(operand.getType()),
                                      b.getI1Type());
 }
 
@@ -356,10 +356,10 @@ LogicalResult ConstantLikeOp::inferReturnTypeComponents(
   if (failed(op.verify(location.value()))) return failure();
   Type elementType = op.getValue().getType();
   Type operandType = op.getOperand().getType();
-  if (operandType.isa<UnrankedTensorType>()) {
+  if (isa<UnrankedTensorType>(operandType)) {
     inferredReturnShapes.emplace_back(elementType);
   } else {
-    const auto& shape = operandType.cast<RankedTensorType>().getShape();
+    const auto& shape = cast<RankedTensorType>(operandType).getShape();
     inferredReturnShapes.emplace_back(shape, elementType);
   }
   return success();
@@ -376,7 +376,7 @@ OpFoldResult ConstantLikeOp::fold(FoldAdaptor /*adaptor*/) {
   auto opType = getOperand().getType();
   if (!opType.hasStaticShape()) return {};
   auto type = RankedTensorType::get(opType.getShape(), getValue().getType());
-  if (auto complexAttr = getValue().dyn_cast<complex::NumberAttr>())
+  if (auto complexAttr = dyn_cast<complex::NumberAttr>(getValue()))
     return DenseElementsAttr::get(type, complexAttr.getValue());
   return DenseElementsAttr::get(type, getValue());
 }
@@ -386,9 +386,9 @@ LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
     DictionaryAttr, OpaqueProperties, RegionRange,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BroadcastSelectOp::Adaptor op(operands.getValues());
-  auto predType = op.getPred().getType().cast<ShapedType>();
-  auto onTrueType = op.getOnTrue().getType().cast<ShapedType>();
-  auto onFalseType = op.getOnFalse().getType().cast<ShapedType>();
+  auto predType = cast<ShapedType>(op.getPred().getType());
+  auto onTrueType = cast<ShapedType>(op.getOnTrue().getType());
+  auto onFalseType = cast<ShapedType>(op.getOnFalse().getType());
 
   if (onTrueType.getElementType() != onFalseType.getElementType())
     return emitOptionalError(location, "mismatched operand types");
@@ -436,7 +436,7 @@ LogicalResult ConstantOp::inferReturnTypes(
     MLIRContext*, std::optional<Location>, ValueRange,
     DictionaryAttr attributes, OpaqueProperties, RegionRange,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  Type type = attributes.get("value").cast<TypedAttr>().getType();
+  Type type = cast<TypedAttr>(attributes.get("value")).getType();
   inferredReturnTypes.push_back(type);
   return success();
 }
@@ -493,9 +493,9 @@ ChloDialect::ChloDialect(MLIRContext* context)
 
 Operation* ChloDialect::materializeConstant(OpBuilder& builder, Attribute value,
                                             Type type, Location loc) {
-  if (value.isa<ElementsAttr>())
+  if (isa<ElementsAttr>(value))
     return builder.create<chlo::ConstantOp>(loc, type,
-                                            value.cast<ElementsAttr>());
+                                            cast<ElementsAttr>(value));
   return nullptr;
 }
 

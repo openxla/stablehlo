@@ -75,7 +75,7 @@ static TypedAttr foldBinaryOpIntOrFloat(TypedAttr lhs, TypedAttr rhs,
   if (isa<FloatType>(elemTy))
     res = constFoldBinaryOp<FloatAttr, FloatAttr::ValueType, void>(operands,
                                                                    folder);
-  if (res) return res.cast<TypedAttr>();
+  if (res) return cast<TypedAttr>(res);
 
   return nullptr;
 }
@@ -659,7 +659,7 @@ struct EmptyReduceOpCanon final : OpRewritePattern<mlir::stablehlo::ReduceOp> {
     // We require all reduce shapes to be the same, up to the element types, so
     // we can just use the first operand and the first result as
     // representatives.
-    auto elemTy = op.getInputs().getType().front().cast<RankedTensorType>();
+    auto elemTy = cast<RankedTensorType>(op.getInputs().getType().front());
 
     if (!llvm::is_contained(elemTy.getShape(), 0)) return failure();
 
@@ -760,7 +760,7 @@ struct GetDimensionSizeOpCanon final
     int64_t dimSize = operandTy.getDimSize(op.getDimension());
     if (dimSize < 0) return failure();
 
-    auto elemTy = op.getType().getElementType().cast<IntegerType>();
+    auto elemTy = cast<IntegerType>(op.getType().getElementType());
     IntegerAttr elemVal = rewriter.getIntegerAttr(elemTy, dimSize);
     rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
         op, DenseElementsAttr::get(op.getType(), elemVal));
@@ -791,7 +791,7 @@ struct GatherOpCanon final : OpRewritePattern<mlir::stablehlo::GatherOp> {
       return failure();
     }
 
-    auto operandType = gather->getOperand(0).getType().cast<RankedTensorType>();
+    auto operandType = cast<RankedTensorType>(gather->getOperand(0).getType());
     if (!operandType.hasStaticShape()) return failure();
 
     auto sliceEnd = llvm::to_vector(gather.getSliceSizes());
@@ -854,7 +854,7 @@ struct ReshapeOpCanon final : OpRewritePattern<mlir::stablehlo::ReshapeOp> {
     ElementsAttr cstAttr;
     if (!matchPattern(op.getOperand(), m_Constant(&cstAttr))) return failure();
 
-    if (auto splat = cstAttr.dyn_cast<SplatElementsAttr>()) {
+    if (auto splat = dyn_cast<SplatElementsAttr>(cstAttr)) {
       rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
           op, SplatElementsAttr::get(op.getType(),
                                      splat.getSplatValue<Attribute>()));
@@ -934,7 +934,7 @@ struct TransposeIsReshape final
 
 /// Check if a `t` is a tensor with zero extents.
 static std::optional<RankedTensorType> isZeroExtent(Type t) {
-  auto type = t.dyn_cast<RankedTensorType>();
+  auto type = dyn_cast<RankedTensorType>(t);
   if (type && type.hasStaticShape() && type.getNumElements() == 0) return type;
   return std::nullopt;
 }
@@ -1007,8 +1007,8 @@ struct ReorderElementwiseAndShapeOp final
 
     Value input = definingOp->getOperand(0);
     Value result = op->getResult(0);
-    auto intermediateType = input.getType().cast<ShapedType>().clone(
-        getElementTypeOrSelf(result.getType()));
+    auto intermediateType = cast<ShapedType>(input.getType())
+                                .clone(getElementTypeOrSelf(result.getType()));
 
     // Reorder the operation and rewire the inputs/outputs.
     op->moveBefore(definingOp);

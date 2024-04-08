@@ -201,7 +201,7 @@ LogicalResult AddOp::inferReturnTypeComponents(
                               inferredReturnTypes)))
     return failure();
   if (inferredReturnTypes.size() != 1) return failure();
-  auto inferredReturnType = inferredReturnTypes[0].dyn_cast<ShapedType>();
+  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
   if (!inferredReturnType) return failure();
   inferredReturnShapes.push_back(inferredReturnType);
   return success();
@@ -249,18 +249,18 @@ OpFoldResult ConstantOp::fold(FoldAdaptor adaptor) {
 void ConstantOp::build(OpBuilder& /*builder*/, OperationState& result,
                        Attribute value) {
   ShapedType type;
-  if (auto elemAttr = value.dyn_cast<ElementsAttr>()) {
-    type = elemAttr.getType().cast<ShapedType>();
-  } else if (value.isa<BoolAttr, FloatAttr, IntegerAttr>()) {
+  if (auto elemAttr = dyn_cast<ElementsAttr>(value)) {
+    type = cast<ShapedType>(elemAttr.getType());
+  } else if (isa<BoolAttr, FloatAttr, IntegerAttr>(value)) {
     // All XLA types must be tensor types. In the build() method, we want to
     // provide more flexibility by allowing attributes of scalar types. But we
     // need to wrap it up with ElementsAttr to construct valid XLA constants.
     type =
-        RankedTensorType::get(/*shape=*/{}, value.cast<TypedAttr>().getType());
+        RankedTensorType::get(/*shape=*/{}, cast<TypedAttr>(value).getType());
     value = DenseElementsAttr::get(type, value);
-  } else if (auto complexAttr = value.dyn_cast<complex::NumberAttr>()) {
+  } else if (auto complexAttr = dyn_cast<complex::NumberAttr>(value)) {
     type = RankedTensorType::get(/*shape=*/{},
-                                 complexAttr.cast<TypedAttr>().getType());
+                                 cast<TypedAttr>(complexAttr).getType());
     value = DenseElementsAttr::get(type, complexAttr.getValue());
   }
 
@@ -281,13 +281,13 @@ LogicalResult ConstantOp::inferReturnTypes(
 
 bool ConstantOp::isCompatibleReturnTypes(TypeRange l, TypeRange r) {
   if (l.size() != r.size() || l.size() != 1) return false;
-  auto lhsTy = l.front().dyn_cast<ShapedType>();
-  auto rhsTy = r.front().dyn_cast<ShapedType>();
+  auto lhsTy = dyn_cast<ShapedType>(l.front());
+  auto rhsTy = dyn_cast<ShapedType>(r.front());
   if (!lhsTy || !rhsTy) return false;
   // For comparisons of the uniform quantized element based tensor type, use the
   // storage type since the constant value will be stored through the underlying
   // storage type.
-  if (auto rhsElemTy = rhsTy.getElementType().dyn_cast<quant::QuantizedType>())
+  if (auto rhsElemTy = dyn_cast<quant::QuantizedType>(rhsTy.getElementType()))
     rhsTy = hlo::getSameShapeTensorType(rhsTy, rhsElemTy.getStorageType());
   return lhsTy == rhsTy;
 }
@@ -375,13 +375,13 @@ LogicalResult CustomCallOp::verify() {
         auto index = indexedTypeAndLayout.index();
 
         auto type = std::get<0>(indexedTypeAndLayout.value());
-        auto layout = std::get<1>(indexedTypeAndLayout.value())
-                          .cast<DenseIntElementsAttr>();
+        auto layout = cast<DenseIntElementsAttr>(
+            std::get<1>(indexedTypeAndLayout.value()));
 
-        if (type.isa<TupleType>())
+        if (isa<TupleType>(type))
           return emitOpError() << "Tuple types are not fully supported with "
                                   "layout constraints yet";
-        auto shapedType = type.dyn_cast<ShapedType>();
+        auto shapedType = dyn_cast<ShapedType>(type);
 
         // For non-tensor types such as !stablehlo.token, the layout should be
         // empty.
@@ -425,8 +425,8 @@ LogicalResult CustomCallOp::verify() {
     // the i-th element of `result_layouts` specifies layout for i-th element of
     // the result tuple.
     TypeRange resultTypes;
-    if (getNumResults() == 1 && getResult(0).getType().isa<TupleType>())
-      resultTypes = getResult(0).getType().cast<TupleType>().getTypes();
+    if (getNumResults() == 1 && isa<TupleType>(getResult(0).getType()))
+      resultTypes = cast<TupleType>(getResult(0).getType()).getTypes();
     else
       resultTypes = getResultTypes();
 
@@ -444,7 +444,7 @@ LogicalResult CustomCallOp::verify() {
 
   auto aliasArrayAttr = getOutputOperandAliases();
   for (auto attr : aliasArrayAttr) {
-    auto alias = attr.cast<OutputOperandAliasAttr>();
+    auto alias = cast<OutputOperandAliasAttr>(attr);
     auto outputTupleIndices = alias.getOutputTupleIndices();
     auto operandIndex = alias.getOperandIndex();
     auto operandTupleIndices = alias.getOperandTupleIndices();
@@ -458,25 +458,25 @@ LogicalResult CustomCallOp::verify() {
 
     Type operandPart = getOperand(operandIndex).getType();
     for (auto i : operandTupleIndices) {
-      if (!operandPart.isa<TupleType>() ||
-          i >= static_cast<int64_t>(operandPart.cast<TupleType>().size()) ||
+      if (!isa<TupleType>(operandPart) ||
+          i >= static_cast<int64_t>(cast<TupleType>(operandPart).size()) ||
           i < 0)
         return emitOpError()
                << "operand_tuple_indices in the output_operand_alias "
                   "attribute out of bounds";
-      operandPart = operandPart.cast<TupleType>().getType(i);
+      operandPart = cast<TupleType>(operandPart).getType(i);
     }
     Type outputPart = getNumResults() > 1
                           ? TupleType::get(getContext(), getResultTypes())
                           : getResult(0).getType();
     for (auto i : outputTupleIndices) {
-      if (!outputPart.isa<TupleType>() ||
-          i >= static_cast<int64_t>(outputPart.cast<TupleType>().size()) ||
+      if (!isa<TupleType>(outputPart) ||
+          i >= static_cast<int64_t>(cast<TupleType>(outputPart).size()) ||
           i < 0)
         return emitOpError()
                << "output_tuple_indices in the output_operand_alias "
                   "attribute out of bounds";
-      outputPart = outputPart.cast<TupleType>().getType(i);
+      outputPart = cast<TupleType>(outputPart).getType(i);
     }
     if (operandPart != outputPart)
       return emitOpError()
@@ -533,7 +533,7 @@ void printPrecisionConfig(OpAsmPrinter& p, Operation*,
 
   p << ", precision = [";
   llvm::interleaveComma(attrArr, p, [&](Attribute attr) {
-    p << stringifyPrecision(attr.cast<PrecisionAttr>().getValue());
+    p << stringifyPrecision(cast<PrecisionAttr>(attr).getValue());
   });
   p << ']';
 }
@@ -648,7 +648,7 @@ void getSliceSizeValues(DynamicGatherOp* /*dGather*/, OpBuilder& builder,
                         SmallVectorImpl<Value>& sliceSizeValues) {
   DynamicGatherOp::Adaptor adaptor(operands);
   Value sliceSizes = adaptor.getSliceSizes();
-  auto sliceSizesTy = sliceSizes.getType().cast<ShapedType>();
+  auto sliceSizesTy = cast<ShapedType>(sliceSizes.getType());
   for (int64_t i = 0; i < sliceSizesTy.getDimSize(0); ++i) {
     Value idx = builder.create<arith::ConstantIndexOp>(loc, i);
     sliceSizeValues.push_back(
@@ -778,7 +778,7 @@ LogicalResult IotaOp::verify() {
 static Value castToIndexTensor(OpBuilder& builder, Location loc,
                                Value shapeOp) {
   ShapedType resultTy = shape::getExtentTensorType(
-      builder.getContext(), shapeOp.getType().cast<ShapedType>().getDimSize(0));
+      builder.getContext(), cast<ShapedType>(shapeOp.getType()).getDimSize(0));
   if (shapeOp.getType() == resultTy) return shapeOp;  // Nothing to do.
   return builder.create<arith::IndexCastOp>(loc, resultTy, shapeOp);
 }
@@ -903,7 +903,7 @@ LogicalResult ConvolutionOp::verify() {
 
 void ConvertOp::build(OpBuilder& builder, OperationState& result, Value operand,
                       Type resultElementTy) {
-  auto rankedTy = operand.getType().cast<RankedTensorType>();
+  auto rankedTy = cast<RankedTensorType>(operand.getType());
   auto resultTy = RankedTensorType::get(rankedTy.getShape(), resultElementTy);
   build(builder, result, resultTy, operand);
 }
@@ -1026,8 +1026,8 @@ LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
 LogicalResult BitcastConvertOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  auto operandType = operands[0].getType().dyn_cast<RankedTensorType>();
-  auto resultType = getType().dyn_cast<RankedTensorType>();
+  auto operandType = dyn_cast<RankedTensorType>(operands[0].getType());
+  auto resultType = dyn_cast<RankedTensorType>(getType());
 
   // Only ranked tensors are supported.
   if (!operandType || !resultType) return failure();
@@ -1069,7 +1069,7 @@ LogicalResult BroadcastOp::reifyReturnTypeShapes(
   BroadcastOp::Adaptor adaptor(operands);
   Value operand = adaptor.getOperand();
 
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  auto operandType = dyn_cast<RankedTensorType>(operand.getType());
   // Unranked tensors are not supported.
   if (!operandType) return failure();
 
@@ -1212,7 +1212,7 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   ConcatenateOp::Adaptor adaptor(operands);
   auto inputs = adaptor.getInputs();
 
-  auto operandType = inputs[0].getType().dyn_cast<RankedTensorType>();
+  auto operandType = dyn_cast<RankedTensorType>(inputs[0].getType());
   // Not support unranked type a.t.m.
   if (!operandType) return failure();
 
@@ -1225,7 +1225,7 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   SmallVector<SmallVector<Value, 4>, 4> allShapeValues;
   for (size_t inputId = 0; inputId < inputs.size(); ++inputId) {
     Value operand = inputs[inputId];
-    auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+    auto operandType = dyn_cast<RankedTensorType>(operand.getType());
     if (!operandType) return failure();
 
     SmallVector<Value, 4> shapeVals;
@@ -1310,7 +1310,7 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
   Value limitIndices = adaptor.getLimitIndices();
   Value strides = adaptor.getStrides();
 
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  auto operandType = dyn_cast<RankedTensorType>(operand.getType());
   // Not support unranked type a.t.m.
   if (!operandType) return failure();
 
@@ -1318,7 +1318,7 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
   SmallVector<Value, 4> shapeValues;
   shapeValues.reserve(operandType.getRank());
   Type shapeScalarType =
-      startIndices.getType().cast<ShapedType>().getElementType();
+      cast<ShapedType>(startIndices.getType()).getElementType();
   Value one = builder.create<arith::ConstantIndexOp>(loc, 1);
   one = maybeCastTo(builder, loc, one, shapeScalarType);
   for (const auto& element : llvm::enumerate(operandType.getShape())) {
@@ -1472,13 +1472,13 @@ void ReduceWindowOp::build(
   blockArgTypes.reserve(numValues);
   locs.reserve(numValues);
   for (auto i : inputs) {
-    auto iType = i.getType().cast<ShapedType>();
+    auto iType = cast<ShapedType>(i.getType());
     blockArgTypes.push_back(iType.cloneWith(
         llvm::ArrayRef<int64_t>(std::nullopt), iType.getElementType()));
     locs.push_back(i.getLoc());
   }
   for (auto i : init_values) {
-    auto iType = i.getType().cast<ShapedType>();
+    auto iType = cast<ShapedType>(i.getType());
     blockArgTypes.push_back(iType.cloneWith(
         llvm::ArrayRef<int64_t>(std::nullopt), iType.getElementType()));
     locs.push_back(i.getLoc());
@@ -1553,10 +1553,10 @@ void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
 
   SmallVector<ShapedType> inputArgTensorTypes{
       llvm::map_range(adaptor.getInputs().getTypes(),
-                      [](Type t) { return t.cast<ShapedType>(); })};
+                      [](Type t) { return cast<ShapedType>(t); })};
   SmallVector<ShapedType> initValueTensorTypes{
       llvm::map_range(adaptor.getInitValues().getTypes(),
-                      [](Type t) { return t.cast<ShapedType>(); })};
+                      [](Type t) { return cast<ShapedType>(t); })};
 
   if (failed(hlo::verifyReduceOpInputsAndInferShape(
           odsState.location, inputArgTensorTypes, dimensions, newDimensions,
@@ -1583,7 +1583,7 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
   ReduceOp::Adaptor adaptor(operands);
   auto inputs = adaptor.getInputs();
 
-  auto operandType = inputs[0].getType().dyn_cast<RankedTensorType>();
+  auto operandType = dyn_cast<RankedTensorType>(inputs[0].getType());
   // Not support unranked type a.t.m.
   if (!operandType) return failure();
 
@@ -1755,7 +1755,7 @@ LogicalResult PadOp::reifyReturnTypeShapes(
   PadOp::Adaptor adaptor(operands, this->getOperation()->getAttrDictionary());
   auto loc = this->getLoc();
   Value operand = adaptor.getOperand();
-  auto operandTy = operand.getType().cast<RankedTensorType>();
+  auto operandTy = cast<RankedTensorType>(operand.getType());
 
   auto padHigh = adaptor.getEdgePaddingHigh();
   auto padLow = adaptor.getEdgePaddingLow();
@@ -1814,7 +1814,7 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
   Value edgePaddingHigh = adaptor.getEdgePaddingHigh();
   Value interiorPadding = adaptor.getInteriorPadding();
 
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  auto operandType = dyn_cast<RankedTensorType>(operand.getType());
   // Not support unranked pad a.t.m.
   if (!operandType) return failure();
 
@@ -1822,7 +1822,7 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
   SmallVector<Value, 4> shapeValues;
   shapeValues.reserve(operandType.getRank());
   Type shapeScalarType =
-      edgePaddingLow.getType().cast<ShapedType>().getElementType();
+      cast<ShapedType>(edgePaddingLow.getType()).getElementType();
 
   auto toShapeScalarType = [&](Value v) {
     return maybeCastTo(builder, loc, v, shapeScalarType);
@@ -1982,7 +1982,7 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
   TransposeOp::Adaptor adaptor(operands);
   Value operand = adaptor.getOperand();
 
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  auto operandType = dyn_cast<RankedTensorType>(operand.getType());
   // Not support unranked type a.t.m.
   if (!operandType) return failure();
 
@@ -2254,7 +2254,7 @@ struct StablehloHloDialectInterface : public hlo::HloDialectInterface {
     return TokenType::get(getDialect()->getContext());
   }
 
-  bool isTokenType(Type type) const override { return type.isa<TokenType>(); }
+  bool isTokenType(Type type) const override { return isa<TokenType>(type); }
 
   Attribute createTypeExtensions(ArrayRef<int64_t> bounds) const override {
     return TypeExtensionsAttr::get(getDialect()->getContext(), bounds);
@@ -2320,8 +2320,8 @@ Attribute StablehloDialect::parseAttribute(DialectAsmParser& parser,
 // dispatch to the individual classes.
 void StablehloDialect::printAttribute(Attribute attr,
                                       DialectAsmPrinter& os) const {
-  if (auto type_extensions = attr.dyn_cast<TypeExtensionsAttr>()) {
-    hlo::printTypeExtensions(attr.cast<hlo::BoundedAttrInterface>(), os);
+  if (auto type_extensions = dyn_cast<TypeExtensionsAttr>(attr)) {
+    hlo::printTypeExtensions(cast<hlo::BoundedAttrInterface>(attr), os);
     return;
   }
   LogicalResult result = generatedAttributePrinter(attr, os);
@@ -2899,12 +2899,12 @@ void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
     p << attr.second << " = [";
 
     if (attr.second == "pad") {
-      printWindowPadding(p, attr.first.dyn_cast<DenseIntElementsAttr>());
+      printWindowPadding(p, dyn_cast<DenseIntElementsAttr>(attr.first));
     } else if (attr.second == "reverse") {
-      llvm::interleaveComma(attr.first.cast<DenseBoolArrayAttr>().asArrayRef(),
+      llvm::interleaveComma(cast<DenseBoolArrayAttr>(attr.first).asArrayRef(),
                             p);
     } else {
-      llvm::interleaveComma(attr.first.cast<DenseI64ArrayAttr>().asArrayRef(),
+      llvm::interleaveComma(cast<DenseI64ArrayAttr>(attr.first).asArrayRef(),
                             p);
     }
 
@@ -3044,7 +3044,7 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
   // element type is of type float.
   std::optional<StringRef> compareType = std::nullopt;
   for (const auto& elementType : elementTypes) {
-    if (elementType.isa<FloatType>()) {
+    if (isa<FloatType>(elementType)) {
       compareType.emplace("TOTALORDER");
       break;
     }
@@ -3061,7 +3061,7 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
 Operation* StablehloDialect::materializeConstant(OpBuilder& builder,
                                                  Attribute value, Type type,
                                                  Location loc) {
-  auto elementsAttr = value.dyn_cast<ElementsAttr>();
+  auto elementsAttr = dyn_cast<ElementsAttr>(value);
   // HLO dialect constants only support ElementsAttr unlike standard dialect
   // constant which supports all attributes.
   if (!elementsAttr) return nullptr;

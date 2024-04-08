@@ -89,13 +89,13 @@ class DefaultInterpreterFallback : public InterpreterFallback {
       std::queue<StringAttr> infeed;
       if (auto infeedAttr = runParallelOp.getInfeed())
         for (auto &value : infeedAttr->getValue())
-          infeed.push(value.cast<FlatSymbolRefAttr>().getAttr());
+          infeed.push(cast<FlatSymbolRefAttr>(value).getAttr());
 
       SmallVector<SmallVector<StringAttr>> programs(
           runParallelOp.getPrograms().size());
       for (auto [i, replica] : llvm::enumerate(runParallelOp.getPrograms()))
-        for (auto &program : replica.cast<ArrayAttr>())
-          programs[i].push_back(program.cast<FlatSymbolRefAttr>().getAttr());
+        for (auto &program : cast<ArrayAttr>(replica))
+          programs[i].push_back(cast<FlatSymbolRefAttr>(program).getAttr());
 
       SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
       auto results = stablehlo::interpreter::evalRunParallelOp(

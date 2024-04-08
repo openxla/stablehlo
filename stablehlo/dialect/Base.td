@@ -54,32 +54,34 @@ def HLO_Complex : Complex<AnyTypeOf<[F32, F64]>>;
 
 // TODO(b/230381284): Upstream width-specific uniform quantized element types.
 class StableHLO_UniformQuantizedSignedInt<int width>
-  : Type<And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedType>()">,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
+  : Type<And<[CPred<"isa<mlir::quant::UniformQuantizedType>($_self)">,
+           CPred<"cast<mlir::quant::UniformQuantizedType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
-                 ".getStorageType().cast<mlir::IntegerType>().isSignless()">]>,
+           CPred<"cast<mlir::IntegerType>(" #
+                   "cast<mlir::quant::UniformQuantizedType>($_self).getStorageType()" #
+                 ").isSignless()">]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedSignedInt";
   int bitwidth = width;
 }
 
 class StableHLO_UniformQuantizedPerAxisSignedInt<int width>
-  : Type<And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedPerAxisType>()">,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
+  : Type<And<[CPred<"isa<mlir::quant::UniformQuantizedPerAxisType>($_self)">,
+           CPred<"cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
-                 ".getStorageType().cast<mlir::IntegerType>().isSignless()">]>,
+           CPred<"cast<mlir::IntegerType>(" #
+                   "cast<mlir::quant::UniformQuantizedPerAxisType>($_self).getStorageType()" #
+                 ").isSignless()">]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedPerAxisSignedInt";
   int bitwidth = width;
 }
 
 class StableHLO_UniformQuantizedUnsignedInt<int width>
-  : Type<And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedType>()">,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
+  : Type<And<[CPred<"isa<mlir::quant::UniformQuantizedType>($_self)">,
+           CPred<"cast<mlir::quant::UniformQuantizedType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"!$_self.cast<mlir::quant::UniformQuantizedType>()" #
+           CPred<"!cast<mlir::quant::UniformQuantizedType>($_self)" #
                  ".isSigned()">]>,
     "QUI" # width # " type"> {
   string name = "UniformQuantizedUnsignedInt";
@@ -87,10 +89,10 @@ class StableHLO_UniformQuantizedUnsignedInt<int width>
 }
 
 class StableHLO_UniformQuantizedPerAxisUnsignedInt<int width>
-  : Type<And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedPerAxisType>()">,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
+  : Type<And<[CPred<"isa<mlir::quant::UniformQuantizedPerAxisType>($_self)">,
+           CPred<"cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"!$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
+           CPred<"!cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".isSigned()">]>,
     "QUI" # width # " type"> {
   string name = "UniformQuantizedPerAxisUnsignedInt";
@@ -132,7 +134,7 @@ def HLO_PerAxisQuantizedInt :
     AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt]>;
 
 // Token type.
-def HLO_Token : Type<CPred<"$_self.isa<TokenType>()">, "token">;
+def HLO_Token : Type<CPred<"isa<TokenType>($_self)">, "token">;
 
 // Any integer tensor types
 def HLO_IntTensor : RankedTensorOf<[HLO_Int]>;
