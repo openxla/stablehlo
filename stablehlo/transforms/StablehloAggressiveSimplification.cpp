@@ -752,9 +752,9 @@ struct UnusedResultReduceOpCanon final
     const auto newNumOperands = newNumOperandPairs * pairSize;
     if (newNumOperands != usedArgs.count())
       return rewriter.notifyMatchFailure(op, [&](Diagnostic &diag) {
-        diag << "non-conservative case: expected " << usedArgs.count()
-             << " arguments to match " << newNumOperandPairs
-             << " return operands, but got " << newNumOperands;
+        diag << "non-conservative case: " << newNumOperandPairs
+             << " return results should be matched with " << newNumOperands
+             << " operands, but got " << usedArgs.count();
       });
 
     SmallVector<Value> newInputs;
