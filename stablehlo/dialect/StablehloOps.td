@@ -1197,6 +1197,7 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [Pure,
 // conditional use of kConditional HLO.
 def StableHLO_IfOp: StableHLO_Op<"if", [
     RecursiveMemoryEffects,
+    RecursivelySpeculatable,
     SingleBlockImplicitTerminator<"ReturnOp">,
     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "If operation";
@@ -1230,6 +1231,7 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
 // conditional use of kConditional HLO.
 def StableHLO_CaseOp: StableHLO_Op<"case", [
       RecursiveMemoryEffects,
+      RecursivelySpeculatable,
       SingleBlockImplicitTerminator<"ReturnOp">,
       DeclareOpInterfaceMethods<InferTypeOpInterface> /*case_c4*/
     ]> {
@@ -1263,6 +1265,7 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
 
 def StableHLO_WhileOp: StableHLO_Op<"while", [
       RecursiveMemoryEffects,
+      RecursivelySpeculatable,
       SingleBlockImplicitTerminator<"ReturnOp">,
       DeclareOpInterfaceMethods<InferTypeOpInterface> /*while_c3*/,
       OpAsmOpInterface
