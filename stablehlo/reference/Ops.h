@@ -193,6 +193,7 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
 Tensor evalSqrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs,
                       ShapedType resultType);
+Tensor evalTanOp(const Tensor &operand, ShapedType resultType);
 Tensor evalTanhOp(const Tensor &operand, ShapedType resultType);
 Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
                        ShapedType resultType);

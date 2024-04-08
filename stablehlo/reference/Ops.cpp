@@ -832,6 +832,10 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto rhs = scope.findTensor(subtractOp.getRhs());
       auto result = evalSubtractOp(lhs, rhs, subtractOp.getType());
       scope.add(subtractOp.getResult(), result);
+    } else if (auto tanOp = dyn_cast<TanOp>(op)) {
+      auto operand = scope.findTensor(tanOp.getOperand());
+      auto result = evalTanOp(operand, tanOp.getType());
+      scope.add(tanOp.getResult(), result);
     } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
       auto operand = scope.findTensor(tanhOp.getOperand());
       auto result = evalTanhOp(operand, tanhOp.getType());
@@ -2070,6 +2074,13 @@ Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs,
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) - rhs.get(*it));
+  return result;
+}
+
+Tensor evalTanOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, tan(operand.get(*it)));
   return result;
 }
 
