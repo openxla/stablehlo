@@ -75,8 +75,8 @@ for folding `stablehlo::AddOp` with floating-point typed operands:
 ```C++
 OpFoldResult AddOp::fold(FoldAdaptor adaptor) {
   auto attrs = adaptor.getOperands();
-  DenseElementsAttr lhsData = attrs[0].dyn_cast<DenseElementsAttr>();
-  DenseElementsAttr rhsData = attrs[1].dyn_cast<DenseElementsAttr>();
+  DenseElementsAttr lhsData = dyn_cast<DenseElementsAttr>(attrs[0]);
+  DenseElementsAttr rhsData = dyn_cast<DenseElementsAttr>(attrs[1]);
   if (!lhsData || !rhsData) return {};
 
   auto lhs = Tensor(lhsData);
@@ -86,7 +86,7 @@ OpFoldResult AddOp::fold(FoldAdaptor adaptor) {
   SmallVector<APFloat> values;
   for (auto i = 0; i < result.getNumElements(); ++i) {
     Element element = result.get(i);
-    values.push_back(element.getValue().cast<FloatAttr>().getValue());
+    values.push_back(cast<FloatAttr>(element.getValue()).getValue());
   }
 
   return DenseElementsAttr::get(result.getType(), values);
