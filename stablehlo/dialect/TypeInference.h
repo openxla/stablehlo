@@ -161,6 +161,10 @@ LogicalResult inferCollectiveBroadcastOp(
     std::optional<Location>, ValueRange operands,
     SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferCollectivePermuteOp(
+    std::optional<Location>, ValueRange operands,
+    SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferCompareOp(
     MLIRContext* context, std::optional<Location>, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);

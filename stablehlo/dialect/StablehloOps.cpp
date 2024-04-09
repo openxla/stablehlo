@@ -170,7 +170,6 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Atan2Op)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CbrtOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CeilOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ClzOp)
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CollectivePermuteOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CosineOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CrossReplicaSumOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(DivOp)
@@ -914,6 +913,34 @@ void CollectivePermuteOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                                 DenseIntElementsAttr sourceTargetPairs) {
   CollectivePermuteOp::build(odsBuilder, odsState, resultType, operand,
                              sourceTargetPairs, /*channel_handle=*/nullptr);
+}
+
+LogicalResult CollectivePermuteOp::inferReturnTypes(
+    MLIRContext* /*context*/, std::optional<Location> location,
+    ValueRange operands, DictionaryAttr attributes, OpaqueProperties properties,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
+  CollectivePermuteOp::Adaptor adaptor(operands, attributes, properties,
+                                       regions);
+  return hlo::inferCollectivePermuteOp(location, adaptor.getOperands(),
+                                       inferredReturnTypes);
+}
+
+LogicalResult CollectivePermuteOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SmallVector<Type> inferredReturnTypes;
+  CollectivePermuteOp::Adaptor adaptor(operands, attributes, properties,
+                                       regions);
+  if (failed(hlo::inferCollectivePermuteOp(location, adaptor.getOperands(),
+                                           inferredReturnTypes)))
+    return failure();
+  if (inferredReturnTypes.size() != 1) return failure();
+  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
+  if (!inferredReturnType) return failure();
+  inferredReturnShapes.push_back(inferredReturnType);
+  return success();
 }
 
 LogicalResult CollectivePermuteOp::verify() {
