@@ -492,7 +492,7 @@ void CustomCallOp::getEffects(
         effects) {
   // CustomCall has "all possible effects" unless the has_side_effect is present
   // and set to false.
-  auto hasSideEffect = (*this)->getAttrOfType<BoolAttr>("has_side_effect");
+  auto hasSideEffect = getHasSideEffectAttr();
   if (hasSideEffect && !hasSideEffect.getValue()) return;
   effects.emplace_back(MemoryEffects::Allocate::get());
   effects.emplace_back(MemoryEffects::Free::get());
@@ -1752,7 +1752,8 @@ LogicalResult PadOp::inferReturnTypes(
 LogicalResult PadOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  PadOp::Adaptor adaptor(operands, this->getOperation()->getAttrDictionary());
+  PadOp::Adaptor adaptor(operands, getOperation()->getAttrDictionary(),
+                         getProperties());
   auto loc = this->getLoc();
   Value operand = adaptor.getOperand();
   auto operandTy = cast<RankedTensorType>(operand.getType());

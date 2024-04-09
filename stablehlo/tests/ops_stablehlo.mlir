@@ -2014,7 +2014,7 @@ func.func @rng_bit_generator_dynamic(%arg0: tensor<?xui64>) -> (tensor<?xui64>, 
 
 // CHECK-LABEL: func @rng_normal
 func.func @rng_normal(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<2x3x5xf32> {
-  %cst = "stablehlo.constant"() {value = dense<[2, 3, 5]> : tensor<3xi64>} : () -> tensor<3xi64>
+  %cst = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
   %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
@@ -2030,7 +2030,7 @@ func.func @rng_normal_no_constant(%a: tensor<f32>, %b: tensor<f32>, %shape: tens
 // -----
 
 func.func @rng_normal_invalid_shape(%arg0: tensor<f32>, %arg1: tensor<f32>) {
-  %cst = "stablehlo.constant"() {value = dense<7> : tensor<1xi64>} : () -> tensor<1xi64>
+  %cst = stablehlo.constant dense<7> : tensor<1xi64>
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error @+1 {{inferred type(s) 'tensor<7xf32>' are incompatible with return type(s) of operation 'tensor<12xf32>'}}
   %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<1xi64>) -> tensor<12xf32>
@@ -2067,7 +2067,7 @@ func.func @rng_normal_invalid_shape_rank(%mu: tensor<f32>, %sigma: tensor<f32>) 
 // -----
 
 func.func @rng_normal_invalid_type(%arg0: tensor<complex<f32>>, %arg1: tensor<f32>) {
-  %cst = "stablehlo.constant"() {value = dense<7> : tensor<1xi64>} : () -> tensor<1xi64>
+  %cst = stablehlo.constant dense<7> : tensor<1xi64>
   // expected-error @+1 {{#0 must be 0D tensor of pred (AKA boolean or 1-bit integer) or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer or f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type values, but got 'tensor<complex<f32>>'}}
   %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<complex<f32>>, tensor<f32>, tensor<1xi64>) -> tensor<7xf32>
   func.return
@@ -2691,7 +2691,7 @@ func.func @floor_invalid_i32_type(%arg0: tensor<4xi32>) -> tensor<4xi32> {
 // CHECK-LABEL: func @constants
 func.func @constants() -> () {
   // CHECK: stablehlo.constant dense<0> : tensor<i32>
-  %0 = "stablehlo.constant"() {value = dense<0> : tensor<i32>} : () -> (tensor<i32>)
+  %0 = "stablehlo.constant"() <{value = dense<0> : tensor<i32>}> : () -> (tensor<i32>)
 
   // CHECK: stablehlo.constant {extra_attr = 3 : i32} dense<0> : tensor<i32>
   %1 = "stablehlo.constant"() {extra_attr = 3 : i32, value = dense<0> : tensor<i32>} : () -> (tensor<i32>)
@@ -2703,7 +2703,7 @@ func.func @constants() -> () {
 func.func @constant_invalid() -> () {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.constant' op inferred type(s) 'tensor<i32>' are incompatible with return type(s) of operation 'tensor<3xi32>'}}
-  %0 = "stablehlo.constant"() {value = dense<0> : tensor<i32>} : () -> (tensor<3xi32>)
+  %0 = "stablehlo.constant"() <{value = dense<0> : tensor<i32>}> : () -> (tensor<3xi32>)
   func.return
 }
 
@@ -2711,7 +2711,7 @@ func.func @constant_invalid() -> () {
 
 func.func @constant_invalid() -> () {
   // expected-error@+1 {{op result #0 must be statically shaped tensor}}
-  %0 = "stablehlo.constant"() {value = dense<1> : tensor<i32>} : () -> tensor<?xi32>
+  %0 = "stablehlo.constant"() <{value = dense<1> : tensor<i32>}> : () -> tensor<?xi32>
   func.return
 }
 
@@ -2719,7 +2719,7 @@ func.func @constant_invalid() -> () {
 
 func.func @constant_invalid() -> () {
   // expected-error@+1 {{elements literal type must have static shape}}
-  %0 = "stablehlo.constant"() {value = dense<1> : tensor<?xi32>} : () -> tensor<?xi32>
+  %0 = "stablehlo.constant"() <{value = dense<1> : tensor<?xi32>}> : () -> tensor<?xi32>
   func.return
 }
 
@@ -4872,7 +4872,7 @@ func.func @quantized_constants() -> (tensor<2x!quant.uniform<i8:f32, 2.0:15>>, t
   %3 = stablehlo.uniform_quantize %2 : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32, 2.0:15>>
   %4 = stablehlo.uniform_quantize %1 : (tensor<2xf32>) -> tensor<2x!quant.uniform<ui8:f32, 34.0:16>>
   func.return %0, %4, %3 : tensor<2x!quant.uniform<i8:f32, 2.0:15>>, tensor<2x!quant.uniform<ui8:f32, 34.0:16>>, tensor<2x!quant.uniform<i8:f32, 2.0:15>>
-  // CHECK: stablehlo.constant() {value = dense<[1, 2]> : tensor<2xi8>} : () -> tensor<2x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  // CHECK: stablehlo.constant() <{value = dense<[1, 2]> : tensor<2xi8>}> : () -> tensor<2x!quant.uniform<i8:f32, 2.000000e+00:15>>
   // CHECK-NEXT: stablehlo.constant dense<[1.000000e+01, 1.200000e+01]> : tensor<2xf32>
   // CHECK-NEXT: stablehlo.constant dense<[3.000000e+00, 1.000000e+02]> : tensor<2xf32>
 }
