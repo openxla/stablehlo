@@ -685,9 +685,7 @@ void getSliceSizeValues(DynamicGatherOp* /*dGather*/, OpBuilder& builder,
 template <typename Op>
 LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
                                SmallVectorImpl<Value>& reifiedReturnShapes) {
-  // No support for unranked gather output shape a.t.m.
-  auto resultTy = dyn_cast<RankedTensorType>(op->getResult().getType());
-  if (!resultTy) return failure();
+  auto resultTy = cast<RankedTensorType>(op->getResult().getType());
 
   typename Op::Adaptor adaptor(operands);
   Value startIndices = adaptor.getStartIndices();
@@ -1158,11 +1156,8 @@ LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
 LogicalResult BitcastConvertOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  auto operandType = dyn_cast<RankedTensorType>(operands[0].getType());
-  auto resultType = dyn_cast<RankedTensorType>(getType());
-
-  // Only ranked tensors are supported.
-  if (!operandType || !resultType) return failure();
+  auto operandType = cast<RankedTensorType>(operands[0].getType());
+  auto resultType = cast<RankedTensorType>(getType());
 
   // Shape-changing bitcast convert is not implemented.
   // TODO(kramerb): This could be done by adjusting the last dimension.
@@ -1217,9 +1212,7 @@ LogicalResult BroadcastOp::reifyReturnTypeShapes(
   BroadcastOp::Adaptor adaptor(operands);
   Value operand = adaptor.getOperand();
 
-  auto operandType = dyn_cast<RankedTensorType>(operand.getType());
-  // Unranked tensors are not supported.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(operand.getType());
 
   Location loc = getLoc();
   SmallVector<Value, 4> shapeValues;
@@ -1360,10 +1353,6 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   ConcatenateOp::Adaptor adaptor(operands);
   auto inputs = adaptor.getInputs();
 
-  auto operandType = dyn_cast<RankedTensorType>(inputs[0].getType());
-  // Not support unranked type a.t.m.
-  if (!operandType) return failure();
-
   Location loc = this->getLoc();
   Type shapeScalarType = builder.getIndexType();
   auto toShapeScalarType = [&](Value v) {
@@ -1373,8 +1362,7 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   SmallVector<SmallVector<Value, 4>, 4> allShapeValues;
   for (size_t inputId = 0; inputId < inputs.size(); ++inputId) {
     Value operand = inputs[inputId];
-    auto operandType = dyn_cast<RankedTensorType>(operand.getType());
-    if (!operandType) return failure();
+    auto operandType = cast<RankedTensorType>(operand.getType());
 
     SmallVector<Value, 4> shapeVals;
     for (const auto& element : llvm::enumerate(operandType.getShape())) {
@@ -1474,9 +1462,7 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
   Value limitIndices = adaptor.getLimitIndices();
   Value strides = adaptor.getStrides();
 
-  auto operandType = dyn_cast<RankedTensorType>(operand.getType());
-  // Not support unranked type a.t.m.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(operand.getType());
 
   Location loc = this->getLoc();
   SmallVector<Value, 4> shapeValues;
@@ -1759,9 +1745,7 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
   ReduceOp::Adaptor adaptor(operands);
   auto inputs = adaptor.getInputs();
 
-  auto operandType = dyn_cast<RankedTensorType>(inputs[0].getType());
-  // Not support unranked type a.t.m.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(inputs[0].getType());
 
   Location loc = this->getLoc();
   SmallVector<Value, 4> shapeValues;
@@ -1990,9 +1974,7 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
   Value edgePaddingHigh = adaptor.getEdgePaddingHigh();
   Value interiorPadding = adaptor.getInteriorPadding();
 
-  auto operandType = dyn_cast<RankedTensorType>(operand.getType());
-  // Not support unranked pad a.t.m.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(operand.getType());
 
   auto loc = this->getLoc();
   SmallVector<Value, 4> shapeValues;
@@ -2053,7 +2035,7 @@ LogicalResult ReshapeOp::verify() {
 }
 
 mlir::Speculation::Speculatability ReshapeOp::getSpeculatability() {
-  if (cast<RankedTensorType>(getOperand().getType()).hasStaticShape())
+  if (getOperand().getType().hasStaticShape())
     return mlir::Speculation::Speculatable;
   return mlir::Speculation::NotSpeculatable;
 }
@@ -2158,9 +2140,7 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
   TransposeOp::Adaptor adaptor(operands);
   Value operand = adaptor.getOperand();
 
-  auto operandType = dyn_cast<RankedTensorType>(operand.getType());
-  // Not support unranked type a.t.m.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(operand.getType());
 
   Location loc = this->getLoc();
   SmallVector<int64_t, 4> permutation(this->getPermutation());
