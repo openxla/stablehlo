@@ -636,7 +636,8 @@ bool isSplatArray(Attribute vhloAttr, Attribute splatValue) {
 template <typename T>
 bool isSplatTensor(const ConversionPattern& pattern, Attribute vhloAttr,
                    T splatValue) {
-  auto attr = dyn_cast_or_null<DenseElementsAttr>(convertGeneric(vhloAttr, pattern.getTypeConverter()));
+  auto attr = dyn_cast_or_null<DenseElementsAttr>(
+      convertGeneric(vhloAttr, pattern.getTypeConverter()));
   return attr && attr.isSplat() &&
          attr.template getSplatValue<T>() == splatValue;
 }
