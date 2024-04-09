@@ -276,7 +276,7 @@ template <typename OpType, typename FuncType>
 LogicalResult evalElementwise(PatternRewriter& rewriter, OpType op,
                               FuncType fn) {
   auto resultType = op.getType();
-  if (!resultType.getElementType().template isa<IntegerType>())
+  if (!isa<IntegerType>(resultType.getElementType()))
     return rewriter.notifyMatchFailure(op,
                                        "expected integer result tensor type");
 
