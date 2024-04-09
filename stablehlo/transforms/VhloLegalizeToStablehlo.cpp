@@ -595,7 +595,7 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
 //===----------------------------------------------------------------------===//
 
 bool isBoolean(Attribute vhloAttr, bool value) {
-  auto attr = vhloAttr.template dyn_cast_or_null<vhlo::BooleanV1Attr>();
+  auto attr = dyn_cast_or_null<vhlo::BooleanV1Attr>(vhloAttr);
   return attr && attr.getValue() == value;
 }
 
@@ -622,7 +622,7 @@ bool isEmptyTensor(Attribute vhloAttr) {
 bool isEnum(Attribute vhloAttr, Attribute value) { return vhloAttr == value; }
 
 bool isInteger(Attribute vhloAttr, int64_t value) {
-  auto attr = vhloAttr.template dyn_cast_or_null<vhlo::IntegerV1Attr>();
+  auto attr = dyn_cast_or_null<vhlo::IntegerV1Attr>(vhloAttr);
   return attr && attr.getValue().getSExtValue() == value;
 }
 
@@ -636,8 +636,7 @@ bool isSplatArray(Attribute vhloAttr, Attribute splatValue) {
 template <typename T>
 bool isSplatTensor(const ConversionPattern& pattern, Attribute vhloAttr,
                    T splatValue) {
-  auto attr = convertGeneric(vhloAttr, pattern.getTypeConverter())
-                  .template dyn_cast_or_null<DenseElementsAttr>();
+  auto attr = dyn_cast_or_null<DenseElementsAttr>(convertGeneric(vhloAttr, pattern.getTypeConverter()));
   return attr && attr.isSplat() &&
          attr.template getSplatValue<T>() == splatValue;
 }

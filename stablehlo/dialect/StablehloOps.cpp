@@ -660,8 +660,7 @@ template <typename Op>
 LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
                                SmallVectorImpl<Value>& reifiedReturnShapes) {
   // No support for unranked gather output shape a.t.m.
-  auto resultTy =
-      op->getResult().getType().template dyn_cast<RankedTensorType>();
+  auto resultTy = dyn_cast<RankedTensorType>(op->getResult().getType());
   if (!resultTy) return failure();
 
   typename Op::Adaptor adaptor(operands);
