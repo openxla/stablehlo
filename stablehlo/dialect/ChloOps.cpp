@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "stablehlo/dialect/ChloOps.h"
 
+#include <cstdint>
 #include <optional>
 
 #include "llvm/ADT/STLExtras.h"
@@ -85,7 +86,7 @@ namespace {
 // Gets the resulting type from a broadcast between two types.
 ShapedTypeComponents getBroadcastType(
     Type x, Type y, Type elementType,
-    DenseIntElementsAttr broadcastDimensionsAttr) {
+    std::optional<ArrayRef<int64_t>> broadcastDimensionsAttr) {
   auto xRanked = dyn_cast<RankedTensorType>(x);
   auto yRanked = dyn_cast<RankedTensorType>(y);
   if (!xRanked || !yRanked) return {elementType};
@@ -94,7 +95,7 @@ ShapedTypeComponents getBroadcastType(
   auto shapeY = yRanked.getShape();
 
   // If no broadcast dimensions, assume "numpy" broadcasting.
-  if (shapeX.size() == shapeY.size() || !broadcastDimensionsAttr) {
+  if (shapeX.size() == shapeY.size() || !broadcastDimensionsAttr.has_value()) {
     llvm::SmallVector<int64_t, 4> outShape;
     if (!mlir::OpTrait::util::getBroadcastedShape(shapeX, shapeY, outShape)) {
       // Signal illegal broadcast_dimensions as unranked.
@@ -106,7 +107,7 @@ ShapedTypeComponents getBroadcastType(
   auto shapeLarge = shapeX.size() > shapeY.size() ? shapeX : shapeY;
   auto shapeSmall = shapeX.size() <= shapeY.size() ? shapeX : shapeY;
 
-  auto broadcastDimensions = broadcastDimensionsAttr.getValues<APInt>();
+  auto broadcastDimensions = broadcastDimensionsAttr.value();
   if (broadcastDimensions.size() != shapeSmall.size()) {
     // Signal illegal broadcast_dimensions as unranked.
     return {elementType};
@@ -114,8 +115,8 @@ ShapedTypeComponents getBroadcastType(
   llvm::SmallVector<int64_t, 4> shapeLargeFiltered;
   shapeLargeFiltered.reserve(shapeSmall.size());
   for (const auto& dim : broadcastDimensions) {
-    if (dim.getZExtValue() >= shapeLarge.size()) return {elementType};
-    shapeLargeFiltered.push_back(shapeLarge[dim.getZExtValue()]);
+    if (dim >= static_cast<int64_t>(shapeLarge.size())) return {elementType};
+    shapeLargeFiltered.push_back(shapeLarge[dim]);
   }
   llvm::SmallVector<int64_t, 4> outShapeFiltered;
   if (!mlir::OpTrait::util::getBroadcastedShape(shapeSmall, shapeLargeFiltered,
@@ -127,7 +128,7 @@ ShapedTypeComponents getBroadcastType(
   llvm::SmallVector<int64_t, 4> outShape(shapeLarge.begin(), shapeLarge.end());
   for (const auto& indexPair : llvm::enumerate(broadcastDimensions)) {
     auto newValue = outShapeFiltered[indexPair.index()];
-    outShape[indexPair.value().getZExtValue()] = newValue;
+    outShape[indexPair.value()] = newValue;
   }
 
   return {outShape, elementType};
@@ -135,13 +136,9 @@ ShapedTypeComponents getBroadcastType(
 
 LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location, ValueRange operands,
-    DictionaryAttr attributes, OpaqueProperties properties, Type elementType,
+    DictionaryAttr attributes, OpaqueProperties properties,
+    std::optional<ArrayRef<int64_t>> broadcastDimensions, Type elementType,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // Find broadcast_dimensions.
-  DenseIntElementsAttr broadcastDimensions =
-      dyn_cast_or_null<DenseIntElementsAttr>(
-          attributes.get("broadcast_dimensions"));
-
   ShapedType lhsType = cast<ShapedType>(operands[0].getType());
   ShapedType rhsType = cast<ShapedType>(operands[1].getType());
   if (!lhsType || !rhsType ||
@@ -156,6 +153,7 @@ LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
 
 LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
     OpBuilder& builder, Operation* op, ValueRange operands,
+    std::optional<ArrayRef<int64_t>> broadcastDimensions,
     SmallVectorImpl<Value>& result) {
   assert(operands.size() == 2 && "expect binary op");
   auto loc = op->getLoc();
@@ -164,9 +162,8 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
 
   // Check for "numpy"-style rank broadcast.
   auto broadcastDimensionsAttr = op->getAttr("broadcast_dimensions");
-  if (broadcastDimensionsAttr &&
-      !hlo::isLegalNumpyRankedBroadcast(
-          lhs, rhs, cast<mlir::DenseI64ArrayAttr>(broadcastDimensionsAttr))) {
+  if (broadcastDimensions && !hlo::isLegalNumpyRankedBroadcast(
+                                 lhs, rhs, broadcastDimensions.value())) {
     // Note: It is unclear whether the general specification of explicit
     // broadcast_dimensions on binary ops is a feature we want to carry
     // forward. While it can technically be implemented for ranked-dynamic,
@@ -192,19 +189,21 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
 LogicalResult BroadcastComplexOp::inferReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
-    OpaqueProperties properties, RegionRange /*regions*/,
+    OpaqueProperties properties, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ShapedType lhsType = cast<ShapedType>(operands[0].getType());
   Type elementType = ComplexType::get(lhsType.getElementType());
+  Adaptor adaptor(operands, attributes, properties, regions);
   return InferBroadcastBinaryOpReturnTypeComponents(
-      context, location, operands, attributes, properties, elementType,
-      inferredReturnShapes);
+      context, location, operands, attributes, properties,
+      adaptor.getBroadcastDimensions(), elementType, inferredReturnShapes);
 }
 LogicalResult BroadcastComplexOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  return ReifyBroadcastBinaryOpReturnTypeShapes(builder, getOperation(),
-                                                operands, reifiedReturnShapes);
+  return ReifyBroadcastBinaryOpReturnTypeShapes(
+      builder, getOperation(), operands, getBroadcastDimensions(),
+      reifiedReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -225,19 +224,21 @@ void BroadcastCompareOp::build(OpBuilder& builder, OperationState& result,
 LogicalResult BroadcastCompareOp::inferReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
-    OpaqueProperties properties, RegionRange /*regions*/,
+    OpaqueProperties properties, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Type elementType = IntegerType::get(context, 1);
+  Adaptor adaptor(operands, attributes, properties, regions);
   return InferBroadcastBinaryOpReturnTypeComponents(
-      context, location, operands, attributes, properties, elementType,
-      inferredReturnShapes);
+      context, location, operands, attributes, properties,
+      adaptor.getBroadcastDimensions(), elementType, inferredReturnShapes);
 }
 
 LogicalResult BroadcastCompareOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  return ReifyBroadcastBinaryOpReturnTypeShapes(builder, getOperation(),
-                                                operands, reifiedReturnShapes);
+  return ReifyBroadcastBinaryOpReturnTypeShapes(
+      builder, getOperation(), operands, getBroadcastDimensions(),
+      reifiedReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -286,21 +287,24 @@ LogicalResult IsPosInfOp::inferReturnTypes(
 // Macros for method definitions that are common to most broadcasting ops.
 //===----------------------------------------------------------------------===//
 
-#define BROADCAST_BINARY_OP_DEFS(Op)                                 \
-  LogicalResult Op::inferReturnTypeComponents(                       \
-      MLIRContext* context, std::optional<Location> location,        \
-      ValueShapeRange operands, DictionaryAttr attributes,           \
-      OpaqueProperties properties, RegionRange regions,              \
-      SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) { \
-    return InferBroadcastBinaryOpReturnTypeComponents(               \
-        context, location, operands, attributes, properties,         \
-        /*element_type=*/nullptr, inferredReturnShapes);             \
-  }                                                                  \
-  LogicalResult Op::reifyReturnTypeShapes(                           \
-      OpBuilder& builder, ValueRange operands,                       \
-      SmallVectorImpl<Value>& reifiedReturnShapes) {                 \
-    return ReifyBroadcastBinaryOpReturnTypeShapes(                   \
-        builder, getOperation(), operands, reifiedReturnShapes);     \
+#define BROADCAST_BINARY_OP_DEFS(Op)                                        \
+  LogicalResult Op::inferReturnTypeComponents(                              \
+      MLIRContext* context, std::optional<Location> location,               \
+      ValueShapeRange operands, DictionaryAttr attributes,                  \
+      OpaqueProperties properties, RegionRange regions,                     \
+      SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {        \
+    Adaptor adaptor(operands.getValues(), attributes, properties, regions); \
+    return InferBroadcastBinaryOpReturnTypeComponents(                      \
+        context, location, operands, attributes, properties,                \
+        adaptor.getBroadcastDimensions(), /*element_type=*/nullptr,         \
+        inferredReturnShapes);                                              \
+  }                                                                         \
+  LogicalResult Op::reifyReturnTypeShapes(                                  \
+      OpBuilder& builder, ValueRange operands,                              \
+      SmallVectorImpl<Value>& reifiedReturnShapes) {                        \
+    return ReifyBroadcastBinaryOpReturnTypeShapes(                          \
+        builder, getOperation(), operands, getBroadcastDimensions(),        \
+        reifiedReturnShapes);                                               \
   }
 
 BROADCAST_BINARY_OP_DEFS(BroadcastAddOp)
@@ -397,11 +401,11 @@ LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
 
   // Compute the result shape as two binary broadcasts.
   ShapedTypeComponents& components = inferredReturnShapes.emplace_back(
-      getBroadcastType(onTrueType, onFalseType, elementType, nullptr));
+      getBroadcastType(onTrueType, onFalseType, elementType, std::nullopt));
   if (components.hasRank())
     components = getBroadcastType(
         RankedTensorType::get(components.getDims(), elementType), predType,
-        elementType, nullptr);
+        elementType, std::nullopt);
   return success();
 }
 
@@ -433,10 +437,11 @@ LogicalResult TopKOp::inferReturnTypeComponents(
 OpFoldResult ConstantOp::fold(FoldAdaptor /*adaptor*/) { return getValue(); }
 
 LogicalResult ConstantOp::inferReturnTypes(
-    MLIRContext*, std::optional<Location>, ValueRange,
-    DictionaryAttr attributes, OpaqueProperties, RegionRange,
+    MLIRContext*, std::optional<Location>, ValueRange operands,
+    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  Type type = cast<TypedAttr>(attributes.get("value")).getType();
+  Adaptor adaptor(operands, attributes, properties, regions);
+  Type type = cast<TypedAttr>(adaptor.getValueAttr()).getType();
   inferredReturnTypes.push_back(type);
   return success();
 }
