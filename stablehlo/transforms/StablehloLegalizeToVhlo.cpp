@@ -142,24 +142,18 @@ Attribute convertGeneric(Attribute stablehloAttr,
                                    attr.getRawData());
   }
   if (auto attr = dyn_cast<DenseI64ArrayAttr>(stablehloAttr)) {
-    auto vhloType = vhlo::RankedTensorV1Type::get(
-        attr.getContext(), {attr.size()},
-        vhlo::IntegerSI64V1Type::get(attr.getContext()), Attribute{});
-    LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
-    if (!vhloType) return {};
-    return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
-                                   attr.getRawData());
+    // Leverage the serialization for DenseElements.
+    auto data = attr.asArrayRef();
+    auto ty = RankedTensorType::get({static_cast<int64_t>(data.size())},
+                                    IntegerType::get(attr.getContext(), 64));
+    auto dense = DenseElementsAttr::get(ty, data);
+    return convertGeneric(dense, typeConverter);
   }
   if (auto attr = dyn_cast<DenseBoolArrayAttr>(stablehloAttr)) {
-    // Dense arrays of bool need special handling as their raw data is
-    // encoded differently from a DenseElementsAttr of bool. Using a similar
-    // conversion as for DenseI64ArrayAttr causes issues when attempting to
-    // construct a DenseIntOrFPElementsAttr from the underlying raw data.
-    // Converting to a DenseElementsAttr up front avoids issues.
+    // Leverage the serialization for DenseElements.
     auto data = attr.asArrayRef();
-    auto ty =
-        RankedTensorType::get({static_cast<int64_t>(attr.asArrayRef().size())},
-                              IntegerType::get(attr.getContext(), 1));
+    auto ty = RankedTensorType::get({static_cast<int64_t>(data.size())},
+                                    IntegerType::get(attr.getContext(), 1));
     auto dense = DenseElementsAttr::get(ty, data);
     return convertGeneric(dense, typeConverter);
   }
