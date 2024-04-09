@@ -2492,11 +2492,11 @@ func.func @tan_complexf32(%arg0 : tensor<1xf32>, %arg1 : tensor<1xf32>) -> (tens
 // CHECK-SAME: (%[[ARG:.*]]: tensor<16x16xf32>)
 func.func @top_k(%arg : tensor<16x16xf32>) -> (tensor<16x8xf32>, tensor<16x8xi32>) {
   // CHECK:      %[[IOTA:.*]] = stablehlo.iota dim = 1 : tensor<16x16xi32>
-  // CHECK-NEXT: %[[SORT:.*]]:2 = "stablehlo.sort"(%[[ARG]], %[[IOTA]]) ({
+  // CHECK-NEXT: %[[SORT:.*]]:2 = "stablehlo.sort"(%[[ARG]], %[[IOTA]]) <{dimension = 1 : i64, is_stable = true}> ({
   // CHECK-NEXT: ^{{.*}}(%[[LHS:.*]]: tensor<f32>, %[[RHS:.*]]: tensor<f32>, %{{.*}}: tensor<i32>, %{{.*}}: tensor<i32>):
   // CHECK-NEXT:   %[[CMP:.*]] = stablehlo.compare GT, %[[LHS]], %[[RHS]], TOTALORDER
   // CHECK-NEXT:   stablehlo.return %[[CMP]]
-  // CHECK-NEXT: }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
+  // CHECK-NEXT: }) : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
   // CHECK-NEXT: %[[VAL:.*]] = stablehlo.slice %[[SORT]]#0 [0:16, 0:8] : (tensor<16x16xf32>) -> tensor<16x8xf32>
   // CHECK-NEXT: %[[IDX:.*]] = stablehlo.slice %[[SORT]]#1 [0:16, 0:8] : (tensor<16x16xi32>) -> tensor<16x8xi32>
   // CHECK-NEXT: return %[[VAL]], %[[IDX]]
@@ -2521,11 +2521,11 @@ func.func @dyn_top_k(%arg0: tensor<?x5x?xi1>) -> (tensor<?x5x2xi1>, tensor<?x5x2
   // CHECK-NEXT: [[K_I32x1:%.*]] = stablehlo.reshape [[K_I32]] : (tensor<i32>) -> tensor<1xi32>
   // CHECK-NEXT: [[RESULT_SHAPE:%.*]] = stablehlo.concatenate [[DIM_0_I32x1]], [[DIM_1_I32x1]], [[K_I32x1]], dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
   // CHECK-NEXT: [[IOTA:%.*]] = stablehlo.dynamic_iota [[IOTA_SHAPE]], dim = 2 : (tensor<3xi32>) -> tensor<?x5x?xi32>
-  // CHECK-NEXT: [[SORT:%.*]]:2 = "stablehlo.sort"([[ARG]], [[IOTA]]) ({
+  // CHECK-NEXT: [[SORT:%.*]]:2 = "stablehlo.sort"([[ARG]], [[IOTA]]) <{dimension = 2 : i64, is_stable = true}> ({
   // CHECK-NEXT: ^bb0([[ARG_1:%.*]]: tensor<i1>, [[ARG_2:%.*]]: tensor<i1>, [[ARG_3:%.*]]: tensor<i32>, [[ARG_4:%.*]]: tensor<i32>):
   // CHECK-NEXT:   [[CMP:%.*]] = stablehlo.compare  GT, [[ARG_1]], [[ARG_2]],  NOTYPE : (tensor<i1>, tensor<i1>) -> tensor<i1>
   // CHECK-NEXT:   stablehlo.return [[CMP]] : tensor<i1>
-  // CHECK-NEXT: }) {dimension = 2 : i64, is_stable = true} : (tensor<?x5x?xi1>, tensor<?x5x?xi32>) -> (tensor<?x5x?xi1>, tensor<?x5x?xi32>)
+  // CHECK-NEXT: }) : (tensor<?x5x?xi1>, tensor<?x5x?xi32>) -> (tensor<?x5x?xi1>, tensor<?x5x?xi32>)
   // CHECK-NEXT: [[STARTS:%.*]] = stablehlo.constant dense<0> : tensor<3xi64>
   // CHECK-NEXT: [[LIMITS:%.*]] = stablehlo.convert [[RESULT_SHAPE]] : (tensor<3xi32>) -> tensor<3xi64>
   // CHECK-NEXT: [[STRIDES:%.*]] = stablehlo.constant dense<1> : tensor<3xi64>

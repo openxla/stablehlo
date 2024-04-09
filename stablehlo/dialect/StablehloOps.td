@@ -38,7 +38,6 @@ def StableHLO_Dialect : Dialect {
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
-  let usePropertiesForAttributes = 0;
 }
 
 class StableHLO_Op<string mnemonic, list<Trait> traits = []> :
