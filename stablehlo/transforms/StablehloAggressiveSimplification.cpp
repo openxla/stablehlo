@@ -13,6 +13,7 @@
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallBitVector.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Casting.h"
 #include "mlir/Dialect/CommonFolders.h"
@@ -28,6 +29,8 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/transforms/Passes.h"
+
+using llvm::SmallBitVector;
 
 namespace mlir {
 namespace stablehlo {
@@ -691,6 +694,117 @@ struct EmptyReduceOpCanon final : OpRewritePattern<mlir::stablehlo::ReduceOp> {
   }
 };
 
+struct UnusedResultReduceOpCanon final
+    : OpRewritePattern<mlir::stablehlo::ReduceOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::ReduceOp op,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<OpResult, 4> usedResults;
+    llvm::copy_if(op.getResults(), std::back_inserter(usedResults),
+                  [](OpResult result) { return !result.use_empty(); });
+
+    if (usedResults.size() == op.getNumResults())
+      return rewriter.notifyMatchFailure(op, "all operation results have uses");
+
+    const auto pairSize = 2;
+    const auto numOperands = op.getNumOperands();
+    const auto numOperandPairs = numOperands / pairSize;
+
+    Block &reducerBlock = op.getBody().front();
+    auto retOp = cast<mlir::stablehlo::ReturnOp>(reducerBlock.getTerminator());
+
+    assert(numOperandPairs == op.getNumResults() &&
+           numOperandPairs == retOp.getNumOperands());
+
+    SmallVector<Value> workList;
+    auto addToWorkList = [&workList,
+                          reducerBody = retOp->getParentRegion()](Value v) {
+      if (v.getParentRegion() == reducerBody) workList.push_back(v);
+    };
+
+    SmallPtrSet<Operation *, 16> usedOps;
+    SmallBitVector usedArgs(numOperands);
+    SmallBitVector usedReturnOperands(numOperandPairs);
+    for (const auto &usedResult : usedResults) {
+      auto resultNo = usedResult.getResultNumber();
+      usedReturnOperands.set(resultNo);
+
+      // Follow the def-use chain starting from return operand to identify
+      // which argument pairs are used to compute it.
+      addToWorkList(retOp.getOperand(resultNo));
+      while (!workList.empty()) {
+        auto definition = workList.pop_back_val();
+        if (auto blockArg = definition.dyn_cast<BlockArgument>()) {
+          // using one argument implies using the whole argument pair
+          const auto pairNo = blockArg.getArgNumber() % numOperandPairs;
+          usedArgs.set(pairNo);
+          usedArgs.set(pairNo + numOperandPairs);
+        } else if (auto *defOp = definition.getDefiningOp()) {
+          usedOps.insert(defOp);
+          for (const auto &operand : defOp->getOperands())
+            addToWorkList(operand);
+        }
+      }
+    }
+
+    const auto newNumOperandPairs = usedResults.size();
+    const auto newNumOperands = newNumOperandPairs * pairSize;
+    if (newNumOperands != usedArgs.count())
+      return rewriter.notifyMatchFailure(op, [&](Diagnostic &diag) {
+        diag << "non-conservative case: " << newNumOperandPairs
+             << " return results should be matched with " << newNumOperands
+             << " operands, but got " << usedArgs.count();
+      });
+
+    SmallVector<Value> newInputs;
+    SmallVector<Value> newInitVals;
+    SmallVector<Type> newElementTypes;
+    for (auto i : llvm::seq(0u, numOperandPairs)) {
+      if (usedReturnOperands[i])
+        newElementTypes.push_back(
+            getElementTypeOrSelf(retOp.getOperand(i).getType()));
+
+      if (!usedArgs[i]) continue;
+
+      newInputs.push_back(op.getOperand(i));
+      newInitVals.push_back(op.getOperand(i + numOperandPairs));
+    }
+
+    auto newOp =
+        rewriter.create<ReduceOp>(op.getLoc(), newInputs, newInitVals,
+                                  op.getDimensionsAttr(), newElementTypes);
+    Block *newReducerBlock = rewriter.createBlock(&newOp.getBody());
+
+    IRMapping mapper;
+    for (auto arg : reducerBlock.getArguments())
+      if (usedArgs[arg.getArgNumber()])
+        mapper.map(arg,
+                   newReducerBlock->addArgument(arg.getType(), arg.getLoc()));
+
+    rewriter.setInsertionPointToStart(newReducerBlock);
+    for (Operation &op : reducerBlock.getOperations())
+      if (usedOps.contains(&op)) rewriter.clone(op, mapper);
+
+    SmallVector<Value> newReturnOperands;
+    for (const auto &en : llvm::enumerate(retOp.getOperands()))
+      if (usedReturnOperands[en.index()])
+        newReturnOperands.push_back(mapper.lookup(en.value()));
+
+    rewriter.create<mlir::stablehlo::ReturnOp>(retOp.getLoc(),
+                                               newReturnOperands);
+
+    // Build new results list (unused entries will be null).
+    SmallVector<Value> newResults(op.getNumResults());
+    for (const auto &[i, result] : llvm::enumerate(usedResults)) {
+      newResults[result.getResultNumber()] = newOp.getResult(i);
+    }
+
+    rewriter.replaceOp(op, newResults);
+    return success();
+  }
+};
+
 struct DynamicReshapeOpCanon final
     : OpRewritePattern<mlir::stablehlo::DynamicReshapeOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -1056,7 +1170,7 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
       ChainedDynamicBroadcastInDimCanonicalization,
       DynamicBroadcastInDimAllDimsNonExpanding,
       // Reduce op.
-      NoopReduceOpCanon, EmptyReduceOpCanon,
+      NoopReduceOpCanon, EmptyReduceOpCanon, UnusedResultReduceOpCanon,
       // Shape manipulation(-ish) ops.
       ConcatenateOpCanon, ConvertOpCanon, DynamicReshapeOpCanon, GatherOpCanon,
       ReshapeOpCanon, MergeConsecutiveReshapes, TransposeIsReshape,
