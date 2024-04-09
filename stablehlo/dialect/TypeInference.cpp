@@ -1880,8 +1880,9 @@ LogicalResult inferConvertOp(
   return success();
 }
 
-LogicalResult inferCollectiveBroadcastOp(std::optional<Location>, ValueRange operands,
-                           SmallVectorImpl<Type>& inferredReturnTypes) {
+LogicalResult inferCollectiveBroadcastOp(
+    std::optional<Location>, ValueRange operands,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   for (const auto& resultType : operands.getTypes())
     inferredReturnTypes.push_back(resultType);
   return success();
