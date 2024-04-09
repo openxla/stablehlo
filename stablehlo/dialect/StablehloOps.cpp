@@ -170,7 +170,6 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Atan2Op)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CbrtOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CeilOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ClzOp)
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CollectiveBroadcastOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CollectivePermuteOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CosineOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CrossReplicaSumOp)
@@ -872,6 +871,34 @@ void CollectiveBroadcastOp::build(OpBuilder& odsBuilder,
                                   DenseIntElementsAttr replica_groups) {
   CollectiveBroadcastOp::build(odsBuilder, odsState, resultType, operand,
                                replica_groups, /*channel_handle=*/nullptr);
+}
+
+LogicalResult CollectiveBroadcastOp::inferReturnTypes(
+    MLIRContext* /*context*/, std::optional<Location> location,
+    ValueRange operands, DictionaryAttr attributes, OpaqueProperties properties,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
+  CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
+                                         regions);
+  return hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                         inferredReturnTypes);
+}
+
+LogicalResult CollectiveBroadcastOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SmallVector<Type> inferredReturnTypes;
+  CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
+                                         regions);
+  if (failed(hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                             inferredReturnTypes)))
+    return failure();
+  if (inferredReturnTypes.size() != 1) return failure();
+  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
+  if (!inferredReturnType) return failure();
+  inferredReturnShapes.push_back(inferredReturnType);
+  return success();
 }
 
 LogicalResult CollectiveBroadcastOp::verify() {

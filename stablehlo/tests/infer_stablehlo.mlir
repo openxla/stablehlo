@@ -170,6 +170,18 @@ func.func @concat(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>)  -> tensor<3xindex
 
 // -----
 
+// CHECK-LABEL: func @collective_broadcast_c3
+func.func @collective_broadcast_c3(%arg0: tensor<16x8xf32>) -> tensor<16x8xindex> {
+  %0 = "stablehlo.collective_broadcast"(%arg0) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : (tensor<16x8xf32>) -> tensor<16x8xf32>
+  // CHECK: types0 = tensor<16x8xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<16x8xf32>) -> tensor<16x8xindex>
+  func.return %1 : tensor<16x8xindex>
+}
+
+// -----
+
 // CHECK-LABEL: func @collective_permute_c5
 func.func @collective_permute_c5(%arg0: tensor<2x2xi64>) -> tensor<2x2xindex> {
   %0 = "stablehlo.collective_permute"(%arg0) {
