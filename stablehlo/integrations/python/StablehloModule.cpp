@@ -496,7 +496,7 @@ PYBIND11_MODULE(_stablehlo, m) {
          std::vector<MlirAttribute> &args) -> std::vector<MlirAttribute> {
         std::vector<mlir::DenseElementsAttr> inputs;
         for (auto arg : args) {
-          auto attr = unwrap(arg).dyn_cast<mlir::DenseElementsAttr>();
+          auto attr = llvm::dyn_cast<mlir::DenseElementsAttr>(unwrap(arg));
           if (!attr) {
             PyErr_SetString(PyExc_ValueError,
                             "input args must be DenseElementsAttr");

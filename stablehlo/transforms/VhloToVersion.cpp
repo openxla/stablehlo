@@ -112,24 +112,24 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   }
 
   // Recursively check attrs if VHLO attr is a container
-  if (auto arrAttr = attr.dyn_cast<ArrayV1Attr>())
+  if (auto arrAttr = dyn_cast<ArrayV1Attr>(attr))
     return success(llvm::all_of(arrAttr.getValue(), [&](Attribute ele) {
       return succeeded(isLegalAttribute(ele, targetVersion));
     }));
-  if (auto arrAttr = attr.dyn_cast<DictionaryV1Attr>()) {
+  if (auto arrAttr = dyn_cast<DictionaryV1Attr>(attr)) {
     return success(llvm::all_of(
         arrAttr.getValue(), [&](std::pair<Attribute, Attribute> entry) {
           return succeeded(isLegalAttribute(entry.first, targetVersion)) &&
                  succeeded(isLegalAttribute(entry.second, targetVersion));
         }));
   }
-  if (auto floatAttr = attr.dyn_cast<FloatV1Attr>())
+  if (auto floatAttr = dyn_cast<FloatV1Attr>(attr))
     return isLegalType(floatAttr.getType(), targetVersion);
-  if (auto intAttr = attr.dyn_cast<IntegerV1Attr>())
+  if (auto intAttr = dyn_cast<IntegerV1Attr>(attr))
     return isLegalType(intAttr.getType(), targetVersion);
-  if (auto tensorAttr = attr.dyn_cast<TensorV1Attr>())
+  if (auto tensorAttr = dyn_cast<TensorV1Attr>(attr))
     return isLegalType(tensorAttr.getType(), targetVersion);
-  if (auto typeAttr = attr.dyn_cast<TypeV1Attr>())
+  if (auto typeAttr = dyn_cast<TypeV1Attr>(attr))
     return isLegalType(typeAttr.getValue(), targetVersion);
 
   // Is VHLO and valid version, success.
@@ -146,30 +146,30 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
   }
 
   // Recursively check types if VHLO type is a container.
-  if (auto complex = type.dyn_cast<ComplexV1Type>())
+  if (auto complex = dyn_cast<ComplexV1Type>(type))
     return isLegalType(complex.getElementType(), targetVersion);
-  if (auto func = type.dyn_cast<FunctionV1Type>()) {
+  if (auto func = dyn_cast<FunctionV1Type>(type)) {
     auto validateType = [&](Type ele) {
       return succeeded(isLegalType(ele, targetVersion));
     };
     return success(llvm::all_of(func.getInputs(), validateType) &&
                    llvm::all_of(func.getOutputs(), validateType));
   }
-  if (auto ranked = type.dyn_cast<RankedTensorV1Type>()) {
+  if (auto ranked = dyn_cast<RankedTensorV1Type>(type)) {
     auto encoding = ranked.getEncoding();
     if (encoding && failed(isLegalAttribute(encoding, targetVersion)))
       return failure();
     return isLegalType(ranked.getElementType(), targetVersion);
   }
-  if (auto tuple = type.dyn_cast<TupleV1Type>())
+  if (auto tuple = dyn_cast<TupleV1Type>(type))
     return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
       return succeeded(isLegalType(ele, targetVersion));
     }));
-  if (auto quant = type.dyn_cast<UniformQuantizedV1Type>())
+  if (auto quant = dyn_cast<UniformQuantizedV1Type>(type))
     return success(
         succeeded(isLegalType(quant.getStorageType(), targetVersion)) &&
         succeeded(isLegalType(quant.getExpressedType(), targetVersion)));
-  if (auto unranked = type.dyn_cast<UnrankedTensorV1Type>())
+  if (auto unranked = dyn_cast<UnrankedTensorV1Type>(type))
     return isLegalType(unranked.getElementType(), targetVersion);
 
   // Is VHLO and valid version, success.

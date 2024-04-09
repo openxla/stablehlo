@@ -51,7 +51,7 @@ bool isSupportedFloatType(Type type) {
 }
 
 bool isSupportedComplexType(Type type) {
-  auto complexTy = type.dyn_cast<ComplexType>();
+  auto complexTy = dyn_cast<ComplexType>(type);
   if (!complexTy) return false;
 
   auto complexElemTy = complexTy.getElementType();
@@ -60,7 +60,7 @@ bool isSupportedComplexType(Type type) {
 
 int64_t numBits(Type type) {
   if (isSupportedComplexType(type))
-    return numBits(type.cast<ComplexType>().getElementType()) * 2;
+    return numBits(cast<ComplexType>(type).getElementType()) * 2;
   return type.getIntOrFloatBitWidth();
 }
 

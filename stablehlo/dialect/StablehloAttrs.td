@@ -141,7 +141,7 @@ def StableHLO_TypeExtensions : AttrDef<StableHLO_Dialect, "TypeExtensions", [
 // A layout attribute (1D tensor of index type)
 def StableHLO_LayoutAttr : Attr<
   And<[IndexElementsAttr.predicate,
-       CPred<[{$_self.cast<::mlir::DenseIntElementsAttr>().getType().getRank()
+       CPred<[{cast<::mlir::DenseIntElementsAttr>($_self).getType().getRank()
                == 1}]>]>,
   "A 1D tensor of index type (layout)"> {
   let storageType = IndexElementsAttr.storageType;

@@ -84,7 +84,7 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
   if (failed(inferStatus))
     report_fatal_error(invalidArgument("Could not infer PadOp's return type"));
   return evalPadOp(operand, paddingValue, edgePaddingLow, interiorPadding,
-                   inferredTypes[0].cast<ShapedType>());
+                   cast<ShapedType>(inferredTypes[0]));
 }
 
 SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
@@ -127,7 +127,7 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
     report_fatal_error(
         invalidArgument("Could not infer SliceOp's return type"));
   return evalSliceOp(operand, startIndices, strides,
-                     inferredTypes[0].cast<ShapedType>());
+                     cast<ShapedType>(inferredTypes[0]));
 }
 
 SmallVector<InterpreterValue> evalCallOp(ArrayRef<Tensor> inputs,
@@ -752,7 +752,7 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto initValues = scope.findTensors(reduceOp.getInitValues());
       SmallVector<ShapedType> resultTypes;
       for (auto resultType : reduceOp.getResultTypes())
-        resultTypes.push_back(resultType.cast<ShapedType>());
+        resultTypes.push_back(cast<ShapedType>(resultType));
       auto results =
           evalReduceOp(inputs, initValues, Axes(reduceOp.getDimensions()),
                        reduceOp.getBody(), process, scope, resultTypes);
@@ -809,7 +809,7 @@ SmallVector<InterpreterValue> eval(Region &region,
 
       SmallVector<ShapedType> resultTypes;
       for (auto resultType : reduceWindowOp.getResultTypes())
-        resultTypes.push_back(resultType.cast<ShapedType>());
+        resultTypes.push_back(cast<ShapedType>(resultType));
 
       auto results = evalReduceWindowOp(
           inputs, initValues, Sizes(reduceWindowOp.getWindowDimensions()),
@@ -985,7 +985,7 @@ SmallVector<InterpreterValue> eval(Region &region,
       failOnDecomposableOp(op);
     } else if (auto tupleOp = dyn_cast<TupleOp>(op)) {
       auto val = scope.find(tupleOp.getVal());
-      auto result = evalTupleOp(val, tupleOp.getType().cast<TupleType>());
+      auto result = evalTupleOp(val, cast<TupleType>(tupleOp.getType()));
       scope.add(tupleOp.getResult(), result);
     } else if (isa<UnaryEinsumOp>(op)) {
       failOnDecomposableOp(op);
@@ -1362,7 +1362,7 @@ Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
 }
 
 Tensor evalConstantOp(ElementsAttr value) {
-  return makeTensor(value.cast<DenseElementsAttr>());
+  return makeTensor(cast<DenseElementsAttr>(value));
 }
 
 Tensor evalConvertOp(const Tensor &operand, ShapedType resultType) {
@@ -1789,7 +1789,7 @@ Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Process *process,
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     SmallVector<InterpreterValue> args;
     for (size_t i = 0; i < inputs.size(); ++i) {
-      Tensor tensor(computation.getArgument(i).getType().cast<ShapedType>());
+      Tensor tensor(cast<ShapedType>(computation.getArgument(i).getType()));
       tensor.set({}, inputs[i].get(*it));
       args.emplace_back(tensor);
     }

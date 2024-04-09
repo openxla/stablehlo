@@ -21,5 +21,5 @@ MlirType stablehloTokenTypeGet(MlirContext ctx) {
 }
 
 bool stablehloTypeIsAToken(MlirType type) {
-  return unwrap(type).isa<mlir::stablehlo::TokenType>();
+  return llvm::isa<mlir::stablehlo::TokenType>(unwrap(type));
 }

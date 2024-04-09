@@ -100,7 +100,7 @@ ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser& parser,
   if (parser.parseType(type)) return failure();
 
   // Handle if function type, all operand types did not match result type.
-  if (auto fnType = type.dyn_cast<FunctionType>())
+  if (auto fnType = dyn_cast<FunctionType>(type))
     return assignFromFunctionType(parser, loc, operands, result, fnType);
 
   // Handle bare types. ` : type` indicating all input/output types match.
@@ -143,7 +143,7 @@ ParseResult parseTupleOpType(OpAsmParser& parser,
   llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseType(result)) return failure();
 
-  auto tupType = result.dyn_cast<TupleType>();
+  auto tupType = dyn_cast<TupleType>(result);
   if (!tupType) return parser.emitError(loc, "expected tuple type");
 
   // Assign operand types to tuple types
@@ -210,12 +210,12 @@ ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
   if (failed(parser.parseType(type))) return failure();
 
   // Handle if function type, all operand types did not match result type.
-  if (auto fnType = type.dyn_cast<FunctionType>())
+  if (auto fnType = dyn_cast<FunctionType>(type))
     return assignFromFunctionType(parser, loc, {&lhs, &rhs}, result, fnType);
 
   // Otherwise, operand type is inferred from complex type
-  auto shapedType = type.dyn_cast<ShapedType>();
-  if (!shapedType || !shapedType.getElementType().isa<ComplexType>())
+  auto shapedType = dyn_cast<ShapedType>(type);
+  if (!shapedType || !isa<ComplexType>(shapedType.getElementType()))
     return parser.emitError(loc, "expected tensor with complex element type");
 
   // Assign LHS and RHS to inferred type
@@ -302,7 +302,7 @@ static bool isReduceEligibleForCompactPrint(Operation* op, ValueRange inputs,
   LLVM_DEBUG(llvm::dbgs() << "Checking ReduceOp compact print E3\n");
   if (inputs.empty()) return false;
 
-  auto elemType = inputs[0].getType().cast<ShapedType>().getElementType();
+  auto elemType = cast<ShapedType>(inputs[0].getType()).getElementType();
   auto expectedInnerOpType = RankedTensorType::get(/*shape=*/{}, elemType);
   if (innerOp.getOperands()[0].getType() != expectedInnerOpType) return false;
 
@@ -567,8 +567,8 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
 
   // Error handling for invalid types
   // Fail if not two types, or single functional type
-  bool isValidType = (types.size() == 2 ||
-                      (types.size() == 1 && types[0].isa<FunctionType>()));
+  bool isValidType =
+      (types.size() == 2 || (types.size() == 1 && isa<FunctionType>(types[0])));
   if (!isValidType)
     return parser.emitError(loc,
                             "expected functional type or list of two types");
@@ -581,7 +581,7 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
   }
 
   // stablehlo.select %0, %1 : (<op_types> ...) -> <result_type>
-  auto fnType = types[0].cast<FunctionType>();
+  auto fnType = cast<FunctionType>(types[0]);
   return assignFromFunctionType(parser, loc, {&pred, &onTrue, &onFalse}, result,
                                 fnType);
 }
