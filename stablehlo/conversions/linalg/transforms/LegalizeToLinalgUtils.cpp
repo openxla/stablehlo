@@ -77,9 +77,9 @@ Value getEmptyTensorFor(OpBuilder &b, Location loc, ShapedType resultType,
     // Ask the op for its output shape.
     auto shapeSource = cast<InferShapedTypeOpInterface>(op);
     SmallVector<Value, 1> reifiedShapes;
-    assert(succeeded(
-               shapeSource.reifyReturnTypeShapes(b, operands, reifiedShapes)) &&
-           "could not reify");
+    if (failed(shapeSource.reifyReturnTypeShapes(b, operands, reifiedShapes))) {
+      llvm::report_fatal_error("could not reify");
+    }
     assert(reifiedShapes.size() == 1 && "Expected one reified result");
     // Construct sizes for the required dimensions.
     for (const auto &en : llvm::enumerate(resultType.getShape())) {
