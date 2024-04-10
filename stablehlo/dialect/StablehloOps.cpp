@@ -1119,7 +1119,6 @@ mlir::Speculation::Speculatability BitcastConvertOp::getSpeculatability() {
   return mlir::Speculation::Speculatable;
 }
 
-
 //===----------------------------------------------------------------------===//
 // BroadcastOp
 //===----------------------------------------------------------------------===//
