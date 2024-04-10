@@ -2077,6 +2077,19 @@ LogicalResult TransposeOp::inferReturnTypes(
                                adaptor.getPermutation(), inferredReturnTypes);
 }
 
+mlir::Speculation::Speculatability TransposeOp::getSpeculatability() {
+  // This is the same logic as SpeculatableIfStaticDimInOutputIsStaticInInput,
+  // except it accounts for the permutation.
+  auto inputType = getOperand().getType();
+  auto resultType = getType();
+  auto perm = getPermutation();
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(perm[i]))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // TriangularSolveOp
 //===----------------------------------------------------------------------===//
