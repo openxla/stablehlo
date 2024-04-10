@@ -746,7 +746,8 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
 }
 
 def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex",
-    [SameOperandsElementType /*complex_c1*/,
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+    SameOperandsElementType /*complex_c1*/,
     SameOperandsAndResultShape /*complex_c2*/,
     DeclareOpInterfaceMethods<InferTypeOpInterface> /*complex_c3*/]> {
   let summary = "Complex operation";
@@ -1317,7 +1318,7 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
 }
 
 def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
-    [SameOperandsAndResultElementType] /*all_gather_c6*/> {
+    [ConditionallySpeculatable, SameOperandsAndResultElementType] /*all_gather_c6*/> {
   string summary = "AllGather operation";
   string description = [{
     Within each process group in the process grid, concatenates the values of the
@@ -1346,10 +1347,16 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
   );
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
-    [InferTensorType /*all_reduce_c6, all_reduce_c7*/]> {
+    [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
+     InferTensorType /*all_reduce_c6, all_reduce_c7*/]> {
   let summary = "AllReduce operation";
   let description = [{
     Within each process group in the process grid, applies a reduction function
@@ -1384,7 +1391,7 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
   let hasVerifier = 1;
 }
 
-def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter"> {
+def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter", [ConditionallySpeculatable]> {
   let summary = "ReduceScatter operation";
   let description = [{
      Within each process group in the process grid, performs reduction, using
@@ -1419,10 +1426,16 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter"> {
   let regions = (region SizedRegion<1>:$computation /*reduce_scatter_i6*/);
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
-    [SameOperandsAndResultElementType /*all_to_all_c9*/,
+    [ConditionallySpeculatable,
+     SameOperandsAndResultElementType /*all_to_all_c9*/,
      InferTensorType /*all_to_all_c9*/]> {
   let summary = "AllToAll operation";
   let description = [{
@@ -1464,6 +1477,11 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
       "::mlir::IntegerAttr": $concat_dimension,
       "::mlir::IntegerAttr": $split_count,
       "::mlir::DenseIntElementsAttr": $replica_groups)>];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
@@ -1567,7 +1585,9 @@ def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
   }];
 }
 
-def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, Elementwise,
+def StableHLO_CompareOp: StableHLO_Op<"compare",
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+    Elementwise,
     HLO_CompatibleOperandsElementType /*compare_c1*/,
     SameOperandsAndResultShape /*compare_c2*/,
     InferTensorTypeWithReify /*compare_c1, compare_c2*/]> {
@@ -1990,9 +2010,10 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
   }];
 }
 
-def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
-  HLO_CompatibleOperandsAndResultElementType  /* clamp_c3 */, HLO_BroadcastingElementwise,
-  InferTensorType]> {
+def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp",
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+    HLO_CompatibleOperandsAndResultElementType  /* clamp_c3 */, HLO_BroadcastingElementwise,
+    InferTensorType]> {
   let summary = "Clamp operation";
   let description = [{
     Clamps every element of the `operand` tensor between a minimum and maximum
@@ -2058,7 +2079,8 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
 
 def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
-    [HLO_CompatibleOperandsAndResultType,
+    [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
+     HLO_CompatibleOperandsAndResultType,
      SameOperandsAndResultElementType /*collective_broadcast_c3*/]> {
   let summary = "CollectiveBroadcast operation";
   let description = [{
@@ -2094,7 +2116,8 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
 }
 
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
-    [HLO_CompatibleOperandsAndResultType,
+    [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
+     HLO_CompatibleOperandsAndResultType,
      SameOperandsAndResultElementType /*collective_permute_c5*/]> {
   let summary = "CollectivePermute operation";
   let description = [{
@@ -2640,7 +2663,9 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [RecursiveMemoryEffects,
   let hasVerifier = 1;
 }
 
-def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwise,
+def StableHLO_SelectOp: StableHLO_Op<"select",
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+    HLO_BroadcastingElementwise,
     InferTensorTypeWithReify]> {
   let summary = "Select operation";
   let description = [{

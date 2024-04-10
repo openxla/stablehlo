@@ -130,6 +130,24 @@ LogicalResult ReduceScatterOp::verify() {
       channelId, getUseGlobalDeviceIds(), getComputation(), getResult());
 }
 
+mlir::Speculation::Speculatability ReduceScatterOp::getSpeculatability() {
+  auto inputType = getOperand().getType();
+  auto resultType = getResult().getType();
+  auto scatterDim = getScatterDimension();
+  // The actual size of the `scatterDim` depends on the number of processes,
+  // which is only known at runtime. If it is dynamic, there is no expectation,
+  // so there cannot be a mismatch. If it is static, the actual number may
+  // differ at runtime, leading to UB. See scatter_c8 in the spec.
+  if (!resultType.isDynamicDim(scatterDim))
+    return mlir::Speculation::NotSpeculatable;
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (i == scatterDim) continue;
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // CompatibleOperandsAndResultType
 //===----------------------------------------------------------------------===//
@@ -660,8 +678,7 @@ template <typename Op>
 LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
                                SmallVectorImpl<Value>& reifiedReturnShapes) {
   // No support for unranked gather output shape a.t.m.
-  auto resultTy =
-      op->getResult().getType().template dyn_cast<RankedTensorType>();
+  auto resultTy = dyn_cast<RankedTensorType>(op->getResult().getType());
   if (!resultTy) return failure();
 
   typename Op::Adaptor adaptor(operands);
@@ -933,6 +950,25 @@ void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                     /*channel_handle=*/nullptr);
 }
 
+mlir::Speculation::Speculatability AllToAllOp::getSpeculatability() {
+  auto inputType = getOperand().getType();
+  auto resultType = getResult().getType();
+  auto splitDim = getSplitDimension();
+  auto concatDim = getConcatDimension();
+  // The actual size of the `splitDim` and `concatDim` depends on the number
+  // of processes, which is only known at runtime. If it is dynamic, there is
+  // no expectation, so there cannot be a mismatch. If it is static, the actual
+  // number may differ at runtime, leading to UB. See all_to_all_c9 in the spec.
+  if (!resultType.isDynamicDim(splitDim) || !resultType.isDynamicDim(concatDim))
+    return mlir::Speculation::NotSpeculatable;
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (i == splitDim || i == concatDim) continue;
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // AllGatherOp
 //===----------------------------------------------------------------------===//
@@ -945,6 +981,24 @@ LogicalResult AllGatherOp::verify() {
   return hlo::verifyAllGatherOp(getLoc(), getOperand(), getAllGatherDim(),
                                 getReplicaGroups(), channelId,
                                 getUseGlobalDeviceIds(), getResult());
+}
+
+mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
+  auto inputType = getOperand().getType();
+  auto resultType = getResult().getType();
+  auto allGatherDim = getAllGatherDim();
+  // The actual size of the `allGatherDim` depends on the number of processes,
+  // which is only known at runtime. If it is dynamic, there is no expectation,
+  // so there cannot be a mismatch. If it is static, the actual number may
+  // differ at runtime, leading to UB. See all_gather_c6 in the spec.
+  if (!resultType.isDynamicDim(allGatherDim))
+    return mlir::Speculation::NotSpeculatable;
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (i != allGatherDim && !resultType.isDynamicDim(i) &&
+        inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
 }
 
 //===----------------------------------------------------------------------===//
