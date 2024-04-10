@@ -1852,7 +1852,7 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
 }
 
 def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
-    [Pure]> {
+    [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "BitcastConvert operation";
   let description = [{
     Performs a bitcast operation on `operand` tensor and produces a `result`
@@ -1873,6 +1873,11 @@ def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
   let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
