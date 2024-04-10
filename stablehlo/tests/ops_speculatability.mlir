@@ -1179,6 +1179,86 @@ func.func @select(%static_pred: tensor<2xi1>, %dynamic_pred: tensor<?xi1>, %stat
 
 // -----
 
+// Other ops that take 2 or more operands and have additional conditions
+
+// -----
+
+// CHECK-LABEL: func @scatter
+// CHECK-NEXT: return
+func.func @scatter(
+  %static_inputs: tensor<3x4x2xf64>, %static_indices: tensor<2x3x2xi64>, %static_updates: tensor<2x3x2x2xf64>,
+  %dynamic_inputs: tensor<?x?x?xf64>, %dynamic_indices: tensor<?x?x?xi64>, %dynamic_updates: tensor<?x?x?x?xf64>
+) {
+  %recursively_speculatable_0 = "stablehlo.scatter"(%static_inputs, %static_indices, %static_updates) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      stablehlo.return %arg0 : tensor<f64>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [2, 3],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [1, 0],
+      index_vector_dim = 2>,
+    indices_are_sorted = false,
+    unique_indices = false
+  } : (tensor<3x4x2xf64>, tensor<2x3x2xi64>, tensor<2x3x2x2xf64>) -> tensor<?x?x?xf64>
+  %not_speculatable_0 = "stablehlo.scatter"(%static_inputs, %static_indices, %static_updates) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      stablehlo.return %arg0 : tensor<f64>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [2, 3],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [1, 0],
+      index_vector_dim = 2>,
+    indices_are_sorted = false,
+    unique_indices = true
+  } : (tensor<3x4x2xf64>, tensor<2x3x2xi64>, tensor<2x3x2x2xf64>) -> tensor<?x?x?xf64>
+  %not_speculatable_1 = "stablehlo.scatter"(%dynamic_inputs, %static_indices, %static_updates) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      stablehlo.return %arg0 : tensor<f64>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [2, 3],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [1, 0],
+      index_vector_dim = 2>,
+    indices_are_sorted = false,
+    unique_indices = false
+  } : (tensor<?x?x?xf64>, tensor<2x3x2xi64>, tensor<2x3x2x2xf64>) -> tensor<?x?x?xf64>
+  %not_speculatable_2 = "stablehlo.scatter"(%static_inputs, %dynamic_indices, %static_updates) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      stablehlo.return %arg0 : tensor<f64>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [2, 3],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [1, 0],
+      index_vector_dim = 2>,
+    indices_are_sorted = false,
+    unique_indices = false
+  } : (tensor<3x4x2xf64>, tensor<?x?x?xi64>, tensor<2x3x2x2xf64>) -> tensor<?x?x?xf64>
+  %not_speculatable_3 = "stablehlo.scatter"(%static_inputs, %static_indices, %dynamic_updates) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      stablehlo.return %arg0 : tensor<f64>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [2, 3],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [1, 0],
+      index_vector_dim = 2>,
+    indices_are_sorted = false,
+    unique_indices = false
+  } : (tensor<3x4x2xf64>, tensor<2x3x2xi64>, tensor<?x?x?x?xf64>) -> tensor<?x?x?xf64>
+  "hlo_test_speculatability.is_recursively_speculatable"(%recursively_speculatable_0) : (tensor<?x?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<?x?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?x?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?x?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?x?x?xf64>) -> ()
+  return
+}
+
+// -----
+
 // Ops that take an output shape as operand
 
 // -----
