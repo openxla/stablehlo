@@ -39,7 +39,7 @@ build:san-common --config=dbg --strip=never --copt=-O0 --copt=-fno-omit-frame-po
 # Some of this is from "Can I run AddressSanitizer with more aggressive diagnostics enabled?"
 # on https://github.com/google/sanitizers/wiki/AddressSanitizer#faq and some is from
 # https://chromium.googlesource.com/external/github.com/grpc/grpc/+/4e9206f48c91e17f43856b016b12f59dd5118293/tools/bazel.rc
-build:asan --config=san-common 
+build:asan --config=san-common
 build:asan --features=asan
 build:asan --copt=-fsanitize-address-use-after-scope
 # We explicitly disable strict_init_order because LLVM is "hostile to init order"
@@ -47,9 +47,9 @@ build:asan --copt=-fsanitize-address-use-after-scope
 build:asan --action_env=ASAN_OPTIONS=detect_odr_violations=2:detect_leaks=1:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=0
 build:asan --action_env=LSAN_OPTIONS=report_objects=1
 
-build:ubsan --config=san-common 
+build:ubsan --config=san-common
 build:ubsan --features=ubsan
-# This is needed on account of 
+# This is needed on account of
 # https://github.com/bazelbuild/bazel/issues/11122#issuecomment-896613570
 # tl;dr; bazel uses clang and not clang++ to be the driver
 # that discrepenancy causes some issues with ubsan
