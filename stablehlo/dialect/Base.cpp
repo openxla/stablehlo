@@ -625,5 +625,75 @@ mlir::Speculation::Speculatability getShapedSpeculatability(
              : mlir::Speculation::NotSpeculatable;
 }
 
+bool isValidStablehloQuantizedElementType(Type elementType) {
+  auto quantizedElementType = dyn_cast<mlir::quant::QuantizedType>(elementType);
+  if (!quantizedElementType) return false;
+
+  int64_t storageTypeMin = quantizedElementType.getStorageTypeMin();
+  int64_t storageTypeMax = quantizedElementType.getStorageTypeMax();
+
+  SmallVector<int64_t> zeroPoints;
+  SmallVector<double> scales;
+  if (auto quantizedPerTensorElementType =
+          dyn_cast<mlir::quant::UniformQuantizedType>(elementType)) {
+    zeroPoints.push_back(quantizedPerTensorElementType.getZeroPoint());
+    scales.push_back(quantizedPerTensorElementType.getScale());
+  } else {
+    auto quantizedPerAxisElementType =
+        cast<mlir::quant::UniformQuantizedPerAxisType>(elementType);
+    zeroPoints.insert(zeroPoints.begin(),
+                      quantizedPerAxisElementType.getZeroPoints().begin(),
+                      quantizedPerAxisElementType.getZeroPoints().end());
+    scales.insert(scales.begin(),
+                  quantizedPerAxisElementType.getScales().begin(),
+                  quantizedPerAxisElementType.getScales().end());
+  }
+
+  // quantized_type_c5
+  auto maxPosFiniteNum =
+      APFloat::getLargest(quantizedElementType.getExpressedType()
+                              .cast<FloatType>()
+                              .getFloatSemantics())
+          .convertToDouble();
+  auto minPosFiniteNum =
+      APFloat::getSmallest(quantizedElementType.getExpressedType()
+                               .cast<FloatType>()
+                               .getFloatSemantics())
+          .convertToDouble();
+  if (llvm::any_of(scales, [&](double scale) {
+        return scale < minPosFiniteNum || scale > maxPosFiniteNum;
+      })) {
+    return false;
+  }
+
+  // quantized_type_c8, quantized_type_c9
+  if (llvm::any_of(zeroPoints, [&](int64_t zeroPoint) {
+        return storageTypeMin > zeroPoint || zeroPoint > storageTypeMax;
+      })) {
+    return false;
+  }
+
+  return true;
+}
+
+bool isValidQuantizedDimension(Type type) {
+  auto rankedType = dyn_cast<RankedTensorType>(type);
+  if (!rankedType) return true;
+
+  auto quantizedPerAxisElementType =
+      dyn_cast<mlir::quant::UniformQuantizedPerAxisType>(
+          rankedType.getElementType());
+
+  if (!quantizedPerAxisElementType) return true;
+
+  // quantized_type_c12, quantized_type_c13, quantized_type_c14
+  int64_t quantDim = quantizedPerAxisElementType.getQuantizedDimension();
+  return quantDim >= 0 && quantDim < rankedType.getRank() &&
+         (!rankedType.isDynamicDim(quantDim) &&
+          static_cast<int64_t>(
+              quantizedPerAxisElementType.getScales().size()) ==
+              rankedType.getDimSize(quantDim));
+}
+
 }  // namespace hlo
 }  // namespace mlir

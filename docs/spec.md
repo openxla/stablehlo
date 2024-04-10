@@ -207,8 +207,8 @@ constraints:
 * For per-tensor quantization:
   * No additional constraints.
 * For per-axis quantization:
-  * (C12) `quantization_dimension < rank(self)`.
-  * (C13) `dim(self, quantization_dimension) = size(scales)`.
+  * (C13) `quantization_dimension < rank(self)`.
+  * (C14) `dim(self, quantization_dimension) = size(scales)`.
 
 ```ebnf
 TokenType ::= 'token'

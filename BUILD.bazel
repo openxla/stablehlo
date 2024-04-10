@@ -311,6 +311,7 @@ cc_library(
     ],
     strip_include_prefix = ".",
     deps = [
+        ":base",
         ":interpreter_ops_inc_gen",
         ":reference_numpy",
         ":reference_ops",

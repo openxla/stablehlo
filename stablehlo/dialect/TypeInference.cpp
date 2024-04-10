@@ -514,7 +514,7 @@ LogicalResult verifyTransposeOp(std::optional<Location> location,
     if (operandQDim != permutation[resultQDim])
       return emitOptionalError(location, "operand quantization_dimension ",
                                operandQDim, " is not same as permutation[",
-                               resultQDim, "] ", permutation[resultQDim]);
+                               resultQDim, "] = ", permutation[resultQDim]);
   }
   return success();
 }
@@ -3380,9 +3380,9 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
     auto resultQDim = resultQType.getQuantizedDimension();
     if (resultQDim != broadcastDimensions[operandQDim])
       return emitOptionalError(location, "result quantization_dimension ",
-                               resultQDim, " not same as broadcast_dimensions ",
-                               operandQDim, " (",
-                               broadcastDimensions[operandQDim], ")");
+                               resultQDim, " not same as broadcast_dimensions[",
+                               operandQDim,
+                               "] = ", broadcastDimensions[operandQDim]);
     if (operandType.getDimSize(operandQDim) == 1) {
       for (int64_t j = 0; j != resultType.getDimSize(resultQDim); ++j) {
         if (resultQType.getScales()[j] != operandQType.getScales()[0])
