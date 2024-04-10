@@ -552,6 +552,30 @@ func.func @collective_permute(%static_arg: tensor<2x2xf64>, %dynamic_arg: tensor
 
 // -----
 
+// CHECK-LABEL: func @rng_bit_generator
+// CHECK-NEXT:  return
+func.func @rng_bit_generator(%static_arg: tensor<2xui64>, %dynamic_arg: tensor<?xui64>) {
+  %speculatable_0:2 = "stablehlo.rng_bit_generator"(%static_arg) {
+    rng_algorithm = #stablehlo<rng_algorithm THREE_FRY>
+  } : (tensor<2xui64>) -> (tensor<2xui64>, tensor<2x2xui64>)
+  %speculatable_1:2 = "stablehlo.rng_bit_generator"(%static_arg) {
+    rng_algorithm = #stablehlo<rng_algorithm THREE_FRY>
+  } : (tensor<2xui64>) -> (tensor<?xui64>, tensor<2x2xui64>)
+  %not_speculatable_0:2 = "stablehlo.rng_bit_generator"(%dynamic_arg) {
+    rng_algorithm = #stablehlo<rng_algorithm THREE_FRY>
+  } : (tensor<?xui64>) -> (tensor<2xui64>, tensor<2x2xui64>)
+  %speculatable_2:2 = "stablehlo.rng_bit_generator"(%dynamic_arg) {
+    rng_algorithm = #stablehlo<rng_algorithm THREE_FRY>
+  } : (tensor<?xui64>) -> (tensor<?xui64>, tensor<2x2xui64>)
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xui64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xui64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xui64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?xui64>) -> ()
+  return
+}
+
+// -----
+
 // Unary ops with special restrictions
 
 // -----
