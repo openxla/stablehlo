@@ -29,12 +29,9 @@ build --repo_env=CC=clang
 
 # turn on fission https://gcc.gnu.org/wiki/DebugFission
 # this separates the debug information and can improve link times
-build --fission=yes
+build --fission=dbg
 
-build:dbg --compilation_mode=dbg
-build:opt --compilation_mode=opt
-
-build:san-common --config=dbg --strip=never --copt=-O0 --copt=-fno-omit-frame-pointer
+build:san-common --strip=never --copt=-fno-omit-frame-pointer
 
 # Some of this is from "Can I run AddressSanitizer with more aggressive diagnostics enabled?"
 # on https://github.com/google/sanitizers/wiki/AddressSanitizer#faq and some is from
