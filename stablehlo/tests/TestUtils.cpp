@@ -116,6 +116,17 @@ struct IsSpeculatablePattern : public RewritePattern {
   }
 };
 
+struct IsRecursivelySpeculatablePattern : public RewritePattern {
+  explicit IsRecursivelySpeculatablePattern(MLIRContext *context)
+      : RewritePattern("hlo_test_speculatability.is_recursively_speculatable",
+                       1, context) {}
+  LogicalResult matchAndRewrite(Operation *op,
+                                PatternRewriter &rewriter) const override {
+    return checkSpeculatability(rewriter, op,
+                                mlir::Speculation::RecursivelySpeculatable);
+  }
+};
+
 struct IsNotSpeculatablePattern : public RewritePattern {
   explicit IsNotSpeculatablePattern(MLIRContext *context)
       : RewritePattern("hlo_test_speculatability.is_not_speculatable", 1,
@@ -156,6 +167,7 @@ struct HloTestSpeculatabilityPass
     RewritePatternSet patterns_(context);
     patterns_.add<IsSpeculatablePattern>(context);
     patterns_.add<IsNotSpeculatablePattern>(context);
+    patterns_.add<IsRecursivelySpeculatablePattern>(context);
     patterns = std::move(patterns_);
     return success();
   }

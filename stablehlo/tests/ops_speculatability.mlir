@@ -1208,6 +1208,118 @@ func.func @dynamic_iota(%unknown_shape: tensor<2xi32>) {
 
 // -----
 
+// Recursively speculatable ops
+
+// -----
+
+// CHECK-LABEL: func @map
+// CHECK-NEXT: return
+func.func @map(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?xf64>, %arg: tensor<f64>) {
+  %recursively_speculatable_0 = "stablehlo.map"(%static_arg, %static_arg) ({
+    ^bb0(%arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg : tensor<f64>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<2x4xf64>, tensor<2x4xf64>) -> tensor<?x?xf64>
+  %not_speculatable_0 = "stablehlo.map"(%static_arg, %dynamic_arg) ({
+    ^bb0(%arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg : tensor<f64>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<2x4xf64>, tensor<?x?xf64>) -> tensor<?x?xf64>
+  %not_speculatable_1 = "stablehlo.map"(%dynamic_arg, %static_arg) ({
+    ^bb0(%arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg : tensor<f64>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<?x?xf64>, tensor<2x4xf64>) -> tensor<?x?xf64>
+  %not_speculatable_2 = "stablehlo.map"(%dynamic_arg, %dynamic_arg) ({
+    ^bb0(%arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg : tensor<f64>
+  }) {dimensions = array<i64: 0, 1>} : (tensor<?x?xf64>, tensor<?x?xf64>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_recursively_speculatable"(%recursively_speculatable_0) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?x?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @reduce
+// CHECK-NEXT: return
+func.func @reduce(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?xf64>, %init_arg: tensor<f64>) {
+  %recursively_speculatable_0:2 = "stablehlo.reduce"(%static_arg, %static_arg, %init_arg, %init_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg0, %arg0 : tensor<f64>, tensor<f64>
+  }) {dimensions = array<i64: 0>} : (tensor<2x4xf64>, tensor<2x4xf64>, tensor<f64>, tensor<f64>) -> (tensor<?xf64>, tensor<?xf64>)
+  %not_speculatable_0:2 = "stablehlo.reduce"(%dynamic_arg, %static_arg, %init_arg, %init_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg0, %arg0 : tensor<f64>, tensor<f64>
+  }) {dimensions = array<i64: 0>} : (tensor<?x?xf64>, tensor<2x4xf64>, tensor<f64>, tensor<f64>) -> (tensor<?xf64>, tensor<?xf64>)
+  %not_speculatable_1:2 = "stablehlo.reduce"(%static_arg, %dynamic_arg, %init_arg, %init_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg0, %arg0 : tensor<f64>, tensor<f64>
+  }) {dimensions = array<i64: 0>} : (tensor<2x4xf64>, tensor<?x?xf64>, tensor<f64>, tensor<f64>) -> (tensor<?xf64>, tensor<?xf64>)
+  %not_speculatable_2:2 = "stablehlo.reduce"(%dynamic_arg, %dynamic_arg, %init_arg, %init_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg0, %arg0 : tensor<f64>, tensor<f64>
+  }) {dimensions = array<i64: 0>} : (tensor<?x?xf64>, tensor<?x?xf64>, tensor<f64>, tensor<f64>) -> (tensor<?xf64>, tensor<?xf64>)
+  "hlo_test_speculatability.is_recursively_speculatable"(%recursively_speculatable_0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @reduce_window
+// CHECK-NEXT: return
+func.func @reduce_window(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?xf64>, %init_arg: tensor<f64>) {
+  %recursively_speculatable_0:2 = "stablehlo.reduce_window"(%static_arg, %static_arg, %init_arg, %init_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg0, %arg0 : tensor<f64>, tensor<f64>
+    }) {
+    window_dimensions = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>,
+    base_dilations = array<i64: 1, 1>,
+    window_dilations = array<i64: 1, 1>,
+    padding = dense<[[0, 0], [0, 0]]> : tensor<2x2xi64>
+  } : (tensor<2x4xf64>,  tensor<2x4xf64>, tensor<f64>, tensor<f64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  %not_speculatable_0:2 = "stablehlo.reduce_window"(%dynamic_arg, %static_arg, %init_arg, %init_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg0, %arg0 : tensor<f64>, tensor<f64>
+    }) {
+    window_dimensions = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>,
+    base_dilations = array<i64: 1, 1>,
+    window_dilations = array<i64: 1, 1>,
+    padding = dense<[[0, 0], [0, 0]]> : tensor<2x2xi64>
+  } : (tensor<?x?xf64>,  tensor<2x4xf64>, tensor<f64>, tensor<f64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  %not_speculatable_1:2 = "stablehlo.reduce_window"(%static_arg, %dynamic_arg, %init_arg, %init_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg0, %arg0 : tensor<f64>, tensor<f64>
+    }) {
+    window_dimensions = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>,
+    base_dilations = array<i64: 1, 1>,
+    window_dilations = array<i64: 1, 1>,
+    padding = dense<[[0, 0], [0, 0]]> : tensor<2x2xi64>
+  } : (tensor<2x4xf64>,  tensor<?x?xf64>, tensor<f64>, tensor<f64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  %not_speculatable_2:2 = "stablehlo.reduce_window"(%dynamic_arg, %dynamic_arg, %init_arg, %init_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      stablehlo.return %arg0, %arg0 : tensor<f64>, tensor<f64>
+    }) {
+    window_dimensions = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>,
+    base_dilations = array<i64: 1, 1>,
+    window_dilations = array<i64: 1, 1>,
+    padding = dense<[[0, 0], [0, 0]]> : tensor<2x2xi64>
+  } : (tensor<?x?xf64>,  tensor<?x?xf64>, tensor<f64>, tensor<f64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  "hlo_test_speculatability.is_recursively_speculatable"(%recursively_speculatable_0) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?x?xf64>) -> ()
+  return
+}
+
+// -----
+
 // Miscellaneous ops
 
 // -----

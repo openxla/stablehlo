@@ -1485,6 +1485,7 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 }
 
 def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
+      HLO_RecursivelySpeculatableIfAllInputsStatic,
       RecursiveMemoryEffects,
       SameVariadicOperandSize /*reduce_c3*/,
       InferTensorTypeWithReify /*reduce_c7, reduce_c8*/,
@@ -2529,7 +2530,8 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
 }
 
 def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
-      [RecursiveMemoryEffects, SameOperandsAndResultShape /*map_c1, map_c2*/,
+      [HLO_RecursivelySpeculatableIfAllInputsStatic, RecursiveMemoryEffects,
+       SameOperandsAndResultShape /*map_c1, map_c2*/,
        SingleBlockImplicitTerminator<"ReturnOp">, InferTensorTypeWithReify]> {
   let summary = "Map operation";
   let description = [{
@@ -2556,6 +2558,11 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
   );
   let regions = (region SizedRegion<1>:$computation /*map_i3*/);
   let results = (outs HLO_Tensor);
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
@@ -2965,6 +2972,7 @@ def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
 }
 
 def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
+      HLO_RecursivelySpeculatableIfAllInputsStatic,
       RecursiveMemoryEffects,
       SameVariadicOperandSize /*reduce_window_c1*/,
       SingleBlockImplicitTerminator<"ReturnOp">,
