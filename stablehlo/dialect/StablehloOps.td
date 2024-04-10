@@ -746,7 +746,8 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
 }
 
 def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex",
-    [SameOperandsElementType /*complex_c1*/,
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+    SameOperandsElementType /*complex_c1*/,
     SameOperandsAndResultShape /*complex_c2*/,
     DeclareOpInterfaceMethods<InferTypeOpInterface> /*complex_c3*/]> {
   let summary = "Complex operation";
@@ -1584,7 +1585,9 @@ def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
   }];
 }
 
-def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, Elementwise,
+def StableHLO_CompareOp: StableHLO_Op<"compare",
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+    Elementwise,
     HLO_CompatibleOperandsElementType /*compare_c1*/,
     SameOperandsAndResultShape /*compare_c2*/,
     InferTensorTypeWithReify /*compare_c1, compare_c2*/]> {
@@ -2007,9 +2010,10 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
   }];
 }
 
-def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
-  HLO_CompatibleOperandsAndResultElementType  /* clamp_c3 */, HLO_BroadcastingElementwise,
-  InferTensorType]> {
+def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp",
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+    HLO_CompatibleOperandsAndResultElementType  /* clamp_c3 */, HLO_BroadcastingElementwise,
+    InferTensorType]> {
   let summary = "Clamp operation";
   let description = [{
     Clamps every element of the `operand` tensor between a minimum and maximum
@@ -2653,7 +2657,9 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [RecursiveMemoryEffects,
   let hasVerifier = 1;
 }
 
-def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwise,
+def StableHLO_SelectOp: StableHLO_Op<"select",
+    [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+    HLO_BroadcastingElementwise,
     InferTensorTypeWithReify]> {
   let summary = "Select operation";
   let description = [{
