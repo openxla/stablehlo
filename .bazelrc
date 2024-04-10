@@ -63,8 +63,8 @@ build:ubsan --action_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 # Do not build runfile trees by default. If an execution strategy relies on runfile
 # symlink tree, the tree is created on-demand. See: https://github.com/bazelbuild/bazel/issues/6627
 # and https://github.com/bazelbuild/bazel/commit/03246077f948f2790a83520e7dccc2625650e6df
-#build --nobuild_runfile_links
-#test --nobuild_runfile_links
+build --nobuild_runfile_links
+test --nobuild_runfile_links
 
 # https://bazel.build/reference/command-line-reference#flag--legacy_external_runfiles
 build --nolegacy_external_runfiles
