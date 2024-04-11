@@ -2810,8 +2810,8 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
 
 def StableHLO_ReverseOp: StableHLO_ShapedInterfaceOp<"reverse",
       [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput, NoMemoryEffect,
-       HLO_CompatibleOperandsAndResultType,
-       SameOperandsAndResultElementType /*reverse_c1*/]> {
+       SameOperandsAndResultElementType /*reverse_c1*/,
+       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Reverse operation";
   let description = [{
     Reverses the order of elements in the `operand` along the specified
