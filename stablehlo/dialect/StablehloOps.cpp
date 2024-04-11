@@ -1743,14 +1743,13 @@ LogicalResult ReverseOp::verify() {
   return hlo::verifyReverseOp(getLoc(), getOperand(), getDimensions());
 }
 
-LogicalResult ReverseOp::inferReturnTypeComponents(
-    MLIRContext* context, std::optional<Location> location,
-    ValueShapeRange operands, DictionaryAttr attributes,
-    OpaqueProperties properties, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult ReverseOp::inferReturnTypes(
+    MLIRContext* /*context*/, std::optional<Location> location,
+    ValueRange operands, DictionaryAttr attributes, OpaqueProperties properties,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
   ReverseOp::Adaptor adaptor(operands, attributes, properties, regions);
   return hlo::inferReverseOp(location, adaptor.getOperand().getType(),
-                             inferredReturnShapes);
+                             inferredReturnTypes);
 }
 
 LogicalResult ReverseOp::reifyReturnTypeShapes(
