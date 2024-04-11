@@ -170,19 +170,18 @@ LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
     std::optional<Location> location, Type lhsElementType, Type rhsElementType,
     Type resultElementType) {
   // convolution_c28
-  if (!rhsElementType.isa<quant::QuantizedType>() ||
-      (lhsElementType.isa<quant::QuantizedType>() !=
-       resultElementType.isa<quant::QuantizedType>())) {
+  if (!isa<quant::QuantizedType>(rhsElementType) ||
+      (isa<quant::QuantizedType>(lhsElementType) !=
+       isa<quant::QuantizedType>(resultElementType))) {
     return emitOptionalError(
         location,
         "rhs should be quantized for quantized operations and "
         "is_quantized(lhs)=is_quantized(result) should hold");
   }
 
-  auto rhsQuantType = rhsElementType.dyn_cast<quant::QuantizedType>();
-  if (lhsElementType.isa<quant::QuantizedType>()) {
-    auto lhsQuantType = lhsElementType.dyn_cast<quant::QuantizedType>();
-    auto resultQuantType = resultElementType.dyn_cast<quant::QuantizedType>();
+  auto rhsQuantType = cast<quant::QuantizedType>(rhsElementType);
+  if (auto lhsQuantType = dyn_cast<quant::QuantizedType>(lhsElementType)) {
+    auto resultQuantType = cast<quant::QuantizedType>(resultElementType);
     // convolution_c31
     if (lhsQuantType.getStorageType() != rhsQuantType.getStorageType()) {
       return emitOptionalError(
@@ -196,8 +195,8 @@ LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
           "mismatched lhs, rhs and result quantization expressed types");
     }
     // convolution_c33
-    if (rhsQuantType.isa<quant::UniformQuantizedType>() !=
-        resultQuantType.isa<quant::UniformQuantizedType>()) {
+    if (isa<quant::UniformQuantizedType>(rhsQuantType) &&
+        !isa<quant::UniformQuantizedType>(resultQuantType)) {
       return emitOptionalError(
           location, "mismatched rhs and result quantization granularity");
     }
@@ -3587,9 +3586,8 @@ LogicalResult verifyConvolutionOpQuantizationConstraints(
   Type resultElementType = getElementTypeOrSelf(resultType);
 
   // convolution_c29
-  if (rhsElementType.isa<quant::UniformQuantizedPerAxisType>()) {
-    auto rhsPerAxisType =
-        rhsElementType.cast<quant::UniformQuantizedPerAxisType>();
+  if (auto rhsPerAxisType =
+          dyn_cast<quant::UniformQuantizedPerAxisType>(rhsElementType)) {
     if (rhsPerAxisType.getQuantizedDimension() !=
         kernelOutputFeatureDimension) {
       return emitOptionalError(location,
@@ -3599,9 +3597,8 @@ LogicalResult verifyConvolutionOpQuantizationConstraints(
   }
 
   // convolution_c30
-  if (resultElementType.isa<quant::UniformQuantizedPerAxisType>()) {
-    auto resultPerAxisType =
-        resultElementType.cast<quant::UniformQuantizedPerAxisType>();
+  if (auto resultPerAxisType =
+          dyn_cast<quant::UniformQuantizedPerAxisType>(resultElementType)) {
     if (resultPerAxisType.getQuantizedDimension() != outputFeatureDimension) {
       return emitOptionalError(location,
                                "quantization dimension of result should be "

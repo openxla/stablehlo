@@ -1030,14 +1030,14 @@ func.func @convolution_c32(%arg0: tensor<1x4x4x1x!quant.uniform<i8:f16, 4.0:10>>
 
 // -----
 
-func.func @convolution_c33(%arg0: tensor<1x4x4x1x!quant.uniform<i8:f32, 4.0:10>>, %arg1: tensor<3x3x1x1x!quant.uniform<i8:f32:3, {5.0:20}>>) -> tensor<1x4x4x1x!quant.uniform<i8:f32, 3.0:6>> {
+func.func @convolution_c33(%arg0: tensor<1x4x4x1x!quant.uniform<i8:f32, 4.0:10>>, %arg1: tensor<3x3x1x1x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<1x4x4x1x!quant.uniform<i8:f32:3, {3.0:6}>> {
   // expected-error@+1 {{mismatched rhs and result quantization granularity}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
          {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} :
-       (tensor<1x4x4x1x!quant.uniform<i8:f32, 4.0:10>>, tensor<3x3x1x1x!quant.uniform<i8:f32:3, {5.0:20}>>) -> tensor<1x4x4x1x!quant.uniform<i8:f32, 3.0:6>>
-  func.return %0 : tensor<1x4x4x1x!quant.uniform<i8:f32, 3.0:6>>
+       (tensor<1x4x4x1x!quant.uniform<i8:f32, 4.0:10>>, tensor<3x3x1x1x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<1x4x4x1x!quant.uniform<i8:f32:3, {3.0:6}>>
+  func.return %0 : tensor<1x4x4x1x!quant.uniform<i8:f32:3, {3.0:6}>>
 }
 
 // -----
