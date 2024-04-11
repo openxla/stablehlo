@@ -308,8 +308,7 @@ LogicalResult inferReduceWindowOp(
 LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
                                SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferReverseOp(std::optional<Location> location,
-                             Type operandType,
+LogicalResult inferReverseOp(std::optional<Location> location, Type operandType,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferRngOp(

@@ -2753,8 +2753,7 @@ LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
   return success();
 }
 
-LogicalResult inferReverseOp(std::optional<Location> location,
-                             Type operandType,
+LogicalResult inferReverseOp(std::optional<Location> location, Type operandType,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(operandType);
   return success();
