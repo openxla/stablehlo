@@ -2074,8 +2074,10 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
 def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
     [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
-     HLO_CompatibleOperandsAndResultType,
-     SameOperandsAndResultElementType /*collective_broadcast_c3*/]> {
+     SameOperandsAndResultElementType /*collective_broadcast_c3*/,
+     DeclareOpInterfaceMethods<InferTypeOpInterface>,
+     DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>
+    ]> {
   let summary = "CollectiveBroadcast operation";
   let description = [{
     Within each process group in the process grid, send the value of the
@@ -2111,8 +2113,10 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
 
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
     [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
-     HLO_CompatibleOperandsAndResultType,
-     SameOperandsAndResultElementType /*collective_permute_c5*/]> {
+     SameOperandsAndResultElementType, /*collective_permute_c5*/
+     DeclareOpInterfaceMethods<InferTypeOpInterface>,
+     DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>
+    ]> {
   let summary = "CollectivePermute operation";
   let description = [{
     Within each process group in the process grid, sends the value of the

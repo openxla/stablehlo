@@ -157,6 +157,14 @@ LogicalResult inferClampOp(
     std::optional<Location> location, Value min, Value operand, Value max,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferCollectiveBroadcastOp(
+    std::optional<Location>, ValueRange operands,
+    SmallVectorImpl<Type>& inferredReturnTypes);
+
+LogicalResult inferCollectivePermuteOp(
+    std::optional<Location>, ValueRange operands,
+    SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferCompareOp(
     MLIRContext* context, std::optional<Location>, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);

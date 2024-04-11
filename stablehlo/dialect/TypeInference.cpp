@@ -1880,6 +1880,22 @@ LogicalResult inferConvertOp(
   return success();
 }
 
+LogicalResult inferCollectiveBroadcastOp(
+    std::optional<Location>, ValueRange operands,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  for (const auto& resultType : operands.getTypes())
+    inferredReturnTypes.push_back(resultType);
+  return success();
+}
+
+LogicalResult inferCollectivePermuteOp(
+    std::optional<Location>, ValueRange operands,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  for (const auto& resultType : operands.getTypes())
+    inferredReturnTypes.push_back(resultType);
+  return success();
+}
+
 /*
  * We intend to verify the following properties
  *  P1. Verify the input, kernel types.
