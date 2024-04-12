@@ -170,8 +170,6 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Atan2Op)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CbrtOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CeilOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ClzOp)
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CollectiveBroadcastOp)
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CollectivePermuteOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CosineOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CrossReplicaSumOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(DivOp)
@@ -874,6 +872,34 @@ void CollectiveBroadcastOp::build(OpBuilder& odsBuilder,
                                replica_groups, /*channel_handle=*/nullptr);
 }
 
+LogicalResult CollectiveBroadcastOp::inferReturnTypes(
+    MLIRContext* /*context*/, std::optional<Location> location,
+    ValueRange operands, DictionaryAttr attributes, OpaqueProperties properties,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
+  CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
+                                         regions);
+  return hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                         inferredReturnTypes);
+}
+
+LogicalResult CollectiveBroadcastOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SmallVector<Type> inferredReturnTypes;
+  CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
+                                         regions);
+  if (failed(hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                             inferredReturnTypes)))
+    return failure();
+  if (inferredReturnTypes.size() != 1) return failure();
+  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
+  if (!inferredReturnType) return failure();
+  inferredReturnShapes.push_back(inferredReturnType);
+  return success();
+}
+
 LogicalResult CollectiveBroadcastOp::verify() {
   return hlo::verifyCollectiveBroadcastOp(getLoc(), getReplicaGroups());
 }
@@ -887,6 +913,34 @@ void CollectivePermuteOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                                 DenseIntElementsAttr sourceTargetPairs) {
   CollectivePermuteOp::build(odsBuilder, odsState, resultType, operand,
                              sourceTargetPairs, /*channel_handle=*/nullptr);
+}
+
+LogicalResult CollectivePermuteOp::inferReturnTypes(
+    MLIRContext* /*context*/, std::optional<Location> location,
+    ValueRange operands, DictionaryAttr attributes, OpaqueProperties properties,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
+  CollectivePermuteOp::Adaptor adaptor(operands, attributes, properties,
+                                       regions);
+  return hlo::inferCollectivePermuteOp(location, adaptor.getOperands(),
+                                       inferredReturnTypes);
+}
+
+LogicalResult CollectivePermuteOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SmallVector<Type> inferredReturnTypes;
+  CollectivePermuteOp::Adaptor adaptor(operands, attributes, properties,
+                                       regions);
+  if (failed(hlo::inferCollectivePermuteOp(location, adaptor.getOperands(),
+                                           inferredReturnTypes)))
+    return failure();
+  if (inferredReturnTypes.size() != 1) return failure();
+  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
+  if (!inferredReturnType) return failure();
+  inferredReturnShapes.push_back(inferredReturnType);
+  return success();
 }
 
 LogicalResult CollectivePermuteOp::verify() {
@@ -1103,6 +1157,22 @@ LogicalResult BitcastConvertOp::verify() {
   return hlo::verifyBitcastConvertOp(getLoc(), getOperand(), getResult());
 }
 
+mlir::Speculation::Speculatability BitcastConvertOp::getSpeculatability() {
+  // The logic is the same as for the
+  // SpeculatableIfStaticdimInOutputIsStaticInInput trait, except we don't need
+  // to check any "extra" dimension that may result from the difference in bit
+  // width of the input and result. Indeed, the extra dimension can be deduced
+  // from the bit widths.
+  auto inputType = getOperand().getType();
+  auto resultType = getType();
+  auto rank = std::min(inputType.getRank(), resultType.getRank());
+  for (size_t i : llvm::seq(rank)) {
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // BroadcastOp
 //===----------------------------------------------------------------------===//
@@ -1312,6 +1382,22 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   reifiedReturnShapes.push_back(outputShape);
 
   return success();
+}
+
+mlir::Speculation::Speculatability ConcatenateOp::getSpeculatability() {
+  // All operand dimensions must be static, except maybe the concat dim.
+  // If concat dim is dynamic, the corresponding dim in operands can be dynamic,
+  // otherwise it has to be static.
+  auto concatDim = getDimension();
+  bool concatDimDynamic = getType().isDynamicDim(concatDim);
+  for (auto t : getOperandTypes()) {
+    auto rankedT = cast<RankedTensorType>(t);
+    for (uint64_t i : llvm::seq(rankedT.getRank())) {
+      if (i == concatDim && concatDimDynamic) continue;
+      if (rankedT.isDynamicDim(i)) return mlir::Speculation::NotSpeculatable;
+    }
+  }
+  return mlir::Speculation::Speculatable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1701,14 +1787,13 @@ LogicalResult ReverseOp::verify() {
   return hlo::verifyReverseOp(getLoc(), getOperand(), getDimensions());
 }
 
-LogicalResult ReverseOp::inferReturnTypeComponents(
-    MLIRContext* context, std::optional<Location> location,
-    ValueShapeRange operands, DictionaryAttr attributes,
-    OpaqueProperties properties, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult ReverseOp::inferReturnTypes(
+    MLIRContext* /*context*/, std::optional<Location> location,
+    ValueRange operands, DictionaryAttr attributes, OpaqueProperties properties,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
   ReverseOp::Adaptor adaptor(operands, attributes, properties, regions);
   return hlo::inferReverseOp(location, adaptor.getOperand().getType(),
-                             inferredReturnShapes);
+                             inferredReturnTypes);
 }
 
 LogicalResult ReverseOp::reifyReturnTypeShapes(
@@ -2087,6 +2172,19 @@ LogicalResult TransposeOp::inferReturnTypes(
   TransposeOp::Adaptor adaptor(operands, attributes, properties, regions);
   return hlo::inferTransposeOp(loc, adaptor.getOperand(),
                                adaptor.getPermutation(), inferredReturnTypes);
+}
+
+mlir::Speculation::Speculatability TransposeOp::getSpeculatability() {
+  // This is the same logic as SpeculatableIfStaticDimInOutputIsStaticInInput,
+  // except it accounts for the permutation.
+  auto inputType = getOperand().getType();
+  auto resultType = getType();
+  auto perm = getPermutation();
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(perm[i]))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
 }
 
 //===----------------------------------------------------------------------===//
