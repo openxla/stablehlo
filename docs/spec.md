@@ -5064,7 +5064,7 @@ The following diagram shows how elements in `result` are computed from
 More formally:
 
 * `selected_values = reduce_window_without_init(...)` with the following inputs:
-  * `inputs = [operand].
+  * `inputs = [operand].`
   * `window_dimensions`, `window_strides`, and `padding` which are used as is.
   * `base_dilations = windows_dilations = 1`.
   * `body` is defined as:
