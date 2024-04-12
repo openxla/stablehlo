@@ -38,6 +38,7 @@ def StableHLO_Dialect : Dialect {
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
+  let usePropertiesForAttributes = 0;
 }
 
 class StableHLO_Op<string mnemonic, list<Trait> traits = []> :
@@ -1485,6 +1486,7 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 }
 
 def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
+      HLO_RecursivelySpeculatableIfAllInputsStatic,
       RecursiveMemoryEffects,
       SameVariadicOperandSize /*reduce_c3*/,
       InferTensorTypeWithReify /*reduce_c7, reduce_c8*/,
@@ -1852,7 +1854,7 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
 }
 
 def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
-    [Pure]> {
+    [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "BitcastConvert operation";
   let description = [{
     Performs a bitcast operation on `operand` tensor and produces a `result`
@@ -1873,6 +1875,11 @@ def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
   let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
@@ -2042,7 +2049,8 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp",
 }
 
 def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
-    [Pure, SameOperandsAndResultElementType /*concatenate_c1, concatenate_c3, concatenate_c5*/,
+    [ConditionallySpeculatable, NoMemoryEffect,
+     SameOperandsAndResultElementType /*concatenate_c1, concatenate_c3, concatenate_c5*/,
      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Concatenate operation";
   let description = [{
@@ -2069,13 +2077,20 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
   let assemblyFormat = [{
      custom<VariadicOperandWithAttribute>($inputs) `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
   }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 
 def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
     [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
-     HLO_CompatibleOperandsAndResultType,
-     SameOperandsAndResultElementType /*collective_broadcast_c3*/]> {
+     SameOperandsAndResultElementType /*collective_broadcast_c3*/,
+     DeclareOpInterfaceMethods<InferTypeOpInterface>,
+     DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>
+    ]> {
   let summary = "CollectiveBroadcast operation";
   let description = [{
     Within each process group in the process grid, send the value of the
@@ -2111,8 +2126,10 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
 
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
     [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
-     HLO_CompatibleOperandsAndResultType,
-     SameOperandsAndResultElementType /*collective_permute_c5*/]> {
+     SameOperandsAndResultElementType, /*collective_permute_c5*/
+     DeclareOpInterfaceMethods<InferTypeOpInterface>,
+     DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>
+    ]> {
   let summary = "CollectivePermute operation";
   let description = [{
     Within each process group in the process grid, sends the value of the
@@ -2536,7 +2553,8 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
 }
 
 def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
-      [RecursiveMemoryEffects, SameOperandsAndResultShape /*map_c1, map_c2*/,
+      [HLO_RecursivelySpeculatableIfAllInputsStatic, RecursiveMemoryEffects,
+       SameOperandsAndResultShape /*map_c1, map_c2*/,
        SingleBlockImplicitTerminator<"ReturnOp">, InferTensorTypeWithReify]> {
   let summary = "Map operation";
   let description = [{
@@ -2563,6 +2581,11 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
   );
   let regions = (region SizedRegion<1>:$computation /*map_i3*/);
   let results = (outs HLO_Tensor);
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
@@ -2813,8 +2836,8 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
 
 def StableHLO_ReverseOp: StableHLO_ShapedInterfaceOp<"reverse",
       [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput, NoMemoryEffect,
-       HLO_CompatibleOperandsAndResultType,
-       SameOperandsAndResultElementType /*reverse_c1*/]> {
+       SameOperandsAndResultElementType /*reverse_c1*/,
+       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Reverse operation";
   let description = [{
     Reverses the order of elements in the `operand` along the specified
@@ -2905,7 +2928,8 @@ def StableHLO_TraceOp: StableHLO_Op<"trace"> {
 }
 
 def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
-      [Pure, HLO_CompatibleOperandsAndResultElementType, /*transpose_c1*/
+      [Pure,
+      HLO_CompatibleOperandsAndResultElementType, /*transpose_c1*/
       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Transpose operation";
   let description = [{
@@ -2931,6 +2955,11 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
   let assemblyFormat = [{
     $operand `,` `dims` `=` $permutation
       attr-dict `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
   }];
 }
 
@@ -2972,6 +3001,7 @@ def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
 }
 
 def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
+      HLO_RecursivelySpeculatableIfAllInputsStatic,
       RecursiveMemoryEffects,
       SameVariadicOperandSize /*reduce_window_c1*/,
       SingleBlockImplicitTerminator<"ReturnOp">,
@@ -3177,7 +3207,9 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
   }];
 }
 
-def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
+def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator",
+    [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
+     NoMemoryEffect]> {
   let summary = "RngBitGenerator operation";
   let description = [{
     Returns an `output` filled with uniform random data and an updated output
