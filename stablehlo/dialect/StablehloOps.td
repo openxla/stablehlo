@@ -2641,7 +2641,8 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 }
 
-def StableHLO_ScatterOp: StableHLO_Op<"scatter", [RecursiveMemoryEffects,
+def StableHLO_ScatterOp: StableHLO_Op<"scatter",
+      [ConditionallySpeculatable, RecursiveMemoryEffects,
       SameVariadicOperandSize /*scatter_c5*/,
       DeclareOpInterfaceMethods<InferTypeOpInterface> /*scatter_c16,
       scater_c17*/]> {
@@ -2685,6 +2686,11 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [RecursiveMemoryEffects,
   let results = (outs Variadic<HLO_Tensor>);
 
   let hasVerifier = 1;
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_SelectOp: StableHLO_Op<"select",

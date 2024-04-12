@@ -2334,6 +2334,22 @@ LogicalResult ScatterOp::verify() {
       getScatterDimensionNumbers().getIndexVectorDim(), getUpdateComputation());
 }
 
+mlir::Speculation::Speculatability ScatterOp::getSpeculatability() {
+  // When unique_indices is true, if the scatter_indices are not unique, the
+  // behavior is undefined.
+  // A possible improvement would be to check if the scatter_indices are
+  // constant and if so, check if they are unique/sorted, and if so do not
+  // return NotSpeculatable. However, such a check could be somewhat costly and
+  // has unclear ROI.
+  if (getUniqueIndices() || getIndicesAreSorted())
+    return mlir::Speculation::NotSpeculatable;
+  return llvm::all_of(
+             this->getOperation()->getOperandTypes(),
+             [](Type t) { return cast<RankedTensorType>(t).hasStaticShape(); })
+             ? mlir::Speculation::RecursivelySpeculatable
+             : mlir::Speculation::NotSpeculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // WhileOp
 //===----------------------------------------------------------------------===//
