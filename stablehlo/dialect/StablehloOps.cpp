@@ -744,8 +744,9 @@ LogicalResult GatherOp::inferReturnTypeComponents(
 mlir::Speculation::Speculatability GatherOp::getSpeculatability() {
   // When indices_are_sorted is true, if the start_indices are not sorted, the
   // behavior is undefined.
-  // TODO: check if the start_indices are constant and if they are sorted,
-  // do not return NotSpeculatable.
+  // A possible improvement would be to check if the start_indices are constant
+  // and if they are sorted, do not return NotSpeculatable. However, such a check
+  // could be somewhat costly and has unclear ROI.
   if (getIndicesAreSorted()) return mlir::Speculation::NotSpeculatable;
   return llvm::all_of(
              this->getOperation()->getOperandTypes(),
