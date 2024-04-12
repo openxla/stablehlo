@@ -3200,7 +3200,9 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
   }];
 }
 
-def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
+def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator",
+    [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
+     NoMemoryEffect]> {
   let summary = "RngBitGenerator operation";
   let description = [{
     Returns an `output` filled with uniform random data and an updated output
