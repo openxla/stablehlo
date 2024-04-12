@@ -1501,6 +1501,18 @@ LogicalResult MapOp::reifyReturnTypeShapes(
                                      &reifiedReturnShapes);
 }
 
+mlir::Speculation::Speculatability MapOp::getSpeculatability() {
+  // If any dimension of any operand is dynamic, it could disagree with the
+  // others at runtime, so the op is not speculatable. If all the operands are
+  // statically shaped, whether the op is speculatable or not depends on what
+  // ops are in the op's body.
+  return llvm::all_of(
+             this->getOperation()->getOperandTypes(),
+             [](Type t) { return cast<RankedTensorType>(t).hasStaticShape(); })
+             ? mlir::Speculation::RecursivelySpeculatable
+             : mlir::Speculation::NotSpeculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // OutfeedOp
 //===----------------------------------------------------------------------===//

@@ -348,4 +348,14 @@ def HLO_SpeculatableIfAllInputsStaticImplTrait
 def HLO_SpeculatableIfAllInputsStatic : TraitList<[
     ConditionallySpeculatable, HLO_SpeculatableIfAllInputsStaticImplTrait]>;
 
+def HLO_RecursivelySpeculatableIfAllInputsStaticImplTrait
+  : HLO_NativeOpTrait<"RecursivelySpeculatableIfAllInputsStaticImplTrait">;
+
+// This trait is the same as HLO_SpeculatableIfAllInputsStatic, but for ops that
+// have regions. If all the inputs are static, such an op is
+// RecursivelySpeculatable (the ops in its regions have to be checked for
+// speculatability).
+def HLO_RecursivelySpeculatableIfAllInputsStatic : TraitList<[
+    ConditionallySpeculatable, HLO_RecursivelySpeculatableIfAllInputsStaticImplTrait]>;
+
 #endif // STABLEHLO_DIALECT_BASE

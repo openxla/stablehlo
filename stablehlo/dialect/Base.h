@@ -435,6 +435,20 @@ struct SpeculatableIfAllInputsStaticImplTrait
   }
 };
 
+template <typename ConcreteType>
+struct RecursivelySpeculatableIfAllInputsStaticImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType, RecursivelySpeculatableIfAllInputsStaticImplTrait> {
+  mlir::Speculation::Speculatability getSpeculatability() {
+    return llvm::all_of(this->getOperation()->getOperandTypes(),
+                        [](Type t) {
+                          return cast<RankedTensorType>(t).hasStaticShape();
+                        })
+               ? mlir::Speculation::RecursivelySpeculatable
+               : mlir::Speculation::NotSpeculatable;
+  }
+};
+
 }  // namespace OpTrait
 }  // namespace hlo
 }  // namespace mlir
