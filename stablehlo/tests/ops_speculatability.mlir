@@ -1244,6 +1244,112 @@ func.func @select(%static_pred: tensor<2xi1>, %dynamic_pred: tensor<?xi1>, %stat
 
 // -----
 
+// CHECK-LABEL: func @concatenate
+// CHECK-NEXT: return
+func.func @concatenate(%static_arg: tensor<2x2xi64>, %first_dim_dynamic: tensor<?x2xi64>, %second_dim_dynamic: tensor<2x?xi64>, %dynamic_arg: tensor<?x?xi64>) {
+  %speculatable_0 = stablehlo.concatenate %static_arg, %static_arg, dim = 0 : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<?x?xi64>
+  %speculatable_1 = stablehlo.concatenate %static_arg, %static_arg, dim = 1 : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<?x?xi64>
+  %speculatable_2 = stablehlo.concatenate %static_arg, %first_dim_dynamic, dim = 0 : (tensor<2x2xi64>, tensor<?x2xi64>) -> tensor<?x?xi64>
+  %speculatable_3 = stablehlo.concatenate %second_dim_dynamic, %static_arg, dim = 1 : (tensor<2x?xi64>, tensor<2x2xi64>) -> tensor<?x?xi64>
+
+  %speculatable_4 = stablehlo.concatenate %static_arg, %static_arg, dim = 0 : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<4x2xi64>
+  %speculatable_5 = stablehlo.concatenate %static_arg, %static_arg, dim = 1 : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<2x4xi64>
+  %not_speculatable_0 = stablehlo.concatenate %static_arg, %first_dim_dynamic, dim = 0 : (tensor<2x2xi64>, tensor<?x2xi64>) -> tensor<4x2xi64>
+  %not_speculatable_1 = stablehlo.concatenate %second_dim_dynamic, %static_arg, dim = 1 : (tensor<2x?xi64>, tensor<2x2xi64>) -> tensor<2x4xi64>
+
+  %speculatable_6 = stablehlo.concatenate %first_dim_dynamic, %first_dim_dynamic, dim = 0 : (tensor<?x2xi64>, tensor<?x2xi64>) -> tensor<?x?xi64>
+  %not_speculatable_2 = stablehlo.concatenate %first_dim_dynamic, %first_dim_dynamic, dim = 0 : (tensor<?x2xi64>, tensor<?x2xi64>) -> tensor<4x?xi64>
+  %not_speculatable_3 = stablehlo.concatenate %first_dim_dynamic, %first_dim_dynamic, dim = 1 : (tensor<?x2xi64>, tensor<?x2xi64>) -> tensor<?x?xi64>
+
+  %not_speculatable_4 = stablehlo.concatenate %second_dim_dynamic, %second_dim_dynamic, dim = 0 : (tensor<2x?xi64>, tensor<2x?xi64>) -> tensor<?x?xi64>
+  %not_speculatable_5 = stablehlo.concatenate %second_dim_dynamic, %second_dim_dynamic, dim = 1 : (tensor<2x?xi64>, tensor<2x?xi64>) -> tensor<?x4xi64>
+  %speculatable_7 = stablehlo.concatenate %second_dim_dynamic, %second_dim_dynamic, dim = 1 : (tensor<2x?xi64>, tensor<2x?xi64>) -> tensor<?x?xi64>
+
+  %not_speculatable_6 = stablehlo.concatenate %dynamic_arg, %dynamic_arg, dim = 0 : (tensor<?x?xi64>, tensor<?x?xi64>) -> tensor<?x?xi64>
+  %not_speculatable_7 = stablehlo.concatenate %dynamic_arg, %dynamic_arg, dim = 1 : (tensor<?x?xi64>, tensor<?x?xi64>) -> tensor<?x?xi64>
+
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<?x?xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?x?xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?x?xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_3) : (tensor<?x?xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_4) : (tensor<4x2xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_5) : (tensor<2x4xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_6) : (tensor<?x?xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_7) : (tensor<?x?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<4x2xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<2x4xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<4x?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?x?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<?x?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?x4xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_6) : (tensor<?x?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_7) : (tensor<?x?xi64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @gather
+// CHECK-NEXT: return
+func.func @gather(
+  %static_arg: tensor<3x4x2xi32>, %static_indices: tensor<2x3x2xi64>,
+  %dynamic_arg: tensor<?x?x?xi32>, %dynamic_indices: tensor<?x?x?xi64>
+) {
+  %speculatable_0 = "stablehlo.gather"(%static_arg, %static_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = false
+  } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<?x?x?x?xi32>
+  %not_speculatable_0 = "stablehlo.gather"(%static_arg, %static_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = true
+  } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<?x?x?x?xi32>
+  %not_speculatable_1 = "stablehlo.gather"(%dynamic_arg, %static_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = true
+  } : (tensor<?x?x?xi32>, tensor<2x3x2xi64>) -> tensor<?x?x?x?xi32>
+  %not_speculatable_2 = "stablehlo.gather"(%static_arg, %dynamic_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = true
+  } : (tensor<3x4x2xi32>, tensor<?x?x?xi64>) -> tensor<?x?x?x?xi32>
+  %not_speculatable_3 = "stablehlo.gather"(%dynamic_arg, %dynamic_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = true
+  } : (tensor<?x?x?xi32>, tensor<?x?x?xi64>) -> tensor<?x?x?x?xi32>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<?x?x?x?xi32>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<?x?x?x?xi32>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?x?x?x?xi32>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?x?x?x?xi32>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?x?x?x?xi32>) -> ()
+  return
+}
+
+// -----
+
 // CHECK-LABEL: func @scatter
 // CHECK-NEXT: return
 func.func @scatter(
@@ -1328,51 +1434,6 @@ func.func @scatter(
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?x?x?xf64>) -> ()
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?x?x?xf64>) -> ()
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<?x?x?xf64>) -> ()
-  return
-}
-
-// -----
-
-// CHECK-LABEL: func @concatenate
-// CHECK-NEXT: return
-func.func @concatenate(%static_arg: tensor<2x2xi64>, %first_dim_dynamic: tensor<?x2xi64>, %second_dim_dynamic: tensor<2x?xi64>, %dynamic_arg: tensor<?x?xi64>) {
-  %speculatable_0 = stablehlo.concatenate %static_arg, %static_arg, dim = 0 : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<?x?xi64>
-  %speculatable_1 = stablehlo.concatenate %static_arg, %static_arg, dim = 1 : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<?x?xi64>
-  %speculatable_2 = stablehlo.concatenate %static_arg, %first_dim_dynamic, dim = 0 : (tensor<2x2xi64>, tensor<?x2xi64>) -> tensor<?x?xi64>
-  %speculatable_3 = stablehlo.concatenate %second_dim_dynamic, %static_arg, dim = 1 : (tensor<2x?xi64>, tensor<2x2xi64>) -> tensor<?x?xi64>
-
-  %speculatable_4 = stablehlo.concatenate %static_arg, %static_arg, dim = 0 : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<4x2xi64>
-  %speculatable_5 = stablehlo.concatenate %static_arg, %static_arg, dim = 1 : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<2x4xi64>
-  %not_speculatable_0 = stablehlo.concatenate %static_arg, %first_dim_dynamic, dim = 0 : (tensor<2x2xi64>, tensor<?x2xi64>) -> tensor<4x2xi64>
-  %not_speculatable_1 = stablehlo.concatenate %second_dim_dynamic, %static_arg, dim = 1 : (tensor<2x?xi64>, tensor<2x2xi64>) -> tensor<2x4xi64>
-
-  %speculatable_6 = stablehlo.concatenate %first_dim_dynamic, %first_dim_dynamic, dim = 0 : (tensor<?x2xi64>, tensor<?x2xi64>) -> tensor<?x?xi64>
-  %not_speculatable_2 = stablehlo.concatenate %first_dim_dynamic, %first_dim_dynamic, dim = 0 : (tensor<?x2xi64>, tensor<?x2xi64>) -> tensor<4x?xi64>
-  %not_speculatable_3 = stablehlo.concatenate %first_dim_dynamic, %first_dim_dynamic, dim = 1 : (tensor<?x2xi64>, tensor<?x2xi64>) -> tensor<?x?xi64>
-
-  %not_speculatable_4 = stablehlo.concatenate %second_dim_dynamic, %second_dim_dynamic, dim = 0 : (tensor<2x?xi64>, tensor<2x?xi64>) -> tensor<?x?xi64>
-  %not_speculatable_5 = stablehlo.concatenate %second_dim_dynamic, %second_dim_dynamic, dim = 1 : (tensor<2x?xi64>, tensor<2x?xi64>) -> tensor<?x4xi64>
-  %speculatable_7 = stablehlo.concatenate %second_dim_dynamic, %second_dim_dynamic, dim = 1 : (tensor<2x?xi64>, tensor<2x?xi64>) -> tensor<?x?xi64>
-
-  %not_speculatable_6 = stablehlo.concatenate %dynamic_arg, %dynamic_arg, dim = 0 : (tensor<?x?xi64>, tensor<?x?xi64>) -> tensor<?x?xi64>
-  %not_speculatable_7 = stablehlo.concatenate %dynamic_arg, %dynamic_arg, dim = 1 : (tensor<?x?xi64>, tensor<?x?xi64>) -> tensor<?x?xi64>
-
-  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<?x?xi64>) -> ()
-  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?x?xi64>) -> ()
-  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?x?xi64>) -> ()
-  "hlo_test_speculatability.is_speculatable"(%speculatable_3) : (tensor<?x?xi64>) -> ()
-  "hlo_test_speculatability.is_speculatable"(%speculatable_4) : (tensor<4x2xi64>) -> ()
-  "hlo_test_speculatability.is_speculatable"(%speculatable_5) : (tensor<2x4xi64>) -> ()
-  "hlo_test_speculatability.is_speculatable"(%speculatable_6) : (tensor<?x?xi64>) -> ()
-  "hlo_test_speculatability.is_speculatable"(%speculatable_7) : (tensor<?x?xi64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<4x2xi64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<2x4xi64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<4x?xi64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?x?xi64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<?x?xi64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<?x4xi64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_6) : (tensor<?x?xi64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_7) : (tensor<?x?xi64>) -> ()
   return
 }
 
@@ -1514,6 +1575,46 @@ func.func @reduce_window(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?x
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<?x?xf64>) -> ()
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?x?xf64>) -> ()
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?x?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @sort
+// CHECK-NEXT: return
+func.func @sort(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?xf64>) {
+  %recursively_speculatable_0:2 = "stablehlo.sort"(%static_arg, %static_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      %predicate = "stablehlo.compare"(%arg0, %arg1) {
+        comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<f64>, tensor<f64>) -> tensor<i1>
+      stablehlo.return %predicate : tensor<i1>
+  }) {dimension = 0 : i64, is_stable = true} : (tensor<2x4xf64>, tensor<2x4xf64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  %not_recursively_speculatable_0:2 = "stablehlo.sort"(%dynamic_arg, %static_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      %predicate = "stablehlo.compare"(%arg0, %arg1) {
+        comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<f64>, tensor<f64>) -> tensor<i1>
+      stablehlo.return %predicate : tensor<i1>
+  }) {dimension = 0 : i64, is_stable = true} : (tensor<?x?xf64>, tensor<2x4xf64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  %not_recursively_speculatable_1:2 = "stablehlo.sort"(%static_arg, %dynamic_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      %predicate = "stablehlo.compare"(%arg0, %arg1) {
+        comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<f64>, tensor<f64>) -> tensor<i1>
+      stablehlo.return %predicate : tensor<i1>
+  }) {dimension = 0 : i64, is_stable = true} : (tensor<2x4xf64>, tensor<?x?xf64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  %not_recursively_speculatable_2:2 = "stablehlo.sort"(%dynamic_arg, %dynamic_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      %predicate = "stablehlo.compare"(%arg0, %arg1) {
+        comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<f64>, tensor<f64>) -> tensor<i1>
+      stablehlo.return %predicate : tensor<i1>
+  }) {dimension = 0 : i64, is_stable = true} : (tensor<?x?xf64>, tensor<?x?xf64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  "hlo_test_speculatability.is_recursively_speculatable"(%recursively_speculatable_0) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_recursively_speculatable_0) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_recursively_speculatable_1) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_recursively_speculatable_2) : (tensor<?x?xf64>) -> ()
   return
 }
 

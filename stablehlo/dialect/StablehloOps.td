@@ -2482,8 +2482,10 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   }];
 }
 
-def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify /*gather_c13*/,
-    AllElementTypesMatch<["operand", "result"]> /*gather_c14*/, Pure]> {
+def StableHLO_GatherOp: StableHLO_Op<"gather",
+    [ConditionallySpeculatable, NoMemoryEffect,
+    InferTensorTypeWithReify /*gather_c13*/,
+    AllElementTypesMatch<["operand", "result"]> /*gather_c14*/]> {
   let summary = "Gather operation";
   let description = [{
     Gathers slices from `operand` tensor from offsets specified in
@@ -2515,6 +2517,11 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify /*gathe
   );
 
   let results = (outs HLO_Tensor:$result);
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
@@ -2794,7 +2801,8 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
 }
 
 def StableHLO_SortOp : StableHLO_Op<"sort",
-      [RecursiveMemoryEffects, SameOperandsAndResultShape /*sort_c1, sort_c3*/,
+      [HLO_RecursivelySpeculatableIfAllInputsStatic, RecursiveMemoryEffects,
+      SameOperandsAndResultShape /*sort_c1, sort_c3*/,
       InferTensorType /*sort_c2*/]> {
   let summary = "Sort operation";
   let description = [{
