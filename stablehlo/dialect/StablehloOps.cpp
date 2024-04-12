@@ -1157,6 +1157,22 @@ LogicalResult BitcastConvertOp::verify() {
   return hlo::verifyBitcastConvertOp(getLoc(), getOperand(), getResult());
 }
 
+mlir::Speculation::Speculatability BitcastConvertOp::getSpeculatability() {
+  // The logic is the same as for the
+  // SpeculatableIfStaticdimInOutputIsStaticInInput trait, except we don't need
+  // to check any "extra" dimension that may result from the difference in bit
+  // width of the input and result. Indeed, the extra dimension can be deduced
+  // from the bit widths.
+  auto inputType = getOperand().getType();
+  auto resultType = getType();
+  auto rank = std::min(inputType.getRank(), resultType.getRank());
+  for (size_t i : llvm::seq(rank)) {
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // BroadcastOp
 //===----------------------------------------------------------------------===//

@@ -1410,6 +1410,46 @@ func.func @reduce_window(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?x
 
 // -----
 
+// CHECK-LABEL: func @bitcast_convert
+// CHECK-NEXT:  return
+func.func @bitcast_convert(
+  %static_arg_64: tensor<2xi64>, %dynamic_arg_64: tensor<?xi64>,
+  %static_arg_32: tensor<2x?xi32>, %dynamic_arg_32: tensor<?x?xi32>
+) {
+  %speculatable_0 = stablehlo.bitcast_convert %static_arg_64 : (tensor<2xi64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.bitcast_convert %static_arg_64 : (tensor<2xi64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.bitcast_convert %dynamic_arg_64 : (tensor<?xi64>) -> tensor<2xf64>
+  %speculatable_2 = stablehlo.bitcast_convert %dynamic_arg_64 : (tensor<?xi64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?xf64>) -> ()
+
+  %speculatable_3 = stablehlo.bitcast_convert %static_arg_64 : (tensor<2xi64>) -> tensor<2x?xi32>
+  %speculatable_4 = stablehlo.bitcast_convert %static_arg_64 : (tensor<2xi64>) -> tensor<?x?xi32>
+  %not_speculatable_1 = stablehlo.bitcast_convert %dynamic_arg_64 : (tensor<?xi64>) -> tensor<2x?xi32>
+  %speculatable_5 = stablehlo.bitcast_convert %dynamic_arg_64 : (tensor<?xi64>) -> tensor<?x?xi32>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_3) : (tensor<2x?xi32>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_4) : (tensor<?x?xi32>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<2x?xi32>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_5) : (tensor<?x?xi32>) -> ()
+
+  %speculatable_6 = stablehlo.bitcast_convert %static_arg_32 : (tensor<2x?xi32>) -> tensor<2xi64>
+  %speculatable_7 = stablehlo.bitcast_convert %static_arg_32 : (tensor<2x?xi32>) -> tensor<?xi64>
+  %not_speculatable_2 = stablehlo.bitcast_convert %dynamic_arg_32 : (tensor<?x?xi32>) -> tensor<2xi64>
+  %speculatable_8 = stablehlo.bitcast_convert %dynamic_arg_32 : (tensor<?x?xi32>) -> tensor<?xi64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_6) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_7) : (tensor<?xi64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<2xi64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_8) : (tensor<?xi64>) -> ()
+
+  %speculatable_9 = stablehlo.bitcast_convert %static_arg_64 : (tensor<2xi64>) -> tensor<2x2xi32>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_9) : (tensor<2x2xi32>) -> ()
+  return
+}
+
+// -----
+
 // CHECK-LABEL: func @reshape
 // CHECK-NEXT:  return
 func.func @reshape(
