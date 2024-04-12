@@ -1368,6 +1368,22 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   return success();
 }
 
+mlir::Speculation::Speculatability ConcatenateOp::getSpeculatability() {
+  // All operand dimensions must be static, except maybe the concat dim.
+  // If concat dim is dynamic, the corresponding dim in operands can be dynamic,
+  // otherwise it has to be static.
+  auto concatDim = getDimension();
+  bool concatDimDynamic = getType().isDynamicDim(concatDim);
+  for (auto t : getOperandTypes()) {
+    auto rankedT = cast<RankedTensorType>(t);
+    for (uint64_t i : llvm::seq(rankedT.getRank())) {
+      if (i == concatDim && concatDimDynamic) continue;
+      if (rankedT.isDynamicDim(i)) return mlir::Speculation::NotSpeculatable;
+    }
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // DynamicReshapeOp
 //===----------------------------------------------------------------------===//

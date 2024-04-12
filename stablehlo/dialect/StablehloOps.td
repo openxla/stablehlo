@@ -2043,7 +2043,8 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp",
 }
 
 def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
-    [Pure, SameOperandsAndResultElementType /*concatenate_c1, concatenate_c3, concatenate_c5*/,
+    [ConditionallySpeculatable, NoMemoryEffect,
+     SameOperandsAndResultElementType /*concatenate_c1, concatenate_c3, concatenate_c5*/,
      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Concatenate operation";
   let description = [{
@@ -2069,6 +2070,11 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
   let assemblyFormat = [{
      custom<VariadicOperandWithAttribute>($inputs) `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
   }];
 }
 
