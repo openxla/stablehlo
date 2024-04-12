@@ -2795,7 +2795,8 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
 }
 
 def StableHLO_SortOp : StableHLO_Op<"sort",
-      [RecursiveMemoryEffects, SameOperandsAndResultShape /*sort_c1, sort_c3*/,
+      [HLO_RecursivelySpeculatableIfAllInputsStatic, RecursiveMemoryEffects,
+      SameOperandsAndResultShape /*sort_c1, sort_c3*/,
       InferTensorType /*sort_c2*/]> {
   let summary = "Sort operation";
   let description = [{

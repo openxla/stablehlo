@@ -1489,6 +1489,46 @@ func.func @reduce_window(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?x
 
 // -----
 
+// CHECK-LABEL: func @sort
+// CHECK-NEXT: return
+func.func @sort(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?xf64>) {
+  %recursively_speculatable_0:2 = "stablehlo.sort"(%static_arg, %static_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      %predicate = "stablehlo.compare"(%arg0, %arg1) {
+        comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<f64>, tensor<f64>) -> tensor<i1>
+      stablehlo.return %predicate : tensor<i1>
+  }) {dimension = 0 : i64, is_stable = true} : (tensor<2x4xf64>, tensor<2x4xf64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  %not_recursively_speculatable_0:2 = "stablehlo.sort"(%dynamic_arg, %static_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      %predicate = "stablehlo.compare"(%arg0, %arg1) {
+        comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<f64>, tensor<f64>) -> tensor<i1>
+      stablehlo.return %predicate : tensor<i1>
+  }) {dimension = 0 : i64, is_stable = true} : (tensor<?x?xf64>, tensor<2x4xf64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  %not_recursively_speculatable_1:2 = "stablehlo.sort"(%static_arg, %dynamic_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      %predicate = "stablehlo.compare"(%arg0, %arg1) {
+        comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<f64>, tensor<f64>) -> tensor<i1>
+      stablehlo.return %predicate : tensor<i1>
+  }) {dimension = 0 : i64, is_stable = true} : (tensor<2x4xf64>, tensor<?x?xf64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  %not_recursively_speculatable_2:2 = "stablehlo.sort"(%dynamic_arg, %dynamic_arg) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>, %arg2: tensor<f64>, %arg3: tensor<f64>):
+      %predicate = "stablehlo.compare"(%arg0, %arg1) {
+        comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<f64>, tensor<f64>) -> tensor<i1>
+      stablehlo.return %predicate : tensor<i1>
+  }) {dimension = 0 : i64, is_stable = true} : (tensor<?x?xf64>, tensor<?x?xf64>) -> (tensor<?x?xf64>, tensor<?x?xf64>)
+  "hlo_test_speculatability.is_recursively_speculatable"(%recursively_speculatable_0) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_recursively_speculatable_0) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_recursively_speculatable_1) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_recursively_speculatable_2) : (tensor<?x?xf64>) -> ()
+  return
+}
+
+// -----
+
 // Miscellaneous ops
 
 // -----
