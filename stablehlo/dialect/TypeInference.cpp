@@ -165,6 +165,53 @@ LogicalResult verifyBinaryOpQuantizationConstraints(
   return success();
 }
 
+LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
+    std::optional<Location> location, Type lhsElementType, Type rhsElementType,
+    Type resultElementType) {
+  // convolution_c28
+  if (!isa<quant::QuantizedType>(rhsElementType) ||
+      (isa<quant::QuantizedType>(lhsElementType) !=
+       isa<quant::QuantizedType>(resultElementType))) {
+    return emitOptionalError(
+        location,
+        "rhs should be quantized for quantized operations and "
+        "is_quantized(lhs)=is_quantized(result) should hold");
+  }
+
+  auto rhsQuantType = cast<quant::QuantizedType>(rhsElementType);
+  if (auto lhsQuantType = dyn_cast<quant::QuantizedType>(lhsElementType)) {
+    auto resultQuantType = cast<quant::QuantizedType>(resultElementType);
+    // convolution_c31
+    if (lhsQuantType.getStorageType() != rhsQuantType.getStorageType()) {
+      return emitOptionalError(
+          location, "mismatched lhs and rhs quantization storage types");
+    }
+    // convolution_c32
+    if (lhsQuantType.getExpressedType() != rhsQuantType.getExpressedType() ||
+        lhsQuantType.getExpressedType() != resultQuantType.getExpressedType()) {
+      return emitOptionalError(
+          location,
+          "mismatched lhs, rhs and result quantization expressed types");
+    }
+    // convolution_c33
+    if (isa<quant::UniformQuantizedType>(rhsQuantType) &&
+        !isa<quant::UniformQuantizedType>(resultQuantType)) {
+      return emitOptionalError(
+          location, "mismatched rhs and result quantization granularity");
+    }
+  } else {
+    Type rhsExpressedType = rhsQuantType.getExpressedType();
+    // convolution_c34
+    if (lhsElementType != rhsExpressedType ||
+        lhsElementType != resultElementType) {
+      return emitOptionalError(location,
+                               "mismatched rhs quantization expressed type and "
+                               "lhs and result element type");
+    }
+  }
+  return success();
+}
+
 bool isSameQuantPerAxisScaleZeroPoint(Type ty1, Type ty2) {
   auto qty1 =
       dyn_cast<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(ty1));
@@ -3543,6 +3590,40 @@ LogicalResult verifyCompositeOp(std::optional<Location> loc, Operation* op,
   return success();
 }
 
+LogicalResult verifyConvolutionOpQuantizationConstraints(
+    std::optional<Location> location, Type lhsType, Type rhsType,
+    Type resultType, int64_t kernelOutputFeatureDimension,
+    int64_t outputFeatureDimension) {
+  Type lhsElementType = getElementTypeOrSelf(lhsType);
+  Type rhsElementType = getElementTypeOrSelf(rhsType);
+  Type resultElementType = getElementTypeOrSelf(resultType);
+
+  // convolution_c29
+  if (auto rhsPerAxisType =
+          dyn_cast<quant::UniformQuantizedPerAxisType>(rhsElementType)) {
+    if (rhsPerAxisType.getQuantizedDimension() !=
+        kernelOutputFeatureDimension) {
+      return emitOptionalError(location,
+                               "quantization dimension of rhs should be same "
+                               "with kernel_output_feature_dimension");
+    }
+  }
+
+  // convolution_c30
+  if (auto resultPerAxisType =
+          dyn_cast<quant::UniformQuantizedPerAxisType>(resultElementType)) {
+    if (resultPerAxisType.getQuantizedDimension() != outputFeatureDimension) {
+      return emitOptionalError(location,
+                               "quantization dimension of result should be "
+                               "same with output_feature_dimension");
+    }
+  }
+
+  // convolution_c31 - convolution_c34
+  return verifyConvolutionDotGeneralCommonQuantizationConstraints(
+      location, lhsElementType, rhsElementType, resultElementType);
+}
+
 LogicalResult verifyConvolutionOp(
     std::optional<Location> location, Type lhsType, Type rhsType,
     std::optional<ArrayRef<int64_t>> windowStrides,
@@ -3576,6 +3657,11 @@ LogicalResult verifyConvolutionOp(
                              "is incompatible with return type of operation ",
                              shapedResultType, "");
 
+  if (anyQuantized<quant::QuantizedType>({lhsType, rhsType, resultType})) {
+    return verifyConvolutionOpQuantizationConstraints(
+        location, lhsType, rhsType, resultType, kernelOutputFeatureDimension,
+        outputFeatureDimension);
+  }
   return success();
 }
 
