@@ -1633,7 +1633,8 @@ def StableHLO_CompareOp: StableHLO_Op<"compare",
 
 def StableHLO_SliceOp: StableHLO_Op<
       "slice",
-      [Pure, SameOperandsAndResultElementType /*slice_c1*/,
+      [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput, NoMemoryEffect,
+      SameOperandsAndResultElementType /*slice_c1*/,
       AllMatchSameOperatorTrait<["start_indices", "limit_indices",
       "strides"], "$_self.size()", "size"> /*slice_c2*/,
        DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
@@ -2874,7 +2875,8 @@ def StableHLO_ReverseOp: StableHLO_ShapedInterfaceOp<"reverse",
 }
 
 def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
-      [Pure, SameOperandsAndResultElementType /*pad_c1*/,
+      [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput, NoMemoryEffect,
+      SameOperandsAndResultElementType /*pad_c1*/,
       /*pad_c2, pad_i3, pad_i4, pad_i5*/
       AllMatchSameOperatorTrait<["edge_padding_low", "edge_padding_high",
       "interior_padding"], "$_self.size()", "size">,
