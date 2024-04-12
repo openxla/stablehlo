@@ -2909,7 +2909,8 @@ def StableHLO_TraceOp: StableHLO_Op<"trace"> {
 }
 
 def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
-      [Pure, HLO_CompatibleOperandsAndResultElementType, /*transpose_c1*/
+      [Pure,
+      HLO_CompatibleOperandsAndResultElementType, /*transpose_c1*/
       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Transpose operation";
   let description = [{
@@ -2935,6 +2936,11 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
   let assemblyFormat = [{
     $operand `,` `dims` `=` $permutation
       attr-dict `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
   }];
 }
 

@@ -709,6 +709,43 @@ func.func @all_to_all(%static_arg: tensor<2x4x8xf64>, %dynamic_arg: tensor<?x?x?
 
 // -----
 
+// CHECK-LABEL: func @transpose
+// CHECK-NEXT:  return
+func.func @transpose(
+  %static: tensor<2x4xf64>, %first_dim_dynamic: tensor<?x4xf64>,
+  %second_dim_dynamic: tensor<2x?xf64>, %dynamic: tensor<?x?xf64>,
+  %three_d: tensor<1x2x3xf64>, %three_d_dynamic: tensor<1x2x?xf64>
+) {
+  %speculatable_0 = stablehlo.transpose %static, dims = [1, 0] : (tensor<2x4xf64>) -> tensor<4x2xf64>
+  %not_speculatable_0 = stablehlo.transpose %second_dim_dynamic, dims = [1, 0] : (tensor<2x?xf64>) -> tensor<4x2xf64>
+  %speculatable_1 = stablehlo.transpose %second_dim_dynamic, dims = [1, 0] : (tensor<2x?xf64>) -> tensor<?x2xf64>
+  %not_speculatable_1 = stablehlo.transpose %first_dim_dynamic, dims = [1, 0] : (tensor<?x4xf64>) -> tensor<4x2xf64>
+  %speculatable_2 = stablehlo.transpose %first_dim_dynamic, dims = [1, 0] : (tensor<?x4xf64>) -> tensor<4x?xf64>
+  %not_speculatable_2 = stablehlo.transpose %dynamic, dims = [1, 0] : (tensor<?x?xf64>) -> tensor<4x2xf64>
+  %not_speculatable_3 = stablehlo.transpose %dynamic, dims = [1, 0] : (tensor<?x?xf64>) -> tensor<?x2xf64>
+  %not_speculatable_4 = stablehlo.transpose %dynamic, dims = [1, 0] : (tensor<?x?xf64>) -> tensor<4x?xf64>
+  %speculatable_3 = stablehlo.transpose %dynamic, dims = [1, 0] : (tensor<?x?xf64>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<4x2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<4x2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?x2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<4x2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<4x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<4x2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?x2xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_4) : (tensor<4x?xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_3) : (tensor<?x?xf64>) -> ()
+
+  %speculatable_4 = stablehlo.transpose %three_d, dims = [1, 0, 2] : (tensor<1x2x3xf64>) -> tensor<2x1x3xf64>
+  %not_speculatable_5 = stablehlo.transpose %three_d_dynamic, dims = [1, 0, 2] : (tensor<1x2x?xf64>) -> tensor<2x1x3xf64>
+  %speculatable_5 = stablehlo.transpose %three_d_dynamic, dims = [1, 0, 2] : (tensor<1x2x?xf64>) -> tensor<2x1x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_4) : (tensor<2x1x3xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_5) : (tensor<2x1x3xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_5) : (tensor<2x1x?xf64>) -> ()
+  return
+}
+
+// -----
+
 // BinaryElementwise and BinaryBitwiseOrLogicalElementwise ops
 
 // -----
