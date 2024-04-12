@@ -1222,6 +1222,24 @@ func.func @complex(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
 
 // -----
 
+// CHECK-LABEL: func @select
+// CHECK-NEXT: return
+func.func @select(%static_pred: tensor<2xi1>, %dynamic_pred: tensor<?xi1>, %static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.select %static_pred, %static_arg, %static_arg : (tensor<2xi1>, tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.select %dynamic_pred, %static_arg, %static_arg : (tensor<?xi1>, tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_1 = stablehlo.select %static_pred, %dynamic_arg, %static_arg : (tensor<2xi1>, tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_2 = stablehlo.select %static_pred, %static_arg, %dynamic_arg : (tensor<2xi1>, tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
+  %not_speculatable_3 = stablehlo.select %dynamic_pred, %dynamic_arg, %dynamic_arg : (tensor<?xi1>, tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
 // Other ops that take 2 or more operands and have additional conditions
 
 // -----
@@ -1284,30 +1302,6 @@ func.func @gather(
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?x?x?x?xi32>) -> ()
   return
 }
-
-// -----
-
-// CHECK-LABEL: func @select
-// CHECK-NEXT: return
-func.func @select(%static_pred: tensor<2xi1>, %dynamic_pred: tensor<?xi1>, %static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
-  %speculatable_0 = stablehlo.select %static_pred, %static_arg, %static_arg : (tensor<2xi1>, tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
-  %not_speculatable_0 = stablehlo.select %dynamic_pred, %static_arg, %static_arg : (tensor<?xi1>, tensor<2xf64>, tensor<2xf64>) -> tensor<?xf64>
-  %not_speculatable_1 = stablehlo.select %static_pred, %dynamic_arg, %static_arg : (tensor<2xi1>, tensor<?xf64>, tensor<2xf64>) -> tensor<?xf64>
-  %not_speculatable_2 = stablehlo.select %static_pred, %static_arg, %dynamic_arg : (tensor<2xi1>, tensor<2xf64>, tensor<?xf64>) -> tensor<?xf64>
-  %not_speculatable_3 = stablehlo.select %dynamic_pred, %dynamic_arg, %dynamic_arg : (tensor<?xi1>, tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
-  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<?xf64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<?xf64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?xf64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?xf64>) -> ()
-  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?xf64>) -> ()
-  return
-}
-
-// -----
-
-// Other ops that take 2 or more operands and have additional conditions
-
-// -----
 
 // CHECK-LABEL: func @concatenate
 // CHECK-NEXT: return
