@@ -1244,6 +1244,65 @@ func.func @select(%static_pred: tensor<2xi1>, %dynamic_pred: tensor<?xi1>, %stat
 
 // -----
 
+// CHECK-LABEL: func @gather
+// CHECK-NEXT: return
+func.func @gather(
+  %static_arg: tensor<3x4x2xi32>, %static_indices: tensor<2x3x2xi64>,
+  %dynamic_arg: tensor<?x?x?xi32>, %dynamic_indices: tensor<?x?x?xi64>
+) {
+  %speculatable_0 = "stablehlo.gather"(%static_arg, %static_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = false
+  } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<?x?x?x?xi32>
+  %not_speculatable_0 = "stablehlo.gather"(%static_arg, %static_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = true
+  } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<?x?x?x?xi32>
+  %not_speculatable_1 = "stablehlo.gather"(%dynamic_arg, %static_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = true
+  } : (tensor<?x?x?xi32>, tensor<2x3x2xi64>) -> tensor<?x?x?x?xi32>
+  %not_speculatable_2 = "stablehlo.gather"(%static_arg, %dynamic_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = true
+  } : (tensor<3x4x2xi32>, tensor<?x?x?xi64>) -> tensor<?x?x?x?xi32>
+  %not_speculatable_3 = "stablehlo.gather"(%dynamic_arg, %dynamic_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+    slice_sizes = array<i64: 1, 2, 2>,
+    indices_are_sorted = true
+  } : (tensor<?x?x?xi32>, tensor<?x?x?xi64>) -> tensor<?x?x?x?xi32>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<?x?x?x?xi32>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<?x?x?x?xi32>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_1) : (tensor<?x?x?x?xi32>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_2) : (tensor<?x?x?x?xi32>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_3) : (tensor<?x?x?x?xi32>) -> ()
+  return
+}
+
 // CHECK-LABEL: func @concatenate
 // CHECK-NEXT: return
 func.func @concatenate(%static_arg: tensor<2x2xi64>, %first_dim_dynamic: tensor<?x2xi64>, %second_dim_dynamic: tensor<2x?xi64>, %dynamic_arg: tensor<?x?xi64>) {
