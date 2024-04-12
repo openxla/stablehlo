@@ -6738,3 +6738,73 @@ section above.
 
 * `flattened_ids(replica_groups: Value) -> Value`. See the "flattened_ids"
 section above.
+
+## Dynamism
+
+StableHLO values can have dynamic dimension sizes, e.g. `tensor<?xi64>`.
+However, StableHLO values cannot have a dynamic number of dimensions (unranked
+dynamism, e.g. `tensor<*xi64>`). Operands and results are allowed to use dynamic
+dimension sizes, even if there are constraints on the sizes. Constraints will be
+verified statically if possible, otherwise they are deferred to runtime and
+mismatches will result in undefined behavior. See below for examples.
+
+### Shape mismatches for unary elementwise operations
+
+Consider the following toy program:
+
+```mlir
+func.func @foo(%arg0: tensor<?xf64>) {
+  %0 = stablehlo.abs %arg0 : (tensor<?xf64>) -> tensor<2xf64>
+  return
+}
+```
+
+Such a program is unusual, because it is not common to know the shape of the
+result but not the shape of the input. Nonetheless, this is a valid StableHLO
+program. It is not possible to statically validate the `abs` operation in this
+program, because the exact shape of the operand is unknown. However, the shapes
+are certainly compatible, and this can be checked statically: `?` could turn out
+to be `2` at runtime, and there would be no issue. However, `?` could
+also turn out to be some other integer, in which case the behavior is undefined.
+
+Note that if a dimension size is dynamic in the result, there cannot be
+undefined behavior. Indeed, there is no "expected" size, so there cannot be a
+mismatch.
+
+### Shape mismatches for binary elementwise operations
+
+Consider the following toy program:
+
+```mlir
+func.func @foo(%arg0: tensor<?xf64>, %arg1: tensor<?xf64>) {
+  %0 = stablehlo.add %arg0, %arg0 : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xf64>
+  return
+}
+```
+
+When it comes to binary elementwise operations, the shapes of the inputs and the
+result must agree at runtime. At compile time, static dimensions must be equal,
+otherwise they merely need to be compatible.
+If *any* dimension is dynamic in the inputs, then there could be undefined
+behavior at runtime, because the dynamic size may not match the corresponding
+size in the other operand (be it static or dynamic). If all the inputs are
+static, then whether the result is dynamic or not does not matter: statically
+known dimensions will be checked statically, and dynamic dimensions do not
+impose any constraints.
+
+### Shape mismatches for ops that take their output shape as an operand
+
+Consider the following toy program:
+
+```mlir
+func.func @foo(%arg0: tensor<2xi32>) {
+  %0 = stablehlo.dynamic_iota %arg0, dim = 0 : (tensor<2xi32>) -> tensor<3x4xi64>
+  return
+}
+```
+
+The values in the shape operand at runtime must match the shape of the result,
+otherwise the behavior is undefined. That is, at runtime `%arg0` must have a
+value of `dense<[3, 4]> : tensor<2xi32>`. If the shape operand is constant, this
+can be verified statically. If the result shape is fully dynamic, then there
+cannot be a mismatch.
