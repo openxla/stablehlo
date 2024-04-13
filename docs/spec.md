@@ -138,15 +138,15 @@ QuantizationScale ::= FloatConstant
 QuantizationZeroPoint ::= IntegerConstant
 ```
 
-| Name                     | Type                                        | Constraints                  |
-|--------------------------|---------------------------------------------|------------------------------|
-| `storage_type`           | integer type                                | (C1-C4), (C9)                |
-| `storage_min`            | integer constant                            | (C2), (C4), (C8)             |
-| `storage_max`            | integer constant                            | (C3), (C4), (C8)             |
-| `expressed_type`         | floating-point type                         | (C1), (C5)                   |
-| `quantization_dimension` | optional integer constant                   | (C11-C13)                    |
-| `scales`                 | variadic number of floating-point constants | (C5-C7), (C10), (C11), (C13) |
-| `zero_points`            | variadic number of integer constants        | (C8-C10)                     |
+| Name                     | Type                                        | Constraints          |
+|--------------------------|---------------------------------------------|----------------------|
+| `storage_type`           | integer type                                | (C1-C3), (C8)        |
+| `storage_min`            | integer constant                            | (C1), (C3), (C7)     |
+| `storage_max`            | integer constant                            | (C2), (C3), (C7)     |
+| `expressed_type`         | floating-point type                         | (C4)                 |
+| `quantization_dimension` | optional integer constant                   | (C10-C11)            |
+| `scales`                 | variadic number of floating-point constants | (C4-C6), (C9), (C10) |
+| `zero_points`            | variadic number of integer constants        | (C7-C9)              |
 
 **Quantized element types** represent integer values of a **storage type** in
 the range from `storage_min` to `storage_max` (inclusive) that correspond to
