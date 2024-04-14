@@ -254,6 +254,16 @@ LogicalResult CompositeOp::verifySymbolUses(
 // ConstantOp
 //===----------------------------------------------------------------------===//
 
+void ConstantOp::getAsmResultNames(
+    function_ref<void(Value, StringRef)> setNameFn) {
+  mlir::TensorType type = getType();
+  if (type.getElementType().isa<IntegerType>()) {
+    setNameFn(getResult(), "c");
+  } else {
+    setNameFn(getResult(), "cst");
+  }
+}
+
 OpFoldResult ConstantOp::fold(FoldAdaptor adaptor) {
   assert(adaptor.getOperands().empty() && "constant has no operands");
 
