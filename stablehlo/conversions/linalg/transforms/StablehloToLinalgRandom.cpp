@@ -828,7 +828,7 @@ struct RngUniformConversion final
           op, "expected min/max for rng op to be FloatType");
     }
     auto targetTy = dyn_cast_or_null<ShapedType>(
-        getTypeConverter()->convertType(op.getResult().getType()));
+        getTypeConverter()->convertType(op.getType()));
     if (!targetTy) {
       return rewriter.notifyMatchFailure(
           op, "expected target shape of rng op to be ShapedType");

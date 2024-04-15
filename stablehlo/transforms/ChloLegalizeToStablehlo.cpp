@@ -214,7 +214,7 @@ struct ConvertTrivialNonBroadcastBinaryOp final
     }
 
     rewriter.replaceOp(
-        op, ValueRange{Adaptor::createOp(op, op.getResult().getType(),
+        op, ValueRange{Adaptor::createOp(op, op.getType(),
                                          adaptor.getOperands(), rewriter)});
     return success();
   }
@@ -245,7 +245,7 @@ struct ConvertRankedDynamicBroadcastBinaryOp final
     Value rhs = adaptor.getRhs();
     auto lhsType = dyn_cast<RankedTensorType>(lhs.getType());
     auto rhsType = dyn_cast<RankedTensorType>(rhs.getType());
-    auto resultType = dyn_cast<RankedTensorType>(op.getResult().getType());
+    auto resultType = dyn_cast<RankedTensorType>(op.getType());
     if (!lhsType || !rhsType || !resultType) return failure();
 
     // Check for "numpy"-style rank broadcast.
@@ -363,7 +363,7 @@ struct ConvertSelectOp final
     auto predType = dyn_cast<RankedTensorType>(pred.getType());
     auto onTrueType = dyn_cast<RankedTensorType>(onTrue.getType());
     auto onFalseType = dyn_cast<RankedTensorType>(onFalse.getType());
-    auto resultType = dyn_cast<RankedTensorType>(op.getResult().getType());
+    auto resultType = dyn_cast<RankedTensorType>(op.getType());
     if (!predType || !onTrueType || !onFalseType || !resultType) {
       return failure();
     }
@@ -1242,7 +1242,7 @@ struct ConvertErfInvOp final : OpConversionPattern<mlir::chlo::ErfInvOp> {
       mlir::chlo::ErfInvOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Location loc = op.getLoc();
-    if (op.getResult().getType().getElementType().isF64()) {
+    if (op.getType().getElementType().isF64()) {
       rewriter.replaceOp(op, erfInv64(rewriter, loc, adaptor.getOperands()));
       return success();
     }

@@ -2301,8 +2301,7 @@ struct PadOpConversion final : OpConversionPattern<mlir::stablehlo::PadOp> {
       mlir::stablehlo::PadOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Location loc = op.getLoc();
-    auto resultType =
-        getTypeConverter()->convertType<ShapedType>(op.getResult().getType());
+    auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
 
