@@ -591,7 +591,7 @@ struct DepthwiseConvolutionOpConversion final
     // Make sure that this is depthwise convolution.
     int64_t inputFeatureDim = dimensionNumbers.getInputFeatureDimension();
     int64_t inputFeatureCount =
-        cast<ShapedType>(op.getLhs().getType()).getDimSize(inputFeatureDim);
+        op.getLhs().getType().getDimSize(inputFeatureDim);
     if (static_cast<int64_t>(op.getFeatureGroupCount()) != inputFeatureCount) {
       return rewriter.notifyMatchFailure(op, "not depth-wise convolution");
     }
@@ -646,8 +646,7 @@ struct DepthwiseConvolutionOpConversion final
                                     op.getLhsDilationAttr(), spatialDimMapping,
                                     rewriter);
 
-    auto filterDims =
-        llvm::to_vector(cast<ShapedType>(op.getRhs().getType()).getShape());
+    auto filterDims = llvm::to_vector(op.getRhs().getType().getShape());
 
     auto getReassociationIndicesToCollapseLastTwoDims = [](Value v) {
       SmallVector<ReassociationIndices> reassociations;
@@ -680,8 +679,7 @@ struct DepthwiseConvolutionOpConversion final
         reshapedFilterDims[kernelOutputFeatureDimension] /=
             op.getFeatureGroupCount();
         auto reshapedFilterType = RankedTensorType::get(
-            reshapedFilterDims,
-            cast<ShapedType>(op.getRhs().getType()).getElementType());
+            reshapedFilterDims, op.getRhs().getType().getElementType());
 
         reshapedFilter = rewriter.create<mlir::stablehlo::ReshapeOp>(
             loc, reshapedFilterType, filter);

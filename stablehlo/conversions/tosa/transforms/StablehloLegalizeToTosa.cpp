@@ -95,10 +95,10 @@ struct ConvertStablehloDotOp : public OpRewritePattern<stablehlo::DotOp> {
 
   LogicalResult matchAndRewrite(stablehlo::DotOp op,
                                 PatternRewriter& rewriter) const override {
-    auto lhsType = cast<RankedTensorType>(op.getLhs().getType());
-    auto rhsType = cast<RankedTensorType>(op.getRhs().getType());
+    auto lhsType = op.getLhs().getType();
+    auto rhsType = op.getRhs().getType();
 
-    auto resultType = dyn_cast<ShapedType>(op.getResult().getType());
+    auto resultType = op.getType();
     if (!resultType) {
       return rewriter.notifyMatchFailure(op,
                                          "result tensor does not have shape");
@@ -184,15 +184,14 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
 
   LogicalResult matchAndRewrite(stablehlo::IotaOp op,
                                 PatternRewriter& rewriter) const override {
-    auto resultType = op.getResult().getType();
-    auto elementType = cast<ShapedType>(resultType).getElementType();
-    auto resultRankedType = cast<RankedTensorType>(resultType);
+    auto resultType = op.getType();
+    auto elementType = resultType.getElementType();
 
-    if (!resultRankedType.hasStaticShape()) {
+    if (!resultType.hasStaticShape()) {
       return rewriter.notifyMatchFailure(op, "result tensor must be static");
     }
 
-    auto resultShape = resultRankedType.getShape();
+    auto resultShape = resultType.getShape();
     auto iotaDimension = op.getIotaDimension();
     int64_t iotaArrayLength = resultShape[iotaDimension];
 
@@ -243,21 +242,21 @@ struct ConvertStablehloGatherOp : public OpRewritePattern<stablehlo::GatherOp> {
                                 PatternRewriter& rewriter) const override {
     // The input operand must be 3D, with shape [N, K, C].
     auto operand = op.getOperand();
-    auto operandType = cast<RankedTensorType>(operand.getType());
+    auto operandType = operand.getType();
     if (operandType.getRank() != 3) {
       return rewriter.notifyMatchFailure(op, "operand must have rank of 3");
     }
 
     // The indices tensor must be 2D, with shape [N, W].
     auto startIndices = op.getStartIndices();
-    auto startIndicesType = cast<RankedTensorType>(startIndices.getType());
+    auto startIndicesType = startIndices.getType();
     if (startIndicesType.getRank() != 2) {
       return rewriter.notifyMatchFailure(op,
                                          "start_indices must have rank of 2");
     }
 
     // The result tensor must be 3D, with shape [N, W, C].
-    auto resultType = cast<RankedTensorType>(op.getResult().getType());
+    auto resultType = op.getType();
     if (resultType.getRank() != 3) {
       return rewriter.notifyMatchFailure(op, "result must have rank of 3");
     }
