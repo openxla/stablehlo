@@ -101,7 +101,7 @@ DimensionSize ::= digit {digit} | '?'
 ```
 
 **Tensor types** represent tensors, i.e. multidimensional arrays. They have a
-**shape** and an **element type**, where a shape represents non-negative or
+**shape** and an **element tyThis is for (P3) of the dynamism RFC: https://github.com/openxla/stablehlo/blob/main/rfcs/20230704-dynamism-101.md#p3pe**, where a shape represents non-negative or
 unknown **dimension sizes** in the ascending order of the corresponding
 **dimensions** (which are also called **axes**) numbered from `0` to `R-1`. The
 number of dimensions `R` is called **rank**. For example, `tensor<2x3xf32>` is
@@ -109,8 +109,9 @@ a tensor type with shape `2x3` and element type `f32`. It has two dimensions
 (or, in other words, two axes) - 0th dimension and 1st dimension - whose sizes
 are 2 and 3. Its rank is 2.
 
-Shapes can be partially or completely unknown (dynamic). Dynamic dimension sizes
-are represented using a `?`. Shapes may not be unranked.
+Shapes can be partially or completely unknown (dynamic), e.g. `tensor<?x2xf64>`
+is partially unknown and `tensor<?x?xf64>` is completely unknown. Dynamic
+dimension sizes are represented using a `?`. Shapes cannot be unranked.
 
 In the future, we are planning to explore extending tensor types beyond
 dimension sizes and element types, for example, to include layouts
