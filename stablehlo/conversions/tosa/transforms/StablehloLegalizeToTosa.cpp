@@ -95,11 +95,8 @@ struct ConvertStablehloDotOp : public OpRewritePattern<stablehlo::DotOp> {
 
   LogicalResult matchAndRewrite(stablehlo::DotOp op,
                                 PatternRewriter& rewriter) const override {
-    auto lhsType = dyn_cast<RankedTensorType>(op.getLhs().getType());
-    auto rhsType = dyn_cast<RankedTensorType>(op.getRhs().getType());
-    if (!lhsType || !rhsType) {
-      return rewriter.notifyMatchFailure(op, "input tensors are not ranked");
-    }
+    auto lhsType = cast<RankedTensorType>(op.getLhs().getType());
+    auto rhsType = cast<RankedTensorType>(op.getRhs().getType());
 
     auto resultType = dyn_cast<ShapedType>(op.getResult().getType());
     if (!resultType) {
@@ -189,11 +186,8 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getResult().getType();
     auto elementType = cast<ShapedType>(resultType).getElementType();
-    auto resultRankedType = dyn_cast<RankedTensorType>(resultType);
+    auto resultRankedType = cast<RankedTensorType>(resultType);
 
-    if (!resultRankedType) {
-      return rewriter.notifyMatchFailure(op, "result tensor must be ranked");
-    }
     if (!resultRankedType.hasStaticShape()) {
       return rewriter.notifyMatchFailure(op, "result tensor must be static");
     }
@@ -249,31 +243,21 @@ struct ConvertStablehloGatherOp : public OpRewritePattern<stablehlo::GatherOp> {
                                 PatternRewriter& rewriter) const override {
     // The input operand must be 3D, with shape [N, K, C].
     auto operand = op.getOperand();
-    auto operandType = dyn_cast<RankedTensorType>(operand.getType());
-    if (!operandType) {
-      return rewriter.notifyMatchFailure(op, "requires ranked operand shape");
-    }
+    auto operandType = cast<RankedTensorType>(operand.getType());
     if (operandType.getRank() != 3) {
       return rewriter.notifyMatchFailure(op, "operand must have rank of 3");
     }
 
     // The indices tensor must be 2D, with shape [N, W].
     auto startIndices = op.getStartIndices();
-    auto startIndicesType = dyn_cast<RankedTensorType>(startIndices.getType());
-    if (!startIndicesType) {
-      return rewriter.notifyMatchFailure(op,
-                                         "requires ranked start_indices shape");
-    }
+    auto startIndicesType = cast<RankedTensorType>(startIndices.getType());
     if (startIndicesType.getRank() != 2) {
       return rewriter.notifyMatchFailure(op,
                                          "start_indices must have rank of 2");
     }
 
     // The result tensor must be 3D, with shape [N, W, C].
-    auto resultType = dyn_cast<RankedTensorType>(op.getResult().getType());
-    if (!resultType) {
-      return rewriter.notifyMatchFailure(op, "requires ranked output shape");
-    }
+    auto resultType = cast<RankedTensorType>(op.getResult().getType());
     if (resultType.getRank() != 3) {
       return rewriter.notifyMatchFailure(op, "result must have rank of 3");
     }

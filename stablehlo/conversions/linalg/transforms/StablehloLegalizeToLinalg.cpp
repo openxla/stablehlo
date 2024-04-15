@@ -96,16 +96,14 @@ SmallVector<Value, 2> extractDynamicEinsumSizes(
     if (dimIndIt != lhsLoopVec.end()) {
       // Query from lhs vars.
       auto dimIndPos = dimIndIt - lhsLoopVec.begin();
-      auto lhsShape =
-          llvm::dyn_cast<RankedTensorType>(lhs.getType()).getShape();
+      auto lhsShape = llvm::cast<RankedTensorType>(lhs.getType()).getShape();
       if (lhsShape[dimIndPos] != ShapedType::kDynamic) continue;
       dimSize = b.create<tensor::DimOp>(loc, lhs, dimIndPos);
     } else {
       // query from rhs vars.
       dimIndIt = std::find(rhsLoopVec.begin(), rhsLoopVec.end(), dimInd);
       auto dimIndPos = dimIndIt - rhsLoopVec.begin();
-      auto rhsShape =
-          llvm::dyn_cast<RankedTensorType>(rhs.getType()).getShape();
+      auto rhsShape = llvm::cast<RankedTensorType>(rhs.getType()).getShape();
       if (rhsShape[dimIndPos] != ShapedType::kDynamic) continue;
       dimSize = b.create<tensor::DimOp>(loc, rhs, dimIndPos);
     }
@@ -619,11 +617,9 @@ struct HloDynamicBroadcastInDimConverter final
       mlir::stablehlo::DynamicBroadcastInDimOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Value operand = adaptor.getOperand();
-    auto operandType = dyn_cast<RankedTensorType>(operand.getType());
-    if (!operandType) return failure();
+    auto operandType = cast<RankedTensorType>(operand.getType());
     auto resultType =
         getTypeConverter()->convertType<RankedTensorType>(op.getType());
-    if (!resultType) return failure();
 
     // Determine dimension expressions based on whether the dimension is
     // expanding (0) or non-expanding (identity), and fail if we cannot decide
@@ -687,11 +683,9 @@ struct DynamicBroadcastInDimOpToBroadcastConverter final
     Location loc = op.getLoc();
 
     Value operand = adaptor.getOperand();
-    auto operandTy = llvm::dyn_cast<RankedTensorType>(operand.getType());
-    if (!operandTy) return failure();
+    auto operandTy = llvm::cast<RankedTensorType>(operand.getType());
     auto resultTy =
         getTypeConverter()->convertType<RankedTensorType>(op.getType());
-    if (!resultTy) return failure();
 
     SmallVector<int64_t> broadcastDimensions =
         llvm::to_vector(op.getBroadcastDimensions());
@@ -763,7 +757,7 @@ struct DynamicBroadcastInDimOpToBroadcastConverter final
   static Value getBroadcastOperand(
       PatternRewriter &rewriter, Location loc, Value operand,
       llvm::function_ref<bool(int64_t)> isExpandingDim) {
-    auto operandTy = llvm::dyn_cast<RankedTensorType>(operand.getType());
+    auto operandTy = llvm::cast<RankedTensorType>(operand.getType());
 
     SmallVector<int64_t> updatedOperandShape =
         llvm::to_vector(operandTy.getShape());
@@ -1534,15 +1528,15 @@ struct DynamicUpdateSliceConverter final
       ConversionPatternRewriter &rewriter) const override {
     Location loc = op.getLoc();
     auto operandType =
-        llvm::dyn_cast<RankedTensorType>(adaptor.getOperand().getType());
-    if (!operandType || !operandType.hasStaticShape()) {
+        llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
+    if (!operandType.hasStaticShape()) {
       return rewriter.notifyMatchFailure(
           op, "require static ranked type for operand");
     }
 
     auto updateType =
-        llvm::dyn_cast<RankedTensorType>(adaptor.getUpdate().getType());
-    if (!updateType || !updateType.hasStaticShape()) {
+        llvm::cast<RankedTensorType>(adaptor.getUpdate().getType());
+    if (!updateType.hasStaticShape()) {
       return rewriter.notifyMatchFailure(
           op, "require static ranked type for operand");
     }
@@ -1712,13 +1706,7 @@ struct GatherConversion final : OpConversionPattern<mlir::stablehlo::GatherOp> {
     auto resultType =
         getTypeConverter()->convertType<RankedTensorType>(gatherOp.getType());
     RankedTensorType startIndicesType =
-        dyn_cast<RankedTensorType>(startIndices.getType());
-    // We could actually deal with an unranked result by inferring the result
-    // rank, but the current reifyReturnTypes doesn't support unranked either.
-    if (!resultType || !startIndicesType) {
-      return rewriter.notifyMatchFailure(gatherOp,
-                                         "unranked start indices or result");
-    }
+        cast<RankedTensorType>(startIndices.getType());
 
     int64_t resultRank = resultType.getRank();
     // slice_sizes has to have the same size as operand.rank, and doing it this
@@ -1910,12 +1898,10 @@ struct SelectAndScatterNoOverlapConverter final
     Value operand = op.getOperand();
     Value init = op.getInitValue();
 
-    auto sourceTy = llvm::dyn_cast<RankedTensorType>(source.getType());
-    auto operandTy = llvm::dyn_cast<RankedTensorType>(operand.getType());
-    auto initTy = llvm::dyn_cast<RankedTensorType>(init.getType());
-    auto resultTy = llvm::dyn_cast<RankedTensorType>(op.getResult().getType());
-    if (!sourceTy || !operandTy || !initTy || !resultTy)
-      return rewriter.notifyMatchFailure(op, "inputs/outputs must be ranked");
+    auto sourceTy = llvm::cast<RankedTensorType>(source.getType());
+    auto operandTy = llvm::cast<RankedTensorType>(operand.getType());
+    auto initTy = llvm::cast<RankedTensorType>(init.getType());
+    auto resultTy = llvm::cast<RankedTensorType>(op.getResult().getType());
 
     auto indexETy = b.getI32Type();
     auto srcETy = operandTy.getElementType();
@@ -2514,10 +2500,7 @@ struct SetDimensionSizeConverter final
     // regular dynamic shape. Note that the bounds annotation is still around
     // but may be no longer valid depending on choices made by bufferization.
     Location loc = setDimensionSizeOp.getLoc();
-    auto resultType = dyn_cast<RankedTensorType>(setDimensionSizeOp.getType());
-    if (!resultType)
-      return rewriter.notifyMatchFailure(setDimensionSizeOp,
-                                         "expected a ranked tensor");
+    auto resultType = cast<RankedTensorType>(setDimensionSizeOp.getType());
 
     SmallVector<OpFoldResult> offsets(resultType.getRank(),
                                       rewriter.getIndexAttr(0));

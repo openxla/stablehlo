@@ -37,12 +37,8 @@ static bool isUnsupported(mlir::stablehlo::ReduceOp op) {
 
   // We require all reduce shapes to be the same, up to the element types, so
   // we can just the first operand and the first result as a representative.
-  if (auto inputTy =
-          dyn_cast<RankedTensorType>(op.getInputs().getType().front())) {
-    return llvm::is_contained(inputTy.getShape(), 0);
-  }
-
-  return false;
+  auto inputTy = cast<RankedTensorType>(op.getInputs().getType().front());
+  return llvm::is_contained(inputTy.getShape(), 0);
 }
 
 /// Returns a permutation AffineMap that puts all reduction dimensions to the
@@ -231,7 +227,7 @@ struct ReduceOpToReduceConverter final
     llvm::sort(reductionDims);
 
     auto toRankedTensor = [](Value v) -> RankedTensorType {
-      return dyn_cast<RankedTensorType>(v.getType());
+      return cast<RankedTensorType>(v.getType());
     };
 
     SmallVector<Value> outputs;
@@ -244,13 +240,8 @@ struct ReduceOpToReduceConverter final
     for (auto [operand, initValue, resultType] : llvm::zip_equal(
              adaptor.getInputs(), adaptor.getInitValues(), resultTypes)) {
       auto initType = toRankedTensor(initValue);
-      if (!initType)
-        return rewriter.notifyMatchFailure(op,
-                                           "expects known-rank init values");
       initTypes.push_back(initType);
       auto operandType = toRankedTensor(operand);
-      if (!operandType)
-        return rewriter.notifyMatchFailure(op, "expects known-rank operands");
       operandTypes.push_back(operandType);
       initValue = rewriter.createOrFold<tensor::ExtractOp>(loc, initValue);
       auto tensorResultType = cast<RankedTensorType>(resultType);
