@@ -137,7 +137,7 @@ func.func @custom_call_inapplicable_dynamic_shape_operand(%arg0: tensor<4xf32>, 
 
 // CHECK-LABEL: func @custom_call_inapplicable_missing_indices_of_shape_operands
 func.func @custom_call_inapplicable_missing_indices_of_shape_operands(%arg0: tensor<4xf32>) -> tensor<1x2xf32> {
-  // CHECK: stablehlo.custom_call @foo(%arg0, %0)
+  // CHECK: stablehlo.custom_call @foo(%arg0, %c)
   %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
   %1 = stablehlo.custom_call @foo(%arg0, %0) : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x2xf32>
   return %1 : tensor<1x2xf32>
@@ -147,7 +147,7 @@ func.func @custom_call_inapplicable_missing_indices_of_shape_operands(%arg0: ten
 
 // CHECK-LABEL: func @custom_call_inapplicable_dynamic_result_type
 func.func @custom_call_inapplicable_dynamic_result_type(%arg0: tensor<4xf32>) -> tensor<1x?xf32> {
-  // CHECK: stablehlo.custom_call @foo(%arg0, %0)
+  // CHECK: stablehlo.custom_call @foo(%arg0, %c)
   %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
   %1 = stablehlo.custom_call @foo(%arg0, %0) {
     indices_of_shape_operands = dense<[1]> : tensor<1xi64>
