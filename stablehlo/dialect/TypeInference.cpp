@@ -2984,7 +2984,10 @@ LogicalResult inferSortOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // sort_c2
   for (auto resultType : inputs.getTypes()) {
-    inferredReturnShapes.emplace_back<ShapedType>(cast<ShapedType>(resultType));
+    auto rankedResult = cast<RankedTensorType>(resultType);
+    inferredReturnShapes.emplace_back(rankedResult.getShape(),
+                                      rankedResult.getElementType(),
+                                      rankedResult.getEncoding());
   }
   return success();
 }
