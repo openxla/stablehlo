@@ -101,7 +101,7 @@ DimensionSize ::= digit {digit} | '?'
 ```
 
 **Tensor types** represent tensors, i.e. multidimensional arrays. They have a
-**shape** and an **element tyThis is for (P3) of the dynamism RFC: https://github.com/openxla/stablehlo/blob/main/rfcs/20230704-dynamism-101.md#p3pe**, where a shape represents non-negative or
+**shape** and an **element type**, where a shape represents non-negative or
 unknown **dimension sizes** in the ascending order of the corresponding
 **dimensions** (which are also called **axes**) numbered from `0` to `R-1`. The
 number of dimensions `R` is called **rank**. For example, `tensor<2x3xf32>` is
