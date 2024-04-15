@@ -2993,10 +2993,10 @@ LogicalResult inferTopKOp(
     std::optional<Location> location, Value operand, int64_t k,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Builder builder(operand.getContext());
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  auto operandType = dyn_cast<RankedTensorType>(operand.getType());
   if (!operandType) {
     inferredReturnShapes.emplace_back(
-        operand.getType().cast<ShapedType>().getElementType());
+        cast<ShapedType>(operand.getType()).getElementType());
     inferredReturnShapes.emplace_back(builder.getI32Type());
     return success();
   }
