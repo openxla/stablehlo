@@ -397,8 +397,7 @@ struct BroadcastConverter final
 
   static SmallVector<AffineMap, 2> getIndexingMaps(OpTy broadcastOp,
                                                    Builder *b) {
-    ShapedType inputType =
-        llvm::cast<ShapedType>(broadcastOp.getOperand().getType());
+    ShapedType inputType = broadcastOp.getOperand().getType();
     unsigned inputRank = inputType.getRank();
     unsigned nloops = getHloOpResultType(broadcastOp).getRank();
 
@@ -458,7 +457,7 @@ struct HloBroadcastInDimConverter final
   static SmallVector<AffineMap, 2> getIndexingMaps(
       mlir::stablehlo::BroadcastInDimOp broadcastOp, Builder *b) {
     ShapedType resultType = getHloOpResultType(broadcastOp);
-    auto operandType = cast<ShapedType>(broadcastOp.getOperand().getType());
+    auto operandType = broadcastOp.getOperand().getType();
     unsigned nloops = resultType.getRank();
 
     // The input is a scalar, i.e. this is a scalar broadcast op.
@@ -1047,7 +1046,7 @@ struct ReshapeOpConverter final
     Value operand = adaptor.getOperand();
     auto operandType = llvm::cast<ShapedType>(operand.getType());
     Type elemType = operandType.getElementType();
-    auto resultType = llvm::cast<ShapedType>(reshapeOp.getType());
+    ShapedType resultType = reshapeOp.getType();
 
     if (!resultType.hasStaticShape()) return failure();
 
@@ -1901,7 +1900,7 @@ struct SelectAndScatterNoOverlapConverter final
     auto sourceTy = llvm::cast<RankedTensorType>(source.getType());
     auto operandTy = llvm::cast<RankedTensorType>(operand.getType());
     auto initTy = llvm::cast<RankedTensorType>(init.getType());
-    auto resultTy = llvm::cast<RankedTensorType>(op.getResult().getType());
+    auto resultTy = op.getType();
 
     auto indexETy = b.getI32Type();
     auto srcETy = operandTy.getElementType();

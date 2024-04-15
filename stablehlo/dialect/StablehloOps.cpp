@@ -1157,7 +1157,7 @@ LogicalResult BitcastConvertOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
   auto operandType = cast<RankedTensorType>(operands[0].getType());
-  auto resultType = cast<RankedTensorType>(getType());
+  auto resultType = getType();
 
   // Shape-changing bitcast convert is not implemented.
   // TODO(kramerb): This could be done by adjusting the last dimension.
