@@ -159,3 +159,19 @@ one of the following tracking labels.
 | uniform_quantize         | yes           | revisit      | infeasible     | yes             | no          |
 | while                    | yes           | revisit      | yes            | revisit         | yes         |
 | xor                      | yes           | yes          | yes            | yes             | yes         |
+
+## Note
+
+- **Type inference and Quantization**: `Type Inference` column from the above
+table is applicable for non quantized inputs. In case of quantization, result type
+inference is not always feasible. Quantization scales
+and zero-points of quantized result types can differ from operands, making them
+infeasible to infer from the operands. List of ops who support Quantization and
+Type Inference **is** feasible: `all_gather`,
+`all_to_all`, `case`, `collective_permute`,
+`compare`, `concatenate`, `constant`, `dot_general`, `dynamic_slice`,
+`dynamic_update_slice`, `gather`, `get_tuple_element`, `if`, `infeed`,
+`is_finite`, `map`, `optimization_barrier`, `outfeed`, `pad`, `recv`, `reduce`,
+`reduce_scatter`, `reduce_window`, `reverse`, `scatter`, `select_and_scatter`,
+`send`, `slice`, `sort`, `tuple`, `uniform_dequantized`, `uniform_quantized`,
+`while`.
