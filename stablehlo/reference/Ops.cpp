@@ -518,8 +518,8 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto rank = lhs.getRank();
 
       SmallVector<int64_t> windowStrides(rank - 2, 1);
-      if (auto windowStridesAttr = convolutionOp.getWindowStridesAttr())
-        windowStrides = SmallVector<int64_t>(windowStridesAttr.asArrayRef());
+      if (auto windowStridesAttr = convolutionOp.getWindowStrides())
+        windowStrides = SmallVector<int64_t>(windowStridesAttr.value());
 
       SmallVector<std::pair<int64_t, int64_t>> padding(rank - 2, {0, 0});
       if (auto paddingAttr = convolutionOp.getPaddingAttr()) {
@@ -530,16 +530,16 @@ SmallVector<InterpreterValue> eval(Region &region,
       }
 
       SmallVector<int64_t> lhsDilation(rank - 2, 1);
-      if (auto lhsDilationAttr = convolutionOp.getLhsDilationAttr())
-        lhsDilation = SmallVector<int64_t>(lhsDilationAttr.asArrayRef());
+      if (auto lhsDilationAttr = convolutionOp.getLhsDilation())
+        lhsDilation = SmallVector<int64_t>(lhsDilationAttr.value());
 
       SmallVector<int64_t> rhsDilation(rank - 2, 1);
-      if (auto rhsDilationAttr = convolutionOp.getRhsDilationAttr())
-        rhsDilation = SmallVector<int64_t>(rhsDilationAttr.asArrayRef());
+      if (auto rhsDilationAttr = convolutionOp.getRhsDilation())
+        rhsDilation = SmallVector<int64_t>(rhsDilationAttr.value());
 
       SmallVector<bool> windowReversal(rank - 2, false);
-      if (auto windowReversalAttr = convolutionOp.getWindowReversalAttr())
-        windowReversal = SmallVector<bool>(windowReversalAttr.asArrayRef());
+      if (auto windowReversalAttr = convolutionOp.getWindowReversal())
+        windowReversal = SmallVector<bool>(windowReversalAttr.value());
 
       auto dimensionNumbers = convolutionOp.getDimensionNumbers();
       auto result = evalConvolutionOp(

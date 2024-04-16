@@ -150,7 +150,16 @@ ParseResult parseConstantOp(OpAsmParser& parser, OperationState& result) {
   // Parse the generic form.
   if (succeeded(parser.parseOptionalLParen())) {
     if (parser.parseRParen()) return failure();
+    // Parse optional properties
+    if (succeeded(parser.parseOptionalLess()) &&
+        (failed(parser.parseAttribute(result.propertiesAttr)) ||
+         failed(parser.parseGreater())))
+      return failure();
+
+    // Parse optional attributes
     if (parser.parseOptionalAttrDict(result.attributes)) return failure();
+
+    // Parse type signature
     if (parser.parseColon() || parser.parseLParen() || parser.parseRParen() ||
         parser.parseArrow())
       return failure();
@@ -685,39 +694,41 @@ ParseResult parseWhileOp(OpAsmParser& parser, OperationState& result) {
 //===----------------------------------------------------------------------===//
 
 void printSliceRanges(OpAsmPrinter& p, Operation* op,
-                      ArrayRef<int64_t> startIndices,
-                      ArrayRef<int64_t> limitIndices,
-                      ArrayRef<int64_t> strides) {
+                      Attribute startIndicesAttr, Attribute limitIndicesAttr,
+                      Attribute stridesAttr) {
+  auto startIndices = cast<DenseI64ArrayAttr>(startIndicesAttr);
+  auto limitIndices = cast<DenseI64ArrayAttr>(limitIndicesAttr);
+  auto strides = cast<DenseI64ArrayAttr>(stridesAttr);
   p << "[";
   // Let's be safe if we're printing invalid IR somehow: this can't be parsed
   // back!
   if (startIndices.size() != limitIndices.size() ||
       startIndices.size() != strides.size()) {
     p << "start_indices: ";
-    llvm::interleaveComma(startIndices, p);
+    llvm::interleaveComma(startIndices.asArrayRef(), p);
     p << ", limit_indices: ";
-    llvm::interleaveComma(limitIndices, p);
+    llvm::interleaveComma(limitIndices.asArrayRef(), p);
     p << ", strides: ";
-    llvm::interleaveComma(strides, p);
+    llvm::interleaveComma(strides.asArrayRef(), p);
     p << "]";
     return;
   }
 
-  llvm::interleaveComma(llvm::zip(startIndices, limitIndices, strides), p,
-                        [&](std::tuple<int64_t, int64_t, int64_t> pack) {
-                          auto [start, limit, stride] = pack;
-                          p << start << ":" << limit;
-                          if (stride != 1) {
-                            p << ":" << stride;
-                          }
-                        });
+  llvm::interleaveComma(
+      llvm::zip(startIndices.asArrayRef(), limitIndices.asArrayRef(),
+                strides.asArrayRef()),
+      p, [&](std::tuple<int64_t, int64_t, int64_t> pack) {
+        auto [start, limit, stride] = pack;
+        p << start << ":" << limit;
+        if (stride != 1) {
+          p << ":" << stride;
+        }
+      });
   p << "]";
 }
 
-ParseResult parseSliceRanges(OpAsmParser& parser,
-                             DenseI64ArrayAttr& startIndices,
-                             DenseI64ArrayAttr& limitIndices,
-                             DenseI64ArrayAttr& strides) {
+ParseResult parseSliceRanges(OpAsmParser& parser, Attribute& startIndices,
+                             Attribute& limitIndices, Attribute& strides) {
   if (parser.parseLSquare()) return failure();
   // Parse groups of comma-separated: `start`:`limit`[:`stride`]
   // If the stride isn't provided it'll be 1.
@@ -745,6 +756,17 @@ ParseResult parseSliceRanges(OpAsmParser& parser,
   strides = parser.getBuilder().getDenseI64ArrayAttr(stride);
 
   return success();
+}
+
+void printDenseI64Array(OpAsmPrinter& p, Operation* op, Attribute attr) {
+  cast<DenseI64ArrayAttr>(attr).print(p);
+}
+
+ParseResult parseDenseI64Array(OpAsmParser& parser, Attribute& attr) {
+  if ((attr = DenseI64ArrayAttr::parse(parser, Type{}))) {
+    return success();
+  }
+  return failure();
 }
 
 ParseResult dimSizeFromString(AsmParser& parser, int64_t& result) {

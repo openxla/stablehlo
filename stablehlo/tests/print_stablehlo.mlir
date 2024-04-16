@@ -61,6 +61,20 @@ func.func @zero_output_ret0(%arg0 : tensor<3xi64>) -> () {
   "stablehlo.return"() : () -> ()
 }
 
+func.func @constants() -> () {
+  // CHECK:      %c = stablehlo.constant dense<-1> : tensor<1xi64>
+  // CHECK-NEXT: %c_0 = stablehlo.constant {attr = 1 : i32} dense<[-2, 4]> : tensor<2xi64>
+  // CHECK-NEXT: %cst = stablehlo.constant() <{value = dense<[1, 2]> : tensor<2xi8>}> : () -> tensor<2x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  // CHECK-NEXT: %cst_1 = stablehlo.constant() <{value = dense<3> : tensor<1xi8>}> : () -> tensor<1x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  // CHECK-NEXT: %cst_2 = stablehlo.constant() <{value = dense<4> : tensor<1xi8>}> {attr = 1 : i32} : () -> tensor<1x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  %cst = "stablehlo.constant"() <{value = dense<[-1]> : tensor<1xi64>}> : () -> tensor<1xi64>
+  %cst_attrs = "stablehlo.constant"() <{value = dense<[-2, 4]> : tensor<2xi64>}> {attr = 1 : i32} : () -> tensor<2xi64>
+  %cst_q = "stablehlo.constant"() {value = dense<[1, 2]> : tensor<2xi8>} : () -> tensor<2x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  %cst_q_attr = stablehlo.constant() {value = dense<[3]> : tensor<1xi8>} : () -> tensor<1x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  %cst_q_attrs = stablehlo.constant() {value = dense<[4]> : tensor<1xi8>, attr = 1 : i32} : () -> tensor<1x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  return
+}
+
 // CHECK-LABEL: func @unary_ops
 func.func @unary_ops(%arg0 : tensor<2xi32>, %arg1 : tensor<2xf32>) -> () {
   // CHECK:      %0 = stablehlo.abs %arg0 : tensor<2xi32>
