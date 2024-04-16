@@ -826,8 +826,10 @@ struct TransposeOpToTransposeConverter final
     Value emptyTensor =
         getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
 
+    // TODO(#2216) Cleanup Attribute -> DenseArrayAttr
     rewriter.replaceOpWithNewOp<linalg::TransposeOp>(
-        op, adaptor.getOperand(), emptyTensor, op.getPermutationAttr(),
+        op, adaptor.getOperand(), emptyTensor,
+        op.getPermutationAttr().dyn_cast_or_null<DenseI64ArrayAttr>(),
         linalg::getPrunedAttributeList(op));
     return success();
   }

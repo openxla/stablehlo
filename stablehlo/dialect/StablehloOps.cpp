@@ -2346,6 +2346,7 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 
 using mlir::hlo::parseComplexOpType;
 using mlir::hlo::parseCustomCallTarget;
+using mlir::hlo::parseDenseI64Array;
 using mlir::hlo::parseDotDimensionNumbers;
 using mlir::hlo::parseExponentMantissa;
 using mlir::hlo::parsePairwiseOpType;
@@ -2357,6 +2358,7 @@ using mlir::hlo::parseVariadicOperandWithAttribute;
 using mlir::hlo::parseVariadicSameOperandsAndResultType;
 using mlir::hlo::printComplexOpType;
 using mlir::hlo::printCustomCallTarget;
+using mlir::hlo::printDenseI64Array;
 using mlir::hlo::printDotDimensionNumbers;
 using mlir::hlo::printExponentMantissa;
 using mlir::hlo::printPairwiseOpType;
@@ -3028,11 +3030,11 @@ void printWindowPadding(OpAsmPrinter& p, DenseElementsAttr padding) {
 }  // namespace
 
 void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
-                           std::optional<DenseI64ArrayAttr> windowStrides,
+                           std::optional<Attribute> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
-                           std::optional<DenseI64ArrayAttr> lhsDilation,
-                           std::optional<DenseI64ArrayAttr> rhsDilation,
-                           std::optional<DenseBoolArrayAttr> windowReversal) {
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal) {
   using pair_t = std::pair<Attribute, StringRef>;
   std::array<pair_t, 5> printedAttributes = {{
       {windowStrides ? *windowStrides : nullptr, "stride"},
@@ -3065,11 +3067,11 @@ void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
 }
 
 ParseResult parseWindowAttributes(OpAsmParser& parser,
-                                  DenseI64ArrayAttr& windowStrides,
+                                  Attribute& windowStrides,
                                   DenseIntElementsAttr& padding,
-                                  DenseI64ArrayAttr& lhsDilation,
-                                  DenseI64ArrayAttr& rhsDilation,
-                                  DenseBoolArrayAttr& windowReversal) {
+                                  Attribute& lhsDilation,
+                                  Attribute& rhsDilation,
+                                  Attribute& windowReversal) {
   StringRef attributeName;
 
   llvm::StringSet<> allowedAttributeNames{

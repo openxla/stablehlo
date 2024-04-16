@@ -17,6 +17,7 @@ limitations under the License.
 // Implements logic for lowering StableHLO convolution ops to Linalg dialect.
 
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -30,12 +31,12 @@ namespace {
 /// Apply dilation and padding to the input of a convolution.
 Value applyConvolutionPadding(Location loc, Value input,
                               DenseIntElementsAttr padding,
-                              DenseI64ArrayAttr lhsDilation,
+                              std::optional<ArrayRef<int64_t>> lhsDilation,
                               llvm::ArrayRef<int64_t> dimMappings,
                               OpBuilder &rewriter) {
   SmallVector<int64_t> lhsDilationValues;
-  if (lhsDilation)
-    lhsDilationValues = llvm::to_vector(lhsDilation.asArrayRef());
+  if (lhsDilation.has_value())
+    lhsDilationValues = llvm::to_vector(lhsDilation.value());
   bool noPadding = !padding || isSplatValue(padding, 0);
   bool noDilation = !lhsDilation || hlo::isSplatArray(lhsDilationValues, 1);
   if (noPadding && noDilation) return input;
@@ -230,7 +231,7 @@ struct NormalConvolutionOpConversion final
     llvm::SmallVector<int64_t> spatialDimMapping(rank - 2);
     std::iota(spatialDimMapping.begin(), spatialDimMapping.end(), 1);
     input = applyConvolutionPadding(loc, input, op.getPaddingAttr(),
-                                    op.getLhsDilationAttr(), spatialDimMapping,
+                                    op.getLhsDilation(), spatialDimMapping,
                                     rewriter);
 
     switch (rank) {
@@ -350,10 +351,10 @@ struct ConvolutionOpGeneralConversion final
     // Decompose the convolution into an initial padding
     Value modifiedLhs = applyConvolutionPadding(
         op.getLoc(), adaptor.getLhs(), adaptor.getPaddingAttr(),
-        adaptor.getLhsDilationAttr(),
+        adaptor.getLhsDilation(),
         op.getDimensionNumbers().getInputSpatialDimensions(), rewriter);
     Value modifiedRhs = applyConvolutionPadding(
-        op.getLoc(), adaptor.getRhs(), nullptr, adaptor.getRhsDilationAttr(),
+        op.getLoc(), adaptor.getRhs(), nullptr, adaptor.getRhsDilation(),
         op.getDimensionNumbers().getKernelSpatialDimensions(), rewriter);
     modifiedRhs = applyConvolutionReversal(loc, rewriter, op, modifiedRhs);
 
@@ -591,7 +592,7 @@ struct DepthwiseConvolutionOpConversion final
     // Make sure that this is depthwise convolution.
     int64_t inputFeatureDim = dimensionNumbers.getInputFeatureDimension();
     int64_t inputFeatureCount =
-        op.getLhs().getType().getDimSize(inputFeatureDim);
+        cast<ShapedType>(op.getLhs().getType()).getDimSize(inputFeatureDim);
     if (static_cast<int64_t>(op.getFeatureGroupCount()) != inputFeatureCount) {
       return rewriter.notifyMatchFailure(op, "not depth-wise convolution");
     }
@@ -643,10 +644,11 @@ struct DepthwiseConvolutionOpConversion final
     llvm::SmallVector<int64_t> spatialDimMapping(spatialRank);
     std::iota(spatialDimMapping.begin(), spatialDimMapping.end(), 1);
     input = applyConvolutionPadding(loc, input, op.getPaddingAttr(),
-                                    op.getLhsDilationAttr(), spatialDimMapping,
+                                    op.getLhsDilation(), spatialDimMapping,
                                     rewriter);
 
-    auto filterDims = llvm::to_vector(op.getRhs().getType().getShape());
+    auto filterDims =
+        llvm::to_vector(cast<ShapedType>(op.getRhs().getType()).getShape());
 
     auto getReassociationIndicesToCollapseLastTwoDims = [](Value v) {
       SmallVector<ReassociationIndices> reassociations;
@@ -679,7 +681,8 @@ struct DepthwiseConvolutionOpConversion final
         reshapedFilterDims[kernelOutputFeatureDimension] /=
             op.getFeatureGroupCount();
         auto reshapedFilterType = RankedTensorType::get(
-            reshapedFilterDims, op.getRhs().getType().getElementType());
+            reshapedFilterDims,
+            cast<ShapedType>(op.getRhs().getType()).getElementType());
 
         reshapedFilter = rewriter.create<mlir::stablehlo::ReshapeOp>(
             loc, reshapedFilterType, filter);

@@ -120,20 +120,21 @@ void printConvolutionDimensions(AsmPrinter &p, Operation *,
 ParseResult parseConvolutionDimensions(AsmParser &parser,
                                        ConvDimensionNumbersAttr &dimNums);
 
+// TODO(#2216) Cleanup Attribute -> DenseArrayAttr for print/parse.
 // Custom formatting for convolution window attributes.
 void printWindowAttributes(OpAsmPrinter &p, Operation *op,
-                           std::optional<DenseI64ArrayAttr> windowStrides,
+                           std::optional<Attribute> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
-                           std::optional<DenseI64ArrayAttr> lhsDilation,
-                           std::optional<DenseI64ArrayAttr> rhsDilation,
-                           std::optional<DenseBoolArrayAttr> windowReversal);
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal);
 
 ParseResult parseWindowAttributes(OpAsmParser &parser,
-                                  DenseI64ArrayAttr &windowStrides,
+                                  Attribute &windowStrides,
                                   DenseIntElementsAttr &padding,
-                                  DenseI64ArrayAttr &lhsDilation,
-                                  DenseI64ArrayAttr &rhsDilation,
-                                  DenseBoolArrayAttr &windowReversal);
+                                  Attribute &lhsDilation,
+                                  Attribute &rhsDilation,
+                                  Attribute &windowReversal);
 
 }  // end namespace stablehlo
 }  // end namespace mlir
