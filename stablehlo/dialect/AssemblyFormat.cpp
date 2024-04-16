@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "stablehlo/dialect/AssemblyFormat.h"
 
+#include <cassert>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -130,6 +131,42 @@ ParseResult parseVariadicSameOperandsAndResultType(
   for (Type& t : opTypes) typePtrs.push_back(&t);
 
   return detail::parseSameOperandsAndResultTypeImpl(parser, typePtrs, result);
+}
+
+void printConstantOp(OpAsmPrinter& p, Operation* op, ElementsAttr value) {
+  assert(op->getNumResults() == 1);
+  // If not all types are the same, use generic form.
+  if (value.getType() != op->getResultTypes().front()) {
+    p.printGenericOp(op, /*printOpName=*/false);
+    return;
+  }
+
+  p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"value"});
+  p << ' ';
+  p.printStrippedAttrOrType(value);
+}
+
+ParseResult parseConstantOp(OpAsmParser& parser, OperationState& result) {
+  // Parse the generic form.
+  if (succeeded(parser.parseOptionalLParen())) {
+    if (parser.parseRParen()) return failure();
+    if (parser.parseOptionalAttrDict(result.attributes)) return failure();
+    if (parser.parseColon() || parser.parseLParen() || parser.parseRParen() ||
+        parser.parseArrow())
+      return failure();
+    Type resultTy;
+    if (parser.parseType(resultTy)) return failure();
+    result.addTypes(resultTy);
+    return success();
+  }
+
+  ElementsAttr valueAttr;
+  if (parser.parseOptionalAttrDict(result.attributes)) return failure();
+  if (parser.parseCustomAttributeWithFallback(valueAttr, Type{}, "value",
+                                              result.attributes))
+    return failure();
+  result.addTypes(valueAttr.getType());
+  return success();
 }
 
 void printTupleOpType(OpAsmPrinter& p, Operation*, TypeRange operands,

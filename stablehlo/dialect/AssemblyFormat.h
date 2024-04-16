@@ -101,6 +101,16 @@ ParseResult parseVariadicSameOperandsAndResultType(
     SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands,
     SmallVectorImpl<Type>& opTypes, Type& result);
 
+// Print a `constant` op.
+//
+// op ::= attr-dict $value
+//
+// When the `value` and `output` have different type, it just uses the default
+// operator assembly format as a fallback.
+void printConstantOp(OpAsmPrinter& p, Operation* op, ElementsAttr value);
+
+ParseResult parseConstantOp(OpAsmParser& parser, OperationState& result);
+
 // TuplesOp - only print result type. Operand type is trivially inferrable.
 //
 // Inferring operand types from tuple type:
