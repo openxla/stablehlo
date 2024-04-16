@@ -420,6 +420,20 @@ func.func @tanh(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
 
 // -----
 
+// CHECK-LABEL: func @pad
+// CHECK-NEXT:  return
+func.func @pad(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>, %padding_value: tensor<f64>) {
+  %speculatable_0 = stablehlo.pad %static_arg, %padding_value, low = [0], high = [0], interior = [0] : (tensor<2xf64>, tensor<f64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.pad %static_arg, %padding_value, low = [0], high = [0], interior = [0] : (tensor<2xf64>, tensor<f64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.pad %dynamic_arg, %padding_value, low = [0], high = [0], interior = [0] : (tensor<?xf64>, tensor<f64>) -> tensor<2xf64>
+  %speculatable_2 = stablehlo.pad %dynamic_arg, %padding_value, low = [0], high = [0], interior = [0] : (tensor<?xf64>, tensor<f64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?xf64>) -> ()
+  return
+}
+
 // CHECK-LABEL: func @reduce_precision
 // CHECK-NEXT:  return
 func.func @reduce_precision(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
@@ -443,6 +457,22 @@ func.func @reverse(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
   %speculatable_1 = stablehlo.reverse %static_arg, dims = [0] : (tensor<2xf64>) -> tensor<?xf64>
   %not_speculatable_0 = stablehlo.reverse %dynamic_arg, dims = [0] : (tensor<?xf64>) -> tensor<2xf64>
   %speculatable_2 = stablehlo.reverse %dynamic_arg, dims = [0] : (tensor<?xf64>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%speculatable_2) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @slice
+// CHECK-NEXT:  return
+func.func @slice(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %speculatable_0 = stablehlo.slice %static_arg [0:2] : (tensor<2xf64>) -> tensor<2xf64>
+  %speculatable_1 = stablehlo.slice %static_arg [0:2] : (tensor<2xf64>) -> tensor<?xf64>
+  %not_speculatable_0 = stablehlo.slice %dynamic_arg [0:2] : (tensor<?xf64>) -> tensor<2xf64>
+  %speculatable_2 = stablehlo.slice %dynamic_arg [0:2] : (tensor<?xf64>) -> tensor<?xf64>
   "hlo_test_speculatability.is_speculatable"(%speculatable_0) : (tensor<2xf64>) -> ()
   "hlo_test_speculatability.is_speculatable"(%speculatable_1) : (tensor<?xf64>) -> ()
   "hlo_test_speculatability.is_not_speculatable"(%not_speculatable_0) : (tensor<2xf64>) -> ()
