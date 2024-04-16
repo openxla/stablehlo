@@ -129,8 +129,7 @@ void printWindowAttributes(OpAsmPrinter &p, Operation *op,
                            std::optional<Attribute> rhsDilation,
                            std::optional<Attribute> windowReversal);
 
-ParseResult parseWindowAttributes(OpAsmParser &parser,
-                                  Attribute &windowStrides,
+ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
                                   DenseIntElementsAttr &padding,
                                   Attribute &lhsDilation,
                                   Attribute &rhsDilation,

@@ -3066,8 +3066,7 @@ void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
   });
 }
 
-ParseResult parseWindowAttributes(OpAsmParser& parser,
-                                  Attribute& windowStrides,
+ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
                                   DenseIntElementsAttr& padding,
                                   Attribute& lhsDilation,
                                   Attribute& rhsDilation,
