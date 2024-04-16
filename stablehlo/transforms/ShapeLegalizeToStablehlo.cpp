@@ -199,7 +199,7 @@ struct ConvertComputeReshapeShapeOpPattern
     // results).
     // This cannot error out given how the operation is currently defined.
     auto resultIndex = maybeCastToIndex(op.getResult(), resultI32, rewriter);
-    if (!resultIndex || resultIndex.getType() != op.getResult().getType())
+    if (!resultIndex || resultIndex.getType() != op.getType())
       return rewriter.notifyMatchFailure(op, "cast to index failed");
     rewriter.replaceOp(op, resultIndex);
     return success();
@@ -238,7 +238,7 @@ struct ConvertNumElementsOpPattern
     // Cast result from tensor<i32> to index.
     // This will error out if the result is !shape.size.
     auto resultIndex = castToIndex(rewriter, op.getLoc(), resultI32);
-    if (!resultIndex || resultIndex.getType() != op.getResult().getType())
+    if (!resultIndex || resultIndex.getType() != op.getType())
       return rewriter.notifyMatchFailure(op, "cast to index failed");
     rewriter.replaceOp(op, resultIndex);
     return success();
@@ -279,7 +279,7 @@ struct ConvertShapeOfOpPattern : public OpRewritePattern<shape::ShapeOfOp> {
     // Cast result from tensor<Nxi32> to tensor<Nxindex>.
     // This will error out if the result is !shape.shape.
     auto shapeIndex = castToIndex(rewriter, op.getLoc(), shapeI32);
-    if (!shapeIndex || shapeIndex.getType() != op.getResult().getType())
+    if (!shapeIndex || shapeIndex.getType() != op.getType())
       return rewriter.notifyMatchFailure(op, "cast to index failed");
     rewriter.replaceOp(op, shapeIndex);
     return success();
@@ -291,7 +291,7 @@ struct ConvertConstShapeOpPattern
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(shape::ConstShapeOp op,
                                 PatternRewriter& rewriter) const override {
-    auto operandType = dyn_cast<RankedTensorType>(op.getResult().getType());
+    auto operandType = dyn_cast<RankedTensorType>(op.getType());
     if (!operandType)
       return rewriter.notifyMatchFailure(op, "expected ranked operand");
 
@@ -436,8 +436,7 @@ struct ConvertShapeBroadcastOpPattern
     auto broadcasted = rewriter.create<MaxOp>(op->getLoc(), shape1, shape2);
 
     auto broadcastedIndex = castToIndex(rewriter, op.getLoc(), broadcasted);
-    if (!broadcastedIndex ||
-        broadcastedIndex.getType() != op.getResult().getType())
+    if (!broadcastedIndex || broadcastedIndex.getType() != op.getType())
       return rewriter.notifyMatchFailure(op, "cast to index failed");
     rewriter.replaceOp(op, broadcastedIndex);
     return success();
@@ -498,7 +497,7 @@ struct ConvertTensorExtractPattern
     Value extractedScalarTensor = rewriter.create<ReshapeOp>(
         op.getLoc(), RankedTensorType::get({}, rewriter.getI32Type()),
         extractedTensor);
-    if (getElementTypeOrSelf(op.getResult().getType()).isIndex()) {
+    if (getElementTypeOrSelf(op.getType()).isIndex()) {
       auto extractedIndex =
           castToIndex(rewriter, op.getLoc(), extractedScalarTensor);
       rewriter.replaceOp(op, extractedIndex);
@@ -506,9 +505,9 @@ struct ConvertTensorExtractPattern
       // For the special case when the input is a i32 tensor and output is i32,
       // convert the result back to i32 to be consistent:
       //   unrealized_conversion_cast tensor<i32> -> i32
-      rewriter.replaceOp(op, rewriter.create<UnrealizedConversionCastOp>(
-                                 op.getLoc(), op.getResult().getType(),
-                                 extractedScalarTensor));
+      rewriter.replaceOp(op,
+                         rewriter.create<UnrealizedConversionCastOp>(
+                             op.getLoc(), op.getType(), extractedScalarTensor));
     }
     return success();
   }
@@ -519,8 +518,7 @@ struct ConvertTensorFromElementsPattern
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(tensor::FromElementsOp op,
                                 PatternRewriter& rewriter) const override {
-    auto tensorType =
-        dyn_cast_or_null<RankedTensorType>(op.getResult().getType());
+    auto tensorType = dyn_cast_or_null<RankedTensorType>(op.getType());
     if (!tensorType)
       return rewriter.notifyMatchFailure(op, "expected constant index op");
 
@@ -529,9 +527,9 @@ struct ConvertTensorFromElementsPattern
       //   tensor.from_elements i64 -> tensor<i64>
       // This is converted to unrealized_conversion_cast i64 -> tensor<i64>,
       // which is later cancelled with previous unrealized_conversion_cast op.
-      rewriter.replaceOp(
-          op, rewriter.create<UnrealizedConversionCastOp>(
-                  op.getLoc(), op.getResult().getType(), op.getElements()[0]));
+      rewriter.replaceOp(op,
+                         rewriter.create<UnrealizedConversionCastOp>(
+                             op.getLoc(), op.getType(), op.getElements()[0]));
       return success();
     }
 
@@ -558,7 +556,7 @@ struct ConvertTensorFromElementsPattern
                                                      /*dimension=*/0);
 
     tensorI32 = maybeCastToIndex(op.getResult(), tensorI32, rewriter);
-    if (!tensorI32 || tensorI32.getType() != op.getResult().getType())
+    if (!tensorI32 || tensorI32.getType() != op.getType())
       return rewriter.notifyMatchFailure(op, "cast to index failed");
     rewriter.replaceOp(op, tensorI32);
     return success();

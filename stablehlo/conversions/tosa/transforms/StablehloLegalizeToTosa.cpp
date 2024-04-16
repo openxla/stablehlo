@@ -85,7 +85,7 @@ struct ConvertStablehloConcatenateOp
   LogicalResult matchAndRewrite(stablehlo::ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
     rewriter.replaceOpWithNewOp<tosa::ConcatOp>(
-        op, op.getResult().getType(), op.getInputs(), op.getDimension());
+        op, op.getType(), op.getInputs(), op.getDimension());
     return success();
   }
 };
@@ -398,7 +398,7 @@ struct ConvertStablehloSliceOp : public OpRewritePattern<stablehlo::SliceOp> {
     }
 
     rewriter.replaceOpWithNewOp<tosa::SliceOp>(
-        op, op.getResult().getType(), op.getOperand(),
+        op, op.getType(), op.getOperand(),
         rewriter.getDenseI64ArrayAttr(startIndicesI64),
         rewriter.getDenseI64ArrayAttr(size));
     return success();
@@ -422,7 +422,7 @@ struct ConvertStablehloTransposeOp
                                       rewriter.getI64Type());
     auto constOp = rewriter.create<tosa::ConstOp>(
         op->getLoc(), type, DenseIntElementsAttr::get(type, perms));
-    rewriter.replaceOpWithNewOp<tosa::TransposeOp>(op, op.getResult().getType(),
+    rewriter.replaceOpWithNewOp<tosa::TransposeOp>(op, op.getType(),
                                                    op.getOperand(), constOp);
     return success();
   }

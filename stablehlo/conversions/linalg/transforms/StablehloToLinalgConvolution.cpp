@@ -189,7 +189,7 @@ struct NormalConvolutionOpConversion final
     Value filter = adaptor.getRhs();
     filter = applyConvolutionReversal(loc, rewriter, op, filter);
     auto resultType = dyn_cast_or_null<ShapedType>(
-        getTypeConverter()->convertType(op.getResult().getType()));
+        getTypeConverter()->convertType(op.getType()));
     if (!resultType) {
       return rewriter.notifyMatchFailure(op, "type conversion failed");
     }
@@ -304,7 +304,7 @@ struct ConvolutionOpGeneralConversion final
     MLIRContext *ctx = op.getContext();
 
     auto resultType = dyn_cast_or_null<ShapedType>(
-        getTypeConverter()->convertType(op.getResult().getType()));
+        getTypeConverter()->convertType(op.getType()));
     if (!resultType) {
       return rewriter.notifyMatchFailure(op, "type conversion failed");
     }
@@ -623,7 +623,7 @@ struct DepthwiseConvolutionOpConversion final
     Value input = adaptor.getLhs();
     Value filter = adaptor.getRhs();
     auto resultType = dyn_cast_or_null<RankedTensorType>(
-        getTypeConverter()->convertType(op.getResult().getType()));
+        getTypeConverter()->convertType(op.getType()));
     if (!resultType) {
       return rewriter.notifyMatchFailure(op, "type conversion failed");
     }
