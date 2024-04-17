@@ -2204,7 +2204,8 @@ def StableHLO_CompositeOp : StableHLO_Op<"composite", [DeclareOpInterfaceMethods
   let assemblyFormat = "$name $inputs attr-dict `:` functional-type(operands, results)";
 }
 
-def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
+def StableHLO_ConvolutionOp : StableHLO_Op<"convolution",
+    [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "Convolution operation";
   let description = [{
     Computes dot products between windows of `lhs` and slices of `rhs` and
@@ -2251,6 +2252,11 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
                                                  $lhs_dilation, $rhs_dilation,
                                                  $window_reversal) `}`
        attr-dict `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
   }];
 }
 

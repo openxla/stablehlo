@@ -1017,6 +1017,58 @@ LogicalResult ConvolutionOp::verify() {
       getResult().getType());
 }
 
+mlir::Speculation::Speculatability ConvolutionOp::getSpeculatability() {
+  // input_feature_dimension and kernel_input_feature_dimension must be static
+  // (C14)
+  // input_batch_dimension must be static if batch_group_count > 1 (C10) or if
+  // output_batch_dimension is static (C25, first bullet).
+  // kernel_output_feature_dimension must be static if batch_group_count > 1
+  // (C15) or feature_group_count > 1 (C16) or if output_feature_dimension is
+  // static (C25, second bullet). If a spatial dimension is static in the
+  // output, it must be static in the inputs.
+
+  auto inputType = getLhs().getType();
+  auto kernelType = getRhs().getType();
+  auto resultType = getType();
+
+  auto dimNumbers = getDimensionNumbers();
+  auto inputBatchDim = dimNumbers.getInputBatchDimension();
+  auto inputFeatureDim = dimNumbers.getInputFeatureDimension();
+  auto inputSpatialDims = dimNumbers.getInputSpatialDimensions();
+  auto kernelInputFeatureDim = dimNumbers.getKernelInputFeatureDimension();
+  auto kernelOutputFeatureDim = dimNumbers.getKernelOutputFeatureDimension();
+  auto kernelSpatialDims = dimNumbers.getKernelSpatialDimensions();
+  auto outputBatchDim = dimNumbers.getOutputBatchDimension();
+  auto outputFeatureDim = dimNumbers.getOutputFeatureDimension();
+  auto outputSpatialDims = dimNumbers.getOutputSpatialDimensions();
+
+  auto batchGroupCount = getBatchGroupCount();
+  auto featureGroupCount = getFeatureGroupCount();
+
+  if (inputType.isDynamicDim(inputFeatureDim) ||
+      kernelType.isDynamicDim(kernelInputFeatureDim))
+    return mlir::Speculation::NotSpeculatable;
+
+  if (inputType.isDynamicDim(inputBatchDim) &&
+      (batchGroupCount > 1 || !resultType.isDynamicDim(outputBatchDim)))
+    return mlir::Speculation::NotSpeculatable;
+
+  if (kernelType.isDynamicDim(kernelOutputFeatureDim) &&
+      (batchGroupCount > 1 || featureGroupCount > 1 ||
+       !resultType.isDynamicDim(outputFeatureDim)))
+    return mlir::Speculation::NotSpeculatable;
+
+  for (auto [inputDim, kernelDim, resultDim] :
+       llvm::zip(inputSpatialDims, kernelSpatialDims, outputSpatialDims)) {
+    if (!resultType.isDynamicDim(resultDim) &&
+        (inputType.isDynamicDim(inputDim) ||
+         kernelType.isDynamicDim(kernelDim)))
+      return mlir::Speculation::NotSpeculatable;
+  }
+
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // ConvertOp
 //===----------------------------------------------------------------------===//
