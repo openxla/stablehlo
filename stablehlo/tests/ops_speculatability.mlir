@@ -1289,11 +1289,15 @@ func.func @concatenate(%static_arg: tensor<2x2xi64>, %first_dim_dynamic: tensor<
 
 // -----
 
+// CHECK-LABEL: func @dot_general
+// CHECK-NEXT: return
 func.func @dot_general(
   %static_lhs: tensor<2x3x4xf64>, %static_rhs: tensor<2x3x5xf64>,
   %batching_dynamic_lhs: tensor<?x3x4xf64>, %batching_dynamic_rhs: tensor<?x3x5xf64>,
   %contracting_dynamic_lhs: tensor<2x?x4xf64>, %contracting_dynamic_rhs: tensor<2x?x5xf64>,
-  %dynamic_lhs: tensor<2x3x?xf64>, %dynamic_rhs: tensor<2x3x?xf64>
+  %dynamic_lhs: tensor<2x3x?xf64>, %dynamic_rhs: tensor<2x3x?xf64>,
+  %large_static_lhs: tensor<1x2x3x4x5x6xf64>, %large_static_rhs: tensor<2x5x3x7x4x8xf64>,
+  %large_dynamic_lhs: tensor<?x2x3x4x5x?xf64>, %large_dynamic_rhs: tensor<2x5x3x?x4x?xf64>
 ) {
   // Inputs fully static
   %0 = stablehlo.dot_general %static_lhs, %static_rhs, batching_dims = [0] x [0], contracting_dims = [1] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x3x4xf64>, tensor<2x3x5xf64>) -> tensor<2x4x5xf64>
@@ -1322,6 +1326,14 @@ func.func @dot_general(
   "hlo_test_speculatability.is_not_speculatable"(%7) : (tensor<2x4x5xf64>) -> ()
   %8 = stablehlo.dot_general %static_lhs, %dynamic_rhs, batching_dims = [0] x [0], contracting_dims = [1] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x3x4xf64>, tensor<2x3x?xf64>) -> tensor<2x4x?xf64>
   "hlo_test_speculatability.is_speculatable"(%8) : (tensor<2x4x?xf64>) -> ()
+
+  // Inputs with many dimensions and varying batching/contracting dims
+  %9 = stablehlo.dot_general %large_static_lhs, %large_static_rhs, batching_dims = [1, 3] x [0, 4], contracting_dims = [2, 4] x [2, 1], precision = [DEFAULT, DEFAULT] : (tensor<1x2x3x4x5x6xf64>, tensor<2x5x3x7x4x8xf64>) -> tensor<2x4x1x6x7x8xf64>
+  "hlo_test_speculatability.is_speculatable"(%9) : (tensor<2x4x1x6x7x8xf64>) -> ()
+  %10 = stablehlo.dot_general %large_dynamic_lhs, %large_static_rhs, batching_dims = [1, 3] x [0, 4], contracting_dims = [2, 4] x [2, 1], precision = [DEFAULT, DEFAULT] : (tensor<?x2x3x4x5x?xf64>, tensor<2x5x3x7x4x8xf64>) -> tensor<2x4x1x6x7x8xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%10) : (tensor<2x4x1x6x7x8xf64>) -> ()
+  %11 = stablehlo.dot_general %large_static_lhs, %large_dynamic_rhs, batching_dims = [1, 3] x [0, 4], contracting_dims = [2, 4] x [2, 1], precision = [DEFAULT, DEFAULT] : (tensor<1x2x3x4x5x6xf64>, tensor<2x5x3x?x4x?xf64>) -> tensor<2x4x1x6x7x8xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%11) : (tensor<2x4x1x6x7x8xf64>) -> ()
 
   return
 }

@@ -597,6 +597,7 @@ mlir::Speculation::Speculatability DotGeneralOp::getSpeculatability() {
   // Batching and contracting dims must be static, otherwise they could disagree
   // at runtime.
   // Other dims follow SpeculatableIfStaticDimInOutputIsStaticInInput.
+
   auto lhsType = getLhs().getType();
   auto rhsType = getRhs().getType();
 
@@ -616,19 +617,19 @@ mlir::Speculation::Speculatability DotGeneralOp::getSpeculatability() {
   for (auto i : rhsSpecialDimensions)
     if (rhsType.isDynamicDim(i)) return mlir::Speculation::NotSpeculatable;
 
-  int64_t lhsExtraDims = lhsType.getRank() - lhsBatchingDimensions.size() -
-                         lhsContractingDimensions.size();
-
-  auto specialDimensions =
-      llvm::concat<const int64_t>(lhsSpecialDimensions, rhsSpecialDimensions);
-
   auto resultType = getType();
-  for (int64_t i : llvm::seq(resultType.getRank())) {
-    if (llvm::is_contained(specialDimensions, i) || resultType.isDynamicDim(i))
-      continue;
-    if ((i < lhsExtraDims && lhsType.isDynamicDim(i)) ||
-        (i >= lhsExtraDims && rhsType.isDynamicDim(i - lhsExtraDims)))
+  int64_t resultIndex = lhsBatchingDimensions.size();
+  for (int64_t i = 0; i < lhsType.getRank(); i++) {
+    if (llvm::is_contained(lhsSpecialDimensions, i)) continue;
+    if (!resultType.isDynamicDim(resultIndex) && lhsType.isDynamicDim(i))
       return mlir::Speculation::NotSpeculatable;
+    resultIndex++;
+  }
+  for (int64_t i = 0; i < rhsType.getRank(); i++) {
+    if (llvm::is_contained(rhsSpecialDimensions, i)) continue;
+    if (!resultType.isDynamicDim(resultIndex) && rhsType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+    resultIndex++;
   }
 
   return mlir::Speculation::Speculatable;
