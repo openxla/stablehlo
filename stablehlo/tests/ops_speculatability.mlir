@@ -648,6 +648,53 @@ func.func @all_gather(%static_arg: tensor<2x2xf64>, %dynamic_arg: tensor<?x?xf64
 
 // -----
 
+// CHECK-LABEL: func @fft
+// CHECK-NEXT:  return
+func.func @fft(
+  %static_arg: tensor<3x9xcomplex<f64>>, %dynamic_arg: tensor<?x?xcomplex<f64>>,
+  %static_rfft_arg: tensor<3x9xf64>, %dynamic_rfft_arg: tensor<?x?xf64>,
+  %static_irfft_arg: tensor<3x5xcomplex<f64>>, %dynamic_irfft_arg: tensor<?x?xcomplex<f64>>
+) {
+  %fft_0 = stablehlo.fft %static_arg, type = FFT, length = [9] : (tensor<3x9xcomplex<f64>>) -> tensor<3x9xcomplex<f64>>
+  %fft_1 = stablehlo.fft %static_arg, type = FFT, length = [9] : (tensor<3x9xcomplex<f64>>) -> tensor<?x?xcomplex<f64>>
+  %fft_2 = stablehlo.fft %dynamic_arg, type = FFT, length = [9] : (tensor<?x?xcomplex<f64>>) -> tensor<3x9xcomplex<f64>>
+  %fft_3 = stablehlo.fft %dynamic_arg, type = FFT, length = [9] : (tensor<?x?xcomplex<f64>>) -> tensor<?x?xcomplex<f64>>
+  "hlo_test_speculatability.is_speculatable"(%fft_0) : (tensor<3x9xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%fft_1) : (tensor<?x?xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%fft_2) : (tensor<3x9xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%fft_3) : (tensor<?x?xcomplex<f64>>) -> ()
+
+  %ifft_0 = stablehlo.fft %static_arg, type = IFFT, length = [9] : (tensor<3x9xcomplex<f64>>) -> tensor<3x9xcomplex<f64>>
+  %ifft_1 = stablehlo.fft %static_arg, type = IFFT, length = [9] : (tensor<3x9xcomplex<f64>>) -> tensor<?x?xcomplex<f64>>
+  %ifft_2 = stablehlo.fft %dynamic_arg, type = IFFT, length = [9] : (tensor<?x?xcomplex<f64>>) -> tensor<3x9xcomplex<f64>>
+  %ifft_3 = stablehlo.fft %dynamic_arg, type = IFFT, length = [9] : (tensor<?x?xcomplex<f64>>) -> tensor<?x?xcomplex<f64>>
+  "hlo_test_speculatability.is_speculatable"(%ifft_0) : (tensor<3x9xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%ifft_1) : (tensor<?x?xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%ifft_2) : (tensor<3x9xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%ifft_3) : (tensor<?x?xcomplex<f64>>) -> ()
+
+  %rfft_0 = stablehlo.fft %static_rfft_arg, type = RFFT, length = [9] : (tensor<3x9xf64>) -> tensor<3x5xcomplex<f64>>
+  %rfft_1 = stablehlo.fft %static_rfft_arg, type = RFFT, length = [9] : (tensor<3x9xf64>) -> tensor<?x?xcomplex<f64>>
+  %rfft_2 = stablehlo.fft %dynamic_rfft_arg, type = RFFT, length = [9] : (tensor<?x?xf64>) -> tensor<3x5xcomplex<f64>>
+  %rfft_3 = stablehlo.fft %dynamic_rfft_arg, type = RFFT, length = [9] : (tensor<?x?xf64>) -> tensor<?x?xcomplex<f64>>
+  "hlo_test_speculatability.is_speculatable"(%rfft_0) : (tensor<3x5xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%rfft_1) : (tensor<?x?xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%rfft_2) : (tensor<3x5xcomplex<f64>>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%rfft_3) : (tensor<?x?xcomplex<f64>>) -> ()
+
+  %irfft_0 = stablehlo.fft %static_irfft_arg, type = IRFFT, length = [9] : (tensor<3x5xcomplex<f64>>) -> tensor<3x9xf64>
+  %irfft_1 = stablehlo.fft %static_irfft_arg, type = IRFFT, length = [9] : (tensor<3x5xcomplex<f64>>) -> tensor<?x?xf64>
+  %irfft_2 = stablehlo.fft %dynamic_irfft_arg, type = IRFFT, length = [9] : (tensor<?x?xcomplex<f64>>) -> tensor<3x9xf64>
+  %irfft_3 = stablehlo.fft %dynamic_irfft_arg, type = IRFFT, length = [9] : (tensor<?x?xcomplex<f64>>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%irfft_0) : (tensor<3x9xf64>) -> ()
+  "hlo_test_speculatability.is_speculatable"(%irfft_1) : (tensor<?x?xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%irfft_2) : (tensor<3x9xf64>) -> ()
+  "hlo_test_speculatability.is_not_speculatable"(%irfft_3) : (tensor<?x?xf64>) -> ()
+  return
+}
+
+// -----
+
 // CHECK-LABEL: func @reduce_scatter
 // CHECK-NEXT:  return
 func.func @reduce_scatter(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?xf64>) {

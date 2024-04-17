@@ -608,6 +608,24 @@ LogicalResult FftOp::inferReturnTypeComponents(
                          adaptor.getFftLength(), inferredReturnShapes);
 }
 
+mlir::Speculation::Speculatability FftOp::getSpeculatability() {
+  // This is the same logic as SpeculatableIfStaticDimInOutputIsStaticInInput,
+  // except that for RFFT and IRFFT the last `fft_length.size()` dimensions in
+  // the operand need to be static.
+  auto inputType = getOperand().getType();
+  auto resultType = getType();
+  size_t minStaticDim = inputType.getRank();
+  if (getFftType() == FftType::RFFT || getFftType() == FftType::IRFFT)
+    minStaticDim = minStaticDim - getFftLength().size();
+  for (size_t i : llvm::seq(inputType.getRank())) {
+    if (i >= minStaticDim && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // GatherOp
 //===----------------------------------------------------------------------===//

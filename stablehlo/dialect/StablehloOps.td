@@ -2455,7 +2455,9 @@ def StableHLO_UnaryEinsumOp: StableHLO_Op<"unary_einsum", [Pure]> {
   }];
 }
 
-def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
+def StableHLO_FftOp: StableHLO_Op<"fft",
+    [ConditionallySpeculatable, NoMemoryEffect,
+    InferTensorType]> {
   let summary = "Fft operation";
   let description = [{
     Performs the forward and inverse Fourier transforms for real and complex
@@ -2480,6 +2482,11 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   let assemblyFormat = [{
     $operand `,` `type` `=` $fft_type `,` `length` `=` custom<DenseI64Array>($fft_length)
       attr-dict `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
   }];
 }
 
