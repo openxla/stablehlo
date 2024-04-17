@@ -593,6 +593,47 @@ LogicalResult DotGeneralOp::reifyReturnTypeShapes(
   return success();
 }
 
+mlir::Speculation::Speculatability DotGeneralOp::getSpeculatability() {
+  // Batching and contracting dims must be static, otherwise they could disagree
+  // at runtime.
+  // Other dims follow SpeculatableIfStaticDimInOutputIsStaticInInput.
+  auto lhsType = getLhs().getType();
+  auto rhsType = getRhs().getType();
+
+  auto dimensionsAttr = getDotDimensionNumbersAttr();
+  auto lhsBatchingDimensions = dimensionsAttr.getLhsBatchingDimensions();
+  auto lhsContractingDimensions = dimensionsAttr.getLhsContractingDimensions();
+  auto rhsBatchingDimensions = dimensionsAttr.getRhsBatchingDimensions();
+  auto rhsContractingDimensions = dimensionsAttr.getRhsContractingDimensions();
+
+  auto lhsSpecialDimensions = llvm::concat<const int64_t>(
+      lhsBatchingDimensions, lhsContractingDimensions);
+  auto rhsSpecialDimensions = llvm::concat<const int64_t>(
+      rhsBatchingDimensions, rhsContractingDimensions);
+
+  for (auto i : lhsSpecialDimensions)
+    if (lhsType.isDynamicDim(i)) return mlir::Speculation::NotSpeculatable;
+  for (auto i : rhsSpecialDimensions)
+    if (rhsType.isDynamicDim(i)) return mlir::Speculation::NotSpeculatable;
+
+  int64_t lhsExtraDims = lhsType.getRank() - lhsBatchingDimensions.size() -
+                         lhsContractingDimensions.size();
+
+  auto specialDimensions =
+      llvm::concat<const int64_t>(lhsSpecialDimensions, rhsSpecialDimensions);
+
+  auto resultType = getType();
+  for (int64_t i : llvm::seq(resultType.getRank())) {
+    if (llvm::is_contained(specialDimensions, i) || resultType.isDynamicDim(i))
+      continue;
+    if ((i < lhsExtraDims && lhsType.isDynamicDim(i)) ||
+        (i >= lhsExtraDims && rhsType.isDynamicDim(i - lhsExtraDims)))
+      return mlir::Speculation::NotSpeculatable;
+  }
+
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // FftOp
 //===----------------------------------------------------------------------===//

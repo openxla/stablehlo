@@ -2360,7 +2360,8 @@ def StableHLO_DotOp: StableHLO_Op<"dot", [Pure]> {
   }];
 }
 
-def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general", [Pure]> {
+def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
+    [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "DotGeneral operation";
   let description = [{
     Computes dot products between slices of `lhs` and slices of `rhs` and
@@ -2393,6 +2394,11 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general", [Pure]> {
     $lhs `,` $rhs `,` custom<DotDimensionNumbers>($dot_dimension_numbers) ``
     custom<PrecisionConfig>($precision_config) attr-dict
       `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
   }];
 }
 
