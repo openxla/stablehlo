@@ -224,7 +224,7 @@ Tensor evalConvolutionOp(
           /*padding=*/
           getDenseIntElementsAttr(
               IntegerType::get(lhs.getType().getContext(), 64), paddingVector,
-              SmallVector<int64_t>(padding.size(), 2)),
+              SmallVector<int64_t>({lhs.getRank() - 2, 2})),
           lhsDilation, rhsDilation, windowReversal, inputBatchDimension,
           inputFeatureDimension, ArrayRef<int64_t>(inputSpatialDimensions),
           kernelInputFeatureDimension, kernelOutputFeatureDimension,
