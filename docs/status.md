@@ -160,18 +160,17 @@ one of the following tracking labels.
 | while                    | yes           | revisit      | yes            | revisit         | yes         |
 | xor                      | yes           | yes          | yes            | yes             | yes         |
 
-## Note
+## Type inference for quantized operations
 
-- **Type inference and Quantization**: `Type Inference` column from the above
-table is applicable for non quantized inputs. In case of quantization, result type
-inference is not always feasible. Quantization scales
-and zero-points of quantized result types can differ from operands, making them
-infeasible to infer from the operands. List of ops who support Quantization and
-Type Inference **is** feasible: `all_gather`,
-`all_to_all`, `case`, `collective_permute`,
-`compare`, `concatenate`, `constant`, `dot_general`, `dynamic_slice`,
+The `Type Inference` column from the table above is intended to focus on
+non-quantized operations. For the majority of the quantized operations, it is
+not feasible to infer the result type because the quantization parameters of
+the result types may vary from those of the operands. With the exception of
+few cases where, operand and result types must match identically, or the op
+has constraints useful to infer result type, such ops are listed below:
+`all_gather`, `all_to_all`, `case`, `collective_permute`,
+`compare`, `concatenate`, `constant`, `dynamic_slice`,
 `dynamic_update_slice`, `gather`, `get_tuple_element`, `if`, `infeed`,
 `is_finite`, `map`, `optimization_barrier`, `outfeed`, `pad`, `recv`, `reduce`,
 `reduce_scatter`, `reduce_window`, `reverse`, `scatter`, `select_and_scatter`,
-`send`, `slice`, `sort`, `tuple`, `uniform_dequantized`, `uniform_quantized`,
-`while`.
+`send`, `slice`, `sort`, `transpose`, `tuple`, `uniform_dequantized`, `while`.
