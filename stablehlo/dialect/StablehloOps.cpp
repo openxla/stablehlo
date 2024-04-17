@@ -1919,7 +1919,8 @@ mlir::Speculation::Speculatability SetDimensionSizeOp::getSpeculatability() {
   // If the dimension being set is not constant, it is only speculatable if it
   // is dynamic in the output.
   auto resultType = getType();
-  if (!resultType.isDynamicDim(getDimension())) return mlir::Speculation::NotSpeculatable;
+  if (!resultType.isDynamicDim(getDimension()))
+    return mlir::Speculation::NotSpeculatable;
 
   // For all other dimensions, if the dimension is static in the output, it must
   // be static in the input.
