@@ -2792,8 +2792,7 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
   let hasVerifier = 1;
 }
 
-def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size",
-      [ConditionallySpeculatable, NoMemoryEffect,
+def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
       InferTensorType]> {
   let summary = "SetDimensionSize operation";
   let description = [{
