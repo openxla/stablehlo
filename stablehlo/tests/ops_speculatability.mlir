@@ -1714,6 +1714,7 @@ func.func @select_and_scatter(
   %static_arg: tensor<10x24x24x64xf64>, %dynamic_arg: tensor<?x?x?x?xf64>,
   %source: tensor<10x12x12x64xf64>, %init: tensor<f64>
 ) {
+  // Inputs and output are static
   %0 = "stablehlo.select_and_scatter"(%static_arg, %source, %init) ({
   ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
     %c0 = stablehlo.constant dense<false> : tensor<i1>
@@ -1727,6 +1728,7 @@ func.func @select_and_scatter(
   } : (tensor<10x24x24x64xf64>, tensor<10x12x12x64xf64>, tensor<f64>) -> tensor<10x24x24x64xf64>
   "hlo_test_speculatability.is_recursively_speculatable"(%0) : (tensor<10x24x24x64xf64>) -> ()
 
+  // Inputs are static, output is dynamic
   %1 = "stablehlo.select_and_scatter"(%static_arg, %source, %init) ({
   ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
     %c0 = stablehlo.constant dense<false> : tensor<i1>
@@ -1740,6 +1742,7 @@ func.func @select_and_scatter(
   } : (tensor<10x24x24x64xf64>, tensor<10x12x12x64xf64>, tensor<f64>) -> tensor<?x?x?x?xf64>
   "hlo_test_speculatability.is_recursively_speculatable"(%1) : (tensor<?x?x?x?xf64>) -> ()
 
+  // Inputs are dynamic, output is static
   %2 = "stablehlo.select_and_scatter"(%dynamic_arg, %source, %init) ({
   ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
     %c0 = stablehlo.constant dense<false> : tensor<i1>
@@ -1753,6 +1756,7 @@ func.func @select_and_scatter(
   } : (tensor<?x?x?x?xf64>, tensor<10x12x12x64xf64>, tensor<f64>) -> tensor<10x24x24x64xf64>
   "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<10x24x24x64xf64>) -> ()
 
+  // Inputs and output are dynamic
   %3 = "stablehlo.select_and_scatter"(%dynamic_arg, %source, %init) ({
   ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
     %c0 = stablehlo.constant dense<false> : tensor<i1>
