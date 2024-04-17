@@ -1708,6 +1708,69 @@ func.func @reduce_window(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?x
 
 // -----
 
+// CHECK-LABEL: func @select_and_scatter
+// CHECK-NEXT: return
+func.func @select_and_scatter(
+  %static_arg: tensor<10x24x24x64xf64>, %dynamic_arg: tensor<?x?x?x?xf64>,
+  %source: tensor<10x12x12x64xf64>, %init: tensor<f64>
+) {
+  %0 = "stablehlo.select_and_scatter"(%static_arg, %source, %init) ({
+  ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+    %c0 = stablehlo.constant dense<false> : tensor<i1>
+    stablehlo.return %c0 : tensor<i1>
+  },  {
+  ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+    stablehlo.return %arg0 : tensor<f64>
+  }) {
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
+  } : (tensor<10x24x24x64xf64>, tensor<10x12x12x64xf64>, tensor<f64>) -> tensor<10x24x24x64xf64>
+  "hlo_test_speculatability.is_recursively_speculatable"(%0) : (tensor<10x24x24x64xf64>) -> ()
+
+  %1 = "stablehlo.select_and_scatter"(%static_arg, %source, %init) ({
+  ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+    %c0 = stablehlo.constant dense<false> : tensor<i1>
+    stablehlo.return %c0 : tensor<i1>
+  },  {
+  ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+    stablehlo.return %arg0 : tensor<f64>
+  }) {
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
+  } : (tensor<10x24x24x64xf64>, tensor<10x12x12x64xf64>, tensor<f64>) -> tensor<?x?x?x?xf64>
+  "hlo_test_speculatability.is_recursively_speculatable"(%1) : (tensor<?x?x?x?xf64>) -> ()
+
+  %2 = "stablehlo.select_and_scatter"(%dynamic_arg, %source, %init) ({
+  ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+    %c0 = stablehlo.constant dense<false> : tensor<i1>
+    stablehlo.return %c0 : tensor<i1>
+  },  {
+  ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+    stablehlo.return %arg0 : tensor<f64>
+  }) {
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
+  } : (tensor<?x?x?x?xf64>, tensor<10x12x12x64xf64>, tensor<f64>) -> tensor<10x24x24x64xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<10x24x24x64xf64>) -> ()
+
+  %3 = "stablehlo.select_and_scatter"(%dynamic_arg, %source, %init) ({
+  ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+    %c0 = stablehlo.constant dense<false> : tensor<i1>
+    stablehlo.return %c0 : tensor<i1>
+  },  {
+  ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+    stablehlo.return %arg0 : tensor<f64>
+  }) {
+    window_dimensions = array<i64: 1, 2, 2, 1>,
+    window_strides = array<i64: 1, 2, 2, 1>
+  } : (tensor<?x?x?x?xf64>, tensor<10x12x12x64xf64>, tensor<f64>) -> tensor<?x?x?x?xf64>
+  "hlo_test_speculatability.is_recursively_speculatable"(%3) : (tensor<?x?x?x?xf64>) -> ()
+
+  return
+}
+
+// -----
+
 // CHECK-LABEL: func @sort
 // CHECK-NEXT: return
 func.func @sort(%static_arg: tensor<2x4xf64>, %dynamic_arg: tensor<?x?xf64>) {

@@ -336,6 +336,16 @@ def HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
 def HLO_SpeculatableIfStaticDimInOutputIsStaticInInput : TraitList<[
     ConditionallySpeculatable, HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait]>;
 
+def HLO_RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
+  : HLO_NativeOpTrait<"RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait">;
+
+// This trait is the same as HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
+// but for ops that have regions. If all static dimensions in the output are
+// static in the input, such an op is RecursivelySpeculatable (the ops in its
+// regions have to be checked for speculatability).
+def HLO_RecursivelySpeculatableIfStaticDimInOutputIsStaticInInput : TraitList<[
+    ConditionallySpeculatable, HLO_RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait]>;
+
 def HLO_SpeculatableIfAllInputsStaticImplTrait
   : HLO_NativeOpTrait<"SpeculatableIfAllInputsStaticImplTrait">;
 

@@ -422,6 +422,23 @@ struct SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
 };
 
 template <typename ConcreteType>
+struct RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType,
+          RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait> {
+  mlir::Speculation::Speculatability getSpeculatability() {
+    auto op = this->getOperation();
+    auto inputType = cast<RankedTensorType>(op->getOperand(0).getType());
+    auto resultType = cast<RankedTensorType>(op->getResult(0).getType());
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
+    return mlir::Speculation::RecursivelySpeculatable;
+  }
+};
+
+template <typename ConcreteType>
 struct SpeculatableIfAllInputsStaticImplTrait
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       SpeculatableIfAllInputsStaticImplTrait> {

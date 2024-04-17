@@ -2739,7 +2739,8 @@ def StableHLO_SelectOp: StableHLO_Op<"select",
 }
 
 def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
-      [DeclareOpInterfaceMethods<InferTypeOpInterface> /*select_and_scatter_c11,
+      [HLO_RecursivelySpeculatableIfStaticDimInOutputIsStaticInInput,
+      DeclareOpInterfaceMethods<InferTypeOpInterface> /*select_and_scatter_c11,
       select_and_scatter_c12*/, RecursiveMemoryEffects]> {
   let summary = "SelectAndScatter operation";
   let description = [{
