@@ -37,11 +37,6 @@ jobs:
     # Only run scheduled CI on main repo
     if: (github.repository == 'openxla/stablehlo' || github.event_name != 'schedule')
     name: "cmake-build ${{ github.event_name == 'schedule' && '(llvm-project@HEAD)' || ''}}"
-    env:
-      LLVM_PROJECT_DIR: "llvm-project"
-      LLVM_BUILD_DIR: "llvm-build"
-      STABLEHLO_BUILD_DIR: "stablehlo-build"
-      STABLEHLO_PYTHON_BUILD_DIR: "stablehlo-python-build"
     strategy:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
@@ -66,14 +61,6 @@ jobs:
       with:
         llvm-version: ${{ steps.llvm-version.outputs.version }}
 
-    - name: Configure and Build LLVM
-      shell: bash
-      run: |
-        ./build_tools/github_actions/ci_build_cmake_llvm.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR"
-      env:
-          CMAKE_BUILD_TYPE: Release
-          MLIR_ENABLE_BINDINGS_PYTHON: ON
-
     - name: Fix kernel mmap rnd bits
       # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
       # high-entropy ASLR in much newer kernels that GitHub runners are
@@ -84,16 +71,11 @@ jobs:
     - name: Build and Test StableHLO (with AddressSanitizer)
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
-      env:
-          CMAKE_BUILD_TYPE: Release
-          STABLEHLO_ENABLE_BINDINGS_PYTHON: OFF
-          STABLEHLO_ENABLE_SANITIZER: address
+        cmake --preset debug
+        cmake --build ./build --target check-stablehlo-ci
 
     - name: Build and Test StableHLO (with Python bindings)
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
-      env:
-          CMAKE_BUILD_TYPE: Release
-          STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
+        cmake --preset debug-python
+        cmake --build ./build --target check-stablehlo-ci
