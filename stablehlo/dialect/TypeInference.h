@@ -457,7 +457,8 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
                                  Value interiorPadding, Value result);
 
 LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
-                                     Value outputShape, Value result);
+                                     Value operand, Value outputShape,
+                                     Value result);
 
 LogicalResult verifyInfeedOp(HloDialectInterface* dialect,
                              std::optional<Location> location,

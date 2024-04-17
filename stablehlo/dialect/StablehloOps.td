@@ -2637,7 +2637,8 @@ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
   }];
 }
 
-def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [Pure]> {
+def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape",
+      [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "DynamicReshape operation";
   let description = [{
     This operation is a work in progress, so it is not yet included in
@@ -2659,6 +2660,11 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
   let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
+  }];
 }
 
 def StableHLO_ScatterOp: StableHLO_Op<"scatter",

@@ -3164,18 +3164,9 @@ func.func @dynamic_reshape_incompatible_shapes(%arg0: tensor<?xf32>, %shape: ten
 
 // -----
 
-func.func @dynamic_reshape_output_shape_negative_size(%arg0: tensor<4xf32>) -> tensor<1x4xf32> {
-  // expected-error@+2 {{output_shape is incompatible with return type of operation 'tensor<1x4xf32>'}}
-  %0 = stablehlo.constant dense<[-1, 1]> : tensor<2xi64>
-  %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x4xf32>
-  return %1 : tensor<1x4xf32>
-}
-
-// -----
-
 func.func @dynamic_reshape_output_shape_mismatching_size(%arg0: tensor<4xf32>) -> tensor<1x4xf32> {
   // expected-error@+2 {{output_shape is incompatible with return type of operation 'tensor<1x4xf32>'}}
-  %0 = stablehlo.constant dense<[1, 1]> : tensor<2xi64>
+  %0 = stablehlo.constant dense<[2, 2]> : tensor<2xi64>
   %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x4xf32>
   return %1 : tensor<1x4xf32>
 }
@@ -3186,6 +3177,15 @@ func.func @dynamic_reshape_dynamic_output_shape(%arg0: tensor<?xf32>, %shape: te
   // expected-error@+1 {{op operand #1 must be statically shaped}}
   %0 = "stablehlo.dynamic_reshape"(%arg0, %shape) : (tensor<?xf32>, tensor<?xindex>) -> tensor<1x4xf32>
   func.return %0 : tensor<1x4xf32>
+}
+
+// -----
+
+func.func @dynamic_reshape_input_count_mismatch_shape_count(%arg0: tensor<2x5xf32>) -> tensor<?x?x?xf32> {
+  %0 = stablehlo.constant dense<[2, 3, 4]> : tensor<3xi32>
+  // expected-error@+1 {{output_shape is incompatible with input type of operation: input has 10 elements, but output_shape has 24}}
+  %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<2x5xf32>, tensor<3xi32>) -> tensor<?x?x?xf32>
+  return %1 : tensor<?x?x?xf32>
 }
 
 // -----

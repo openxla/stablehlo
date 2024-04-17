@@ -3780,13 +3780,33 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
 }
 
 LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
-                                     Value outputShape, Value result) {
+                                     Value operand, Value outputShape,
+                                     Value result) {
   auto resultType = cast<ShapedType>(result.getType());
   auto outputShapeType = cast<ShapedType>(outputShape.getType());
   if (outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
                              "output should have a rank equal to the number of "
                              "elements in output_shape");
+
+  auto operandType = cast<RankedTensorType>(operand.getType());
+  if (DenseIntElementsAttr shape;
+      operandType.hasStaticShape() &&
+      matchPattern(outputShape, m_Constant(&shape))) {
+    int64_t operandCount = operandType.getNumElements();
+    auto shapeValues = shape.getValues<APInt>();
+    int64_t shapeCount = std::accumulate(
+        shapeValues.begin(), shapeValues.end(), 1,
+        [](int64_t lhs, APInt rhs) { return lhs * rhs.getSExtValue(); });
+    if (operandCount != shapeCount) {
+      return emitOptionalError(location,
+                               "output_shape is incompatible with input type "
+                               "of operation: input has ",
+                               operandCount, " elements, but output_shape has ",
+                               shapeCount);
+    }
+  }
+
   if (!isCompatibleForHloTypeInference(outputShape, resultType))
     return emitOptionalError(
         location, "output_shape is incompatible with return type of operation ",
