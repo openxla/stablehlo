@@ -1018,15 +1018,6 @@ LogicalResult ConvolutionOp::verify() {
 }
 
 mlir::Speculation::Speculatability ConvolutionOp::getSpeculatability() {
-  // input_feature_dimension and kernel_input_feature_dimension must be static
-  // (C14)
-  // input_batch_dimension must be static if batch_group_count > 1 (C10) or if
-  // output_batch_dimension is static (C25, first bullet).
-  // kernel_output_feature_dimension must be static if batch_group_count > 1
-  // (C15) or feature_group_count > 1 (C16) or if output_feature_dimension is
-  // static (C25, second bullet). If a spatial dimension is static in the
-  // output, it must be static in the inputs.
-
   auto inputType = getLhs().getType();
   auto kernelType = getRhs().getType();
   auto resultType = getType();
@@ -1045,19 +1036,27 @@ mlir::Speculation::Speculatability ConvolutionOp::getSpeculatability() {
   auto batchGroupCount = getBatchGroupCount();
   auto featureGroupCount = getFeatureGroupCount();
 
+  // input_feature_dimension and kernel_input_feature_dimension must be static
+  // (C14)
   if (inputType.isDynamicDim(inputFeatureDim) ||
       kernelType.isDynamicDim(kernelInputFeatureDim))
     return mlir::Speculation::NotSpeculatable;
 
+  // input_batch_dimension must be static if batch_group_count > 1 (C10) or if
+  // output_batch_dimension is static (C25, first bullet).
   if (inputType.isDynamicDim(inputBatchDim) &&
       (batchGroupCount > 1 || !resultType.isDynamicDim(outputBatchDim)))
     return mlir::Speculation::NotSpeculatable;
 
+  // kernel_output_feature_dimension must be static if batch_group_count > 1
+  // (C15) or feature_group_count > 1 (C16) or if output_feature_dimension is
   if (kernelType.isDynamicDim(kernelOutputFeatureDim) &&
       (batchGroupCount > 1 || featureGroupCount > 1 ||
        !resultType.isDynamicDim(outputFeatureDim)))
     return mlir::Speculation::NotSpeculatable;
 
+  // static (C25, second bullet). If a spatial dimension is static in the
+  // output, it must be static in the inputs.
   for (auto [inputDim, kernelDim, resultDim] :
        llvm::zip(inputSpatialDims, kernelSpatialDims, outputSpatialDims)) {
     if (!resultType.isDynamicDim(resultDim) &&
