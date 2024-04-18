@@ -6693,11 +6693,16 @@ using the zero point and scale associated with the quantized element type.
 ```python
 def quantize(x: Value, type: Type) -> Value:
   assert is_float(x) and is_quantized(type)
-  x_expressed_rounded = round_nearest_even(x / compute_scales(type, type(x)))
-  x_storage_rounded = convert(x_expressed_rounded, storage_type(type))
-  x_storage_add = x_storage_rounded + compute_zero_points(type, type(x_storage_rounded))
-  x_storage = clamp(storage_min(type), x_storage_add, storage_max(type))
-  return bitcast_convert(x_storage, type)
+  zero_points = compute_zero_points(type, type(shape(x), storage_type(type)))
+  converted_zero_points = convert(zero_points, expressed_type(type))
+  converted_min = convert(storage_min(type), expressed_type(type))
+  converted_max = convert(storage_max(type), expressed_type(type))
+
+  x_scaled = x / compute_scales(type, type(x))
+  x_scaled_add_zp = x_scaled + converted_zero_points
+  x_clamped = clamp(converted_min, x_scaled_add_zp, converted_max)
+  x_rounded = round_nearest_even(x_clamped)
+  return convert(x_rounded, type)
 ```
 
 * `dequantize_op_quantize` is used to specify element-wise computations on
