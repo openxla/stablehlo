@@ -51,6 +51,7 @@ echo
 SKIPPED_SUFFIXES=(
   .clang-format
   .gitignore
+  .ipynb
   .json
   .md
   .mlir
