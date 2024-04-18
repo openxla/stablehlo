@@ -29,6 +29,8 @@ toc:
   section:
   - title: JAX Export to StableHLO
     path: /stablehlo/tutorials/jax-export
+  - title: PyTorch Export to StableHLO
+    path: /stablehlo/tutorials/pytorch-export
 - title: Contributing
   section:
   - title: Governance
