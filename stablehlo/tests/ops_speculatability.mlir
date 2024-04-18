@@ -1617,8 +1617,10 @@ func.func @set_dimension_size(
   // Dimension not being set is dynamic
   %4 = stablehlo.set_dimension_size %dynamic_arg, %unknown_size, dim = 0 : (tensor<4x?xf64>, tensor<i32>) -> tensor<?x3xf64>
   "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<?x3xf64>) -> ()
-  %5 = stablehlo.set_dimension_size %dynamic_arg, %unknown_size, dim = 0 : (tensor<4x?xf64>, tensor<i32>) -> tensor<?x?xf64>
-  "hlo_test_speculatability.is_speculatable"(%5) : (tensor<?x?xf64>) -> ()
+  %5 = stablehlo.set_dimension_size %dynamic_arg, %constant_size, dim = 0 : (tensor<4x?xf64>, tensor<i32>) -> tensor<?x3xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%5) : (tensor<?x3xf64>) -> ()
+  %6 = stablehlo.set_dimension_size %dynamic_arg, %unknown_size, dim = 0 : (tensor<4x?xf64>, tensor<i32>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%6) : (tensor<?x?xf64>) -> ()
 
   return
 }
