@@ -4777,11 +4777,31 @@ func.func @eltwise_static_and_dynamic_type(%arg0: tensor<10x10xf32>, %arg1: tens
 
 // -----
 
-// CHECK: func @quantized_conv2d
+// CHECK-LABEL: func @convolution_operand_element_type_i4
+func.func @convolution_operand_element_type_i4(%arg0: tensor<64x8x8x8xi4>, %arg1: tensor<4x4x8x32xi4>) -> tensor<64x3x3x32xi8> {
+  // Note: This has been lowered and adapted from:
+  // %0 = "tf.Conv2D"(%arg0, %arg1) {
+  //        data_format = "NHWC",
+  //        dilations = [1, 2, 2, 1],
+  //        explicit_paddings = [0, 0, 0, 1, 0, 1, 0, 0],
+  //        padding = "EXPLICIT",
+  //        strides = [1, 1, 1, 1]} :
+  //      (tensor<64x8x8x8xf32>, tensor<4x4x8x32xf32>) -> tensor<64x3x3x32xf32>
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[0, 1], [0, 1]], rhs_dilate = [2, 2]}
+         {batch_group_count = 1 : i64, feature_group_count = 1 : i64} :
+       (tensor<64x8x8x8xi4>, tensor<4x4x8x32xi4>) -> tensor<64x3x3x32xi8>
+  func.return %0 : tensor<64x3x3x32xi8>
+}
+
+// -----
+
+// CHECK: func @convolution_quantized_conv2d
 // CHECK: stablehlo.convolution
 // CHECK-SAME: dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]
 // CHECK-SAME{LITERAL}: window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
-func.func @quantized_conv2d(%arg0: tensor<1x8x8x207x!quant.uniform<i8:f32, 2.0:15>>, %arg1: tensor<3x3x207x16x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<1x8x8x16x!quant.uniform<i8:f32, 10.0:50>> {
+func.func @convolution_quantized_conv2d(%arg0: tensor<1x8x8x207x!quant.uniform<i8:f32, 2.0:15>>, %arg1: tensor<3x3x207x16x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<1x8x8x16x!quant.uniform<i8:f32, 10.0:50>> {
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}

@@ -2215,24 +2215,32 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
 
     Example:
     ```mlir
-    %result = "stablehlo.convolution"(%lhs, %rhs) {
-      window_strides = array<i64: 4, 4>,
-      padding = dense<0> : tensor<2x2xi64>,
-      lhs_dilation = array<i64: 2, 2>,
-      rhs_dilation = array<i64: 1, 1>,
-      window_reversal = array<i1: false, false>,
-      dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
-      feature_group_count = 1 : i64,
-      batch_group_count = 1 : i64,
-      precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
-    } : (tensor<1x4x4x1xi32>, tensor<3x3x1x1xi32>) -> tensor<1x2x2x1xi32>
+    %result = stablehlo.convolution(%lhs, %rhs)
+      dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+      window = {
+        stride = [4, 4],
+        pad = [[0, 0], [0, 0]],
+        lhs_dilate = [2, 2],
+        rhs_dilate = [1, 1],
+        reverse = [0, 0]
+      } {
+        feature_group_count = 1 : i64,
+        batch_group_count = 1 : i64,
+        precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+      } :
+    (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>) -> tensor<1x2x2x1xi64>
     ```
   }];
   let arguments = !con(
     (ins
-       HLO_Tensor:$lhs,
-       HLO_TensorOrPerAxisQuantizedTensor:$rhs),
-    StableHLO_ConvolutionAttributes.attributes);
+       HLO_Tensor:$lhs, /*convolution_i1*/
+       HLO_TensorOrPerAxisQuantizedTensor:$rhs), /*convolution_i2*/
+    StableHLO_ConvolutionAttributes.attributes /*convolution_i3, convolution_i4,
+    convolution_i5, convolution_i6, convolution_i7, convolution_i8,
+    convolution_i9, convolution_i10, convolution_i11, convolution_i12,
+    convolution_i13, convolution_i14, convolution_i15, convolution_i16,
+    convolution_i17, convolution_i18, convolution_i19*/
+  );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
   let hasVerifier = 1;
