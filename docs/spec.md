@@ -138,15 +138,15 @@ QuantizationScale ::= FloatConstant
 QuantizationZeroPoint ::= IntegerConstant
 ```
 
-| Name                     | Type                                        | Constraints                  |
-|--------------------------|---------------------------------------------|------------------------------|
-| `storage_type`           | integer type                                | (C1-C4), (C9)                |
-| `storage_min`            | integer constant                            | (C2), (C4), (C8)             |
-| `storage_max`            | integer constant                            | (C3), (C4), (C8)             |
-| `expressed_type`         | floating-point type                         | (C1), (C5)                   |
-| `quantization_dimension` | optional integer constant                   | (C11-C13)                    |
-| `scales`                 | variadic number of floating-point constants | (C5-C7), (C10), (C11), (C13) |
-| `zero_points`            | variadic number of integer constants        | (C8-C10)                     |
+| Name                     | Type                                        | Constraints                 |
+|--------------------------|---------------------------------------------|-----------------------------|
+| `storage_type`           | integer type                                | (C1-C3), (C8)               |
+| `storage_min`            | integer constant                            | (C1), (C3), (C7)            |
+| `storage_max`            | integer constant                            | (C2), (C3), (C7)            |
+| `expressed_type`         | floating-point type                         | (C4)                        |
+| `quantization_dimension` | optional integer constant                   | (C10-C12)                   |
+| `scales`                 | variadic number of floating-point constants | (C4-C6), (C9), (C10), (C13) |
+| `zero_points`            | variadic number of integer constants        | (C7-C9)                     |
 
 **Quantized element types** represent integer values of a **storage type** in
 the range from `storage_min` to `storage_max` (inclusive) that correspond to
@@ -158,18 +158,17 @@ in the grammar, but have default values of `min_value(storage_type)` and
 `max_value(storage_type)` respectively. Quantized element types have the
 following constraints:
 
-* (C1) `num_bits(storage_type) < num_bits(expressed_type)`.
-* (C2) `type(storage_min) = storage_type`.
-* (C3) `type(storage_max) = storage_type`.
-* (C4) `min_value(storage_type) <= storage_min < storage_max <= max_value(storage_type)`.
-* (C5) `type(scales...) = expressed_type`.
-* (C6) `0 < scales`.
-* (C7) `is_finite(scales...)`.
-* (C8) `storage_min <= zero_points <= storage_max`.
-* (C9) `type(zero_points...) = storage_type`.
-* (C10) `size(scales) = size(zero_points)`.
-* (C11) If `is_empty(quantization_dimension)`, then `size(scales) = 1`.
-* (C12) `0 <= quantization_dimension`.
+* (C1) `type(storage_min) = storage_type`.
+* (C2) `type(storage_max) = storage_type`.
+* (C3) `min_value(storage_type) <= storage_min < storage_max <= max_value(storage_type)`.
+* (C4) `type(scales...) = expressed_type`.
+* (C5) `0 < scales`.
+* (C6) `is_finite(scales...)`.
+* (C7) `storage_min <= zero_points <= storage_max`.
+* (C8) `type(zero_points...) = storage_type`.
+* (C9) `size(scales) = size(zero_points)`.
+* (C10) If `is_empty(quantization_dimension)`, then `size(scales) = 1`.
+* (C11) `0 <= quantization_dimension`.
 
 At the moment, `QuantizationScale` is a floating-point constant, but there is
 strong interest in integer-based scales, represented with multipliers and
