@@ -1701,6 +1701,37 @@ func.func @dynamic_iota(%unknown_shape: tensor<2xi32>) {
 
 // -----
 
+// CHECK-LABEL: func @dynamic_reshape
+// CHECK-NEXT:  return
+func.func @dynamic_reshape(
+  %static_arg: tensor<4x5xf64>, %dynamic_arg: tensor<?x?xf64>,
+  %unknown_shape: tensor<2xi32>
+) {
+  %constant_shape = stablehlo.constant dense<[5, 4]> : tensor<2xi32>
+
+  // Static input, constant shape
+  %0 = stablehlo.dynamic_reshape %static_arg, %constant_shape : (tensor<4x5xf64>, tensor<2xi32>) -> tensor<5x4xf64>
+  "hlo_test_speculatability.is_speculatable"(%0) : (tensor<5x4xf64>) -> ()
+  %1 = stablehlo.dynamic_reshape %static_arg, %constant_shape : (tensor<4x5xf64>, tensor<2xi32>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?x?xf64>) -> ()
+
+  // Dynamic input
+  %2 = stablehlo.dynamic_reshape %dynamic_arg, %constant_shape : (tensor<?x?xf64>, tensor<2xi32>) -> tensor<5x4xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<5x4xf64>) -> ()
+  %3 = stablehlo.dynamic_reshape %dynamic_arg, %constant_shape : (tensor<?x?xf64>, tensor<2xi32>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%3) : (tensor<?x?xf64>) -> ()
+
+  // Unknown shape
+  %4 = stablehlo.dynamic_reshape %static_arg, %unknown_shape : (tensor<4x5xf64>, tensor<2xi32>) -> tensor<5x4xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<5x4xf64>) -> ()
+  %5 = stablehlo.dynamic_reshape %static_arg, %unknown_shape : (tensor<4x5xf64>, tensor<2xi32>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%5) : (tensor<?x?xf64>) -> ()
+
+  return
+}
+
+// -----
+
 // Recursively speculatable ops
 
 // -----
