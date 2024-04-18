@@ -1514,7 +1514,6 @@ func.func @convolution(
              window = {stride = [], pad = [], lhs_dilate = [], rhs_dilate = [], reverse = []}
              {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} : (tensor<100x26x26x32xf64>, tensor<?x?x2x32xf64>) -> tensor<100x?x?x2xf64>
   "hlo_test_speculatability.is_speculatable"(%14) : (tensor<100x?x?x2xf64>) -> ()
-
   return
 }
 
@@ -1565,7 +1564,6 @@ func.func @dot_general(
   "hlo_test_speculatability.is_not_speculatable"(%10) : (tensor<2x4x1x6x7x8xf64>) -> ()
   %11 = stablehlo.dot_general %large_static_lhs, %large_dynamic_rhs, batching_dims = [1, 3] x [0, 4], contracting_dims = [2, 4] x [2, 1], precision = [DEFAULT, DEFAULT] : (tensor<1x2x3x4x5x6xf64>, tensor<2x5x3x?x4x?xf64>) -> tensor<2x4x1x6x7x8xf64>
   "hlo_test_speculatability.is_not_speculatable"(%11) : (tensor<2x4x1x6x7x8xf64>) -> ()
-
   return
 }
 
@@ -1777,6 +1775,146 @@ func.func @dynamic_broadcast_in_dim(
 
 // -----
 
+// CHECK-LABEL: func @dynamic_conv
+// CHECK-NEXT:  return
+func.func @dynamic_conv(
+  %static_input: tensor<100x26x26x32xf64>, %static_kernel: tensor<3x3x1x32xf64>,
+  %dynamic_input: tensor<?x?x?x?xf64>, %dynamic_kernel: tensor<?x?x?x?xf64>,
+  %unknown_shape: tensor<2x2xi32>
+) {
+  %constant_shape = stablehlo.constant dense<2> : tensor<2x2xi32>
+
+  // Static inputs, constant shape
+  %0 = "stablehlo.dynamic_conv"(%static_input, %static_kernel, %constant_shape) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = array<i64: 1, 1>, lhs_dilation = array<i64: 1, 1>, rhs_dilation = array<i64: 1, 1>,
+    feature_group_count = 1 : i64, batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf64>, tensor<3x3x1x32xf64>, tensor<2x2xi32>) -> tensor<100x28x28x1xf64>
+  "hlo_test_speculatability.is_speculatable"(%0) : (tensor<100x28x28x1xf64>) -> ()
+  %1 = "stablehlo.dynamic_conv"(%static_input, %static_kernel, %constant_shape) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = array<i64: 1, 1>, lhs_dilation = array<i64: 1, 1>, rhs_dilation = array<i64: 1, 1>,
+    feature_group_count = 1 : i64, batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf64>, tensor<3x3x1x32xf64>, tensor<2x2xi32>) -> tensor<?x?x?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?x?x?x?xf64>) -> ()
+
+  // Dynamic input, static kernel, constant shape
+  %2 = "stablehlo.dynamic_conv"(%dynamic_input, %static_kernel, %constant_shape) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = array<i64: 1, 1>, lhs_dilation = array<i64: 1, 1>, rhs_dilation = array<i64: 1, 1>,
+    feature_group_count = 1 : i64, batch_group_count = 1 : i64
+  } : (tensor<?x?x?x?xf64>, tensor<3x3x1x32xf64>, tensor<2x2xi32>) -> tensor<100x28x28x1xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<100x28x28x1xf64>) -> ()
+  %3 = "stablehlo.dynamic_conv"(%dynamic_input, %static_kernel, %constant_shape) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = array<i64: 1, 1>, lhs_dilation = array<i64: 1, 1>, rhs_dilation = array<i64: 1, 1>,
+    feature_group_count = 1 : i64, batch_group_count = 1 : i64
+  } : (tensor<?x?x?x?xf64>, tensor<3x3x1x32xf64>, tensor<2x2xi32>) -> tensor<?x?x?x?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%3) : (tensor<?x?x?x?xf64>) -> ()
+
+  // Static input, dynamic kernel, constant shape
+  %4 = "stablehlo.dynamic_conv"(%static_input, %dynamic_kernel, %constant_shape) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = array<i64: 1, 1>, lhs_dilation = array<i64: 1, 1>, rhs_dilation = array<i64: 1, 1>,
+    feature_group_count = 1 : i64, batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf64>, tensor<?x?x?x?xf64>, tensor<2x2xi32>) -> tensor<100x28x28x1xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<100x28x28x1xf64>) -> ()
+  %5 = "stablehlo.dynamic_conv"(%static_input, %dynamic_kernel, %constant_shape) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = array<i64: 1, 1>, lhs_dilation = array<i64: 1, 1>, rhs_dilation = array<i64: 1, 1>,
+    feature_group_count = 1 : i64, batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf64>, tensor<?x?x?x?xf64>, tensor<2x2xi32>) -> tensor<?x?x?x?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%5) : (tensor<?x?x?x?xf64>) -> ()
+
+  // Static input, static kernel, unknown shape
+  %6 = "stablehlo.dynamic_conv"(%static_input, %static_kernel, %unknown_shape) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = array<i64: 1, 1>, lhs_dilation = array<i64: 1, 1>, rhs_dilation = array<i64: 1, 1>,
+    feature_group_count = 1 : i64, batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf64>, tensor<3x3x1x32xf64>, tensor<2x2xi32>) -> tensor<100x28x28x1xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%6) : (tensor<100x28x28x1xf64>) -> ()
+  %7 = "stablehlo.dynamic_conv"(%static_input, %static_kernel, %unknown_shape) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = array<i64: 1, 1>, lhs_dilation = array<i64: 1, 1>, rhs_dilation = array<i64: 1, 1>,
+    feature_group_count = 1 : i64, batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf64>, tensor<3x3x1x32xf64>, tensor<2x2xi32>) -> tensor<?x?x?x?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%7) : (tensor<?x?x?x?xf64>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @dynamic_gather
+// CHECK-NEXT:  return
+func.func @dynamic_gather(
+  %static_input: tensor<3x4x2xi32>, %static_indices: tensor<2x3x2xi64>,
+  %dynamic_input: tensor<?x?x?xi32>, %dynamic_indices: tensor<?x?x?xi64>,
+  %unknown_slice_sizes: tensor<3xi32>
+) {
+  %constant_slice_sizes = stablehlo.constant dense<[1, 2, 2]> : tensor<3xi32>
+
+  // Static inputs, constant shape
+  %0 = "stablehlo.dynamic_gather"(%static_input, %static_indices, %constant_slice_sizes) {
+          dimension_numbers = #stablehlo.gather<
+            offset_dims = [2, 3],
+            collapsed_slice_dims = [0],
+            start_index_map = [1, 0],
+            index_vector_dim = 2>,
+          slice_sizes = array<i64: 1, 2, 2>,
+          indices_are_sorted = false
+  } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
+  "hlo_test_speculatability.is_speculatable"(%0) : (tensor<?x?x?x?xi32>) -> ()
+  %1 = "stablehlo.dynamic_gather"(%static_input, %static_indices, %constant_slice_sizes) {
+          dimension_numbers = #stablehlo.gather<
+            offset_dims = [2, 3],
+            collapsed_slice_dims = [0],
+            start_index_map = [1, 0],
+            index_vector_dim = 2>,
+          slice_sizes = array<i64: 1, 2, 2>,
+          indices_are_sorted = true
+  } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
+  "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?x?x?x?xi32>) -> ()
+
+  // Dynamic input, static start_indices, constant slice_sizes
+  %2 = "stablehlo.dynamic_gather"(%dynamic_input, %static_indices, %constant_slice_sizes) {
+          dimension_numbers = #stablehlo.gather<
+            offset_dims = [2, 3],
+            collapsed_slice_dims = [0],
+            start_index_map = [1, 0],
+            index_vector_dim = 2>,
+          slice_sizes = array<i64: 1, 2, 2>,
+          indices_are_sorted = false
+  } : (tensor<?x?x?xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
+  "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<?x?x?x?xi32>) -> ()
+
+  // Static input, dynamic start_indices, constant slice_sizes
+  %3 = "stablehlo.dynamic_gather"(%static_input, %dynamic_indices, %constant_slice_sizes) {
+          dimension_numbers = #stablehlo.gather<
+            offset_dims = [2, 3],
+            collapsed_slice_dims = [0],
+            start_index_map = [1, 0],
+            index_vector_dim = 2>,
+          slice_sizes = array<i64: 1, 2, 2>,
+          indices_are_sorted = false
+  } : (tensor<3x4x2xi32>, tensor<?x?x?xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
+  "hlo_test_speculatability.is_not_speculatable"(%3) : (tensor<?x?x?x?xi32>) -> ()
+
+  // Static input, static start_indices, unknown slice_sizes
+  %4 = "stablehlo.dynamic_gather"(%static_input, %static_indices, %unknown_slice_sizes) {
+          dimension_numbers = #stablehlo.gather<
+            offset_dims = [2, 3],
+            collapsed_slice_dims = [0],
+            start_index_map = [1, 0],
+            index_vector_dim = 2>,
+          slice_sizes = array<i64: 1, 2, 2>,
+          indices_are_sorted = false
+  } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
+  "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<?x?x?x?xi32>) -> ()
+  return
+}
+
+// -----
+
 // CHECK-LABEL: func @dynamic_iota
 // CHECK-NEXT:  return
 func.func @dynamic_iota(%unknown_shape: tensor<2xi32>) {
@@ -1829,7 +1967,64 @@ func.func @set_dimension_size(
   "hlo_test_speculatability.is_not_speculatable"(%5) : (tensor<?x3xf64>) -> ()
   %6 = stablehlo.set_dimension_size %dynamic_arg, %unknown_size, dim = 0 : (tensor<4x?xf64>, tensor<i32>) -> tensor<?x?xf64>
   "hlo_test_speculatability.is_speculatable"(%6) : (tensor<?x?xf64>) -> ()
+  return
+}
 
+// -----
+
+// CHECK-LABEL: func @dynamic_pad
+// CHECK-NEXT:  return
+func.func @dynamic_pad(
+  %static_arg: tensor<4xf64>, %dynamic_arg: tensor<?xf64>,
+  %padding_value: tensor<f64>, %unknown_padding: tensor<1xi32>
+) {
+  %constant_padding = stablehlo.constant dense<0> : tensor<1xi32>
+
+  // Static input, constant padding
+  %0 = stablehlo.dynamic_pad %static_arg, %padding_value,
+         %constant_padding, %constant_padding, %constant_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xf64>
+  "hlo_test_speculatability.is_speculatable"(%0) : (tensor<4xf64>) -> ()
+  %1 = stablehlo.dynamic_pad %static_arg, %padding_value,
+         %constant_padding, %constant_padding, %constant_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?xf64>) -> ()
+
+  // Dynamic input, constant padding
+  %2 = stablehlo.dynamic_pad %dynamic_arg, %padding_value,
+         %unknown_padding, %unknown_padding, %unknown_padding
+         : (tensor<?xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<4xf64>) -> ()
+  %3 = stablehlo.dynamic_pad %dynamic_arg, %padding_value,
+         %unknown_padding, %unknown_padding, %unknown_padding
+         : (tensor<?xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%3) : (tensor<?xf64>) -> ()
+
+  // Static input, unknown paddings
+  %4 = stablehlo.dynamic_pad %static_arg, %padding_value,
+         %unknown_padding, %constant_padding, %constant_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<4xf64>) -> ()
+  %5 = stablehlo.dynamic_pad %static_arg, %padding_value,
+         %unknown_padding, %constant_padding, %constant_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%5) : (tensor<?xf64>) -> ()
+  %6 = stablehlo.dynamic_pad %static_arg, %padding_value,
+         %constant_padding, %unknown_padding, %constant_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%6) : (tensor<4xf64>) -> ()
+  %7 = stablehlo.dynamic_pad %static_arg, %padding_value,
+         %constant_padding, %unknown_padding, %constant_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%7) : (tensor<?xf64>) -> ()
+  %8 = stablehlo.dynamic_pad %static_arg, %padding_value,
+         %constant_padding, %constant_padding, %unknown_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%8) : (tensor<4xf64>) -> ()
+  %9 = stablehlo.dynamic_pad %static_arg, %padding_value,
+         %constant_padding, %constant_padding, %unknown_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%9) : (tensor<?xf64>) -> ()
   return
 }
 
@@ -1860,7 +2055,54 @@ func.func @dynamic_reshape(
   "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<5x4xf64>) -> ()
   %5 = stablehlo.dynamic_reshape %static_arg, %unknown_shape : (tensor<4x5xf64>, tensor<2xi32>) -> tensor<?x?xf64>
   "hlo_test_speculatability.is_not_speculatable"(%5) : (tensor<?x?xf64>) -> ()
+  return
+}
 
+// -----
+
+// CHECK-LABEL: func @real_dynamic_slice
+// CHECK-NEXT:  return
+func.func @real_dynamic_slice(
+  %static_arg: tensor<4xf64>, %dynamic_arg: tensor<?xf64>,
+  %unknown_value: tensor<1xi32>
+) {
+  %constant_value = stablehlo.constant dense<1> : tensor<1xi32>
+
+  // Static input, constant values
+  %0 = stablehlo.real_dynamic_slice %static_arg, %constant_value, %constant_value, %constant_value
+         : (tensor<4xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<0xf64>
+  "hlo_test_speculatability.is_speculatable"(%0) : (tensor<0xf64>) -> ()
+  %1 = stablehlo.real_dynamic_slice %static_arg, %constant_value, %constant_value, %constant_value
+         : (tensor<4xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?xf64>) -> ()
+
+  // Dynamic input, constant values
+  %2 = stablehlo.real_dynamic_slice %dynamic_arg, %constant_value, %constant_value, %constant_value
+         : (tensor<?xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<0xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<0xf64>) -> ()
+  %3 = stablehlo.real_dynamic_slice %dynamic_arg, %constant_value, %constant_value, %constant_value
+         : (tensor<?xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%3) : (tensor<?xf64>) -> ()
+
+  // Static input, unknown paddings
+  %4 = stablehlo.real_dynamic_slice %static_arg, %unknown_value, %constant_value, %constant_value
+         : (tensor<4xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<0xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<0xf64>) -> ()
+  %5 = stablehlo.real_dynamic_slice %static_arg, %unknown_value, %constant_value, %constant_value
+         : (tensor<4xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%5) : (tensor<?xf64>) -> ()
+  %6 = stablehlo.real_dynamic_slice %static_arg, %constant_value, %unknown_value, %constant_value
+         : (tensor<4xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<0xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%6) : (tensor<0xf64>) -> ()
+  %7 = stablehlo.real_dynamic_slice %static_arg, %constant_value, %unknown_value, %constant_value
+         : (tensor<4xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%7) : (tensor<?xf64>) -> ()
+  %8 = stablehlo.real_dynamic_slice %static_arg, %constant_value, %constant_value, %unknown_value
+         : (tensor<4xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<0xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%8) : (tensor<0xf64>) -> ()
+  %9 = stablehlo.real_dynamic_slice %static_arg, %constant_value, %constant_value, %unknown_value
+         : (tensor<4xf64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%9) : (tensor<?xf64>) -> ()
   return
 }
 
@@ -2048,7 +2290,6 @@ func.func @select_and_scatter(
     window_strides = array<i64: 1, 2, 2, 1>
   } : (tensor<?x?x?x?xf64>, tensor<10x12x12x64xf64>, tensor<f64>) -> tensor<?x?x?x?xf64>
   "hlo_test_speculatability.is_recursively_speculatable"(%3) : (tensor<?x?x?x?xf64>) -> ()
-
   return
 }
 

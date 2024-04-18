@@ -1532,18 +1532,6 @@ LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
   return success();
 }
 
-mlir::Speculation::Speculatability DynamicReshapeOp::getSpeculatability() {
-  // If the input is static and the shape operand is constant, the output
-  // shape can be inferred and any mismatch will be caught statically.
-  // If any dimension in the input is dynamic, or if the shape is not known,
-  // the number of elements may disagree at runtime.
-  if (getOperand().getType().hasStaticShape() &&
-      matchPattern(getOutputShape(), m_Constant()))
-    return mlir::Speculation::Speculatable;
-
-  return mlir::Speculation::NotSpeculatable;
-}
-
 //===----------------------------------------------------------------------===//
 // DynamicSliceOp
 //===----------------------------------------------------------------------===//
@@ -1611,6 +1599,10 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
                             shapeScalarType),
       shapeValues));
   return success();
+}
+
+mlir::Speculation::Speculatability RealDynamicSliceOp::getSpeculatability() {
+  return hlo::getShapedSpeculatability(getOperation(), /*count=*/3);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2158,6 +2150,10 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
       shapeValues));
 
   return success();
+}
+
+mlir::Speculation::Speculatability DynamicPadOp::getSpeculatability() {
+  return hlo::getShapedSpeculatability(getOperation(), /*count=*/3);
 }
 
 //===----------------------------------------------------------------------===//

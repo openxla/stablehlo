@@ -255,6 +255,13 @@ void writeEnumAttribute(EnumTypeAttr val, DialectBytecodeWriter &writer) {
 }
 }  // namespace bytecode
 
+// Determines the speculatability for a shaped operation `op` with `shapeCount`
+// shape operands. The last `count` operands are assumed to be shape operands.
+// To be speculatable, such an op must either have a fully dynamic result type
+// or have only static inputs and constant shape operands.
+mlir::Speculation::Speculatability getShapedSpeculatability(Operation *op,
+                                                            int64_t shapeCount);
+
 namespace OpTrait {
 
 template <typename ConcreteType>
@@ -467,6 +474,16 @@ struct RecursivelySpeculatableIfAllInputsStaticImplTrait
                         })
                ? mlir::Speculation::RecursivelySpeculatable
                : mlir::Speculation::NotSpeculatable;
+  }
+};
+
+template <typename ConcreteType>
+struct SpeculatableIfAllInputsStaticAndShapeConstantImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType,
+          SpeculatableIfAllInputsStaticAndShapeConstantImplTrait> {
+  mlir::Speculation::Speculatability getSpeculatability() {
+    return getShapedSpeculatability(this->getOperation(), 1);
   }
 };
 
