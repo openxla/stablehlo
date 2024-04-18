@@ -3467,10 +3467,10 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv", [Pure]> {
     Example:
     ```mlir
     %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %d_padding) {
-      window_strides = dense<4> : tensor<2xi64>,
-      lhs_dilation = dense<2> : tensor<2xi64>,
-      rhs_dilation = dense<1> : tensor<2xi64>,
-      window_reversal = dense<false> : tensor<2xi1>,
+      window_strides = array<i64: 4, 4>,
+      lhs_dilation = array<i64: 2, 2>,
+      rhs_dilation = array<i64: 1, 1>,
+      window_reversal = array<i1: false, false>,
       dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
       feature_group_count = 1 : i64,
       batch_group_count = 1 : i64,
