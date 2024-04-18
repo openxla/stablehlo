@@ -2798,7 +2798,8 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
   let hasVerifier = 1;
 }
 
-def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
+def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size",
+      [ConditionallySpeculatable, NoMemoryEffect,
       InferTensorType]> {
   let summary = "SetDimensionSize operation";
   let description = [{
@@ -2823,6 +2824,11 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
   let assemblyFormat = [{
     $operand `,` $size  `,` `dim` `=` $dimension attr-dict
       `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
   }];
 }
 

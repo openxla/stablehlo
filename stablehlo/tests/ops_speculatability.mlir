@@ -1699,6 +1699,37 @@ func.func @dynamic_iota(%unknown_shape: tensor<2xi32>) {
   return
 }
 
+// CHECK-LABEL: func @set_dimension_size
+// CHECK-NEXT:  return
+func.func @set_dimension_size(
+  %static_arg: tensor<4x3xf64>, %dynamic_arg: tensor<4x?xf64>,
+  %unknown_size: tensor<i32>
+) {
+  %constant_size = stablehlo.constant dense<2> : tensor<i32>
+
+  // Unknown size
+  %0 = stablehlo.set_dimension_size %static_arg, %unknown_size, dim = 0 : (tensor<4x3xf64>, tensor<i32>) -> tensor<2x3xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%0) : (tensor<2x3xf64>) -> ()
+  %1 = stablehlo.set_dimension_size %static_arg, %unknown_size, dim = 0 : (tensor<4x3xf64>, tensor<i32>) -> tensor<?x3xf64>
+  "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?x3xf64>) -> ()
+
+  // Constant size
+  %2 = stablehlo.set_dimension_size %static_arg, %constant_size, dim = 0 : (tensor<4x3xf64>, tensor<i32>) -> tensor<2x3xf64>
+  "hlo_test_speculatability.is_speculatable"(%2) : (tensor<2x3xf64>) -> ()
+  %3 = stablehlo.set_dimension_size %static_arg, %constant_size, dim = 0 : (tensor<4x3xf64>, tensor<i32>) -> tensor<?x3xf64>
+  "hlo_test_speculatability.is_speculatable"(%3) : (tensor<?x3xf64>) -> ()
+
+  // Dimension not being set is dynamic
+  %4 = stablehlo.set_dimension_size %dynamic_arg, %unknown_size, dim = 0 : (tensor<4x?xf64>, tensor<i32>) -> tensor<?x3xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<?x3xf64>) -> ()
+  %5 = stablehlo.set_dimension_size %dynamic_arg, %constant_size, dim = 0 : (tensor<4x?xf64>, tensor<i32>) -> tensor<?x3xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%5) : (tensor<?x3xf64>) -> ()
+  %6 = stablehlo.set_dimension_size %dynamic_arg, %unknown_size, dim = 0 : (tensor<4x?xf64>, tensor<i32>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%6) : (tensor<?x?xf64>) -> ()
+
+  return
+}
+
 // -----
 
 // CHECK-LABEL: func @dynamic_reshape

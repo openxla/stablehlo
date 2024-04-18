@@ -1983,6 +1983,25 @@ LogicalResult SetDimensionSizeOp::inferReturnTypeComponents(
       adaptor.getSize(), adaptor.getDimension(), inferredReturnShapes);
 }
 
+mlir::Speculation::Speculatability SetDimensionSizeOp::getSpeculatability() {
+  // If the dimension being set is not constant, it is only speculatable if it
+  // is dynamic in the output.
+  auto resultType = getType();
+  if (!matchPattern(getSize(), m_Constant()) &&
+      !resultType.isDynamicDim(getDimension()))
+    return mlir::Speculation::NotSpeculatable;
+
+  // For all other dimensions, if the dimension is static in the output, it must
+  // be static in the input.
+  auto inputType = getOperand().getType();
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (i == getDimension()) continue;
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // TransposeOp
 //===----------------------------------------------------------------------===//
