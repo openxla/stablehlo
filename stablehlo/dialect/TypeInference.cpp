@@ -3790,14 +3790,11 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                              "elements in output_shape");
 
   auto operandType = cast<RankedTensorType>(operand.getType());
-  if (DenseIntElementsAttr shape;
-      operandType.hasStaticShape() &&
-      matchPattern(outputShape, m_Constant(&shape))) {
+  if (SmallVector<int64_t> shape; operandType.hasStaticShape() &&
+                                  matchInts(outputShape, shape).succeeded()) {
     int64_t operandCount = operandType.getNumElements();
-    auto shapeValues = shape.getValues<APInt>();
-    int64_t shapeCount = std::accumulate(
-        shapeValues.begin(), shapeValues.end(), 1,
-        [](int64_t lhs, APInt rhs) { return lhs * rhs.getSExtValue(); });
+    int64_t shapeCount = std::accumulate(shape.begin(), shape.end(), 1,
+                                         std::multiplies<int64_t>());
     if (operandCount != shapeCount) {
       return emitOptionalError(location,
                                "output_shape is incompatible with input type "
