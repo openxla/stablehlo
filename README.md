@@ -104,6 +104,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
      -DSTABLEHLO_ENABLE_SPLIT_DWARF=ON \
      -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
      -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
      -DSTABLEHLO_ENABLE_SANITIZER=address \
      -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
 
