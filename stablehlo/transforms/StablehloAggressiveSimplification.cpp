@@ -392,6 +392,54 @@ struct SelectOpCanon final : OpRewritePattern<mlir::stablehlo::SelectOp> {
   }
 };
 
+struct SelectIntoMinMax final : OpRewritePattern<mlir::stablehlo::SelectOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::SelectOp op,
+                                PatternRewriter &rewriter) const override {
+    Value pred = op.getPred();
+    Value trueVal = op.getOnTrue();
+    Value falseVal = op.getOnFalse();
+
+    auto cmpOp = pred.getDefiningOp<mlir::stablehlo::CompareOp>();
+    if (!cmpOp) return failure();
+
+    using mlir::stablehlo::ComparisonDirection;
+    ComparisonDirection direction = cmpOp.getComparisonDirection();
+    Value lhs = cmpOp.getLhs();
+    Value cmpRhs = cmpOp.getRhs();
+
+    // Turn into canonical form:
+    // b <= a ? a : b  ---> a >= b ? a : b
+    // b <  a ? a : b  ---> a >  b ? a : b
+    // b >= a ? a : b  ---> a <= b ? a : b
+    // b >  a ? a : b  ---> a <  b ? a : b
+    if (lhs == falseVal && cmpRhs == trueVal) {
+      direction = invertDirection(direction);
+    } else if (!(lhs == trueVal && cmpRhs == falseVal)) {
+      return failure();
+    }
+
+    switch (direction) {
+      case ComparisonDirection::GE:
+      case ComparisonDirection::GT: {
+        rewriter.replaceOpWithNewOp<mlir::stablehlo::MaxOp>(op, trueVal,
+                                                            falseVal);
+        return success();
+      }
+      case ComparisonDirection::LE:
+      case ComparisonDirection::LT: {
+        rewriter.replaceOpWithNewOp<mlir::stablehlo::MinOp>(op, trueVal,
+                                                            falseVal);
+        return success();
+      }
+      default: {
+        return failure();
+      }
+    }
+  }
+};
+
 struct BroadcastInDimOpCanon final
     : OpRewritePattern<mlir::stablehlo::BroadcastInDimOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -1047,6 +1095,7 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
   patterns->add<
       // Arithmetic ops.
       AddOpCanon, SubtractOpCanon, MulOpCanon, CompareOpCanon, SelectOpCanon,
+      SelectIntoMinMax,
       // Complex ops.
       RealOpCanon, ImagOpCanon,
       // Query ops.

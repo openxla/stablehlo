@@ -238,6 +238,72 @@ func.func @select(%arg0: tensor<2xi32>, %arg1: tensor<2xi32>, %argC: tensor<2xi1
 
 // -----
 
+// CHECK-LABEL: func.func @select_into_minmax1
+// CHECK-SAME:   [[ARG0:%.+]]: tensor<2xi32>, [[ARG1:%.+]]: tensor<2xi32>, [[ARG2:%.+]]: tensor<2xi32>, [[ARG3:%.+]]: tensor<2xi32>)
+func.func @select_into_minmax1(%arg0: tensor<2xi32>, %arg1: tensor<2xi32>,
+                               %arg2: tensor<2xi32>, %arg3: tensor<2xi32>)
+  -> (tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) {
+
+  %0 = stablehlo.compare EQ, %arg0, %arg1, SIGNED : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+  %1 = stablehlo.compare NE, %arg0, %arg1, SIGNED : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+  %2 = stablehlo.compare GE, %arg0, %arg1, SIGNED : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+  %3 = stablehlo.compare GT, %arg0, %arg2, SIGNED : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+  %4 = stablehlo.compare LE, %arg1, %arg2, SIGNED : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+  %5 = stablehlo.compare LT, %arg1, %arg3, SIGNED : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+
+  %s0 = stablehlo.select %0, %arg0, %arg1 : (tensor<2xi1>, tensor<2xi32>, tensor<2xi32>) -> tensor<2xi32>
+  %s1 = stablehlo.select %1, %arg0, %arg1 : (tensor<2xi1>, tensor<2xi32>, tensor<2xi32>) -> tensor<2xi32>
+  %s2 = stablehlo.select %2, %arg0, %arg1 : (tensor<2xi1>, tensor<2xi32>, tensor<2xi32>) -> tensor<2xi32>
+  %s3 = stablehlo.select %3, %arg0, %arg2 : (tensor<2xi1>, tensor<2xi32>, tensor<2xi32>) -> tensor<2xi32>
+  %s4 = stablehlo.select %4, %arg1, %arg2 : (tensor<2xi1>, tensor<2xi32>, tensor<2xi32>) -> tensor<2xi32>
+  %s5 = stablehlo.select %5, %arg1, %arg3 : (tensor<2xi1>, tensor<2xi32>, tensor<2xi32>) -> tensor<2xi32>
+
+  // CHECK-DAG:  [[C0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[ARG1]], SIGNED
+  // CHECK-DAG:  [[C1:%.+]] = stablehlo.compare NE, [[ARG0]], [[ARG1]], SIGNED
+
+  // CHECK-DAG:  [[S0:%.+]] = stablehlo.select [[C0]], [[ARG0]], [[ARG1]]
+  // CHECK-DAG:  [[S1:%.+]] = stablehlo.select [[C1]], [[ARG0]], [[ARG1]]
+  // CHECK-DAG:  [[S2:%.+]] = stablehlo.maximum [[ARG0]], [[ARG1]]
+  // CHECK-DAG:  [[S3:%.+]] = stablehlo.maximum [[ARG0]], [[ARG2]]
+  // CHECK-DAG:  [[S4:%.+]] = stablehlo.minimum [[ARG1]], [[ARG2]]
+  // CHECK-DAG:  [[S5:%.+]] = stablehlo.minimum [[ARG1]], [[ARG3]]
+
+  // CHECK-NEXT: return [[S0]], [[S1]], [[S2]], [[S3]], [[S4]], [[S5]]
+  return %s0, %s1, %s2, %s3, %s4, %s5 :
+         tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @select_into_minmax2
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<i32>, [[ARG1:%.+]]: tensor<i32>, [[ARG2:%.+]]: tensor<i32>)
+func.func @select_into_minmax2(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>)
+  -> (tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>) {
+
+  %0 = stablehlo.compare GT, %arg1, %arg0, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %1 = stablehlo.compare GT, %arg1, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %2 = stablehlo.compare LT, %arg1, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %3 = stablehlo.compare LT, %arg0, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+
+  %s0 = stablehlo.select %0, %arg0, %arg1 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+  %s1 = stablehlo.select %1, %arg0, %arg1 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+  %s2 = stablehlo.select %2, %arg2, %arg1 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+  %s3 = stablehlo.select %3, %arg1, %arg2 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+
+  // CHECK-DAG:  [[C0:%.+]] = stablehlo.compare GT, [[ARG1]], [[ARG2]], SIGNED
+  // CHECK-DAG:  [[C1:%.+]] = stablehlo.compare LT, [[ARG0]], [[ARG2]], SIGNED
+
+  // CHECK-DAG:  [[S0:%.+]] = stablehlo.minimum [[ARG0]], [[ARG1]]
+  // CHECK-DAG:  [[S1:%.+]] = stablehlo.select [[C0]], [[ARG0]], [[ARG1]]
+  // CHECK-DAG:  [[S2:%.+]] = stablehlo.maximum [[ARG2]], [[ARG1]]
+  // CHECK-DAG:  [[S3:%.+]] = stablehlo.select [[C1]], [[ARG1]], [[ARG2]]
+
+  // CHECK-NEXT: return [[S0]], [[S1]], [[S2]], [[S3]]
+  return %s0, %s1, %s2, %s3 : tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>
+}
+
+// -----
+
 // CHECK-LABEL: func.func @broadcast_in_dim
 // CHECK-SAME:   ([[ARG0:%.+]]: tensor<3x3xi32>)
 func.func @broadcast_in_dim(%arg0: tensor<3x3xi32>)
