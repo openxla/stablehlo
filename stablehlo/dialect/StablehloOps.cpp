@@ -1343,6 +1343,27 @@ LogicalResult DynamicBroadcastInDimOp::reifyReturnTypeShapes(
   return success();
 }
 
+mlir::Speculation::Speculatability
+DynamicBroadcastInDimOp::getSpeculatability() {
+  auto operandType = getOperand().getType();
+
+  // If input is dynamic, not speculatable.
+  if (!operandType.hasStaticShape()) return mlir::Speculation::NotSpeculatable;
+
+  // If input is broadcastable (all 1's) and result is dynamic, speculatable.
+  auto resultDynamic =
+      llvm::all_of(llvm::seq(getType().getRank()),
+                   [this](int64_t i) { return getType().isDynamicDim(i); });
+  if (operandType.getNumElements() == 1 && resultDynamic)
+    return mlir::Speculation::Speculatable;
+
+  // If shape is known, speculatable.
+  if (matchPattern(getOutputDimensions(), m_Constant()))
+    return mlir::Speculation::Speculatable;
+
+  return mlir::Speculation::NotSpeculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // ClampOp
 //===----------------------------------------------------------------------===//

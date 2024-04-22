@@ -1067,6 +1067,15 @@ func.func @dynamic_broadcast_in_dim_dynamic_output_shape(%arg0: tensor<?x?xi32>,
 
 // -----
 
+func.func @dynamic_broadcast_in_dim_input_mismatch_with_shape(%arg0: tensor<1x3xi32>) {
+  %shape = stablehlo.constant dense<[2, 1, 1]> : tensor<3xi32>
+  // expected-error@+1 {{size of operand dimension 1 (3) is not equal to 1 or value of shape at index 2 (1)}}
+  %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %shape) {broadcast_dimensions = array<i64: 1, 2>} : (tensor<1x3xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  return
+}
+
+// -----
+
 // CHECK-LABEL: func @broadcast_in_dim
 func.func @broadcast_in_dim(%arg0: tensor<1x2xi32>) -> tensor<1x2x2xi32> {
   %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = array<i64: 1, 2>} : (tensor<1x2xi32>) -> tensor<1x2x2xi32>
