@@ -276,30 +276,50 @@ func.func @select_into_minmax1(%arg0: tensor<2xi32>, %arg1: tensor<2xi32>,
 // -----
 
 // CHECK-LABEL: func.func @select_into_minmax2
-// CHECK-SAME:   ([[ARG0:%.+]]: tensor<i32>, [[ARG1:%.+]]: tensor<i32>, [[ARG2:%.+]]: tensor<i32>)
-func.func @select_into_minmax2(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>)
-  -> (tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>) {
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<i32>, [[ARG1:%.+]]: tensor<i32>, [[ARG2:%.+]]: tensor<i32>, [[ARG3:%.+]]: tensor<i32>)
+func.func @select_into_minmax2(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>)
+  -> (tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>,
+      tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>) {
 
   %0 = stablehlo.compare GT, %arg1, %arg0, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
   %1 = stablehlo.compare GT, %arg1, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
-  %2 = stablehlo.compare LT, %arg1, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
-  %3 = stablehlo.compare LT, %arg0, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %2 = stablehlo.compare GE, %arg1, %arg3, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %3 = stablehlo.compare GE, %arg1, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
 
   %s0 = stablehlo.select %0, %arg0, %arg1 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
   %s1 = stablehlo.select %1, %arg0, %arg1 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
-  %s2 = stablehlo.select %2, %arg2, %arg1 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
-  %s3 = stablehlo.select %3, %arg1, %arg2 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+  %s2 = stablehlo.select %2, %arg3, %arg1 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+  %s3 = stablehlo.select %3, %arg0, %arg2 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
 
-  // CHECK-DAG:  [[C0:%.+]] = stablehlo.compare GT, [[ARG1]], [[ARG2]], SIGNED
-  // CHECK-DAG:  [[C1:%.+]] = stablehlo.compare LT, [[ARG0]], [[ARG2]], SIGNED
+  %4 = stablehlo.compare LT, %arg1, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %5 = stablehlo.compare LT, %arg0, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %6 = stablehlo.compare LE, %arg2, %arg3, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %7 = stablehlo.compare LE, %arg0, %arg2, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+
+  %s4 = stablehlo.select %4, %arg2, %arg1 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+  %s5 = stablehlo.select %5, %arg1, %arg2 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+  %s6 = stablehlo.select %6, %arg3, %arg2 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+  %s7 = stablehlo.select %7, %arg2, %arg3 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
+
+  // CHECK-DAG:  [[C1:%.+]] = stablehlo.compare GT, [[ARG1]], [[ARG2]], SIGNED
+  // CHECK-DAG:  [[C3:%.+]] = stablehlo.compare GE, [[ARG1]], [[ARG2]], SIGNED
 
   // CHECK-DAG:  [[S0:%.+]] = stablehlo.minimum [[ARG0]], [[ARG1]]
-  // CHECK-DAG:  [[S1:%.+]] = stablehlo.select [[C0]], [[ARG0]], [[ARG1]]
-  // CHECK-DAG:  [[S2:%.+]] = stablehlo.maximum [[ARG2]], [[ARG1]]
-  // CHECK-DAG:  [[S3:%.+]] = stablehlo.select [[C1]], [[ARG1]], [[ARG2]]
+  // CHECK-DAG:  [[S1:%.+]] = stablehlo.select [[C1]], [[ARG0]], [[ARG1]]
+  // CHECK-DAG:  [[S2:%.+]] = stablehlo.minimum [[ARG3]], [[ARG1]]
+  // CHECK-DAG:  [[S3:%.+]] = stablehlo.select [[C3]], [[ARG0]], [[ARG2]]
 
-  // CHECK-NEXT: return [[S0]], [[S1]], [[S2]], [[S3]]
-  return %s0, %s1, %s2, %s3 : tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>
+  // CHECK-DAG:  [[C5:%.+]] = stablehlo.compare LT, [[ARG0]], [[ARG2]], SIGNED
+  // CHECK-DAG:  [[C7:%.+]] = stablehlo.compare LE, [[ARG0]], [[ARG2]], SIGNED
+
+  // CHECK-DAG:  [[S4:%.+]] = stablehlo.maximum [[ARG2]], [[ARG1]]
+  // CHECK-DAG:  [[S5:%.+]] = stablehlo.select [[C5]], [[ARG1]], [[ARG2]]
+  // CHECK-DAG:  [[S6:%.+]] = stablehlo.maximum [[ARG3]], [[ARG2]]
+  // CHECK-DAG:  [[S7:%.+]] = stablehlo.select [[C7]], [[ARG2]], [[ARG3]]
+
+  // CHECK-NEXT: return [[S0]], [[S1]], [[S2]], [[S3]], [[S4]], [[S5]], [[S6]], [[S7]]
+  return %s0, %s1, %s2, %s3, %s4, %s5, %s6, %s7 : tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>,
+                                                  tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>
 }
 
 // -----

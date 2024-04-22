@@ -392,7 +392,8 @@ struct SelectOpCanon final : OpRewritePattern<mlir::stablehlo::SelectOp> {
   }
 };
 
-struct SelectIntoMinMax final : OpRewritePattern<mlir::stablehlo::SelectOp> {
+struct CompareSelectIntoMinMax final
+    : OpRewritePattern<mlir::stablehlo::SelectOp> {
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(mlir::stablehlo::SelectOp op,
@@ -406,7 +407,7 @@ struct SelectIntoMinMax final : OpRewritePattern<mlir::stablehlo::SelectOp> {
 
     using mlir::stablehlo::ComparisonDirection;
     ComparisonDirection direction = cmpOp.getComparisonDirection();
-    Value lhs = cmpOp.getLhs();
+    Value cmpLhs = cmpOp.getLhs();
     Value cmpRhs = cmpOp.getRhs();
 
     // Turn into canonical form:
@@ -414,9 +415,9 @@ struct SelectIntoMinMax final : OpRewritePattern<mlir::stablehlo::SelectOp> {
     // b <  a ? a : b  ---> a >  b ? a : b
     // b >= a ? a : b  ---> a <= b ? a : b
     // b >  a ? a : b  ---> a <  b ? a : b
-    if (lhs == falseVal && cmpRhs == trueVal) {
+    if (cmpLhs == falseVal && cmpRhs == trueVal) {
       direction = invertDirection(direction);
-    } else if (!(lhs == trueVal && cmpRhs == falseVal)) {
+    } else if (!(cmpLhs == trueVal && cmpRhs == falseVal)) {
       return failure();
     }
 
@@ -1095,7 +1096,7 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
   patterns->add<
       // Arithmetic ops.
       AddOpCanon, SubtractOpCanon, MulOpCanon, CompareOpCanon, SelectOpCanon,
-      SelectIntoMinMax,
+      CompareSelectIntoMinMax,
       // Complex ops.
       RealOpCanon, ImagOpCanon,
       // Query ops.
