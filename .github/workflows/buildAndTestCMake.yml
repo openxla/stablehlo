@@ -98,3 +98,4 @@ jobs:
       env:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
+          STABLEHLO_ENABLE_PYTHON_TF_TESTS: ON
