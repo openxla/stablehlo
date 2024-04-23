@@ -16,30 +16,28 @@ import os
 import tempfile
 import mlir.dialects.stablehlo as stablehlo
 import mlir.ir as ir
-import numpy as np
 from mlir.stablehlo.savedmodel.stablehlo_to_tf_saved_model import InputLocation, stablehlo_to_tf_saved_model
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.tools import saved_model_utils
 
-# Convert a stablehlo program, expressing a nn.Linear layer with constant values
-# for weight and bias, to saved model.
+# Convert a stablehlo program, expressing addition of an argument with constant
+# values for weight and bias, to saved model.
 
-mlir_module_string = """
+MODULE_STRING = """
 module @linearmodule attributes {mhlo.cross_program_prefetches = [], mhlo.is_dynamic = false, mhlo.use_auto_spmd_partitioning = false} {
 
-  func.func @main(%arg0: tensor<2xf32>, %arg1: tensor<2x2xf32>, %arg2: tensor<2x2xf32>) -> tensor<2x2xf32> {
-    %0 = stablehlo.transpose %arg1, dims = [1, 0] {result_layout = dense<[0, 1]> : tensor<2xindex>, xla_shape = "f32[2,2]{0,1}"} : (tensor<2x2xf32>) -> tensor<2x2xf32>
-    %1 = stablehlo.dot_general %arg2, %0, contracting_dims = [1] x [0], precision = [DEFAULT, DEFAULT] : (tensor<2x2xf32>, tensor<2x2xf32>) -> tensor<2x2xf32>
-    %2 = stablehlo.broadcast_in_dim %arg0, dims = [1] : (tensor<2xf32>) -> tensor<2x2xf32>
-    %3 = stablehlo.add %1, %2 : tensor<2x2xf32>
-    return %3 : tensor<2x2xf32>\n
+  func.func @main(%bias: tensor<1xf32>, %weight: tensor<1xf32>, %arg0: tensor<1xf32>) -> tensor<1xf32> {
+    %0 = stablehlo.add %arg0, %weight: tensor<1xf32>
+    %1 = stablehlo.add %0, %bias : tensor<1xf32>
+    return %1 : tensor<1xf32>\n
   }
 }
 """
 
 ctx = ir.Context()
 stablehlo.register_dialect(ctx)
-module = ir.Module.parse(mlir_module_string, ctx)
+module = ir.Module.parse(MODULE_STRING, ctx)
 
 input_locations = [
     InputLocation.parameter(name='linear_layer.bias'),
@@ -47,10 +45,8 @@ input_locations = [
     InputLocation.input_arg(position=0),
 ]
 state_dict = {
-    'linear_layer.weight': np.array(
-        [[0.19075723, -0.13815854], [0.46516803, 0.12362058]], dtype='float32'
-    ),
-    'linear_layer.bias': np.array([-0.37076423, 0.03301], dtype='float32'),
+    'linear_layer.weight': np.array([1], dtype='float32'),
+    'linear_layer.bias': np.array([2], dtype='float32'),
 }
 
 
@@ -62,6 +58,6 @@ stablehlo_to_tf_saved_model(
     state_dict=state_dict,
 )
 
-saved_model = saved_model_utils.read_saved_model(saved_model_dir)
-assert saved_model != None
-print(f'StableHLO convertion to TF Saved Model seems to work!')
+restored_model = tf.saved_model.load(saved_model_dir)
+restored_result = restored_model.f(tf.constant([3], tf.float32))
+assert np.allclose(restored_result[0], tf.constant([6], tf.float32))

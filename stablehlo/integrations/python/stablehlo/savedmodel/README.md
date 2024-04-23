@@ -16,11 +16,14 @@ where
 
 * `module`: An StableHLO module.
 * `saved_model_dir`: Path to save TF saved-model artifacts.
-* `input_locations`: Type of each input arguments: either it could be a
+* `target_version`: Serialization version of StableHLO. Default: current
+  stablehlo version.
+* `input_locations`: List of input argument types: either it could be a
   parameter with a name associated with it or a positional argument. The
   parameters are generally the weights or biases of a model with pre-trained
-  constant values.
-* `state_dict`: Mapping of named input parameters with constants.
+  constant values. Default: empty list.
+* `state_dict`: Mapping of named input parameters with constants. Default:
+  empty list.
 
 For example, to export a simple
 [torch.nn.Linear](https://pytorch.org/docs/stable/generated/torch.nn.Linear.html)
@@ -68,7 +71,7 @@ state_dict = {
 The above API depends on
 
 * MLIR Python bindings: To express an MLIR module.
-* TensorFlow: To save the TF saved model artifacts.
+* TensorFlow: Only used to work with TF saved model artifacts.
 
 ## Testing
 

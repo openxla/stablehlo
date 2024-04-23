@@ -82,6 +82,7 @@ class StableHLOToTFSavedModel:
 
   def __init__(self, spec: StableHLOFuncSpec):
     self.stablehlo_type_to_tf_type = {
+        'i1': 'bool',
         'i8': 'int8',
         'i16': 'i32',
         'i32': 'int32',
@@ -89,6 +90,7 @@ class StableHLOToTFSavedModel:
         'f16': 'float16',
         'f32': 'float32',
         'f64': 'float64',
+        'bf16': 'bfloat16',
     }
     self.stablehlo_program = spec
 
@@ -99,16 +101,6 @@ class StableHLOToTFSavedModel:
     for i in signature.dynamic_dims:
       shape[i] = None
     return shape
-
-  stablehlo_type_to_tf_type = {
-      'i8': 'int8',
-      'i16': 'i32',
-      'i32': 'int32',
-      'i64': 'int64',
-      'f16': 'float16',
-      'f32': 'float32',
-      'f64': 'float64',
-  }
 
   def _extract_call_parameters(self, args):
     call_args = []
@@ -121,10 +113,14 @@ class StableHLOToTFSavedModel:
 
   def _wrap_as_tf_func(self):
     def inner(*args):
-      Touts = [
-          self.stablehlo_type_to_tf_type[sig.dtype]
-          for sig in self.stablehlo_program.output_signature
-      ]
+      try:
+        Touts = [
+            self.stablehlo_type_to_tf_type[sig.dtype]
+            for sig in self.stablehlo_program.output_signature
+        ]
+      except KeyError as e:
+        raise KeyError(f'TensorFlow type mapping not found: {e}') from None
+
       Souts = [
           self._get_shape_with_dynamic(sig)
           for sig in self.stablehlo_program.output_signature
@@ -160,14 +156,16 @@ class StableHLOToTFSavedModel:
     for i in range(len(input_pos_to_spec)):
       spec = input_pos_to_spec[i]
       shape = self._get_shape_with_dynamic(spec)
+      try:
+        dtype = getattr(tf, self.stablehlo_type_to_tf_type[spec.dtype])
+      except KeyError as e:
+        raise KeyError(
+            f'TensorFlow type mapping not found for {spec.dtype}: {e}'
+        ) from None
+
       yield tf.TensorSpec(
           shape=shape,
-          dtype=getattr(
-              tf,
-              self.stablehlo_type_to_tf_type[spec.dtype]
-              if spec.dtype in self.stablehlo_type_to_tf_type
-              else spec.dtype,
-          ),
+          dtype=dtype,
           name=f'args_{i}',
       )
 
@@ -210,10 +208,10 @@ class StableHLOToTFSavedModel:
 def stablehlo_to_tf_saved_model(
     module: ir.Module,
     saved_model_dir: os.PathLike,
+    target_version: str = stablehlo.get_current_version(),
     input_locations: list = [],
     state_dict: dict = {},
 ):
-  target = stablehlo.get_current_version()
   input_signatures = [
       VariableSignature(
           shape=input.shape,
@@ -240,7 +238,7 @@ def stablehlo_to_tf_saved_model(
       output_signature=output_signature,
       input_locations=input_locations,
       state_dict=state_dict,
-      bytecode=stablehlo.serialize_portable_artifact(module, target),
+      bytecode=stablehlo.serialize_portable_artifact(module, target_version),
   )
 
   StableHLOToTFSavedModel(shlo_spec).to_tf_saved_model(saved_model_dir)
