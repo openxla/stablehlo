@@ -83,6 +83,7 @@ jobs:
     - name: Build and Test StableHLO with Python
       shell: bash
       run: |
+        pip install tensorflow-cpu
         ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
