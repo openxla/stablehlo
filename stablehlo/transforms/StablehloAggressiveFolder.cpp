@@ -79,11 +79,6 @@ APSInt getAPSInt(Type type, uint64_t value) {
                 /*isUnsigned=*/isUnsigned);
 }
 
-// The patterns below implement partial evaluation of shape computations which
-// is a critical part of implementing type refinement for ops like
-// dynamic_broadcast_in_dim, dynamic_iota and dynamic_reshape whose shape
-// depends on the value of their shape operands.
-
 template <typename OpType, typename FuncType>
 LogicalResult evalElementwise(PatternRewriter &rewriter, OpType op,
                               FuncType fn) {
