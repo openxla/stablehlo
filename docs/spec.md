@@ -2602,7 +2602,6 @@ planning to address this in
   * If `!is_quantized(lhs)`:
     * (C20) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
 
-
 #### Examples
 
 ```mlir
