@@ -2191,12 +2191,12 @@ For quantized types, performs `dequantize_op_quantize(
     type(result))`.
 
 For hybrid quantized types, performs `hybrid_dequantize_then_op(
-  lambda lhs, rhs: convolution(lhs, rhs, window_strides, padding, lhs_dilation, rhs_dilation,
-window_reversal, input_batch_dimension, input_feature_dimension,
-input_spatial_dimensions, kernel_input_feature_dimension,
-kernel_output_feature_dimension, kernel_spatial_dimensions,
-output_batch_dimension, output_feature_dimension, output_spatial_dimensions,
-feature_group_count, batch_group_count, precision_config), lhs, rhs)`.
+    lambda lhs, rhs: convolution(lhs, rhs, window_strides, padding, lhs_dilation,
+        rhs_dilation, window_reversal, input_batch_dimension, input_feature_dimension,
+        input_spatial_dimensions, kernel_input_feature_dimension,
+        kernel_output_feature_dimension, kernel_spatial_dimensions,
+        output_batch_dimension, output_feature_dimension, output_spatial_dimensions,
+        feature_group_count, batch_group_count, precision_config), lhs, rhs)`.
 
 #### Inputs
 
@@ -2533,10 +2533,10 @@ For quantized types, performs `dequantize_op_quantize(
         rhs_batching_dimensions, lhs_contracting_dimensions,
         rhs_contracting_dimensions, precision_config), lhs, rhs, type(result))`.
 
-This only specifies semantics for per-tensor quantization. Per-axis quantization
-is work in progress ([#1574](https://github.com/openxla/stablehlo/issues/1574)).
-Also, in the future we may consider adding support for hybrid quantization
- ([#1575](https://github.com/openxla/stablehlo/issues/1575)).
+For hybrid quantized types, performs `hybrid_dequantize_then_op(
+    lambda lhs, rhs: dot_general(lhs, rhs, lhs_batching_dimensions,
+        rhs_batching_dimensions, lhs_contracting_dimensions,
+        rhs_contracting_dimensions, precision_config), lhs, rhs)`.
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following (at the
@@ -2590,14 +2590,18 @@ planning to address this in
 * If the operation uses non-quantized tensors:
   * (C13) `element_type(lhs) = element_type(rhs)`.
 * If the operation uses quantized tensors:
-  * (C14) `is_quantized(lhs) and is_quantized(rhs) and is_quantized(result)`.
-  * (C15) `storage_type(lhs) = storage_type(rhs)`.
-  * (C16) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
-  * (C17) `zero_points(rhs) = 0`.
-  * (C18) If `is_per_tensor_quantized(rhs)`, then
-    `is_per_tensor_quantized(result)`.
-  * (C19) If `is_per_axis_quantized(rhs)`, then
+  * (C14) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
+  * (C15) `zero_points(rhs) = 0`.
+  * (C16) If `is_per_axis_quantized(rhs)`, then
     `quantization_dimension(rhs)` not in `rhs_contracting_dimensions`.
+  * If `is_quantized(lhs)`:
+    * (C17) `storage_type(lhs) = storage_type(rhs)`.
+    * (C18) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+    * (C19) If `is_per_tensor_quantized(rhs)`, then
+      `is_per_tensor_quantized(result)`.
+  * If `!is_quantized(lhs)`:
+    * (C20) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
+
 
 #### Examples
 
