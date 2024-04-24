@@ -6,6 +6,8 @@
 
 // Implements logic for lowering CHLO ops to StableHLO and Shape dialect ops,
 // taking care of CHLO's broadcasting semantics
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 #include "llvm/ADT/STLExtras.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
