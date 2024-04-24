@@ -20,7 +20,6 @@ limitations under the License.
 #include <utility>
 
 #include "llvm/ADT/APInt.h"
-#include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/STLFunctionalExtras.h"
 #include "llvm/ADT/SmallSet.h"
@@ -1155,6 +1154,7 @@ struct StablehloRefineShapesPass
 
     RewritePatternSet patterns_(context);
     populateStablehloRefineShapesPatterns(&patterns_, context);
+    populateStablehloAggressiveFolderPatterns(&patterns_, context);
     patterns = std::move(patterns_);
 
     return success();
@@ -1217,25 +1217,6 @@ func::FuncOp getStablehloRefineShapesTarget(ModuleOp module) {
 
 void populateStablehloRefineShapesPatterns(RewritePatternSet* patterns,
                                            MLIRContext* context) {
-  patterns->add<EvalAddOpPattern>(context);
-  patterns->add<EvalAndOpPattern>(context);
-  patterns->add<EvalBroadcastInDimOpPattern>(context);
-  patterns->add<EvalClampOpPattern>(context);
-  patterns->add<EvalCompareOpPattern>(context);
-  patterns->add<EvalConcatenateOpPattern>(context);
-  patterns->add<EvalConvertOpPattern>(context);
-  patterns->add<EvalDivOpPattern>(context);
-  patterns->add<EvalGetDimensionSizeOpPattern>(context);
-  patterns->add<EvalMaxOpPattern>(context);
-  patterns->add<EvalMinOpPattern>(context);
-  patterns->add<EvalMulOpPattern>(context);
-  patterns->add<EvalOrOpPattern>(context);
-  patterns->add<EvalRemOpPattern>(context);
-  patterns->add<EvalReshapeOpPattern>(context);
-  patterns->add<EvalSelectOpPattern>(context);
-  patterns->add<EvalSignOpPattern>(context);
-  patterns->add<EvalSliceOpPattern>(context);
-  patterns->add<EvalSubtractOpPattern>(context);
   patterns->add<RefineAllGatherOpPattern>(context);
   patterns->add<RefineBitcastConvertOpPattern>(context);
   patterns->add<RefineConvertOpPattern>(context);
