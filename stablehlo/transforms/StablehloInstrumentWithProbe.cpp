@@ -67,7 +67,7 @@ class StablehloInstrumentWithProbePass
 
 std::string StablehloInstrumentWithProbePass::getLocationNameOrUniqueId(
     Location location, unsigned int id) {
-  auto namedLocation = location.dyn_cast<NameLoc>();
+  auto namedLocation = dyn_cast<NameLoc>(location);
   std::string probeName = "probe";
 
   if (useDebugInfoOption && namedLocation)
@@ -120,7 +120,7 @@ bool StablehloInstrumentWithProbePass::shouldProbeOp(Operation& op) const {
 }
 
 bool StablehloInstrumentWithProbePass::shouldProbeValue(Value value) const {
-  return value.getType().isa<TensorType>();
+  return isa<TensorType>(value.getType());
 }
 
 }  // namespace

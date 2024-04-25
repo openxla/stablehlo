@@ -57,7 +57,7 @@ class VHLO_Op<string mnemonic, string minVersion, string maxVersion, list<Trait>
       }] # !if(
         !eq(maxVersion, "current"),
         [{ return mlir::vhlo::Version::getCurrentVersion(); }],
-        [{ return mlir::vhlo::Version("}] # !subst(".", ", ", maxVersion) # [{"); }]
+        [{ return mlir::vhlo::Version(}] # !subst(".", ", ", maxVersion) # [{); }]
       ) # [{
     }
   }];

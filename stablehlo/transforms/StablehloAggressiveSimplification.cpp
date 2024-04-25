@@ -13,6 +13,7 @@
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallBitVector.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Casting.h"
 #include "mlir/Dialect/CommonFolders.h"
@@ -28,6 +29,8 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/transforms/Passes.h"
+
+using llvm::SmallBitVector;
 
 namespace mlir {
 namespace stablehlo {
@@ -75,7 +78,7 @@ static TypedAttr foldBinaryOpIntOrFloat(TypedAttr lhs, TypedAttr rhs,
   if (isa<FloatType>(elemTy))
     res = constFoldBinaryOp<FloatAttr, FloatAttr::ValueType, void>(operands,
                                                                    folder);
-  if (res) return res.cast<TypedAttr>();
+  if (res) return cast<TypedAttr>(res);
 
   return nullptr;
 }
@@ -392,6 +395,55 @@ struct SelectOpCanon final : OpRewritePattern<mlir::stablehlo::SelectOp> {
   }
 };
 
+struct CompareSelectIntoMinMax final
+    : OpRewritePattern<mlir::stablehlo::SelectOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::SelectOp op,
+                                PatternRewriter &rewriter) const override {
+    Value pred = op.getPred();
+    Value trueVal = op.getOnTrue();
+    Value falseVal = op.getOnFalse();
+
+    auto cmpOp = pred.getDefiningOp<mlir::stablehlo::CompareOp>();
+    if (!cmpOp) return failure();
+
+    using mlir::stablehlo::ComparisonDirection;
+    ComparisonDirection direction = cmpOp.getComparisonDirection();
+    Value cmpLhs = cmpOp.getLhs();
+    Value cmpRhs = cmpOp.getRhs();
+
+    // Turn into canonical form:
+    // b <= a ? a : b  ---> a >= b ? a : b
+    // b <  a ? a : b  ---> a >  b ? a : b
+    // b >= a ? a : b  ---> a <= b ? a : b
+    // b >  a ? a : b  ---> a <  b ? a : b
+    if (cmpLhs == falseVal && cmpRhs == trueVal) {
+      direction = invertDirection(direction);
+    } else if (!(cmpLhs == trueVal && cmpRhs == falseVal)) {
+      return failure();
+    }
+
+    switch (direction) {
+      case ComparisonDirection::GE:
+      case ComparisonDirection::GT: {
+        rewriter.replaceOpWithNewOp<mlir::stablehlo::MaxOp>(op, trueVal,
+                                                            falseVal);
+        return success();
+      }
+      case ComparisonDirection::LE:
+      case ComparisonDirection::LT: {
+        rewriter.replaceOpWithNewOp<mlir::stablehlo::MinOp>(op, trueVal,
+                                                            falseVal);
+        return success();
+      }
+      default: {
+        return failure();
+      }
+    }
+  }
+};
+
 struct BroadcastInDimOpCanon final
     : OpRewritePattern<mlir::stablehlo::BroadcastInDimOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -659,7 +711,7 @@ struct EmptyReduceOpCanon final : OpRewritePattern<mlir::stablehlo::ReduceOp> {
     // We require all reduce shapes to be the same, up to the element types, so
     // we can just use the first operand and the first result as
     // representatives.
-    auto elemTy = op.getInputs().getType().front().cast<RankedTensorType>();
+    auto elemTy = cast<RankedTensorType>(op.getInputs().getType().front());
 
     if (!llvm::is_contained(elemTy.getShape(), 0)) return failure();
 
@@ -687,6 +739,117 @@ struct EmptyReduceOpCanon final : OpRewritePattern<mlir::stablehlo::ReduceOp> {
           loc, outTy, init, shape, empty);
     }
     rewriter.replaceOp(op, broadcasts);
+    return success();
+  }
+};
+
+struct UnusedResultReduceOpCanon final
+    : OpRewritePattern<mlir::stablehlo::ReduceOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::ReduceOp op,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<OpResult, 4> usedResults;
+    llvm::copy_if(op.getResults(), std::back_inserter(usedResults),
+                  [](OpResult result) { return !result.use_empty(); });
+
+    if (usedResults.size() == op.getNumResults())
+      return rewriter.notifyMatchFailure(op, "all operation results have uses");
+
+    const auto pairSize = 2;
+    const auto numOperands = op.getNumOperands();
+    const auto numOperandPairs = numOperands / pairSize;
+
+    Block &reducerBlock = op.getBody().front();
+    auto retOp = cast<mlir::stablehlo::ReturnOp>(reducerBlock.getTerminator());
+
+    assert(numOperandPairs == op.getNumResults() &&
+           numOperandPairs == retOp.getNumOperands());
+
+    SmallVector<Value> workList;
+    auto addToWorkList = [&workList,
+                          reducerBody = retOp->getParentRegion()](Value v) {
+      if (v.getParentRegion() == reducerBody) workList.push_back(v);
+    };
+
+    SmallPtrSet<Operation *, 16> usedOps;
+    SmallBitVector usedArgs(numOperands);
+    SmallBitVector usedReturnOperands(numOperandPairs);
+    for (const auto &usedResult : usedResults) {
+      auto resultNo = usedResult.getResultNumber();
+      usedReturnOperands.set(resultNo);
+
+      // Follow the def-use chain starting from return operand to identify
+      // which argument pairs are used to compute it.
+      addToWorkList(retOp.getOperand(resultNo));
+      while (!workList.empty()) {
+        auto definition = workList.pop_back_val();
+        if (auto blockArg = definition.dyn_cast<BlockArgument>()) {
+          // using one argument implies using the whole argument pair
+          const auto pairNo = blockArg.getArgNumber() % numOperandPairs;
+          usedArgs.set(pairNo);
+          usedArgs.set(pairNo + numOperandPairs);
+        } else if (auto *defOp = definition.getDefiningOp()) {
+          usedOps.insert(defOp);
+          for (const auto &operand : defOp->getOperands())
+            addToWorkList(operand);
+        }
+      }
+    }
+
+    const auto newNumOperandPairs = usedResults.size();
+    const auto newNumOperands = newNumOperandPairs * pairSize;
+    if (newNumOperands != usedArgs.count())
+      return rewriter.notifyMatchFailure(op, [&](Diagnostic &diag) {
+        diag << "non-conservative case: " << newNumOperandPairs
+             << " return results should be matched with " << newNumOperands
+             << " operands, but got " << usedArgs.count();
+      });
+
+    SmallVector<Value> newInputs;
+    SmallVector<Value> newInitVals;
+    SmallVector<Type> newElementTypes;
+    for (auto i : llvm::seq(0u, numOperandPairs)) {
+      if (usedReturnOperands[i])
+        newElementTypes.push_back(
+            getElementTypeOrSelf(retOp.getOperand(i).getType()));
+
+      if (!usedArgs[i]) continue;
+
+      newInputs.push_back(op.getOperand(i));
+      newInitVals.push_back(op.getOperand(i + numOperandPairs));
+    }
+
+    auto newOp = rewriter.create<ReduceOp>(
+        op.getLoc(), newInputs, newInitVals,
+        op.getDimensionsAttr().cast<DenseI64ArrayAttr>(), newElementTypes);
+    Block *newReducerBlock = rewriter.createBlock(&newOp.getBody());
+
+    IRMapping mapper;
+    for (auto arg : reducerBlock.getArguments())
+      if (usedArgs[arg.getArgNumber()])
+        mapper.map(arg,
+                   newReducerBlock->addArgument(arg.getType(), arg.getLoc()));
+
+    rewriter.setInsertionPointToStart(newReducerBlock);
+    for (Operation &op : reducerBlock.getOperations())
+      if (usedOps.contains(&op)) rewriter.clone(op, mapper);
+
+    SmallVector<Value> newReturnOperands;
+    for (const auto &en : llvm::enumerate(retOp.getOperands()))
+      if (usedReturnOperands[en.index()])
+        newReturnOperands.push_back(mapper.lookup(en.value()));
+
+    rewriter.create<mlir::stablehlo::ReturnOp>(retOp.getLoc(),
+                                               newReturnOperands);
+
+    // Build new results list (unused entries will be null).
+    SmallVector<Value> newResults(op.getNumResults());
+    for (const auto &[i, result] : llvm::enumerate(usedResults)) {
+      newResults[result.getResultNumber()] = newOp.getResult(i);
+    }
+
+    rewriter.replaceOp(op, newResults);
     return success();
   }
 };
@@ -760,7 +923,7 @@ struct GetDimensionSizeOpCanon final
     int64_t dimSize = operandTy.getDimSize(op.getDimension());
     if (dimSize < 0) return failure();
 
-    auto elemTy = op.getType().getElementType().cast<IntegerType>();
+    auto elemTy = cast<IntegerType>(op.getType().getElementType());
     IntegerAttr elemVal = rewriter.getIntegerAttr(elemTy, dimSize);
     rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
         op, DenseElementsAttr::get(op.getType(), elemVal));
@@ -791,7 +954,7 @@ struct GatherOpCanon final : OpRewritePattern<mlir::stablehlo::GatherOp> {
       return failure();
     }
 
-    auto operandType = gather->getOperand(0).getType().cast<RankedTensorType>();
+    auto operandType = cast<RankedTensorType>(gather->getOperand(0).getType());
     if (!operandType.hasStaticShape()) return failure();
 
     auto sliceEnd = llvm::to_vector(gather.getSliceSizes());
@@ -854,7 +1017,7 @@ struct ReshapeOpCanon final : OpRewritePattern<mlir::stablehlo::ReshapeOp> {
     ElementsAttr cstAttr;
     if (!matchPattern(op.getOperand(), m_Constant(&cstAttr))) return failure();
 
-    if (auto splat = cstAttr.dyn_cast<SplatElementsAttr>()) {
+    if (auto splat = dyn_cast<SplatElementsAttr>(cstAttr)) {
       rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
           op, SplatElementsAttr::get(op.getType(),
                                      splat.getSplatValue<Attribute>()));
@@ -934,7 +1097,7 @@ struct TransposeIsReshape final
 
 /// Check if a `t` is a tensor with zero extents.
 static std::optional<RankedTensorType> isZeroExtent(Type t) {
-  auto type = t.dyn_cast<RankedTensorType>();
+  auto type = dyn_cast<RankedTensorType>(t);
   if (type && type.hasStaticShape() && type.getNumElements() == 0) return type;
   return std::nullopt;
 }
@@ -1007,8 +1170,8 @@ struct ReorderElementwiseAndShapeOp final
 
     Value input = definingOp->getOperand(0);
     Value result = op->getResult(0);
-    auto intermediateType = input.getType().cast<ShapedType>().clone(
-        getElementTypeOrSelf(result.getType()));
+    auto intermediateType = cast<ShapedType>(input.getType())
+                                .clone(getElementTypeOrSelf(result.getType()));
 
     // Reorder the operation and rewire the inputs/outputs.
     op->moveBefore(definingOp);
@@ -1047,6 +1210,7 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
   patterns->add<
       // Arithmetic ops.
       AddOpCanon, SubtractOpCanon, MulOpCanon, CompareOpCanon, SelectOpCanon,
+      CompareSelectIntoMinMax,
       // Complex ops.
       RealOpCanon, ImagOpCanon,
       // Query ops.
@@ -1056,7 +1220,7 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
       ChainedDynamicBroadcastInDimCanonicalization,
       DynamicBroadcastInDimAllDimsNonExpanding,
       // Reduce op.
-      NoopReduceOpCanon, EmptyReduceOpCanon,
+      NoopReduceOpCanon, EmptyReduceOpCanon, UnusedResultReduceOpCanon,
       // Shape manipulation(-ish) ops.
       ConcatenateOpCanon, ConvertOpCanon, DynamicReshapeOpCanon, GatherOpCanon,
       ReshapeOpCanon, MergeConsecutiveReshapes, TransposeIsReshape,

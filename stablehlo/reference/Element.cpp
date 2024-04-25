@@ -202,7 +202,7 @@ Element::Element(Type type, APFloat value) {
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
   auto typeSemantics =
-      APFloat::SemanticsToEnum(type.cast<FloatType>().getFloatSemantics());
+      APFloat::SemanticsToEnum(cast<FloatType>(type).getFloatSemantics());
   auto valueSemantics = APFloat::SemanticsToEnum(value.getSemantics());
   if (typeSemantics != valueSemantics)
     report_fatal_error(invalidArgument(
@@ -215,10 +215,9 @@ Element::Element(Type type, std::complex<APFloat> value) {
   if (!isSupportedComplexType(type))
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
-  auto typeSemantics = APFloat::SemanticsToEnum(type.cast<ComplexType>()
-                                                    .getElementType()
-                                                    .cast<FloatType>()
-                                                    .getFloatSemantics());
+  auto typeSemantics = APFloat::SemanticsToEnum(
+      cast<FloatType>(cast<ComplexType>(type).getElementType())
+          .getFloatSemantics());
   auto realValueSemantics =
       APFloat::SemanticsToEnum(value.real().getSemantics());
   auto imagValueSemantics =
@@ -285,11 +284,11 @@ Element Element::fromBits(Type type, APInt bits) {
   if (isSupportedIntegerType(type)) return Element(type, bits);
   if (isSupportedFloatType(type))
     return Element(type,
-                   APFloat(type.cast<FloatType>().getFloatSemantics(), bits));
+                   APFloat(cast<FloatType>(type).getFloatSemantics(), bits));
   if (isSupportedComplexType(type)) {
     // Interpret the low half of the bits as the real part, and
     // the high half of the bits as the imaginary part.
-    auto elementType = type.cast<ComplexType>().getElementType();
+    auto elementType = cast<ComplexType>(type).getElementType();
     auto realBits = bits.extractBits(numBits(type) / 2, 0);
     auto realElement = fromBits(elementType, realBits);
     auto imagBits = bits.extractBits(numBits(type) / 2, numBits(type) / 2);
@@ -588,7 +587,7 @@ Element abs(const Element &el) {
     auto elVal = el.getComplexValue();
     auto resultVal = std::abs(std::complex<double>(
         elVal.real().convertToDouble(), elVal.imag().convertToDouble()));
-    return convert(type.cast<ComplexType>().getElementType(), resultVal);
+    return convert(cast<ComplexType>(type).getElementType(), resultVal);
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
@@ -738,14 +737,13 @@ Element convert(Type type, APSInt value) {
   if (isSupportedIntegerType(type))
     return Element(type, value.extOrTrunc(type.getIntOrFloatBitWidth()));
   if (isSupportedFloatType(type)) {
-    APFloat floatValue(type.cast<FloatType>().getFloatSemantics());
+    APFloat floatValue(cast<FloatType>(type).getFloatSemantics());
     floatValue.convertFromAPInt(value, value.isSigned(),
                                 APFloat::rmNearestTiesToEven);
     return Element(type, floatValue);
   }
   if (isSupportedComplexType(type)) {
-    auto floatResult =
-        convert(type.cast<ComplexType>().getElementType(), value);
+    auto floatResult = convert(cast<ComplexType>(type).getElementType(), value);
     return convert(type, floatResult.getFloatValue());
   }
   report_fatal_error(invalidArgument("Unsupported element type: %s",
@@ -773,7 +771,7 @@ Element convert(Type type, APFloat value) {
   }
   if (isSupportedFloatType(type)) {
     bool roundingErr;
-    value.convert(type.cast<FloatType>().getFloatSemantics(),
+    value.convert(cast<FloatType>(type).getFloatSemantics(),
                   APFloat::rmNearestTiesToEven, &roundingErr);
     return Element(type, value);
   }
@@ -789,7 +787,7 @@ Element convert(Type type, double value) {
 
 Element convert(Type type, std::complex<APFloat> value) {
   if (isSupportedComplexType(type)) {
-    auto elementType = type.cast<ComplexType>().getElementType();
+    auto elementType = cast<ComplexType>(type).getElementType();
     auto realElement = convert(elementType, value.real());
     auto imagElement = convert(elementType, value.imag());
     return Element(type, std::complex<APFloat>(realElement.getFloatValue(),
@@ -832,7 +830,7 @@ Element imag(const Element &el) {
     return Element(el.getType(), resultImag);
   }
   if (isSupportedComplexType(el.getType()))
-    return Element(el.getType().cast<ComplexType>().getElementType(),
+    return Element(cast<ComplexType>(el.getType()).getElementType(),
                    el.getComplexValue().imag());
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(el.getType()).c_str()));
@@ -941,7 +939,7 @@ Element power(const Element &e1, const Element &e2) {
 Element real(const Element &el) {
   if (isSupportedFloatType(el.getType())) return el;
   if (isSupportedComplexType(el.getType()))
-    return Element(el.getType().cast<ComplexType>().getElementType(),
+    return Element(cast<ComplexType>(el.getType()).getElementType(),
                    el.getComplexValue().real());
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(el.getType()).c_str()));
@@ -950,7 +948,7 @@ Element real(const Element &el) {
 Element reducePrecision(const Element &el, int32_t exponentBits,
                         int32_t mantissaBits) {
   auto intVal = el.getFloatValue().bitcastToAPInt().getZExtValue();
-  auto type = el.getType().cast<FloatType>();
+  auto type = cast<FloatType>(el.getType());
   int32_t bitWidth = type.getWidth();
 
   // Mantissa has an implicit leading 1 and binary point, hence subtracting one.
@@ -1142,7 +1140,7 @@ void Element::print(raw_ostream &os) const {
   }
 
   if (isSupportedComplexType(type_)) {
-    auto complexElemTy = type_.dyn_cast<mlir::ComplexType>().getElementType();
+    auto complexElemTy = dyn_cast<mlir::ComplexType>(type_).getElementType();
     auto complexVal = getComplexValue();
 
     os << "[";

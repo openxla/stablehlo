@@ -70,7 +70,7 @@ one of the following tracking labels.
 | concatenate              | yes           | yes          | yes            | yes             | yes         |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
 | convert                  | yes           | yes          | infeasible     | yes             | yes         |
-| convolution              | yes           | yes          | infeasible     | revisit         | no          |
+| convolution              | yes           | yes          | infeasible     | revisit         | yes         |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | yes         |
 | create_token             | no            | yes\*        | yes\*          | yes             | revisit     |
@@ -159,3 +159,18 @@ one of the following tracking labels.
 | uniform_quantize         | yes           | revisit      | infeasible     | yes             | no          |
 | while                    | yes           | revisit      | yes            | revisit         | yes         |
 | xor                      | yes           | yes          | yes            | yes             | yes         |
+
+## Type inference for quantized operations
+
+The `Type Inference` column from the table above is intended to focus on
+non-quantized operations. For the majority of the quantized operations, it is
+not feasible to infer the result type because the quantization parameters of
+the result types may vary from those of the operands. With the exception of
+few cases where, operand and result types must match identically, or the op
+has constraints useful to infer result type, such ops are listed below:
+`all_gather`, `all_to_all`, `case`, `collective_permute`,
+`compare`, `concatenate`, `constant`, `dynamic_slice`,
+`dynamic_update_slice`, `gather`, `get_tuple_element`, `if`, `infeed`,
+`is_finite`, `map`, `optimization_barrier`, `outfeed`, `pad`, `recv`, `reduce`,
+`reduce_scatter`, `reduce_window`, `reverse`, `scatter`, `select_and_scatter`,
+`send`, `slice`, `sort`, `transpose`, `tuple`, `uniform_dequantized`, `while`.

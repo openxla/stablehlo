@@ -18,6 +18,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_BASE
 
 include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 
@@ -53,32 +54,34 @@ def HLO_Complex : Complex<AnyTypeOf<[F32, F64]>>;
 
 // TODO(b/230381284): Upstream width-specific uniform quantized element types.
 class StableHLO_UniformQuantizedSignedInt<int width>
-  : Type<And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedType>()">,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
+  : Type<And<[CPred<"isa<mlir::quant::UniformQuantizedType>($_self)">,
+           CPred<"cast<mlir::quant::UniformQuantizedType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
-                 ".getStorageType().cast<mlir::IntegerType>().isSignless()">]>,
+           CPred<"cast<mlir::IntegerType>(" #
+                   "cast<mlir::quant::UniformQuantizedType>($_self).getStorageType()" #
+                 ").isSignless()">]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedSignedInt";
   int bitwidth = width;
 }
 
 class StableHLO_UniformQuantizedPerAxisSignedInt<int width>
-  : Type<And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedPerAxisType>()">,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
+  : Type<And<[CPred<"isa<mlir::quant::UniformQuantizedPerAxisType>($_self)">,
+           CPred<"cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
-                 ".getStorageType().cast<mlir::IntegerType>().isSignless()">]>,
+           CPred<"cast<mlir::IntegerType>(" #
+                   "cast<mlir::quant::UniformQuantizedPerAxisType>($_self).getStorageType()" #
+                 ").isSignless()">]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedPerAxisSignedInt";
   int bitwidth = width;
 }
 
 class StableHLO_UniformQuantizedUnsignedInt<int width>
-  : Type<And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedType>()">,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
+  : Type<And<[CPred<"isa<mlir::quant::UniformQuantizedType>($_self)">,
+           CPred<"cast<mlir::quant::UniformQuantizedType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"!$_self.cast<mlir::quant::UniformQuantizedType>()" #
+           CPred<"!cast<mlir::quant::UniformQuantizedType>($_self)" #
                  ".isSigned()">]>,
     "QUI" # width # " type"> {
   string name = "UniformQuantizedUnsignedInt";
@@ -86,10 +89,10 @@ class StableHLO_UniformQuantizedUnsignedInt<int width>
 }
 
 class StableHLO_UniformQuantizedPerAxisUnsignedInt<int width>
-  : Type<And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedPerAxisType>()">,
-           CPred<"$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
+  : Type<And<[CPred<"isa<mlir::quant::UniformQuantizedPerAxisType>($_self)">,
+           CPred<"cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"!$_self.cast<mlir::quant::UniformQuantizedPerAxisType>()" #
+           CPred<"!cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".isSigned()">]>,
     "QUI" # width # " type"> {
   string name = "UniformQuantizedPerAxisUnsignedInt";
@@ -131,7 +134,7 @@ def HLO_PerAxisQuantizedInt :
     AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt]>;
 
 // Token type.
-def HLO_Token : Type<CPred<"$_self.isa<TokenType>()">, "token">;
+def HLO_Token : Type<CPred<"isa<TokenType>($_self)">, "token">;
 
 // Any integer tensor types
 def HLO_IntTensor : RankedTensorOf<[HLO_Int]>;
@@ -162,7 +165,7 @@ def HLO_NonQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_C
 
 def HLO_TensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt]>;
 
-def HLO_ComplexTensor : TensorOf<[HLO_Complex]>;
+def HLO_ComplexTensor : RankedTensorOf<[HLO_Complex]>;
 
 def HLO_Tuple : NestedTupleOf<[HLO_Tensor, HLO_PerAxisQuantizedIntTensor, HLO_Token]>;
 
@@ -319,5 +322,50 @@ def HLO_BoundedAttrInterface : AttrInterface<"BoundedAttrInterface"> {
     "::llvm::ArrayRef<int64_t>", "getBounds"
   >];
 }
+
+def HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
+  : HLO_NativeOpTrait<"SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait">;
+
+// This trait can be used with ops where the result has the same rank as the
+// input and each dimension of the input maps to the same dimension in the
+// result. In that case, if a dim is static in the output but dynamic in the
+// input, the dimension could differ at runtime, leading to undefined behavior.
+// If the output dimension is dynamic, there is no expectation, so there
+// cannot be a mismatch. If the input dimension is static, the output dimension
+// can be inferred from it, so there cannot be a mismatch either.
+def HLO_SpeculatableIfStaticDimInOutputIsStaticInInput : TraitList<[
+    ConditionallySpeculatable, HLO_SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait]>;
+
+def HLO_RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
+  : HLO_NativeOpTrait<"RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait">;
+
+// This trait is the same as HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
+// but for ops that have regions. If all static dimensions in the output are
+// static in the input, such an op is RecursivelySpeculatable (the ops in its
+// regions have to be checked for speculatability).
+def HLO_RecursivelySpeculatableIfStaticDimInOutputIsStaticInInput : TraitList<[
+    ConditionallySpeculatable, HLO_RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait]>;
+
+def HLO_SpeculatableIfAllInputsStaticImplTrait
+  : HLO_NativeOpTrait<"SpeculatableIfAllInputsStaticImplTrait">;
+
+// This trait is appropriate to use for ops where the op is only speculatable
+// if all the inputs are static. This can happen if e.g. the inputs are expected
+// to all have the same shape. If all the inputs are static, the verifier can
+// validate statically that all the static dimensions are the same. However,
+// if there is any dynamic dimension, it could differ from the shape of another
+// input at runtime, leading to undefined behavior.
+def HLO_SpeculatableIfAllInputsStatic : TraitList<[
+    ConditionallySpeculatable, HLO_SpeculatableIfAllInputsStaticImplTrait]>;
+
+def HLO_RecursivelySpeculatableIfAllInputsStaticImplTrait
+  : HLO_NativeOpTrait<"RecursivelySpeculatableIfAllInputsStaticImplTrait">;
+
+// This trait is the same as HLO_SpeculatableIfAllInputsStatic, but for ops that
+// have regions. If all the inputs are static, such an op is
+// RecursivelySpeculatable (the ops in its regions have to be checked for
+// speculatability).
+def HLO_RecursivelySpeculatableIfAllInputsStatic : TraitList<[
+    ConditionallySpeculatable, HLO_RecursivelySpeculatableIfAllInputsStaticImplTrait]>;
 
 #endif // STABLEHLO_DIALECT_BASE

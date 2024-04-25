@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
   schedule:
     # Runs at 6:00 AM UTC, which is 10:00 PM previous day PST (UTC-8)
-    - cron: '0 6 * * *' 
+    - cron: '0 6 * * *'
 
 # Ensure that only a single job or workflow using the same
 # concurrency group will run at a time. This would cancel
@@ -83,16 +83,18 @@ jobs:
     - name: Build and Test StableHLO with Python
       shell: bash
       run: |
+        pip install tensorflow-cpu
         ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
+          STABLEHLO_ENABLE_PYTHON_TF_TESTS: ON
 
     - name: Build and Test Python Wheel
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_python_wheel.sh "$GITHUB_WORKSPACE/${{ github.sha }}"
-    
+
     - name: Upload an artifact
       uses: actions/upload-artifact@v4
       with:

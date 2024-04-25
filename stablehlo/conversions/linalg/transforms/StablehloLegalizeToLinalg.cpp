@@ -96,16 +96,14 @@ SmallVector<Value, 2> extractDynamicEinsumSizes(
     if (dimIndIt != lhsLoopVec.end()) {
       // Query from lhs vars.
       auto dimIndPos = dimIndIt - lhsLoopVec.begin();
-      auto lhsShape =
-          llvm::dyn_cast<RankedTensorType>(lhs.getType()).getShape();
+      auto lhsShape = llvm::cast<RankedTensorType>(lhs.getType()).getShape();
       if (lhsShape[dimIndPos] != ShapedType::kDynamic) continue;
       dimSize = b.create<tensor::DimOp>(loc, lhs, dimIndPos);
     } else {
       // query from rhs vars.
       dimIndIt = std::find(rhsLoopVec.begin(), rhsLoopVec.end(), dimInd);
       auto dimIndPos = dimIndIt - rhsLoopVec.begin();
-      auto rhsShape =
-          llvm::dyn_cast<RankedTensorType>(rhs.getType()).getShape();
+      auto rhsShape = llvm::cast<RankedTensorType>(rhs.getType()).getShape();
       if (rhsShape[dimIndPos] != ShapedType::kDynamic) continue;
       dimSize = b.create<tensor::DimOp>(loc, rhs, dimIndPos);
     }
@@ -354,18 +352,20 @@ struct DataMovementOpConverter : OpConversionPattern<OpTy> {
   LogicalResult matchAndRewrite(
       OpTy op, typename OpTy::Adaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) return failure();
+    if (failed(verifyHloOpBufferOrTensorSemantics(op)))
+      return rewriter.notifyMatchFailure(
+          op, "failed to verify hlo buffer or tensor semantics");
 
     ShapedType resultType = getHloOpResultType(op);
     resultType =
         this->getTypeConverter()->template convertType<ShapedType>(resultType);
-    if (!resultType) {
+    if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
-    }
 
     SmallVector<AffineMap, 2> indexingMaps =
         Derived::getIndexingMaps(op, &rewriter);
-    if (indexingMaps.empty()) return failure();
+    if (indexingMaps.empty())
+      return rewriter.notifyMatchFailure(op, "could not derive indexing maps");
 
     int64_t nloops = resultType.getRank();
     Location loc = op.getLoc();
@@ -397,8 +397,7 @@ struct BroadcastConverter final
 
   static SmallVector<AffineMap, 2> getIndexingMaps(OpTy broadcastOp,
                                                    Builder *b) {
-    ShapedType inputType =
-        llvm::cast<ShapedType>(broadcastOp.getOperand().getType());
+    ShapedType inputType = broadcastOp.getOperand().getType();
     unsigned inputRank = inputType.getRank();
     unsigned nloops = getHloOpResultType(broadcastOp).getRank();
 
@@ -458,7 +457,7 @@ struct HloBroadcastInDimConverter final
   static SmallVector<AffineMap, 2> getIndexingMaps(
       mlir::stablehlo::BroadcastInDimOp broadcastOp, Builder *b) {
     ShapedType resultType = getHloOpResultType(broadcastOp);
-    auto operandType = cast<ShapedType>(broadcastOp.getOperand().getType());
+    auto operandType = broadcastOp.getOperand().getType();
     unsigned nloops = resultType.getRank();
 
     // The input is a scalar, i.e. this is a scalar broadcast op.
@@ -617,11 +616,9 @@ struct HloDynamicBroadcastInDimConverter final
       mlir::stablehlo::DynamicBroadcastInDimOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Value operand = adaptor.getOperand();
-    auto operandType = dyn_cast<RankedTensorType>(operand.getType());
-    if (!operandType) return failure();
+    auto operandType = cast<RankedTensorType>(operand.getType());
     auto resultType =
         getTypeConverter()->convertType<RankedTensorType>(op.getType());
-    if (!resultType) return failure();
 
     // Determine dimension expressions based on whether the dimension is
     // expanding (0) or non-expanding (identity), and fail if we cannot decide
@@ -685,11 +682,9 @@ struct DynamicBroadcastInDimOpToBroadcastConverter final
     Location loc = op.getLoc();
 
     Value operand = adaptor.getOperand();
-    auto operandTy = llvm::dyn_cast<RankedTensorType>(operand.getType());
-    if (!operandTy) return failure();
+    auto operandTy = llvm::cast<RankedTensorType>(operand.getType());
     auto resultTy =
         getTypeConverter()->convertType<RankedTensorType>(op.getType());
-    if (!resultTy) return failure();
 
     SmallVector<int64_t> broadcastDimensions =
         llvm::to_vector(op.getBroadcastDimensions());
@@ -761,7 +756,7 @@ struct DynamicBroadcastInDimOpToBroadcastConverter final
   static Value getBroadcastOperand(
       PatternRewriter &rewriter, Location loc, Value operand,
       llvm::function_ref<bool(int64_t)> isExpandingDim) {
-    auto operandTy = llvm::dyn_cast<RankedTensorType>(operand.getType());
+    auto operandTy = llvm::cast<RankedTensorType>(operand.getType());
 
     SmallVector<int64_t> updatedOperandShape =
         llvm::to_vector(operandTy.getShape());
@@ -831,8 +826,10 @@ struct TransposeOpToTransposeConverter final
     Value emptyTensor =
         getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
 
+    // TODO(#2216) Cleanup Attribute -> DenseArrayAttr
     rewriter.replaceOpWithNewOp<linalg::TransposeOp>(
-        op, adaptor.getOperand(), emptyTensor, op.getPermutationAttr(),
+        op, adaptor.getOperand(), emptyTensor,
+        op.getPermutationAttr().dyn_cast_or_null<DenseI64ArrayAttr>(),
         linalg::getPrunedAttributeList(op));
     return success();
   }
@@ -964,11 +961,7 @@ struct RealDynamicSliceConverter final
       mlir::stablehlo::RealDynamicSliceOp realDynamicSliceOp, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Location loc = realDynamicSliceOp.getLoc();
-    auto argType = llvm::dyn_cast<ShapedType>(adaptor.getOperand().getType());
-    if (!argType || !argType.hasRank()) {
-      return rewriter.notifyMatchFailure(realDynamicSliceOp,
-                                         "require known-rank args");
-    }
+    auto argType = llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
 
     Type dimElementType = getElementTypeOrSelf(adaptor.getStartIndices());
     if (getElementTypeOrSelf(adaptor.getLimitIndices()) != dimElementType ||
@@ -1055,7 +1048,7 @@ struct ReshapeOpConverter final
     Value operand = adaptor.getOperand();
     auto operandType = llvm::cast<ShapedType>(operand.getType());
     Type elemType = operandType.getElementType();
-    auto resultType = llvm::cast<ShapedType>(reshapeOp.getType());
+    ShapedType resultType = reshapeOp.getType();
 
     if (!resultType.hasStaticShape()) return failure();
 
@@ -1275,6 +1268,18 @@ struct ConcatenateConverter final
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
 
+    bool isResultSparse =
+        sparse_tensor::getSparseTensorEncoding(resultType) != nullptr;
+    bool isAnyOperandSparse =
+        llvm::any_of(adaptor.getOperands(), [](auto operand) {
+          return sparse_tensor::getSparseTensorEncoding(operand.getType()) !=
+                 nullptr;
+        });
+
+    if (isResultSparse || isAnyOperandSparse)
+      return rewriter.notifyMatchFailure(
+          op, "ConcatenateConverter cannot legalize sparse types");
+
     uint64_t dim = op.getDimension();
     Location loc = op.getLoc();
     Value zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
@@ -1346,6 +1351,40 @@ struct ConcatenateConverter final
   }
 };
 
+/// Converts stablehlo.concatenate operation to a sparse_tensor.concatenate op.
+struct SparseConcatenateConverter final
+    : OpConversionPattern<mlir::stablehlo::ConcatenateOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      mlir::stablehlo::ConcatenateOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override {
+    // Shortcut the one-operand case, simplifies code below.
+    if (adaptor.getOperands().size() == 1) {
+      rewriter.replaceOp(op, adaptor.getOperands()[0]);
+      return success();
+    }
+
+    auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
+    if (!resultType)
+      return rewriter.notifyMatchFailure(op, "type conversion failed");
+    bool isResultSparse =
+        sparse_tensor::getSparseTensorEncoding(resultType) != nullptr;
+    bool isAnyOperandSparse =
+        llvm::any_of(adaptor.getOperands(), [](auto operand) {
+          return sparse_tensor::getSparseTensorEncoding(operand.getType()) !=
+                 nullptr;
+        });
+
+    if (isResultSparse || isAnyOperandSparse) {
+      rewriter.replaceOpWithNewOp<sparse_tensor::ConcatenateOp>(
+          op, resultType, adaptor.getOperands(), op.getDimension());
+      return success();
+    }
+    return failure();
+  }
+};
+
 struct ConstConverterTensor final
     : OpConversionPattern<mlir::stablehlo::ConstantOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1403,10 +1442,7 @@ struct SliceConverter final : OpConversionPattern<mlir::stablehlo::SliceOp> {
       mlir::stablehlo::SliceOp sliceOp, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     auto argType =
-        llvm::dyn_cast<ShapedType>(adaptor.getOperands()[0].getType());
-    if (!argType || !argType.hasRank()) {
-      return rewriter.notifyMatchFailure(sliceOp, "expects known-rank args");
-    }
+        llvm::cast<RankedTensorType>(adaptor.getOperands()[0].getType());
 
     SmallVector<OpFoldResult, 3> offsets, sizes, strides;
     auto startIndices = sliceOp.getStartIndices();
@@ -1440,11 +1476,7 @@ struct DynamicSliceConverter final
       mlir::stablehlo::DynamicSliceOp dynamicSliceOp, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Location loc = dynamicSliceOp.getLoc();
-    auto argType = llvm::dyn_cast<ShapedType>(adaptor.getOperand().getType());
-    if (!argType || !argType.hasRank()) {
-      return rewriter.notifyMatchFailure(dynamicSliceOp,
-                                         "require known-rank args");
-    }
+    auto argType = llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
 
     auto resultType = getTypeConverter()->convertType<RankedTensorType>(
         dynamicSliceOp.getType());
@@ -1497,15 +1529,15 @@ struct DynamicUpdateSliceConverter final
       ConversionPatternRewriter &rewriter) const override {
     Location loc = op.getLoc();
     auto operandType =
-        llvm::dyn_cast<RankedTensorType>(adaptor.getOperand().getType());
-    if (!operandType || !operandType.hasStaticShape()) {
+        llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
+    if (!operandType.hasStaticShape()) {
       return rewriter.notifyMatchFailure(
           op, "require static ranked type for operand");
     }
 
     auto updateType =
-        llvm::dyn_cast<RankedTensorType>(adaptor.getUpdate().getType());
-    if (!updateType || !updateType.hasStaticShape()) {
+        llvm::cast<RankedTensorType>(adaptor.getUpdate().getType());
+    if (!updateType.hasStaticShape()) {
       return rewriter.notifyMatchFailure(
           op, "require static ranked type for operand");
     }
@@ -1675,13 +1707,7 @@ struct GatherConversion final : OpConversionPattern<mlir::stablehlo::GatherOp> {
     auto resultType =
         getTypeConverter()->convertType<RankedTensorType>(gatherOp.getType());
     RankedTensorType startIndicesType =
-        dyn_cast<RankedTensorType>(startIndices.getType());
-    // We could actually deal with an unranked result by inferring the result
-    // rank, but the current reifyReturnTypes doesn't support unranked either.
-    if (!resultType || !startIndicesType) {
-      return rewriter.notifyMatchFailure(gatherOp,
-                                         "unranked start indices or result");
-    }
+        cast<RankedTensorType>(startIndices.getType());
 
     int64_t resultRank = resultType.getRank();
     // slice_sizes has to have the same size as operand.rank, and doing it this
@@ -1873,12 +1899,10 @@ struct SelectAndScatterNoOverlapConverter final
     Value operand = op.getOperand();
     Value init = op.getInitValue();
 
-    auto sourceTy = llvm::dyn_cast<RankedTensorType>(source.getType());
-    auto operandTy = llvm::dyn_cast<RankedTensorType>(operand.getType());
-    auto initTy = llvm::dyn_cast<RankedTensorType>(init.getType());
-    auto resultTy = llvm::dyn_cast<RankedTensorType>(op.getResult().getType());
-    if (!sourceTy || !operandTy || !initTy || !resultTy)
-      return rewriter.notifyMatchFailure(op, "inputs/outputs must be ranked");
+    auto sourceTy = llvm::cast<RankedTensorType>(source.getType());
+    auto operandTy = llvm::cast<RankedTensorType>(operand.getType());
+    auto initTy = llvm::cast<RankedTensorType>(init.getType());
+    auto resultTy = op.getType();
 
     auto indexETy = b.getI32Type();
     auto srcETy = operandTy.getElementType();
@@ -2279,8 +2303,7 @@ struct PadOpConversion final : OpConversionPattern<mlir::stablehlo::PadOp> {
       mlir::stablehlo::PadOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Location loc = op.getLoc();
-    auto resultType =
-        getTypeConverter()->convertType<ShapedType>(op.getResult().getType());
+    auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
 
@@ -2477,10 +2500,7 @@ struct SetDimensionSizeConverter final
     // regular dynamic shape. Note that the bounds annotation is still around
     // but may be no longer valid depending on choices made by bufferization.
     Location loc = setDimensionSizeOp.getLoc();
-    auto resultType = dyn_cast<RankedTensorType>(setDimensionSizeOp.getType());
-    if (!resultType)
-      return rewriter.notifyMatchFailure(setDimensionSizeOp,
-                                         "expected a ranked tensor");
+    auto resultType = cast<RankedTensorType>(setDimensionSizeOp.getType());
 
     SmallVector<OpFoldResult> offsets(resultType.getRank(),
                                       rewriter.getIndexAttr(0));
@@ -2508,7 +2528,8 @@ struct SetDimensionSizeConverter final
 static void populateConversionPatterns(MLIRContext *context,
                                        TypeConverter &typeConverter,
                                        RewritePatternSet *patterns,
-                                       bool enablePrimitiveOps) {
+                                       bool enablePrimitiveOps,
+                                       bool enableSparseOps) {
   // clang-format off
   patterns->add<
       BitcastConvertConverter,
@@ -2531,6 +2552,10 @@ static void populateConversionPatterns(MLIRContext *context,
 
   detail::populatePointwiseStablehloToLinalgConversionPatterns(
       context, typeConverter, patterns, enablePrimitiveOps);
+
+  if (enableSparseOps) {
+    patterns->add<SparseConcatenateConverter>(typeConverter, context);
+  }
 
   if (enablePrimitiveOps) {
     patterns->add<
@@ -2584,7 +2609,7 @@ struct StablehloLegalizeToLinalgPass
 
     RewritePatternSet patterns_(context);
     populateConversionPatterns(context, converter, &patterns_,
-                               enablePrimitiveOps);
+                               enablePrimitiveOps, enableSparseOps);
     patterns = std::move(patterns_);
 
     return success();

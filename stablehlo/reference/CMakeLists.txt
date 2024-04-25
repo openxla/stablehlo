@@ -18,6 +18,7 @@ add_mlir_library(StablehloReferenceApi
 
   LINK_LIBS PUBLIC
   MLIRIR
+  MLIRParser
   MLIRSupport
   InterpreterOps
   StablehloReferenceConfiguration
@@ -26,6 +27,7 @@ add_mlir_library(StablehloReferenceApi
   StablehloReferenceOps
   StablehloReferenceProcess
   StablehloReferenceScope
+  StablehloReferenceTensor
   StablehloReferenceValue
   StablehloRegister
 )

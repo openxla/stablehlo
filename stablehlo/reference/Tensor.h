@@ -138,8 +138,11 @@ inline raw_ostream &operator<<(raw_ostream &os, Tensor tensor) {
   return os;
 }
 
-/// Creates a Tensor using 'DenseElementsAttr' object 'attr'.
+/// Creates a Tensor from a DenseElementsAttr.
 Tensor makeTensor(DenseElementsAttr attr);
+
+/// Creates a DenseElementsAttr from a Tensor.
+DenseElementsAttr makeDenseElementsAttr(Tensor tensor);
 
 }  // namespace stablehlo
 }  // namespace mlir

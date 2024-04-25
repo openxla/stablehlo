@@ -68,6 +68,7 @@ limitations under the License.
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Interfaces/FunctionInterfaces.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
@@ -129,6 +130,24 @@ LogicalResult ReduceScatterOp::verify() {
       channelId, getUseGlobalDeviceIds(), getComputation(), getResult());
 }
 
+mlir::Speculation::Speculatability ReduceScatterOp::getSpeculatability() {
+  auto inputType = getOperand().getType();
+  auto resultType = getResult().getType();
+  auto scatterDim = getScatterDimension();
+  // The actual size of the `scatterDim` depends on the number of processes,
+  // which is only known at runtime. If it is dynamic, there is no expectation,
+  // so there cannot be a mismatch. If it is static, the actual number may
+  // differ at runtime, leading to UB. See scatter_c8 in the spec.
+  if (!resultType.isDynamicDim(scatterDim))
+    return mlir::Speculation::NotSpeculatable;
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (i == scatterDim) continue;
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // CompatibleOperandsAndResultType
 //===----------------------------------------------------------------------===//
@@ -146,14 +165,11 @@ LogicalResult ReduceScatterOp::verify() {
         inferredReturnShapes);                                        \
   }
 
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AddOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AndOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Atan2Op)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CbrtOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CeilOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ClzOp)
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CollectiveBroadcastOp)
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CollectivePermuteOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CosineOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CrossReplicaSumOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(DivOp)
@@ -187,6 +203,32 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(TanhOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(XorOp)
 
 //===----------------------------------------------------------------------===//
+// AddOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult AddOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SmallVector<Type> inferredReturnTypes;
+  if (failed(inferReturnTypes(context, location, operands.getValues(),
+                              attributes, properties, regions,
+                              inferredReturnTypes)))
+    return failure();
+  if (inferredReturnTypes.size() != 1) return failure();
+  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
+  if (!inferredReturnType) return failure();
+  inferredReturnShapes.push_back(inferredReturnType);
+  return success();
+}
+
+LogicalResult AddOp::verify() {
+  return hlo::verifyAddOp(getLoc(), getOperation(), getLhs().getType(),
+                          getRhs().getType(), getResult().getType());
+}
+
+//===----------------------------------------------------------------------===//
 // AfterAllOp
 //===----------------------------------------------------------------------===//
 
@@ -212,6 +254,16 @@ LogicalResult CompositeOp::verifySymbolUses(
 // ConstantOp
 //===----------------------------------------------------------------------===//
 
+void ConstantOp::getAsmResultNames(
+    function_ref<void(Value, StringRef)> setNameFn) {
+  mlir::TensorType type = getType();
+  if (type.getElementType().isa<IntegerType>()) {
+    setNameFn(getResult(), "c");
+  } else {
+    setNameFn(getResult(), "cst");
+  }
+}
+
 OpFoldResult ConstantOp::fold(FoldAdaptor adaptor) {
   assert(adaptor.getOperands().empty() && "constant has no operands");
 
@@ -223,18 +275,18 @@ OpFoldResult ConstantOp::fold(FoldAdaptor adaptor) {
 void ConstantOp::build(OpBuilder& /*builder*/, OperationState& result,
                        Attribute value) {
   ShapedType type;
-  if (auto elemAttr = value.dyn_cast<ElementsAttr>()) {
-    type = elemAttr.getType().cast<ShapedType>();
-  } else if (value.isa<BoolAttr, FloatAttr, IntegerAttr>()) {
+  if (auto elemAttr = dyn_cast<ElementsAttr>(value)) {
+    type = cast<ShapedType>(elemAttr.getType());
+  } else if (isa<BoolAttr, FloatAttr, IntegerAttr>(value)) {
     // All XLA types must be tensor types. In the build() method, we want to
     // provide more flexibility by allowing attributes of scalar types. But we
     // need to wrap it up with ElementsAttr to construct valid XLA constants.
     type =
-        RankedTensorType::get(/*shape=*/{}, value.cast<TypedAttr>().getType());
+        RankedTensorType::get(/*shape=*/{}, cast<TypedAttr>(value).getType());
     value = DenseElementsAttr::get(type, value);
-  } else if (auto complexAttr = value.dyn_cast<complex::NumberAttr>()) {
+  } else if (auto complexAttr = dyn_cast<complex::NumberAttr>(value)) {
     type = RankedTensorType::get(/*shape=*/{},
-                                 complexAttr.cast<TypedAttr>().getType());
+                                 cast<TypedAttr>(complexAttr).getType());
     value = DenseElementsAttr::get(type, complexAttr.getValue());
   }
 
@@ -255,56 +307,23 @@ LogicalResult ConstantOp::inferReturnTypes(
 
 bool ConstantOp::isCompatibleReturnTypes(TypeRange l, TypeRange r) {
   if (l.size() != r.size() || l.size() != 1) return false;
-  auto lhsTy = l.front().dyn_cast<ShapedType>();
-  auto rhsTy = r.front().dyn_cast<ShapedType>();
+  auto lhsTy = dyn_cast<ShapedType>(l.front());
+  auto rhsTy = dyn_cast<ShapedType>(r.front());
   if (!lhsTy || !rhsTy) return false;
   // For comparisons of the uniform quantized element based tensor type, use the
   // storage type since the constant value will be stored through the underlying
   // storage type.
-  if (auto rhsElemTy = rhsTy.getElementType().dyn_cast<quant::QuantizedType>())
+  if (auto rhsElemTy = dyn_cast<quant::QuantizedType>(rhsTy.getElementType()))
     rhsTy = hlo::getSameShapeTensorType(rhsTy, rhsElemTy.getStorageType());
   return lhsTy == rhsTy;
 }
 
 ParseResult ConstantOp::parse(OpAsmParser& parser, OperationState& result) {
-  // Parse the generic form.
-  if (succeeded(parser.parseOptionalLParen())) {
-    if (parser.parseRParen()) return failure();
-    if (parser.parseOptionalAttrDict(result.attributes)) return failure();
-    if (parser.parseColon() || parser.parseLParen() || parser.parseRParen() ||
-        parser.parseArrow())
-      return failure();
-    Type resultTy;
-    if (parser.parseType(resultTy)) return failure();
-    result.addTypes(resultTy);
-    return success();
-  }
-
-  ElementsAttr valueAttr;
-  if (parser.parseOptionalAttrDict(result.attributes)) return failure();
-  if (parser.parseCustomAttributeWithFallback(valueAttr, Type{}, "value",
-                                              result.attributes))
-    return failure();
-  result.addTypes(valueAttr.getType());
-  return success();
+  return hlo::parseConstantOp(parser, result);
 }
 
-/// Print a `constant` op.
-///
-/// op ::= attr-dict $value
-///
-/// When the `value` and `output` have different type, it just uses the default
-/// operator assembly format as a fallback.
 void ConstantOp::print(::mlir::OpAsmPrinter& p) {
-  // If not all types are the same, use generic form.
-  if (getValue().getType() != getType()) {
-    p.printGenericOp(getOperation(), /*printOpName=*/false);
-    return;
-  }
-
-  p.printOptionalAttrDict((*this)->getAttrs(), /*elidedAttrs=*/{"value"});
-  p << ' ';
-  p.printStrippedAttrOrType(getValueAttr());
+  hlo::printConstantOp(p, getOperation(), getValue());
 }
 
 //===----------------------------------------------------------------------===//
@@ -349,13 +368,13 @@ LogicalResult CustomCallOp::verify() {
         auto index = indexedTypeAndLayout.index();
 
         auto type = std::get<0>(indexedTypeAndLayout.value());
-        auto layout = std::get<1>(indexedTypeAndLayout.value())
-                          .cast<DenseIntElementsAttr>();
+        auto layout = cast<DenseIntElementsAttr>(
+            std::get<1>(indexedTypeAndLayout.value()));
 
-        if (type.isa<TupleType>())
+        if (isa<TupleType>(type))
           return emitOpError() << "Tuple types are not fully supported with "
                                   "layout constraints yet";
-        auto shapedType = type.dyn_cast<ShapedType>();
+        auto shapedType = dyn_cast<ShapedType>(type);
 
         // For non-tensor types such as !stablehlo.token, the layout should be
         // empty.
@@ -399,8 +418,8 @@ LogicalResult CustomCallOp::verify() {
     // the i-th element of `result_layouts` specifies layout for i-th element of
     // the result tuple.
     TypeRange resultTypes;
-    if (getNumResults() == 1 && getResult(0).getType().isa<TupleType>())
-      resultTypes = getResult(0).getType().cast<TupleType>().getTypes();
+    if (getNumResults() == 1 && isa<TupleType>(getResult(0).getType()))
+      resultTypes = cast<TupleType>(getResult(0).getType()).getTypes();
     else
       resultTypes = getResultTypes();
 
@@ -418,7 +437,7 @@ LogicalResult CustomCallOp::verify() {
 
   auto aliasArrayAttr = getOutputOperandAliases();
   for (auto attr : aliasArrayAttr) {
-    auto alias = attr.cast<OutputOperandAliasAttr>();
+    auto alias = cast<OutputOperandAliasAttr>(attr);
     auto outputTupleIndices = alias.getOutputTupleIndices();
     auto operandIndex = alias.getOperandIndex();
     auto operandTupleIndices = alias.getOperandTupleIndices();
@@ -432,25 +451,25 @@ LogicalResult CustomCallOp::verify() {
 
     Type operandPart = getOperand(operandIndex).getType();
     for (auto i : operandTupleIndices) {
-      if (!operandPart.isa<TupleType>() ||
-          i >= static_cast<int64_t>(operandPart.cast<TupleType>().size()) ||
+      if (!isa<TupleType>(operandPart) ||
+          i >= static_cast<int64_t>(cast<TupleType>(operandPart).size()) ||
           i < 0)
         return emitOpError()
                << "operand_tuple_indices in the output_operand_alias "
                   "attribute out of bounds";
-      operandPart = operandPart.cast<TupleType>().getType(i);
+      operandPart = cast<TupleType>(operandPart).getType(i);
     }
     Type outputPart = getNumResults() > 1
                           ? TupleType::get(getContext(), getResultTypes())
                           : getResult(0).getType();
     for (auto i : outputTupleIndices) {
-      if (!outputPart.isa<TupleType>() ||
-          i >= static_cast<int64_t>(outputPart.cast<TupleType>().size()) ||
+      if (!isa<TupleType>(outputPart) ||
+          i >= static_cast<int64_t>(cast<TupleType>(outputPart).size()) ||
           i < 0)
         return emitOpError()
                << "output_tuple_indices in the output_operand_alias "
                   "attribute out of bounds";
-      outputPart = outputPart.cast<TupleType>().getType(i);
+      outputPart = cast<TupleType>(outputPart).getType(i);
     }
     if (operandPart != outputPart)
       return emitOpError()
@@ -466,7 +485,7 @@ void CustomCallOp::getEffects(
         effects) {
   // CustomCall has "all possible effects" unless the has_side_effect is present
   // and set to false.
-  auto hasSideEffect = (*this)->getAttrOfType<BoolAttr>("has_side_effect");
+  auto hasSideEffect = getHasSideEffectAttr();
   if (hasSideEffect && !hasSideEffect.getValue()) return;
   effects.emplace_back(MemoryEffects::Allocate::get());
   effects.emplace_back(MemoryEffects::Free::get());
@@ -507,7 +526,7 @@ void printPrecisionConfig(OpAsmPrinter& p, Operation*,
 
   p << ", precision = [";
   llvm::interleaveComma(attrArr, p, [&](Attribute attr) {
-    p << stringifyPrecision(attr.cast<PrecisionAttr>().getValue());
+    p << stringifyPrecision(cast<PrecisionAttr>(attr).getValue());
   });
   p << ']';
 }
@@ -550,7 +569,6 @@ LogicalResult DotGeneralOp::reifyReturnTypeShapes(
     SmallVectorImpl<Value>& reifiedReturnShapes) {
   auto lhsType = getLhs().getType();
   auto rhsType = getRhs().getType();
-  if (!lhsType.hasRank() || !rhsType.hasRank()) return failure();
 
   Adaptor adaptor(operands);
   auto dimNumbers = getDotDimensionNumbers();
@@ -575,6 +593,48 @@ LogicalResult DotGeneralOp::reifyReturnTypeShapes(
   return success();
 }
 
+mlir::Speculation::Speculatability DotGeneralOp::getSpeculatability() {
+  // Batching and contracting dims must be static, otherwise they could disagree
+  // at runtime.
+  // Other dims follow SpeculatableIfStaticDimInOutputIsStaticInInput.
+
+  auto lhsType = getLhs().getType();
+  auto rhsType = getRhs().getType();
+
+  auto dimensionsAttr = getDotDimensionNumbersAttr();
+  auto lhsBatchingDimensions = dimensionsAttr.getLhsBatchingDimensions();
+  auto lhsContractingDimensions = dimensionsAttr.getLhsContractingDimensions();
+  auto rhsBatchingDimensions = dimensionsAttr.getRhsBatchingDimensions();
+  auto rhsContractingDimensions = dimensionsAttr.getRhsContractingDimensions();
+
+  auto lhsSpecialDimensions = llvm::concat<const int64_t>(
+      lhsBatchingDimensions, lhsContractingDimensions);
+  auto rhsSpecialDimensions = llvm::concat<const int64_t>(
+      rhsBatchingDimensions, rhsContractingDimensions);
+
+  for (auto i : lhsSpecialDimensions)
+    if (lhsType.isDynamicDim(i)) return mlir::Speculation::NotSpeculatable;
+  for (auto i : rhsSpecialDimensions)
+    if (rhsType.isDynamicDim(i)) return mlir::Speculation::NotSpeculatable;
+
+  auto resultType = getType();
+  int64_t resultIndex = lhsBatchingDimensions.size();
+  for (int64_t i = 0; i < lhsType.getRank(); i++) {
+    if (llvm::is_contained(lhsSpecialDimensions, i)) continue;
+    if (!resultType.isDynamicDim(resultIndex) && lhsType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+    resultIndex++;
+  }
+  for (int64_t i = 0; i < rhsType.getRank(); i++) {
+    if (llvm::is_contained(rhsSpecialDimensions, i)) continue;
+    if (!resultType.isDynamicDim(resultIndex) && rhsType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+    resultIndex++;
+  }
+
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // FftOp
 //===----------------------------------------------------------------------===//
@@ -588,6 +648,24 @@ LogicalResult FftOp::inferReturnTypeComponents(
                          adaptor.getFftType() == FftType::RFFT,
                          adaptor.getFftType() == FftType::IRFFT,
                          adaptor.getFftLength(), inferredReturnShapes);
+}
+
+mlir::Speculation::Speculatability FftOp::getSpeculatability() {
+  // This is the same logic as SpeculatableIfStaticDimInOutputIsStaticInInput,
+  // except that for RFFT and IRFFT the last `fft_length.size()` dimensions in
+  // the operand need to be static.
+  auto inputType = getOperand().getType();
+  auto resultType = getType();
+  size_t minStaticDim = inputType.getRank();
+  if (getFftType() == FftType::RFFT || getFftType() == FftType::IRFFT)
+    minStaticDim = minStaticDim - getFftLength().size();
+  for (size_t i : llvm::seq(inputType.getRank())) {
+    if (i >= minStaticDim && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -623,7 +701,7 @@ void getSliceSizeValues(DynamicGatherOp* /*dGather*/, OpBuilder& builder,
                         SmallVectorImpl<Value>& sliceSizeValues) {
   DynamicGatherOp::Adaptor adaptor(operands);
   Value sliceSizes = adaptor.getSliceSizes();
-  auto sliceSizesTy = sliceSizes.getType().cast<ShapedType>();
+  auto sliceSizesTy = cast<ShapedType>(sliceSizes.getType());
   for (int64_t i = 0; i < sliceSizesTy.getDimSize(0); ++i) {
     Value idx = builder.create<arith::ConstantIndexOp>(loc, i);
     sliceSizeValues.push_back(
@@ -634,10 +712,7 @@ void getSliceSizeValues(DynamicGatherOp* /*dGather*/, OpBuilder& builder,
 template <typename Op>
 LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
                                SmallVectorImpl<Value>& reifiedReturnShapes) {
-  // No support for unranked gather output shape a.t.m.
-  auto resultTy =
-      op->getResult().getType().template dyn_cast<RankedTensorType>();
-  if (!resultTy) return failure();
+  auto resultTy = cast<RankedTensorType>(op->getResult().getType());
 
   typename Op::Adaptor adaptor(operands);
   Value startIndices = adaptor.getStartIndices();
@@ -699,6 +774,20 @@ LogicalResult GatherOp::inferReturnTypeComponents(
       adaptor.getSliceSizes(), inferredReturnShapes);
 }
 
+mlir::Speculation::Speculatability GatherOp::getSpeculatability() {
+  // When indices_are_sorted is true, if the start_indices are not sorted, the
+  // behavior is undefined.
+  // A possible improvement would be to check if the start_indices are constant
+  // and if they are sorted, do not return NotSpeculatable. However, such a
+  // check could be somewhat costly and has unclear ROI.
+  if (getIndicesAreSorted()) return mlir::Speculation::NotSpeculatable;
+  return llvm::all_of(
+             this->getOperation()->getOperandTypes(),
+             [](Type t) { return cast<RankedTensorType>(t).hasStaticShape(); })
+             ? mlir::Speculation::Speculatable
+             : mlir::Speculation::NotSpeculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // DynamicGatherOp
 //===----------------------------------------------------------------------===//
@@ -753,7 +842,7 @@ LogicalResult IotaOp::verify() {
 static Value castToIndexTensor(OpBuilder& builder, Location loc,
                                Value shapeOp) {
   ShapedType resultTy = shape::getExtentTensorType(
-      builder.getContext(), shapeOp.getType().cast<ShapedType>().getDimSize(0));
+      builder.getContext(), cast<ShapedType>(shapeOp.getType()).getDimSize(0));
   if (shapeOp.getType() == resultTy) return shapeOp;  // Nothing to do.
   return builder.create<arith::IndexCastOp>(loc, resultTy, shapeOp);
 }
@@ -770,6 +859,27 @@ LogicalResult DynamicIotaOp::reifyReturnTypeShapes(
 LogicalResult DynamicIotaOp::verify() {
   return hlo::verifyDynamicIotaOp(getLoc(), getOutputShape(),
                                   getIotaDimension(), getResult());
+}
+
+mlir::Speculation::Speculatability DynamicIotaOp::getSpeculatability() {
+  // If the output shape operand is constant, each of its dimensions is static.
+  // For each dimension in the result type's shape:
+  // 1. If it is static, the verifier has already checked that it matches the
+  //    corresponding dimension in the output shape operand.
+  // 2. Otherwise, it is dynamic, so there cannot be a mismatch.
+  // (In fact, the result type's shape can be inferred from the operand.)
+  if (matchPattern(getOperand(), m_Constant()))
+    return mlir::Speculation::Speculatable;
+
+  // The result type's shape is fully dynamic, so there cannot be a mismatch
+  // with the output shape operand at runtime (the type has no expectations).
+  if (llvm::all_of(llvm::seq(getType().getRank()),
+                   [this](int64_t i) { return getType().isDynamicDim(i); }))
+    return mlir::Speculation::Speculatable;
+
+  // The output shape operand's value is unknown and at least one of the result
+  // type's dimensions is static, so the dimensions could disagree at runtime.
+  return mlir::Speculation::NotSpeculatable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -811,6 +921,34 @@ void CollectiveBroadcastOp::build(OpBuilder& odsBuilder,
                                replica_groups, /*channel_handle=*/nullptr);
 }
 
+LogicalResult CollectiveBroadcastOp::inferReturnTypes(
+    MLIRContext* /*context*/, std::optional<Location> location,
+    ValueRange operands, DictionaryAttr attributes, OpaqueProperties properties,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
+  CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
+                                         regions);
+  return hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                         inferredReturnTypes);
+}
+
+LogicalResult CollectiveBroadcastOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SmallVector<Type> inferredReturnTypes;
+  CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
+                                         regions);
+  if (failed(hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                             inferredReturnTypes)))
+    return failure();
+  if (inferredReturnTypes.size() != 1) return failure();
+  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
+  if (!inferredReturnType) return failure();
+  inferredReturnShapes.push_back(inferredReturnType);
+  return success();
+}
+
 LogicalResult CollectiveBroadcastOp::verify() {
   return hlo::verifyCollectiveBroadcastOp(getLoc(), getReplicaGroups());
 }
@@ -824,6 +962,34 @@ void CollectivePermuteOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                                 DenseIntElementsAttr sourceTargetPairs) {
   CollectivePermuteOp::build(odsBuilder, odsState, resultType, operand,
                              sourceTargetPairs, /*channel_handle=*/nullptr);
+}
+
+LogicalResult CollectivePermuteOp::inferReturnTypes(
+    MLIRContext* /*context*/, std::optional<Location> location,
+    ValueRange operands, DictionaryAttr attributes, OpaqueProperties properties,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
+  CollectivePermuteOp::Adaptor adaptor(operands, attributes, properties,
+                                       regions);
+  return hlo::inferCollectivePermuteOp(location, adaptor.getOperands(),
+                                       inferredReturnTypes);
+}
+
+LogicalResult CollectivePermuteOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SmallVector<Type> inferredReturnTypes;
+  CollectivePermuteOp::Adaptor adaptor(operands, attributes, properties,
+                                       regions);
+  if (failed(hlo::inferCollectivePermuteOp(location, adaptor.getOperands(),
+                                           inferredReturnTypes)))
+    return failure();
+  if (inferredReturnTypes.size() != 1) return failure();
+  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
+  if (!inferredReturnType) return failure();
+  inferredReturnShapes.push_back(inferredReturnType);
+  return success();
 }
 
 LogicalResult CollectivePermuteOp::verify() {
@@ -851,13 +1017,65 @@ LogicalResult ConvolutionOp::verify() {
       getResult().getType());
 }
 
+mlir::Speculation::Speculatability ConvolutionOp::getSpeculatability() {
+  auto inputType = getLhs().getType();
+  auto kernelType = getRhs().getType();
+  auto resultType = getType();
+
+  auto dimNumbers = getDimensionNumbers();
+  auto inputBatchDim = dimNumbers.getInputBatchDimension();
+  auto inputFeatureDim = dimNumbers.getInputFeatureDimension();
+  auto inputSpatialDims = dimNumbers.getInputSpatialDimensions();
+  auto kernelInputFeatureDim = dimNumbers.getKernelInputFeatureDimension();
+  auto kernelOutputFeatureDim = dimNumbers.getKernelOutputFeatureDimension();
+  auto kernelSpatialDims = dimNumbers.getKernelSpatialDimensions();
+  auto outputBatchDim = dimNumbers.getOutputBatchDimension();
+  auto outputFeatureDim = dimNumbers.getOutputFeatureDimension();
+  auto outputSpatialDims = dimNumbers.getOutputSpatialDimensions();
+
+  auto batchGroupCount = getBatchGroupCount();
+  auto featureGroupCount = getFeatureGroupCount();
+
+  // input_feature_dimension and kernel_input_feature_dimension must be static
+  // (C14).
+  if (inputType.isDynamicDim(inputFeatureDim) ||
+      kernelType.isDynamicDim(kernelInputFeatureDim))
+    return mlir::Speculation::NotSpeculatable;
+
+  // input_batch_dimension must be static if batch_group_count > 1 (C10) or if
+  // output_batch_dimension is static (C25).
+  if (inputType.isDynamicDim(inputBatchDim) &&
+      (batchGroupCount > 1 || !resultType.isDynamicDim(outputBatchDim)))
+    return mlir::Speculation::NotSpeculatable;
+
+  // kernel_output_feature_dimension must be static if batch_group_count > 1
+  // (C15) or feature_group_count > 1 (C16) or if output_feature_dimension is
+  // static (C25).
+  if (kernelType.isDynamicDim(kernelOutputFeatureDim) &&
+      (batchGroupCount > 1 || featureGroupCount > 1 ||
+       !resultType.isDynamicDim(outputFeatureDim)))
+    return mlir::Speculation::NotSpeculatable;
+
+  // If a spatial dimension is static in the output, it must be static in the
+  // inputs (C25).
+  for (auto [inputDim, kernelDim, resultDim] :
+       llvm::zip(inputSpatialDims, kernelSpatialDims, outputSpatialDims)) {
+    if (!resultType.isDynamicDim(resultDim) &&
+        (inputType.isDynamicDim(inputDim) ||
+         kernelType.isDynamicDim(kernelDim)))
+      return mlir::Speculation::NotSpeculatable;
+  }
+
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // ConvertOp
 //===----------------------------------------------------------------------===//
 
 void ConvertOp::build(OpBuilder& builder, OperationState& result, Value operand,
                       Type resultElementTy) {
-  auto rankedTy = operand.getType().cast<RankedTensorType>();
+  auto rankedTy = cast<RankedTensorType>(operand.getType());
   auto resultTy = RankedTensorType::get(rankedTy.getShape(), resultElementTy);
   build(builder, result, resultTy, operand);
 }
@@ -887,6 +1105,25 @@ void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                     /*channel_handle=*/nullptr);
 }
 
+mlir::Speculation::Speculatability AllToAllOp::getSpeculatability() {
+  auto inputType = getOperand().getType();
+  auto resultType = getResult().getType();
+  auto splitDim = getSplitDimension();
+  auto concatDim = getConcatDimension();
+  // The actual size of the `splitDim` and `concatDim` depends on the number
+  // of processes, which is only known at runtime. If it is dynamic, there is
+  // no expectation, so there cannot be a mismatch. If it is static, the actual
+  // number may differ at runtime, leading to UB. See all_to_all_c9 in the spec.
+  if (!resultType.isDynamicDim(splitDim) || !resultType.isDynamicDim(concatDim))
+    return mlir::Speculation::NotSpeculatable;
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (i == splitDim || i == concatDim) continue;
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // AllGatherOp
 //===----------------------------------------------------------------------===//
@@ -899,6 +1136,24 @@ LogicalResult AllGatherOp::verify() {
   return hlo::verifyAllGatherOp(getLoc(), getOperand(), getAllGatherDim(),
                                 getReplicaGroups(), channelId,
                                 getUseGlobalDeviceIds(), getResult());
+}
+
+mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
+  auto inputType = getOperand().getType();
+  auto resultType = getResult().getType();
+  auto allGatherDim = getAllGatherDim();
+  // The actual size of the `allGatherDim` depends on the number of processes,
+  // which is only known at runtime. If it is dynamic, there is no expectation,
+  // so there cannot be a mismatch. If it is static, the actual number may
+  // differ at runtime, leading to UB. See all_gather_c6 in the spec.
+  if (!resultType.isDynamicDim(allGatherDim))
+    return mlir::Speculation::NotSpeculatable;
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (i != allGatherDim && !resultType.isDynamicDim(i) &&
+        inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -980,11 +1235,8 @@ LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
 LogicalResult BitcastConvertOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  auto operandType = operands[0].getType().dyn_cast<RankedTensorType>();
-  auto resultType = getType().dyn_cast<RankedTensorType>();
-
-  // Only ranked tensors are supported.
-  if (!operandType || !resultType) return failure();
+  auto operandType = cast<RankedTensorType>(operands[0].getType());
+  auto resultType = getType();
 
   // Shape-changing bitcast convert is not implemented.
   // TODO(kramerb): This could be done by adjusting the last dimension.
@@ -1001,6 +1253,22 @@ LogicalResult BitcastConvertOp::reifyReturnTypeShapes(
 
 LogicalResult BitcastConvertOp::verify() {
   return hlo::verifyBitcastConvertOp(getLoc(), getOperand(), getResult());
+}
+
+mlir::Speculation::Speculatability BitcastConvertOp::getSpeculatability() {
+  // The logic is the same as for the
+  // SpeculatableIfStaticdimInOutputIsStaticInInput trait, except we don't need
+  // to check any "extra" dimension that may result from the difference in bit
+  // width of the input and result. Indeed, the extra dimension can be deduced
+  // from the bit widths.
+  auto inputType = getOperand().getType();
+  auto resultType = getType();
+  auto rank = std::min(inputType.getRank(), resultType.getRank());
+  for (size_t i : llvm::seq(rank)) {
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1023,9 +1291,7 @@ LogicalResult BroadcastOp::reifyReturnTypeShapes(
   BroadcastOp::Adaptor adaptor(operands);
   Value operand = adaptor.getOperand();
 
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-  // Unranked tensors are not supported.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(operand.getType());
 
   Location loc = getLoc();
   SmallVector<Value, 4> shapeValues;
@@ -1166,10 +1432,6 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   ConcatenateOp::Adaptor adaptor(operands);
   auto inputs = adaptor.getInputs();
 
-  auto operandType = inputs[0].getType().dyn_cast<RankedTensorType>();
-  // Not support unranked type a.t.m.
-  if (!operandType) return failure();
-
   Location loc = this->getLoc();
   Type shapeScalarType = builder.getIndexType();
   auto toShapeScalarType = [&](Value v) {
@@ -1179,8 +1441,7 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   SmallVector<SmallVector<Value, 4>, 4> allShapeValues;
   for (size_t inputId = 0; inputId < inputs.size(); ++inputId) {
     Value operand = inputs[inputId];
-    auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-    if (!operandType) return failure();
+    auto operandType = cast<RankedTensorType>(operand.getType());
 
     SmallVector<Value, 4> shapeVals;
     for (const auto& element : llvm::enumerate(operandType.getShape())) {
@@ -1214,12 +1475,29 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   return success();
 }
 
+mlir::Speculation::Speculatability ConcatenateOp::getSpeculatability() {
+  // All operand dimensions must be static, except maybe the concat dim.
+  // If concat dim is dynamic, the corresponding dim in operands can be dynamic,
+  // otherwise it has to be static.
+  auto concatDim = getDimension();
+  bool concatDimDynamic = getType().isDynamicDim(concatDim);
+  for (auto t : getOperandTypes()) {
+    auto rankedT = cast<RankedTensorType>(t);
+    for (uint64_t i : llvm::seq(rankedT.getRank())) {
+      if (i == concatDim && concatDimDynamic) continue;
+      if (rankedT.isDynamicDim(i)) return mlir::Speculation::NotSpeculatable;
+    }
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // DynamicReshapeOp
 //===----------------------------------------------------------------------===//
 
 LogicalResult DynamicReshapeOp::verify() {
-  return hlo::verifyDynamicReshapeOp(getLoc(), getOutputShape(), getResult());
+  return hlo::verifyDynamicReshapeOp(getLoc(), getOperand(), getOutputShape(),
+                                     getResult());
 }
 
 LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
@@ -1229,6 +1507,26 @@ LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
   reifiedReturnShapes.push_back(
       castToIndexTensor(builder, getLoc(), adaptor.getOutputShape()));
   return success();
+}
+
+mlir::Speculation::Speculatability DynamicReshapeOp::getSpeculatability() {
+  // If the output type's shape is fully dynamic, there is no expectation
+  // for the shape so the op is speculatable.
+  if (llvm::all_of(llvm::seq(getType().getRank()),
+                   [this](int64_t i) { return getType().isDynamicDim(i); }))
+    return mlir::Speculation::Speculatable;
+
+  // If the input is static and the shape operand is constant, the output
+  // shape can be inferred and any mismatch will be caught statically.
+  // If any dimension in the input is dynamic, the number of elements may
+  // disagree with either the output.
+  // If the shape operand is not constant, it could disagree with the output,
+  // which has at least 1 static dimension at this point in the function.
+  if (getOperand().getType().hasStaticShape() &&
+      matchPattern(getOutputShape(), m_Constant()))
+    return mlir::Speculation::Speculatable;
+
+  return mlir::Speculation::NotSpeculatable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1264,15 +1562,13 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
   Value limitIndices = adaptor.getLimitIndices();
   Value strides = adaptor.getStrides();
 
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-  // Not support unranked type a.t.m.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(operand.getType());
 
   Location loc = this->getLoc();
   SmallVector<Value, 4> shapeValues;
   shapeValues.reserve(operandType.getRank());
   Type shapeScalarType =
-      startIndices.getType().cast<ShapedType>().getElementType();
+      cast<ShapedType>(startIndices.getType()).getElementType();
   Value one = builder.create<arith::ConstantIndexOp>(loc, 1);
   one = maybeCastTo(builder, loc, one, shapeScalarType);
   for (const auto& element : llvm::enumerate(operandType.getShape())) {
@@ -1329,6 +1625,18 @@ LogicalResult MapOp::reifyReturnTypeShapes(
     SmallVectorImpl<Value>& reifiedReturnShapes) {
   return hlo::deriveShapeFromOperand(&builder, getOperation(), operands.front(),
                                      &reifiedReturnShapes);
+}
+
+mlir::Speculation::Speculatability MapOp::getSpeculatability() {
+  // If any dimension of any operand is dynamic, it could disagree with the
+  // others at runtime, so the op is not speculatable. If all the operands are
+  // statically shaped, whether the op is speculatable or not depends on what
+  // ops are in the op's body.
+  return llvm::all_of(
+             this->getOperation()->getOperandTypes(),
+             [](Type t) { return cast<RankedTensorType>(t).hasStaticShape(); })
+             ? mlir::Speculation::RecursivelySpeculatable
+             : mlir::Speculation::NotSpeculatable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1426,13 +1734,13 @@ void ReduceWindowOp::build(
   blockArgTypes.reserve(numValues);
   locs.reserve(numValues);
   for (auto i : inputs) {
-    auto iType = i.getType().cast<ShapedType>();
+    auto iType = cast<ShapedType>(i.getType());
     blockArgTypes.push_back(iType.cloneWith(
         llvm::ArrayRef<int64_t>(std::nullopt), iType.getElementType()));
     locs.push_back(i.getLoc());
   }
   for (auto i : init_values) {
-    auto iType = i.getType().cast<ShapedType>();
+    auto iType = cast<ShapedType>(i.getType());
     blockArgTypes.push_back(iType.cloneWith(
         llvm::ArrayRef<int64_t>(std::nullopt), iType.getElementType()));
     locs.push_back(i.getLoc());
@@ -1507,10 +1815,10 @@ void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
 
   SmallVector<ShapedType> inputArgTensorTypes{
       llvm::map_range(adaptor.getInputs().getTypes(),
-                      [](Type t) { return t.cast<ShapedType>(); })};
+                      [](Type t) { return cast<ShapedType>(t); })};
   SmallVector<ShapedType> initValueTensorTypes{
       llvm::map_range(adaptor.getInitValues().getTypes(),
-                      [](Type t) { return t.cast<ShapedType>(); })};
+                      [](Type t) { return cast<ShapedType>(t); })};
 
   if (failed(hlo::verifyReduceOpInputsAndInferShape(
           odsState.location, inputArgTensorTypes, dimensions, newDimensions,
@@ -1520,14 +1828,8 @@ void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
   SmallVector<Type> inferredReturnTypes;
   for (auto [inputTy, elementTy] :
        llvm::zip(inputArgTensorTypes, elementTypes)) {
-    if (inputTy.hasRank()) {
-      inferredReturnTypes.push_back(
-          RankedTensorType::get(newDimensions, elementTy, encoding));
-    } else {
-      if (encoding != nullptr)
-        llvm::report_fatal_error("attribute not supported.");
-      inferredReturnTypes.push_back(UnrankedTensorType::get(elementTy));
-    }
+    inferredReturnTypes.push_back(
+        RankedTensorType::get(newDimensions, elementTy, encoding));
   }
   odsState.addTypes(inferredReturnTypes);
 }
@@ -1543,9 +1845,7 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
   ReduceOp::Adaptor adaptor(operands);
   auto inputs = adaptor.getInputs();
 
-  auto operandType = inputs[0].getType().dyn_cast<RankedTensorType>();
-  // Not support unranked type a.t.m.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(inputs[0].getType());
 
   Location loc = this->getLoc();
   SmallVector<Value, 4> shapeValues;
@@ -1595,14 +1895,20 @@ LogicalResult ReverseOp::verify() {
   return hlo::verifyReverseOp(getLoc(), getOperand(), getDimensions());
 }
 
-LogicalResult ReverseOp::inferReturnTypeComponents(
-    MLIRContext* context, std::optional<Location> location,
-    ValueShapeRange operands, DictionaryAttr attributes,
-    OpaqueProperties properties, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult ReverseOp::inferReturnTypes(
+    MLIRContext* /*context*/, std::optional<Location> location,
+    ValueRange operands, DictionaryAttr attributes, OpaqueProperties properties,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
   ReverseOp::Adaptor adaptor(operands, attributes, properties, regions);
   return hlo::inferReverseOp(location, adaptor.getOperand().getType(),
-                             inferredReturnShapes);
+                             inferredReturnTypes);
+}
+
+LogicalResult ReverseOp::reifyReturnTypeShapes(
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
+  return ::mlir::hlo::deriveShapeFromOperand(
+      &builder, getOperation(), operands.front(), &reifiedReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1677,6 +1983,34 @@ LogicalResult SetDimensionSizeOp::inferReturnTypeComponents(
       adaptor.getSize(), adaptor.getDimension(), inferredReturnShapes);
 }
 
+mlir::Speculation::Speculatability SetDimensionSizeOp::getSpeculatability() {
+  // If the dimension being set is not constant, it is only speculatable if it
+  // is dynamic in the output.
+  auto resultType = getType();
+  if (!matchPattern(getSize(), m_Constant()) &&
+      !resultType.isDynamicDim(getDimension()))
+    return mlir::Speculation::NotSpeculatable;
+
+  // For all other dimensions, if the dimension is static in the output, it must
+  // be static in the input.
+  auto inputType = getOperand().getType();
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (i == getDimension()) continue;
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
+//===----------------------------------------------------------------------===//
+// TransposeOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult TransposeOp::verify() {
+  return hlo::verifyTransposeOp(getLoc(), getOperand().getType(),
+                                getPermutation(), getResult().getType());
+}
+
 //===----------------------------------------------------------------------===//
 // PadOp
 //===----------------------------------------------------------------------===//
@@ -1696,10 +2030,11 @@ LogicalResult PadOp::inferReturnTypes(
 LogicalResult PadOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  PadOp::Adaptor adaptor(operands, this->getOperation()->getAttrDictionary());
+  PadOp::Adaptor adaptor(operands, getOperation()->getAttrDictionary(),
+                         getProperties());
   auto loc = this->getLoc();
   Value operand = adaptor.getOperand();
-  auto operandTy = operand.getType().cast<RankedTensorType>();
+  auto operandTy = cast<RankedTensorType>(operand.getType());
 
   auto padHigh = adaptor.getEdgePaddingHigh();
   auto padLow = adaptor.getEdgePaddingLow();
@@ -1758,15 +2093,13 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
   Value edgePaddingHigh = adaptor.getEdgePaddingHigh();
   Value interiorPadding = adaptor.getInteriorPadding();
 
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-  // Not support unranked pad a.t.m.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(operand.getType());
 
   auto loc = this->getLoc();
   SmallVector<Value, 4> shapeValues;
   shapeValues.reserve(operandType.getRank());
   Type shapeScalarType =
-      edgePaddingLow.getType().cast<ShapedType>().getElementType();
+      cast<ShapedType>(edgePaddingLow.getType()).getElementType();
 
   auto toShapeScalarType = [&](Value v) {
     return maybeCastTo(builder, loc, v, shapeScalarType);
@@ -1818,6 +2151,12 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
 
 LogicalResult ReshapeOp::verify() {
   return hlo::verifyReshapeOp(getLoc(), getOperand(), getResult());
+}
+
+mlir::Speculation::Speculatability ReshapeOp::getSpeculatability() {
+  if (getOperand().getType().hasStaticShape())
+    return mlir::Speculation::Speculatable;
+  return mlir::Speculation::NotSpeculatable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1920,9 +2259,7 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
   TransposeOp::Adaptor adaptor(operands);
   Value operand = adaptor.getOperand();
 
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-  // Not support unranked type a.t.m.
-  if (!operandType) return failure();
+  auto operandType = cast<RankedTensorType>(operand.getType());
 
   Location loc = this->getLoc();
   SmallVector<int64_t, 4> permutation(this->getPermutation());
@@ -1960,6 +2297,19 @@ LogicalResult TransposeOp::inferReturnTypes(
                                adaptor.getPermutation(), inferredReturnTypes);
 }
 
+mlir::Speculation::Speculatability TransposeOp::getSpeculatability() {
+  // This is the same logic as SpeculatableIfStaticDimInOutputIsStaticInInput,
+  // except it accounts for the permutation.
+  auto inputType = getOperand().getType();
+  auto resultType = getType();
+  auto perm = getPermutation();
+  for (size_t i : llvm::seq(resultType.getRank())) {
+    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(perm[i]))
+      return mlir::Speculation::NotSpeculatable;
+  }
+  return mlir::Speculation::Speculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // TriangularSolveOp
 //===----------------------------------------------------------------------===//
@@ -1974,6 +2324,23 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
   return hlo::inferTriangularSolveOp(location, adaptor.getA(), adaptor.getB(),
                                      adaptor.getLeftSide(), isTransposeAInvalid,
                                      inferredReturnShapes);
+}
+
+mlir::Speculation::Speculatability TriangularSolveOp::getSpeculatability() {
+  // If `unit_diagonal` is true, the implementation can assume that the diagonal
+  // elements of `a` are equal to 1, which may not be the case at runtime, which
+  // may lead to undefined behavior.
+  if (getUnitDiagonal()) return mlir::Speculation::NotSpeculatable;
+
+  // If the inputs are statically shaped, they will be fully verified
+  // statically. If the inputs are dynamic, then mismatches could occur at
+  // runtime.
+  auto lhsType = cast<RankedTensorType>(getOperand(0).getType());
+  auto rhsType = cast<RankedTensorType>(getOperand(1).getType());
+  if (lhsType.hasStaticShape() && rhsType.hasStaticShape())
+    return mlir::Speculation::Speculatable;
+
+  return mlir::Speculation::NotSpeculatable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -2076,6 +2443,22 @@ LogicalResult ScatterOp::verify() {
       getScatterDimensionNumbers().getIndexVectorDim(), getUpdateComputation());
 }
 
+mlir::Speculation::Speculatability ScatterOp::getSpeculatability() {
+  // When unique_indices is true, if the scatter_indices are not unique, the
+  // behavior is undefined.
+  // A possible improvement would be to check if the scatter_indices are
+  // constant and if so, check if they are unique/sorted, and if so do not
+  // return NotSpeculatable. However, such a check could be somewhat costly and
+  // has unclear ROI.
+  if (getUniqueIndices() || getIndicesAreSorted())
+    return mlir::Speculation::NotSpeculatable;
+  return llvm::all_of(
+             this->getOperation()->getOperandTypes(),
+             [](Type t) { return cast<RankedTensorType>(t).hasStaticShape(); })
+             ? mlir::Speculation::RecursivelySpeculatable
+             : mlir::Speculation::NotSpeculatable;
+}
+
 //===----------------------------------------------------------------------===//
 // WhileOp
 //===----------------------------------------------------------------------===//
@@ -2115,6 +2498,7 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 
 using mlir::hlo::parseComplexOpType;
 using mlir::hlo::parseCustomCallTarget;
+using mlir::hlo::parseDenseI64Array;
 using mlir::hlo::parseDotDimensionNumbers;
 using mlir::hlo::parseExponentMantissa;
 using mlir::hlo::parsePairwiseOpType;
@@ -2126,6 +2510,7 @@ using mlir::hlo::parseVariadicOperandWithAttribute;
 using mlir::hlo::parseVariadicSameOperandsAndResultType;
 using mlir::hlo::printComplexOpType;
 using mlir::hlo::printCustomCallTarget;
+using mlir::hlo::printDenseI64Array;
 using mlir::hlo::printDotDimensionNumbers;
 using mlir::hlo::printExponentMantissa;
 using mlir::hlo::printPairwiseOpType;
@@ -2175,7 +2560,7 @@ struct StablehloHloDialectInterface : public hlo::HloDialectInterface {
     return TokenType::get(getDialect()->getContext());
   }
 
-  bool isTokenType(Type type) const override { return type.isa<TokenType>(); }
+  bool isTokenType(Type type) const override { return isa<TokenType>(type); }
 
   Attribute createTypeExtensions(ArrayRef<int64_t> bounds) const override {
     return TypeExtensionsAttr::get(getDialect()->getContext(), bounds);
@@ -2241,8 +2626,8 @@ Attribute StablehloDialect::parseAttribute(DialectAsmParser& parser,
 // dispatch to the individual classes.
 void StablehloDialect::printAttribute(Attribute attr,
                                       DialectAsmPrinter& os) const {
-  if (auto type_extensions = attr.dyn_cast<TypeExtensionsAttr>()) {
-    hlo::printTypeExtensions(attr.cast<hlo::BoundedAttrInterface>(), os);
+  if (auto type_extensions = dyn_cast<TypeExtensionsAttr>(attr)) {
+    hlo::printTypeExtensions(cast<hlo::BoundedAttrInterface>(attr), os);
     return;
   }
   LogicalResult result = generatedAttributePrinter(attr, os);
@@ -2797,11 +3182,11 @@ void printWindowPadding(OpAsmPrinter& p, DenseElementsAttr padding) {
 }  // namespace
 
 void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
-                           std::optional<DenseI64ArrayAttr> windowStrides,
+                           std::optional<Attribute> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
-                           std::optional<DenseI64ArrayAttr> lhsDilation,
-                           std::optional<DenseI64ArrayAttr> rhsDilation,
-                           std::optional<DenseBoolArrayAttr> windowReversal) {
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal) {
   using pair_t = std::pair<Attribute, StringRef>;
   std::array<pair_t, 5> printedAttributes = {{
       {windowStrides ? *windowStrides : nullptr, "stride"},
@@ -2820,12 +3205,12 @@ void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
     p << attr.second << " = [";
 
     if (attr.second == "pad") {
-      printWindowPadding(p, attr.first.dyn_cast<DenseIntElementsAttr>());
+      printWindowPadding(p, dyn_cast<DenseIntElementsAttr>(attr.first));
     } else if (attr.second == "reverse") {
-      llvm::interleaveComma(attr.first.cast<DenseBoolArrayAttr>().asArrayRef(),
+      llvm::interleaveComma(cast<DenseBoolArrayAttr>(attr.first).asArrayRef(),
                             p);
     } else {
-      llvm::interleaveComma(attr.first.cast<DenseI64ArrayAttr>().asArrayRef(),
+      llvm::interleaveComma(cast<DenseI64ArrayAttr>(attr.first).asArrayRef(),
                             p);
     }
 
@@ -2833,12 +3218,11 @@ void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
   });
 }
 
-ParseResult parseWindowAttributes(OpAsmParser& parser,
-                                  DenseI64ArrayAttr& windowStrides,
+ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
                                   DenseIntElementsAttr& padding,
-                                  DenseI64ArrayAttr& lhsDilation,
-                                  DenseI64ArrayAttr& rhsDilation,
-                                  DenseBoolArrayAttr& windowReversal) {
+                                  Attribute& lhsDilation,
+                                  Attribute& rhsDilation,
+                                  Attribute& windowReversal) {
   StringRef attributeName;
 
   llvm::StringSet<> allowedAttributeNames{
@@ -2965,7 +3349,7 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
   // element type is of type float.
   std::optional<StringRef> compareType = std::nullopt;
   for (const auto& elementType : elementTypes) {
-    if (elementType.isa<FloatType>()) {
+    if (isa<FloatType>(elementType)) {
       compareType.emplace("TOTALORDER");
       break;
     }
@@ -2982,7 +3366,7 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
 Operation* StablehloDialect::materializeConstant(OpBuilder& builder,
                                                  Attribute value, Type type,
                                                  Location loc) {
-  auto elementsAttr = value.dyn_cast<ElementsAttr>();
+  auto elementsAttr = dyn_cast<ElementsAttr>(value);
   // HLO dialect constants only support ElementsAttr unlike standard dialect
   // constant which supports all attributes.
   if (!elementsAttr) return nullptr;
@@ -2990,6 +3374,15 @@ Operation* StablehloDialect::materializeConstant(OpBuilder& builder,
   if (type != elementsAttr.getType()) return nullptr;
 
   return builder.create<ConstantOp>(loc, type, elementsAttr);
+}
+
+std::optional<StablehloDialectVersion> StablehloDialect::getVersion() const {
+  return version;
+}
+
+void StablehloDialect::setVersion(
+    std::optional<StablehloDialectVersion> version) {
+  this->version = version;
 }
 
 }  // namespace stablehlo

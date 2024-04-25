@@ -63,7 +63,7 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
       return attr;
 
     if (auto stablehloAttr =
-            attr.dyn_cast_or_null<stablehlo::TypeExtensionsAttr>()) {
+            dyn_cast_or_null<stablehlo::TypeExtensionsAttr>(attr)) {
       return vhlo::TypeExtensionsV1Attr::get(stablehloAttr.getContext(),
                                              stablehloAttr.getBounds());
     }
@@ -90,31 +90,30 @@ Attribute convertGeneric(Attribute stablehloAttr,
   // Handle StableHLO attributes.
   // The logic that handles attributes from other dialects (e.g. builtin
   // attributes) lives below.
-  if (auto attr =
-          stablehloAttr.dyn_cast<stablehlo::ComparisonDirectionAttr>()) {
+  if (auto attr = dyn_cast<stablehlo::ComparisonDirectionAttr>(stablehloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection, V1);
   }
-  if (auto attr = stablehloAttr.dyn_cast<stablehlo::ComparisonTypeAttr>()) {
+  if (auto attr = dyn_cast<stablehlo::ComparisonTypeAttr>(stablehloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonType, V1);
   }
-  if (auto attr = stablehloAttr.dyn_cast<stablehlo::FftTypeAttr>()) {
+  if (auto attr = dyn_cast<stablehlo::FftTypeAttr>(stablehloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(FftType, V1);
   }
-  if (auto attr = stablehloAttr.dyn_cast<stablehlo::OutputOperandAliasAttr>()) {
+  if (auto attr = dyn_cast<stablehlo::OutputOperandAliasAttr>(stablehloAttr)) {
     return vhlo::OutputOperandAliasV1Attr::get(
         attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
         attr.getOperandTupleIndices());
   }
-  if (auto attr = stablehloAttr.dyn_cast<stablehlo::PrecisionAttr>()) {
+  if (auto attr = dyn_cast<stablehlo::PrecisionAttr>(stablehloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(Precision, V1);
   }
-  if (auto attr = stablehloAttr.dyn_cast<stablehlo::RngAlgorithmAttr>()) {
+  if (auto attr = dyn_cast<stablehlo::RngAlgorithmAttr>(stablehloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm, V1);
   }
-  if (auto attr = stablehloAttr.dyn_cast<stablehlo::RngDistributionAttr>()) {
+  if (auto attr = dyn_cast<stablehlo::RngDistributionAttr>(stablehloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(RngDistribution, V1);
   }
-  if (auto attr = stablehloAttr.dyn_cast<stablehlo::TransposeAttr>()) {
+  if (auto attr = dyn_cast<stablehlo::TransposeAttr>(stablehloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
   }
   if (stablehloAttr.getDialect().getNamespace() ==
@@ -126,7 +125,7 @@ Attribute convertGeneric(Attribute stablehloAttr,
   // Handle supported non-StableHLO attributes.
   // Each of these attributes has a counterpart in the VHLO dialect -
   // VHLO programs never include attributes from other dialects.
-  if (auto stablehloAttrs = stablehloAttr.dyn_cast<ArrayAttr>()) {
+  if (auto stablehloAttrs = dyn_cast<ArrayAttr>(stablehloAttr)) {
     SmallVector<Attribute> vhloAttrs;
     for (auto stablehloAttr : stablehloAttrs) {
       auto vhloAttr = convertGeneric(stablehloAttr, typeConverter);
@@ -135,36 +134,30 @@ Attribute convertGeneric(Attribute stablehloAttr,
     }
     return vhlo::ArrayV1Attr::get(stablehloAttrs.getContext(), vhloAttrs);
   }
-  if (auto attr = stablehloAttr.dyn_cast<DenseIntOrFPElementsAttr>()) {
+  if (auto attr = dyn_cast<DenseIntOrFPElementsAttr>(stablehloAttr)) {
     auto vhloType = typeConverter->convertType(attr.getType());
     LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
     if (!vhloType) return {};
     return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
                                    attr.getRawData());
   }
-  if (auto attr = stablehloAttr.dyn_cast<DenseI64ArrayAttr>()) {
-    auto vhloType = vhlo::RankedTensorV1Type::get(
-        attr.getContext(), {attr.size()},
-        vhlo::IntegerSI64V1Type::get(attr.getContext()), Attribute{});
-    LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
-    if (!vhloType) return {};
-    return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
-                                   attr.getRawData());
-  }
-  if (auto attr = stablehloAttr.dyn_cast<DenseBoolArrayAttr>()) {
-    // Dense arrays of bool need special handling as their raw data is
-    // encoded differently from a DenseElementsAttr of bool. Using a similar
-    // conversion as for DenseI64ArrayAttr causes issues when attempting to
-    // construct a DenseIntOrFPElementsAttr from the underlying raw data.
-    // Converting to a DenseElementsAttr up front avoids issues.
+  if (auto attr = dyn_cast<DenseI64ArrayAttr>(stablehloAttr)) {
+    // Leverage the serialization for DenseElements.
     auto data = attr.asArrayRef();
-    auto ty =
-        RankedTensorType::get({static_cast<int64_t>(attr.asArrayRef().size())},
-                              IntegerType::get(attr.getContext(), 1));
+    auto ty = RankedTensorType::get({static_cast<int64_t>(data.size())},
+                                    IntegerType::get(attr.getContext(), 64));
     auto dense = DenseElementsAttr::get(ty, data);
     return convertGeneric(dense, typeConverter);
   }
-  if (auto attr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
+  if (auto attr = dyn_cast<DenseBoolArrayAttr>(stablehloAttr)) {
+    // Leverage the serialization for DenseElements.
+    auto data = attr.asArrayRef();
+    auto ty = RankedTensorType::get({static_cast<int64_t>(data.size())},
+                                    IntegerType::get(attr.getContext(), 1));
+    auto dense = DenseElementsAttr::get(ty, data);
+    return convertGeneric(dense, typeConverter);
+  }
+  if (auto attr = dyn_cast<DictionaryAttr>(stablehloAttr)) {
     SmallVector<std::pair<Attribute, Attribute>> vhloAttrs;
     for (auto namedAttr : attr.getValue()) {
       auto vhloName = convertGeneric(namedAttr.getName(), typeConverter);
@@ -174,14 +167,14 @@ Attribute convertGeneric(Attribute stablehloAttr,
     }
     return vhlo::DictionaryV1Attr::get(attr.getContext(), vhloAttrs);
   }
-  if (auto attr = stablehloAttr.dyn_cast<FloatAttr>()) {
+  if (auto attr = dyn_cast<FloatAttr>(stablehloAttr)) {
     auto vhloFloatType = typeConverter->convertType(attr.getType());
     if (!vhloFloatType) return {};
     return vhlo::FloatV1Attr::get(attr.getContext(), vhloFloatType,
                                   attr.getValue());
   }
-  if (auto integerAttr = stablehloAttr.dyn_cast<IntegerAttr>()) {
-    if (auto boolAttr = stablehloAttr.dyn_cast<BoolAttr>()) {
+  if (auto integerAttr = dyn_cast<IntegerAttr>(stablehloAttr)) {
+    if (auto boolAttr = dyn_cast<BoolAttr>(stablehloAttr)) {
       return vhlo::BooleanV1Attr::get(boolAttr.getContext(),
                                       boolAttr.getValue());
     } else {
@@ -191,11 +184,11 @@ Attribute convertGeneric(Attribute stablehloAttr,
                                       integerAttr.getValue());
     }
   }
-  if (auto attr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
+  if (auto attr = dyn_cast<FlatSymbolRefAttr>(stablehloAttr)) {
     return convertGeneric(attr.getAttr(), typeConverter);
   }
-  if (auto attr = stablehloAttr.dyn_cast<StringAttr>()) {
-    if (!attr.getType().isa<NoneType>()) {
+  if (auto attr = dyn_cast<StringAttr>(stablehloAttr)) {
+    if (!isa<NoneType>(attr.getType())) {
       // Don't support custom string types
       LLVM_DEBUG(llvm::dbgs()
                  << "Failed to convert string with type: " << attr << '\n');
@@ -203,7 +196,7 @@ Attribute convertGeneric(Attribute stablehloAttr,
     }
     return vhlo::StringV1Attr::get(attr.getContext(), attr.getValue());
   }
-  if (auto attr = stablehloAttr.dyn_cast<TypeAttr>()) {
+  if (auto attr = dyn_cast<TypeAttr>(stablehloAttr)) {
     auto vhloType = typeConverter->convertType(attr.getValue());
     if (!vhloType) return {};
     return vhlo::TypeV1Attr::get(attr.getContext(), vhloType);
@@ -249,7 +242,7 @@ Attribute convertInts(const ConversionPattern& pattern,
 
 Attribute convertSymbol(const ConversionPattern& pattern,
                         Attribute stablehloAttr) {
-  auto stablehloSymbolAttr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>();
+  auto stablehloSymbolAttr = dyn_cast<FlatSymbolRefAttr>(stablehloAttr);
   if (!stablehloSymbolAttr) return {};
   return convertGeneric(stablehloSymbolAttr.getAttr(),
                         pattern.getTypeConverter());
@@ -258,7 +251,7 @@ Attribute convertSymbol(const ConversionPattern& pattern,
 SpecialResult convertChannelHandle(const ConversionPattern& pattern,
                                    Attribute stablehloAttr,
                                    SmallVector<NamedAttribute>& vhloAttrs) {
-  auto attr = stablehloAttr.dyn_cast<stablehlo::ChannelHandleAttr>();
+  auto attr = dyn_cast<stablehlo::ChannelHandleAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
   auto vhloChannelId = convertInt(pattern, attr.getHandle());
@@ -276,7 +269,7 @@ SpecialResult convertChannelHandle(const ConversionPattern& pattern,
 SpecialResult convertChannelId(const ConversionPattern& pattern,
                                Attribute stablehloAttr,
                                SmallVector<NamedAttribute>& vhloAttrs) {
-  auto attr = stablehloAttr.dyn_cast<stablehlo::ChannelHandleAttr>();
+  auto attr = dyn_cast<stablehlo::ChannelHandleAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
   auto vhloChannelId = convertInt(pattern, attr.getHandle());
@@ -289,7 +282,7 @@ SpecialResult convertChannelId(const ConversionPattern& pattern,
 SpecialResult convertConvDimensionNumbers(
     const ConversionPattern& pattern, Attribute stablehloAttr,
     SmallVector<NamedAttribute>& vhloAttrs) {
-  auto attr = stablehloAttr.dyn_cast<stablehlo::ConvDimensionNumbersAttr>();
+  auto attr = dyn_cast<stablehlo::ConvDimensionNumbersAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
   auto vhloInputBatchDimension =
@@ -360,7 +353,7 @@ SpecialResult convertConvDimensionNumbers(
 SpecialResult convertCustomCallApiVersion(
     const ConversionPattern& pattern, Attribute stablehloAttr,
     SmallVector<NamedAttribute>& vhloAttrs) {
-  auto attr = stablehloAttr.dyn_cast<CustomCallApiVersionAttr>();
+  auto attr = dyn_cast<CustomCallApiVersionAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
   auto convert = [&]() -> Attribute {
@@ -376,7 +369,7 @@ SpecialResult convertCustomCallApiVersion(
 SpecialResult convertCustomCallCalledComputations(
     const ConversionPattern& pattern, Attribute stablehloAttr,
     SmallVector<NamedAttribute>& vhloAttrs) {
-  auto attr = stablehloAttr.dyn_cast<ArrayAttr>();
+  auto attr = dyn_cast<ArrayAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
   SmallVector<Attribute> vhloElementAttrs;
@@ -395,7 +388,7 @@ SpecialResult convertCustomCallCalledComputations(
 SpecialResult convertDotDimensionNumbers(
     const ConversionPattern& pattern, Attribute stablehloAttr,
     SmallVector<NamedAttribute>& vhloAttrs) {
-  auto attr = stablehloAttr.dyn_cast<stablehlo::DotDimensionNumbersAttr>();
+  auto attr = dyn_cast<stablehlo::DotDimensionNumbersAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
   auto vhloLhsBatchingDimensions =
@@ -441,7 +434,7 @@ SpecialResult convertFuncCallee(const ConversionPattern& pattern,
 SpecialResult convertGatherDimensionNumbers(
     const ConversionPattern& pattern, Attribute stablehloAttr,
     SmallVector<NamedAttribute>& vhloAttrs) {
-  auto attr = stablehloAttr.dyn_cast<stablehlo::GatherDimensionNumbersAttr>();
+  auto attr = dyn_cast<stablehlo::GatherDimensionNumbersAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
   auto vhloOffsetDims = convertInts(pattern, attr.getOffsetDims());
@@ -473,7 +466,7 @@ SpecialResult convertGatherDimensionNumbers(
 SpecialResult convertScatterDimensionNumbers(
     const ConversionPattern& pattern, Attribute stablehloAttr,
     SmallVector<NamedAttribute>& vhloAttrs) {
-  auto attr = stablehloAttr.dyn_cast<stablehlo::ScatterDimensionNumbersAttr>();
+  auto attr = dyn_cast<stablehlo::ScatterDimensionNumbersAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
   auto vhloUpdateWindowDims = convertInts(pattern, attr.getUpdateWindowDims());
@@ -507,7 +500,7 @@ SpecialResult convertScatterDimensionNumbers(
 SpecialResult convertUseGlobalDeviceIds(
     const ConversionPattern& pattern, Attribute stablehloAttr,
     SmallVector<NamedAttribute>& vhloAttrs) {
-  if (!stablehloAttr.isa<UnitAttr>()) return specialFailure();
+  if (!isa<UnitAttr>(stablehloAttr)) return specialFailure();
   vhloAttrs.emplace_back(
       StringAttr::get(pattern.getContext(), "use_global_device_ids"),
       vhlo::BooleanV1Attr::get(pattern.getContext(), true));

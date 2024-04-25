@@ -38,14 +38,10 @@ class Version {
   static FailureOr<Version> fromString(llvm::StringRef versionRef);
 
   /// Return a Version representing the current VHLO dialect version.
-  static Version getCurrentVersion() {
-    return Version(/*major=*/0, /*minor=*/19, /*patch=*/0);
-  }
+  static Version getCurrentVersion() { return Version(0, 19, 9); }
 
   /// Return a Version representing the minimum supported VHLO dialect version.
-  static Version getMinimumVersion() {
-    return Version(/*major=*/0, /*minor=*/9, /*patch=*/0);
-  }
+  static Version getMinimumVersion() { return Version(0, 9, 0); }
 
   /// Return the MLIR Bytecode Format associated with the version instance.
   /// Returns failure if version is not in compatibility window.

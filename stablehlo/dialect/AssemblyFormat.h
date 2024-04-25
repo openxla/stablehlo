@@ -101,6 +101,16 @@ ParseResult parseVariadicSameOperandsAndResultType(
     SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands,
     SmallVectorImpl<Type>& opTypes, Type& result);
 
+// Print a `constant` op.
+//
+// op ::= attr-dict $value
+//
+// When the `value` and `output` have different type, it just uses the default
+// operator assembly format as a fallback.
+void printConstantOp(OpAsmPrinter& p, Operation* op, ElementsAttr value);
+
+ParseResult parseConstantOp(OpAsmParser& parser, OperationState& result);
+
 // TuplesOp - only print result type. Operand type is trivially inferrable.
 //
 // Inferring operand types from tuple type:
@@ -209,16 +219,23 @@ ParseResult parseWhileOp(OpAsmParser& parser, OperationState& result);
 // Attribute Printers and Parsers
 //===----------------------------------------------------------------------===//
 
+// TODO(#2216) Cleanup Attribute -> DenseArrayAttr for print/parse.
 // SliceRanges - Used to print multi-dimensional ranges for slice.
-void printSliceRanges(OpAsmPrinter& p, Operation* op,
-                      ArrayRef<int64_t> startIndices,
-                      ArrayRef<int64_t> limitIndices,
-                      ArrayRef<int64_t> strides);
+void printSliceRanges(OpAsmPrinter& p, Operation* op, Attribute startIndices,
+                      Attribute limitIndices, Attribute strides);
 
-ParseResult parseSliceRanges(OpAsmParser& parser,
-                             DenseI64ArrayAttr& startIndices,
-                             DenseI64ArrayAttr& limitIndices,
-                             DenseI64ArrayAttr& strides);
+ParseResult parseSliceRanges(OpAsmParser& parser, Attribute& startIndices,
+                             Attribute& limitIndices, Attribute& strides);
+
+// GenericI64DenseArray - Used to print an attr that can be either
+//
+//   Dense elements:
+//     { dense<[1, 2]> : tensor<2xi64> }
+//   Array:
+//     { array<i64: 1, 2> }
+void printDenseI64Array(OpAsmPrinter& p, Operation* op, Attribute attr);
+
+ParseResult parseDenseI64Array(OpAsmParser& parser, Attribute& attr);
 
 // DimSizes - Print an array of ints. Dynamic dimensions printed as `?`.
 //
@@ -324,12 +341,12 @@ ParseResult parseDotDimensionNumbers(AsmParser& parser, AttrTy& target) {
   // Parse `[...] x [...]` into two DenseI64ArrayAttr attributes.
   auto parseLhsRhsDims = [&](DenseI64ArrayAttr& lhsDims,
                              DenseI64ArrayAttr& rhsDims) -> ParseResult {
-    lhsDims = DenseI64ArrayAttr::parse(parser, Type{})
-                  .dyn_cast_or_null<DenseI64ArrayAttr>();
+    lhsDims = dyn_cast_or_null<DenseI64ArrayAttr>(
+        DenseI64ArrayAttr::parse(parser, Type{}));
     if (!lhsDims) return failure();
     if (failed(parser.parseKeyword("x"))) return failure();
-    rhsDims = DenseI64ArrayAttr::parse(parser, Type{})
-                  .dyn_cast_or_null<DenseI64ArrayAttr>();
+    rhsDims = dyn_cast_or_null<DenseI64ArrayAttr>(
+        DenseI64ArrayAttr::parse(parser, Type{}));
     if (!rhsDims) return failure();
     return success();
   };

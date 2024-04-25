@@ -43,7 +43,7 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
     if (failed(hlo::getShapeRefinements(op.getLoc(), op, refinements)))
       return rewriter.notifyMatchFailure(op, "expected valid refinements");
     auto indicesAttr =
-        op->getAttr("indices_of_shape_operands").cast<DenseIntElementsAttr>();
+        cast<DenseIntElementsAttr>(op->getAttr("indices_of_shape_operands"));
     DenseSet<int64_t> indices(indicesAttr.value_begin<int64_t>(),
                               indicesAttr.value_end<int64_t>());
 
@@ -79,7 +79,7 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
     for (auto& operand : op->getOpOperands()) {
       if (indices.contains(operand.getOperandNumber())) {
         auto resultType =
-            op->getResult(resultIndex).getType().dyn_cast<ShapedType>();
+            dyn_cast<ShapedType>(op->getResult(resultIndex).getType());
         if (!resultType || !resultType.hasStaticShape())
           return rewriter.notifyMatchFailure(op,
                                              "expected static result types");

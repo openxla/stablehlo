@@ -26,7 +26,7 @@ VERSION_H="stablehlo/dialect/Version.h"
 set_version_var() {
   # getCurrentVersion() { Version(0, X, Y); }
   VERSION_STR=$(cat $VERSION_H | grep getCurrentVersion -A1 | grep -o 'Version(.*[0-9])')
-  REGEX="Version\(/\*.*=\*/([0-9]+), /\*.*=\*/([0-9]+), /\*.*=\*/[^0-9]*([0-9]+)\)"
+  REGEX="Version\(([0-9]+), ([0-9]+), ([0-9]+)\)"
   if [[ $VERSION_STR =~ $REGEX ]]; then
     VERSION=("${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")
   else

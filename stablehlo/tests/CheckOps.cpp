@@ -61,7 +61,7 @@ CheckDialect::CheckDialect(MLIRContext *context)
 }
 
 llvm::Error evalExpectAlmostEqConstOp(const Tensor &lhs, ElementsAttr value) {
-  auto rhs = makeTensor(value.cast<DenseElementsAttr>());
+  auto rhs = makeTensor(cast<DenseElementsAttr>(value));
   return evalExpectAlmostEqOp(lhs, rhs);
 }
 
@@ -80,7 +80,7 @@ llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs) {
 }
 
 llvm::Error evalExpectEqConstOp(const Tensor &lhs, ElementsAttr value) {
-  auto rhs = makeTensor(value.cast<DenseElementsAttr>());
+  auto rhs = makeTensor(cast<DenseElementsAttr>(value));
   return evalExpectEqOp(lhs, rhs);
 }
 

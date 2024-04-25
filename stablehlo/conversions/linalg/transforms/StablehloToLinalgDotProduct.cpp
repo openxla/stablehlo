@@ -33,10 +33,8 @@ enum class DotOperationType {
 };
 
 DotOperationType getDotOperationType(mlir::stablehlo::DotOp dotOp) {
-  ArrayRef<int64_t> lhsShape =
-      cast<ShapedType>(dotOp.getLhs().getType()).getShape();
-  ArrayRef<int64_t> rhsShape =
-      cast<ShapedType>(dotOp.getRhs().getType()).getShape();
+  ArrayRef<int64_t> lhsShape = dotOp.getLhs().getType().getShape();
+  ArrayRef<int64_t> rhsShape = dotOp.getRhs().getType().getShape();
   auto shapeMatches = [](int64_t a, int64_t b) {
     return a == ShapedType::kDynamic || b == ShapedType::kDynamic || a == b;
   };
@@ -131,7 +129,7 @@ struct DotGeneralBatchMatMulOpConversion final
     if (failed(verifyHloOpBufferOrTensorSemantics(op))) {
       return failure();
     }
-    if (llvm::cast<RankedTensorType>(op.getType()).getRank() != 3) {
+    if (op.getType().getRank() != 3) {
       return rewriter.notifyMatchFailure(op, "expected a batch matmul");
     }
 

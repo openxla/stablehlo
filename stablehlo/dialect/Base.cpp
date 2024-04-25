@@ -46,13 +46,13 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
     return true;
   };
 
-  RankedTensorType rankedType1 = type1.dyn_cast<RankedTensorType>();
-  RankedTensorType rankedType2 = type2.dyn_cast<RankedTensorType>();
+  RankedTensorType rankedType1 = dyn_cast<RankedTensorType>(type1);
+  RankedTensorType rankedType2 = dyn_cast<RankedTensorType>(type2);
   if (rankedType1 && rankedType2) {
     auto boundedAttr1 =
-        rankedType1.getEncoding().dyn_cast_or_null<BoundedAttrInterface>();
+        dyn_cast_or_null<BoundedAttrInterface>(rankedType1.getEncoding());
     auto boundedAttr2 =
-        rankedType2.getEncoding().dyn_cast_or_null<BoundedAttrInterface>();
+        dyn_cast_or_null<BoundedAttrInterface>(rankedType2.getEncoding());
     return LogicalResult::success(
         isCompatible(rankedType1.getShape(), boundedAttr2) &&
         isCompatible(rankedType2.getShape(), boundedAttr1));
@@ -71,8 +71,8 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
   //   per-axis)
   //   c. with equal storage_type, storage_type_min, storage_type_max, and
   //   expressed_type
-  auto qtp1 = tp1.dyn_cast<quant::QuantizedType>();
-  auto qtp2 = tp2.dyn_cast<quant::QuantizedType>();
+  auto qtp1 = dyn_cast<quant::QuantizedType>(tp1);
+  auto qtp2 = dyn_cast<quant::QuantizedType>(tp2);
   if (qtp1 && qtp2) {
     if (qtp1.getStorageType() != qtp2.getStorageType() ||
         qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
@@ -81,8 +81,8 @@ bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
       return false;
     }
 
-    auto qpatp1 = qtp1.dyn_cast<quant::UniformQuantizedPerAxisType>();
-    auto qpatp2 = qtp2.dyn_cast<quant::UniformQuantizedPerAxisType>();
+    auto qpatp1 = dyn_cast<quant::UniformQuantizedPerAxisType>(qtp1);
+    auto qpatp2 = dyn_cast<quant::UniformQuantizedPerAxisType>(qtp2);
     bool quantizationGranularityMatches =
         (qpatp1 && qpatp2) || (!qpatp1 && !qpatp2);
 
@@ -114,8 +114,8 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
   //       2.2) Or both dimensions are equal.
   // These relaxed rules simplify the implementation of type inference, allowing
   // ops with partially inferred types to pass verification.
-  auto stp1 = tp1.dyn_cast<ShapedType>();
-  auto stp2 = tp2.dyn_cast<ShapedType>();
+  auto stp1 = dyn_cast<ShapedType>(tp1);
+  auto stp2 = dyn_cast<ShapedType>(tp2);
   if (stp1 && stp2)
     return succeeded(verifyCompatibleShapeWithBounds(stp1, stp2)) &&
            isCompatibleElementTypeForHloTypeInference(stp1.getElementType(),
@@ -132,7 +132,7 @@ bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2) {
 }
 
 bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2) {
-  auto stp2 = tp2.dyn_cast<ShapedType>();
+  auto stp2 = dyn_cast<ShapedType>(tp2);
   if (!stp2) return false;
   return isCompatibleForHloTypeInference(
       RankedTensorType::get(shape1, stp2.getElementType()), tp2);
@@ -142,10 +142,17 @@ bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
   SmallVector<int64_t> shapeVec1;
   if (!succeeded(matchInts(shape1, shapeVec1))) return true;
   if (llvm::any_of(shapeVec1, [&](int64_t x) { return x < 0; })) return false;
-  auto stp2 = tp2.dyn_cast<ShapedType>();
+  auto stp2 = dyn_cast<ShapedType>(tp2);
   if (!stp2) return false;
   auto tp1 = RankedTensorType::get(shapeVec1, stp2.getElementType());
   return isCompatibleForHloTypeInference(tp1, tp2);
+}
+
+LogicalResult matchInt(Value value, int64_t& result) {
+  APInt constValue;
+  if (!matchPattern(value, m_ConstantInt(&constValue))) return failure();
+  result = constValue.getSExtValue();
+  return success();
 }
 
 LogicalResult matchInts(Value value, SmallVector<int64_t>& result) {
@@ -182,7 +189,7 @@ LogicalResult matchInts(Value value) {
 LogicalResult deriveShapeFromOperand(
     OpBuilder* builder, Operation* op, Value operand,
     SmallVectorImpl<Value>* reifiedReturnShapes) {
-  auto shapedTy = operand.getType().dyn_cast<ShapedType>();
+  auto shapedTy = dyn_cast<ShapedType>(operand.getType());
   if (!shapedTy) {
     op->emitOpError() << "operand is not a shaped type";
     return failure();
@@ -193,7 +200,7 @@ LogicalResult deriveShapeFromOperand(
 }
 
 ShapedType getSameShapeTensorType(ShapedType shapedType, Type elementType) {
-  if (shapedType.isa<TensorType>()) return shapedType.clone(elementType);
+  if (isa<TensorType>(shapedType)) return shapedType.clone(elementType);
   llvm::report_fatal_error("unsupported type");
 }
 
@@ -202,7 +209,7 @@ ShapedType getSameShapeTensorType(ShapedType shapedType, Type elementType) {
 //   Ex: tensor<4xcomplex<f32>>  -->  tensor<4xf32>
 ShapedType createRealType(ShapedType type) {
   auto elementTy = type.getElementType();
-  if (auto complexTy = elementTy.dyn_cast<ComplexType>())
+  if (auto complexTy = dyn_cast<ComplexType>(elementTy))
     elementTy = complexTy.getElementType();
   return hlo::getSameShapeTensorType(type, elementTy);
 }
@@ -233,7 +240,7 @@ LogicalResult verifyBounds(ArrayRef<int64_t> bounds, RankedTensorType type,
 }
 
 ArrayRef<int64_t> encodingToBounds(Attribute encoding) {
-  if (auto boundedAttr = encoding.dyn_cast_or_null<BoundedAttrInterface>())
+  if (auto boundedAttr = dyn_cast_or_null<BoundedAttrInterface>(encoding))
     return boundedAttr.getBounds();
   return {};
 }
@@ -403,7 +410,7 @@ FailureOr<Type> inferLeastSpecificShapedType(std::optional<Location> location,
                                              TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
-    if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
+    if (auto rankedType = dyn_cast<RankedTensorType>(inputType))
       rankedTypes.push_back(rankedType);
     else
       return inputType;
@@ -415,7 +422,7 @@ FailureOr<Type> inferMostSpecificShapedType(std::optional<Location> location,
                                             TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
-    if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
+    if (auto rankedType = dyn_cast<RankedTensorType>(inputType))
       rankedTypes.push_back(rankedType);
   if (rankedTypes.empty()) return inputTypes[0];
   return inferTypeWithCustomFn(location, rankedTypes,
@@ -435,7 +442,7 @@ FailureOr<Type> mapOverTupleElements(
         fn) {
   SmallVector<TupleType> tupleTypes;
   for (auto inputType : inputTypes) {
-    if (auto tupleType = inputType.dyn_cast<TupleType>())
+    if (auto tupleType = dyn_cast<TupleType>(inputType))
       tupleTypes.push_back(tupleType);
   }
   if (!tupleTypes.empty()) {
@@ -481,9 +488,9 @@ LogicalResult inferMostSpecificTypeComponents(
   auto inferredTypeOrErr = inferMostSpecificType(location, inputTypes);
   if (failed(inferredTypeOrErr)) return failure();
 
-  auto rankedResultType = (*inferredTypeOrErr).dyn_cast<RankedTensorType>();
+  auto rankedResultType = dyn_cast<RankedTensorType>((*inferredTypeOrErr));
   if (!rankedResultType) {
-    auto inferredShapeType = (*inferredTypeOrErr).dyn_cast<ShapedType>();
+    auto inferredShapeType = dyn_cast<ShapedType>((*inferredTypeOrErr));
     if (!inferredShapeType) return failure();
     inferredReturnShapes.emplace_back(inferredShapeType);
   } else {
@@ -498,8 +505,8 @@ LogicalResult inferMostSpecificTypeComponents(
 LogicalResult getShapeRefinements(
     std::optional<Location> location, Operation* op,
     SmallVector<ShapedTypeComponents>& refinements) {
-  auto indicesAttr = op->getAttr("indices_of_shape_operands")
-                         .dyn_cast_or_null<DenseIntElementsAttr>();
+  auto indicesAttr = dyn_cast_or_null<DenseIntElementsAttr>(
+      op->getAttr("indices_of_shape_operands"));
   if (!indicesAttr) return failure();
 
   SmallVector<Type> flattenedResultTypes;
@@ -547,7 +554,7 @@ LogicalResult getShapeRefinements(
 
 void flattenTupleTypes(TypeRange types, SmallVector<Type>& result) {
   for (auto type : types) {
-    if (auto tupleType = type.dyn_cast<TupleType>()) {
+    if (auto tupleType = dyn_cast<TupleType>(type)) {
       flattenTupleTypes(tupleType.getTypes(), result);
       continue;
     }
@@ -571,7 +578,7 @@ LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
       return 0;
     }
 
-    if (auto prototypeFront = prototype.front().dyn_cast<TupleType>()) {
+    if (auto prototypeFront = dyn_cast<TupleType>(prototype.front())) {
       SmallVector<Type> tupleResult;
       auto consumedFront = loop(prototypeFront.getTypes(), types, tupleResult);
       if (failed(consumedFront)) return {};
@@ -594,11 +601,9 @@ LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
 
 ShapedType createShapedType(ShapedTypeComponents components) {
   if (!components.getElementType()) return ShapedType();
-  if (components.hasRank())
-    return RankedTensorType::get(components.getDims(),
-                                 components.getElementType(),
-                                 components.getAttribute());
-  return UnrankedTensorType::get(components.getElementType());
+  return RankedTensorType::get(components.getDims(),
+                               components.getElementType(),
+                               components.getAttribute());
 }
 
 bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {

@@ -85,7 +85,7 @@ struct ConvertStablehloConcatenateOp
   LogicalResult matchAndRewrite(stablehlo::ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
     rewriter.replaceOpWithNewOp<tosa::ConcatOp>(
-        op, op.getResult().getType(), op.getInputs(), op.getDimension());
+        op, op.getType(), op.getInputs(), op.getDimension());
     return success();
   }
 };
@@ -95,13 +95,10 @@ struct ConvertStablehloDotOp : public OpRewritePattern<stablehlo::DotOp> {
 
   LogicalResult matchAndRewrite(stablehlo::DotOp op,
                                 PatternRewriter& rewriter) const override {
-    auto lhsType = op.getLhs().getType().dyn_cast<RankedTensorType>();
-    auto rhsType = op.getRhs().getType().dyn_cast<RankedTensorType>();
-    if (!lhsType || !rhsType) {
-      return rewriter.notifyMatchFailure(op, "input tensors are not ranked");
-    }
+    auto lhsType = op.getLhs().getType();
+    auto rhsType = op.getRhs().getType();
 
-    auto resultType = op.getResult().getType().dyn_cast<ShapedType>();
+    auto resultType = op.getType();
     if (!resultType) {
       return rewriter.notifyMatchFailure(op,
                                          "result tensor does not have shape");
@@ -187,18 +184,14 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
 
   LogicalResult matchAndRewrite(stablehlo::IotaOp op,
                                 PatternRewriter& rewriter) const override {
-    auto resultType = op.getResult().getType();
-    auto elementType = resultType.cast<ShapedType>().getElementType();
-    auto resultRankedType = resultType.dyn_cast<RankedTensorType>();
+    auto resultType = op.getType();
+    auto elementType = resultType.getElementType();
 
-    if (!resultRankedType) {
-      return rewriter.notifyMatchFailure(op, "result tensor must be ranked");
-    }
-    if (!resultRankedType.hasStaticShape()) {
+    if (!resultType.hasStaticShape()) {
       return rewriter.notifyMatchFailure(op, "result tensor must be static");
     }
 
-    auto resultShape = resultRankedType.getShape();
+    auto resultShape = resultType.getShape();
     auto iotaDimension = op.getIotaDimension();
     int64_t iotaArrayLength = resultShape[iotaDimension];
 
@@ -206,7 +199,7 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
     llvm::SmallVector<Attribute, 4> constValues;
     constValues.resize(iotaArrayLength);
     for (int i = 0; i < iotaArrayLength; i++) {
-      if (elementType.isa<FloatType>()) {
+      if (isa<FloatType>(elementType)) {
         constValues[i] = rewriter.getFloatAttr(elementType, i);
       } else {
         constValues[i] = rewriter.getIntegerAttr(elementType, i);
@@ -249,31 +242,21 @@ struct ConvertStablehloGatherOp : public OpRewritePattern<stablehlo::GatherOp> {
                                 PatternRewriter& rewriter) const override {
     // The input operand must be 3D, with shape [N, K, C].
     auto operand = op.getOperand();
-    auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-    if (!operandType) {
-      return rewriter.notifyMatchFailure(op, "requires ranked operand shape");
-    }
+    auto operandType = operand.getType();
     if (operandType.getRank() != 3) {
       return rewriter.notifyMatchFailure(op, "operand must have rank of 3");
     }
 
     // The indices tensor must be 2D, with shape [N, W].
     auto startIndices = op.getStartIndices();
-    auto startIndicesType = startIndices.getType().dyn_cast<RankedTensorType>();
-    if (!startIndicesType) {
-      return rewriter.notifyMatchFailure(op,
-                                         "requires ranked start_indices shape");
-    }
+    auto startIndicesType = startIndices.getType();
     if (startIndicesType.getRank() != 2) {
       return rewriter.notifyMatchFailure(op,
                                          "start_indices must have rank of 2");
     }
 
     // The result tensor must be 3D, with shape [N, W, C].
-    auto resultType = op.getResult().getType().dyn_cast<RankedTensorType>();
-    if (!resultType) {
-      return rewriter.notifyMatchFailure(op, "requires ranked output shape");
-    }
+    auto resultType = op.getType();
     if (resultType.getRank() != 3) {
       return rewriter.notifyMatchFailure(op, "result must have rank of 3");
     }
@@ -324,7 +307,7 @@ struct ConvertStablehloReduceOp : public OpRewritePattern<stablehlo::ReduceOp> {
     }
 
     auto operand = op.getInputs().front();
-    ShapedType inputType = operand.getType().cast<ShapedType>();
+    ShapedType inputType = cast<ShapedType>(operand.getType());
     Operation& innerOp = bodyBlock.front();
     uint64_t dimension = op.getDimensions()[0];
     SmallVector<int64_t> innerShape(inputType.getShape());
@@ -415,7 +398,7 @@ struct ConvertStablehloSliceOp : public OpRewritePattern<stablehlo::SliceOp> {
     }
 
     rewriter.replaceOpWithNewOp<tosa::SliceOp>(
-        op, op.getResult().getType(), op.getOperand(),
+        op, op.getType(), op.getOperand(),
         rewriter.getDenseI64ArrayAttr(startIndicesI64),
         rewriter.getDenseI64ArrayAttr(size));
     return success();
@@ -439,7 +422,7 @@ struct ConvertStablehloTransposeOp
                                       rewriter.getI64Type());
     auto constOp = rewriter.create<tosa::ConstOp>(
         op->getLoc(), type, DenseIntElementsAttr::get(type, perms));
-    rewriter.replaceOpWithNewOp<tosa::TransposeOp>(op, op.getResult().getType(),
+    rewriter.replaceOpWithNewOp<tosa::TransposeOp>(op, op.getType(),
                                                    op.getOperand(), constOp);
     return success();
   }

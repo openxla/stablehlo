@@ -1,4 +1,7 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck %s
+// RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect -emit-bytecode -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
+
+// CHECK-WARN-NOT: Not Implemented
 
 // Tests for types, ops with custom constraints, verifiers, printer or parser
 // methods.
@@ -1498,7 +1501,7 @@ func.func @concatenate_c4(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>)  -> tensor
 
 func.func @concatenate_c6(%arg0: tensor<1x3xi32>, %arg1: tensor<2x2xi32>)  -> tensor<3x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{shapes of operand (0) and (1) do not match at non-concat index: (1, 3) != (2, 2) at non-concat index 1}}
+  // expected-error@+1 {{shapes of operand (0) and (1) are not compatible at non-concat index 1: (1, 3) != (2, 2)}}
   %0 = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 0 : i64 } : (tensor<1x3xi32>, tensor<2x2xi32>) -> tensor<3x3xi32>
   func.return %0 : tensor<3x3xi32>
 }
@@ -2011,7 +2014,7 @@ func.func @rng_bit_generator_dynamic(%arg0: tensor<?xui64>) -> (tensor<?xui64>, 
 
 // CHECK-LABEL: func @rng_normal
 func.func @rng_normal(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<2x3x5xf32> {
-  %cst = "stablehlo.constant"() {value = dense<[2, 3, 5]> : tensor<3xi64>} : () -> tensor<3xi64>
+  %cst = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
   %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
@@ -2027,7 +2030,7 @@ func.func @rng_normal_no_constant(%a: tensor<f32>, %b: tensor<f32>, %shape: tens
 // -----
 
 func.func @rng_normal_invalid_shape(%arg0: tensor<f32>, %arg1: tensor<f32>) {
-  %cst = "stablehlo.constant"() {value = dense<7> : tensor<1xi64>} : () -> tensor<1xi64>
+  %cst = stablehlo.constant dense<7> : tensor<1xi64>
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error @+1 {{inferred type(s) 'tensor<7xf32>' are incompatible with return type(s) of operation 'tensor<12xf32>'}}
   %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<1xi64>) -> tensor<12xf32>
@@ -2064,7 +2067,7 @@ func.func @rng_normal_invalid_shape_rank(%mu: tensor<f32>, %sigma: tensor<f32>) 
 // -----
 
 func.func @rng_normal_invalid_type(%arg0: tensor<complex<f32>>, %arg1: tensor<f32>) {
-  %cst = "stablehlo.constant"() {value = dense<7> : tensor<1xi64>} : () -> tensor<1xi64>
+  %cst = stablehlo.constant dense<7> : tensor<1xi64>
   // expected-error @+1 {{#0 must be 0D tensor of pred (AKA boolean or 1-bit integer) or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer or f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type values, but got 'tensor<complex<f32>>'}}
   %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<complex<f32>>, tensor<f32>, tensor<1xi64>) -> tensor<7xf32>
   func.return
@@ -2688,7 +2691,7 @@ func.func @floor_invalid_i32_type(%arg0: tensor<4xi32>) -> tensor<4xi32> {
 // CHECK-LABEL: func @constants
 func.func @constants() -> () {
   // CHECK: stablehlo.constant dense<0> : tensor<i32>
-  %0 = "stablehlo.constant"() {value = dense<0> : tensor<i32>} : () -> (tensor<i32>)
+  %0 = "stablehlo.constant"() <{value = dense<0> : tensor<i32>}> : () -> (tensor<i32>)
 
   // CHECK: stablehlo.constant {extra_attr = 3 : i32} dense<0> : tensor<i32>
   %1 = "stablehlo.constant"() {extra_attr = 3 : i32, value = dense<0> : tensor<i32>} : () -> (tensor<i32>)
@@ -2700,7 +2703,7 @@ func.func @constants() -> () {
 func.func @constant_invalid() -> () {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.constant' op inferred type(s) 'tensor<i32>' are incompatible with return type(s) of operation 'tensor<3xi32>'}}
-  %0 = "stablehlo.constant"() {value = dense<0> : tensor<i32>} : () -> (tensor<3xi32>)
+  %0 = "stablehlo.constant"() <{value = dense<0> : tensor<i32>}> : () -> (tensor<3xi32>)
   func.return
 }
 
@@ -2708,7 +2711,7 @@ func.func @constant_invalid() -> () {
 
 func.func @constant_invalid() -> () {
   // expected-error@+1 {{op result #0 must be statically shaped tensor}}
-  %0 = "stablehlo.constant"() {value = dense<1> : tensor<i32>} : () -> tensor<?xi32>
+  %0 = "stablehlo.constant"() <{value = dense<1> : tensor<i32>}> : () -> tensor<?xi32>
   func.return
 }
 
@@ -2716,7 +2719,7 @@ func.func @constant_invalid() -> () {
 
 func.func @constant_invalid() -> () {
   // expected-error@+1 {{elements literal type must have static shape}}
-  %0 = "stablehlo.constant"() {value = dense<1> : tensor<?xi32>} : () -> tensor<?xi32>
+  %0 = "stablehlo.constant"() <{value = dense<1> : tensor<?xi32>}> : () -> tensor<?xi32>
   func.return
 }
 
@@ -3161,18 +3164,9 @@ func.func @dynamic_reshape_incompatible_shapes(%arg0: tensor<?xf32>, %shape: ten
 
 // -----
 
-func.func @dynamic_reshape_output_shape_negative_size(%arg0: tensor<4xf32>) -> tensor<1x4xf32> {
-  // expected-error@+2 {{output_shape is incompatible with return type of operation 'tensor<1x4xf32>'}}
-  %0 = stablehlo.constant dense<[-1, 1]> : tensor<2xi64>
-  %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x4xf32>
-  return %1 : tensor<1x4xf32>
-}
-
-// -----
-
 func.func @dynamic_reshape_output_shape_mismatching_size(%arg0: tensor<4xf32>) -> tensor<1x4xf32> {
   // expected-error@+2 {{output_shape is incompatible with return type of operation 'tensor<1x4xf32>'}}
-  %0 = stablehlo.constant dense<[1, 1]> : tensor<2xi64>
+  %0 = stablehlo.constant dense<[2, 2]> : tensor<2xi64>
   %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x4xf32>
   return %1 : tensor<1x4xf32>
 }
@@ -3183,6 +3177,15 @@ func.func @dynamic_reshape_dynamic_output_shape(%arg0: tensor<?xf32>, %shape: te
   // expected-error@+1 {{op operand #1 must be statically shaped}}
   %0 = "stablehlo.dynamic_reshape"(%arg0, %shape) : (tensor<?xf32>, tensor<?xindex>) -> tensor<1x4xf32>
   func.return %0 : tensor<1x4xf32>
+}
+
+// -----
+
+func.func @dynamic_reshape_input_count_mismatch_shape_count(%arg0: tensor<2x5xf32>) -> tensor<?x?x?xf32> {
+  %0 = stablehlo.constant dense<[2, 3, 4]> : tensor<3xi32>
+  // expected-error@+1 {{output_shape is incompatible with input type of operation: input has 10 elements, but output_shape has 24}}
+  %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<2x5xf32>, tensor<3xi32>) -> tensor<?x?x?xf32>
+  return %1 : tensor<?x?x?xf32>
 }
 
 // -----
@@ -4774,11 +4777,31 @@ func.func @eltwise_static_and_dynamic_type(%arg0: tensor<10x10xf32>, %arg1: tens
 
 // -----
 
-// CHECK: func @quantized_conv2d
+// CHECK-LABEL: func @convolution_operand_element_type_i4
+func.func @convolution_operand_element_type_i4(%arg0: tensor<64x8x8x8xi4>, %arg1: tensor<4x4x8x32xi4>) -> tensor<64x3x3x32xi8> {
+  // Note: This has been lowered and adapted from:
+  // %0 = "tf.Conv2D"(%arg0, %arg1) {
+  //        data_format = "NHWC",
+  //        dilations = [1, 2, 2, 1],
+  //        explicit_paddings = [0, 0, 0, 1, 0, 1, 0, 0],
+  //        padding = "EXPLICIT",
+  //        strides = [1, 1, 1, 1]} :
+  //      (tensor<64x8x8x8xf32>, tensor<4x4x8x32xf32>) -> tensor<64x3x3x32xf32>
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[0, 1], [0, 1]], rhs_dilate = [2, 2]}
+         {batch_group_count = 1 : i64, feature_group_count = 1 : i64} :
+       (tensor<64x8x8x8xi4>, tensor<4x4x8x32xi4>) -> tensor<64x3x3x32xi8>
+  func.return %0 : tensor<64x3x3x32xi8>
+}
+
+// -----
+
+// CHECK: func @convolution_quantized_conv2d
 // CHECK: stablehlo.convolution
 // CHECK-SAME: dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]
 // CHECK-SAME{LITERAL}: window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
-func.func @quantized_conv2d(%arg0: tensor<1x8x8x207x!quant.uniform<i8:f32, 2.0:15>>, %arg1: tensor<3x3x207x16x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<1x8x8x16x!quant.uniform<i8:f32, 10.0:50>> {
+func.func @convolution_quantized_conv2d(%arg0: tensor<1x8x8x207x!quant.uniform<i8:f32, 2.0:15>>, %arg1: tensor<3x3x207x16x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<1x8x8x16x!quant.uniform<i8:f32, 10.0:50>> {
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
@@ -4822,7 +4845,7 @@ func.func @quantized_dot_i4(%arg0: tensor<2x2x!quant.uniform<i4:f32, 2.0:15>>, %
 // -----
 
 // CHECK-LABEL: func @quantized_dot_general
-func.func @quantized_dot_general(%arg0: tensor<2x16x32x!quant.uniform<i8:f32, 2.0:15>>, %arg1: tensor<2x32x32x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<2x16x32x!quant.uniform<i8:f32, 10.0:50>> {
+func.func @quantized_dot_general(%arg0: tensor<2x16x32x!quant.uniform<i8:f32, 2.0:15>>, %arg1: tensor<2x32x32x!quant.uniform<i8:f32, 5.0:0>>) -> tensor<2x16x32x!quant.uniform<i8:f32, 10.0:50>> {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
@@ -4831,7 +4854,7 @@ func.func @quantized_dot_general(%arg0: tensor<2x16x32x!quant.uniform<i8:f32, 2.
       rhs_contracting_dimensions = [1]
     >,
     precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]}
-    : (tensor<2x16x32x!quant.uniform<i8:f32, 2.0:15>>, tensor<2x32x32x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<2x16x32x!quant.uniform<i8:f32, 10.0:50>>
+    : (tensor<2x16x32x!quant.uniform<i8:f32, 2.0:15>>, tensor<2x32x32x!quant.uniform<i8:f32, 5.0:0>>) -> tensor<2x16x32x!quant.uniform<i8:f32, 10.0:50>>
   func.return %0 : tensor<2x16x32x!quant.uniform<i8:f32, 10.0:50>>
 }
 
@@ -4869,7 +4892,7 @@ func.func @quantized_constants() -> (tensor<2x!quant.uniform<i8:f32, 2.0:15>>, t
   %3 = stablehlo.uniform_quantize %2 : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32, 2.0:15>>
   %4 = stablehlo.uniform_quantize %1 : (tensor<2xf32>) -> tensor<2x!quant.uniform<ui8:f32, 34.0:16>>
   func.return %0, %4, %3 : tensor<2x!quant.uniform<i8:f32, 2.0:15>>, tensor<2x!quant.uniform<ui8:f32, 34.0:16>>, tensor<2x!quant.uniform<i8:f32, 2.0:15>>
-  // CHECK: stablehlo.constant() {value = dense<[1, 2]> : tensor<2xi8>} : () -> tensor<2x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  // CHECK: stablehlo.constant() <{value = dense<[1, 2]> : tensor<2xi8>}> : () -> tensor<2x!quant.uniform<i8:f32, 2.000000e+00:15>>
   // CHECK-NEXT: stablehlo.constant dense<[1.000000e+01, 1.200000e+01]> : tensor<2xf32>
   // CHECK-NEXT: stablehlo.constant dense<[3.000000e+00, 1.000000e+02]> : tensor<2xf32>
 }
@@ -5055,7 +5078,7 @@ func.func @is_compatible_dynamism_mix(%arg0: tensor<?xf32>, %arg1: tensor<1xf32>
 // -----
 
 func.func @is_compatible_dynamism_ranked_mismatch(%arg0: tensor<?xf32>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+  // expected-error@+1 {{op requires the same shape for all operands and results}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<?xf32>, tensor<?xf32>) -> tensor<?x?xf32>
   func.return
 }
@@ -5063,7 +5086,7 @@ func.func @is_compatible_dynamism_ranked_mismatch(%arg0: tensor<?xf32>) {
 // -----
 
 func.func @is_compatible_dynamism_dim_mismatch(%arg0: tensor<1x?xf32>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+  // expected-error@+1 {{op requires the same shape for all operands and results}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x?xf32>, tensor<1x?xf32>) -> tensor<2x2xf32>
   func.return
 }
@@ -5074,43 +5097,66 @@ func.func @is_compatible_quant_mix_non_quant(%arg0: tensor<1xf32>, %arg1: tensor
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1xf32>, tensor<1xf32>) -> tensor<1xf32>
   %1 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
   %2 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+  %3 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 2.0:17>>
+  %4 = "stablehlo.add"(%arg1, %arg1) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:18>>
+
   func.return
 }
 
-// -----
-
-func.func @is_compatible_quant_mix_scale(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 2.0:17>>
-  func.return
-}
 
 // -----
 
-func.func @is_compatible_quant_mix_zero_point(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:18>>
-  func.return
-}
-
-// -----
-
-func.func @is_compatible_quant_expressed_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+func.func @add_c4(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+  // expected-error@+1 {{mismatched operands and result quantization expressed types}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i8:bf16, 1.0:17>>
   func.return
 }
 
 // -----
 
-func.func @is_compatible_quant_storage_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+func.func @add_c3(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+  // expected-error@+1 {{mismatched operands and result quantization storage types}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i4:f32, 1.0:17>>
   func.return
 }
 
 // -----
 
+func.func @add_c2(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
+  // expected-error@+1 {{all operands and results to be either quantized or non-quantized}}
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1xf32>
+  func.return
+}
+
+// -----
+
+func.func @add_c5(%arg0: tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>) {
+  // expected-error@+1 {{result is not per_axis quantized but lhs or rhs are}}
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x!quant.uniform<i8:f32, 1.0:17>>
+  func.return
+}
+
+// -----
+
+func.func @add_c6(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) {
+  // expected-error@+1 {{quantization_dimension of lhs and result are not same}}
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:2, {1.0:17}>>
+  func.return
+}
+
+// -----
+
+func.func @add_c7(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, %arg1: tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17}>>) {
+  // expected-error@+1 {{quantization_dimension of rhs and result are not same}}
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>
+  func.return
+}
+
+// -----
+
 func.func @is_compatible_quant_signedness_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
-  // expected-error@+1 {{op requires compatible types for all operands and results}}
+  // expected-error@+2 {{op failed to infer returned types}}
+  // expected-error@+1 {{op inferred type(s) 'tensor<1x!quant.uniform<i8:f32, 1.000000e+00:17>>' are incompatible with return type(s) of operation 'tensor<1x!quant.uniform<u8:f32, 1.000000e+00:17>>'}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<u8:f32, 1.0:17>>
   func.return
 }
@@ -5132,7 +5178,8 @@ func.func @is_compatible_dynamism_bounds_mismatch(
 func.func @is_compatible_dynamism_bounds_mismatch(
   %arg0: tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>,
   %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>) {
-  // expected-error@+1 {{requires compatible types for all operands and results}}
+  // expected-error@+2 {{op failed to infer returned types}}
+  // expected-error@+1 {{'stablehlo.add' op inferred type(s) 'tensor<?xf32, #stablehlo.bounds<4>>' are incompatible with return type(s) of operation 'tensor<5xf32>'}}
   %0 = "stablehlo.add"(%arg0, %arg1) : (
     tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>,
     tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>) -> tensor<5xf32>

@@ -1072,6 +1072,21 @@ func.func @reverse(%input: tensor<2x3xf32>) -> tensor<2x3xf32> {
 
 // -----
 
+// CHECK-DAG: #[[OPERAND_MAP:.*]] = affine_map<(d0, d1) -> (d0, -d1 + 2)>
+// CHECK-DAG: #[[RESULT_MAP:.*]]  = affine_map<(d0, d1) -> (d0, d1)>
+// CHECK: func @reverse_dynamic
+func.func @reverse_dynamic(%input: tensor<?x3xf32>) -> tensor<?x3xf32> {
+  %result = "stablehlo.reverse"(%input) {
+    dimensions = array<i64: 1>, someattr
+  } : (tensor<?x3xf32>) -> tensor<?x3xf32>
+  func.return %result : tensor<?x3xf32>
+}
+// CHECK: linalg.generic
+// CHECK-SAME: indexing_maps = [#[[OPERAND_MAP]], #[[RESULT_MAP]]]
+// CHECK-SAME: {someattr}
+
+// -----
+
 // CHECK-DAG: #[[MAP0:.+]] = affine_map<(d0, d1, d2, d3, d4, d5) -> (d0, d1 * 2 + d4, d2 * 2 + d5, d3)>
 // CHECK-DAG: #[[MAP1:.+]] = affine_map<(d0, d1, d2, d3, d4, d5) -> (d4, d5)>
 // CHECK-DAG: #[[MAP2:.+]] = affine_map<(d0, d1, d2, d3, d4, d5) -> (d0, d1, d2, d3)>

@@ -74,6 +74,13 @@ jobs:
           CMAKE_BUILD_TYPE: Release
           MLIR_ENABLE_BINDINGS_PYTHON: ON
 
+    - name: Fix kernel mmap rnd bits
+      # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
+      # high-entropy ASLR in much newer kernels that GitHub runners are
+      # using leading to random crashes: https://reviews.llvm.org/D148280
+      # TODO: remove this once https://github.com/actions/runner-images/issues/9491 is fixed
+      run: sudo sysctl vm.mmap_rnd_bits=28
+
     - name: Build and Test StableHLO (with AddressSanitizer)
       shell: bash
       run: |
@@ -86,7 +93,9 @@ jobs:
     - name: Build and Test StableHLO (with Python bindings)
       shell: bash
       run: |
+        pip install tensorflow-cpu
         ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
+          STABLEHLO_ENABLE_PYTHON_TF_TESTS: ON
