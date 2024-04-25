@@ -3635,11 +3635,8 @@ LogicalResult verifyDotGeneralOpQuantizationConstraints(
       return emitOptionalError(location,
                                "Zero points of rhs of dot_general should be 0");
     }
-  }
 
-  // dot_general_c16
-  if (auto rhsPerAxisType =
-          dyn_cast<quant::UniformQuantizedPerAxisType>(rhsElementType)) {
+    // dot_general_c16
     if (llvm::find(rhsContractingDimensions,
                    rhsPerAxisType.getQuantizedDimension()) !=
         rhsContractingDimensions.end()) {
