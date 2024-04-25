@@ -13,10 +13,17 @@ limitations under the License.
 ==============================================================================*/
 
 #include <cstdint>
-#include <memory>
-#include <string>
 #include <utility>
 
+#include "llvm/ADT/APInt.h"
+#include "llvm/ADT/APSInt.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/STLFunctionalExtras.h"
+#include "llvm/ADT/SmallSet.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FormatVariadic.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -40,15 +47,6 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/transforms/Passes.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/APSInt.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/STLFunctionalExtras.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/FormatVariadic.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -171,10 +169,8 @@ struct EvalClampOpPattern : public OpRewritePattern<ClampOp> {
                                 PatternRewriter &rewriter) const override {
     return evalElementwise(rewriter, op,
                            [&](APSInt min, APSInt operand, APSInt max) {
-                             if (operand < min)
-                               return min;
-                             if (max < operand)
-                               return max;
+                             if (operand < min) return min;
+                             if (max < operand) return max;
                              return operand;
                            });
   }
@@ -188,24 +184,24 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
     return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
       bool result;
       switch (op.getComparisonDirection()) {
-      case ComparisonDirection::EQ:
-        result = lhs == rhs;
-        break;
-      case ComparisonDirection::NE:
-        result = lhs != rhs;
-        break;
-      case ComparisonDirection::GE:
-        result = lhs >= rhs;
-        break;
-      case ComparisonDirection::GT:
-        result = lhs > rhs;
-        break;
-      case ComparisonDirection::LE:
-        result = lhs <= rhs;
-        break;
-      case ComparisonDirection::LT:
-        result = lhs < rhs;
-        break;
+        case ComparisonDirection::EQ:
+          result = lhs == rhs;
+          break;
+        case ComparisonDirection::NE:
+          result = lhs != rhs;
+          break;
+        case ComparisonDirection::GE:
+          result = lhs >= rhs;
+          break;
+        case ComparisonDirection::GT:
+          result = lhs > rhs;
+          break;
+        case ComparisonDirection::LE:
+          result = lhs <= rhs;
+          break;
+        case ComparisonDirection::LT:
+          result = lhs < rhs;
+          break;
       }
       return getAPSInt(resultType.getElementType(), result);
     });
@@ -508,14 +504,19 @@ struct StablehloAggressiveFolderPass
       signalPassFailure();
   }
 
-private:
+ private:
   FrozenRewritePatternSet patterns;
 };
 
-} // namespace
+}  // namespace
 
 void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
                                                MLIRContext *context) {
+  populateStablehloShapeFolderPatterns(patterns, context);
+}
+
+void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
+                                          MLIRContext *context) {
   patterns->add<EvalAddOpPattern>(context);
   patterns->add<EvalAndOpPattern>(context);
   patterns->add<EvalBroadcastInDimOpPattern>(context);
@@ -538,5 +539,5 @@ void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
   patterns->add<EvalSubtractOpPattern>(context);
 }
 
-} // namespace stablehlo
-} // namespace mlir
+}  // namespace stablehlo
+}  // namespace mlir

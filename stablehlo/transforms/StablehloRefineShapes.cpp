@@ -1159,7 +1159,7 @@ struct StablehloRefineShapesPass
     // which is a critical part of implementing type refinement for ops like
     // dynamic_broadcast_in_dim, dynamic_iota and dynamic_reshape whose shape
     // depends on the value of their shape operands.
-    populateStablehloAggressiveFolderPatterns(&patterns_, context);
+    populateStablehloShapeFolderPatterns(&patterns_, context);
     patterns = std::move(patterns_);
 
     return success();
