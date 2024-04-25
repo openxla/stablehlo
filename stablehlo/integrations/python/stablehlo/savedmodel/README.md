@@ -40,7 +40,7 @@ arguments to the API.
     %1 = stablehlo.dot_general %arg2, %0, contracting_dims = [1] x [0], precision = [DEFAULT, DEFAULT] : (tensor<2x2xf32>, tensor<2x2xf32>) -> tensor<2x2xf32>
     %2 = stablehlo.broadcast_in_dim %arg0, dims = [1] : (tensor<2xf32>) -> tensor<2x2xf32>
     %3 = stablehlo.add %1, %2 : tensor<2x2xf32>
-    return %3 : tensor<2x2xf32>\n
+    return %3 : tensor<2x2xf32>
   }
 }
 ```
