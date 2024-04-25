@@ -3638,7 +3638,7 @@ LogicalResult verifyDotGeneralOpQuantizationConstraints(
 
     // dot_general_c16
     if (llvm::find(rhsContractingDimensions,
-                   rhsPerAxisType.getQuantizedDimension()) !=
+                   rhsPerAxisQuantType.getQuantizedDimension()) !=
         rhsContractingDimensions.end()) {
       return emitOptionalError(location,
                                "Quantization dimension should not be a "
