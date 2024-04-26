@@ -1349,7 +1349,7 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;
 
-  let extraClassDeclaration = [{
+  let extraClassDeclaration = commonClassDeclaration # [{
     /// Interface method for ConditionallySpeculatable.
     mlir::Speculation::Speculatability getSpeculatability();
   }];
