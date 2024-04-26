@@ -332,6 +332,7 @@ Attribute convertGatherDimensionNumbers(OpType vhloOp,
     return {};
   return stablehlo::GatherDimensionNumbersAttr::get(
       vhloOp.getContext(), stablehloOffsetDims, stablehloCollapsedSliceDims,
+      /*operandBatchingDims=*/{}, /*startIndicesBatchingDims=*/{},
       stablehloStartIndexMap, stablehloIndexVectorDim);
 }
 
@@ -350,7 +351,8 @@ Attribute convertScatterDimensionNumbers(vhlo::ScatterOpV1 vhloOp,
     return {};
   return stablehlo::ScatterDimensionNumbersAttr::get(
       vhloOp.getContext(), stablehloUpdateWindowDims,
-      stablehloInsertedWindowDims, stablehloScatterDimsToOperandDims,
+      stablehloInsertedWindowDims, /*inputBatchingDims=*/{},
+      /*scatterIndicesBatchingDims=*/{}, stablehloScatterDimsToOperandDims,
       stablehloIndexVectorDim);
 }
 

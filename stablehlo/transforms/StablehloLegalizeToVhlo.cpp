@@ -437,6 +437,13 @@ SpecialResult convertGatherDimensionNumbers(
   auto attr = dyn_cast<stablehlo::GatherDimensionNumbersAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
+  if (!attr.getOperandBatchingDims().empty() ||
+      !attr.getStartIndicesBatchingDims().empty()) {
+    // `input_batching_dims` and `scatter_indices_batching_dims` isn't supported
+    // in MHLO yet.
+    return specialFailure();
+  }
+
   auto vhloOffsetDims = convertInts(pattern, attr.getOffsetDims());
   if (!vhloOffsetDims) return specialFailure();
   vhloAttrs.emplace_back(StringAttr::get(pattern.getContext(), "offset_dims"),
@@ -468,6 +475,13 @@ SpecialResult convertScatterDimensionNumbers(
     SmallVector<NamedAttribute>& vhloAttrs) {
   auto attr = dyn_cast<stablehlo::ScatterDimensionNumbersAttr>(stablehloAttr);
   if (!attr) return specialFailure();
+
+  if (!attr.getInputBatchingDims().empty() ||
+      !attr.getScatterIndicesBatchingDims().empty()) {
+    // `input_batching_dims` and `scatter_indices_batching_dims` isn't
+    // supported in MHLO yet.
+    return specialFailure();
+  }
 
   auto vhloUpdateWindowDims = convertInts(pattern, attr.getUpdateWindowDims());
   if (!vhloUpdateWindowDims) return specialFailure();

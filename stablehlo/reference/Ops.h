@@ -101,6 +101,8 @@ Tensor exponentialOp(const Tensor &operand, ShapedType resultType);
 Tensor floorOp(const Tensor &operand, ShapedType resultType);
 Tensor gatherOp(const Tensor &operand, const Tensor &startIndices,
                 const Axes &offsetDims, const Axes &collapsedSliceDims,
+                const Axes &operandBatchingDims,
+                const Axes &startIndicesBatchingDims,
                 const Axes &startIndexMap, Axis indexVectorDim,
                 const Sizes &sliceSizes, bool indicesAreSorted,
                 ShapedType resultType);
@@ -167,9 +169,11 @@ Tensor rsqrtOp(const Tensor &operand, ShapedType resultType);
 SmallVector<Tensor> scatterOp(
     ArrayRef<Tensor> inputs, const Tensor &scatterIndices,
     ArrayRef<Tensor> updates, const Axes &updateWindowDims,
-    const Axes &insertedWindowDims, const Axes &scatterDimsToOperandDims,
-    Axis indexVectorDim, Region &updateComputation, Process *process,
-    Scope &scope, ArrayRef<ShapedType> resultTypes);
+    const Axes &insertedWindowDims, const Axes &inputBatchingDims,
+    const Axes &scatterIndicesBatchingDims,
+    const Axes &scatterDimsToOperandDims, Axis indexVectorDim,
+    Region &updateComputation, Process *process, Scope &scope,
+    ArrayRef<ShapedType> resultTypes);
 Tensor selectOp(const Tensor &pred, const Tensor &onTrue, const Tensor &onFalse,
                 ShapedType resultType);
 Tensor selectAndScatterOp(const Tensor &operand, const Tensor &source,

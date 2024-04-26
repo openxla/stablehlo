@@ -259,10 +259,25 @@ LogicalResult verifyQPerAxisScaleAndZeroPointConstraints(
 //===----------------------------------------------------------------------===//
 
 // Checks if the vector `nums` has duplicates.
-bool isUnique(ArrayRef<int64_t> nums) {
+const auto isUnique = [](const ArrayRef<int64_t> nums) {
   llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
   return set.size() == nums.size();
-}
+};
+
+const auto checkDimsDistinct =
+    [](std::optional<Location> location, ArrayRef<int64_t> lhsDims,
+       ArrayRef<int64_t> rhsDims, llvm::StringRef lhs,
+       llvm::StringRef rhs) -> LogicalResult {
+  llvm::SmallDenseSet<int64_t> dimSet;
+  dimSet.reserve(lhsDims.size() + rhsDims.size());
+  for (auto dim : llvm::concat<const int64_t>(lhsDims, rhsDims)) {
+    auto [_, wasInserted] = dimSet.insert(dim);
+    if (!wasInserted)
+      return emitOptionalError(location, "has duplicated dimension from ", lhs,
+                               " and ", rhs, ": ", dim);
+  }
+  return success();
+};
 
 bool tensorsHaveSameElType(TypeRange types, bool ignoreFpPrecision = true) {
   if (!types.empty()) {
@@ -810,20 +825,20 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
   int64_t numInputs = inputTypes.size();
 
   // all_reduce_c5, reduce_c6, reduce_scatter_c7, reduce_window_c13,
-  // scatter_c15, select_and_scatter_c10
+  // scatter_c23, select_and_scatter_c10
   if (static_cast<int64_t>(block.getArguments().size()) != numInputs * 2)
     return emitOptionalError(loc, "Reduction-region must take ", numInputs * 2,
                              " parameters, but takes ",
                              block.getArguments().size(), " parameter(s)");
 
   // all_reduce_c5, reduce_c6, reduce_scatter_c7, reduce_window_c13,
-  // scatter_c15, select_and_scatter_c10
+  // scatter_c23, select_and_scatter_c10
   if (block.getTerminator()->getOperands().empty())
     return emitOptionalError(
         loc, "The reduction-region expected to return some value(s)");
 
   // all_reduce_c5, reduce_c6, reduce_scatter_c7, reduce_window_c13,
-  // scatter_c15, select_and_scatter_c10
+  // scatter_c23, select_and_scatter_c10
   if (static_cast<int64_t>(block.getTerminator()->getOperands().size()) !=
       numInputs)
     return emitOptionalError(loc, "Reduction-region here must produce ",
@@ -832,7 +847,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                              " instead");
 
   // all_reduce_c5, reduce_c6, reduce_scatter_c7, reduce_window_c13,
-  // scatter_c15, select_and_scatter_c10
+  // scatter_c23, select_and_scatter_c10
   SmallVector<ShapedType> accumulatorSubShapes;
   for (Value retOperand : block.getTerminator()->getOperands()) {
     auto shapedTy = dyn_cast<ShapedType>(retOperand.getType());
@@ -847,7 +862,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
 
   for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
     // all_reduce_c5, reduce_c2, reduce_scatter_c7, reduce_window_c13,
-    // scatter_c15, select_and_scatter_c10
+    // scatter_c23, select_and_scatter_c10
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        block.getArgument(inputIdx).getType()))
       return emitOptionalError(
@@ -857,7 +872,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           accumulatorSubShapes[inputIdx]);
 
     // all_reduce_c5, reduce_c2, reduce_scatter_c7, reduce_window_c13,
-    // scatter_c15, select_and_scatter_c3, select_and_scatter_c10
+    // scatter_c23, select_and_scatter_c3, select_and_scatter_c10
     if (!compatibleShapeAndElementType(
             accumulatorSubShapes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(),
@@ -870,7 +885,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           accumulatorSubShapes[inputIdx]);
 
     // all_reduce_c5, reduce_c6, reduce_scatter_c7, reduce_window_c13,
-    // reduce_window_i2, scatter_c6, scatter_c15, select_and_scatter_c10
+    // reduce_window_i2, scatter_c6, scatter_c23, select_and_scatter_c10
     if (failed(verifyCompatibleShape(initValueTypes[inputIdx],
                                      accumulatorSubShapes[inputIdx])))
       return emitOptionalError(
@@ -888,7 +903,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           "init-value element-type: ",
           accumulatorSubShapes[inputIdx], " vs ", initValueTypes[inputIdx]);
 
-    // reduce_c6, reduce_window_c3, scatter_c6, scatter_c15,
+    // reduce_c6, reduce_window_c3, scatter_c6, scatter_c23,
     // select_and_scatter_c10
     if (!isPromotableElementType(
             inputTypes[inputIdx],
@@ -1185,16 +1200,20 @@ LogicalResult validateScatterDimensionNumbers(
     ShapedType updateType, bool operandTypeRanked,
     bool scatterIndicesTypeRanked, bool updatesTypeRanked,
     ArrayRef<int64_t> updateWindowDims, ArrayRef<int64_t> insertedWindowDims,
+    ArrayRef<int64_t> inputBatchingDims,
+    ArrayRef<int64_t> scatterIndicesBatchingDims,
     ArrayRef<int64_t> scatterDimsToOperandDims, int64_t indexVectorDim,
     std::optional<Location> loc) {
   // scatter_c2
   if (operandTypeRanked) {
-    auto windowSize = updateWindowDims.size() + insertedWindowDims.size();
+    auto windowSize = updateWindowDims.size() + insertedWindowDims.size() +
+                      inputBatchingDims.size();
     if (operandType.getRank() != static_cast<int64_t>(windowSize))
       return emitOptionalError(loc,
                                "Expects rank-of operand to match "
-                               "size-of('update_window_dims')  + "
-                               "size-of('inserted_window_dims') i.e. ",
+                               "size-of('update_window_dims') + "
+                               "size-of('inserted_window_dims') + "
+                               "size-of('input_batching_dims') i.e. ",
                                windowSize, " but got ", operandType.getRank(),
                                ".");
   }
@@ -1204,8 +1223,6 @@ LogicalResult validateScatterDimensionNumbers(
     return emitOptionalError(loc,
                              "Expects update_window_dims to be sorted; got: [",
                              updateWindowDims, "].");
-
-  // scatter_c7
   if (!isUnique(updateWindowDims))
     return emitOptionalError(loc,
                              "Expects update_window_dims to not repeat; got: [",
@@ -1218,36 +1235,100 @@ LogicalResult validateScatterDimensionNumbers(
         return emitOptionalError(
             loc,
             "Expects each element of update_window_dims to be in range "
-            "[0, "
-            "rank-of('updates') i.e. [0, ",
+            "[0, rank-of('updates') i.e. [0, ",
             updateType.getRank(), "). got: ", windowDim, ".");
     }
   }
 
   // scatter_c9
+  if (failed(checkDimsDistinct(loc, insertedWindowDims, inputBatchingDims,
+                               "inserted_window_dims", "input_batching_dims")))
+    return failure();
+
+  // scatter_c10
   if (!llvm::is_sorted(insertedWindowDims))
     return emitOptionalError(
         loc, "Expects inserted_window_dims to be sorted; got: [",
         insertedWindowDims, "].");
 
-  // scatter_c9
-  if (!isUnique(insertedWindowDims))
-    return emitOptionalError(
-        loc, "Expects inserted_window_dims to not repeat; got: [",
-        insertedWindowDims, "].)");
-
-  // scatter_c10
-  if (operandTypeRanked) {
-    for (int64_t insertedDim : insertedWindowDims)
-      if (insertedDim < 0 || insertedDim >= operandType.getRank())
+  auto checkInputDimInBounds = [&](ArrayRef<int64_t> dims, StringRef name) {
+    if (!operandTypeRanked) {
+      return success();
+    }
+    for (int64_t dim : dims)
+      if (dim < 0 || dim >= operandType.getRank())
         return emitOptionalError(
-            loc,
-            "Expects each element of inserted_window_dims to be in range "
-            "[0, rank-of('operand') i.e. [0, ",
-            operandType.getRank(), "). got: ", insertedDim, ".");
-  }
+            loc, "Expects each element of ", name,
+            " to be in range [0, rank-of('operand') i.e. [0, ",
+            operandType.getRank(), "). got: ", dim, ".");
+    return success();
+  };
 
   // scatter_c11
+  if (failed(
+          checkInputDimInBounds(insertedWindowDims, "inserted_window_dims"))) {
+    return failure();
+  }
+
+  // scatter_c12
+  if (!llvm::is_sorted(inputBatchingDims))
+    return emitOptionalError(loc,
+                             "Expects input_batching_dims to be sorted; got: [",
+                             inputBatchingDims, "].");
+
+  // scatter_c13
+  if (failed(checkInputDimInBounds(inputBatchingDims, "input_batching_dims"))) {
+    return failure();
+  }
+
+  // scatter_c14
+  if (!isUnique(scatterIndicesBatchingDims))
+    return emitOptionalError(
+        loc, "Expects scatter_indices_batching_dims to not repeat; got: [",
+        scatterIndicesBatchingDims, "].");
+
+  // scatter_c15
+  if (scatterIndicesTypeRanked) {
+    for (int64_t batchingDim : scatterIndicesBatchingDims) {
+      if (batchingDim < 0 || batchingDim >= scatterIndicesShape.size())
+        return emitOptionalError(
+            loc,
+            "Expects each element of scatter_indices_batching_dims to be in "
+            "range [0, rank-of('scatter_indices') i.e. [0, ",
+            scatterIndicesShape.size(), "). got: ", batchingDim, ".");
+    }
+  }
+
+  // scatter_c16
+  if (llvm::is_contained(scatterIndicesBatchingDims, indexVectorDim))
+    return emitOptionalError(loc,
+                             "expects scatter_indices_batching_dims not to "
+                             "include index_vector_dim ",
+                             indexVectorDim, ".");
+
+  // scatter_c17
+  if (inputBatchingDims.size() != scatterIndicesBatchingDims.size()) {
+    return emitOptionalError(
+        loc,
+        "input_batching_dims and scatter_indices_batching_dims "
+        "should have the same size.");
+  }
+
+  // scatter_c18
+  for (auto [index, dims] : llvm::enumerate(
+           llvm::zip(inputBatchingDims, scatterIndicesBatchingDims))) {
+    auto [inputDim, scatterIndicesDim] = dims;
+    int64_t inputDimSize = operandType.getDimSize(inputDim);
+    int64_t scatterIndicesDimSize = scatterIndicesShape[scatterIndicesDim];
+    if (!verifyCompatibleDims(inputDimSize, scatterIndicesDimSize))
+      return emitOptionalError(loc, "input_batching_dims[", index,
+                               "] and scatter_indices_batching_dims[", index,
+                               "] must have compatible sizes, but got ",
+                               inputDimSize, " and ", scatterIndicesDimSize,
+                               ".");
+  }
+
+  // scatter_c19
   if (scatterIndicesTypeRanked) {
     if (indexVectorDim == static_cast<int64_t>(scatterIndicesShape.size()) &&
         scatterDimsToOperandDims.size() != 1)
@@ -1270,13 +1351,13 @@ LogicalResult validateScatterDimensionNumbers(
                                ". These two numbers must be equal.");
   }
 
-  // scatter_c12
-  if (!isUnique(scatterDimsToOperandDims))
-    return emitOptionalError(
-        loc, "Expects scatter_dims_to_operand_dims to not repeat; got: [",
-        scatterDimsToOperandDims, "].");
+  // scatter_c20
+  if (failed(checkDimsDistinct(loc, scatterDimsToOperandDims, inputBatchingDims,
+                               "scatter_dims_to_operand_dims",
+                               "input_batching_dims")))
+    return failure();
 
-  // scatter_c13
+  // scatter_c21
   if (operandTypeRanked) {
     for (int64_t i = 0;
          i < static_cast<int64_t>(scatterDimsToOperandDims.size()); ++i) {
@@ -1297,19 +1378,18 @@ static LogicalResult verifyGather(
     std::optional<Location> location, ShapeAdaptor operandShape,
     ShapeAdaptor startIndicesShape, ShapeAdaptor sliceSizesShape,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
-    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim) {
-  // gather_c9
-  if (!isUnique(startIndexMap))
-    return emitOptionalError(location,
-                             "expects start_index_map to not repeat, got: [",
-                             startIndexMap, "]");
-
-  // gather_c10
-  for (int64_t i = 0; i < static_cast<int64_t>(startIndexMap.size()); ++i)
-    if (startIndexMap[i] < 0 || startIndexMap[i] >= operandShape.getRank())
-      return emitOptionalError(
-          location, "start_index_map[", i, "]: ", startIndexMap[i],
-          " is out of bounds for ", "operand rank ", operandShape.getRank());
+    ArrayRef<int64_t> operandBatchingDims,
+    ArrayRef<int64_t> startIndicesBatchingDims, ArrayRef<int64_t> startIndexMap,
+    int64_t indexVectorDim) {
+  // gather_c1
+  int64_t impliedOperandRank = offsetDims.size() + collapsedSliceDims.size() +
+                               operandBatchingDims.size();
+  if (operandShape.getRank() != impliedOperandRank)
+    return emitOptionalError(
+        location, "offset_dims size (", offsetDims.size(),
+        ") plus collapse_slice_dims size (", collapsedSliceDims.size(),
+        ") plus operand_batching_dims size (", operandBatchingDims.size(),
+        ") is not equal to operand rank (", operandShape.getRank(), ")");
 
   // gather_c2
   // index_vector_dim == start_indices.rank implies a trailing 1 on the
@@ -1343,42 +1423,110 @@ static LogicalResult verifyGather(
         location, "expects offset_dims to not repeat, got: [", offsetDims, "]");
 
   // gather_c6
+  if (failed(checkDimsDistinct(location, collapsedSliceDims,
+                               operandBatchingDims, "collapsed_slice_dims",
+                               "operand_batching_dims")))
+    return failure();
+
+  // gather_c7
   if (!llvm::is_sorted(collapsedSliceDims))
     return emitOptionalError(
         location, "expects collapsed_slice_dims to be sorted, got: [",
         collapsedSliceDims, "]");
-  if (!isUnique(collapsedSliceDims))
-    return emitOptionalError(
-        location, "expects collapsed_slice_dims to not repeat, got: [",
-        collapsedSliceDims, "]");
 
-  // gather_c1
-  int64_t impliedOperandRank = offsetDims.size() + collapsedSliceDims.size();
-  if (operandShape.getRank() != impliedOperandRank)
-    return emitOptionalError(
-        location, "offset_dims size (", offsetDims.size(),
-        ") plus collapse_slice_dims size (", collapsedSliceDims.size(),
-        ") is not equal to operand rank (", operandShape.getRank(), ")");
+  auto checkOperandDimInBounds = [&](ArrayRef<int64_t> dims, StringRef name) {
+    for (auto dim : dims) {
+      if (dim < 0 || dim >= operandShape.getRank())
+        return emitOptionalError(location, name, " dimension ", dim,
+                                 " is out of bounds for operand rank ",
+                                 operandShape.getRank());
+    }
+    return success();
+  };
 
-  // gather_i7
+  // gather_c8
+  if (failed(checkOperandDimInBounds(collapsedSliceDims, "collapsed"))) {
+    return failure();
+  }
+
+  // gather_c10
+  if (!llvm::is_sorted(operandBatchingDims))
+    return emitOptionalError(
+        location, "expects operand_batching_dims to be sorted, got: [",
+        operandBatchingDims, "]");
+
+  // gather_c11
+  if (failed(checkOperandDimInBounds(operandBatchingDims, "batching"))) {
+    return failure();
+  }
+
+  // gather_c13
+  if (!isUnique(startIndicesBatchingDims))
+    return emitOptionalError(
+        location, "expects start_indices_batching_dims to not repeat, got: [",
+        startIndicesBatchingDims, "]");
+
+  // gather_c14
+  for (int64_t dim : startIndicesBatchingDims)
+    if (dim < 0 || (dim >= startIndicesShape.getRank()))
+      return emitOptionalError(location, "start indices batching dimension ",
+                               dim, " is out of bounds for start indices rank ",
+                               startIndicesShape.getRank());
+
+  // gather_c15
+  if (llvm::is_contained(startIndicesBatchingDims, indexVectorDim))
+    return emitOptionalError(
+        location,
+        "expects start_indices_batching_dims not to include index_vector_dim ",
+        indexVectorDim);
+
+  // gather_c16
+  if (operandBatchingDims.size() != startIndicesBatchingDims.size()) {
+    return emitOptionalError(
+        location,
+        "operand_batching_dims and start_indices_batching_dims "
+        "should have the same size");
+  }
+
+  // gather_c17
+  for (auto [index, dims] : llvm::enumerate(
+           llvm::zip(operandBatchingDims, startIndicesBatchingDims))) {
+    auto [operandDim, startIndicesDim] = dims;
+    int64_t operandDimSize = operandShape.getDimSize(operandDim);
+    int64_t startIndicesDimSize =
+        startIndicesShape.getDimSize(startIndicesDim);
+    if (!verifyCompatibleDims(operandDimSize, startIndicesDimSize))
+      return emitOptionalError(location, "operand_batching_dims[", index,
+                               "] and start_indices_batching_dims[", index,
+                               "] must have compatible sizes, but got ",
+                               operandDimSize, " and ", startIndicesDimSize);
+  }
+
+  // gather_c18
+  if (failed(checkDimsDistinct(location, startIndexMap, operandBatchingDims,
+                               "start_index_map", "operand_batching_dims")))
+    return failure();
+
+  // gather_c19
+  for (int64_t i = 0; i < static_cast<int64_t>(startIndexMap.size()); ++i)
+    if (startIndexMap[i] < 0 || startIndexMap[i] >= operandShape.getRank())
+      return emitOptionalError(
+          location, "start_index_map[", i, "]: ", startIndexMap[i],
+          " is out of bounds for operand rank ", operandShape.getRank());
+
+  // gather_i9
   if (sliceSizesShape.getRank() != 1)
     return emitOptionalError(location, "slice_sizes.rank != 1 (got ",
                              sliceSizesShape.getRank(), ')');
+
   if (sliceSizesShape.hasStaticShape()) {
     int64_t sliceSize = sliceSizesShape.getNumElements();
 
-    // gather_c11
-    if (sliceSize != impliedOperandRank)
+    // gather_c20
+    if (sliceSize != operandShape.getRank())
       return emitOptionalError(location, "slice_sizes size (", sliceSize,
-                               ") not equal to (implied) operand rank (",
-                               impliedOperandRank, ")");
-
-    // gather_c7
-    for (auto dim : collapsedSliceDims)
-      if (dim < 0 || dim >= sliceSize)
-        return emitOptionalError(location, "collapsed dimension ", dim,
-                                 " is out of bounds for slice_sizes.size (",
-                                 sliceSize, ")");
+                               ") not equal to operand rank (",
+                               operandShape.getRank(), ")");
   }
 
   return success();
@@ -1389,27 +1537,30 @@ static void inferGatherShape(
     int64_t resultRank, llvm::function_ref<dimTy(int64_t)> getStartIndicesDim,
     llvm::function_ref<dimTy(int64_t)> getSliceDim,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
-    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
+    ArrayRef<int64_t> operandBatchingDims, int64_t indexVectorDim,
     SmallVectorImpl<dimTy>& shape) {
   // We don't necessarily know the rank of sliceSizes, but we do know that it
-  // can't be larger than the highest collapsed dimension. So go through those
-  // and populate the leading dimensions of adjustedSliceSizes. The trailing
-  // dimensions can just be adjusted by an offset.
-  const auto* maxCollapsedDimIt =
-      std::max_element(collapsedSliceDims.begin(), collapsedSliceDims.end());
-  int64_t maxCollapsedDim = -1;
-  if (maxCollapsedDimIt != collapsedSliceDims.end())
-    maxCollapsedDim = *maxCollapsedDimIt;
+  // can't be larger than the highest collapsed/batch dimension. So go through
+  // those and populate the leading dimensions of adjustedSliceSizes. The
+  // trailing dimensions can just be adjusted by an offset.
+  auto collapsedAndBatchDims =
+      llvm::concat<const int64_t>(collapsedSliceDims, operandBatchingDims);
+  auto maxOperandDimIt = std::max_element(collapsedAndBatchDims.begin(),
+                                          collapsedAndBatchDims.end());
+  int64_t maxOperandDim = -1;
+  if (maxOperandDimIt != collapsedAndBatchDims.end())
+    maxOperandDim = *maxOperandDimIt;
 
   SmallVector<dimTy> adjustedSliceSizePrefix;
-  for (int dimIndex = 0; dimIndex <= maxCollapsedDim; ++dimIndex) {
-    if (llvm::is_contained(collapsedSliceDims, dimIndex)) continue;
+  for (int dimIndex = 0; dimIndex <= maxOperandDim; ++dimIndex) {
+    if (llvm::is_contained(collapsedAndBatchDims, dimIndex)) continue;
     adjustedSliceSizePrefix.push_back(getSliceDim(dimIndex));
   }
   auto getAdjustedSliceDim = [&](int64_t index) -> dimTy {
     if (index < static_cast<int64_t>(adjustedSliceSizePrefix.size()))
       return adjustedSliceSizePrefix[index];
-    return getSliceDim(index + collapsedSliceDims.size());
+    return getSliceDim(index + collapsedSliceDims.size() +
+                       operandBatchingDims.size());
   };
 
   // Dimensions in the output that aren't offset dimensions are called batch
@@ -1444,11 +1595,11 @@ void reifyGatherDimSizes(int64_t resultRank,
                          llvm::function_ref<Value(int64_t)> getSliceDim,
                          ArrayRef<int64_t> offsetDims,
                          ArrayRef<int64_t> collapsedSliceDims,
-                         ArrayRef<int64_t> startIndexMap,
+                         ArrayRef<int64_t> operandBatchingDims,
                          int64_t indexVectorDim,
                          SmallVectorImpl<Value>& shape) {
   inferGatherShape<Value>(resultRank, getStartIndicesDim, getSliceDim,
-                          offsetDims, collapsedSliceDims, startIndexMap,
+                          offsetDims, collapsedSliceDims, operandBatchingDims,
                           indexVectorDim, shape);
 }
 
@@ -1456,7 +1607,7 @@ static LogicalResult inferGatherReturnTypeComponents(
     std::optional<Location> location, ShapeAdaptor operandShape,
     Value startIndices, llvm::function_ref<int64_t(int64_t)> getSliceDim,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
-    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
+    ArrayRef<int64_t> operandBatchingDims, int64_t indexVectorDim,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Type elementType = operandShape.getElementType();
   ShapeAdaptor startIndicesShape(startIndices.getType());
@@ -1477,10 +1628,10 @@ static LogicalResult inferGatherReturnTypeComponents(
     return startIndicesShape.getDimSize(index);
   };
 
-  // gather_c13
+  // gather_c22
   SmallVector<int64_t> shape;
   inferGatherShape<int64_t>(resultRank, getStartIndicesDim, getSliceDim,
-                            offsetDims, collapsedSliceDims, startIndexMap,
+                            offsetDims, collapsedSliceDims, operandBatchingDims,
                             indexVectorDim, shape);
 
   // The dimension sizes of result, corresponding to offset dimensions, depend
@@ -2088,32 +2239,16 @@ LogicalResult inferDotGeneralOp(
                              "lhs and rhs should have the same "
                              "number of contracting dimensions");
 
-  llvm::SmallDenseSet<int64_t> dimSet;
-  auto checkDimsDistinct =
-      [&](ArrayRef<int64_t> batchingDims, ArrayRef<int64_t> contractingDims,
-          llvm::SmallDenseSet<int64_t>& dimSet, llvm::StringRef lhs,
-          llvm::StringRef rhs) -> LogicalResult {
-    auto dims = llvm::concat<const int64_t>(batchingDims, contractingDims);
-    for (auto dim : dims) {
-      auto [_, wasInserted] = dimSet.insert(dim);
-      if (!wasInserted)
-        return emitOptionalError(location, "has duplicated dimension from ",
-                                 lhs, " and ", rhs, ": ", dim);
-    }
-    return success();
-  };
-
   // dot_general_c3
-  if (failed(checkDimsDistinct(lhsBatchingDimensions, lhsContractingDimensions,
-                               dimSet, "lhs_batching_dimensions",
-                               "lhs_contracting_dimensions")))
+  if (failed(checkDimsDistinct(
+          location, lhsBatchingDimensions, lhsContractingDimensions,
+          "lhs_batching_dimensions", "lhs_contracting_dimensions")))
     return failure();
 
-  dimSet.clear();
   // dot_general_c4
-  if (failed(checkDimsDistinct(rhsBatchingDimensions, rhsContractingDimensions,
-                               dimSet, "rhs_batching_dimensions",
-                               "rhs_contracting_dimensions")))
+  if (failed(checkDimsDistinct(
+          location, rhsBatchingDimensions, rhsContractingDimensions,
+          "rhs_batching_dimensions", "rhs_contracting_dimensions")))
     return failure();
 
   auto checkDimsInRange = [&](int64_t rank, ArrayRef<int64_t> dims,
@@ -2198,7 +2333,9 @@ LogicalResult inferDynamicGatherOp(
   if (failed(verifyGather(location, /*operandShape=*/operandShape,
                           /*startIndicesShape=*/startIndicesShape,
                           /*sliceSizesShape=*/sliceSizesShape, offsetDims,
-                          collapsedSliceDims, startIndexMap, indexVectorDim)))
+                          collapsedSliceDims, /*operandBatchingDims=*/{},
+                          /*startIndicesBatchingDims=*/{}, startIndexMap,
+                          indexVectorDim)))
     return failure();
 
   auto getSliceDim = [&](int64_t index) {
@@ -2209,7 +2346,8 @@ LogicalResult inferDynamicGatherOp(
   };
   return inferGatherReturnTypeComponents(
       location, operandShape, startIndices, getSliceDim, offsetDims,
-      collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);
+      collapsedSliceDims, /*operandBatchingDims=*/{}, indexVectorDim,
+      inferredReturnShapes);
 }
 
 LogicalResult inferDynamicSliceOp(
@@ -2402,8 +2540,9 @@ LogicalResult inferFftOp(
 LogicalResult inferGatherOp(
     std::optional<Location> location, Value operand, Value startIndices,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
-    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
-    ArrayRef<int64_t> sliceSizes,
+    ArrayRef<int64_t> operandBatchingDims,
+    ArrayRef<int64_t> startIndicesBatchingDims, ArrayRef<int64_t> startIndexMap,
+    int64_t indexVectorDim, ArrayRef<int64_t> sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ShapeAdaptor operandShape(operand.getType());
   ShapeAdaptor startIndicesShape(startIndices.getType());
@@ -2416,18 +2555,32 @@ LogicalResult inferGatherOp(
                           /*operandShape=*/operandShape,
                           /*startIndicesShape=*/startIndicesShape,
                           /*sliceSizesShape=*/sliceSizesShape, offsetDims,
-                          collapsedSliceDims, startIndexMap, indexVectorDim)))
+                          collapsedSliceDims, operandBatchingDims,
+                          startIndicesBatchingDims, startIndexMap,
+                          indexVectorDim)))
     return failure();
 
-  // gather_c8
-  for (auto dim : collapsedSliceDims) {
-    int64_t sliceDimSize = sliceSizes[dim];
-    if (sliceDimSize > 1)
-      return emitOptionalError(location, "slice_sizes collapsed dimension ",
-                               dim, " should <= 1 but got ", sliceDimSize);
+  auto checkSliceSizesOne = [&](ArrayRef<int64_t> dims, StringRef name) {
+    for (auto dim : dims) {
+      int64_t sliceDimSize = sliceSizes[dim];
+      if (sliceDimSize > 1)
+        return emitOptionalError(location, "slice_sizes ", name, " dimension ",
+                                 dim, " should <= 1 but got ", sliceDimSize);
+    }
+    return success();
+  };
+
+  // gather_c9
+  if (failed(checkSliceSizesOne(collapsedSliceDims, "collapsed"))) {
+    return failure();
   }
 
   // gather_c12
+  if (failed(checkSliceSizesOne(operandBatchingDims, "batching"))) {
+    return failure();
+  }
+
+  // gather_c21
   for (const auto& it : llvm::enumerate(sliceSizes)) {
     if (operandShape.isDynamicDim(it.index())) continue;
     auto operandDimSize = operandShape.getDimSize(it.index());
@@ -2444,7 +2597,8 @@ LogicalResult inferGatherOp(
 
   return inferGatherReturnTypeComponents(
       location, operandShape, startIndices, getSliceDim, offsetDims,
-      collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);
+      collapsedSliceDims, operandBatchingDims, indexVectorDim,
+      inferredReturnShapes);
 }
 
 LogicalResult inferGetDimensionSizeOp(
@@ -2791,7 +2945,7 @@ LogicalResult inferRngOp(
 LogicalResult inferScatterOp(std::optional<Location> location,
                              ValueRange inputs, Region& updateComputation,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
-  // scatter_c16, scatter_c17
+  // scatter_c24, scatter_c25
   auto accumulatorTypesOrErr = getAccumulatorTypes(location, updateComputation);
   if (failed(accumulatorTypesOrErr)) return failure();
   for (uint64_t inputIdx = 0; inputIdx < inputs.size(); ++inputIdx) {
@@ -4198,14 +4352,13 @@ LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,
   return success();
 }
 
-LogicalResult verifyScatterOp(std::optional<Location> location,
-                              ValueRange inputs, Value scatterIndices,
-                              ValueRange updates,
-                              ArrayRef<int64_t> updateWindowDims,
-                              ArrayRef<int64_t> insertedWindowDims,
-                              ArrayRef<int64_t> scatterDimsToOperandDims,
-                              int64_t indexVectorDim,
-                              Region& updateComputation) {
+LogicalResult verifyScatterOp(
+    std::optional<Location> location, ValueRange inputs, Value scatterIndices,
+    ValueRange updates, ArrayRef<int64_t> updateWindowDims,
+    ArrayRef<int64_t> insertedWindowDims, ArrayRef<int64_t> inputBatchingDims,
+    ArrayRef<int64_t> scatterIndicesBatchingDims,
+    ArrayRef<int64_t> scatterDimsToOperandDims, int64_t indexVectorDim,
+    Region& updateComputation) {
   // Get the first operand and update, since variadic Scatter is not yet
   // implemented
   auto numOperands = inputs.size();
@@ -4248,7 +4401,7 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
     initValueTypes.push_back(
         RankedTensorType::get({}, updatesTypes[i].getElementType()));
   }
-  // scatter_c6, scatter_c15
+  // scatter_c6, scatter_c23
   if (failed(verifyReducerShape(location, updateComputation.front(), inputTypes,
                                 initValueTypes,
                                 /*allowedDimensions=*/{})))
@@ -4284,14 +4437,14 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
     }
   }
 
-  // scatter_c2, scatter_c7...scatter_c13
+  // scatter_c2, scatter_c7...scatter_c21
   for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
     if (failed(validateScatterDimensionNumbers(
             operandTypes[i], expandedScatterIndicesShape, updatesTypes[i],
             isa<RankedTensorType>(operandTypes[i]), scatterIndicesTypeRanked,
             isa<RankedTensorType>(updatesTypes[i]), updateWindowDims,
-            insertedWindowDims, scatterDimsToOperandDims, indexVectorDim,
-            location)))
+            insertedWindowDims, inputBatchingDims, scatterIndicesBatchingDims,
+            scatterDimsToOperandDims, indexVectorDim, location)))
       return failure();
   }
 
@@ -4302,6 +4455,7 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
         auto operandShape = operandTypes[i].getShape();
 
         int64_t insertedDimsSeen = 0;
+        int64_t batchingDimsSeen = 0;
         SmallVector<int64_t> maxUpdateSliceSizes;
         const auto dimensionsSize = operandTypes[i].getRank();
         maxUpdateSliceSizes.reserve(dimensionsSize);
@@ -4310,6 +4464,10 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
                   static_cast<int64_t>(insertedWindowDims.size()) &&
               insertedWindowDims[insertedDimsSeen] == i)
             ++insertedDimsSeen;
+          else if (batchingDimsSeen <
+                       static_cast<int64_t>(inputBatchingDims.size()) &&
+                   inputBatchingDims[batchingDimsSeen] == i)
+            ++batchingDimsSeen;
           else
             maxUpdateSliceSizes.push_back(operandShape[i]);
         }

@@ -49,6 +49,8 @@ def StableHLO_ScatterDimensionNumbers : AttrDef<StableHLO_Dialect, "ScatterDimen
   let parameters = (ins
       StableHLO_Dims:$updateWindowDims,
       StableHLO_Dims:$insertedWindowDims,
+      StableHLO_Dims:$inputBatchingDims,
+      StableHLO_Dims:$scatterIndicesBatchingDims,
       StableHLO_Dims:$scatterDimsToOperandDims,
       "int64_t":$indexVectorDim
   );
@@ -61,6 +63,8 @@ def StableHLO_GatherDimensionNumbers : AttrDef<StableHLO_Dialect, "GatherDimensi
   let parameters = (ins
       StableHLO_Dims:$offsetDims,
       StableHLO_Dims:$collapsedSliceDims,
+      StableHLO_Dims:$operandBatchingDims,
+      StableHLO_Dims:$startIndicesBatchingDims,
       StableHLO_Dims:$startIndexMap,
       "int64_t":$indexVectorDim
   );
