@@ -19,8 +19,10 @@ add_mlir_library(StablehloReferenceApi
   LINK_LIBS PUBLIC
   MLIRIR
   MLIRParser
+  MLIRPass
   MLIRSupport
   InterpreterOps
+  StablehloPasses
   StablehloReferenceConfiguration
   StablehloReferenceErrors
   StablehloReferenceNumPy
