@@ -56,3 +56,16 @@ reviews:
          for [ops_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir).
       1. Follow guideline [#6](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md#after-implementing-the-op)
          for [infer_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir).
+  1. Evaluate the op for [side effects and
+     speculatability](https://mlir.llvm.org/docs/Rationale/SideEffectsAndSpeculation/).
+      1. If the op has no side effects and is always speculatable, give it the
+         `Pure` trait. This is rare, as most ops allow dynamic shapes, which may
+         lead to shape mismatches at runtime, which is undefined behavior. Some
+         ops can have undefined behavior in other situations as well. The vast
+         majority of ops do not have side effects (they should have the
+         `NoMemoryEffect` trait).
+      1. Most ops fall into one of the `HLO_SpeculatableIf*` traits. If the op
+         does not fit into any of those, give it the `ConditionallySpeculatable`
+         trait and implement the interface methods. Add tests to
+         `stablehlo/tests/ops_speculatability.mlir` to cover the speculatability
+         logic.
