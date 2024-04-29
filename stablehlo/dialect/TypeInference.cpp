@@ -3792,10 +3792,18 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
     }
   }
 
-  if (!isCompatibleForHloTypeInference(outputShape, resultType))
-    return emitOptionalError(
-        location, "output_shape is incompatible with return type of operation ",
-        resultType, ": ", outputShape);
+  if (SmallVector<int64_t> shape;
+      succeeded(matchInts(outputShape, shape)) &&
+      !isCompatibleForHloTypeInference(shape, resultType)) {
+    std::string str;
+    llvm::raw_string_ostream os(str);
+    os << "[";
+    llvm::interleaveComma(shape, os, [&](int64_t i) { os << i; });
+    os << "]";
+    return emitOptionalError(location, "output_shape ", os.str(),
+                             " is incompatible with return type of operation ",
+                             resultType);
+  }
   return success();
 }
 
