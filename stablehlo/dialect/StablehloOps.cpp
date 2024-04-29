@@ -1510,18 +1510,10 @@ LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
 }
 
 mlir::Speculation::Speculatability DynamicReshapeOp::getSpeculatability() {
-  // If the output type's shape is fully dynamic, there is no expectation
-  // for the shape so the op is speculatable.
-  if (llvm::all_of(llvm::seq(getType().getRank()),
-                   [this](int64_t i) { return getType().isDynamicDim(i); }))
-    return mlir::Speculation::Speculatable;
-
   // If the input is static and the shape operand is constant, the output
   // shape can be inferred and any mismatch will be caught statically.
-  // If any dimension in the input is dynamic, the number of elements may
-  // disagree with either the output.
-  // If the shape operand is not constant, it could disagree with the output,
-  // which has at least 1 static dimension at this point in the function.
+  // If any dimension in the input is dynamic, or if the shape is not known,
+  // the number of elements may disagree at runtime.
   if (getOperand().getType().hasStaticShape() &&
       matchPattern(getOutputShape(), m_Constant()))
     return mlir::Speculation::Speculatable;
