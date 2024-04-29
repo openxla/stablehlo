@@ -1347,10 +1347,12 @@ mlir::Speculation::Speculatability
 DynamicBroadcastInDimOp::getSpeculatability() {
   auto operandType = getOperand().getType();
 
-  // If input is dynamic, not speculatable.
+  // If input is dynamic, the broadcasting rules might be violated at runtime,
+  // so not speculatable.
   if (!operandType.hasStaticShape()) return mlir::Speculation::NotSpeculatable;
 
-  // If input is broadcastable (all 1's) and result is dynamic, speculatable.
+  // If input is broadcastable (all 1's) and result is fully dynamic,
+  // speculatable.
   auto resultDynamic =
       llvm::all_of(llvm::seq(getType().getRank()),
                    [this](int64_t i) { return getType().isDynamicDim(i); });
