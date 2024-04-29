@@ -3795,7 +3795,7 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
   if (!isCompatibleForHloTypeInference(outputShape, resultType))
     return emitOptionalError(
         location, "output_shape is incompatible with return type of operation ",
-        resultType);
+        resultType, ": ", outputShape);
   return success();
 }
 
