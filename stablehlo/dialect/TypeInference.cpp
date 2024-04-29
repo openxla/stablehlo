@@ -3702,6 +3702,22 @@ LogicalResult verifyDynamicBroadcastInDimOp(
                                " does not refer to a "
                                "valid operand dimension");
 
+  if (SmallVector<int64_t> shape;
+      operandType.hasStaticShape() &&
+      matchInts(outputDimensions, shape).succeeded()) {
+    for (auto [i, dimIndex] : llvm::enumerate(broadcastDimensions)) {
+      if (!operandType.isDynamicDim(i)) {
+        auto dimSize = operandType.getDimSize(i);
+        auto shapeDimSize = shape[dimIndex];
+        if (dimSize != 1 && dimSize != shapeDimSize)
+          return emitOptionalError(
+              location, "size of operand dimension ", i, " (", dimSize,
+              ") is not equal to 1 or value of shape at index ", dimIndex, " (",
+              shapeDimSize, ")");
+      }
+    }
+  }
+
   if (!isCompatibleForHloTypeInference(outputDimensions, resultType))
     return emitOptionalError(
         location,

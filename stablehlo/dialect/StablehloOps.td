@@ -1912,7 +1912,8 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
 }
 
 def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
-      [Pure, HLO_CompatibleOperandsAndResultElementType /*broadcast_in_dim_c1*/]> {
+      [HLO_SpeculatableIfAllInputsStatic, NoMemoryEffect,
+      HLO_CompatibleOperandsAndResultElementType /*broadcast_in_dim_c1*/]> {
   let summary = "BroadcastInDim operation";
   let description = [{
     Expands the dimensions and/or rank of an input tensor by duplicating the
@@ -1942,7 +1943,8 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
 }
 
 def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
-    "dynamic_broadcast_in_dim", [Pure]> {
+    "dynamic_broadcast_in_dim",
+    [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "DynamicBroadcastInDim operation";
   let description = [{
     This operation is a work in progress, so it is not yet included in
@@ -1983,6 +1985,11 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
   let assemblyFormat = [{
     $operand `,` $output_dimensions `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
       attr-dict `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Interface method for ConditionallySpeculatable.
+    mlir::Speculation::Speculatability getSpeculatability();
   }];
 }
 

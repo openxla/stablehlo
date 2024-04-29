@@ -420,6 +420,16 @@ func.func @tanh(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
 
 // -----
 
+// CHECK-LABEL: func @broadcast_in_dim
+// CHECK-NEXT:  return
+func.func @broadcast_in_dim(%static_arg: tensor<1x1xf64>, %dynamic_arg: tensor<?x?xf64>) {
+  %0 = stablehlo.broadcast_in_dim %static_arg, dims = [0, 1] : (tensor<1x1xf64>) -> tensor<3x3xf64>
+  "hlo_test_speculatability.is_speculatable"(%0) : (tensor<3x3xf64>) -> ()
+  %1 = stablehlo.broadcast_in_dim %dynamic_arg, dims = [0, 1] : (tensor<?x?xf64>) -> tensor<3x3xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%1) : (tensor<3x3xf64>) -> ()
+  return
+}
+
 // CHECK-LABEL: func @pad
 // CHECK-NEXT:  return
 func.func @pad(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>, %padding_value: tensor<f64>) {
@@ -1673,6 +1683,42 @@ func.func @scatter(
 // -----
 
 // Ops that take an output shape as operand
+
+// -----
+
+// CHECK-LABEL: func @dynamic_broadcast_in_dim
+// CHECK-NEXT:  return
+func.func @dynamic_broadcast_in_dim(
+  %static_arg_0: tensor<1x1xf64>, %static_arg_1: tensor<1x5xf64>,
+  %dynamic_arg: tensor<?x?xf64>,  %unknown_shape: tensor<2xi32>
+) {
+  %constant_shape = stablehlo.constant dense<[4, 5]> : tensor<2xi32>
+
+  // Static input, constant shape
+  %0 = stablehlo.dynamic_broadcast_in_dim %static_arg_0, %constant_shape, dims = [0, 1] : (tensor<1x1xf64>, tensor<2xi32>) -> tensor<4x5xf64>
+  "hlo_test_speculatability.is_speculatable"(%0) : (tensor<4x5xf64>) -> ()
+  %1 = stablehlo.dynamic_broadcast_in_dim %static_arg_0, %constant_shape, dims = [0, 1] : (tensor<1x1xf64>, tensor<2xi32>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?x?xf64>) -> ()
+
+  // Dynamic input
+  %2 = stablehlo.dynamic_broadcast_in_dim %dynamic_arg, %constant_shape, dims = [0, 1] : (tensor<?x?xf64>, tensor<2xi32>) -> tensor<4x5xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<4x5xf64>) -> ()
+  %3 = stablehlo.dynamic_broadcast_in_dim %dynamic_arg, %constant_shape, dims = [0, 1] : (tensor<?x?xf64>, tensor<2xi32>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%3) : (tensor<?x?xf64>) -> ()
+
+  // Unknown shape, but all dimensions are 1 so must be broadcastable
+  %4 = stablehlo.dynamic_broadcast_in_dim %static_arg_0, %unknown_shape, dims = [0, 1] : (tensor<1x1xf64>, tensor<2xi32>) -> tensor<4x5xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<4x5xf64>) -> ()
+  %5 = stablehlo.dynamic_broadcast_in_dim %static_arg_0, %unknown_shape, dims = [0, 1] : (tensor<1x1xf64>, tensor<2xi32>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_speculatable"(%5) : (tensor<?x?xf64>) -> ()
+
+  // Unknown shape, but not all dimensions are 1
+  %6 = stablehlo.dynamic_broadcast_in_dim %static_arg_1, %unknown_shape, dims = [0, 1] : (tensor<1x5xf64>, tensor<2xi32>) -> tensor<4x5xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%6) : (tensor<4x5xf64>) -> ()
+  %7 = stablehlo.dynamic_broadcast_in_dim %static_arg_1, %unknown_shape, dims = [0, 1] : (tensor<1x5xf64>, tensor<2xi32>) -> tensor<?x?xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%7) : (tensor<?x?xf64>) -> ()
+  return
+}
 
 // -----
 
