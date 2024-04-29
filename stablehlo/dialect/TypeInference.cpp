@@ -3717,8 +3717,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   if (SmallVector<int64_t> shape;
       operandType.hasStaticShape() &&
       matchInts(outputDimensions, shape).succeeded()) {
-    for (int64_t i = 0; i != bcastDimensionsSize; ++i) {
-      auto dimIndex = broadcastDimensions[i];
+    for (auto [i, dimIndex] : llvm::enumerate(broadcastDimensions)) {
       if (!operandType.isDynamicDim(i)) {
         auto dimSize = operandType.getDimSize(i);
         auto shapeDimSize = shape[dimIndex];
