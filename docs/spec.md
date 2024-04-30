@@ -2637,41 +2637,40 @@ planning to address this in
 
 #### Semantics
 
-Fills an `output` tensor with values in increasing order starting from zero
-along the `iota_dimension` dimension. `output` tensor shape is specified
-dynamically via `output_shape` input. More formally,
+Fills a `result` tensor with values in increasing order starting from zero
+along the `iota_dimension` dimension. `result` shape is provided
+dynamically via `output_shape` input.
 
-`output[result_index] = constant(is_quantized(output) ?
-quantize(result_index[iota_dimension], element_type(output)) :
-result_index[iota_dimension], element_type(output))`.
+Informally, the op does the same thing as
+[`iota`](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#iota) op
+except that the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 
 | Label | Name             | Type                                                                               | Constraints |
 |-------|------------------|------------------------------------------------------------------------------------|-------------|
 | (I1)  | `iota_dimension` | `si64`                                                                             | (C1)        |
-| (I2)  | `output_shape`   | 1-dimensional tensor constant of type `si64`                                       | (C1), (C2)  |
+| (I2)  | `output_shape`   | 1-dimensional tensor constant of type `si64`                                       | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                                             | Constraints |
-|----------|----------------------------------------------------------------------------------|-------------|
-| `output` | tensor of integer, floating-point or complex type or per-tensor quantized tensor | (C2)        |
+| Name     | Type                                                                              | Constraints |
+|----------|-----------------------------------------------------------------------------------|-------------|
+| `result` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor |             |
 
 #### Constraints
 
 * (C1) `0 <= iota_dimension < size(output_shape)`.
-* (C2) `shape(output) = output_shape`.
 
 #### Examples
 
 ```mlir
 
 // %output_shape = [4, 5]
-%output = "stablehlo.dynamic_iota"(%output_shape) {
+%result = "stablehlo.dynamic_iota"(%output_shape) {
   iota_dimension = 0 : i64
-} : (tensor<2xi64>) -> tensor<?x?xi32>
-// %output: [
+} : (tensor<2xi64>) -> tensor<?x?xi64>
+// %result: [
 //           [0, 0, 0, 0, 0],
 //           [1, 1, 1, 1, 1],
 //           [2, 2, 2, 2, 2],
@@ -3370,9 +3369,9 @@ result_index[iota_dimension], element_type(output))`.
 
 #### Outputs
 
-| Name     | Type                                                                             | Constraints |
-|----------|----------------------------------------------------------------------------------|-------------|
-| `output` | tensor of integer, floating-point or complex type or per-tensor quantized tensor | (C1)        |
+| Name     | Type                                                                              | Constraints |
+|----------|-----------------------------------------------------------------------------------|-------------|
+| `output` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
