@@ -416,6 +416,38 @@ func.func @tanh(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
 
 // -----
 
+// CHECK-LABEL: func @uniform_quantize
+// CHECK-NEXT:  return
+func.func @uniform_quantize(%static_arg: tensor<2xf64>, %dynamic_arg: tensor<?xf64>) {
+  %0 = stablehlo.uniform_quantize %static_arg : (tensor<2xf64>) -> tensor<2x!quant.uniform<ui8:f64, 34.0:16>>
+  "hlo_test_speculatability.is_speculatable"(%0) : (tensor<2x!quant.uniform<ui8:f64, 34.0:16>>) -> ()
+  %1 = stablehlo.uniform_quantize %static_arg : (tensor<2xf64>) -> tensor<?x!quant.uniform<ui8:f64, 34.0:16>>
+  "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?x!quant.uniform<ui8:f64, 34.0:16>>) -> ()
+  %2 = stablehlo.uniform_quantize %dynamic_arg : (tensor<?xf64>) -> tensor<2x!quant.uniform<ui8:f64, 34.0:16>>
+  "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<2x!quant.uniform<ui8:f64, 34.0:16>>) -> ()
+  %3 = stablehlo.uniform_quantize %dynamic_arg : (tensor<?xf64>) -> tensor<?x!quant.uniform<ui8:f64, 34.0:16>>
+  "hlo_test_speculatability.is_speculatable"(%3) : (tensor<?x!quant.uniform<ui8:f64, 34.0:16>>) -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @uniform_dequantize
+// CHECK-NEXT:  return
+func.func @uniform_dequantize(%static_arg: tensor<2x!quant.uniform<ui8:f64, 34.0:16>>, %dynamic_arg: tensor<?x!quant.uniform<ui8:f64, 34.0:16>>) {
+  %0 = stablehlo.uniform_dequantize %static_arg : (tensor<2x!quant.uniform<ui8:f64, 34.0:16>>) -> tensor<2xf64>
+  "hlo_test_speculatability.is_speculatable"(%0) : (tensor<2xf64>) -> ()
+  %1 = stablehlo.uniform_dequantize %static_arg : (tensor<2x!quant.uniform<ui8:f64, 34.0:16>>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?xf64>) -> ()
+  %2 = stablehlo.uniform_dequantize %dynamic_arg : (tensor<?x!quant.uniform<ui8:f64, 34.0:16>>) -> tensor<2xf64>
+  "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<2xf64>) -> ()
+  %3 = stablehlo.uniform_dequantize %dynamic_arg : (tensor<?x!quant.uniform<ui8:f64, 34.0:16>>) -> tensor<?xf64>
+  "hlo_test_speculatability.is_speculatable"(%3) : (tensor<?xf64>) -> ()
+  return
+}
+
+// -----
+
 // Other unary ops
 
 // -----
