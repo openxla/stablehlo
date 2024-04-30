@@ -144,6 +144,7 @@ pip install  install -r ./llvm-project/mlir/python/requirements.txt
 ```
 
 Then build StableHLO with python bindings enabled:
+
 ```sh
 STABLEHLO_ENABLE_BINDINGS_PYTHON=ON ./build_tools/github_actions/ci_build_cmake.sh ${PWD}/llvm-build ${PWD}/build
 ```
