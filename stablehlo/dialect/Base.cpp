@@ -688,11 +688,11 @@ bool isValidQuantizedDimension(Type type) {
 
   // quantized_type_c12, quantized_type_c13, quantized_type_c14
   int64_t quantDim = quantizedPerAxisElementType.getQuantizedDimension();
+  int64_t numScales =
+      static_cast<int64_t>(quantizedPerAxisElementType.getScales().size());
   return quantDim >= 0 && quantDim < rankedType.getRank() &&
          (!rankedType.isDynamicDim(quantDim) &&
-          static_cast<int64_t>(
-              quantizedPerAxisElementType.getScales().size()) ==
-              rankedType.getDimSize(quantDim));
+          numScales == rankedType.getDimSize(quantDim));
 }
 
 }  // namespace hlo
