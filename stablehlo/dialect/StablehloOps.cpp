@@ -1602,7 +1602,7 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
 }
 
 mlir::Speculation::Speculatability RealDynamicSliceOp::getSpeculatability() {
-  return hlo::getShapedSpeculatability(getOperation(), /*count=*/3);
+  return hlo::getShapedSpeculatability(getOperation(), /*shapeCount=*/3);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2153,7 +2153,7 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
 }
 
 mlir::Speculation::Speculatability DynamicPadOp::getSpeculatability() {
-  return hlo::getShapedSpeculatability(getOperation(), /*count=*/3);
+  return hlo::getShapedSpeculatability(getOperation(), /*shapeCount=*/3);
 }
 
 //===----------------------------------------------------------------------===//
