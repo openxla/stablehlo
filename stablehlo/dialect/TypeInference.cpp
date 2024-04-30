@@ -3625,24 +3625,22 @@ LogicalResult verifyDotGeneralOpQuantizationConstraints(
   if (auto rhsPerTensorQuantType =
           dyn_cast<quant::UniformQuantizedType>(rhsElementType)) {
     if (rhsPerTensorQuantType.getZeroPoint() != 0) {
-      return emitOptionalError(location,
-                               "Zero point of rhs of dot_general should be 0");
+      return emitOptionalError(location, "Zero point of rhs should be 0");
     }
   } else if (auto rhsPerAxisQuantType =
                  dyn_cast<quant::UniformQuantizedPerAxisType>(rhsElementType)) {
     if (llvm::any_of(rhsPerAxisQuantType.getZeroPoints(),
                      [](int64_t zero_point) { return zero_point != 0; })) {
-      return emitOptionalError(location,
-                               "Zero points of rhs of dot_general should be 0");
+      return emitOptionalError(location, "Zero points of rhs should be 0");
     }
 
     // dot_general_c16
-    if (llvm::find(rhsContractingDimensions,
-                   rhsPerAxisQuantType.getQuantizedDimension()) !=
-        rhsContractingDimensions.end()) {
-      return emitOptionalError(location,
-                               "Quantization dimension should not be a "
-                               "contracting dimension of rhs");
+    if (llvm::is_contained(rhsContractingDimensions,
+                           rhsPerAxisQuantType.getQuantizedDimension())) {
+      return emitOptionalError(
+          location,
+          "Quantization dimension of rhs should not be in the "
+          "contracting dimension of rhs");
     }
   }
 

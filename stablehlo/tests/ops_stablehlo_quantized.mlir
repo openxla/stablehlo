@@ -1095,7 +1095,7 @@ func.func @dot_general_c14(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5x!quant.
 // -----
 
 func.func @dot_general_c15_per_tensor(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5x!quant.uniform<i8:f32, 1.0:30>>) -> tensor<2x4x5xf32> {
-  // expected-error@+1 {{Zero point of rhs of dot_general should be 0}}
+  // expected-error@+1 {{Zero point of rhs should be 0}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
@@ -1112,7 +1112,7 @@ func.func @dot_general_c15_per_tensor(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x
 func.func @dot_general_c15_per_axis(
   %arg0: tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>,
   %arg1: tensor<2x3x5x!quant.uniform<i8:f32:0, {0.1:10}>>) -> tensor<2x4x5x!quant.uniform<i8:f32:0, {0.1:-30}>> {
-  // expected-error@+1 {{Zero points of rhs of dot_general should be 0}}
+  // expected-error@+1 {{Zero points of rhs should be 0}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
@@ -1130,7 +1130,7 @@ func.func @dot_general_c15_per_axis(
 func.func @dot_general_c16(
   %arg0: tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>,
   %arg1: tensor<2x3x5x!quant.uniform<i8:f32:0, {0.1:0}>>) -> tensor<2x4x5x!quant.uniform<i8:f32:0, {0.1:-30}>> {
-  // expected-error@+1 {{Quantization dimension should not be a contracting dimension of rhs}}
+  // expected-error@+1 {{Quantization dimension of rhs should not be in the contracting dimension of rhs}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [1],
