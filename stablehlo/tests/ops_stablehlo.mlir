@@ -1026,7 +1026,7 @@ func.func @dynamic_broadcast_in_dim_shape_mismatch(%arg0: tensor<32xf32>, %shape
 // -----
 
 func.func @dynamic_broadcast_in_dim_output_dimensions_negative_size(%arg0: tensor<4xf32>) -> tensor<3x4xf32> {
-  // @expected-error@+2 {{output_dimensions are incompatible with return type of operation 'tensor<3x4xf32>'}}
+  // @expected-error@+2 {{output shape [-1, 4] is incompatible with return type of operation 'tensor<3x4xf32>'}}
   %0 = stablehlo.constant dense<[-1, 4]> : tensor<2xi64>
   %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<3x4xf32>
   return %1 : tensor<3x4xf32>
@@ -1035,7 +1035,7 @@ func.func @dynamic_broadcast_in_dim_output_dimensions_negative_size(%arg0: tenso
 // -----
 
 func.func @dynamic_broadcast_in_dim_output_dimensions_mismatching_size(%arg0: tensor<4xf32>) -> tensor<3x4xf32> {
-  // @expected-error@+2 {{output_dimensions are incompatible with return type of operation 'tensor<3x4xf32>'}}
+  // @expected-error@+2 {{output shape [1, 4] is incompatible with return type of operation 'tensor<3x4xf32>'}}
   %0 = stablehlo.constant dense<[1, 4]> : tensor<2xi64>
   %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<3x4xf32>
   return %1 : tensor<3x4xf32>
@@ -3174,7 +3174,7 @@ func.func @dynamic_reshape_incompatible_shapes(%arg0: tensor<?xf32>, %shape: ten
 // -----
 
 func.func @dynamic_reshape_output_shape_mismatching_size(%arg0: tensor<4xf32>) -> tensor<1x4xf32> {
-  // expected-error@+2 {{output_shape [2, 2] is incompatible with return type of operation 'tensor<1x4xf32>'}}
+  // expected-error@+2 {{output shape [2, 2] is incompatible with return type of operation 'tensor<1x4xf32>'}}
   %0 = stablehlo.constant dense<[2, 2]> : tensor<2xi64>
   %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x4xf32>
   return %1 : tensor<1x4xf32>
@@ -5431,7 +5431,7 @@ func.func @dynamic_iota_invalid_iota_dimension_too_big() -> tensor<?xf32> {
 // -----
 
 func.func @dynamic_iota_output_shape_negative_size() -> tensor<4xf32> {
-  // @expected-error@+2 {{output_shape is incompatible with return type of operation 'tensor<4xf32>'}}
+  // @expected-error@+2 {{output shape [-1] is incompatible with return type of operation 'tensor<4xf32>'}}
   %0 = stablehlo.constant dense<[-1]> : tensor<1xi64>
   %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<4xf32>
   func.return %1 : tensor<4xf32>
@@ -5440,7 +5440,7 @@ func.func @dynamic_iota_output_shape_negative_size() -> tensor<4xf32> {
 // -----
 
 func.func @dynamic_iota_output_shape_mismatching_size() -> tensor<4xf32> {
-  // @expected-error@+2 {{output_shape is incompatible with return type of operation 'tensor<4xf32>'}}
+  // @expected-error@+2 {{output shape [1] is incompatible with return type of operation 'tensor<4xf32>'}}
   %0 = stablehlo.constant dense<[1]> : tensor<1xi64>
   %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<4xf32>
   func.return %1 : tensor<4xf32>

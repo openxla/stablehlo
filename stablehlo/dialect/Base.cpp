@@ -132,6 +132,7 @@ bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2) {
 }
 
 bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2) {
+  if (llvm::any_of(shape1, [&](int64_t x) { return x < 0; })) return false;
   auto stp2 = dyn_cast<ShapedType>(tp2);
   if (!stp2) return false;
   return isCompatibleForHloTypeInference(
@@ -141,11 +142,7 @@ bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2) {
 bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
   SmallVector<int64_t> shapeVec1;
   if (!succeeded(matchInts(shape1, shapeVec1))) return true;
-  if (llvm::any_of(shapeVec1, [&](int64_t x) { return x < 0; })) return false;
-  auto stp2 = dyn_cast<ShapedType>(tp2);
-  if (!stp2) return false;
-  auto tp1 = RankedTensorType::get(shapeVec1, stp2.getElementType());
-  return isCompatibleForHloTypeInference(tp1, tp2);
+  return isCompatibleForHloTypeInference(shapeVec1, tp2);
 }
 
 LogicalResult matchInt(Value value, int64_t& result) {
