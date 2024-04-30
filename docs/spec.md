@@ -333,7 +333,7 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
 * "Dynamism" category of StableHLO operations - they were bootstrapped from
    MHLO, but we haven't specced them yet: `compute_reshape_shape`,
   `cstr_reshapable`, `dynamic_broadcast_in_dim`, `dynamic_conv`,
-  `dynamic_gather`, `dynamic_iota`, `dynamic_pad`, `dynamic_reshape`,
+  `dynamic_gather`, `dynamic_pad`, `dynamic_reshape`,
   `real_dynamic_slice`, `set_dimension_size`
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
 * Shape computations, including `arith`, `shape` and `tensor` operations
@@ -2632,6 +2632,52 @@ planning to address this in
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dot_general.mlir)
+
+### dynamic_iota
+
+#### Semantics
+
+Fills an `output` tensor with values in increasing order starting from zero
+along the `iota_dimension` dimension. `output` tensor shape is specified
+dynamically via `output_shape` input. More formally,
+
+`output[result_index] = constant(is_quantized(output) ?
+quantize(result_index[iota_dimension], element_type(output)) :
+result_index[iota_dimension], element_type(output))`.
+
+#### Inputs
+
+| Label | Name             | Type                                                                               | Constraints |
+|-------|------------------|------------------------------------------------------------------------------------|-------------|
+| (I1)  | `iota_dimension` | `si64`                                                                             | (C1)        |
+| (I2)  | `output_shape`   | 1-dimensional tensor constant of type `si64`                                       | (C1), (C2)  |
+
+#### Outputs
+
+| Name     | Type                                                                             | Constraints |
+|----------|----------------------------------------------------------------------------------|-------------|
+| `output` | tensor of integer, floating-point or complex type or per-tensor quantized tensor | (C2)        |
+
+#### Constraints
+
+* (C1) `0 <= iota_dimension < size(output_shape)`.
+* (C2) `shape(output) = output_shape`.
+
+#### Examples
+
+```mlir
+
+// %output_shape = [4, 5]
+%output = "stablehlo.dynamic_iota"(%output_shape) {
+  iota_dimension = 0 : i64
+} : (tensor<2xi64>) -> tensor<?x?xi32>
+// %output: [
+//           [0, 0, 0, 0, 0],
+//           [1, 1, 1, 1, 1],
+//           [2, 2, 2, 2, 2],
+//           [3, 3, 3, 3, 3]
+//          ]
+```
 
 ### dynamic_slice
 
