@@ -1290,7 +1290,8 @@ LogicalResult validateScatterDimensionNumbers(
   // scatter_c15
   if (scatterIndicesTypeRanked) {
     for (int64_t batchingDim : scatterIndicesBatchingDims) {
-      if (batchingDim < 0 || batchingDim >= scatterIndicesShape.size())
+      if (batchingDim < 0 ||
+          batchingDim >= static_cast<int64_t>(scatterIndicesShape.size()))
         return emitOptionalError(
             loc,
             "Expects each element of scatter_indices_batching_dims to be in "
@@ -1493,8 +1494,7 @@ static LogicalResult verifyGather(
            llvm::zip(operandBatchingDims, startIndicesBatchingDims))) {
     auto [operandDim, startIndicesDim] = dims;
     int64_t operandDimSize = operandShape.getDimSize(operandDim);
-    int64_t startIndicesDimSize =
-        startIndicesShape.getDimSize(startIndicesDim);
+    int64_t startIndicesDimSize = startIndicesShape.getDimSize(startIndicesDim);
     if (!verifyCompatibleDims(operandDimSize, startIndicesDimSize))
       return emitOptionalError(location, "operand_batching_dims[", index,
                                "] and start_indices_batching_dims[", index,
