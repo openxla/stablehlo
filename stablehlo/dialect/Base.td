@@ -372,8 +372,8 @@ def HLO_SpeculatableIfAllInputsStaticAndShapeConstantImplTrait
   : HLO_NativeOpTrait<"SpeculatableIfAllInputsStaticAndShapeConstantImplTrait">;
 
 // This trait is the same as HLO_SpeculatableIfAllInputsStatic, but for ops that
-// take a shape as their last operand. Such ops are speculatable if either the
-// output is dynamic or all inputs are static and the shape is constant.
+// take a shape as their last operand. Such ops are speculatable if all inputs
+// are static and the shape is constant.
 def HLO_SpeculatableIfAllInputsStaticAndShapeConstant : TraitList<[
     ConditionallySpeculatable, HLO_SpeculatableIfAllInputsStaticAndShapeConstantImplTrait]>;
 

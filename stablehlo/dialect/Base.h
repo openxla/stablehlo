@@ -257,8 +257,8 @@ void writeEnumAttribute(EnumTypeAttr val, DialectBytecodeWriter &writer) {
 
 // Determines the speculatability for a shaped operation `op` with `shapeCount`
 // shape operands. The last `count` operands are assumed to be shape operands.
-// To be speculatable, such an op must either have a fully dynamic result type
-// or have only static inputs and constant shape operands.
+// To be speculatable, such an op must have only static inputs and constant
+// shape operands.
 mlir::Speculation::Speculatability getShapedSpeculatability(Operation *op,
                                                             int64_t shapeCount);
 
