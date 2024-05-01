@@ -45,7 +45,7 @@ consume StableHLO as an input source and leverage VHLO versioning facilities. In
 order to achieve this goal, we propose the following changes to the StableHLO
 compatibility - please let us know of any feedback you have!
 
-**Proposed Compatibility Window**
+#### Proposed Compatibility Window
 
 On average, Android phones receive 3 years of OS update guarantee(e.g. Pixel
 update Policy, update policy from other companies), and such OS updates must not
@@ -56,7 +56,7 @@ supported OS, so we would also like to propose a 3 year forward compatibility
 window. And we would like to work with you to determine when should the
 compatibility window be extended.
 
-**Proposed VHLO Compatibility Guarantees**
+#### Proposed VHLO Compatibility Guarantees
 
 Up until this point the StableHLO project has focused on compatibility
 guarantees from the opset perspective, without providing specific guarantees for
@@ -72,7 +72,7 @@ a change to Operator behavior. (i.e. `add_v1 → add_v2`).
 window using machinery maintained in the openxla/stablehlo repository (i.e. not
 an external tool).
 
-**Proposed Documentation Enhancement**
+#### Proposed Documentation Enhancement
 
 For developers that could be interacting directly with this serialized VHLO, we
 propose a documentation enhancement. Namely, there must be an easy way to access
