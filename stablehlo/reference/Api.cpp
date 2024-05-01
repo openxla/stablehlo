@@ -151,8 +151,8 @@ LogicalResult validateEntrySignature(func::FuncOp func,
 // Returns:
 //   A `LogicalResult` indicating success or failure of the shape
 //   refinement pipeline.
-LogicalResult refinePolymorphicModule(ModuleOp module, func::FuncOp func,
-                                      ArrayRef<InterpreterValue> inputs) {
+LogicalResult removeDynamism(ModuleOp module, func::FuncOp func,
+                             ArrayRef<InterpreterValue> inputs) {
   if (llvm::all_of(func.getArgumentTypes(), [](Type type) {
         return llvm::cast<ShapedType>(type).hasStaticShape();
       })) {
@@ -163,7 +163,7 @@ LogicalResult refinePolymorphicModule(ModuleOp module, func::FuncOp func,
       inputs, [](InterpreterValue input) { return input.getType(); }));
 
   PassManager pm(module.getContext());
-  stablehlo::createStablehloRefinePolymorphicModule(pm, refinedTypes);
+  stablehlo::createStablehloRemoveDynamismPipeline(pm, refinedTypes);
   if (failed(pm.run(module))) {
     return func.emitError("Failed to refine dynamic shape in function: ")
            << func.getName();
@@ -183,8 +183,7 @@ FailureOr<SmallVector<InterpreterValue>> evalModule(
     return SmallVector<InterpreterValue>();
 
   auto mainFunc = getMainFunction(module, config.mainFunction);
-  if (failed(mainFunc) ||
-      failed(refinePolymorphicModule(module, *mainFunc, inputs)) ||
+  if (failed(mainFunc) || failed(removeDynamism(module, *mainFunc, inputs)) ||
       failed(validateEntrySignature(*mainFunc, inputs))) {
     return failure();
   }

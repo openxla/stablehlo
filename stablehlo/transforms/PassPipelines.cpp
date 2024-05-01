@@ -28,8 +28,8 @@ void createStablehloDeserializePipeline(OpPassManager &pm) {
   pm.addPass(stablehlo::createVhloLegalizeToStablehloPass());
 }
 
-void createStablehloRefinePolymorphicModule(OpPassManager &pm,
-                                            TypeRange refinedTypes) {
+void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
+                                           TypeRange refinedTypes) {
   pm.addPass(stablehlo::createStablehloRefineArgumentsPass(refinedTypes));
   pm.addPass(stablehlo::createStablehloRefineShapesPass());
   pm.addNestedPass<mlir::func::FuncOp>(
