@@ -7,7 +7,8 @@ Discussion thread: [openxla-discuss][openxla-discuss-post].
 
 ## Summary
 
-**Proposal:** 5yrs backward compatibility, 2yrs forward compatibility.
+**Proposal:** For StableHLO v1.0 Release, provide 5yrs backward compatibility,
+2yrs forward compatibility.
 
 ML Models deployed on-device (eg., Android) need strict backward and forward
 compatibility guarantees.
