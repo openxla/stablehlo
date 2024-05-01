@@ -2650,17 +2650,18 @@ except that the result shape is specified dynamically via `output_shape`.
 | Label | Name             | Type                                                                               | Constraints |
 |-------|------------------|------------------------------------------------------------------------------------|-------------|
 | (I1)  | `iota_dimension` | `si64`                                                                             | (C1)        |
-| (I2)  | `output_shape`   | 1-dimensional tensor constant of type `si64`                                       | (C1)        |
+| (I2)  | `output_shape`   | 1-dimensional tensor constant of type `si64`                                       | (C1), (C2)  |
 
 #### Outputs
 
 | Name     | Type                                                                              | Constraints |
 |----------|-----------------------------------------------------------------------------------|-------------|
-| `result` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor |             |
+| `result` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor |     (C2)    |
 
 #### Constraints
 
 * (C1) `0 <= iota_dimension < size(output_shape)`.
+* (C2) `rank(result) = size(output_shape)`.
 
 #### Examples
 
