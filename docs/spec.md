@@ -2639,11 +2639,13 @@ planning to address this in
 
 Fills a `result` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. `result` shape is provided
-dynamically via `output_shape` input.
+dynamically via `output_shape`.
 
-Informally, the op does the same thing as
-[`iota`](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#iota) op
-except that the result shape is specified dynamically via `output_shape`.
+More formally, for all `result_index` in `index_space(output_shape)`,
+
+`result[result_index] = constant(is_quantized(result) ?
+quantize(result_index[iota_dimension], element_type(result)) :
+result_index[iota_dimension], element_type(result))`.
 
 #### Inputs
 
