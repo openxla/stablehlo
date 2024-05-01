@@ -45,17 +45,6 @@ consume StableHLO as an input source and leverage VHLO versioning facilities. In
 order to achieve this goal, we propose the following changes to the StableHLO
 compatibility - please let us know of any feedback you have!
 
-#### Proposed Compatibility Window
-
-On average, Android phones receive 3 years of OS update guarantee(e.g. Pixel
-update Policy, update policy from other companies), and such OS updates must not
-break existing models on-device. Given that, we would like to propose a backward
-compatibility window of 3 years for StableHLO to support this use case.
-Additionally, new models that don’t use new features must be runnable on these
-supported OS, so we would also like to propose a 3 year forward compatibility
-window. And we would like to work with you to determine when should the
-compatibility window be extended.
-
 #### Proposed VHLO Compatibility Guarantees
 
 Up until this point the StableHLO project has focused on compatibility
