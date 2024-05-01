@@ -91,5 +91,4 @@ mechanisms to meet their developers platform stability requirements and assess
 if there is any scope to further refine the compatibility window in a future
 RFC.
 
-
 [openxla-discuss-post]: https://groups.google.com/a/openxla.org/g/openxla-discuss/c/rfd30zKR9uU/m/khMs-1ZEAAAJ
