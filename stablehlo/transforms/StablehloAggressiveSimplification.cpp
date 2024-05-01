@@ -784,7 +784,7 @@ struct UnusedResultReduceOpCanon final
       addToWorkList(retOp.getOperand(resultNo));
       while (!workList.empty()) {
         auto definition = workList.pop_back_val();
-        if (auto blockArg = definition.dyn_cast<BlockArgument>()) {
+        if (auto blockArg = dyn_cast<BlockArgument>(definition)) {
           // using one argument implies using the whole argument pair
           const auto pairNo = blockArg.getArgNumber() % numOperandPairs;
           usedArgs.set(pairNo);
