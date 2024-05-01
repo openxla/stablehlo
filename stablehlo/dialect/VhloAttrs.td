@@ -144,6 +144,13 @@ def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1", "0.9.0", "current"> {
   let assemblyFormat = "`<` custom<EscapedString>($value) `>`";
 }
 
+// Corresponds to Function SymbolRef from the StableHLO spec.
+def VHLO_SymbolRefAttrV1 : VHLO_AttrDef<"SymbolRefV1", "0.20.0", "current"> {
+  let mnemonic = "symbolref_v1";
+  let parameters = (ins StringRefParameter<"">:$value);
+  let assemblyFormat = "`<` custom<EscapedString>($value) `>`";
+}
+
 // Corresponds to TensorConstant from the StableHLO spec.
 def VHLO_TensorDataV1 : AttrParameter<"::llvm::ArrayRef<char>", ""> {
   let allocator = "$_dst = $_allocator.copyInto($_self);";

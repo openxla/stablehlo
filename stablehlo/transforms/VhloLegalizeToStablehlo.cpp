@@ -141,6 +141,9 @@ Attribute convertGeneric(Attribute vhloAttr,
   if (auto attr = dyn_cast<vhlo::StringV1Attr>(vhloAttr)) {
     return StringAttr::get(attr.getContext(), attr.getValue());
   }
+  if (auto attr = dyn_cast<vhlo::SymbolRefV1Attr>(vhloAttr)) {
+    return FlatSymbolRefAttr::get(attr.getContext(), attr.getValue());
+  }
   if (auto attr = dyn_cast<vhlo::TensorV1Attr>(vhloAttr)) {
     auto builtinType =
         cast<ShapedType>(typeConverter->convertType(attr.getType()));
@@ -210,16 +213,6 @@ LogicalResult convertInts(Attribute vhloAttr,
   return success();
 }
 
-Attribute convertSymbol(Attribute vhloAttr,
-                        const TypeConverter* typeConverter) {
-  auto vhloStringAttr = dyn_cast<vhlo::StringV1Attr>(vhloAttr);
-  if (!vhloStringAttr) return {};
-  auto stablehloStringAttr = dyn_cast_or_null<StringAttr>(
-      convertGeneric(vhloStringAttr, typeConverter));
-  if (!stablehloStringAttr) return {};
-  return FlatSymbolRefAttr::get(stablehloStringAttr);
-}
-
 template <typename OpType>
 Attribute convertChannelHandle(OpType vhloOp,
                                const TypeConverter* typeConverter) {
@@ -277,20 +270,6 @@ Attribute convertConvDimensionNumbers(OpType vhloOp,
       stablehloOutputSpatialDimensions);
 }
 
-Attribute convertCustomCallCalledComputations(
-    Attribute vhloAttr, const TypeConverter* typeConverter) {
-  if (auto vhloArrayAttr = dyn_cast<vhlo::ArrayV1Attr>(vhloAttr)) {
-    SmallVector<Attribute> stablehloAttrs;
-    for (auto vhloAttr : vhloArrayAttr.getValue()) {
-      auto stablehloAttr = convertSymbol(vhloAttr, typeConverter);
-      if (!stablehloAttr) return {};
-      stablehloAttrs.push_back(stablehloAttr);
-    }
-    return ArrayAttr::get(vhloAttr.getContext(), stablehloAttrs);
-  }
-  return {};
-}
-
 Attribute convertDotDimensionNumbers(vhlo::DotGeneralOpV1 vhloOp,
                                      const TypeConverter* typeConverter) {
   SmallVector<int64_t> stablehloLhsBatchingDimensions,
@@ -309,11 +288,6 @@ Attribute convertDotDimensionNumbers(vhlo::DotGeneralOpV1 vhloOp,
       vhloOp.getContext(), stablehloLhsBatchingDimensions,
       stablehloRhsBatchingDimensions, stablehloLhsContractingDimensions,
       stablehloRhsContractingDimensions);
-}
-
-Attribute convertFuncCallee(Attribute vhloAttr,
-                            const TypeConverter* typeConverter) {
-  return convertSymbol(vhloAttr, typeConverter);
 }
 
 template <typename OpType>
@@ -483,25 +457,6 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
       if (!vhloBooleanAttr) return specialFailure();
       if (!vhloBooleanAttr.getValue()) return specialSuccess();
       stablehloAttr = UnitAttr::get(pattern.getContext());
-    }
-  }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV1>::value) {
-    if (vhloName == "called_computations") {
-      stablehloAttr = convertCustomCallCalledComputations(
-          vhloAttr, pattern.getTypeConverter());
-      if (!stablehloAttr) return specialFailure();
-    }
-  }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CompositeOpV1>::value) {
-    if (vhloName == "decomposition") {
-      stablehloAttr = convertSymbol(vhloAttr, pattern.getTypeConverter());
-      if (!stablehloAttr) return specialFailure();
-    }
-  }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CallOpV1>::value) {
-    if (vhloName == "callee") {
-      stablehloAttr = convertFuncCallee(vhloAttr, pattern.getTypeConverter());
-      if (!stablehloAttr) return specialFailure();
     }
   }
   if (stablehloAttr) {

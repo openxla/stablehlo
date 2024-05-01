@@ -209,7 +209,8 @@ def VHLO_BroadcastOpV1 : VHLO_Op<"broadcast_v1", "0.9.0", "current"> {
 // TODO(#425): CallOp is not part of the StableHLO spec.
 // We're planning to look into it as part of the work on speccing
 // Module/Func/Call/Return ops in StableHLO.
-def VHLO_CallOpV1 : VHLO_Op<"call_v1", "0.9.0", "current"> {
+def VHLO_CallOpV1 : VHLO_Op<"call_v1", "0.9.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins VHLO_AnyAttr:$callee, Variadic<VHLO_AnyType>:$operands);
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
@@ -285,7 +286,8 @@ def VHLO_ComplexOpV1 : VHLO_Op<"complex_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_CompositeOpV1 : VHLO_Op<"composite_v1", "0.19.0", "current"> {
+def VHLO_CompositeOpV1 : VHLO_Op<"composite_v1", "0.19.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$name,
@@ -384,7 +386,8 @@ def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable_v1", "0.9.0", "current"> 
 // TODO(#740): output_operand_aliases is not part of the spec.
 // CustomCallOp has proven to be one of the trickiest ops to fully spec.
 // We're aiming to address all these todos by the release of StableHLO v1.0.
-def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call_v1", "0.9.0", "current"> {
+def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call_v1", "0.9.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$call_target_name,

@@ -434,7 +434,7 @@ func.func @default_compare(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1>
 func.func @default_composite(%arg0: tensor<f32>) -> tensor<f32> {
   //               CHECK: "vhlo.composite_v1"(%arg0) <{
   //          CHECK-SAME:   composite_attributes = #vhlo.dict_v1<{}>
-  //          CHECK-SAME:   decomposition = #vhlo.string_v1<"composite_target">
+  //          CHECK-SAME:   decomposition = #vhlo.symbolref_v1<"composite_target">
   //          CHECK-SAME:   name = #vhlo.string_v1<"stablehlo.composite_target">
   //          CHECK-SAME:   version = #vhlo.integer_v1<0 : i64>
   //          CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
@@ -1056,7 +1056,7 @@ func.func @op_complex(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<complex<
 func.func @op_composite(%arg0: tensor<f32>) -> tensor<f32> {
   //               CHECK: "vhlo.composite_v1"(%arg0) <{
   //          CHECK-SAME:   composite_attributes = #vhlo.dict_v1<{#vhlo.string_v1<"my_int"> = #vhlo.integer_v1<1 : i64>, #vhlo.string_v1<"my_string"> = #vhlo.string_v1<"foo">}>
-  //          CHECK-SAME:   decomposition = #vhlo.string_v1<"composite_target">
+  //          CHECK-SAME:   decomposition = #vhlo.symbolref_v1<"composite_target">
   //          CHECK-SAME:   name = #vhlo.string_v1<"stablehlo.composite_target">
   //          CHECK-SAME:   version = #vhlo.integer_v1<1 : i32>
   //          CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
@@ -1181,7 +1181,7 @@ func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
   // CHECK-SAME:   api_version = #vhlo<api_version_v1 API_VERSION_STATUS_RETURNING>,
   // CHECK-SAME:   backend_config = #vhlo.string_v1<"\08\03\1A\02">,
   // CHECK-SAME:   call_target_name = #vhlo.string_v1<"foo">,
-  // CHECK-SAME:   called_computations = #vhlo.array_v1<[#vhlo.string_v1<"foo">]>,
+  // CHECK-SAME:   called_computations = #vhlo.array_v1<[#vhlo.symbolref_v1<"foo">]>,
   // CHECK-SAME:   has_side_effect = #vhlo.bool_v1<true>,
   // CHECK-SAME:   operand_layouts = #vhlo.array_v1<[#vhlo.tensor_v1<dense<> : tensor<0xindex>>]>,
   // CHECK-SAME:   output_operand_aliases = #vhlo.array_v1<[
@@ -2439,7 +2439,7 @@ func.func @type_token_callee(%arg0: !stablehlo.token) -> !stablehlo.token {
 //       CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.token_v1) -> !vhlo.token_v1>>
 // CHECK-LABEL: "type_token_caller"
 func.func @type_token_caller(%arg0: !stablehlo.token) -> !stablehlo.token {
-  // CHECK:      "vhlo.call_v1"(%arg0) <{callee = #vhlo.string_v1<"type_token_callee">}
+  // CHECK:      "vhlo.call_v1"(%arg0) <{callee = #vhlo.symbolref_v1<"type_token_callee">}
   // CHECK-SAME: (!vhlo.token_v1) -> !vhlo.token_v1
   %0 = func.call @type_token_callee(%arg0) : (!stablehlo.token) -> !stablehlo.token
   return %0 : !stablehlo.token

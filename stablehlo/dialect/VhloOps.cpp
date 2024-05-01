@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Quant/QuantOps.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
@@ -38,6 +39,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
+#include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/dialect/VhloTypes.h"
 
 namespace mlir {
@@ -363,6 +365,29 @@ LogicalResult ScatterOpV1::validateConstraint(mlir::Operation* op,
 LogicalResult SelectAndScatterOpV1::validateConstraint(mlir::Operation* op,
                                                        Version targetVersion) {
   return verifyConstraint_0_17_0(op, targetVersion);
+}
+
+LogicalResult CustomCallOpV1::validateConstraint(mlir::Operation* op,
+                                                 Version targetVersion) {
+  if (targetVersion < Version(0, 20, 0)) return success();
+  if (auto array = dyn_cast<ArrayV1Attr>(getCalledComputations())) {
+    return success(llvm::all_of(array.getValue(), [](Attribute attr) {
+      return isa<SymbolRefV1Attr>(attr);
+    }));
+  }
+  return failure();
+}
+
+LogicalResult CallOpV1::validateConstraint(mlir::Operation* op,
+                                           Version targetVersion) {
+  return success(targetVersion < Version(0, 20, 0) ||
+                 isa<SymbolRefV1Attr>(getCallee()));
+}
+
+LogicalResult CompositeOpV1::validateConstraint(mlir::Operation* op,
+                                           Version targetVersion) {
+  return success(targetVersion < Version(0, 20, 0) ||
+                 isa<SymbolRefV1Attr>(getDecomposition()));
 }
 
 }  // namespace vhlo

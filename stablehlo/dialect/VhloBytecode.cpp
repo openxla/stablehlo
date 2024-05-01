@@ -175,6 +175,11 @@ enum AttributeCode {
   ///     bounds : svarint[]
   ///   }
   kTypeExtensionsV1Attr = 18,
+
+  ///   SymbolRefV1Attr {
+  ///     value: string
+  ///   }
+  kSymbolRefV1Attr = 19,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -384,6 +389,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   RngDistributionV1Attr readRngDistributionV1Attr(
       DialectBytecodeReader &reader) const;
   StringV1Attr readStringV1Attr(DialectBytecodeReader &reader) const;
+  SymbolRefV1Attr readSymbolRefV1Attr(DialectBytecodeReader &reader) const;
   TensorV1Attr readTensorV1Attr(DialectBytecodeReader &reader) const;
   TransposeV1Attr readTransposeV1Attr(DialectBytecodeReader &reader) const;
   TypeV1Attr readTypeV1Attr(DialectBytecodeReader &reader) const;
@@ -409,6 +415,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   void write(RngAlgorithmV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(RngDistributionV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(StringV1Attr attr, DialectBytecodeWriter &writer) const;
+  void write(SymbolRefV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(TensorV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(TransposeV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(TypeV1Attr attr, DialectBytecodeWriter &writer) const;
@@ -489,6 +496,8 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readRngDistributionV1Attr(reader);
     case vhlo_encoding::kStringV1Attr:
       return readStringV1Attr(reader);
+    case vhlo_encoding::kSymbolRefV1Attr:
+      return readSymbolRefV1Attr(reader);
     case vhlo_encoding::kTensorV1Attr:
       return readTensorV1Attr(reader);
     case vhlo_encoding::kTransposeV1Attr:
@@ -513,8 +522,8 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
             ComparisonTypeV1Attr, CustomCallApiVersionV1Attr, DictionaryV1Attr,
             FftTypeV1Attr, FloatV1Attr, IntegerV1Attr, OutputOperandAliasV1Attr,
             PrecisionV1Attr, RngAlgorithmV1Attr, RngDistributionV1Attr,
-            StringV1Attr, TensorV1Attr, TransposeV1Attr, TypeV1Attr,
-            TypeExtensionsV1Attr>([&](auto attr) {
+            StringV1Attr, SymbolRefV1Attr, TensorV1Attr, TransposeV1Attr,
+            TypeV1Attr, TypeExtensionsV1Attr>([&](auto attr) {
         LOG_WRITE_CALL;
         write(attr, writer);
         return success();
@@ -844,6 +853,24 @@ StringV1Attr VhloBytecodeInterface::readStringV1Attr(
 void VhloBytecodeInterface::write(StringV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kStringV1Attr);
+  writer.writeOwnedString(attr.getValue());
+}
+
+//===----------------------------------------------------------------------===//
+// SymbolRefV1Attr
+//===----------------------------------------------------------------------===//
+
+SymbolRefV1Attr VhloBytecodeInterface::readSymbolRefV1Attr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  StringRef string;
+  if (failed(reader.readString(string))) return SymbolRefV1Attr();
+  return SymbolRefV1Attr::get(getContext(), string);
+}
+
+void VhloBytecodeInterface::write(SymbolRefV1Attr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kSymbolRefV1Attr);
   writer.writeOwnedString(attr.getValue());
 }
 

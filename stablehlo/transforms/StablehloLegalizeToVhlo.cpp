@@ -185,7 +185,8 @@ Attribute convertGeneric(Attribute stablehloAttr,
     }
   }
   if (auto attr = dyn_cast<FlatSymbolRefAttr>(stablehloAttr)) {
-    return convertGeneric(attr.getAttr(), typeConverter);
+    return vhlo::SymbolRefV1Attr::get(attr.getContext(),
+                                      attr.getAttr().getValue());
   }
   if (auto attr = dyn_cast<StringAttr>(stablehloAttr)) {
     if (!isa<NoneType>(attr.getType())) {
@@ -238,14 +239,6 @@ Attribute convertInts(const ConversionPattern& pattern,
       stablehloDims.size(), IntegerType::get(pattern.getContext(), 64));
   auto stablehloAttr = DenseIntElementsAttr::get(stablehloType, stablehloDims);
   return convertGeneric(stablehloAttr, pattern.getTypeConverter());
-}
-
-Attribute convertSymbol(const ConversionPattern& pattern,
-                        Attribute stablehloAttr) {
-  auto stablehloSymbolAttr = dyn_cast<FlatSymbolRefAttr>(stablehloAttr);
-  if (!stablehloSymbolAttr) return {};
-  return convertGeneric(stablehloSymbolAttr.getAttr(),
-                        pattern.getTypeConverter());
 }
 
 SpecialResult convertChannelHandle(const ConversionPattern& pattern,
@@ -366,25 +359,6 @@ SpecialResult convertCustomCallApiVersion(
   return specialSuccess();
 }
 
-SpecialResult convertCustomCallCalledComputations(
-    const ConversionPattern& pattern, Attribute stablehloAttr,
-    SmallVector<NamedAttribute>& vhloAttrs) {
-  auto attr = dyn_cast<ArrayAttr>(stablehloAttr);
-  if (!attr) return specialFailure();
-
-  SmallVector<Attribute> vhloElementAttrs;
-  for (auto stablehloElementAttr : attr) {
-    auto vhloElementAttr = convertSymbol(pattern, stablehloElementAttr);
-    if (!vhloElementAttr) return specialFailure();
-    vhloElementAttrs.push_back(vhloElementAttr);
-  }
-
-  vhloAttrs.emplace_back(
-      StringAttr::get(pattern.getContext(), "called_computations"),
-      vhlo::ArrayV1Attr::get(pattern.getContext(), vhloElementAttrs));
-  return specialSuccess();
-}
-
 SpecialResult convertDotDimensionNumbers(
     const ConversionPattern& pattern, Attribute stablehloAttr,
     SmallVector<NamedAttribute>& vhloAttrs) {
@@ -418,16 +392,6 @@ SpecialResult convertDotDimensionNumbers(
   vhloAttrs.emplace_back(
       StringAttr::get(pattern.getContext(), "rhs_contracting_dimensions"),
       vhloRhsContractingDimensions);
-  return specialSuccess();
-}
-
-SpecialResult convertFuncCallee(const ConversionPattern& pattern,
-                                Attribute stablehloAttr,
-                                SmallVector<NamedAttribute>& vhloAttrs) {
-  auto vhloAttr = convertSymbol(pattern, stablehloAttr);
-  if (!vhloAttr) return specialFailure();
-  vhloAttrs.emplace_back(StringAttr::get(pattern.getContext(), "callee"),
-                         vhloAttr);
   return specialSuccess();
 }
 
@@ -533,9 +497,6 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
   if constexpr (std::is_same<StablehloOpTy, stablehlo::CustomCallOp>::value) {
     if (stablehloName == "api_version")
       return convertCustomCallApiVersion(pattern, stablehloAttr, vhloAttrs);
-    if (stablehloName == "called_computations")
-      return convertCustomCallCalledComputations(pattern, stablehloAttr,
-                                                 vhloAttrs);
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::DotGeneralOp>::value) {
     if (stablehloName == "dot_dimension_numbers")
@@ -555,10 +516,6 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ScatterOp>::value) {
     if (stablehloName == "scatter_dimension_numbers")
       return convertScatterDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
-  }
-  if constexpr (std::is_same<StablehloOpTy, func::CallOp>::value) {
-    if (stablehloName == "callee")
-      return convertFuncCallee(pattern, stablehloAttr, vhloAttrs);
   }
   return notSpecial();
 }

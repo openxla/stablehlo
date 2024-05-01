@@ -17,6 +17,7 @@ limitations under the License.
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
@@ -296,6 +297,132 @@ struct VersionConversionPattern : OpConversionPattern<SourceOp> {
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
 
+StringV1Attr convert(SymbolRefV1Attr attr) {
+  return StringV1Attr::get(attr.getContext(), attr.getValue());
+}
+SymbolRefV1Attr convert(StringV1Attr attr) {
+  return SymbolRefV1Attr::get(attr.getContext(), attr.getValue());
+}
+
+template <typename OpType, typename SourceAttr, typename TargetAttr>
+struct AttributeConversionPattern : public OpConversionPattern<OpType> {
+  using OpConversionPattern<OpType>::OpConversionPattern;
+  virtual SmallVector<StringRef> getAttributeNames(OpType op) const = 0;
+
+  FailureOr<SmallVector<SourceAttr>> matchArrayOfSource(Attribute attr) const {
+    vhlo::ArrayV1Attr arrayAttr = dyn_cast<ArrayV1Attr>(attr);
+    if (!arrayAttr) return failure();
+    SmallVector<SourceAttr> elements;
+    for (Attribute attr : arrayAttr.getValue()) {
+      SourceAttr element = dyn_cast<SourceAttr>(attr);
+      if (!element) return failure();
+      elements.push_back(element);
+    }
+    return elements;
+  }
+
+  LogicalResult convertAttribute(ConversionPatternRewriter& rewriter, OpType op,
+                                 StringRef attrName) const {
+    Attribute attr = op->getAttr(attrName);
+
+    // Support the following:
+    //   Array<SourceAttr> -> Array<TargetAttr>
+    //   SourceAttr -> TargetAttr
+    if (auto array = matchArrayOfSource(attr); succeeded(array)) {
+      SmallVector<Attribute> newAttrs;
+      for (SourceAttr sourceAttr : *array) {
+        TargetAttr targetAttr = convert(sourceAttr);
+        if (!targetAttr) return failure();
+        newAttrs.push_back(targetAttr);
+      }
+      rewriter.modifyOpInPlace(op, [&]() {
+        op->setAttr(attrName, ArrayV1Attr::get(op.getContext(), newAttrs));
+      });
+      return success();
+    }
+    if (auto sourceAttr = dyn_cast<SourceAttr>(attr)) {
+      TargetAttr targetAttr = convert(sourceAttr);
+      if (!targetAttr) return failure();
+      rewriter.modifyOpInPlace(op,
+                               [&]() { op->setAttr(attrName, targetAttr); });
+      return success();
+    }
+    return failure();
+  }
+
+  LogicalResult matchAndRewrite(
+      OpType op, typename OpType::Adaptor /*adaptor*/,
+      ConversionPatternRewriter& rewriter) const override {
+    for (auto attrName : getAttributeNames(op)) {
+      if (failed(convertAttribute(rewriter, op, attrName))) {
+        LLVM_DEBUG(llvm::dbgs() << "Failed attr conversion for: " << attrName
+                                << "of" << op << '\n');
+        return failure();
+      }
+    }
+    return success();
+  }
+};
+
+///////////////////////////
+// v0.20.0
+// SymbolRefV1 <-> StringV1
+///////////////////////////
+
+struct CustomCallOpSymbolRefUpgradePattern
+    : public AttributeConversionPattern<CustomCallOpV1, StringV1Attr,
+                                        SymbolRefV1Attr> {
+  using AttributeConversionPattern::AttributeConversionPattern;
+  SmallVector<StringRef> getAttributeNames(CustomCallOpV1 op) const final {
+    return {op.getCalledComputationsAttrName().getValue()};
+  }
+};
+
+struct CustomCallOpSymbolRefDowngradePattern
+    : public AttributeConversionPattern<CustomCallOpV1, SymbolRefV1Attr,
+                                        StringV1Attr> {
+  using AttributeConversionPattern::AttributeConversionPattern;
+  SmallVector<StringRef> getAttributeNames(CustomCallOpV1 op) const final {
+    return {op.getCalledComputationsAttrName().getValue()};
+  }
+};
+
+struct CallOpSymbolRefUpgradePattern
+    : public AttributeConversionPattern<CallOpV1, StringV1Attr,
+                                        SymbolRefV1Attr> {
+  using AttributeConversionPattern::AttributeConversionPattern;
+  SmallVector<StringRef> getAttributeNames(CallOpV1 op) const final {
+    return {op.getCalleeAttrName().getValue()};
+  }
+};
+
+struct CallOpSymbolRefDowngradePattern
+    : public AttributeConversionPattern<CallOpV1, SymbolRefV1Attr,
+                                        StringV1Attr> {
+  using AttributeConversionPattern::AttributeConversionPattern;
+  SmallVector<StringRef> getAttributeNames(CallOpV1 op) const final {
+    return {op.getCalleeAttrName().getValue()};
+  }
+};
+
+struct CompositeOpSymbolRefUpgradePattern
+    : public AttributeConversionPattern<CompositeOpV1, StringV1Attr,
+                                        SymbolRefV1Attr> {
+  using AttributeConversionPattern::AttributeConversionPattern;
+  SmallVector<StringRef> getAttributeNames(CompositeOpV1 op) const final {
+  return {op.getDecompositionAttrName().getValue()};
+  }
+};
+
+struct CompositeOpSymbolRefDowngradePattern
+    : public AttributeConversionPattern<CompositeOpV1, SymbolRefV1Attr,
+                                        StringV1Attr> {
+  using AttributeConversionPattern::AttributeConversionPattern;
+  SmallVector<StringRef> getAttributeNames(CompositeOpV1 op) const final {
+    return {op.getDecompositionAttrName().getValue()};
+  }
+};
+
 }  // namespace
 }  // namespace vhlo
 
@@ -303,8 +430,13 @@ namespace stablehlo {
 void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    TypeConverter* converter,
                                    MLIRContext* context) {
-  // Currently empty because we're starting from a clean slate in v0.9.0 and
-  // changes so far are additive.
+  // Add SymbolRef to VHLO in 0.20.0
+  patterns->add<vhlo::CustomCallOpSymbolRefUpgradePattern,
+                vhlo::CustomCallOpSymbolRefDowngradePattern>(context);
+  patterns->add<vhlo::CallOpSymbolRefUpgradePattern,
+                vhlo::CallOpSymbolRefDowngradePattern>(context);
+  patterns->add<vhlo::CompositeOpSymbolRefUpgradePattern,
+                vhlo::CompositeOpSymbolRefDowngradePattern>(context);
 }
 
 }  // namespace stablehlo
