@@ -126,9 +126,8 @@ LogicalResult validateEntrySignature(func::FuncOp func,
            << func.getNumArguments();
 
   TypeRange signature = func.getArgumentTypes();
-  for (int64_t i = 0; i < func.getNumArguments(); ++i) {
-    Type sigType = signature[i];
-    Type argType = inputs[i].getType();
+  for (auto [i, sigType, arg] : llvm::enumerate(signature, inputs)) {
+    auto argType = arg.getType();
     if (sigType != argType)
       return func.emitError() << "invalid input argument type at index " << i
                               << ", input type was " << argType
