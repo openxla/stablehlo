@@ -385,7 +385,7 @@ LogicalResult CallOpV1::validateConstraint(mlir::Operation* op,
 }
 
 LogicalResult CompositeOpV1::validateConstraint(mlir::Operation* op,
-                                           Version targetVersion) {
+                                                Version targetVersion) {
   return success(targetVersion < Version(0, 20, 0) ||
                  isa<SymbolRefV1Attr>(getDecomposition()));
 }

@@ -410,7 +410,7 @@ struct CompositeOpSymbolRefUpgradePattern
                                         SymbolRefV1Attr> {
   using AttributeConversionPattern::AttributeConversionPattern;
   SmallVector<StringRef> getAttributeNames(CompositeOpV1 op) const final {
-  return {op.getDecompositionAttrName().getValue()};
+    return {op.getDecompositionAttrName().getValue()};
   }
 };
 
