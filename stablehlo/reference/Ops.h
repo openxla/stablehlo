@@ -102,10 +102,9 @@ Tensor floorOp(const Tensor &operand, ShapedType resultType);
 Tensor gatherOp(const Tensor &operand, const Tensor &startIndices,
                 const Axes &offsetDims, const Axes &collapsedSliceDims,
                 const Axes &operandBatchingDims,
-                const Axes &startIndicesBatchingDims,
-                const Axes &startIndexMap, Axis indexVectorDim,
-                const Sizes &sliceSizes, bool indicesAreSorted,
-                ShapedType resultType);
+                const Axes &startIndicesBatchingDims, const Axes &startIndexMap,
+                Axis indexVectorDim, const Sizes &sliceSizes,
+                bool indicesAreSorted, ShapedType resultType);
 Tensor getDimensionSizeOp(const Tensor &operand, Axis dimension,
                           ShapedType resultType);
 InterpreterValue getTupleElementOp(const Tuple &operand, int32_t index);
