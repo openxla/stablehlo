@@ -1939,13 +1939,13 @@ semantics change.
 
 #### Inputs
 
-| Label | Name                                   | Type                                        |
-|-------|----------------------------------------|---------------------------------------------|
-| (I1)  | `inputs`                               | variadic number of values                   |
-| (I2)  | `name`                                 | constant of type `string`                   |
-| (I3)  | `composite_attributes`                 | attribute dictionary                        |
-| (I4)  | `decomposition`                        | constant of type `string`                   |
-| (I5)  | `version`                              | constant of type `si32`                     |
+| Label | Name                   | Type                      |
+|-------|------------------------|---------------------------|
+| (I1)  | `inputs`               | variadic number of values |
+| (I2)  | `name`                 | constant of type `string` |
+| (I3)  | `composite_attributes` | attribute dictionary      |
+| (I4)  | `decomposition`        | constant of type `string` |
+| (I5)  | `version`              | constant of type `si32`   |
 
 #### Outputs
 
