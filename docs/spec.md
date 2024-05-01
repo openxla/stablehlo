@@ -3315,9 +3315,9 @@ separate outputs to improve clarity
 Fills an `output` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. More formally,
 
-`output[result_index] = constant(is_quantized(output) ?
-quantize(result_index[iota_dimension], element_type(output)) :
-result_index[iota_dimension], element_type(output))`.
+`output[output_index] = constant(is_quantized(output) ?
+quantize(output_index[iota_dimension], element_type(output)) :
+output_index[iota_dimension], element_type(output))`.
 
 #### Inputs
 
@@ -3327,9 +3327,9 @@ result_index[iota_dimension], element_type(output))`.
 
 #### Outputs
 
-| Name     | Type                                                                             | Constraints |
-|----------|----------------------------------------------------------------------------------|-------------|
-| `output` | tensor of integer, floating-point or complex type or per-tensor quantized tensor | (C1)        |
+| Name     | Type                                                                              | Constraints |
+|----------|-----------------------------------------------------------------------------------|-------------|
+| `output` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
