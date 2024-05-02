@@ -97,7 +97,7 @@ PYBIND11_MODULE(_stablehlo, m) {
           [](py::object cls, const std::vector<int64_t> &updateWindowDims,
              const std::vector<int64_t> &insertedWindowDims,
              const std::vector<int64_t> &inputBatchingDims,
-             const std::vector<int64_t> &ScatterIndicesBatchingDimsDims,
+             const std::vector<int64_t> &scatterIndicesBatchingDims,
              const std::vector<int64_t> &scatteredDimsToOperandDims,
              int64_t indexVectorDim, MlirContext ctx) {
             return cls(stablehloScatterDimensionNumbersGet(
@@ -110,7 +110,8 @@ PYBIND11_MODULE(_stablehlo, m) {
                 scatteredDimsToOperandDims.data(), indexVectorDim));
           },
           py::arg("cls"), py::arg("update_window_dims"),
-          py::arg("inserted_window_dims"),
+          py::arg("inserted_window_dims"), py::arg("input_batching_dims"),
+          py::arg("scatter_indices_batching_dims"),
           py::arg("scattered_dims_to_operand_dims"),
           py::arg("index_vector_dim"), py::arg("context") = py::none(),
           "Creates a ScatterDimensionNumbers with the given dimension "
@@ -169,7 +170,8 @@ PYBIND11_MODULE(_stablehlo, m) {
                 startIndexMap.data(), indexVectorDim));
           },
           py::arg("cls"), py::arg("offset_dims"),
-          py::arg("collapsed_slice_dims"), py::arg("start_index_map"),
+          py::arg("collapsed_slice_dims"), py::arg("operand_batching_dims"),
+          py::arg("start_indices_batching_dims"), py::arg("start_index_map"),
           py::arg("index_vector_dim"), py::arg("context") = py::none(),
           "Creates a GatherDimensionNumbers attribute with the given dimension "
           "configuration.")
