@@ -798,9 +798,9 @@ FailureOr<SmallVector<ShapedType>> getAccumulatorTypes(
   }
 
   Block& block = region.front();
-  return llvm::to_vector(
-      llvm::map_range(block.getTerminator()->getOperands(),
-                      [&](Value v) { return cast<ShapedType>(v.getType()); }));
+  return llvm::map_to_vector(
+      block.getTerminator()->getOperands(),
+      [&](Value v) { return cast<ShapedType>(v.getType()); });
 }
 
 LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
@@ -1665,8 +1665,8 @@ LogicalResult inferAllReduceOp(
     std::optional<Location> location, ValueRange operands, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   TypeRange inputTypes = operands.getTypes();
-  SmallVector<ShapedType> inputArgTensorTypes{
-      llvm::map_range(inputTypes, [](Type t) { return cast<ShapedType>(t); })};
+  auto inputArgTensorTypes = llvm::map_to_vector(
+      inputTypes, [](Type t) { return cast<ShapedType>(t); });
   // all_reduce_c6, all_reduce_c7
   auto accumulatorTypesOrErr = getAccumulatorTypes(location, computation);
   if (failed(accumulatorTypesOrErr)) return failure();
@@ -2675,8 +2675,8 @@ LogicalResult inferReduceOp(
     std::optional<Location> location, TypeRange inputTypes,
     ArrayRef<int64_t> dimensions, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  SmallVector<ShapedType> inputArgTensorTypes{
-      llvm::map_range(inputTypes, [](Type t) { return cast<ShapedType>(t); })};
+  auto inputArgTensorTypes = llvm::map_to_vector(
+      inputTypes, [](Type t) { return cast<ShapedType>(t); });
 
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
@@ -2703,10 +2703,10 @@ LogicalResult inferReduceWindowOp(
     std::optional<ArrayRef<int64_t>> windowDilations,
     std::optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  SmallVector<ShapedType> inputTypes{llvm::map_range(
-      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
-  SmallVector<ShapedType> initValueTypes{llvm::map_range(
-      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
+  auto inputTypes = llvm::map_to_vector(
+      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); });
+  auto initValueTypes = llvm::map_to_vector(
+      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); });
 
   SmallVector<int64_t> windowDims;
   SmallVector<WindowDimension> inferredWindow;
@@ -4009,10 +4009,10 @@ LogicalResult verifyRecvOp(HloDialectInterface* dialect,
 LogicalResult verifyReduceOp(std::optional<Location> location,
                              ValueRange inputs, ValueRange initValues,
                              ArrayRef<int64_t> dimensions, Region& body) {
-  SmallVector<ShapedType> inputTypes{llvm::map_range(
-      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
-  SmallVector<ShapedType> initValueTypes{llvm::map_range(
-      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
+  auto inputTypes = llvm::map_to_vector(
+      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); });
+  auto initValueTypes = llvm::map_to_vector(
+      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); });
 
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
@@ -4136,10 +4136,10 @@ LogicalResult verifyReduceWindowOp(
     std::optional<ArrayRef<int64_t>> baseDilations,
     std::optional<ArrayRef<int64_t>> windowDilations,
     std::optional<DenseIntElementsAttr> padding, Region& body) {
-  SmallVector<ShapedType> inputTypes{llvm::map_range(
-      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
-  SmallVector<ShapedType> initValueTypes{llvm::map_range(
-      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
+  auto inputTypes = llvm::map_to_vector(
+      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); });
+  auto initValueTypes = llvm::map_to_vector(
+      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); });
 
   SmallVector<int64_t> windowDims;
   SmallVector<WindowDimension> inferredWindow;
@@ -4277,10 +4277,10 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
   auto numOperands = inputs.size();
   auto scatterIndicesType = cast<ShapedType>(scatterIndices.getType());
 
-  SmallVector<ShapedType, 1> operandTypes = llvm::to_vector(llvm::map_range(
-      inputs.getTypes(), [](Type type) { return cast<ShapedType>(type); }));
-  SmallVector<ShapedType, 1> updatesTypes = llvm::to_vector(llvm::map_range(
-      updates.getTypes(), [](Type type) { return cast<ShapedType>(type); }));
+  auto operandTypes = llvm::map_to_vector(
+      inputs.getTypes(), [](Type type) { return cast<ShapedType>(type); });
+  auto updatesTypes = llvm::map_to_vector(
+      updates.getTypes(), [](Type type) { return cast<ShapedType>(type); });
   bool scatterIndicesTypeRanked = isa<RankedTensorType>(scatterIndicesType);
 
   // scatter_c1

@@ -491,9 +491,9 @@ struct BroadcastInDimOpCanon final
     // Eliminate redundant nested BroadcastInDim.
     if (auto definingOp =
             operand.getDefiningOp<mlir::stablehlo::BroadcastInDimOp>()) {
-      auto newIndices = llvm::to_vector(
-          llvm::map_range(definingOp.getBroadcastDimensions(),
-                          [&dims](int64_t dim) { return dims[dim]; }));
+      auto newIndices =
+          llvm::map_to_vector(definingOp.getBroadcastDimensions(),
+                              [&dims](int64_t dim) { return dims[dim]; });
       rewriter.replaceOpWithNewOp<mlir::stablehlo::BroadcastInDimOp>(
           op, type, definingOp.getOperand(), newIndices);
       return success();

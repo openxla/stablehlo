@@ -1820,12 +1820,12 @@ void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
       odsState.attributes.getDictionary(odsState.getContext()), {},
       odsState.regions);
 
-  SmallVector<ShapedType> inputArgTensorTypes{
-      llvm::map_range(adaptor.getInputs().getTypes(),
-                      [](Type t) { return cast<ShapedType>(t); })};
-  SmallVector<ShapedType> initValueTensorTypes{
-      llvm::map_range(adaptor.getInitValues().getTypes(),
-                      [](Type t) { return cast<ShapedType>(t); })};
+  auto inputArgTensorTypes =
+      llvm::map_to_vector(adaptor.getInputs().getTypes(),
+                          [](Type t) { return cast<ShapedType>(t); });
+  auto initValueTensorTypes =
+      llvm::map_to_vector(adaptor.getInitValues().getTypes(),
+                          [](Type t) { return cast<ShapedType>(t); });
 
   if (failed(hlo::verifyReduceOpInputsAndInferShape(
           odsState.location, inputArgTensorTypes, dimensions, newDimensions,
@@ -3288,8 +3288,8 @@ ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
                                          int64Parser))
         return failure();
       if (attributeName == "reverse") {
-        auto boolVector = llvm::to_vector<4>(
-            llvm::map_range(values, [](int64_t v) { return v != 0; }));
+        auto boolVector =
+            llvm::map_to_vector<4>(values, [](int64_t v) { return v != 0; });
         windowReversal =
             DenseBoolArrayAttr::get(parser.getContext(), boolVector);
       } else {
