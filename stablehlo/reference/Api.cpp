@@ -68,7 +68,7 @@ FailureOr<func::FuncOp> getMainFunction(ModuleOp module, StringRef mainName) {
 class DefaultInterpreterFallback : public InterpreterFallback {
  public:
   DefaultInterpreterFallback(const InterpreterConfiguration &config)
-      : config(config) {};
+      : config(config){};
 
   virtual llvm::Error operator()(Operation &op, Scope &scope,
                                  Process *process) final {
@@ -153,6 +153,11 @@ LogicalResult validateEntrySignature(func::FuncOp func,
 //   refinement pipeline.
 LogicalResult removeDynamism(ModuleOp module, func::FuncOp func,
                              ArrayRef<InterpreterValue> inputs) {
+  if (llvm::all_of(func.getArgumentTypes(), [](Type type) {
+        return llvm::cast<ShapedType>(type).hasStaticShape();
+      })) {
+    return success();
+  }
   SmallVector<Type> refinedTypes = llvm::to_vector(llvm::map_range(
       inputs, [](InterpreterValue input) { return input.getType(); }));
 
