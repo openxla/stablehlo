@@ -360,6 +360,18 @@ func.func @eval_convert_i1() -> tensor<2xi64> {
 
 // -----
 
+// CHECK-LABEL: func @eval_convert_infer_before_fold
+func.func @eval_convert_infer_before_fold() -> tensor<?xi32> {
+  // CHECK-NOT: stablehlo.convert
+  // CHECK: [[RESULT:%.*]] =  stablehlo.constant dense<9606> : tensor<2xi32>
+  // CHECK: return [[RESULT]]
+  %c_1 = stablehlo.constant dense<9606> : tensor<2xi32>
+  %0 = stablehlo.convert %c_1 : (tensor<2xi32>) -> tensor<?xi32>
+  return %0 : tensor<?xi32>
+}
+
+// -----
+
 // CHECK-LABEL: func @eval_divide
 func.func @eval_divide() -> tensor<i64> {
   // CHECK-NOT: stablehlo.divide
