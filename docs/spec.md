@@ -3374,9 +3374,9 @@ result_index[iota_dimension], element_type(output))`.
 
 #### Outputs
 
-| Name     | Type                                                                              | Constraints |
-|----------|-----------------------------------------------------------------------------------|-------------|
-| `output` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor | (C1)        |
+| Name     | Type                                                                             | Constraints |
+|----------|----------------------------------------------------------------------------------|-------------|
+| `output` | tensor of integer, floating-point or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
