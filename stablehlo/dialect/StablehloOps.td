@@ -137,13 +137,13 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Condit
     Example:
     ```mlir
     %output_shape = stablehlo.constant dense<[4, 5]> : tensor<2xi64>
-    %0 = stablehlo.dynamic_iota %output_shape, dim = 0 : (tensor<2xi64>) -> tensor<4x5xi32>
+    %0 = stablehlo.dynamic_iota %output_shape, dim = 0 : (tensor<2xi64>) -> tensor<4x5xi64>
     ```
   }];
 
   let arguments = (ins
-    HLO_StaticDimensionTensor:$output_shape /*dynamic_iota_i2*/,
-    I64Attr:$iota_dimension /*dynamic_iota_i1*/
+    I64Attr:$iota_dimension /*dynamic_iota_i1*/,
+    HLO_StaticDimensionTensor:$output_shape /*dynamic_iota_i2*/
   );
   let results = (outs HLO_Tensor:$result);
   let hasVerifier = 1;

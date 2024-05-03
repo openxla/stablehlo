@@ -2638,8 +2638,9 @@ planning to address this in
 #### Semantics
 
 Fills a `result` tensor with values in increasing order starting from zero
-along the `iota_dimension` dimension. `result` shape is provided
-dynamically via `output_shape`.
+along the `iota_dimension` dimension. This operation does the same thing
+as [iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#iota)
+op except that the result shape is specified dynamically via `output_shape`.
 
 More formally, for all `result_index` in `index_space(output_shape)`,
 
