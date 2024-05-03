@@ -2656,20 +2656,26 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape",
       [HLO_SpeculatableIfAllInputsStaticAndShapeConstant, NoMemoryEffect]> {
   let summary = "DynamicReshape operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
+    Performs reshape of `operand` tensor to a `result` tensor.
 
     Informally, this operation does the same thing as ReshapeOp except that the
     result shape is specified dynamically via `output_shape`:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape
 
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_reshape
+
     Example:
     ```mlir
-    %0 = stablehlo.dynamic_reshape %arg0, %shape : (tensor<?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
+    %0 = stablehlo.constant dense<[3, 2]> : tensor<2xi64>
+    %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<2x3xi64>, tensor<2xi64>) -> tensor<3x2xi64>
     ```
   }];
 
-  let arguments = (ins HLO_Tensor:$operand, HLO_StaticDimensionTensor:$output_shape);
+  let arguments = (ins
+    HLO_Tensor:$operand /*dynamic_reshape_i1*/,
+    HLO_StaticDimensionTensor:$output_shape /*dynamic_reshape_i2*/
+  );
   let results = (outs HLO_Tensor:$result);
 
   let hasVerifier = 1;

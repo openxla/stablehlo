@@ -2636,6 +2636,67 @@ planning to address this in
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dot_general.mlir)
 
+### dynamic_reshape
+
+#### Semantics
+
+Performs reshape of `operand` tensor to a `result` tensor. Conceptually, it
+amounts to keeping the same canonical representation but potentially changing
+the shape, e.g. from `tensor<2x3xf32>` to `tensor<3x2xf32>` or `tensor<6xf32>`.
+
+This operation does the same thing as [reshape]
+(https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape) op
+except that the result shape is specified dynamically via `output_shape`:
+
+More formally,
+`result[result_index] = operand[operand_index]` where
+`result_index` and `operand_index` have the same position in the lexicographic
+ordering of `index_space(output_shape)` and `index_space(operand)`.
+
+#### Inputs
+
+| Label | Name           | Type                                         | Constraints |
+|-------|----------------|----------------------------------------------|-------------|
+| (I1)  | `operand`      | tensor or quantized tensor                   | (C1-C3)     |
+| (I2)  | `output_shape` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
+
+#### Outputs
+
+| Name     | Type                       | Constraints   |
+|----------|----------------------------|---------------|
+| `result` | tensor or quantized tensor | (C1-C3)       |
+
+#### Constraints
+
+* (C1) `element_type(result)` is given by:
+  * `element_type(operand)`, if `!is_per_axis_quantized(operand)`.
+  * `element_type(operand)` except that `quantization_dimension(operand)` and
+    `quantization_dimension(result)` may differ, otherwise.
+* (C2) `size(operand) = size(output_shape) = rank(result)`.
+* (C3) If `is_per_axis_quantized(operand)`:
+  * `reduce(dims(operand, [0, 1, ..., quantization_dimension(operand) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
+    reduce(dims(output_shape, [0, 1, ..., quantization_dimension(result) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
+  * `dim(operand, quantization_dimension(operand)) =
+    dim(output_shape, quantization_dimension(result))`.
+  * `reduce(dims(operand,
+    [quantization_dimension(operand) + 1, ..., rank(operand) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
+    reduce(dims(output_shape,
+    [quantization_dimension(result) + 1, ..., rank(result) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
+
+#### Examples
+
+```mlir
+// %operand: [[1, 2, 3], [4, 5, 6]]
+%output_shape = stablehlo.constant dense<[3, 2]> : tensor<2xi64>
+%result = "stablehlo.dynamic_reshape"(%operand, %output_shape) : (tensor<2x3xi64>, tensor<2xi64>) -> tensor<3x2xi64>
+// %result: [[1, 2], [3, 4], [5, 6]]
+```
+
+
 ### dynamic_slice
 
 #### Semantics
