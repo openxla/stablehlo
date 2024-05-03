@@ -3731,7 +3731,7 @@ LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
                                   Value outputShape, int64_t iotaDimension,
                                   Value result) {
   auto resultShapedType = cast<ShapedType>(result.getType());
-  
+
   // dynamic_iota_c2
   if (!isCompatibleForHloTypeInference(outputShape, resultShapedType))
     return emitOptionalError(
