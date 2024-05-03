@@ -2644,8 +2644,8 @@ Performs reshape of `operand` tensor to a `result` tensor. Conceptually, it
 amounts to keeping the same canonical representation but potentially changing
 the shape, e.g. from `tensor<2x3xf32>` to `tensor<3x2xf32>` or `tensor<6xf32>`.
 
-This operation does the same thing as [reshape]
-(https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape) op
+This operation does the same thing as
+[reshape](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape) op
 except that the result shape is specified dynamically via `output_shape`:
 
 More formally,
@@ -2695,7 +2695,6 @@ ordering of `index_space(output_shape)` and `index_space(operand)`.
 %result = "stablehlo.dynamic_reshape"(%operand, %output_shape) : (tensor<2x3xi64>, tensor<2xi64>) -> tensor<3x2xi64>
 // %result: [[1, 2], [3, 4], [5, 6]]
 ```
-
 
 ### dynamic_slice
 
