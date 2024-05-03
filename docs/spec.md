@@ -2681,6 +2681,8 @@ result_index[iota_dimension], element_type(result))`.
 //          ]
 ```
 
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_iota.mlir)
+
 ### dynamic_slice
 
 #### Semantics
