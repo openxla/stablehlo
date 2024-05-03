@@ -124,12 +124,12 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
 def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "DynamicIota operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
+    Fills a `result` tensor with values in increasing order starting from zero
+    along the `iota_dimension` dimension.
 
     Informally, this operation does the same thing as IotaOp except that the
     result shape is specified dynamically via `output_shape`:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#iota
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_iota
 
     Example:
     ```mlir
@@ -137,7 +137,10 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Condit
     ```
   }];
 
-  let arguments = (ins HLO_StaticDimensionTensor:$output_shape, I64Attr:$iota_dimension);
+  let arguments = (ins 
+    HLO_StaticDimensionTensor:$output_shape /*dynamic_iota_i2*/,
+    I64Attr:$iota_dimension /*dynamic_iota_i1*/
+  );
   let results = (outs HLO_Tensor:$result);
   let hasVerifier = 1;
 

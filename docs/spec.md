@@ -331,7 +331,7 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
   ([#3](https://github.com/openxla/stablehlo/issues/3)), and
   `trace` ([#604](https://github.com/openxla/stablehlo/issues/604)).
 * "Dynamism" category of StableHLO operations - they were bootstrapped from
-   MHLO, but we haven't specced them yet: `compute_reshape_shape`,
+   MHLO, and we are in the process of speccing them: `compute_reshape_shape`,
   `cstr_reshapable`, `dynamic_broadcast_in_dim`, `dynamic_conv`,
   `dynamic_gather`, `dynamic_pad`, `dynamic_reshape`,
   `real_dynamic_slice`, `set_dimension_size`
@@ -2669,10 +2669,10 @@ result_index[iota_dimension], element_type(result))`.
 
 ```mlir
 
-// %output_shape = [4, 5]
+%output_shape = stablehlo.constant dense<[4, 5]> : tensor<2xi64>
 %result = "stablehlo.dynamic_iota"(%output_shape) {
   iota_dimension = 0 : i64
-} : (tensor<2xi64>) -> tensor<?x?xi64>
+} : (tensor<2xi64>) -> tensor<4x5xi64>
 // %result: [
 //           [0, 0, 0, 0, 0],
 //           [1, 1, 1, 1, 1],

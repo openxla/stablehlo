@@ -3730,14 +3730,15 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
                                   Value outputShape, int64_t iotaDimension,
                                   Value result) {
-  auto shape = cast<ShapedType>(result.getType());
-
-  if (!isCompatibleForHloTypeInference(outputShape, shape))
+  auto resultShapedType = cast<ShapedType>(result.getType());
+  
+  // dynamic_iota_c2
+  if (!isCompatibleForHloTypeInference(outputShape, resultShapedType))
     return emitOptionalError(
         location, "output_shape is incompatible with return type of operation ",
         result.getType());
-
-  if (iotaDimension >= shape.getRank() || iotaDimension < 0)
+  // dynamic_iota_c1
+  if (iotaDimension >= resultShapedType.getRank() || iotaDimension < 0)
     return emitOptionalError(
         location,
         "iota dimension cannot go beyond the output rank or be negative.");
