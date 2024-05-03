@@ -473,9 +473,8 @@ LogicalResult verifyAddOp(std::optional<Location> location, Operation* op,
 
 // If the shape operand is constant, checks that it is compatible with the
 // result's shape. Emits an error if the shapes are incompatible.
-LogicalResult verifyShapeOperandIsCompatibleWithResultType(std::optional<Location> loc,
-                                                  Value shapeOperand,
-                                                  Type resultType) {
+LogicalResult verifyShapeOperandIsCompatibleWithResultType(
+    std::optional<Location> loc, Value shapeOperand, Type resultType) {
   if (SmallVector<int64_t> shape;
       succeeded(matchInts(shapeOperand, shape)) &&
       !isCompatibleForHloTypeInference(shape, resultType)) {
@@ -3785,8 +3784,8 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     }
   }
 
-  if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputDimensions,
-                                                 resultType)))
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(
+          location, outputDimensions, resultType)))
     return failure();
 
   return success();
@@ -3798,7 +3797,7 @@ LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
   auto resultType = cast<ShapedType>(result.getType());
 
   if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
-                                                 resultType)))
+                                                          resultType)))
     return failure();
 
   if (iotaDimension >= resultType.getRank() || iotaDimension < 0)
@@ -3873,7 +3872,7 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
   }
 
   if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
-                                                 resultType)))
+                                                          resultType)))
     return failure();
   return success();
 }
