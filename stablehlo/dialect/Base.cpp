@@ -608,5 +608,22 @@ bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {
                      [val](int64_t x) { return x == val; });
 }
 
+mlir::Speculation::Speculatability getShapedSpeculatability(
+    Operation* op, int64_t shapeCount) {
+  // If all inputs are static and the shape-related operands are constant
+  // then any relationship between the input, the shapes and the output can be
+  // verified statically.
+  bool allInputsStatic = llvm::all_of(op->getOperandTypes(), [](Type t) {
+    return cast<ShapedType>(t).hasStaticShape();
+  });
+  bool allShapesConstant = llvm::all_of(llvm::seq(shapeCount), [&](int64_t i) {
+    return matchPattern(op->getOperand(op->getNumOperands() - 1 - i),
+                        m_Constant());
+  });
+  return allInputsStatic && allShapesConstant
+             ? mlir::Speculation::Speculatable
+             : mlir::Speculation::NotSpeculatable;
+}
+
 }  // namespace hlo
 }  // namespace mlir

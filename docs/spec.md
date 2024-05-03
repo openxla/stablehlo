@@ -1939,13 +1939,13 @@ semantics change.
 
 #### Inputs
 
-| Label | Name                                   | Type                                        |
-|-------|----------------------------------------|---------------------------------------------|
-| (I1)  | `inputs`                               | variadic number of values                   |
-| (I2)  | `name`                                 | constant of type `string`                   |
-| (I3)  | `composite_attributes`                 | attribute dictionary                        |
-| (I4)  | `decomposition`                        | constant of type `string`                   |
-| (I5)  | `version`                              | constant of type `si32`                     |
+| Label | Name                   | Type                      |
+|-------|------------------------|---------------------------|
+| (I1)  | `inputs`               | variadic number of values |
+| (I2)  | `name`                 | constant of type `string` |
+| (I3)  | `composite_attributes` | attribute dictionary      |
+| (I4)  | `decomposition`        | constant of type `string` |
+| (I5)  | `version`              | constant of type `si32`   |
 
 #### Outputs
 
@@ -2191,42 +2191,42 @@ For quantized types, performs `dequantize_op_quantize(
     type(result))`.
 
 For hybrid quantized types, performs `hybrid_dequantize_then_op(
-  lambda lhs, rhs: convolution(lhs, rhs, window_strides, padding, lhs_dilation, rhs_dilation,
-window_reversal, input_batch_dimension, input_feature_dimension,
-input_spatial_dimensions, kernel_input_feature_dimension,
-kernel_output_feature_dimension, kernel_spatial_dimensions,
-output_batch_dimension, output_feature_dimension, output_spatial_dimensions,
-feature_group_count, batch_group_count, precision_config), lhs, rhs)`.
+    lambda lhs, rhs: convolution(lhs, rhs, window_strides, padding, lhs_dilation,
+        rhs_dilation, window_reversal, input_batch_dimension, input_feature_dimension,
+        input_spatial_dimensions, kernel_input_feature_dimension,
+        kernel_output_feature_dimension, kernel_spatial_dimensions,
+        output_batch_dimension, output_feature_dimension, output_spatial_dimensions,
+        feature_group_count, batch_group_count, precision_config), lhs, rhs)`.
 
 #### Inputs
 
-| Label | Name                              | Type                                                         | Constraints                             |
-|-------|-----------------------------------|--------------------------------------------------------------|-----------------------------------------|
-| (I1)  | `lhs`                             | tensor or per-tensor quantized tensor                        | (C1), (C10-C11), (C14) (C25), (C27-C30) |
-| (I2)  | `rhs`                             | tensor or quantized tensor                                   | (C1), (C14-C16), (C25), (C27-C32)       |
-| (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C2-C3), (C25)                          |
-| (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                 | (C4), (C25)                             |
-| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C5-C6), (C25)                          |
-| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C7-C8), (C25)                          |
-| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                   | (C9)                                    |
-| (I8)  | `input_batch_dimension`           | constant of type `si64`                                      | (C10), (C13), (C25)                     |
-| (I9)  | `input_feature_dimension`         | constant of type `si64`                                      | (C11), (C13-C14)                        |
-| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                 | (C12), (C13), (C25)                     |
-| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                      | (C14), (C18)                            |
-| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                      | (C15-C16), (C18), (C25), (C32)          |
-| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C17-C18), (C25)                        |
-| (I14) | `output_batch_dimension`          | constant of type `si64`                                      | (C20), (C25)                            |
-| (I15) | `output_feature_dimension`        | constant of type `si64`                                      | (C20), (C25), (C33)                     |
-| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C19-C20), (C25)                        |
-| (I17) | `feature_group_count`             | constant of type `si64`                                      | (C11), (C14), (C16), (C21), (C23)       |
-| (I18) | `batch_group_count`               | constant of type `si64`                                      | (C10), (C15), (C22), (C23), (C25)       |
-| (I19) | `precision_config`                | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C24)                                   |
+| Label | Name                              | Type                                                         | Constraints                                               |
+|-------|-----------------------------------|--------------------------------------------------------------|-----------------------------------------------------------|
+| (I1)  | `lhs`                             | tensor or per-tensor quantized tensor                        | (C1), (C10-C11), (C14) (C25), (C27-C28), (C31-C32), (C34) |
+| (I2)  | `rhs`                             | tensor or quantized tensor                                   | (C1), (C14-C16), (C25), (C27-C29), (C31-C34)              |
+| (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C2-C3), (C25)                                            |
+| (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                 | (C4), (C25)                                               |
+| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C5-C6), (C25)                                            |
+| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C7-C8), (C25)                                            |
+| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                   | (C9)                                                      |
+| (I8)  | `input_batch_dimension`           | constant of type `si64`                                      | (C10), (C13), (C25)                                       |
+| (I9)  | `input_feature_dimension`         | constant of type `si64`                                      | (C11), (C13-C14)                                          |
+| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                 | (C12), (C13), (C25)                                       |
+| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                      | (C14), (C18)                                              |
+| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                      | (C15-C16), (C18), (C25), (C29)                            |
+| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C17-C18), (C25)                                          |
+| (I14) | `output_batch_dimension`          | constant of type `si64`                                      | (C20), (C25)                                              |
+| (I15) | `output_feature_dimension`        | constant of type `si64`                                      | (C20), (C25), (C30)                                       |
+| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C19-C20), (C25)                                          |
+| (I17) | `feature_group_count`             | constant of type `si64`                                      | (C11), (C14), (C16), (C21), (C23)                         |
+| (I18) | `batch_group_count`               | constant of type `si64`                                      | (C10), (C15), (C22), (C23), (C25)                         |
+| (I19) | `precision_config`                | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C24)                                                     |
 
 #### Outputs
 
 | Name     | Type                       | Constraints                 |
 |----------|----------------------------|-----------------------------|
-| `result` | tensor or quantized tensor | (C25-C28), (C30-C31), (C33) |
+| `result` | tensor or quantized tensor | (C25-C28), (C30), (C32-34)  |
 
 #### Constraints
 
@@ -2533,10 +2533,10 @@ For quantized types, performs `dequantize_op_quantize(
         rhs_batching_dimensions, lhs_contracting_dimensions,
         rhs_contracting_dimensions, precision_config), lhs, rhs, type(result))`.
 
-This only specifies semantics for per-tensor quantization. Per-axis quantization
-is work in progress ([#1574](https://github.com/openxla/stablehlo/issues/1574)).
-Also, in the future we may consider adding support for hybrid quantization
- ([#1575](https://github.com/openxla/stablehlo/issues/1575)).
+For hybrid quantized types, performs `hybrid_dequantize_then_op(
+    lambda lhs, rhs: dot_general(lhs, rhs, lhs_batching_dimensions,
+        rhs_batching_dimensions, lhs_contracting_dimensions,
+        rhs_contracting_dimensions, precision_config), lhs, rhs)`.
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following (at the
@@ -2553,21 +2553,21 @@ planning to address this in
 
 #### Inputs
 
-| Label | Name                         | Type                                                         | Constraints                    |
-|-------|------------------------------|--------------------------------------------------------------|--------------------------------|
-| (I1)  | `lhs`                        | tensor or per-tensor quantized tensor                        | (C5-C6), (C9-C10), (C12-C16)   |
-| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12), (C18-C19)     |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)  |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)         |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)        |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10), (C19) |
-| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                          |
+| Label | Name                         | Type                                                         | Constraints                                    |
+|-------|------------------------------|--------------------------------------------------------------|------------------------------------------------|
+| (I1)  | `lhs`                        | tensor or per-tensor quantized tensor                        | (C5-C6), (C9-C10), (C12-C14), (C17-C18), (C20) |
+| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C20)                            |
+| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)                  |
+| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)                         |
+| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)                        |
+| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10), (C16)                 |
+| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                                          |
 
 #### Outputs
 
 | Name     | Type                       | Constraints                |
 |----------|----------------------------|----------------------------|
-| `result` | tensor or quantized tensor | (C12), (C14), (C16), (C18) |
+| `result` | tensor or quantized tensor | (C12), (C14), (C18-C20)    |
 
 #### Constraints
 
@@ -2590,14 +2590,17 @@ planning to address this in
 * If the operation uses non-quantized tensors:
   * (C13) `element_type(lhs) = element_type(rhs)`.
 * If the operation uses quantized tensors:
-  * (C14) `is_quantized(lhs) and is_quantized(rhs) and is_quantized(result)`.
-  * (C15) `storage_type(lhs) = storage_type(rhs)`.
-  * (C16) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
-  * (C17) `zero_points(rhs) = 0`.
-  * (C18) If `is_per_tensor_quantized(rhs)`, then
-    `is_per_tensor_quantized(result)`.
-  * (C19) If `is_per_axis_quantized(rhs)`, then
+  * (C14) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
+  * (C15) `zero_points(rhs) = 0`.
+  * (C16) If `is_per_axis_quantized(rhs)`, then
     `quantization_dimension(rhs)` not in `rhs_contracting_dimensions`.
+  * If `is_quantized(lhs)`:
+    * (C17) `storage_type(lhs) = storage_type(rhs)`.
+    * (C18) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+    * (C19) If `is_per_tensor_quantized(rhs)`, then
+      `is_per_tensor_quantized(result)`.
+  * If `!is_quantized(lhs)`:
+    * (C20) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
 
 #### Examples
 
@@ -3312,9 +3315,9 @@ separate outputs to improve clarity
 Fills an `output` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. More formally,
 
-`output[result_index] = constant(is_quantized(output) ?
-quantize(result_index[iota_dimension], element_type(output)) :
-result_index[iota_dimension], element_type(output))`.
+`output[output_index] = constant(is_quantized(output) ?
+quantize(output_index[iota_dimension], element_type(output)) :
+output_index[iota_dimension], element_type(output))`.
 
 #### Inputs
 
@@ -3324,9 +3327,9 @@ result_index[iota_dimension], element_type(output))`.
 
 #### Outputs
 
-| Name     | Type                                                                             | Constraints |
-|----------|----------------------------------------------------------------------------------|-------------|
-| `output` | tensor of integer, floating-point or complex type or per-tensor quantized tensor | (C1)        |
+| Name     | Type                                                                              | Constraints |
+|----------|-----------------------------------------------------------------------------------|-------------|
+| `output` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -6691,13 +6694,18 @@ of the expressed type into corresponding integer values of the storage type
 using the zero point and scale associated with the quantized element type.
 
 ```python
-def quantize(x: Value, type: Type) -> Value:
-  assert is_float(x) and is_quantized(type)
-  x_expressed_rounded = round_nearest_even(x / compute_scales(type, type(x)))
-  x_storage_rounded = convert(x_expressed_rounded, storage_type(type))
-  x_storage_add = x_storage_rounded + compute_zero_points(type, type(x_storage_rounded))
-  x_storage = clamp(storage_min(type), x_storage_add, storage_max(type))
-  return bitcast_convert(x_storage, type)
+def quantize(x: Value, result_type: Type) -> Value:
+  assert is_float(x) and is_quantized(result_type)
+  zero_points = compute_zero_points(result_type, TensorType(shape(x), storage_type(result_type)))
+  converted_zero_points = convert(zero_points, expressed_type(result_type))
+  converted_min = convert(storage_min(result_type), expressed_type(result_type))
+  converted_max = convert(storage_max(result_type), expressed_type(result_type))
+
+  x_scaled = x / compute_scales(result_type, type(x))
+  x_scaled_add_zp = x_scaled + converted_zero_points
+  x_clamped = clamp(converted_min, x_scaled_add_zp, converted_max)
+  x_rounded = round_nearest_even(x_clamped)
+  return convert(x_rounded, result_type)
 ```
 
 * `dequantize_op_quantize` is used to specify element-wise computations on

@@ -86,6 +86,21 @@ std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
 // the current version in order to legalize to StableHLO.
 void createStablehloDeserializePipeline(OpPassManager &pm);
 
+// Creates a pipeline of StableHLO-specific MLIR passes to remove dynamism from
+// the program. This is achieved via refining the "main" function's arguments
+// and propagating new shapes throughout the program argument types and shapes
+// within an MLIR module. The main function is either a function with name
+// "main", if there are multiple functions, or the single function within the
+// module.
+//
+// This pipeline focuses on:
+//   1. Refining function argument types based on provided `refinedTypes`.
+//   2. Refining shape information of operations within functions.
+//   3. Replaces dynamic StableHLO ops with the corresponding static
+//   counterparts if applicable.
+void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
+                                           TypeRange refinedTypes);
+
 // Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
 // for opt tools.
 void registerPassPipelines();

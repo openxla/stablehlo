@@ -171,7 +171,7 @@ LogicalResult verifyBinaryOpQuantizationConstraints(
 LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
     std::optional<Location> location, Type lhsElementType, Type rhsElementType,
     Type resultElementType) {
-  // convolution_c28
+  // convolution_c28 and dot_general_c14
   if (!isa<quant::QuantizedType>(rhsElementType) ||
       (isa<quant::QuantizedType>(lhsElementType) !=
        isa<quant::QuantizedType>(resultElementType))) {
@@ -184,19 +184,19 @@ LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
   auto rhsQuantType = cast<quant::QuantizedType>(rhsElementType);
   if (auto lhsQuantType = dyn_cast<quant::QuantizedType>(lhsElementType)) {
     auto resultQuantType = cast<quant::QuantizedType>(resultElementType);
-    // convolution_c31
+    // convolution_c31 and dot_general_c17
     if (lhsQuantType.getStorageType() != rhsQuantType.getStorageType()) {
       return emitOptionalError(
           location, "mismatched lhs and rhs quantization storage types");
     }
-    // convolution_c32
+    // convolution_c32 and dot_general_c18
     if (lhsQuantType.getExpressedType() != rhsQuantType.getExpressedType() ||
         lhsQuantType.getExpressedType() != resultQuantType.getExpressedType()) {
       return emitOptionalError(
           location,
           "mismatched lhs, rhs and result quantization expressed types");
     }
-    // convolution_c33
+    // convolution_c33 and dot_general_c19
     if (isa<quant::UniformQuantizedType>(rhsQuantType) &&
         !isa<quant::UniformQuantizedType>(resultQuantType)) {
       return emitOptionalError(
@@ -204,7 +204,7 @@ LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
     }
   } else {
     Type rhsExpressedType = rhsQuantType.getExpressedType();
-    // convolution_c34
+    // convolution_c34 and dot_general_c20
     if (lhsElementType != rhsExpressedType ||
         lhsElementType != resultElementType) {
       return emitOptionalError(location,
@@ -3560,7 +3560,7 @@ LogicalResult verifyConvolutionOpQuantizationConstraints(
     }
   }
 
-  // convolution_c31 - convolution_c34
+  // convolution_c28, convolution_c31 - convolution_c34
   return verifyConvolutionDotGeneralCommonQuantizationConstraints(
       location, lhsElementType, rhsElementType, resultElementType);
 }
@@ -3627,6 +3627,41 @@ LogicalResult verifyDotOp(std::optional<Location> location,
   return success();
 }
 
+LogicalResult verifyDotGeneralOpQuantizationConstraints(
+    std::optional<Location> location, Type lhsType, Type rhsType,
+    Type resultType, ArrayRef<int64_t> rhsContractingDimensions) {
+  Type lhsElementType = getElementTypeOrSelf(lhsType);
+  Type rhsElementType = getElementTypeOrSelf(rhsType);
+  Type resultElementType = getElementTypeOrSelf(resultType);
+
+  // dot_general_c15
+  if (auto rhsPerTensorQuantType =
+          dyn_cast<quant::UniformQuantizedType>(rhsElementType)) {
+    if (rhsPerTensorQuantType.getZeroPoint() != 0) {
+      return emitOptionalError(location, "Zero point of rhs should be 0");
+    }
+  } else if (auto rhsPerAxisQuantType =
+                 dyn_cast<quant::UniformQuantizedPerAxisType>(rhsElementType)) {
+    if (llvm::any_of(rhsPerAxisQuantType.getZeroPoints(),
+                     [](int64_t zero_point) { return zero_point != 0; })) {
+      return emitOptionalError(location, "Zero points of rhs should be 0");
+    }
+
+    // dot_general_c16
+    if (llvm::is_contained(rhsContractingDimensions,
+                           rhsPerAxisQuantType.getQuantizedDimension())) {
+      return emitOptionalError(
+          location,
+          "Quantization dimension of rhs should not be in the "
+          "contracting dimension of rhs");
+    }
+  }
+
+  // dot_general_c14, dot_general_c17 - dot_general_c20
+  return verifyConvolutionDotGeneralCommonQuantizationConstraints(
+      location, lhsElementType, rhsElementType, resultElementType);
+}
+
 LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  Value rhs,
                                  ArrayRef<int64_t> lhsBatchingDimensions,
@@ -3649,6 +3684,13 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
     return emitOptionalError(
         location, "inferred shape '", dimSizesToString(inferredShape.getDims()),
         "' ", "is incompatible with return type of operation ", resultType, "");
+
+  Type lhsType = lhs.getType();
+  Type rhsType = rhs.getType();
+  if (anyQuantized<quant::QuantizedType>({lhsType, rhsType, resultType})) {
+    return verifyDotGeneralOpQuantizationConstraints(
+        location, lhsType, rhsType, resultType, rhsContractingDimensions);
+  }
   return success();
 }
 

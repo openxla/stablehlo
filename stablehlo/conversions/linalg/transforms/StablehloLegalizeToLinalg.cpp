@@ -829,7 +829,7 @@ struct TransposeOpToTransposeConverter final
     // TODO(#2216) Cleanup Attribute -> DenseArrayAttr
     rewriter.replaceOpWithNewOp<linalg::TransposeOp>(
         op, adaptor.getOperand(), emptyTensor,
-        op.getPermutationAttr().dyn_cast_or_null<DenseI64ArrayAttr>(),
+        dyn_cast_or_null<DenseI64ArrayAttr>(op.getPermutationAttr()),
         linalg::getPrunedAttributeList(op));
     return success();
   }
