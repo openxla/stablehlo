@@ -124,8 +124,8 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
     Type convertedStorageType = convertType(type.getStorageType());
     Type convertedExpressedType = convertType(type.getExpressedType());
     if (!convertedStorageType || !convertedExpressedType) return {};
-    SmallVector<APFloat> scales = llvm::to_vector(llvm::map_range(
-        type.getScales(), [](double scale) { return APFloat(scale); }));
+    auto scales = llvm::map_to_vector(
+        type.getScales(), [](double scale) { return APFloat(scale); });
     return vhlo::UniformQuantizedPerAxisV1Type::get(
         type.getContext(), type.getFlags(), convertedStorageType,
         convertedExpressedType, type.getQuantizedDimension(), scales,
@@ -239,9 +239,9 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
     Type convertedStorageType = convertType(type.getStorageType());
     Type convertedExpressedType = convertType(type.getExpressedType());
     if (!convertedStorageType || !convertedExpressedType) return {};
-    SmallVector<double> scales = llvm::to_vector(llvm::map_range(
+    auto scales = llvm::map_to_vector(
         type.getScales(),
-        [](const APFloat& scale) { return scale.convertToDouble(); }));
+        [](const APFloat& scale) { return scale.convertToDouble(); });
     return quant::UniformQuantizedPerAxisType::get(
         type.getFlags(), convertedStorageType, convertedExpressedType, scales,
         type.getZeroPoints(), type.getQuantizedDimension(),

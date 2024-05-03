@@ -295,9 +295,9 @@ struct ConvertConstShapeOpPattern
     if (!operandType)
       return rewriter.notifyMatchFailure(op, "expected ranked operand");
 
-    llvm::SmallVector<int32_t> shape{
-        llvm::map_range(op.getShape().getValues<int64_t>(),
-                        [](int64_t val) { return static_cast<int32_t>(val); })};
+    auto shape = llvm::map_to_vector(
+        op.getShape().getValues<int64_t>(),
+        [](int64_t val) { return static_cast<int32_t>(val); });
 
     auto newConst = rewriter.create<ConstantOp>(
         op.getLoc(), DenseElementsAttr::get(

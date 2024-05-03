@@ -205,18 +205,18 @@ FailureOr<SmallVector<InterpreterValue>> evalModule(
 FailureOr<SmallVector<DenseElementsAttr>> evalModule(
     ModuleOp module, ArrayRef<DenseElementsAttr> inputs,
     const InterpreterConfiguration &config) {
-  SmallVector<InterpreterValue> valueInputs = llvm::to_vector(
-      llvm::map_range(inputs, [](DenseElementsAttr attr) -> InterpreterValue {
+  SmallVector<InterpreterValue> valueInputs = llvm::map_to_vector(
+      inputs, [](DenseElementsAttr attr) -> InterpreterValue {
         return InterpreterValue(makeTensor(attr));
-      }));
+      });
 
   auto values = evalModule(module, valueInputs, config);
   if (failed(values)) return failure();
 
-  SmallVector<DenseElementsAttr> results = llvm::to_vector(llvm::map_range(
+  SmallVector<DenseElementsAttr> results = llvm::map_to_vector(
       values.value(), [](InterpreterValue val) -> DenseElementsAttr {
         return makeDenseElementsAttr(val.getTensor());
-      }));
+      });
 
   return results;
 }

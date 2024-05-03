@@ -73,8 +73,8 @@ Tensor RendezvousResult::lookup(ProcessId processId) const {
 }
 
 SmallVector<Tensor> RendezvousResult::getSortedTensors() const {
-  return llvm::to_vector(
-      llvm::map_range(result_, [](const auto &pair) { return pair.second; }));
+  return llvm::map_to_vector(result_,
+                             [](const auto &pair) { return pair.second; });
 }
 
 //===----------------------------------------------------------------------===//

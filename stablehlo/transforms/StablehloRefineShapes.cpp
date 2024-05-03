@@ -462,10 +462,10 @@ struct EvalComputeReshapeShapeOpPattern
       dynShapeValues[unspecifiedDimIdx.value()] = numElems / dimProduct;
 
     const auto resultBitWidth = resultType.getElementTypeBitWidth();
-    auto result = llvm::to_vector(
-        llvm::map_range(dynShapeValues, [&](int64_t value) -> APSInt {
+    auto result =
+        llvm::map_to_vector(dynShapeValues, [&](int64_t value) -> APSInt {
           return APSInt(APInt(resultBitWidth, value), false);
-        }));
+        });
 
     rewriter.replaceOpWithNewOp<ConstantOp>(op,
                                             getTensorAttr(resultType, result));
