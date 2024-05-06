@@ -57,7 +57,7 @@ func.func @select_and_scatter_with_promotable_quantized_types(
   %arg0: tensor<10x24x24x64x!quant.uniform<i8:f32, 2.000000e+00:15>>,
   %arg1: tensor<10x12x12x64x!quant.uniform<i8:f32, 2.000000e+00:15>>,
   %arg2 : tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
-  tensor<10x24x24x64x!quant.uniform<i32:f32, 2.000000e+00:15>> {
+  tensor<10x24x24x64x!quant.uniform<i16:f32, 2.000000e+00:15>> {
 
   %1 = "stablehlo.select_and_scatter"(%arg0, %arg1, %arg2) ({
   ^bb0(%arg3: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>, %arg4: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>):
@@ -67,17 +67,17 @@ func.func @select_and_scatter_with_promotable_quantized_types(
       } : (tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>, tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<i1>
     "stablehlo.return"(%2) : (tensor<i1>) -> ()
   },  {
-  ^bb0(%arg3: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %arg4: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
-    %2 = stablehlo.add %arg3, %arg4 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
-    "stablehlo.return"(%2) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+  ^bb0(%arg3: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>, %arg4: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>):
+    %2 = stablehlo.add %arg3, %arg4 : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
+    "stablehlo.return"(%2) : (tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>) -> ()
   }) {
     window_dimensions = array<i64: 1, 2, 2, 1>,
     window_strides = array<i64: 1, 2, 2, 1>
   } : (tensor<10x24x24x64x!quant.uniform<i8:f32, 2.000000e+00:15>>,
       tensor<10x12x12x64x!quant.uniform<i8:f32, 2.000000e+00:15>>,
       tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
-      tensor<10x24x24x64x!quant.uniform<i32:f32, 2.000000e+00:15>>
-  func.return %1 : tensor<10x24x24x64x!quant.uniform<i32:f32, 2.000000e+00:15>>
+      tensor<10x24x24x64x!quant.uniform<i16:f32, 2.000000e+00:15>>
+  func.return %1 : tensor<10x24x24x64x!quant.uniform<i16:f32, 2.000000e+00:15>>
 }
 
 // -----

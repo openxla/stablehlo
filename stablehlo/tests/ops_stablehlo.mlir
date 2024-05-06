@@ -51,18 +51,18 @@ func.func @all_reduce_with_promotable_types(%operand: tensor<f32>) -> tensor<f64
 
 // CHECK-LABEL: func @all_reduce_with_promotable_quantized_types
 func.func @all_reduce_with_promotable_quantized_types(%operand: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>)
-    -> tensor<!quant.uniform<i32:f32, 2.000000e+00:15>> {
+    -> tensor<!quant.uniform<i16:f32, 2.000000e+00:15>> {
 
   %result = "stablehlo.all_reduce"(%operand) ({
-    ^bb0(%arg0: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %arg1: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
-      %0 = stablehlo.add %arg0, %arg1 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
-      "stablehlo.return"(%0) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+    ^bb0(%arg0: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>, %arg1: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>):
+      %0 = stablehlo.add %arg0, %arg1 : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
+      "stablehlo.return"(%0) : (tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>) -> ()
   }) {
     replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
     channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-  } : (tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+  } : (tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
 
-  func.return %result : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+  func.return %result : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
 }
 
 // -----
@@ -334,16 +334,16 @@ func.func @reduce_scatter_with_promotable_types(%data: tensor<4x16xf32>) -> tens
 // CHECK-LABEL: func @reduce_scatter_with_promotable_quantized_types
 func.func @reduce_scatter_with_promotable_quantized_types(
     %data: tensor<4x16x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
-    tensor<4x4x!quant.uniform<i32:f32, 2.000000e+00:15>> {
+    tensor<4x4x!quant.uniform<i16:f32, 2.000000e+00:15>> {
   %0 = "stablehlo.reduce_scatter"(%data) ({
-    ^bb0(%arg2: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %arg3: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
-    %1 = stablehlo.add %arg2, %arg3 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
-    "stablehlo.return"(%1) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+    ^bb0(%arg2: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>, %arg3: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
+    "stablehlo.return"(%1) : (tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>) -> ()
   }) {replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
       scatter_dimension = 1 : i64,
       channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
-      use_global_device_ids} : (tensor<4x16x!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x4x!quant.uniform<i32:f32, 2.000000e+00:15>>
-  func.return %0 : tensor<4x4x!quant.uniform<i32:f32, 2.000000e+00:15>>
+      use_global_device_ids} : (tensor<4x16x!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x4x!quant.uniform<i16:f32, 2.000000e+00:15>>
+  func.return %0 : tensor<4x4x!quant.uniform<i16:f32, 2.000000e+00:15>>
 }
 
 // -----
@@ -4878,9 +4878,9 @@ func.func @quantized_dot_i8_per_axis(%arg0: tensor<2x2x!quant.uniform<i8:f32, 2.
 // -----
 
 // CHECK-LABEL: func @quantized_dot_i4
-func.func @quantized_dot_i4(%arg0: tensor<2x2x!quant.uniform<i4:f32, 2.0:15>>, %arg1: tensor<2x2x!quant.uniform<i4:f32, 5.0:20>>) -> tensor<2x2x!quant.uniform<i4:f32, 10.0:50>> {
-  %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<2x2x!quant.uniform<i4:f32, 2.0:15>>, tensor<2x2x!quant.uniform<i4:f32, 5.0:20>>) -> tensor<2x2x!quant.uniform<i4:f32, 10.0:50>>
-  func.return %0: tensor<2x2x!quant.uniform<i4:f32, 10.0:50>>
+func.func @quantized_dot_i4(%arg0: tensor<2x2x!quant.uniform<i4:f32, 2.0:1>>, %arg1: tensor<2x2x!quant.uniform<i4:f32, 5.0:2>>) -> tensor<2x2x!quant.uniform<i4:f32, 10.0:5>> {
+  %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<2x2x!quant.uniform<i4:f32, 2.0:1>>, tensor<2x2x!quant.uniform<i4:f32, 5.0:2>>) -> tensor<2x2x!quant.uniform<i4:f32, 10.0:5>>
+  func.return %0: tensor<2x2x!quant.uniform<i4:f32, 10.0:5>>
 }
 
 // -----
@@ -5157,7 +5157,7 @@ func.func @add_c4(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
 
 func.func @add_c3(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
   // expected-error@+1 {{mismatched operands and result quantization storage types}}
-  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i4:f32, 1.0:17>>
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i4:f32, 1.0:1>>
   func.return
 }
 
@@ -5181,15 +5181,15 @@ func.func @add_c5(%arg0: tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>) {
 
 func.func @add_c6(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) {
   // expected-error@+1 {{quantization_dimension of lhs and result are not same}}
-  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:2, {1.0:17}>>
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17, 1.0:17}>>
   func.return
 }
 
 // -----
 
-func.func @add_c7(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, %arg1: tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17}>>) {
+func.func @add_c7(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, %arg1: tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17, 1.0:17}>>) {
   // expected-error@+1 {{quantization_dimension of rhs and result are not same}}
-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17, 1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>
   func.return
 }
 
