@@ -3799,8 +3799,8 @@ LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
   // dynamic_iota_c1
   if (iotaDimension >= resultType.getRank() || iotaDimension < 0)
     return emitOptionalError(
-      location,
-      "iota dimension cannot go beyond the output rank or be negative.");
+        location,
+        "iota dimension cannot go beyond the output rank or be negative.");
   // dynamic_iota_c2
   if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
                                                           resultType)))
