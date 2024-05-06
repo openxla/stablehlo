@@ -334,23 +334,6 @@ LogicalResult ConstantLikeOp::verify() {
   return success();
 }
 
-//===----------------------------------------------------------------------===//
-// MinimumBroadcastShapesOp
-//===----------------------------------------------------------------------===//
-LogicalResult MinimumBroadcastShapesOp::verify() {
-  // Check that the number of operands matches the number of outputs.
-  unsigned resultShapesCount = getResults().size();
-  unsigned operandShapesCount = getShapes().size();
-  if (operandShapesCount != resultShapesCount)
-    return emitOpError() << "number of operand shapes (" << operandShapesCount
-                         << ") does not match number of result shapes ("
-                         << resultShapesCount << ")";
-  if (operandShapesCount < 2)
-    return emitOpError() << "number of operand shapes (" << operandShapesCount
-                         << ") should be >= 2";
-  return success();
-}
-
 LogicalResult ConstantLikeOp::inferReturnTypeComponents(
     MLIRContext* /*context*/, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
