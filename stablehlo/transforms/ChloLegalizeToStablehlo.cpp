@@ -436,38 +436,6 @@ struct ConvertSelectOp final
   }
 };
 
-struct ConvertDynamicReshapeOp final
-    : OpRewritePattern<mlir::chlo::DynamicReshapeOp> {
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(mlir::chlo::DynamicReshapeOp op,
-                                PatternRewriter &rewriter) const override {
-    Location loc = op.getLoc();
-    TypedValue<TensorType> tensor = op.getOperand();
-    TypedValue<RankedTensorType> shape = op.getOutputShape();
-
-    auto shapeTy = cast<ShapedType>(shape.getType());
-    auto resultTy = cast<ShapedType>(op.getType());
-
-    Value inputShape = rewriter.create<shape::ShapeOfOp>(loc, tensor);
-    Value numEls = rewriter.create<shape::NumElementsOp>(loc, inputShape);
-    Value cstr =
-        rewriter.create<mlir::stablehlo::CstrReshapableOp>(loc, numEls, shape);
-    rewriter.replaceOpWithNewOp<shape::AssumingOp>(
-        op, cstr, [&](OpBuilder &b, Location l) {
-          Value computedShape =
-              b.create<mlir::stablehlo::ComputeReshapeShapeOp>(l, shapeTy,
-                                                               numEls, shape);
-          SmallVector<Value> result;
-          result.push_back(b.create<mlir::stablehlo::DynamicReshapeOp>(
-              l, resultTy, tensor, computedShape));
-          return result;
-        });
-
-    return success();
-  }
-};
-
 //===----------------------------------------------------------------------===//
 // Decomposition Patterns.
 //===----------------------------------------------------------------------===//
@@ -2200,9 +2168,7 @@ static void populateChloBroadcastingPatterns(MLIRContext *context,
       context, patterns, 10);
   populateForBroadcastingBinaryOp<ConvertRankedDynamicBroadcastBinaryOp>(
       context, patterns, 5);
-  patterns
-      ->add<ConvertConstantLikeOp, ConvertDynamicReshapeOp, ConvertSelectOp>(
-          context);
+  patterns->add<ConvertConstantLikeOp, ConvertSelectOp>(context);
 }
 
 static void populateChloDecompositionPatterns(MLIRContext *context,

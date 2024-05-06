@@ -66,7 +66,6 @@ one of the following tracking labels.
 | compare                  | yes           | yes          | yes            | yes             | yes         |
 | complex                  | yes           | yes          | yes            | yes             | yes         |
 | composite                | yes           | yes          | infeasible     | yes             | yes         |
-| compute_reshape_shape    | no            | revisit      | no             | yes             | no          |
 | concatenate              | yes           | yes          | yes            | yes             | yes         |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
 | convert                  | yes           | yes          | infeasible     | yes             | yes         |
@@ -75,7 +74,6 @@ one of the following tracking labels.
 | count_leading_zeros      | yes           | yes          | yes            | yes             | yes         |
 | create_token             | no            | yes\*        | yes\*          | yes             | revisit     |
 | cross-replica-sum        | no            | revisit      | yes\*          | no              | revisit     |
-| cstr_reshapable          | no            | revisit      | no             | yes             | no          |
 | custom_call              | yes           | yes          | infeasible     | yes             | yes         |
 | divide                   | yes           | yes          | yes            | yes             | yes         |
 | dot                      | no            | revisit      | infeasible     | yes             | revisit     |

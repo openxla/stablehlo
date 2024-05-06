@@ -407,16 +407,6 @@ func.func @chlo_minimum_broadcast_shapes(%lhs: tensor<?xindex>, %rhs: tensor<?xi
   func.return %0, %1 : tensor<?xindex>, tensor<?xindex>
 }
 
-// CHECK-LABEL:  func @chlo_reshape_dynamic(
-// CHECK-SAME:   %[[A0:.*]]: tensor<?xf32>,
-// CHECK-SAME:   %[[A1:.*]]: tensor<2xi32>
-// CHECK:        %[[T:.*]] = "chlo.dynamic_reshape"(%[[A0]], %[[A1]]) : (tensor<?xf32>, tensor<2xi32>) -> tensor<?x?xf32>
-// CHECK:        return %[[T]] : tensor<?x?xf32>
-func.func @chlo_reshape_dynamic(%arg0: tensor<?xf32>, %arg1: tensor<2xi32>) -> tensor<?x?xf32> {
-  %0 = "chlo.dynamic_reshape"(%arg0, %arg1) : (tensor<?xf32>, tensor<2xi32>) -> tensor<?x?xf32>
-  func.return %0 : tensor<?x?xf32>
-}
-
 // CHECK-LABEL:  func @chlo_erf_inv
 // CHECK-SAME:   %[[A0:.*0]]: tensor<16x16xf32>)
 // CHECK:          chlo.erf_inv %[[A0]] : tensor<16x16xf32> -> tensor<16x16xf32>
