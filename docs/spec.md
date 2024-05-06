@@ -331,8 +331,7 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
   ([#3](https://github.com/openxla/stablehlo/issues/3)), and
   `trace` ([#604](https://github.com/openxla/stablehlo/issues/604)).
 * "Dynamism" category of StableHLO operations - they were bootstrapped from
-   MHLO, but we haven't specced them yet: `compute_reshape_shape`,
-  `cstr_reshapable`, `dynamic_broadcast_in_dim`, `dynamic_conv`,
+   MHLO, but we haven't specced them yet: `dynamic_broadcast_in_dim`, `dynamic_conv`,
   `dynamic_gather`, `dynamic_iota`, `dynamic_pad`, `dynamic_reshape`,
   `real_dynamic_slice`, `set_dimension_size`
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
