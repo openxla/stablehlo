@@ -132,6 +132,7 @@ bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2) {
 }
 
 bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2) {
+  if (llvm::any_of(shape1, [&](int64_t x) { return x < 0; })) return false;
   auto stp2 = dyn_cast<ShapedType>(tp2);
   if (!stp2) return false;
   return isCompatibleForHloTypeInference(
@@ -141,11 +142,7 @@ bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2) {
 bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
   SmallVector<int64_t> shapeVec1;
   if (!succeeded(matchInts(shape1, shapeVec1))) return true;
-  if (llvm::any_of(shapeVec1, [&](int64_t x) { return x < 0; })) return false;
-  auto stp2 = dyn_cast<ShapedType>(tp2);
-  if (!stp2) return false;
-  auto tp1 = RankedTensorType::get(shapeVec1, stp2.getElementType());
-  return isCompatibleForHloTypeInference(tp1, tp2);
+  return isCompatibleForHloTypeInference(shapeVec1, tp2);
 }
 
 LogicalResult matchInt(Value value, int64_t& result) {
@@ -609,6 +606,23 @@ ShapedType createShapedType(ShapedTypeComponents components) {
 bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {
   return std::all_of(arr.begin(), arr.end(),
                      [val](int64_t x) { return x == val; });
+}
+
+mlir::Speculation::Speculatability getShapedSpeculatability(
+    Operation* op, int64_t shapeCount) {
+  // If all inputs are static and the shape-related operands are constant
+  // then any relationship between the input, the shapes and the output can be
+  // verified statically.
+  bool allInputsStatic = llvm::all_of(op->getOperandTypes(), [](Type t) {
+    return cast<ShapedType>(t).hasStaticShape();
+  });
+  bool allShapesConstant = llvm::all_of(llvm::seq(shapeCount), [&](int64_t i) {
+    return matchPattern(op->getOperand(op->getNumOperands() - 1 - i),
+                        m_Constant());
+  });
+  return allInputsStatic && allShapesConstant
+             ? mlir::Speculation::Speculatable
+             : mlir::Speculation::NotSpeculatable;
 }
 
 }  // namespace hlo

@@ -829,7 +829,7 @@ struct TransposeOpToTransposeConverter final
     // TODO(#2216) Cleanup Attribute -> DenseArrayAttr
     rewriter.replaceOpWithNewOp<linalg::TransposeOp>(
         op, adaptor.getOperand(), emptyTensor,
-        op.getPermutationAttr().dyn_cast_or_null<DenseI64ArrayAttr>(),
+        dyn_cast_or_null<DenseI64ArrayAttr>(op.getPermutationAttr()),
         linalg::getPrunedAttributeList(op));
     return success();
   }
@@ -2284,9 +2284,10 @@ struct PadOpNegativePaddingConversion final
     // Then slice according to the negative edge padding. Static shapes only for
     // now.
     if (!op.getType().hasStaticShape()) return failure();
-    SmallVector<OpFoldResult> sizes(llvm::map_range(
-        op.getType().getShape(),
-        [&](int64_t dim) { return rewriter.getIndexAttr(dim); }));
+    auto sizes = llvm::map_to_vector(op.getType().getShape(),
+                                     [&](int64_t dim) -> OpFoldResult {
+                                       return rewriter.getIndexAttr(dim);
+                                     });
     SmallVector<OpFoldResult> strides(sliceStarts.size(),
                                       rewriter.getIndexAttr(1));
     rewriter.replaceOpWithNewOp<tensor::ExtractSliceOp>(op, pad, sliceStarts,
@@ -2506,10 +2507,10 @@ struct SetDimensionSizeConverter final
                                       rewriter.getIndexAttr(0));
     SmallVector<OpFoldResult> strides(resultType.getRank(),
                                       rewriter.getIndexAttr(1));
-    SmallVector<OpFoldResult> sizes(llvm::map_range(
-        resultType.getShape(), [&](int64_t dim) -> OpFoldResult {
-          return rewriter.getIndexAttr(dim);
-        }));
+    auto sizes = llvm::map_to_vector(resultType.getShape(),
+                                     [&](int64_t dim) -> OpFoldResult {
+                                       return rewriter.getIndexAttr(dim);
+                                     });
     Value dimensionSize =
         rewriter.create<tensor::ExtractOp>(loc, setDimensionSizeOp.getSize());
     sizes[setDimensionSizeOp.getDimension()] =

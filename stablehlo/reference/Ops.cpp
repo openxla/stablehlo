@@ -140,8 +140,8 @@ SmallVector<InterpreterValue> callOp(ArrayRef<Tensor> inputs,
       symbolTableCollection.getSymbolTable(op->getParentOfType<ModuleOp>());
   auto func = symbolTable.lookupNearestSymbolFrom<func::FuncOp>(
       op, StringAttr::get(op->getContext(), funcName));
-  SmallVector<InterpreterValue> values = llvm::to_vector(llvm::map_range(
-      inputs, [](const Tensor &t) { return InterpreterValue(t); }));
+  SmallVector<InterpreterValue> values = llvm::map_to_vector(
+      inputs, [](const Tensor &t) { return InterpreterValue(t); });
   return eval(func.getBody(), values, fallback, process, nullptr);
 }
 
@@ -1036,9 +1036,9 @@ Tensor allGatherOp(const Tensor &operand, int64_t allGatherDim,
 
   auto rendezvousResult =
       process->rendezvous(*processGroup, channelId, operand);
-  SmallVector<Tensor> groupOperands(llvm::map_range(
+  auto groupOperands = llvm::map_to_vector(
       *processGroup,
-      [&](const ProcessId &id) { return rendezvousResult.lookup(id); }));
+      [&](const ProcessId &id) { return rendezvousResult.lookup(id); });
 
   return concatenateOp(groupOperands, allGatherDim, resultType);
 }
