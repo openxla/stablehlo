@@ -2653,9 +2653,9 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 #### Outputs
 
-| Name     | Type                       | Constraints   |
-|----------|----------------------------|---------------|
-| `result` | tensor or quantized tensor | (C1-C3)       |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1-C3)     |
 
 #### Constraints
 
@@ -2663,20 +2663,7 @@ op, but the result shape is specified dynamically via `output_shape`.
   * `element_type(operand)`, if `!is_per_axis_quantized(operand)`.
   * `element_type(operand)` except that `quantization_dimension(operand)` and
     `quantization_dimension(result)` may differ, otherwise.
-* (C2) `size(operand) = size(output_shape) = rank(result)`.
-* (C3) If `is_per_axis_quantized(operand)`:
-  * `reduce(dims(operand, [0, 1, ..., quantization_dimension(operand) - 1]),
-    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
-    reduce(dims(output_shape, [0, 1, ..., quantization_dimension(result) - 1]),
-    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
-  * `dim(operand, quantization_dimension(operand)) =
-    dim(output_shape, quantization_dimension(result))`.
-  * `reduce(dims(operand,
-    [quantization_dimension(operand) + 1, ..., rank(operand) - 1]),
-    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
-    reduce(dims(output_shape,
-    [quantization_dimension(result) + 1, ..., rank(result) - 1]),
-    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
+* (C2) `size(output_shape) = rank(result)`.
 
 #### Examples
 
