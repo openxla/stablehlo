@@ -3796,14 +3796,15 @@ LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
                                   Value result) {
   auto resultType = cast<ShapedType>(result.getType());
 
-  if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
-                                                          resultType)))
-    return failure();
-
+  // dynamic_iota_c1
   if (iotaDimension >= resultType.getRank() || iotaDimension < 0)
     return emitOptionalError(
         location,
         "iota dimension cannot go beyond the output rank or be negative.");
+  // dynamic_iota_c2
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
+                                                          resultType)))
+    return failure();
 
   return success();
 }
