@@ -142,8 +142,8 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Condit
   }];
 
   let arguments = (ins
-    HLO_StaticDimensionTensor:$output_shape /*dynamic_iota_i1*/
-    I64Attr:$iota_dimension /*dynamic_iota_i2*/,
+    HLO_StaticDimensionTensor:$output_shape /*dynamic_iota_i1*/,
+    I64Attr:$iota_dimension /*dynamic_iota_i2*/
   );
   let results = (outs HLO_Tensor:$result);
   let hasVerifier = 1;

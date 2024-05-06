@@ -2070,8 +2070,8 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
     Value iotaOp;
     if (isDynamic) {
       iotaOp = rewriter.create<mlir::stablehlo::DynamicIotaOp>(
-          op.getLoc(), iotaType, rewriter.getI64IntegerAttr(lastDimIndex),
-          opShapeValue);
+          op.getLoc(), iotaType, opShapeValue,
+          rewriter.getI64IntegerAttr(lastDimIndex));
     } else {
       iotaOp = rewriter.create<mlir::stablehlo::IotaOp>(
           op.getLoc(), iotaType, rewriter.getI64IntegerAttr(lastDimIndex));
