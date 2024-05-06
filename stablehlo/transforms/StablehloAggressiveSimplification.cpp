@@ -822,7 +822,7 @@ struct UnusedResultReduceOpCanon final
 
     auto newOp = rewriter.create<ReduceOp>(
         op.getLoc(), newInputs, newInitVals,
-        op.getDimensionsAttr().cast<DenseI64ArrayAttr>(), newElementTypes);
+        cast<DenseI64ArrayAttr>(op.getDimensionsAttr()), newElementTypes);
     Block *newReducerBlock = rewriter.createBlock(&newOp.getBody());
 
     IRMapping mapper;
