@@ -77,10 +77,26 @@ APSInt getAPSInt(Type type, uint64_t value) {
                 /*isUnsigned=*/isUnsigned);
 }
 
+LogicalResult validateResultTypeForEval(PatternRewriter& rewriter,
+                                        Operation* op, ShapedType resultType) {
+  if (!resultType.hasStaticShape())
+    return rewriter.notifyMatchFailure(
+        op, "unable to fold dynamically shaped result type to constant");
+  return success();
+}
+
+// The patterns below implement partial evaluation of shape computations which
+// is a critical part of implementing type refinement for ops like
+// dynamic_broadcast_in_dim, dynamic_iota and dynamic_reshape whose shape
+// depends on the value of their shape operands.
+
 template <typename OpType, typename FuncType>
-LogicalResult evalElementwise(PatternRewriter &rewriter, OpType op,
+LogicalResult evalElementwise(PatternRewriter& rewriter, OpType op,
                               FuncType fn) {
   auto resultType = op.getType();
+  if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    return failure();
+
   if (!isa<IntegerType>(resultType.getElementType()))
     return rewriter.notifyMatchFailure(op,
                                        "expected integer result tensor type");
@@ -90,7 +106,7 @@ LogicalResult evalElementwise(PatternRewriter &rewriter, OpType op,
     SmallVector<APSInt> operand;
     if (failed(hlo::matchInts(op.getOperand(), operand)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
-    for (const auto &operandEl : operand) {
+    for (const auto& operandEl : operand) {
       result.push_back(fn(operandEl));
     }
   } else if constexpr (OpType::template hasTrait<
@@ -124,7 +140,7 @@ LogicalResult evalElementwise(PatternRewriter &rewriter, OpType op,
 struct EvalAddOpPattern : public OpRewritePattern<AddOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(AddOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
                            [&](APSInt lhs, APSInt rhs) { return lhs + rhs; });
   }
@@ -133,7 +149,7 @@ struct EvalAddOpPattern : public OpRewritePattern<AddOp> {
 struct EvalAndOpPattern : public OpRewritePattern<AndOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(AndOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
     if (!resultType.getElementType().isInteger(1))
       return rewriter.notifyMatchFailure(op, "expected boolean element type");
@@ -147,7 +163,11 @@ struct EvalAndOpPattern : public OpRewritePattern<AndOp> {
 struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(BroadcastInDimOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     auto operandType = op.getOperand().getType();
     if (operandType.getRank() != 0)
       return rewriter.notifyMatchFailure(op, "expected 0-dimensional type");
@@ -166,7 +186,7 @@ struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
 struct EvalClampOpPattern : public OpRewritePattern<ClampOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ClampOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
                            [&](APSInt min, APSInt operand, APSInt max) {
                              if (operand < min) return min;
@@ -179,7 +199,7 @@ struct EvalClampOpPattern : public OpRewritePattern<ClampOp> {
 struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(CompareOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
     return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
       bool result;
@@ -212,8 +232,10 @@ struct EvalComputeReshapeShapeOpPattern
     : public OpRewritePattern<ComputeReshapeShapeOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ComputeReshapeShapeOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
 
     int64_t numElems;
     if (failed(hlo::matchInt(op.getNumElements(), numElems)))
@@ -250,10 +272,10 @@ struct EvalComputeReshapeShapeOpPattern
       dynShapeValues[unspecifiedDimIdx.value()] = numElems / dimProduct;
 
     const auto resultBitWidth = resultType.getElementTypeBitWidth();
-    auto result = llvm::to_vector(
-        llvm::map_range(dynShapeValues, [&](int64_t value) -> APSInt {
+    auto result =
+        llvm::map_to_vector(dynShapeValues, [&](int64_t value) -> APSInt {
           return APSInt(APInt(resultBitWidth, value), false);
-        }));
+        });
 
     rewriter.replaceOpWithNewOp<ConstantOp>(op,
                                             getTensorAttr(resultType, result));
@@ -265,8 +287,11 @@ struct EvalComputeReshapeShapeOpPattern
 struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     if (op.getDimension() != 0)
       return rewriter.notifyMatchFailure(op, "expected dimension = 0");
 
@@ -285,11 +310,14 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
 struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ConvertOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     if (!isa<IntegerType>(resultType.getElementType()))
-      return rewriter.notifyMatchFailure(op,
-                                         "expected integer result tensor type");
+      return rewriter.notifyMatchFailure(
+          op, "expected integer result tensor type with static shapes");
     auto resultBitWidth = resultType.getElementType().getIntOrFloatBitWidth();
     return evalElementwise(rewriter, op, [&](APSInt operand) {
       return operand.extOrTrunc(resultBitWidth);
@@ -300,7 +328,7 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
 struct EvalDivOpPattern : public OpRewritePattern<DivOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(DivOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
                            [&](APSInt lhs, APSInt rhs) { return lhs / rhs; });
   }
@@ -310,14 +338,18 @@ struct EvalGetDimensionSizeOpPattern
     : public OpRewritePattern<GetDimensionSizeOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(GetDimensionSizeOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     auto operandType = op.getOperand().getType();
     if (operandType.isDynamicDim(op.getDimension()))
       return rewriter.notifyMatchFailure(op, "expected static dimension");
 
     auto result = operandType.getDimSize(op.getDimension());
     rewriter.replaceOpWithNewOp<ConstantOp>(
-        op, DenseIntElementsAttr::get<int32_t>(op.getType(), result));
+        op, DenseIntElementsAttr::get<int32_t>(resultType, result));
     return success();
   }
 };
@@ -325,7 +357,7 @@ struct EvalGetDimensionSizeOpPattern
 struct EvalMaxOpPattern : public OpRewritePattern<MaxOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(MaxOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
       return lhs >= rhs ? lhs : rhs;
     });
@@ -335,7 +367,7 @@ struct EvalMaxOpPattern : public OpRewritePattern<MaxOp> {
 struct EvalMinOpPattern : public OpRewritePattern<MinOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(MinOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
       return lhs <= rhs ? lhs : rhs;
     });
@@ -345,7 +377,7 @@ struct EvalMinOpPattern : public OpRewritePattern<MinOp> {
 struct EvalMulOpPattern : public OpRewritePattern<MulOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(MulOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
                            [&](APSInt lhs, APSInt rhs) { return lhs * rhs; });
   }
@@ -354,7 +386,7 @@ struct EvalMulOpPattern : public OpRewritePattern<MulOp> {
 struct EvalOrOpPattern : public OpRewritePattern<OrOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(OrOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
     if (!resultType.getElementType().isInteger(1))
       return rewriter.notifyMatchFailure(op, "expected boolean element type");
@@ -368,7 +400,7 @@ struct EvalOrOpPattern : public OpRewritePattern<OrOp> {
 struct EvalRemOpPattern : public OpRewritePattern<RemOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(RemOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
                            [&](APSInt lhs, APSInt rhs) { return lhs % rhs; });
   }
@@ -377,11 +409,15 @@ struct EvalRemOpPattern : public OpRewritePattern<RemOp> {
 struct EvalReshapeOpPattern : public OpRewritePattern<ReshapeOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ReshapeOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     DenseIntElementsAttr attr;
     if (!matchPattern(op.getOperand(), m_Constant(&attr)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
-    rewriter.replaceOpWithNewOp<ConstantOp>(op, attr.reshape(op.getType()));
+    rewriter.replaceOpWithNewOp<ConstantOp>(op, attr.reshape(resultType));
     return success();
   }
 };
@@ -389,7 +425,11 @@ struct EvalReshapeOpPattern : public OpRewritePattern<ReshapeOp> {
 struct EvalSelectOpPattern : public OpRewritePattern<SelectOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(SelectOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     SmallVector<APSInt> pred, onTrue, onFalse;
     if (failed(hlo::matchInts(op.getPred(), pred)) ||
         failed(hlo::matchInts(op.getOnTrue(), onTrue)) ||
@@ -411,7 +451,7 @@ struct EvalSelectOpPattern : public OpRewritePattern<SelectOp> {
 struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(SignOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
     if (!isa<IntegerType>(resultType.getElementType()))
       return rewriter.notifyMatchFailure(op,
@@ -432,8 +472,11 @@ struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
 struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(SliceOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     if (resultType.getRank() < 1)
       return rewriter.notifyMatchFailure(
           op, "expected non-0 ranked tensor result type");
@@ -480,7 +523,7 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
 struct EvalSubtractOpPattern : public OpRewritePattern<SubtractOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(SubtractOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
                            [&](APSInt lhs, APSInt rhs) { return lhs - rhs; });
   }
@@ -491,7 +534,7 @@ struct StablehloAggressiveFolderPass
           StablehloAggressiveFolderPass> {
   using StablehloAggressiveFolderPassBase::StablehloAggressiveFolderPassBase;
 
-  LogicalResult initialize(MLIRContext *context) override {
+  LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
     populateStablehloAggressiveFolderPatterns(&patterns_, context);
     patterns = std::move(patterns_);
@@ -510,13 +553,13 @@ struct StablehloAggressiveFolderPass
 
 }  // namespace
 
-void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
-                                               MLIRContext *context) {
+void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
+                                               MLIRContext* context) {
   populateStablehloShapeFolderPatterns(patterns, context);
 }
 
-void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
-                                          MLIRContext *context) {
+void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
+                                          MLIRContext* context) {
   patterns->add<EvalAddOpPattern>(context);
   patterns->add<EvalAndOpPattern>(context);
   patterns->add<EvalBroadcastInDimOpPattern>(context);
