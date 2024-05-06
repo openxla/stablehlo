@@ -8,8 +8,8 @@ Status: In review<br/>
 
 This doc covers a list of opset cleanups that we want to do for StableHLO v1.0.
 Most of these ops were never spec’ed and therefore have no formal compatibility
-guarantees, per the Unspecced Features compatibility exemption, however we can
-provide some backward / forward compatibility for most of them.
+guarantees, per the [Unspecced Features compatibility exemption][compat-out-of-scope],
+however we can provide some backward / forward compatibility for most of them.
 
 This doc will propose futures for the ops intentionally omitted from the spec,
 including:
@@ -30,7 +30,7 @@ deprecation steps will be as follows:
 1. Migrate uses of the ops to the supported StableHLO op (add builder methods).
 1. Change VHLO legalization to upgrade to the supported op for compatibility.
 1. Remove the redundant StableHLO op.
-1. Remove redundant op from VHLO after 6mo.
+1. Remove redundant op from VHLO after 6 months.
 
 ## Proposed Opset Changes
 
@@ -51,7 +51,7 @@ Helper methods can be added to the support op for compatibility, something like:
 ### P2: Deprecate `RealDynamicSliceOp`, Enhance `DynamicSliceOp`
 
 In terms of naming `stablehlo.dynamic_slice` is more in-model than
-`real_final_v2_dynamic_slice`. However in terms of functionality, per
+`real_dynamic_slice`. However in terms of functionality, per
 [Dynamism RFC P4](https://github.com/openxla/stablehlo/blob/main/rfcs/20230704-dynamism-101.md#p4)
 the behavior of `real_dynamic_slice` is correct. We propose to enhance
 `dynamic_slice_op` to have an identical feature set as `real_dynamic_slice`, and
@@ -77,13 +77,15 @@ These are all ops that seem to have very limited use in StableHLO. It would be
 great to remove them all or move them to CHLO, as opposed to providing long term
 compatibility on ops that aren't needed.
 
-In the interim, we only plan to guarantee the existing 6mo compatibility
-guarantees until these ops until their futures are more clearly known.
+In the interim, we only plan to guarantee the existing 6 month compatibility
+guarantees until these ops' futures are more clearly known.
 
-- **MapOp** is unused as far as we can tell, including in HLO. It’s uses tend to
+- **MapOp** is unused as far as we can tell, including in HLO. Its uses tend to
 be just for a region to mimic a composite, which is no longer needed after the
 addition of the `stablehlo.composite` op. This op likely can be removed.
-- **RngOp** is stateful, and there is a better alternative in RngBitGeneratorOp.
+- **RngOp** is stateful, and there is a better alternative in
+`RngBitGeneratorOp`. More work needs to be done to determine if all uses of this
+op can be safely migrated to the alternative.
 - **EinsumOp** can likely be moved to CHLO, the [xla::Einsum][einsum] method is
 similarly a decomposition. It is unclear how necessary this abstraction is for
 linalg lowerings though.
@@ -95,6 +97,7 @@ abstraction is to the community.
 Interested in feedback on any of the above proposals, or ideas for how to keep
 these changes from being too invasive to community projects!
 
+[compat-out-of-scope]: https://github.com/openxla/stablehlo/blob/main/docs/compatibility.md#out-of-scope
 [not-in-HLO]: https://github.com/openxla/stablehlo/blob/main/docs/spec.md#:~:text=%22Not%20in%20HLO%22,-category%20of%20StableHLO
 [CRS]: https://github.com/openxla/xla/blob/6cc24d8548094b3fc94dacc569fc6959227ae28b/xla/client/xla_builder.cc#L3619
 [einsum]: https://github.com/openxla/xla/blob/8371ea90202d9ca1cb1148237a1a1ef3620b354a/xla/client/lib/matrix.cc#L386
