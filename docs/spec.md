@@ -2637,23 +2637,16 @@ planning to address this in
 
 #### Semantics
 
-Fills a `result` tensor with values in increasing order starting from zero
-along the `iota_dimension` dimension. This operation does the same thing
-as [iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#iota)
-op except that the result shape is specified dynamically via `output_shape`.
-
-More formally, for all `result_index` in `index_space(output_shape)`,
-
-`result[result_index] = constant(is_quantized(result) ?
-quantize(result_index[iota_dimension], element_type(result)) :
-result_index[iota_dimension], element_type(result))`.
+This operation is functionally identical to
+[iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#iota)
+op, but the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 
 | Label | Name             | Type                                                                               | Constraints |
 |-------|------------------|------------------------------------------------------------------------------------|-------------|
-| (I1)  | `iota_dimension` | `si64`                                                                             | (C1)        |
-| (I2)  | `output_shape`   | 1-dimensional tensor constant of type `si64`                                       | (C1), (C2)  |
+| (I1)  | `output_shape`   | 1-dimensional tensor constant of type `si64`                                       | (C1), (C2)  |
+| (I2)  | `iota_dimension` | `si64`                                                                             | (C1)        |
 
 #### Outputs
 
