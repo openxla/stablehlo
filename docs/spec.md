@@ -2640,18 +2640,9 @@ planning to address this in
 
 #### Semantics
 
-Performs reshape of `operand` tensor to a `result` tensor. Conceptually, it
-amounts to keeping the same canonical representation but potentially changing
-the shape, e.g. from `tensor<2x3xf32>` to `tensor<3x2xf32>` or `tensor<6xf32>`.
-
-This operation does the same thing as
-[reshape](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape) op
-except that the result shape is specified dynamically via `output_shape`:
-
-More formally,
-`result[result_index] = operand[operand_index]` where
-`result_index` and `operand_index` have the same position in the lexicographic
-ordering of `index_space(output_shape)` and `index_space(operand)`.
+This operation is functionally identical to
+[reshape](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape)
+op, but the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 
