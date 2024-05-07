@@ -257,7 +257,7 @@ LogicalResult CompositeOp::verifySymbolUses(
 void ConstantOp::getAsmResultNames(
     function_ref<void(Value, StringRef)> setNameFn) {
   mlir::TensorType type = getType();
-  if (type.getElementType().isa<IntegerType>()) {
+  if (isa<IntegerType>(type.getElementType())) {
     setNameFn(getResult(), "c");
   } else {
     setNameFn(getResult(), "cst");

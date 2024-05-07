@@ -51,18 +51,18 @@ func.func @all_reduce_with_promotable_types(%operand: tensor<f32>) -> tensor<f64
 
 // CHECK-LABEL: func @all_reduce_with_promotable_quantized_types
 func.func @all_reduce_with_promotable_quantized_types(%operand: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>)
-    -> tensor<!quant.uniform<i32:f32, 2.000000e+00:15>> {
+    -> tensor<!quant.uniform<i16:f32, 2.000000e+00:15>> {
 
   %result = "stablehlo.all_reduce"(%operand) ({
-    ^bb0(%arg0: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %arg1: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
-      %0 = stablehlo.add %arg0, %arg1 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
-      "stablehlo.return"(%0) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+    ^bb0(%arg0: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>, %arg1: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>):
+      %0 = stablehlo.add %arg0, %arg1 : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
+      "stablehlo.return"(%0) : (tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>) -> ()
   }) {
     replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
     channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-  } : (tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+  } : (tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
 
-  func.return %result : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+  func.return %result : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
 }
 
 // -----
@@ -334,16 +334,16 @@ func.func @reduce_scatter_with_promotable_types(%data: tensor<4x16xf32>) -> tens
 // CHECK-LABEL: func @reduce_scatter_with_promotable_quantized_types
 func.func @reduce_scatter_with_promotable_quantized_types(
     %data: tensor<4x16x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
-    tensor<4x4x!quant.uniform<i32:f32, 2.000000e+00:15>> {
+    tensor<4x4x!quant.uniform<i16:f32, 2.000000e+00:15>> {
   %0 = "stablehlo.reduce_scatter"(%data) ({
-    ^bb0(%arg2: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %arg3: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
-    %1 = stablehlo.add %arg2, %arg3 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
-    "stablehlo.return"(%1) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+    ^bb0(%arg2: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>, %arg3: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
+    "stablehlo.return"(%1) : (tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>) -> ()
   }) {replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
       scatter_dimension = 1 : i64,
       channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
-      use_global_device_ids} : (tensor<4x16x!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x4x!quant.uniform<i32:f32, 2.000000e+00:15>>
-  func.return %0 : tensor<4x4x!quant.uniform<i32:f32, 2.000000e+00:15>>
+      use_global_device_ids} : (tensor<4x16x!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x4x!quant.uniform<i16:f32, 2.000000e+00:15>>
+  func.return %0 : tensor<4x4x!quant.uniform<i16:f32, 2.000000e+00:15>>
 }
 
 // -----
@@ -1026,7 +1026,7 @@ func.func @dynamic_broadcast_in_dim_shape_mismatch(%arg0: tensor<32xf32>, %shape
 // -----
 
 func.func @dynamic_broadcast_in_dim_output_dimensions_negative_size(%arg0: tensor<4xf32>) -> tensor<3x4xf32> {
-  // @expected-error@+2 {{output_dimensions are incompatible with return type of operation 'tensor<3x4xf32>'}}
+  // @expected-error@+2 {{output shape [-1, 4] is incompatible with return type of operation 'tensor<3x4xf32>'}}
   %0 = stablehlo.constant dense<[-1, 4]> : tensor<2xi64>
   %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<3x4xf32>
   return %1 : tensor<3x4xf32>
@@ -1035,10 +1035,26 @@ func.func @dynamic_broadcast_in_dim_output_dimensions_negative_size(%arg0: tenso
 // -----
 
 func.func @dynamic_broadcast_in_dim_output_dimensions_mismatching_size(%arg0: tensor<4xf32>) -> tensor<3x4xf32> {
-  // @expected-error@+2 {{output_dimensions are incompatible with return type of operation 'tensor<3x4xf32>'}}
+  // @expected-error@+2 {{output shape [1, 4] is incompatible with return type of operation 'tensor<3x4xf32>'}}
   %0 = stablehlo.constant dense<[1, 4]> : tensor<2xi64>
   %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<3x4xf32>
   return %1 : tensor<3x4xf32>
+}
+
+// -----
+
+func.func @dynamic_broadcast_in_dim_output_dimensions_match_result(%arg0: tensor<4xf32>) -> tensor<3x4xf32> {
+  %0 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
+  %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<3x4xf32>
+  return %1 : tensor<3x4xf32>
+}
+
+// -----
+
+func.func @dynamic_broadcast_in_dim_output_dimensions_compatible_with_result(%arg0: tensor<4xf32>) -> tensor<?x?xf32> {
+  %0 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
+  %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<?x?xf32>
+  return %1 : tensor<?x?xf32>
 }
 
 // -----
@@ -3174,10 +3190,26 @@ func.func @dynamic_reshape_incompatible_shapes(%arg0: tensor<?xf32>, %shape: ten
 // -----
 
 func.func @dynamic_reshape_output_shape_mismatching_size(%arg0: tensor<4xf32>) -> tensor<1x4xf32> {
-  // expected-error@+2 {{output_shape [2, 2] is incompatible with return type of operation 'tensor<1x4xf32>'}}
+  // expected-error@+2 {{output shape [2, 2] is incompatible with return type of operation 'tensor<1x4xf32>'}}
   %0 = stablehlo.constant dense<[2, 2]> : tensor<2xi64>
   %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x4xf32>
   return %1 : tensor<1x4xf32>
+}
+
+// -----
+
+func.func @dynamic_reshape_output_shape_matches_result(%arg0: tensor<4xf32>) -> tensor<1x4xf32> {
+  %0 = stablehlo.constant dense<[1, 4]> : tensor<2xi64>
+  %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x4xf32>
+  return %1 : tensor<1x4xf32>
+}
+
+// -----
+
+func.func @dynamic_reshape_output_shape_compatible_with_result(%arg0: tensor<4xf32>) -> tensor<?x?xf32> {
+  %0 = stablehlo.constant dense<[1, 4]> : tensor<2xi64>
+  %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<?x?xf32>
+  return %1 : tensor<?x?xf32>
 }
 
 // -----
@@ -4846,9 +4878,9 @@ func.func @quantized_dot_i8_per_axis(%arg0: tensor<2x2x!quant.uniform<i8:f32, 2.
 // -----
 
 // CHECK-LABEL: func @quantized_dot_i4
-func.func @quantized_dot_i4(%arg0: tensor<2x2x!quant.uniform<i4:f32, 2.0:15>>, %arg1: tensor<2x2x!quant.uniform<i4:f32, 5.0:20>>) -> tensor<2x2x!quant.uniform<i4:f32, 10.0:50>> {
-  %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<2x2x!quant.uniform<i4:f32, 2.0:15>>, tensor<2x2x!quant.uniform<i4:f32, 5.0:20>>) -> tensor<2x2x!quant.uniform<i4:f32, 10.0:50>>
-  func.return %0: tensor<2x2x!quant.uniform<i4:f32, 10.0:50>>
+func.func @quantized_dot_i4(%arg0: tensor<2x2x!quant.uniform<i4:f32, 2.0:1>>, %arg1: tensor<2x2x!quant.uniform<i4:f32, 5.0:2>>) -> tensor<2x2x!quant.uniform<i4:f32, 10.0:5>> {
+  %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<2x2x!quant.uniform<i4:f32, 2.0:1>>, tensor<2x2x!quant.uniform<i4:f32, 5.0:2>>) -> tensor<2x2x!quant.uniform<i4:f32, 10.0:5>>
+  func.return %0: tensor<2x2x!quant.uniform<i4:f32, 10.0:5>>
 }
 
 // -----
@@ -5125,7 +5157,7 @@ func.func @add_c4(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
 
 func.func @add_c3(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
   // expected-error@+1 {{mismatched operands and result quantization storage types}}
-  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i4:f32, 1.0:17>>
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<i4:f32, 1.0:1>>
   func.return
 }
 
@@ -5149,15 +5181,15 @@ func.func @add_c5(%arg0: tensor<1x!quant.uniform<i8:f32:0, {1.0:17}>>) {
 
 func.func @add_c6(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) {
   // expected-error@+1 {{quantization_dimension of lhs and result are not same}}
-  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:2, {1.0:17}>>
+  %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17, 1.0:17}>>
   func.return
 }
 
 // -----
 
-func.func @add_c7(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, %arg1: tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17}>>) {
+func.func @add_c7(%arg0: tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, %arg1: tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17, 1.0:17}>>) {
   // expected-error@+1 {{quantization_dimension of rhs and result are not same}}
-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<1x2x!quant.uniform<i8:f32:1, {1.0:17, 1.0:17}>>) -> tensor<1x2x!quant.uniform<i8:f32:0, {1.0:17}>>
   func.return
 }
 
@@ -5431,7 +5463,7 @@ func.func @dynamic_iota_invalid_iota_dimension_too_big() -> tensor<?xf32> {
 // -----
 
 func.func @dynamic_iota_output_shape_negative_size() -> tensor<4xf32> {
-  // @expected-error@+2 {{output_shape is incompatible with return type of operation 'tensor<4xf32>'}}
+  // @expected-error@+2 {{output shape [-1] is incompatible with return type of operation 'tensor<4xf32>'}}
   %0 = stablehlo.constant dense<[-1]> : tensor<1xi64>
   %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<4xf32>
   func.return %1 : tensor<4xf32>
@@ -5440,10 +5472,26 @@ func.func @dynamic_iota_output_shape_negative_size() -> tensor<4xf32> {
 // -----
 
 func.func @dynamic_iota_output_shape_mismatching_size() -> tensor<4xf32> {
-  // @expected-error@+2 {{output_shape is incompatible with return type of operation 'tensor<4xf32>'}}
+  // @expected-error@+2 {{output shape [1] is incompatible with return type of operation 'tensor<4xf32>'}}
   %0 = stablehlo.constant dense<[1]> : tensor<1xi64>
   %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<4xf32>
   func.return %1 : tensor<4xf32>
+}
+
+// -----
+
+func.func @dynamic_iota_output_shape_matches_result() -> tensor<4xf32> {
+  %0 = stablehlo.constant dense<[4]> : tensor<1xi64>
+  %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<4xf32>
+  func.return %1 : tensor<4xf32>
+}
+
+// -----
+
+func.func @dynamic_iota_output_shape_compatible_with_result() -> tensor<?xf32> {
+  %0 = stablehlo.constant dense<[4]> : tensor<1xi64>
+  %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<?xf32>
+  func.return %1 : tensor<?xf32>
 }
 
 // -----

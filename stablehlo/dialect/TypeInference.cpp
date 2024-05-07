@@ -44,6 +44,7 @@ limitations under the License.
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/Regex.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/IR/Attributes.h"
@@ -66,9 +67,11 @@ limitations under the License.
 namespace mlir {
 namespace hlo {
 namespace {
+
 //===----------------------------------------------------------------------===//
 // Utils for quantization specific verifications
 //===----------------------------------------------------------------------===//
+
 template <typename T>
 bool allQuantized(ArrayRef<Type> typeRange) {
   return llvm::all_of(
@@ -519,6 +522,27 @@ LogicalResult verifyAddOp(std::optional<Location> location, Operation* op,
   return success();
 }
 
+// If the shape operand is constant, checks that it is compatible with the
+// result's shape. Emits an error if the shapes are incompatible.
+LogicalResult verifyShapeOperandIsCompatibleWithResultType(
+    std::optional<Location> loc, Value shapeOperand, Type resultType) {
+  if (SmallVector<int64_t> shape;
+      succeeded(matchInts(shapeOperand, shape)) &&
+      !isCompatibleForHloTypeInference(shape, resultType)) {
+    std::string str;
+    llvm::raw_string_ostream os(str);
+    llvm::interleaveComma(shape, os, [&](int64_t i) { os << i; });
+    return emitOptionalError(loc, "output shape [", os.str(),
+                             "] is incompatible with return type of operation ",
+                             resultType);
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// Verifiers
+//===----------------------------------------------------------------------===//
+
 LogicalResult verifyTransposeOp(std::optional<Location> location,
                                 Type operandType, ArrayRef<int64_t> permutation,
                                 Type resultType) {
@@ -541,7 +565,7 @@ LogicalResult verifyTransposeOp(std::optional<Location> location,
     if (operandQDim != permutation[resultQDim])
       return emitOptionalError(location, "operand quantization_dimension ",
                                operandQDim, " is not same as permutation[",
-                               resultQDim, "] ", permutation[resultQDim]);
+                               resultQDim, "] = ", permutation[resultQDim]);
   }
   return success();
 }
@@ -3407,9 +3431,9 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
     auto resultQDim = resultQType.getQuantizedDimension();
     if (resultQDim != broadcastDimensions[operandQDim])
       return emitOptionalError(location, "result quantization_dimension ",
-                               resultQDim, " not same as broadcast_dimensions ",
-                               operandQDim, " (",
-                               broadcastDimensions[operandQDim], ")");
+                               resultQDim, " not same as broadcast_dimensions[",
+                               operandQDim,
+                               "] = ", broadcastDimensions[operandQDim]);
     if (operandType.getDimSize(operandQDim) == 1) {
       for (int64_t j = 0; j != resultType.getDimSize(resultQDim); ++j) {
         if (resultQType.getScales()[j] != operandQType.getScales()[0])
@@ -3811,11 +3835,9 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     }
   }
 
-  if (!isCompatibleForHloTypeInference(outputDimensions, resultType))
-    return emitOptionalError(
-        location,
-        "output_dimensions are incompatible with return type of operation ",
-        resultType);
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(
+          location, outputDimensions, resultType)))
+    return failure();
 
   return success();
 }
@@ -3823,17 +3845,17 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
                                   Value outputShape, int64_t iotaDimension,
                                   Value result) {
-  auto shape = cast<ShapedType>(result.getType());
+  auto resultType = cast<ShapedType>(result.getType());
 
-  if (!isCompatibleForHloTypeInference(outputShape, shape))
-    return emitOptionalError(
-        location, "output_shape is incompatible with return type of operation ",
-        result.getType());
-
-  if (iotaDimension >= shape.getRank() || iotaDimension < 0)
+  // dynamic_iota_c1
+  if (iotaDimension >= resultType.getRank() || iotaDimension < 0)
     return emitOptionalError(
         location,
         "iota dimension cannot go beyond the output rank or be negative.");
+  // dynamic_iota_c2
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
+                                                          resultType)))
+    return failure();
 
   return success();
 }
@@ -3902,18 +3924,9 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
     }
   }
 
-  if (SmallVector<int64_t> shape;
-      succeeded(matchInts(outputShape, shape)) &&
-      !isCompatibleForHloTypeInference(shape, resultType)) {
-    std::string str;
-    llvm::raw_string_ostream os(str);
-    os << "[";
-    llvm::interleaveComma(shape, os, [&](int64_t i) { os << i; });
-    os << "]";
-    return emitOptionalError(location, "output_shape ", os.str(),
-                             " is incompatible with return type of operation ",
-                             resultType);
-  }
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
+                                                          resultType)))
+    return failure();
 
   // dynamic_reshape_c1
   if (anyQuantized<quant::QuantizedType>(operand.getType(), result.getType()))

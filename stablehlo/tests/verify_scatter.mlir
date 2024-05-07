@@ -73,12 +73,12 @@ func.func @scatter_with_promotable_types(%input_tensor: tensor<200x100x300xf32>,
 
 // CHECK: func @scatter_with_promotable_quantized_types
 func.func @scatter_with_promotable_quantized_types(%input_tensor: tensor<200x100x300x!quant.uniform<i8:f32, 2.000000e+00:15>>,
-    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
-      tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>> {
+    %scatter_indices: tensor<10x2xi16>, %updates: tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
+      tensor<200x100x300x!quant.uniform<i16:f32, 2.000000e+00:15>> {
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
-  ^bb0(%lhs: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %rhs: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
-    %add = stablehlo.add %lhs, %rhs : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
-    "stablehlo.return"(%add) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+  ^bb0(%lhs: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>, %rhs: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>):
+    %add = stablehlo.add %lhs, %rhs : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
+    "stablehlo.return"(%add) : (tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>) -> ()
   }) {
     scatter_dimension_numbers = #stablehlo.scatter<
       update_window_dims = [1],
@@ -88,10 +88,10 @@ func.func @scatter_with_promotable_quantized_types(%input_tensor: tensor<200x100
     >,
     indices_are_sorted = true,
     unique_indices = true
-  } : (tensor<200x100x300x!quant.uniform<i8:f32, 2.000000e+00:15>>, tensor<10x2xi32>,
+  } : (tensor<200x100x300x!quant.uniform<i8:f32, 2.000000e+00:15>>, tensor<10x2xi16>,
       tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
-      tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>>
-  func.return %0 : tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>>
+      tensor<200x100x300x!quant.uniform<i16:f32, 2.000000e+00:15>>
+  func.return %0 : tensor<200x100x300x!quant.uniform<i16:f32, 2.000000e+00:15>>
 }
 
 // -----
@@ -898,14 +898,14 @@ func.func @scatter_c15(%input_tensor: tensor<200x100x300x!quant.uniform<i8:f32, 
 // -----
 
 func.func @scatter_c15(%input_tensor: tensor<200x100x300x!quant.uniform<i8:f64, 2.000000e+00:15>>,
-    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
-      tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>> {
+    %scatter_indices: tensor<10x2xi16>, %updates: tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
+      tensor<200x100x300x!quant.uniform<i16:f32, 2.000000e+00:15>> {
 
-  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be promotable from '!quant.uniform<i8:f64, 2.000000e+00:15>', but got '!quant.uniform<i32:f32, 2.000000e+00:15>'}}
+  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be promotable from '!quant.uniform<i8:f64, 2.000000e+00:15>', but got '!quant.uniform<i16:f32, 2.000000e+00:15>'}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
-  ^bb0(%lhs: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %rhs: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>):
-    %add = stablehlo.add %lhs, %rhs : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
-    "stablehlo.return"(%add) : (tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>) -> ()
+  ^bb0(%lhs: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>, %rhs: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>):
+    %add = stablehlo.add %lhs, %rhs : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
+    "stablehlo.return"(%add) : (tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>) -> ()
   }) {
     scatter_dimension_numbers = #stablehlo.scatter<
       update_window_dims = [1],
@@ -915,7 +915,7 @@ func.func @scatter_c15(%input_tensor: tensor<200x100x300x!quant.uniform<i8:f64, 
     >,
     indices_are_sorted = true,
     unique_indices = true
-  } : (tensor<200x100x300x!quant.uniform<i8:f64, 2.000000e+00:15>>, tensor<10x2xi32>, tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
-      tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>>
-  func.return %0 : tensor<200x100x300x!quant.uniform<i32:f32, 2.000000e+00:15>>
+  } : (tensor<200x100x300x!quant.uniform<i8:f64, 2.000000e+00:15>>, tensor<10x2xi16>, tensor<10x300x!quant.uniform<i8:f32, 2.000000e+00:15>>) ->
+      tensor<200x100x300x!quant.uniform<i16:f32, 2.000000e+00:15>>
+  func.return %0 : tensor<200x100x300x!quant.uniform<i16:f32, 2.000000e+00:15>>
 }

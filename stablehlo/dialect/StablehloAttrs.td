@@ -30,7 +30,7 @@ def GenericDenseI64ArrayAttr : Attr<DenseI64ArrayAttr.predicate, "DenseI64ArrayA
   let valueType = DenseI64ArrayAttr.valueType;
   let returnType = "::llvm::ArrayRef<int64_t>";
   let baseAttr = DenseI64ArrayAttr;
-  let convertFromStorage = "$_self.cast<DenseI64ArrayAttr>().asArrayRef()";
+  let convertFromStorage = "cast<DenseI64ArrayAttr>($_self).asArrayRef()";
   let constBuilderCall = "$_builder.getDenseI64ArrayAttr($0)";
 }
 
@@ -38,7 +38,7 @@ def GenericDenseBoolArrayAttr : Attr<DenseBoolArrayAttr.predicate, "DenseBoolArr
   let storageType = "Attribute";
   let valueType = DenseBoolArrayAttr.valueType;
   let returnType = "::llvm::ArrayRef<bool>";
-  let convertFromStorage = "$_self.cast<DenseBoolArrayAttr>().asArrayRef()";
+  let convertFromStorage = "cast<DenseBoolArrayAttr>($_self).asArrayRef()";
   let constBuilderCall = "$_builder.getDenseBoolArrayAttr($0)";
 }
 
