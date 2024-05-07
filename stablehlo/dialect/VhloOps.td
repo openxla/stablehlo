@@ -459,7 +459,7 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "current"> {
 // TODO(#8): DynamicGatherOp is not part of the StableHLO spec.
 // This operation is a work in progress, so it is not yet included in
 // the StableHLO specification.
-def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "0.20.0"> {
+def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "0.19.0"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -587,7 +587,7 @@ def VHLO_FuncOpV1 : VHLO_Op<"func_v1", "0.9.0", "current"> {
   let assemblyFormat = "custom<FunctionBody>($sym_name, $body, $function_type) attr-dict";
 }
 
-def VHLO_GatherOpV1 : VHLO_Op<"gather_v1", "0.9.0", "0.20.0"> {
+def VHLO_GatherOpV1 : VHLO_Op<"gather_v1", "0.9.0", "0.19.0"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -906,7 +906,7 @@ def VHLO_RsqrtOpV1 : VHLO_Op<"rsqrt_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "0.20.0",
+def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "0.19.0",
     [SameVariadicOperandSize, DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
@@ -924,7 +924,7 @@ def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "0.20.0",
 }
 
 def VHLO_ScatterOpV2 : VHLO_Op<"scatter_v2", "0.20.0", "current",
-    [SameVariadicOperandSize, DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
+    [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyType:$scatter_indices,

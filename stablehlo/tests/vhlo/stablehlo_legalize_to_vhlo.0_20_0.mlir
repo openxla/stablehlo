@@ -1332,8 +1332,8 @@ func.func @op_dynamic_gather_with_batching_dims(%arg0 : tensor<5x2x4x9xf32>, %ar
       index_vector_dim = 2
     >,
     indices_are_sorted = true
-  } : (tensor<5x2x4x9xf32>, tensor<1x5x2xi32>, tensor<4xi32>) -> tensor<1x5x1xf32>
-  func.return %0 : tensor<1x5x1xf32>
+  } : (tensor<5x2x4x9xf32>, tensor<1x5x2xi32>, tensor<4xi32>) -> tensor<1x5x8xf32>
+  func.return %0 : tensor<1x5x8xf32>
 }
 
 // CHECK-LABEL: "op_dynamic_iota"
