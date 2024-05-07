@@ -1,11 +1,11 @@
-	/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The StableHLO Authors.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -266,8 +266,7 @@ bool isUnique(ArrayRef<int64_t> nums) {
   llvm::SmallDenseSet<int64_t> dimSet;
   dimSet.reserve(nums.size());
   for (auto dim : nums) {
-    if (!dimSet.insert(dim).second)
-      return false;
+    if (!dimSet.insert(dim).second) return false;
   }
   return true;
 }
@@ -303,7 +302,7 @@ LogicalResult checkDimsInBounds(std::optional<Location> loc,
                                 ArrayRef<int64_t> dims, int64_t upperBound,
                                 StringRef dimsName, StringRef upperBoundName) {
   for (int64_t dim : dims) {
-   if (dim < 0 || dim >= upperBound)
+    if (dim < 0 || dim >= upperBound)
       return emitOptionalError(loc, "Expects each element of ", dimsName,
                                " to be in range [0, ", upperBoundName,
                                ") i.e. [0, ", upperBound, "). got: ", dim, ".");
@@ -1306,7 +1305,7 @@ LogicalResult validateScatterDimensionNumbers(
 
   // scatter_c13
   if (failed(checkDimsInBounds(loc, inputBatchingDims, operandType.getRank(),
-                              "input_batching_dims", "rank-of('operand')")))
+                               "input_batching_dims", "rank-of('operand')")))
     return failure();
 
   // scatter_c14
@@ -4485,11 +4484,11 @@ LogicalResult verifyScatterOp(
   // scatter_c2, scatter_c7...scatter_c21
   for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
     if (failed(validateScatterDimensionNumbers(
-          operandTypes[i], expandedScatterIndicesShape, updatesTypes[i],
-          updateWindowDims, insertedWindowDims, inputBatchingDims,
-          scatterIndicesBatchingDims, scatterDimsToOperandDims, indexVectorDim,
-          location)))
-    return failure();
+            operandTypes[i], expandedScatterIndicesShape, updatesTypes[i],
+            updateWindowDims, insertedWindowDims, inputBatchingDims,
+            scatterIndicesBatchingDims, scatterDimsToOperandDims,
+            indexVectorDim, location)))
+      return failure();
   }
 
   for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {

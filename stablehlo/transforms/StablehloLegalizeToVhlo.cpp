@@ -502,14 +502,14 @@ SpecialResult convertScatterDimensionNumbers(
   if (!vhloInputBatchingDims) return specialFailure();
   vhloAttrs.emplace_back(
       StringAttr::get(pattern.getContext(), "input_batching_dims"),
-      vhloInputBatchingDims);  
+      vhloInputBatchingDims);
 
   auto vhloScatterIndicesBatchingDims =
       convertInts(pattern, attr.getScatterIndicesBatchingDims());
   if (!vhloScatterIndicesBatchingDims) return specialFailure();
   vhloAttrs.emplace_back(
       StringAttr::get(pattern.getContext(), "scatter_indices_batching_dims"),
-      vhloScatterIndicesBatchingDims);  
+      vhloScatterIndicesBatchingDims);
 
   auto vhloScatterDimsToOperandDims =
       convertInts(pattern, attr.getScatterDimsToOperandDims());
