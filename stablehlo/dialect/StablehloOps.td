@@ -2660,7 +2660,8 @@ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
 }
 
 def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape",
-      [HLO_SpeculatableIfAllInputsStaticAndShapeConstant, NoMemoryEffect]> {
+      [HLO_SpeculatableIfAllInputsStaticAndShapeConstant, NoMemoryEffect,
+       AllElementTypesMatch<["operand", "result"]> /*dynamic_reshape_c1*/]> {
   let summary = "DynamicReshape operation";
   let description = [{
     Performs reshape of `operand` tensor to a `result` tensor.

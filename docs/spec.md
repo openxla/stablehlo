@@ -2223,9 +2223,9 @@ For hybrid quantized types, performs `hybrid_dequantize_then_op(
 
 #### Outputs
 
-| Name     | Type                       | Constraints                |
-|----------|----------------------------|----------------------------|
-| `result` | tensor or quantized tensor | (C25-C28), (C30), (C32-34) |
+| Name     | Type                       | Constraints                 |
+|----------|----------------------------|-----------------------------|
+| `result` | tensor or quantized tensor | (C25-C28), (C30), (C32-34)  |
 
 #### Constraints
 
@@ -2564,9 +2564,9 @@ planning to address this in
 
 #### Outputs
 
-| Name     | Type                       | Constraints             |
-|----------|----------------------------|-------------------------|
-| `result` | tensor or quantized tensor | (C12), (C14), (C18-C20) |
+| Name     | Type                       | Constraints                |
+|----------|----------------------------|----------------------------|
+| `result` | tensor or quantized tensor | (C12), (C14), (C18-C20)    |
 
 #### Constraints
 
@@ -2685,7 +2685,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 This operation is functionally identical to
 [reshape](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape)
-op, but the result shape is specified dynamically via `output_shape`.
+op, except the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 

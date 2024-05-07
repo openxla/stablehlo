@@ -281,26 +281,30 @@ LogicalResult verifyReshapeOpQuantizationConstraints(
     if (!operandShapeTy.isDynamicDim(operandQDim) &&
         !resultShapeTy.isDynamicDim(resultQDim) &&
         operandShapeTy.getDimSize(operandQDim) !=
-            resultShapeTy.getDimSize(resultQDim))
+            resultShapeTy.getDimSize(resultQDim)) {
       return emitOptionalError(
           location,
           "expect same quantization dimension size for operand and result ",
           operandTy, " and ", resultTy);
+    }
 
-    uint64_t operandProd = 1;
-    std::for_each(operandShapeTy.getShape().begin(),
-                  operandShapeTy.getShape().begin() + operandQDim,
-                  [&operandProd](int32_t dimSize) { operandProd *= dimSize; });
-    uint64_t resultProd = 1;
-    std::for_each(resultShapeTy.getShape().begin(),
-                  resultShapeTy.getShape().begin() + resultQDim,
-                  [&resultProd](int32_t dimSize) { resultProd *= dimSize; });
-    if (operandProd != resultProd)
-      return emitOptionalError(
-          location,
-          "product of dimensions before quantization dimension must match "
-          "between operand and result for ",
-          operandProd, " and ", resultProd);
+    if (operandShapeTy.hasStaticShape() && resultShapeTy.hasStaticShape()) {
+      uint64_t operandProd = 1;
+      std::for_each(
+          operandShapeTy.getShape().begin(),
+          operandShapeTy.getShape().begin() + operandQDim,
+          [&operandProd](int32_t dimSize) { operandProd *= dimSize; });
+      uint64_t resultProd = 1;
+      std::for_each(resultShapeTy.getShape().begin(),
+                    resultShapeTy.getShape().begin() + resultQDim,
+                    [&resultProd](int32_t dimSize) { resultProd *= dimSize; });
+      if (operandProd != resultProd)
+        return emitOptionalError(
+            location,
+            "product of dimensions before quantization dimension must match "
+            "between operand and result for ",
+            operandProd, " and ", resultProd);
+    }
   }
 
   return success();
@@ -3903,6 +3907,11 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                      Value result) {
   auto resultType = cast<ShapedType>(result.getType());
   auto outputShapeType = cast<ShapedType>(outputShape.getType());
+
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
+                                                          resultType)))
+    return failure();
+
   // dynamic_reshape_c2
   if (outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
@@ -3923,10 +3932,6 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                shapeCount);
     }
   }
-
-  if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
-                                                          resultType)))
-    return failure();
 
   // dynamic_reshape_c1
   if (anyQuantized<quant::QuantizedType>(operand.getType(), result.getType()))
