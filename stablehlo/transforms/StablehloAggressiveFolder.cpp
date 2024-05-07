@@ -228,62 +228,6 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
   }
 };
 
-struct EvalComputeReshapeShapeOpPattern
-    : public OpRewritePattern<ComputeReshapeShapeOp> {
-  using OpRewritePattern::OpRewritePattern;
-  LogicalResult matchAndRewrite(ComputeReshapeShapeOp op,
-                                PatternRewriter& rewriter) const override {
-    auto resultType = op.getType();
-    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
-      return failure();
-
-    int64_t numElems;
-    if (failed(hlo::matchInt(op.getNumElements(), numElems)))
-      return rewriter.notifyMatchFailure(
-          op, "expected constant number of elements");
-
-    SmallVector<int64_t> dynShapeValues;
-    if (failed(hlo::matchInts(op.getDynamicShape(), dynShapeValues)))
-      return rewriter.notifyMatchFailure(op, "expected constant dynamic shape");
-
-    std::optional<size_t> unspecifiedDimIdx;
-    int64_t dimProduct = 1;
-    constexpr int64_t kUnspecifiedDimSize = -1;
-    for (size_t i = 0; i < dynShapeValues.size(); ++i) {
-      if (dynShapeValues[i] == kUnspecifiedDimSize) {
-        if (unspecifiedDimIdx.has_value())
-          return rewriter.notifyMatchFailure(
-              op, "multiple -1 values in dimensions is an undefined behavior");
-
-        unspecifiedDimIdx = i;
-        continue;
-      }
-
-      dimProduct *= dynShapeValues[i];
-    }
-
-    if (numElems % dimProduct != 0)
-      return rewriter.notifyMatchFailure(
-          op,
-          "dimensions that can't evenly divide num elements is an undefined "
-          "behavior");
-
-    if (unspecifiedDimIdx.has_value())
-      dynShapeValues[unspecifiedDimIdx.value()] = numElems / dimProduct;
-
-    const auto resultBitWidth = resultType.getElementTypeBitWidth();
-    auto result =
-        llvm::map_to_vector(dynShapeValues, [&](int64_t value) -> APSInt {
-          return APSInt(APInt(resultBitWidth, value), false);
-        });
-
-    rewriter.replaceOpWithNewOp<ConstantOp>(op,
-                                            getTensorAttr(resultType, result));
-
-    return success();
-  }
-};
-
 struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
@@ -565,7 +509,6 @@ void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
   patterns->add<EvalBroadcastInDimOpPattern>(context);
   patterns->add<EvalClampOpPattern>(context);
   patterns->add<EvalCompareOpPattern>(context);
-  patterns->add<EvalComputeReshapeShapeOpPattern>(context);
   patterns->add<EvalConcatenateOpPattern>(context);
   patterns->add<EvalConvertOpPattern>(context);
   patterns->add<EvalDivOpPattern>(context);
