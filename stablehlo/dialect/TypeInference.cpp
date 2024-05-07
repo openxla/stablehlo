@@ -264,13 +264,12 @@ LogicalResult verifyQPerAxisScaleAndZeroPointConstraints(
 // Checks if the vector `nums` has duplicates.
 bool isUnique(ArrayRef<int64_t> nums) {
   llvm::SmallDenseSet<int64_t> dimSet;
-  dimSet.reserve(arrDims.size());
-  for (auto dim : arrDims) {
+  dimSet.reserve(nums.size());
+  for (auto dim : nums) {
     if (!dimSet.insert(dim).second)
-      return emitOptionalError(location, "has duplicated dimension from ", arr,
-                               ": ", dim);
+      return false;
   }
-  return success();
+  return true;
 }
 
 // Checks if the `llvm::concat(lhsDims, rhsDims)` has duplicates.
@@ -282,7 +281,7 @@ LogicalResult checkDimsDistinct(std::optional<Location> loc,
   dimSet.reserve(lhsDims.size() + rhsDims.size());
   for (auto dim : llvm::concat<const int64_t>(lhsDims, rhsDims)) {
     if (!dimSet.insert(dim).second)
-      return emitOptionalError(location, "has duplicated dimension from ", lhs,
+      return emitOptionalError(loc, "has duplicated dimension from ", lhs,
                                " and ", rhs, ": ", dim);
   }
   return success();
@@ -1380,7 +1379,7 @@ LogicalResult validateScatterDimensionNumbers(
 
   // scatter_c21
   if (failed(checkDimsInBounds(
-          loc, scatterDimsToOperandDims.size, operandType.getRank(),
+          loc, scatterDimsToOperandDims.size(), operandType.getRank(),
           "scatter_dims_to_operand_dims", "rank-of('operand')")))
     return failure();
 
@@ -1407,9 +1406,9 @@ static LogicalResult verifyGather(
   // gather_c2
   // index_vector_dim == start_indices.rank implies a trailing 1 on the
   // shape of start_indices.
-  if (failed(checkDimInBounds(location, indexVectorDim,
-                              startIndicesShape.getRank() +, "index_vector_dim",
-                              "rank-of('start_indices') + 1")))
+  if (failed(checkDimInBounds(
+          location, indexVectorDim, startIndicesShape.getRank() + 1,
+          "index_vector_dim", "rank-of('start_indices') + 1")))
     return failure();
 
   // gather_c3
@@ -1511,7 +1510,7 @@ static LogicalResult verifyGather(
     return failure();
 
   // gather_c19
-  if (failed(checkDimsInBounds(loc, startIndexMap, operandShape.getRank(),
+  if (failed(checkDimsInBounds(location, startIndexMap, operandShape.getRank(),
                                "start_index_map", "rank-of('operand')")))
     return failure();
 
@@ -2322,19 +2321,18 @@ LogicalResult inferDotGeneralOp(
 LogicalResult inferDynamicGatherOp(
     std::optional<Location> location, Value operand, Value startIndices,
     Value sliceSizes, ArrayRef<int64_t> offsetDims,
-    ArrayRef<int64_t> collapsedSliceDims, ArrayRef<int64_t> startIndexMap,
+    ArrayRef<int64_t> collapsedSliceDims, ArrayRef<int64_t> operandBatchingDims,
+    ArrayRef<int64_t> startIndicesBatchingDims, ArrayRef<int64_t> startIndexMap,
     int64_t indexVectorDim,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ShapeAdaptor operandShape(operand.getType());
   ShapeAdaptor startIndicesShape(startIndices.getType());
   ShapeAdaptor sliceSizesShape(sliceSizes.getType());
 
-  if (failed(verifyGather(location, /*operandShape=*/operandShape,
-                          /*startIndicesShape=*/startIndicesShape,
-                          /*sliceSizesShape=*/sliceSizesShape, offsetDims,
-                          collapsedSliceDims, operandBatchingDims,
-                          startIndicesBatchingDims, startIndexMap,
-                          indexVectorDim)))
+  if (failed(verifyGather(location, operandShape, startIndicesShape,
+                          sliceSizesShape, offsetDims, collapsedSliceDims,
+                          operandBatchingDims, startIndicesBatchingDims,
+                          startIndexMap, indexVectorDim)))
     return failure();
 
   auto getSliceDim = [&](int64_t index) {
@@ -2343,7 +2341,7 @@ LogicalResult inferDynamicGatherOp(
       return ShapedType::kDynamic;
     return sliceSizesAttr.getValues<APInt>()[index].getSExtValue();
   };
-  // gather_c5, gather_c22 
+  // gather_c5, gather_c22
   return inferGatherReturnTypeComponents(
       location, operandShape, startIndices, getSliceDim, offsetDims,
       collapsedSliceDims, operandBatchingDims, indexVectorDim,
@@ -4443,7 +4441,7 @@ LogicalResult verifyScatterOp(
 
   // scatter_c22
   if (failed(checkDimInBounds(
-          location, indexVectorDim, scatterIndicesType.getRank + 1,
+          location, indexVectorDim, scatterIndicesType.getRank() + 1,
           "index_vector_dim", "rank-of('scatter_indices') + 1")))
     return failure();
 

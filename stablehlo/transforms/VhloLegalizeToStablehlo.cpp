@@ -341,7 +341,7 @@ Attribute convertGatherDimensionNumbers(OpType vhloOp,
       stablehloStartIndexMap, stablehloIndexVectorDim);
 }
 
-Attribute convertScatterDimensionNumbers(vhlo::ScatterOpV1 vhloOp,
+Attribute convertScatterDimensionNumbers(vhlo::ScatterOpV2 vhloOp,
                                          const TypeConverter* typeConverter) {
   SmallVector<int64_t> stablehloUpdateWindowDims, stablehloInsertedWindowDims,
       stablehloInputBatchingDims, stablehloScatterIndicesBatchingDims,

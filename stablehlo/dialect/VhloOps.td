@@ -923,7 +923,7 @@ def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "0.20.0",
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
-def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v2", "0.20.0", "current",
+def VHLO_ScatterOpV2 : VHLO_Op<"scatter_v2", "0.20.0", "current",
     [SameVariadicOperandSize, DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
