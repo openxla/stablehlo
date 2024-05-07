@@ -1618,7 +1618,7 @@ static LogicalResult inferGatherReturnTypeComponents(
   int64_t resultRank = offsetDims.size() + startIndicesRank - 1;
   // gather_c5
   if (failed(checkDimsInBounds(location, offsetDims, resultRank, "offset_dims",
-                               "implied_result_rank")))
+                               "implied-result-rank")))
     return failure();
 
   auto getStartIndicesDim = [&](int64_t index) {

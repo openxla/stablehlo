@@ -606,8 +606,8 @@ func.func @default_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32>) 
   // CHECK-SAME:   index_vector_dim = #vhlo.integer_v1<2 : i64>,
   // CHECK-SAME:   indices_are_sorted = #vhlo.bool_v1<false>,
   // CHECK-SAME:   offset_dims = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
-  // CHECK-SAME:   slice_sizes = #vhlo.tensor_v1<dense<1> : tensor<3xi64>>,
   // CHECK-SAME:   operand_batching_dims = #vhlo.tensor_v1<dense<> : tensor<0xi64>>,
+  // CHECK-SAME:   slice_sizes = #vhlo.tensor_v1<dense<1> : tensor<3xi64>>,
   // CHECK-SAME:   start_index_map = #vhlo.tensor_v1<dense<[0, 1]> : tensor<2xi64>>,
   // CHECK-SAME:   start_indices_batching_dims = #vhlo.tensor_v1<dense<> : tensor<0xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<2x4x9x!vhlo.f32_v1>, !vhlo.tensor_v1<1x5x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x5x1x!vhlo.f32_v1>
@@ -1313,15 +1313,15 @@ func.func @op_dynamic_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32
 
 // CHECK-LABEL: "op_dynamic_gather_with_batching_dims"
 func.func @op_dynamic_gather_with_batching_dims(%arg0 : tensor<5x2x4x9xf32>, %arg1 : tensor<1x5x2xi32>, %arg2 : tensor<4xi32>) -> tensor<1x5x8xf32> {
-  //      CHECK: "vhlo.dyanmic_gather_v2"(%arg0, %arg1, %arg2) <{
+  //      CHECK: "vhlo.dynamic_gather_v2"(%arg0, %arg1, %arg2) <{
   // CHECK-SAME:   collapsed_slice_dims = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
   // CHECK-SAME:   index_vector_dim = #vhlo.integer_v1<2 : i64>,
   // CHECK-SAME:   indices_are_sorted = #vhlo.bool_v1<true>,
   // CHECK-SAME:   offset_dims = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
-  // CHECK-SAME:   operand_batching_dims = = #vhlo.tensor_v1<dense<[0]> : tensor<1xi64>>,
+  // CHECK-SAME:   operand_batching_dims = = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   start_index_map = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   start_indices_batching_dims = = #vhlo.tensor_v1<dense<[1]> : tensor<1xi64>>
-  // CHECK-SAME: }> : (!vhlo.tensor_v1<5x2x4x9x!vhlo.f32_v1>, !vhlo.tensor_v1<1x5x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x5x1x!vhlo.f32_v1>
+  // CHECK-SAME:   start_indices_batching_dims = = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
+  // CHECK-SAME: }> : (!vhlo.tensor_v1<5x2x4x9x!vhlo.f32_v1>, !vhlo.tensor_v1<1x5x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x5x8x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_gather"(%arg0, %arg1, %arg2) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2],
@@ -1332,8 +1332,8 @@ func.func @op_dynamic_gather_with_batching_dims(%arg0 : tensor<5x2x4x9xf32>, %ar
       index_vector_dim = 2
     >,
     indices_are_sorted = true
-  } : (tensor<5x2x4x9xf32>, tensor<1x5x2xi32>, tensor<4xi32>) -> tensor<1x5x1xf32>
-  func.return %0 : tensor<1x5x1xf32>
+  } : (tensor<5x2x4x9xf32>, tensor<1x5x2xi32>, tensor<4xi32>) -> tensor<1x5x8xf32>
+  func.return %0 : tensor<1x5x8xf32>
 }
 
 // CHECK-LABEL: "op_dynamic_iota"
@@ -1446,8 +1446,8 @@ func.func @op_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32>) -> te
   // CHECK-SAME:   index_vector_dim = #vhlo.integer_v1<2 : i64>,
   // CHECK-SAME:   indices_are_sorted = #vhlo.bool_v1<true>,
   // CHECK-SAME:   offset_dims = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
-  // CHECK-SAME:   slice_sizes = #vhlo.tensor_v1<dense<1> : tensor<3xi64>>,
   // CHECK-SAME:   operand_batching_dims = #vhlo.tensor_v1<dense<> : tensor<0xi64>>,
+  // CHECK-SAME:   slice_sizes = #vhlo.tensor_v1<dense<1> : tensor<3xi64>>,
   // CHECK-SAME:   start_index_map = #vhlo.tensor_v1<dense<[0, 1]> : tensor<2xi64>>,
   // CHECK-SAME:   start_indices_batching_dims = #vhlo.tensor_v1<dense<> : tensor<0xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<2x4x9x!vhlo.f32_v1>, !vhlo.tensor_v1<1x5x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x5x1x!vhlo.f32_v1>
@@ -1471,10 +1471,10 @@ func.func @op_gather_with_batching_dims(%arg0 : tensor<5x2x4x9xf32>, %arg1 : ten
   // CHECK-SAME:   index_vector_dim = #vhlo.integer_v1<2 : i64>,
   // CHECK-SAME:   indices_are_sorted = #vhlo.bool_v1<true>,
   // CHECK-SAME:   offset_dims = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
+  // CHECK-SAME:   operand_batching_dims = = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   slice_sizes = #vhlo.tensor_v1<dense<1> : tensor<4xi64>>,
-  // CHECK-SAME:   operand_batching_dims = = #vhlo.tensor_v1<dense<[0]> : tensor<1xi64>>,
   // CHECK-SAME:   start_index_map = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   start_indices_batching_dims = = #vhlo.tensor_v1<dense<[1]> : tensor<1xi64>>
+  // CHECK-SAME:   start_indices_batching_dims = = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<5x2x4x9x!vhlo.f32_v1>, !vhlo.tensor_v1<1x5x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x5x1x!vhlo.f32_v1>
   %0 = "stablehlo.gather"(%arg0, %arg1) {
     dimension_numbers = #stablehlo.gather<
@@ -1993,10 +1993,10 @@ func.func @op_scatter_with_batching_dims(%arg0: tensor<10x200x100x300xf32>, %arg
   //      CHECK: "vhlo.scatter_v2"(%arg0, %arg1, %arg2) <{
   // CHECK-SAME:   index_vector_dim = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   indices_are_sorted = #vhlo.bool_v1<true>,
-  // CHECK-SAME:   input_batching_dims = #vhlo.tensor_v1<dense<[0]> : tensor<1xi64>>,
+  // CHECK-SAME:   input_batching_dims = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   inserted_window_dims = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
   // CHECK-SAME:   scatter_dims_to_operand_dims = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   scatter_indices_batching_dims = #vhlo.tensor_v1<dense<[0]> : tensor<1xi64>>,
+  // CHECK-SAME:   scatter_indices_batching_dims = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   unique_indices = #vhlo.bool_v1<true>,
   // CHECK-SAME:   update_window_dims = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
   // CHECK-SAME: }> ({
