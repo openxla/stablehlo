@@ -473,7 +473,7 @@ def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "0.20.0"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_DynamicGatherOpV2 : VHLO_Op<"dynamic_gather_v2", "0.21.0", "current"> {
+def VHLO_DynamicGatherOpV2 : VHLO_Op<"dynamic_gather_v2", "0.20.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -601,7 +601,7 @@ def VHLO_GatherOpV1 : VHLO_Op<"gather_v1", "0.9.0", "0.20.0"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_GatherOpV2 : VHLO_Op<"gather_v2", "0.21.0", "current"> {
+def VHLO_GatherOpV2 : VHLO_Op<"gather_v2", "0.20.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -923,7 +923,7 @@ def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "0.20.0",
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
-def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v2", "0.21.0", "current",
+def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v2", "0.20.0", "current",
     [SameVariadicOperandSize, DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
