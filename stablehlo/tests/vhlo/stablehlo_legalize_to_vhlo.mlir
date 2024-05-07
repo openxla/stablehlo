@@ -1486,7 +1486,7 @@ func.func @op_gather_with_batching_dims(%arg0 : tensor<5x2x4x9xf32>, %arg1 : ten
       index_vector_dim = 2
     >,
     slice_sizes = array<i64: 1, 1, 1, 1>,
-    indices_are_sorted = true  
+    indices_are_sorted = true
   } : (tensor<5x2x4x9xf32>, tensor<1x5x2xi32>) -> tensor<1x5x1xf32>
   func.return %0 : tensor<1x5x1xf32>
 }

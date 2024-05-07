@@ -20,19 +20,19 @@ def VHLO_GetEmptyDims : NativeCodeCall<"getEmptyI64Tensor($_builder)">;
 
 def VHLO_EmptyDims : AttrConstraint<CPred<"isEmptyTensor($_self)">, "Empty dims">;
 
-def GatherOpUpgradeV1ToV2: 
+def GatherOpUpgradeV1ToV2:
   Pat<(VHLO_GatherOpV1 $operand, $start_indices, $offset_dims, $collapsed_slice_dims, $start_index_map, $index_vector_dim, $slice_sizes, $indices_are_sorted),
       (VHLO_GatherOpV2 $operand, $start_indices, $offset_dims, $collapsed_slice_dims, (VHLO_GetEmptyDims), (VHLO_GetEmptyDims), $start_index_map, $index_vector_dim, $slice_sizes, $indices_are_sorted)>;
 
-def GatherOpDowngradeV2ToV1 : 
+def GatherOpDowngradeV2ToV1 :
   Pat<(VHLO_GatherOpV2 $operand, $start_indices, $offset_dims, $collapsed_slice_dims, VHLO_EmptyDims:$operand_batching_dims, VHLO_EmptyDims:$start_indices_batching_dims, $start_index_map, $index_vector_dim, $slice_sizes, $indices_are_sorted),
       (VHLO_GatherOpV1 $operand, $start_indices, $offset_dims, $collapsed_slice_dims, $start_index_map, $index_vector_dim, $slice_sizes, $indices_are_sorted)>;
 
-def DynamicGatherOpUpgradeV1ToV2: 
+def DynamicGatherOpUpgradeV1ToV2:
   Pat<(VHLO_DynamicGatherOpV1 $operand, $start_indices, $slice_sizes, $offset_dims, $collapsed_slice_dims, $start_index_map, $index_vector_dim, $indices_are_sorted),
       (VHLO_DynamicGatherOpV2 $operand, $start_indices, $slice_sizes, $offset_dims, $collapsed_slice_dims, (VHLO_GetEmptyDims), (VHLO_GetEmptyDims), $start_index_map, $index_vector_dim, $indices_are_sorted)>;
 
-def DynamicGatherOpDowngradeV2ToV1 : 
+def DynamicGatherOpDowngradeV2ToV1 :
   Pat<(VHLO_DynamicGatherOpV2 $operand, $start_indices, $slice_sizes, $offset_dims, $collapsed_slice_dims, VHLO_EmptyDims:$operand_batching_dims, VHLO_EmptyDims:$start_indices_batching_dims, $start_index_map, $index_vector_dim, $indices_are_sorted),
       (VHLO_DynamicGatherOpV1 $operand, $start_indices, $slice_sizes, $offset_dims, $collapsed_slice_dims, $start_index_map, $index_vector_dim, $indices_are_sorted)>;
 
