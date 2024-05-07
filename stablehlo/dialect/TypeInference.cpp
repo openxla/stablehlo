@@ -2561,21 +2561,22 @@ LogicalResult inferGatherOp(
     for (auto dim : dims) {
       int64_t sliceDimSize = sliceSizes[dim];
       if (sliceDimSize > 1)
-        return emitOptionalError(location, "slice_sizes ", name, " ", dim,
-                                 " should <= 1 but got ", sliceDimSize);
+        return emitOptionalError(location, "Expects for each dim in ", name,
+                                 " that slice_sizes[dim] <= 1 but got ",
+                                 sliceDimSize);
     }
     return success();
   };
 
   // gather_c9
   if (failed(checkSliceSizesOne(collapsedSliceDims,
-                                "collapsed slice dimension"))) {
+                                "collapsed_slice_dims"))) {
     return failure();
   }
 
   // gather_c12
   if (failed(checkSliceSizesOne(operandBatchingDims,
-                                "operand batching dimension"))) {
+                                "operand_batching_dims"))) {
     return failure();
   }
 
