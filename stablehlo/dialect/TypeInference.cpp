@@ -1378,7 +1378,7 @@ LogicalResult validateScatterDimensionNumbers(
 
   // scatter_c21
   if (failed(checkDimsInBounds(
-          loc, scatterDimsToOperandDims.size(), operandType.getRank(),
+          loc, scatterDimsToOperandDims, operandType.getRank(),
           "scatter_dims_to_operand_dims", "rank-of('operand')")))
     return failure();
 

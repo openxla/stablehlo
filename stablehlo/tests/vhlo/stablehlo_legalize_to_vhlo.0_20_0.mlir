@@ -1318,10 +1318,10 @@ func.func @op_dynamic_gather_with_batching_dims(%arg0 : tensor<5x2x4x9xf32>, %ar
   // CHECK-SAME:   index_vector_dim = #vhlo.integer_v1<2 : i64>,
   // CHECK-SAME:   indices_are_sorted = #vhlo.bool_v1<true>,
   // CHECK-SAME:   offset_dims = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
-  // CHECK-SAME:   operand_batching_dims = = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
+  // CHECK-SAME:   operand_batching_dims = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   start_index_map = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   start_indices_batching_dims = = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
-  // CHECK-SAME: }> : (!vhlo.tensor_v1<5x2x4x9x!vhlo.f32_v1>, !vhlo.tensor_v1<1x5x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x5x8x!vhlo.f32_v1>
+  // CHECK-SAME:   start_indices_batching_dims = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
+  // CHECK-SAME: }> : (!vhlo.tensor_v1<5x2x4x9x!vhlo.f32_v1>, !vhlo.tensor_v1<1x5x2x!vhlo.i32_v1>, !vhlo.tensor_v1<4x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x5x8x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_gather"(%arg0, %arg1, %arg2) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2],
@@ -1471,10 +1471,10 @@ func.func @op_gather_with_batching_dims(%arg0 : tensor<5x2x4x9xf32>, %arg1 : ten
   // CHECK-SAME:   index_vector_dim = #vhlo.integer_v1<2 : i64>,
   // CHECK-SAME:   indices_are_sorted = #vhlo.bool_v1<true>,
   // CHECK-SAME:   offset_dims = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
-  // CHECK-SAME:   operand_batching_dims = = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
+  // CHECK-SAME:   operand_batching_dims = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   slice_sizes = #vhlo.tensor_v1<dense<1> : tensor<4xi64>>,
   // CHECK-SAME:   start_index_map = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   start_indices_batching_dims = = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
+  // CHECK-SAME:   start_indices_batching_dims = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<5x2x4x9x!vhlo.f32_v1>, !vhlo.tensor_v1<1x5x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x5x1x!vhlo.f32_v1>
   %0 = "stablehlo.gather"(%arg0, %arg1) {
     dimension_numbers = #stablehlo.gather<
@@ -2003,7 +2003,7 @@ func.func @op_scatter_with_batching_dims(%arg0: tensor<10x200x100x300xf32>, %arg
   // CHECK-NEXT:   ^[[BB:bb.*]](%[[ARG3:arg.*]]: !vhlo.tensor_v1<!vhlo.f32_v1>, %[[ARG4:arg.*]]: !vhlo.tensor_v1<!vhlo.f32_v1>):
   // CHECK-NEXT:     %[[VAL1:.*]] = "vhlo.add_v1"(%[[ARG3]], %[[ARG4]]) : (!vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
   // CHECK-NEXT:     "vhlo.return_v1"(%[[VAL1]]) : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> ()
-  // CHECK-NEXT: }) : (!vhlo.tensor_v1<200x100x300x!vhlo.f32_v1>, !vhlo.tensor_v1<10x2x!vhlo.i32_v1>, !vhlo.tensor_v1<10x300x!vhlo.f32_v1>) -> !vhlo.tensor_v1<200x100x300x!vhlo.f32_v1>
+  // CHECK-NEXT: }) : (!vhlo.tensor_v1<10x200x100x300x!vhlo.f32_v1>, !vhlo.tensor_v1<10x2x!vhlo.i32_v1>, !vhlo.tensor_v1<10x300x!vhlo.f32_v1>) -> !vhlo.tensor_v1<10x200x100x300x!vhlo.f32_v1>
   %0 = "stablehlo.scatter"(%arg0, %arg1, %arg2) ({
     ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
       %1 = "stablehlo.add"(%arg3, %arg4) : (tensor<f32>, tensor<f32>) -> tensor<f32>
