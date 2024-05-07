@@ -437,13 +437,6 @@ SpecialResult convertGatherDimensionNumbers(
   auto attr = dyn_cast<stablehlo::GatherDimensionNumbersAttr>(stablehloAttr);
   if (!attr) return specialFailure();
 
-  if (!attr.getOperandBatchingDims().empty() ||
-      !attr.getStartIndicesBatchingDims().empty()) {
-    // `input_batching_dims` and `scatter_indices_batching_dims` isn't supported
-    // in MHLO yet.
-    return specialFailure();
-  }
-
   auto vhloOffsetDims = convertInts(pattern, attr.getOffsetDims());
   if (!vhloOffsetDims) return specialFailure();
   vhloAttrs.emplace_back(StringAttr::get(pattern.getContext(), "offset_dims"),
@@ -456,6 +449,20 @@ SpecialResult convertGatherDimensionNumbers(
       StringAttr::get(pattern.getContext(), "collapsed_slice_dims"),
       vhloCollapsedSliceDims);
 
+  auto vhloOperandBatchingDims =
+      convertInts(pattern, attr.getOperandBatchingDims());
+  if (!vhloOperandBatchingDims) return specialFailure();
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "operand_batching_dims"),
+      vhloOperandBatchingDims);
+
+  auto vhloStartIndicesBatchingDims =
+      convertInts(pattern, attr.getStartIndicesBatchingDims());
+  if (!vhloStartIndicesBatchingDims) return specialFailure();
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "start_indices_batching_dims"),
+      vhloStartIndicesBatchingDims);
+
   auto vhloStartIndexMap = convertInts(pattern, attr.getStartIndexMap());
   if (!vhloStartIndexMap) return specialFailure();
   vhloAttrs.emplace_back(
@@ -467,6 +474,7 @@ SpecialResult convertGatherDimensionNumbers(
   vhloAttrs.emplace_back(
       StringAttr::get(pattern.getContext(), "index_vector_dim"),
       vhloIndexVectorDim);
+
   return specialSuccess();
 }
 
@@ -475,13 +483,6 @@ SpecialResult convertScatterDimensionNumbers(
     SmallVector<NamedAttribute>& vhloAttrs) {
   auto attr = dyn_cast<stablehlo::ScatterDimensionNumbersAttr>(stablehloAttr);
   if (!attr) return specialFailure();
-
-  if (!attr.getInputBatchingDims().empty() ||
-      !attr.getScatterIndicesBatchingDims().empty()) {
-    // `input_batching_dims` and `scatter_indices_batching_dims` isn't
-    // supported in MHLO yet.
-    return specialFailure();
-  }
 
   auto vhloUpdateWindowDims = convertInts(pattern, attr.getUpdateWindowDims());
   if (!vhloUpdateWindowDims) return specialFailure();
@@ -495,6 +496,20 @@ SpecialResult convertScatterDimensionNumbers(
   vhloAttrs.emplace_back(
       StringAttr::get(pattern.getContext(), "inserted_window_dims"),
       vhloInsertedWindowDims);
+
+  auto vhloInputBatchingDims =
+      convertInts(pattern, attr.getInputBatchingDims());
+  if (!vhloInputBatchingDims) return specialFailure();
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "input_batching_dims"),
+      vhloInputBatchingDims);  
+
+  auto vhloScatterIndicesBatchingDims =
+      convertInts(pattern, attr.getScatterIndicesBatchingDims());
+  if (!vhloScatterIndicesBatchingDims) return specialFailure();
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "scatter_indices_batching_dims"),
+      vhloScatterIndicesBatchingDims);  
 
   auto vhloScatterDimsToOperandDims =
       convertInts(pattern, attr.getScatterDimsToOperandDims());

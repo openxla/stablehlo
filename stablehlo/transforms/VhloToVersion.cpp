@@ -17,6 +17,7 @@ limitations under the License.
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
@@ -24,6 +25,7 @@ limitations under the License.
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -266,35 +268,24 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
   FrozenRewritePatternSet patterns;
 };
 
-////////////////////////////////////////////
-/// Upgrade and Downgrade Infrastructure ///
-////////////////////////////////////////////
-
-template <typename SourceOp, typename TargetOp>
-struct VersionConversionPattern : OpConversionPattern<SourceOp> {
-  using OpConversionPattern<SourceOp>::OpConversionPattern;
-
-  // This method allows subclasses to add or remove attributes if needed.
-  // Can also fail if an op uses a feature that cannot be represented
-  // in previous versions of the opset.
-  virtual LogicalResult prepareOpForConversion(SourceOp op) const = 0;
-
-  LogicalResult matchAndRewrite(
-      SourceOp op, typename SourceOp::Adaptor /*adaptor*/,
-      ConversionPatternRewriter& rewriter) const override {
-    if (failed(prepareOpForConversion(op))) return failure();
-    auto newOp = rewriter.replaceOpWithNewOp<TargetOp>(
-        op, op->getResultTypes(), op->getOperands(), op->getAttrs());
-    for (auto [oldRegion, newRegion] :
-         llvm::zip(op->getRegions(), newOp->getRegions()))
-      rewriter.inlineRegionBefore(oldRegion, newRegion, newRegion.end());
-    return success();
-  }
-};
-
 /////////////////////////////////////////
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
+
+TensorV1Attr getEmptyI64Tensor(OpBuilder& builder) {
+  auto shape = vhlo::RankedTensorV1Type::get(
+      builder.getContext(), {0},
+      vhlo::IntegerSI64V1Type::get(builder.getContext()), {});
+  return vhlo::TensorV1Attr::get(builder.getContext(), shape, {});
+}
+
+bool isEmptyTensor(Attribute attr) {
+  auto tensor = attr.dyn_cast<TensorV1Attr>();
+  if (tensor) return tensor.getData().empty();
+  return false;
+}
+
+#include "stablehlo/transforms/VhloToVersionPatterns.h.inc"
 
 }  // namespace
 }  // namespace vhlo
@@ -305,6 +296,7 @@ void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    MLIRContext* context) {
   // Currently empty because we're starting from a clean slate in v0.9.0 and
   // changes so far are additive.
+  vhlo::populateWithGenerated(*patterns);
 }
 
 }  // namespace stablehlo

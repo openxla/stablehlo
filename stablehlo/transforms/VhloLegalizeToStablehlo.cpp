@@ -320,39 +320,49 @@ template <typename OpType>
 Attribute convertGatherDimensionNumbers(OpType vhloOp,
                                         const TypeConverter* typeConverter) {
   SmallVector<int64_t> stablehloOffsetDims, stablehloCollapsedSliceDims,
+      stablehloOperandBatchingDims, stablehloStartIndicesBatchingDims,
       stablehloStartIndexMap;
   int64_t stablehloIndexVectorDim;
   if (failed(convertInts(vhloOp.getOffsetDims(), typeConverter,
                          stablehloOffsetDims)) ||
       failed(convertInts(vhloOp.getCollapsedSliceDims(), typeConverter,
                          stablehloCollapsedSliceDims)) ||
+      failed(convertInts(vhloOp.getOperandBatchingDims(), typeConverter,
+                         stablehloOperandBatchingDims)) ||
+      failed(convertInts(vhloOp.getStartIndicesBatchingDims(), typeConverter,
+                         stablehloStartIndicesBatchingDims)) ||
       failed(convertInts(vhloOp.getStartIndexMap(), typeConverter,
                          stablehloStartIndexMap)) ||
       failed(convertInt(vhloOp.getIndexVectorDim(), stablehloIndexVectorDim)))
     return {};
   return stablehlo::GatherDimensionNumbersAttr::get(
       vhloOp.getContext(), stablehloOffsetDims, stablehloCollapsedSliceDims,
-      /*operandBatchingDims=*/{}, /*startIndicesBatchingDims=*/{},
+      stablehloOperandBatchingDims, stablehloStartIndicesBatchingDims,
       stablehloStartIndexMap, stablehloIndexVectorDim);
 }
 
 Attribute convertScatterDimensionNumbers(vhlo::ScatterOpV1 vhloOp,
                                          const TypeConverter* typeConverter) {
   SmallVector<int64_t> stablehloUpdateWindowDims, stablehloInsertedWindowDims,
+      stablehloInputBatchingDims, stablehloScatterIndicesBatchingDims,
       stablehloScatterDimsToOperandDims;
   int64_t stablehloIndexVectorDim;
   if (failed(convertInts(vhloOp.getUpdateWindowDims(), typeConverter,
                          stablehloUpdateWindowDims)) ||
       failed(convertInts(vhloOp.getInsertedWindowDims(), typeConverter,
                          stablehloInsertedWindowDims)) ||
+      failed(convertInts(vhloOp.getInputBatchingDims(), typeConverter,
+                         stablehloInputBatchingDims)) ||
+      failed(convertInts(vhloOp.getScatterIndicesBatchingDims(), typeConverter,
+                         stablehloScatterIndicesBatchingDims)) ||
       failed(convertInts(vhloOp.getScatterDimsToOperandDims(), typeConverter,
                          stablehloScatterDimsToOperandDims)) ||
       failed(convertInt(vhloOp.getIndexVectorDim(), stablehloIndexVectorDim)))
     return {};
   return stablehlo::ScatterDimensionNumbersAttr::get(
       vhloOp.getContext(), stablehloUpdateWindowDims,
-      stablehloInsertedWindowDims, /*inputBatchingDims=*/{},
-      /*scatterIndicesBatchingDims=*/{}, stablehloScatterDimsToOperandDims,
+      stablehloInsertedWindowDims, stablehloInputBatchingDims,
+      stablehloScatterIndicesBatchingDims, stablehloScatterDimsToOperandDims,
       stablehloIndexVectorDim);
 }
 
@@ -395,8 +405,8 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
     eraseAttrs(vhloAttrs, "lhs_batching_dimensions", "rhs_batching_dimensions",
                "lhs_contracting_dimensions", "rhs_contracting_dimensions");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::DynamicGatherOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::GatherOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::DynamicGatherOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::GatherOpV2>::value) {
     auto stablehloAttr =
         convertGatherDimensionNumbers(vhloOp, pattern.getTypeConverter());
     if (!stablehloAttr) return failure();
@@ -404,9 +414,10 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
         StringAttr::get(pattern.getContext(), "dimension_numbers"),
         stablehloAttr);
     eraseAttrs(vhloAttrs, "offset_dims", "collapsed_slice_dims",
+               "operand_batching_dims", "start_indices_batching_dims",
                "start_index_map", "index_vector_dim");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV2>::value) {
     auto stablehloAttr =
         convertScatterDimensionNumbers(vhloOp, pattern.getTypeConverter());
     if (!stablehloAttr) return failure();
@@ -414,6 +425,7 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
         StringAttr::get(pattern.getContext(), "scatter_dimension_numbers"),
         stablehloAttr);
     eraseAttrs(vhloAttrs, "update_window_dims", "inserted_window_dims",
+               "input_batching_dims", "scatter_indices_batching_dims",
                "scatter_dims_to_operand_dims", "index_vector_dim");
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV1>::value ||
@@ -577,7 +589,7 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
       return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
                                   stablehloAttrs);
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::GatherOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::GatherOpV2>::value) {
     if (vhloName == "slice_sizes")
       return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
                                   stablehloAttrs);
@@ -752,8 +764,8 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     if (isEmptyTensor(vhloOp.getKnownNonexpandingDimensionsAttr()))
       eraseAttrs(vhloAttrs, "known_nonexpanding_dimensions");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::DynamicGatherOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::GatherOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::DynamicGatherOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::GatherOpV2>::value) {
     if (isBoolean(vhloOp.getIndicesAreSortedAttr(), false))
       eraseAttrs(vhloAttrs, "indices_are_sorted");
   }
