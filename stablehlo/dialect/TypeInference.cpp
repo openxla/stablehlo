@@ -252,6 +252,57 @@ LogicalResult verifyQPerAxisScaleAndZeroPointConstraints(
   return success();
 }
 
+LogicalResult verifyReshapeOpQuantizationConstraints(
+    std::optional<Location> location, Type operandTy, Type resultTy) {
+  // reshape_c1, dynamic_reshape_c1
+  if (failed(verifyQPerTensorScaleAndZeroPointConstraints(location, operandTy,
+                                                          resultTy)))
+    return failure();
+
+  // reshape_c1, dynamic_reshape_c1
+  if (failed(verifyQPerAxisScaleAndZeroPointConstraints(location, operandTy,
+                                                        resultTy)))
+    return failure();
+
+  // reshape_c3
+  if (allQuantized<quant::UniformQuantizedPerAxisType>(operandTy, resultTy)) {
+    auto operandQDim = cast<quant::UniformQuantizedPerAxisType>(
+                           getElementTypeOrSelf(operandTy))
+                           .getQuantizedDimension();
+    auto resultQDim =
+        cast<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(resultTy))
+            .getQuantizedDimension();
+
+    auto operandShapeTy = cast<ShapedType>(operandTy);
+    auto resultShapeTy = cast<ShapedType>(resultTy);
+    if (!operandShapeTy.isDynamicDim(operandQDim) &&
+        !resultShapeTy.isDynamicDim(resultQDim) &&
+        operandShapeTy.getDimSize(operandQDim) !=
+            resultShapeTy.getDimSize(resultQDim))
+      return emitOptionalError(
+          location,
+          "expect same quantization dimension size for operand and result ",
+          operandTy, " and ", resultTy);
+
+    uint64_t operandProd = 1;
+    std::for_each(operandShapeTy.getShape().begin(),
+                  operandShapeTy.getShape().begin() + operandQDim,
+                  [&operandProd](int32_t dimSize) { operandProd *= dimSize; });
+    uint64_t resultProd = 1;
+    std::for_each(resultShapeTy.getShape().begin(),
+                  resultShapeTy.getShape().begin() + resultQDim,
+                  [&resultProd](int32_t dimSize) { resultProd *= dimSize; });
+    if (operandProd != resultProd)
+      return emitOptionalError(
+          location,
+          "product of dimensions before quantization dimension must match "
+          "between operand and result for ",
+          operandProd, " and ", resultProd);
+  }
+
+  return success();
+}
+
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -3830,9 +3881,10 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                      Value result) {
   auto resultType = cast<ShapedType>(result.getType());
   auto outputShapeType = cast<ShapedType>(outputShape.getType());
+  // dynamic_reshape_c2
   if (outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
-                             "output should have a rank equal to the number of "
+                             "result should have a rank equal to the number of "
                              "elements in output_shape");
 
   auto operandType = cast<RankedTensorType>(operand.getType());
@@ -3862,6 +3914,12 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                              " is incompatible with return type of operation ",
                              resultType);
   }
+
+  // dynamic_reshape_c1
+  if (anyQuantized<quant::QuantizedType>(operand.getType(), result.getType()))
+    return verifyReshapeOpQuantizationConstraints(location, operand.getType(),
+                                                  result.getType());
+
   return success();
 }
 
@@ -4154,53 +4212,6 @@ LogicalResult verifyReduceWindowOp(
   if (failed(verifyReducerShape(location, body.front(), inputTypes,
                                 initValueTypes, windowDims)))
     return failure();
-
-  return success();
-}
-
-LogicalResult verifyReshapeOpQuantizationConstraints(
-    std::optional<Location> location, Type operandTy, Type resultTy) {
-  // reshape_c1
-  if (failed(verifyQPerTensorScaleAndZeroPointConstraints(location, operandTy,
-                                                          resultTy)))
-    return failure();
-
-  // reshape_c1
-  if (failed(verifyQPerAxisScaleAndZeroPointConstraints(location, operandTy,
-                                                        resultTy)))
-    return failure();
-
-  // reshape_c3
-  if (allQuantized<quant::UniformQuantizedPerAxisType>(operandTy, resultTy)) {
-    auto operandQDim = cast<quant::UniformQuantizedPerAxisType>(
-                           getElementTypeOrSelf(operandTy))
-                           .getQuantizedDimension();
-    auto resultQDim =
-        cast<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(resultTy))
-            .getQuantizedDimension();
-    auto operandShape = cast<ShapedType>(operandTy).getShape();
-    auto resultShape = cast<ShapedType>(resultTy).getShape();
-
-    if (cast<ShapedType>(operandTy).getDimSize(operandQDim) !=
-        cast<ShapedType>(resultTy).getDimSize(resultQDim))
-      return emitOptionalError(
-          location,
-          "expect same quantization dimension size for operand and result ",
-          operandTy, " and ", resultTy);
-
-    uint64_t operandProd = 1;
-    std::for_each(operandShape.begin(), operandShape.begin() + operandQDim,
-                  [&operandProd](int32_t dimSize) { operandProd *= dimSize; });
-    uint64_t resultProd = 1;
-    std::for_each(resultShape.begin(), resultShape.begin() + resultQDim,
-                  [&resultProd](int32_t dimSize) { resultProd *= dimSize; });
-    if (operandProd != resultProd)
-      return emitOptionalError(
-          location,
-          "product of dimensions before quantization dimension must match "
-          "between operand and result for ",
-          operandProd, " and ", resultProd);
-  }
 
   return success();
 }

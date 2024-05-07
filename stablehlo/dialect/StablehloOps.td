@@ -2669,10 +2669,10 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape",
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand /*dynamic_reshape_i1*/,
+    HLO_TensorOrPerAxisQuantizedTensor:$operand /*dynamic_reshape_i1*/,
     HLO_StaticDimensionTensor:$output_shape /*dynamic_reshape_i2*/
   );
-  let results = (outs HLO_Tensor:$result);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensor:$result);
 
   let hasVerifier = 1;
 

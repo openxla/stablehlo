@@ -2224,9 +2224,9 @@ For hybrid quantized types, performs `hybrid_dequantize_then_op(
 
 #### Outputs
 
-| Name     | Type                       | Constraints                 |
-|----------|----------------------------|-----------------------------|
-| `result` | tensor or quantized tensor | (C25-C28), (C30), (C32-34)  |
+| Name     | Type                       | Constraints                |
+|----------|----------------------------|----------------------------|
+| `result` | tensor or quantized tensor | (C25-C28), (C30), (C32-34) |
 
 #### Constraints
 
@@ -2565,9 +2565,9 @@ planning to address this in
 
 #### Outputs
 
-| Name     | Type                       | Constraints                |
-|----------|----------------------------|----------------------------|
-| `result` | tensor or quantized tensor | (C12), (C14), (C18-C20)    |
+| Name     | Type                       | Constraints             |
+|----------|----------------------------|-------------------------|
+| `result` | tensor or quantized tensor | (C12), (C14), (C18-C20) |
 
 #### Constraints
 
@@ -2648,14 +2648,14 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 | Label | Name           | Type                                         | Constraints |
 |-------|----------------|----------------------------------------------|-------------|
-| (I1)  | `operand`      | tensor or quantized tensor                   | (C1-C3)     |
-| (I2)  | `output_shape` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
+| (I1)  | `operand`      | tensor or quantized tensor                   | (C1), (C2)  |
+| (I2)  | `output_shape` | 1-dimensional tensor constant of type `si64` | (C2)        |
 
 #### Outputs
 
 | Name     | Type                       | Constraints |
 |----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1-C3)     |
+| `result` | tensor or quantized tensor | (C1), (C2)  |
 
 #### Constraints
 

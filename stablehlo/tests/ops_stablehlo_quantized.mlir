@@ -962,6 +962,17 @@ func.func @reshape_c3_mismatch_qdim_size(%arg0: tensor<1x2x3x4x5x!quant.uniform<
 
 // -----
 
+func.func @dynamic_reshape_mismatch_qdim_size(%arg0: tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>){
+  %shape = stablehlo.constant dense<[2, 3, 20]> : tensor<3xi64>
+  // expected-error@+1 {{expect same quantization dimension size for operand and result}}
+  %reshape = "stablehlo.dynamic_reshape" (%arg0, %shape)
+  : (tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<3xi64>)
+  -> tensor<2x3x?x!quant.uniform<i8:f32:1, {1.0:17}>>
+  func.return
+}
+
+// -----
+
 func.func @reshape_c3_mismatch_product_before(%arg0: tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>){
   // expected-error@+1 {{product of dimensions before quantization dimension must match between operand and result}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<2x1x3x20x!quant.uniform<i8:f32:1, {1.0:17}>>
