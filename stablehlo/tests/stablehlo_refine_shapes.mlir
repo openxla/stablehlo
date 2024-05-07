@@ -231,85 +231,6 @@ func.func @eval_compare_lt() -> tensor<i1> {
 
 // -----
 
-// CHECK-LABEL: func @eval_compute_reshape_shape
-func.func @eval_compute_reshape_shape() -> tensor<4xi32> {
-  // CHECK-NOT: stablehlo.compute_reshape_shape
-  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<[2, 128, 2, 64]> : tensor<4xi32>
-  // CHECK: return [[RESULT]]
-  %0 = arith.constant dense<[2, 128, 2, 64]> : tensor<4xi32>
-  %1 = arith.constant 32768 : index
-  %2 = stablehlo.compute_reshape_shape %1, %0 : (index, tensor<4xi32>) -> tensor<4xi32>
-  func.return %2 : tensor<4xi32>
-}
-
-// -----
-
-// CHECK-LABEL: func @eval_compute_reshape_shape_zero_dynamic_shape
-func.func @eval_compute_reshape_shape_zero_dynamic_shape() -> tensor<0xi32> {
-  // CHECK-NOT: stablehlo.compute_reshape_shape
-  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<> : tensor<0xi32>
-  // CHECK: return [[RESULT]]
-  %0 = arith.constant dense<[]> : tensor<0xi32>
-  %1 = arith.constant 32768 : index
-  %2 = stablehlo.compute_reshape_shape %1, %0 : (index, tensor<0xi32>) -> tensor<0xi32>
-  func.return %2 : tensor<0xi32>
-}
-
-// -----
-
-// CHECK-LABEL: func @eval_compute_reshape_shape_unknown_dimension
-func.func @eval_compute_reshape_shape_unknown_dimension() -> (tensor<4xi32>, tensor<1xi32>) {
-  // CHECK-NOT: stablehlo.compute_reshape_shape
-  // CHECK: [[RESULT1:%.*]] = stablehlo.constant dense<[2, 128, 2, 64]> : tensor<4xi32>
-  // CHECK: [[RESULT2:%.*]] = stablehlo.constant dense<32768> : tensor<1xi32>
-  // CHECK: return [[RESULT1]], [[RESULT2]]
-  %0 = arith.constant dense<[2, -1, 2, 64]> : tensor<4xi32>
-  %1 = arith.constant dense<[-1]> : tensor<1xi32>
-  %2 = arith.constant 32768 : index
-  %3 = stablehlo.compute_reshape_shape %2, %0 : (index, tensor<4xi32>) -> tensor<4xi32>
-  %4 = stablehlo.compute_reshape_shape %2, %1 : (index, tensor<1xi32>) -> tensor<1xi32>
-  func.return %3, %4 : tensor<4xi32>, tensor<1xi32>
-}
-
-// -----
-
-// CHECK-LABEL: func @eval_compute_reshape_shape_two_unknown_dims
-func.func @eval_compute_reshape_shape_two_unknown_dims() -> tensor<4xi32> {
-  // CHECK: [[RESULT:%.*]] = stablehlo.compute_reshape_shape
-  // CHECK: return [[RESULT]]
-  %0 = arith.constant dense<[2, -1, -1, 64]> : tensor<4xi32>
-  %1 = arith.constant 32768 : index
-  %2 = stablehlo.compute_reshape_shape %1, %0 : (index, tensor<4xi32>) -> tensor<4xi32>
-  func.return %2 : tensor<4xi32>
-}
-
-// -----
-
-// CHECK-LABEL: func @eval_compute_reshape_shape_non_divisible_shape
-func.func @eval_compute_reshape_shape_non_divisible_shape() -> (tensor<4xi32>, tensor<4xi32>) {
-  // CHECK: [[RESULT1:%.*]] = stablehlo.compute_reshape_shape
-  // CHECK: [[RESULT2:%.*]] = stablehlo.compute_reshape_shape
-  // CHECK: return [[RESULT1]], [[RESULT2]]
-  %0 = arith.constant dense<[2, 128, 3, -1]> : tensor<4xi32>
-  %1 = arith.constant dense<[2, 128, 2, 63]> : tensor<4xi32>
-  %2 = arith.constant 32768 : index
-  %3 = stablehlo.compute_reshape_shape %2, %0 : (index, tensor<4xi32>) -> tensor<4xi32>
-  %4 = stablehlo.compute_reshape_shape %2, %1 : (index, tensor<4xi32>) -> tensor<4xi32>
-  func.return %3, %4 : tensor<4xi32>, tensor<4xi32>
-}
-
-// -----
-
-// CHECK-LABEL: func @eval_compute_reshape_shape_non_specializable
-func.func @eval_compute_reshape_shape_non_specializable(%arg0 : tensor<4xi32>, %arg1 : index) -> tensor<4xi32> {
-  // CHECK: [[RESULT:%.*]] = stablehlo.compute_reshape_shape
-  // CHECK: return [[RESULT]]
-  %0 = stablehlo.compute_reshape_shape %arg1, %arg0 : (index, tensor<4xi32>) -> tensor<4xi32>
-  func.return %0 : tensor<4xi32>
-}
-
-// -----
-
 // CHECK-LABEL: func @eval_concatenate_1d
 func.func @eval_concatenate_1d() -> tensor<4xi64> {
   // CHECK-NOT: stablehlo.concatenate
@@ -356,6 +277,18 @@ func.func @eval_convert_i1() -> tensor<2xi64> {
   %0 = stablehlo.constant dense<[true, false]> : tensor<2xi1>
   %1 = stablehlo.convert %0 : (tensor<2xi1>) -> tensor<2xi64>
   return %1 : tensor<2xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_convert_infer_before_fold
+func.func @eval_convert_infer_before_fold() -> tensor<?xi32> {
+  // CHECK-NOT: stablehlo.convert
+  // CHECK: [[RESULT:%.*]] =  stablehlo.constant dense<9606> : tensor<2xi32>
+  // CHECK: return [[RESULT]]
+  %c_1 = stablehlo.constant dense<9606> : tensor<2xi32>
+  %0 = stablehlo.convert %c_1 : (tensor<2xi32>) -> tensor<?xi32>
+  return %0 : tensor<?xi32>
 }
 
 // -----

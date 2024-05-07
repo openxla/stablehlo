@@ -56,9 +56,9 @@ Value computeBinaryElementwiseBroadcastingResultExtents(Location loc, Value lhs,
 Value computeNaryElementwiseBroadcastingResultExtents(Location loc,
                                                       ValueRange operands,
                                                       OpBuilder& builder) {
-  auto shapes = llvm::to_vector<4>(llvm::map_range(operands, [&](Value v) {
+  auto shapes = llvm::map_to_vector<4>(operands, [&](Value v) {
     return builder.createOrFold<shape::ShapeOfOp>(loc, v);
-  }));
+  });
 
   int64_t resultRank = 0;
   for (Value s : shapes) {

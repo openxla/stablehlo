@@ -44,6 +44,7 @@ limitations under the License.
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/Regex.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/IR/Attributes.h"
@@ -66,9 +67,11 @@ limitations under the License.
 namespace mlir {
 namespace hlo {
 namespace {
+
 //===----------------------------------------------------------------------===//
 // Utils for quantization specific verifications
 //===----------------------------------------------------------------------===//
+
 template <typename T>
 bool allQuantized(ArrayRef<Type> typeRange) {
   return llvm::all_of(
@@ -168,7 +171,7 @@ LogicalResult verifyBinaryOpQuantizationConstraints(
 LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
     std::optional<Location> location, Type lhsElementType, Type rhsElementType,
     Type resultElementType) {
-  // convolution_c28
+  // convolution_c28 and dot_general_c14
   if (!isa<quant::QuantizedType>(rhsElementType) ||
       (isa<quant::QuantizedType>(lhsElementType) !=
        isa<quant::QuantizedType>(resultElementType))) {
@@ -181,19 +184,19 @@ LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
   auto rhsQuantType = cast<quant::QuantizedType>(rhsElementType);
   if (auto lhsQuantType = dyn_cast<quant::QuantizedType>(lhsElementType)) {
     auto resultQuantType = cast<quant::QuantizedType>(resultElementType);
-    // convolution_c31
+    // convolution_c31 and dot_general_c17
     if (lhsQuantType.getStorageType() != rhsQuantType.getStorageType()) {
       return emitOptionalError(
           location, "mismatched lhs and rhs quantization storage types");
     }
-    // convolution_c32
+    // convolution_c32 and dot_general_c18
     if (lhsQuantType.getExpressedType() != rhsQuantType.getExpressedType() ||
         lhsQuantType.getExpressedType() != resultQuantType.getExpressedType()) {
       return emitOptionalError(
           location,
           "mismatched lhs, rhs and result quantization expressed types");
     }
-    // convolution_c33
+    // convolution_c33 and dot_general_c19
     if (isa<quant::UniformQuantizedType>(rhsQuantType) &&
         !isa<quant::UniformQuantizedType>(resultQuantType)) {
       return emitOptionalError(
@@ -201,7 +204,7 @@ LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
     }
   } else {
     Type rhsExpressedType = rhsQuantType.getExpressedType();
-    // convolution_c34
+    // convolution_c34 and dot_general_c20
     if (lhsElementType != rhsExpressedType ||
         lhsElementType != resultElementType) {
       return emitOptionalError(location,
@@ -468,6 +471,27 @@ LogicalResult verifyAddOp(std::optional<Location> location, Operation* op,
   return success();
 }
 
+// If the shape operand is constant, checks that it is compatible with the
+// result's shape. Emits an error if the shapes are incompatible.
+LogicalResult verifyShapeOperandIsCompatibleWithResultType(
+    std::optional<Location> loc, Value shapeOperand, Type resultType) {
+  if (SmallVector<int64_t> shape;
+      succeeded(matchInts(shapeOperand, shape)) &&
+      !isCompatibleForHloTypeInference(shape, resultType)) {
+    std::string str;
+    llvm::raw_string_ostream os(str);
+    llvm::interleaveComma(shape, os, [&](int64_t i) { os << i; });
+    return emitOptionalError(loc, "output shape [", os.str(),
+                             "] is incompatible with return type of operation ",
+                             resultType);
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// Verifiers
+//===----------------------------------------------------------------------===//
+
 LogicalResult verifyTransposeOp(std::optional<Location> location,
                                 Type operandType, ArrayRef<int64_t> permutation,
                                 Type resultType) {
@@ -490,7 +514,7 @@ LogicalResult verifyTransposeOp(std::optional<Location> location,
     if (operandQDim != permutation[resultQDim])
       return emitOptionalError(location, "operand quantization_dimension ",
                                operandQDim, " is not same as permutation[",
-                               resultQDim, "] ", permutation[resultQDim]);
+                               resultQDim, "] = ", permutation[resultQDim]);
   }
   return success();
 }
@@ -798,9 +822,9 @@ FailureOr<SmallVector<ShapedType>> getAccumulatorTypes(
   }
 
   Block& block = region.front();
-  return llvm::to_vector(
-      llvm::map_range(block.getTerminator()->getOperands(),
-                      [&](Value v) { return cast<ShapedType>(v.getType()); }));
+  return llvm::map_to_vector(
+      block.getTerminator()->getOperands(),
+      [&](Value v) { return cast<ShapedType>(v.getType()); });
 }
 
 LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
@@ -1665,8 +1689,8 @@ LogicalResult inferAllReduceOp(
     std::optional<Location> location, ValueRange operands, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   TypeRange inputTypes = operands.getTypes();
-  SmallVector<ShapedType> inputArgTensorTypes{
-      llvm::map_range(inputTypes, [](Type t) { return cast<ShapedType>(t); })};
+  auto inputArgTensorTypes = llvm::map_to_vector(
+      inputTypes, [](Type t) { return cast<ShapedType>(t); });
   // all_reduce_c6, all_reduce_c7
   auto accumulatorTypesOrErr = getAccumulatorTypes(location, computation);
   if (failed(accumulatorTypesOrErr)) return failure();
@@ -2675,8 +2699,8 @@ LogicalResult inferReduceOp(
     std::optional<Location> location, TypeRange inputTypes,
     ArrayRef<int64_t> dimensions, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  SmallVector<ShapedType> inputArgTensorTypes{
-      llvm::map_range(inputTypes, [](Type t) { return cast<ShapedType>(t); })};
+  auto inputArgTensorTypes = llvm::map_to_vector(
+      inputTypes, [](Type t) { return cast<ShapedType>(t); });
 
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
@@ -2703,10 +2727,10 @@ LogicalResult inferReduceWindowOp(
     std::optional<ArrayRef<int64_t>> windowDilations,
     std::optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  SmallVector<ShapedType> inputTypes{llvm::map_range(
-      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
-  SmallVector<ShapedType> initValueTypes{llvm::map_range(
-      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
+  auto inputTypes = llvm::map_to_vector(
+      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); });
+  auto initValueTypes = llvm::map_to_vector(
+      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); });
 
   SmallVector<int64_t> windowDims;
   SmallVector<WindowDimension> inferredWindow;
@@ -3356,9 +3380,9 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
     auto resultQDim = resultQType.getQuantizedDimension();
     if (resultQDim != broadcastDimensions[operandQDim])
       return emitOptionalError(location, "result quantization_dimension ",
-                               resultQDim, " not same as broadcast_dimensions ",
-                               operandQDim, " (",
-                               broadcastDimensions[operandQDim], ")");
+                               resultQDim, " not same as broadcast_dimensions[",
+                               operandQDim,
+                               "] = ", broadcastDimensions[operandQDim]);
     if (operandType.getDimSize(operandQDim) == 1) {
       for (int64_t j = 0; j != resultType.getDimSize(resultQDim); ++j) {
         if (resultQType.getScales()[j] != operandQType.getScales()[0])
@@ -3535,7 +3559,7 @@ LogicalResult verifyConvolutionOpQuantizationConstraints(
     }
   }
 
-  // convolution_c31 - convolution_c34
+  // convolution_c28, convolution_c31 - convolution_c34
   return verifyConvolutionDotGeneralCommonQuantizationConstraints(
       location, lhsElementType, rhsElementType, resultElementType);
 }
@@ -3602,6 +3626,41 @@ LogicalResult verifyDotOp(std::optional<Location> location,
   return success();
 }
 
+LogicalResult verifyDotGeneralOpQuantizationConstraints(
+    std::optional<Location> location, Type lhsType, Type rhsType,
+    Type resultType, ArrayRef<int64_t> rhsContractingDimensions) {
+  Type lhsElementType = getElementTypeOrSelf(lhsType);
+  Type rhsElementType = getElementTypeOrSelf(rhsType);
+  Type resultElementType = getElementTypeOrSelf(resultType);
+
+  // dot_general_c15
+  if (auto rhsPerTensorQuantType =
+          dyn_cast<quant::UniformQuantizedType>(rhsElementType)) {
+    if (rhsPerTensorQuantType.getZeroPoint() != 0) {
+      return emitOptionalError(location, "Zero point of rhs should be 0");
+    }
+  } else if (auto rhsPerAxisQuantType =
+                 dyn_cast<quant::UniformQuantizedPerAxisType>(rhsElementType)) {
+    if (llvm::any_of(rhsPerAxisQuantType.getZeroPoints(),
+                     [](int64_t zero_point) { return zero_point != 0; })) {
+      return emitOptionalError(location, "Zero points of rhs should be 0");
+    }
+
+    // dot_general_c16
+    if (llvm::is_contained(rhsContractingDimensions,
+                           rhsPerAxisQuantType.getQuantizedDimension())) {
+      return emitOptionalError(
+          location,
+          "Quantization dimension of rhs should not be in the "
+          "contracting dimension of rhs");
+    }
+  }
+
+  // dot_general_c14, dot_general_c17 - dot_general_c20
+  return verifyConvolutionDotGeneralCommonQuantizationConstraints(
+      location, lhsElementType, rhsElementType, resultElementType);
+}
+
 LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  Value rhs,
                                  ArrayRef<int64_t> lhsBatchingDimensions,
@@ -3624,6 +3683,13 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
     return emitOptionalError(
         location, "inferred shape '", dimSizesToString(inferredShape.getDims()),
         "' ", "is incompatible with return type of operation ", resultType, "");
+
+  Type lhsType = lhs.getType();
+  Type rhsType = rhs.getType();
+  if (anyQuantized<quant::QuantizedType>({lhsType, rhsType, resultType})) {
+    return verifyDotGeneralOpQuantizationConstraints(
+        location, lhsType, rhsType, resultType, rhsContractingDimensions);
+  }
   return success();
 }
 
@@ -3718,11 +3784,9 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     }
   }
 
-  if (!isCompatibleForHloTypeInference(outputDimensions, resultType))
-    return emitOptionalError(
-        location,
-        "output_dimensions are incompatible with return type of operation ",
-        resultType);
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(
+          location, outputDimensions, resultType)))
+    return failure();
 
   return success();
 }
@@ -3730,17 +3794,17 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
                                   Value outputShape, int64_t iotaDimension,
                                   Value result) {
-  auto shape = cast<ShapedType>(result.getType());
+  auto resultType = cast<ShapedType>(result.getType());
 
-  if (!isCompatibleForHloTypeInference(outputShape, shape))
-    return emitOptionalError(
-        location, "output_shape is incompatible with return type of operation ",
-        result.getType());
-
-  if (iotaDimension >= shape.getRank() || iotaDimension < 0)
+  // dynamic_iota_c1
+  if (iotaDimension >= resultType.getRank() || iotaDimension < 0)
     return emitOptionalError(
         location,
         "iota dimension cannot go beyond the output rank or be negative.");
+  // dynamic_iota_c2
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
+                                                          resultType)))
+    return failure();
 
   return success();
 }
@@ -3808,18 +3872,9 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
     }
   }
 
-  if (SmallVector<int64_t> shape;
-      succeeded(matchInts(outputShape, shape)) &&
-      !isCompatibleForHloTypeInference(shape, resultType)) {
-    std::string str;
-    llvm::raw_string_ostream os(str);
-    os << "[";
-    llvm::interleaveComma(shape, os, [&](int64_t i) { os << i; });
-    os << "]";
-    return emitOptionalError(location, "output_shape ", os.str(),
-                             " is incompatible with return type of operation ",
-                             resultType);
-  }
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
+                                                          resultType)))
+    return failure();
   return success();
 }
 
@@ -3967,10 +4022,10 @@ LogicalResult verifyRecvOp(HloDialectInterface* dialect,
 LogicalResult verifyReduceOp(std::optional<Location> location,
                              ValueRange inputs, ValueRange initValues,
                              ArrayRef<int64_t> dimensions, Region& body) {
-  SmallVector<ShapedType> inputTypes{llvm::map_range(
-      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
-  SmallVector<ShapedType> initValueTypes{llvm::map_range(
-      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
+  auto inputTypes = llvm::map_to_vector(
+      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); });
+  auto initValueTypes = llvm::map_to_vector(
+      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); });
 
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
@@ -4094,10 +4149,10 @@ LogicalResult verifyReduceWindowOp(
     std::optional<ArrayRef<int64_t>> baseDilations,
     std::optional<ArrayRef<int64_t>> windowDilations,
     std::optional<DenseIntElementsAttr> padding, Region& body) {
-  SmallVector<ShapedType> inputTypes{llvm::map_range(
-      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
-  SmallVector<ShapedType> initValueTypes{llvm::map_range(
-      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); })};
+  auto inputTypes = llvm::map_to_vector(
+      inputs.getTypes(), [](Type t) { return cast<ShapedType>(t); });
+  auto initValueTypes = llvm::map_to_vector(
+      initValues.getTypes(), [](Type t) { return cast<ShapedType>(t); });
 
   SmallVector<int64_t> windowDims;
   SmallVector<WindowDimension> inferredWindow;
@@ -4235,10 +4290,10 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
   auto numOperands = inputs.size();
   auto scatterIndicesType = cast<ShapedType>(scatterIndices.getType());
 
-  SmallVector<ShapedType, 1> operandTypes = llvm::to_vector(llvm::map_range(
-      inputs.getTypes(), [](Type type) { return cast<ShapedType>(type); }));
-  SmallVector<ShapedType, 1> updatesTypes = llvm::to_vector(llvm::map_range(
-      updates.getTypes(), [](Type type) { return cast<ShapedType>(type); }));
+  auto operandTypes = llvm::map_to_vector(
+      inputs.getTypes(), [](Type type) { return cast<ShapedType>(type); });
+  auto updatesTypes = llvm::map_to_vector(
+      updates.getTypes(), [](Type type) { return cast<ShapedType>(type); });
   bool scatterIndicesTypeRanked = isa<RankedTensorType>(scatterIndicesType);
 
   // scatter_c1

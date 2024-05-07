@@ -90,6 +90,16 @@ bool isCompatibleForHloTypeInference(Value shape1, Type tp2);
 // compatible with the given type for the purposes of HLO type inference.
 bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2);
 
+// Returns true if the given element-type is a mlir::quant::QuantizedType
+// and follow the constraints corresponding to quantization parameters as
+// mentioned in the StableHLO specification.
+bool isValidStablehloQuantizedElementType(Type elementType);
+
+// Returns true if the given type is a ranked per-axis tensor type
+// and follow the constraints corresponding to quantized dimension as
+// mentioned in the StableHLO specification.
+bool isValidQuantizedDimension(Type type);
+
 // TODO(zhouxin) Move type inference related methods to TypeInference.cpp
 
 std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
@@ -254,6 +264,13 @@ void writeEnumAttribute(EnumTypeAttr val, DialectBytecodeWriter &writer) {
   writer.writeVarInt(enumVal);
 }
 }  // namespace bytecode
+
+// Determines the speculatability for a shaped operation `op` with `shapeCount`
+// shape operands. The last `count` operands are assumed to be shape operands.
+// To be speculatable, such an op must have only static inputs and constant
+// shape operands.
+mlir::Speculation::Speculatability getShapedSpeculatability(Operation *op,
+                                                            int64_t shapeCount);
 
 namespace OpTrait {
 
@@ -467,6 +484,16 @@ struct RecursivelySpeculatableIfAllInputsStaticImplTrait
                         })
                ? mlir::Speculation::RecursivelySpeculatable
                : mlir::Speculation::NotSpeculatable;
+  }
+};
+
+template <typename ConcreteType>
+struct SpeculatableIfAllInputsStaticAndShapeConstantImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType,
+          SpeculatableIfAllInputsStaticAndShapeConstantImplTrait> {
+  mlir::Speculation::Speculatability getSpeculatability() {
+    return getShapedSpeculatability(this->getOperation(), 1);
   }
 };
 

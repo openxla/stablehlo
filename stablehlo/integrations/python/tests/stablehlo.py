@@ -251,6 +251,8 @@ def test_reference_api():
     # Numpy's uint treated as int by DenseElementsAttr, skipping np.uint tests
     ("2x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,2)),
     ("2x1x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,1,2)),
+    ("?x?xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,2)),
+    ("?x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,2)),
   ]
   for test in tests:
     tensor_type, arg = test

@@ -314,10 +314,10 @@ Type getVhloElementType(Type tensorType) {
 
 bool checkIfOperandAndResultElementTypesMatch(TypeRange operandTypes,
                                               TypeRange resultTypes) {
-  SmallVector<Type> inputElementTypes{llvm::map_range(
-      operandTypes, [](Type t) { return getVhloElementType(t); })};
-  SmallVector<Type> resultElementTypes{llvm::map_range(
-      resultTypes, [](Type t) { return getVhloElementType(t); })};
+  auto inputElementTypes = llvm::map_to_vector(
+      operandTypes, [](Type t) { return getVhloElementType(t); });
+  auto resultElementTypes = llvm::map_to_vector(
+      resultTypes, [](Type t) { return getVhloElementType(t); });
 
   return llvm::all_of(
       llvm::zip(inputElementTypes, resultElementTypes),

@@ -134,78 +134,6 @@ Value convertToConstantOrI32Cast(Value value, PatternRewriter& rewriter) {
   return castToI32(rewriter, value.getLoc(), value);
 }
 
-struct ConvertComputeReshapeShapeOpPattern
-    : public OpRewritePattern<ComputeReshapeShapeOp> {
-  using OpRewritePattern::OpRewritePattern;
-  LogicalResult matchAndRewrite(ComputeReshapeShapeOp op,
-                                PatternRewriter& rewriter) const override {
-    // Cast num_elements from index to tensor<i32>.
-    // Cast dynamic_shape from tensor<Nxindex> to tensor<Nxi32> if needed.
-    // (stablehlo.compute_reshape_shape supports both index- and integer-based
-    // dynamic_shape operands).
-    // This cannot error out given how the operation is currently defined.
-    auto numElementsI32 = castToI32(rewriter, op.getLoc(), op.getNumElements());
-    auto dynamicShapeI32x1 =
-        castToI32(rewriter, op.getLoc(), op.getDynamicShape());
-    if (!numElementsI32 || !dynamicShapeI32x1)
-      return rewriter.notifyMatchFailure(op, "cast to i32 failed");
-    auto rank = cast<ShapedType>(dynamicShapeI32x1.getType()).getNumElements();
-
-    // Obtain individual input dimension sizes and also compute the product of
-    // all these dimension sizes.
-    auto i32Type = RankedTensorType::get({}, rewriter.getI32Type());
-    Value dynamicNumElementsI32 = rewriter.create<ConstantOp>(
-        op.getLoc(), DenseIntElementsAttr::get<int32_t>(i32Type, -1));
-    SmallVector<Value> dynamicSizesI32;
-    for (auto i = 0; i < rank; ++i) {
-      auto dynamicSizeI32x1 = rewriter.create<SliceOp>(
-          op.getLoc(), dynamicShapeI32x1, rewriter.getDenseI64ArrayAttr(i),
-          rewriter.getDenseI64ArrayAttr(i + 1),
-          rewriter.getDenseI64ArrayAttr(1));
-      auto dynamicSizeI32 =
-          rewriter.create<ReshapeOp>(op.getLoc(), i32Type, dynamicSizeI32x1);
-      dynamicSizesI32.push_back(dynamicSizeI32);
-      dynamicNumElementsI32 = rewriter.create<MulOp>(
-          op.getLoc(), dynamicNumElementsI32, dynamicSizeI32);
-    }
-
-    // Compute the dimension size that corresponds to -1 in dynamic_shape.
-    // If such a dimension doesn't exist, then this value doesn't matter.
-    auto computedSizeI32 = rewriter.create<DivOp>(op.getLoc(), numElementsI32,
-                                                  dynamicNumElementsI32);
-
-    // Compute individual output dimension sizes, replacing a potential -1
-    // with the value computed above.
-    auto i32x1Type = RankedTensorType::get({1}, rewriter.getI32Type());
-    Value minusOneI32 = rewriter.create<ConstantOp>(
-        op.getLoc(), DenseIntElementsAttr::get<int32_t>(i32Type, -1));
-    SmallVector<Value> resultSizesI32x1;
-    for (auto i = 0; i < rank; ++i) {
-      auto eqMinusOne =
-          rewriter.create<CompareOp>(op.getLoc(), dynamicSizesI32[i],
-                                     minusOneI32, ComparisonDirection::EQ);
-      auto resultSizeI32 = rewriter.create<SelectOp>(
-          op.getLoc(), eqMinusOne, computedSizeI32, dynamicSizesI32[i]);
-      auto resultSizeI32x1 =
-          rewriter.create<ReshapeOp>(op.getLoc(), i32x1Type, resultSizeI32);
-      resultSizesI32x1.push_back(resultSizeI32x1);
-    }
-    auto resultI32 =
-        rewriter.create<ConcatenateOp>(op.getLoc(), resultSizesI32x1,
-                                       /*dimension=*/0);
-
-    // Cast the result to tensor<Nxindex> if needed.
-    // (stablehlo.compute_reshape_shape supports both index- and integer-based
-    // results).
-    // This cannot error out given how the operation is currently defined.
-    auto resultIndex = maybeCastToIndex(op.getResult(), resultI32, rewriter);
-    if (!resultIndex || resultIndex.getType() != op.getType())
-      return rewriter.notifyMatchFailure(op, "cast to index failed");
-    rewriter.replaceOp(op, resultIndex);
-    return success();
-  }
-};
-
 struct ConvertNumElementsOpPattern
     : public OpRewritePattern<shape::NumElementsOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -295,9 +223,9 @@ struct ConvertConstShapeOpPattern
     if (!operandType)
       return rewriter.notifyMatchFailure(op, "expected ranked operand");
 
-    llvm::SmallVector<int32_t> shape{
-        llvm::map_range(op.getShape().getValues<int64_t>(),
-                        [](int64_t val) { return static_cast<int32_t>(val); })};
+    auto shape = llvm::map_to_vector(
+        op.getShape().getValues<int64_t>(),
+        [](int64_t val) { return static_cast<int32_t>(val); });
 
     auto newConst = rewriter.create<ConstantOp>(
         op.getLoc(), DenseElementsAttr::get(
@@ -623,7 +551,6 @@ struct ShapeLegalizeToStablehloPass
     target = std::make_shared<ConversionTarget>(*context);
     target->addIllegalDialect<shape::ShapeDialect>();
     target->addIllegalDialect<tensor::TensorDialect>();
-    target->addIllegalOp<stablehlo::ComputeReshapeShapeOp>();
     target->addIllegalOp<arith::IndexCastOp>();
     target->addIllegalOp<arith::MulIOp>();
     target->addDynamicallyLegalDialect<stablehlo::StablehloDialect>(
@@ -662,7 +589,6 @@ struct ShapeLegalizeToStablehloPass
 
 void populateShapeToStablehloPatterns(MLIRContext* context,
                                       RewritePatternSet* patterns) {
-  patterns->add<ConvertComputeReshapeShapeOpPattern>(context);
   patterns->add<ConvertConstShapeOpPattern>(context);
   patterns->add<ConvertMulIOpPattern>(context);
   patterns->add<ConvertIndexCastOpPattern>(context);

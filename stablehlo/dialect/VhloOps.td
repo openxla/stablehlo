@@ -296,14 +296,6 @@ def VHLO_CompositeOpV1 : VHLO_Op<"composite_v1", "0.19.0", "current"> {
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
-// TODO(#8): ComputeReshapeShapeOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
-def VHLO_ComputeReshapeShapeOpV1 : VHLO_Op<"compute_reshape_shape_v1", "0.9.0", "current"> {
-  let arguments = (ins VHLO_AnyType:$num_elements, VHLO_AnyType:$dynamic_shape);
-  let results = (outs VHLO_AnyType:$result);
-}
-
 def VHLO_ConcatenateOpV1 : VHLO_Op<"concatenate_v1", "0.9.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
@@ -368,14 +360,6 @@ def VHLO_CrossReplicaSumOpV1 : VHLO_Op<"cross-replica-sum_v1", "0.9.0", "current
     VHLO_AnyAttr:$replica_groups
   );
   let results = (outs VHLO_AnyType:$result);
-}
-
-// TODO(#8): CstrReshapableOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
-def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable_v1", "0.9.0", "current"> {
-  let results = (outs VHLO_AnyType:$result);
-  let arguments = (ins VHLO_AnyType:$num_elements, VHLO_AnyType:$dynamic_shape);
 }
 
 // TODO(#1187): api_version is different between VHLO and the StableHLO spec:

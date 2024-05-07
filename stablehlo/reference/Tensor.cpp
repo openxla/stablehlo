@@ -385,10 +385,10 @@ Tensor makeTensor(DenseElementsAttr attr) {
   if (elementType.isFloat8E4M3B11FNUZ() || elementType.isFloat8E4M3FN() ||
       elementType.isFloat8E4M3FNUZ() || elementType.isFloat8E5M2() ||
       elementType.isFloat8E5M2FNUZ()) {
-    auto floatValues = llvm::to_vector(llvm::map_range(
+    auto floatValues = llvm::map_to_vector(
         attr.getValues<APFloat>(), [&](APFloat value) -> uint8_t {
           return value.bitcastToAPInt().getZExtValue();
-        }));
+        });
 
     // For f8E4M3B11FNUZ, f8E4M3FN, f8E4M3FNUZ, f8E5M2, and f8E5M2FNUZ
     // floating-point types, we use uint8_t as their storage type because there
@@ -398,10 +398,10 @@ Tensor makeTensor(DenseElementsAttr attr) {
   }
 
   if (elementType.isF16() || elementType.isBF16()) {
-    auto floatValues = llvm::to_vector(llvm::map_range(
+    auto floatValues = llvm::map_to_vector(
         attr.getValues<APFloat>(), [&](APFloat value) -> uint16_t {
           return value.bitcastToAPInt().getZExtValue();
-        }));
+        });
 
     // For both f16 and bf16 floating-point types, we use uint16_t as their
     // storage type because there are no builtin types for those.
@@ -411,85 +411,85 @@ Tensor makeTensor(DenseElementsAttr attr) {
   }
 
   if (elementType.isF32()) {
-    auto floatValues = llvm::to_vector(llvm::map_range(
+    auto floatValues = llvm::map_to_vector(
         attr.getValues<APFloat>(),
-        [&](APFloat value) -> float { return value.convertToFloat(); }));
+        [&](APFloat value) -> float { return value.convertToFloat(); });
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<float>(
                             floatValues));
   }
 
   if (elementType.isF64()) {
-    auto floatValues = llvm::to_vector(llvm::map_range(
+    auto floatValues = llvm::map_to_vector(
         attr.getValues<APFloat>(),
-        [&](APFloat value) -> double { return value.convertToDouble(); }));
+        [&](APFloat value) -> double { return value.convertToDouble(); });
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<double>(
                             floatValues));
   }
 
   // Handle signed integer types.
   if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
-    auto intValues = llvm::to_vector(llvm::map_range(
+    auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
-        [&](APInt value) -> int8_t { return value.getSExtValue(); }));
+        [&](APInt value) -> int8_t { return value.getSExtValue(); });
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<int8_t>(
                             intValues));
   }
 
   if (elementType.isSignlessInteger(16)) {
-    auto intValues = llvm::to_vector(llvm::map_range(
+    auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
-        [&](APInt value) -> int16_t { return value.getSExtValue(); }));
+        [&](APInt value) -> int16_t { return value.getSExtValue(); });
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<int16_t>(
                             intValues));
   }
 
   if (elementType.isSignlessInteger(32)) {
-    auto intValues = llvm::to_vector(llvm::map_range(
+    auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
-        [&](APInt value) -> int32_t { return value.getSExtValue(); }));
+        [&](APInt value) -> int32_t { return value.getSExtValue(); });
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<int32_t>(
                             intValues));
   }
 
   if (elementType.isSignlessInteger(64)) {
-    auto intValues = llvm::to_vector(llvm::map_range(
+    auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
-        [&](APInt value) -> int64_t { return value.getSExtValue(); }));
+        [&](APInt value) -> int64_t { return value.getSExtValue(); });
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<int64_t>(
                             intValues));
   }
 
   // Handle unsigned integer types.
   if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
-    auto intValues = llvm::to_vector(llvm::map_range(
+    auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
-        [&](APInt value) -> uint8_t { return value.getZExtValue(); }));
+        [&](APInt value) -> uint8_t { return value.getZExtValue(); });
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<uint8_t>(
                             intValues));
   }
 
   if (elementType.isUnsignedInteger(16)) {
-    auto intValues = llvm::to_vector(llvm::map_range(
+    auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
-        [&](APInt value) -> uint16_t { return value.getZExtValue(); }));
+        [&](APInt value) -> uint16_t { return value.getZExtValue(); });
     return Tensor(
         type,
         HeapAsmResourceBlob::allocateAndCopyInferAlign<uint16_t>(intValues));
   }
 
   if (elementType.isUnsignedInteger(32)) {
-    auto intValues = llvm::to_vector(llvm::map_range(
+    auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
-        [&](APInt value) -> uint32_t { return value.getZExtValue(); }));
+        [&](APInt value) -> uint32_t { return value.getZExtValue(); });
     return Tensor(
         type,
         HeapAsmResourceBlob::allocateAndCopyInferAlign<uint32_t>(intValues));
   }
 
   if (elementType.isUnsignedInteger(64)) {
-    auto intValues = llvm::to_vector(llvm::map_range(
+    auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
-        [&](APInt value) -> uint64_t { return value.getZExtValue(); }));
+        [&](APInt value) -> uint64_t { return value.getZExtValue(); });
     return Tensor(
         type,
         HeapAsmResourceBlob::allocateAndCopyInferAlign<uint64_t>(intValues));
@@ -497,9 +497,9 @@ Tensor makeTensor(DenseElementsAttr attr) {
 
   // Handle boolean type.
   if (isSupportedBooleanType(elementType)) {
-    auto boolValues = llvm::to_vector(
-        llvm::map_range(attr.getValues<bool>(),
-                        [&](bool value) -> uint8_t { return value ? 1 : 0; }));
+    auto boolValues = llvm::map_to_vector(
+        attr.getValues<bool>(),
+        [&](bool value) -> uint8_t { return value ? 1 : 0; });
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<uint8_t>(
                             boolValues));
   }
@@ -508,24 +508,24 @@ Tensor makeTensor(DenseElementsAttr attr) {
   if (isa<ComplexType>(elementType)) {
     auto complexElemTy = cast<ComplexType>(elementType).getElementType();
     if (complexElemTy.isF32()) {
-      auto complexValues = llvm::to_vector(llvm::map_range(
+      auto complexValues = llvm::map_to_vector(
           attr.getValues<std::complex<APFloat>>(),
           [&](std::complex<APFloat> value) -> std::complex<float> {
             return std::complex<float>(value.real().convertToFloat(),
                                        value.imag().convertToFloat());
-          }));
+          });
       return Tensor(
           type,
           HeapAsmResourceBlob::allocateAndCopyInferAlign<std::complex<float>>(
               complexValues));
     }
     if (complexElemTy.isF64()) {
-      auto complexValues = llvm::to_vector(llvm::map_range(
+      auto complexValues = llvm::map_to_vector(
           attr.getValues<std::complex<APFloat>>(),
           [&](std::complex<APFloat> value) -> std::complex<double> {
             return std::complex<double>(value.real().convertToDouble(),
                                         value.imag().convertToDouble());
-          }));
+          });
       return Tensor(
           type,
           HeapAsmResourceBlob::allocateAndCopyInferAlign<std::complex<double>>(

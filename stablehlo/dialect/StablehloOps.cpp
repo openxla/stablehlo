@@ -257,7 +257,7 @@ LogicalResult CompositeOp::verifySymbolUses(
 void ConstantOp::getAsmResultNames(
     function_ref<void(Value, StringRef)> setNameFn) {
   mlir::TensorType type = getType();
-  if (type.getElementType().isa<IntegerType>()) {
+  if (isa<IntegerType>(type.getElementType())) {
     setNameFn(getResult(), "c");
   } else {
     setNameFn(getResult(), "cst");
@@ -1532,18 +1532,6 @@ LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
   return success();
 }
 
-mlir::Speculation::Speculatability DynamicReshapeOp::getSpeculatability() {
-  // If the input is static and the shape operand is constant, the output
-  // shape can be inferred and any mismatch will be caught statically.
-  // If any dimension in the input is dynamic, or if the shape is not known,
-  // the number of elements may disagree at runtime.
-  if (getOperand().getType().hasStaticShape() &&
-      matchPattern(getOutputShape(), m_Constant()))
-    return mlir::Speculation::Speculatable;
-
-  return mlir::Speculation::NotSpeculatable;
-}
-
 //===----------------------------------------------------------------------===//
 // DynamicSliceOp
 //===----------------------------------------------------------------------===//
@@ -1611,6 +1599,10 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
                             shapeScalarType),
       shapeValues));
   return success();
+}
+
+mlir::Speculation::Speculatability RealDynamicSliceOp::getSpeculatability() {
+  return hlo::getShapedSpeculatability(getOperation(), /*shapeCount=*/3);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1828,12 +1820,12 @@ void ReduceOp::build(OpBuilder&, OperationState& odsState, ValueRange inputs,
       odsState.attributes.getDictionary(odsState.getContext()), {},
       odsState.regions);
 
-  SmallVector<ShapedType> inputArgTensorTypes{
-      llvm::map_range(adaptor.getInputs().getTypes(),
-                      [](Type t) { return cast<ShapedType>(t); })};
-  SmallVector<ShapedType> initValueTensorTypes{
-      llvm::map_range(adaptor.getInitValues().getTypes(),
-                      [](Type t) { return cast<ShapedType>(t); })};
+  auto inputArgTensorTypes =
+      llvm::map_to_vector(adaptor.getInputs().getTypes(),
+                          [](Type t) { return cast<ShapedType>(t); });
+  auto initValueTensorTypes =
+      llvm::map_to_vector(adaptor.getInitValues().getTypes(),
+                          [](Type t) { return cast<ShapedType>(t); });
 
   if (failed(hlo::verifyReduceOpInputsAndInferShape(
           odsState.location, inputArgTensorTypes, dimensions, newDimensions,
@@ -2158,6 +2150,10 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
       shapeValues));
 
   return success();
+}
+
+mlir::Speculation::Speculatability DynamicPadOp::getSpeculatability() {
+  return hlo::getShapedSpeculatability(getOperation(), /*shapeCount=*/3);
 }
 
 //===----------------------------------------------------------------------===//
@@ -3292,8 +3288,8 @@ ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
                                          int64Parser))
         return failure();
       if (attributeName == "reverse") {
-        auto boolVector = llvm::to_vector<4>(
-            llvm::map_range(values, [](int64_t v) { return v != 0; }));
+        auto boolVector =
+            llvm::map_to_vector<4>(values, [](int64_t v) { return v != 0; });
         windowReversal =
             DenseBoolArrayAttr::get(parser.getContext(), boolVector);
       } else {

@@ -132,6 +132,7 @@ bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2) {
 }
 
 bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2) {
+  if (llvm::any_of(shape1, [&](int64_t x) { return x < 0; })) return false;
   auto stp2 = dyn_cast<ShapedType>(tp2);
   if (!stp2) return false;
   return isCompatibleForHloTypeInference(
@@ -141,11 +142,7 @@ bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2) {
 bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
   SmallVector<int64_t> shapeVec1;
   if (!succeeded(matchInts(shape1, shapeVec1))) return true;
-  if (llvm::any_of(shapeVec1, [&](int64_t x) { return x < 0; })) return false;
-  auto stp2 = dyn_cast<ShapedType>(tp2);
-  if (!stp2) return false;
-  auto tp1 = RankedTensorType::get(shapeVec1, stp2.getElementType());
-  return isCompatibleForHloTypeInference(tp1, tp2);
+  return isCompatibleForHloTypeInference(shapeVec1, tp2);
 }
 
 LogicalResult matchInt(Value value, int64_t& result) {
@@ -609,6 +606,93 @@ ShapedType createShapedType(ShapedTypeComponents components) {
 bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {
   return std::all_of(arr.begin(), arr.end(),
                      [val](int64_t x) { return x == val; });
+}
+
+mlir::Speculation::Speculatability getShapedSpeculatability(
+    Operation* op, int64_t shapeCount) {
+  // If all inputs are static and the shape-related operands are constant
+  // then any relationship between the input, the shapes and the output can be
+  // verified statically.
+  bool allInputsStatic = llvm::all_of(op->getOperandTypes(), [](Type t) {
+    return cast<ShapedType>(t).hasStaticShape();
+  });
+  bool allShapesConstant = llvm::all_of(llvm::seq(shapeCount), [&](int64_t i) {
+    return matchPattern(op->getOperand(op->getNumOperands() - 1 - i),
+                        m_Constant());
+  });
+  return allInputsStatic && allShapesConstant
+             ? mlir::Speculation::Speculatable
+             : mlir::Speculation::NotSpeculatable;
+}
+
+bool isValidStablehloQuantizedElementType(Type elementType) {
+  auto quantizedElementType = dyn_cast<mlir::quant::QuantizedType>(elementType);
+  if (!quantizedElementType) return false;
+
+  int64_t storageTypeMin = quantizedElementType.getStorageTypeMin();
+  int64_t storageTypeMax = quantizedElementType.getStorageTypeMax();
+
+  SmallVector<int64_t> zeroPoints;
+  SmallVector<double> scales;
+  if (auto quantizedPerTensorElementType =
+          dyn_cast<mlir::quant::UniformQuantizedType>(elementType)) {
+    zeroPoints.push_back(quantizedPerTensorElementType.getZeroPoint());
+    scales.push_back(quantizedPerTensorElementType.getScale());
+  } else {
+    auto quantizedPerAxisElementType =
+        cast<mlir::quant::UniformQuantizedPerAxisType>(elementType);
+    zeroPoints.insert(zeroPoints.begin(),
+                      quantizedPerAxisElementType.getZeroPoints().begin(),
+                      quantizedPerAxisElementType.getZeroPoints().end());
+    scales.insert(scales.begin(),
+                  quantizedPerAxisElementType.getScales().begin(),
+                  quantizedPerAxisElementType.getScales().end());
+  }
+
+  // quantized_type_c5
+  auto maxPosFiniteNum =
+      APFloat::getLargest(quantizedElementType.getExpressedType()
+                              .cast<FloatType>()
+                              .getFloatSemantics())
+          .convertToDouble();
+  auto minPosFiniteNum =
+      APFloat::getSmallest(quantizedElementType.getExpressedType()
+                               .cast<FloatType>()
+                               .getFloatSemantics())
+          .convertToDouble();
+  if (llvm::any_of(scales, [&](double scale) {
+        return scale < minPosFiniteNum || scale > maxPosFiniteNum;
+      })) {
+    return false;
+  }
+
+  // quantized_type_c8, quantized_type_c9
+  if (llvm::any_of(zeroPoints, [&](int64_t zeroPoint) {
+        return storageTypeMin > zeroPoint || zeroPoint > storageTypeMax;
+      })) {
+    return false;
+  }
+
+  return true;
+}
+
+bool isValidQuantizedDimension(Type type) {
+  auto rankedType = dyn_cast<RankedTensorType>(type);
+  if (!rankedType) return true;
+
+  auto quantizedPerAxisElementType =
+      dyn_cast<mlir::quant::UniformQuantizedPerAxisType>(
+          rankedType.getElementType());
+
+  if (!quantizedPerAxisElementType) return true;
+
+  // quantized_type_c12, quantized_type_c13, quantized_type_c14
+  int64_t quantDim = quantizedPerAxisElementType.getQuantizedDimension();
+  int64_t numScales =
+      static_cast<int64_t>(quantizedPerAxisElementType.getScales().size());
+  return quantDim >= 0 && quantDim < rankedType.getRank() &&
+         (!rankedType.isDynamicDim(quantDim) &&
+          numScales == rankedType.getDimSize(quantDim));
 }
 
 }  // namespace hlo
