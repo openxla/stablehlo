@@ -267,7 +267,7 @@ LogicalResult verifyReshapeOpQuantizationConstraints(
                                                         resultTy)))
     return failure();
 
-  // reshape_c3
+  // reshape_c3, dynamic_reshape_c3
   if (allQuantized<quant::UniformQuantizedPerAxisType>(operandTy, resultTy)) {
     auto operandQDim = cast<quant::UniformQuantizedPerAxisType>(
                            getElementTypeOrSelf(operandTy))
@@ -3905,6 +3905,16 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
 LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                      Value operand, Value outputShape,
                                      Value result) {
+  // dynamic_reshape_c1
+  if (!anyQuantized<quant::QuantizedType>(
+          {operand.getType(), result.getType()}) &&
+      !isCompatibleElementTypeForHloTypeInference(operand.getType(),
+                                                  result.getType()))
+    return emitOptionalError(
+        location,
+        "expects operand and result to have compatible element type. Got: ",
+        operand.getType(), " and ", result.getType());
+
   auto resultType = cast<ShapedType>(result.getType());
   auto outputShapeType = cast<ShapedType>(outputShape.getType());
 
@@ -3912,7 +3922,7 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                                           resultType)))
     return failure();
 
-  // dynamic_reshape_c2
+  // dynamic_reshape_c4
   if (outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
                              "result should have a rank equal to the number of "
@@ -3933,7 +3943,7 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
     }
   }
 
-  // dynamic_reshape_c1
+  // dynamic_reshape_c1, dynamic_reshape_c3
   if (anyQuantized<quant::QuantizedType>(operand.getType(), result.getType()))
     return verifyReshapeOpQuantizationConstraints(location, operand.getType(),
                                                   result.getType());

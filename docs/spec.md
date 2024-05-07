@@ -2223,9 +2223,9 @@ For hybrid quantized types, performs `hybrid_dequantize_then_op(
 
 #### Outputs
 
-| Name     | Type                       | Constraints                 |
-|----------|----------------------------|-----------------------------|
-| `result` | tensor or quantized tensor | (C25-C28), (C30), (C32-34)  |
+| Name     | Type                       | Constraints                |
+|----------|----------------------------|----------------------------|
+| `result` | tensor or quantized tensor | (C25-C28), (C30), (C32-34) |
 
 #### Constraints
 
@@ -2564,9 +2564,9 @@ planning to address this in
 
 #### Outputs
 
-| Name     | Type                       | Constraints                |
-|----------|----------------------------|----------------------------|
-| `result` | tensor or quantized tensor | (C12), (C14), (C18-C20)    |
+| Name     | Type                       | Constraints             |
+|----------|----------------------------|-------------------------|
+| `result` | tensor or quantized tensor | (C12), (C14), (C18-C20) |
 
 #### Constraints
 
@@ -2645,16 +2645,16 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 
-| Label | Name             | Type                                                                               | Constraints |
-|-------|------------------|------------------------------------------------------------------------------------|-------------|
-| (I1)  | `output_shape`   | 1-dimensional tensor constant of type `si64`                                       | (C1), (C2)  |
-| (I2)  | `iota_dimension` | `si64`                                                                             | (C1)        |
+| Label | Name             | Type                                         | Constraints |
+|-------|------------------|----------------------------------------------|-------------|
+| (I1)  | `output_shape`   | 1-dimensional tensor constant of type `si64` | (C1), (C2)  |
+| (I2)  | `iota_dimension` | `si64`                                       | (C1)        |
 
 #### Outputs
 
 | Name     | Type                                                                              | Constraints |
 |----------|-----------------------------------------------------------------------------------|-------------|
-| `result` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor |     (C2)    |
+| `result` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor | (C2)        |
 
 #### Constraints
 
@@ -2691,14 +2691,14 @@ op, except the result shape is specified dynamically via `output_shape`.
 
 | Label | Name           | Type                                         | Constraints |
 |-------|----------------|----------------------------------------------|-------------|
-| (I1)  | `operand`      | tensor or quantized tensor                   | (C1), (C2)  |
-| (I2)  | `output_shape` | 1-dimensional tensor constant of type `si64` | (C2)        |
+| (I1)  | `operand`      | tensor or quantized tensor                   | (C1-C3)     |
+| (I2)  | `output_shape` | 1-dimensional tensor constant of type `si64` | (C4)        |
 
 #### Outputs
 
 | Name     | Type                       | Constraints |
 |----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1), (C2)  |
+| `result` | tensor or quantized tensor | (C1-C4)     |
 
 #### Constraints
 
@@ -2706,7 +2706,21 @@ op, except the result shape is specified dynamically via `output_shape`.
   * `element_type(operand)`, if `!is_per_axis_quantized(operand)`.
   * `element_type(operand)` except that `quantization_dimension(operand)` and
     `quantization_dimension(result)` may differ, otherwise.
-* (C2) `size(output_shape) = rank(result)`.
+* (C2) `size(operand) = size(result)`.
+* (C3) If `is_per_axis_quantized(operand)`:
+  * `reduce(dims(operand, [0, 1, ..., quantization_dimension(operand) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
+    reduce(dims(result, [0, 1, ..., quantization_dimension(result) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
+  * `dim(operand, quantization_dimension(operand)) =
+    dim(result, quantization_dimension(result))`.
+  * `reduce(dims(operand,
+    [quantization_dimension(operand) + 1, ..., rank(operand) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
+    reduce(dims(result,
+    [quantization_dimension(result) + 1, ..., rank(result) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
+* (C4) `size(output_shape) = rank(result)`.
 
 #### Examples
 

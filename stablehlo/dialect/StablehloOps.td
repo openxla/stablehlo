@@ -2660,11 +2660,12 @@ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
 }
 
 def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape",
-      [HLO_SpeculatableIfAllInputsStaticAndShapeConstant, NoMemoryEffect,
-       AllElementTypesMatch<["operand", "result"]> /*dynamic_reshape_c1*/]> {
+      [HLO_SpeculatableIfAllInputsStaticAndShapeConstant, NoMemoryEffect]> {
   let summary = "DynamicReshape operation";
   let description = [{
-    Performs reshape of `operand` tensor to a `result` tensor.
+    This operation is functionally identical to
+    [reshape](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape)
+    op, except the result shape is specified dynamically via `output_shape`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_reshape
