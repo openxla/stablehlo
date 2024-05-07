@@ -301,6 +301,21 @@ gentbl_cc_library(
     ],
 )
 
+gentbl_cc_library(
+    name = "stablehlo_legalize_deprecated_ops_inc_gen",
+    tbl_outs = [
+        (
+            ["--gen-rewriters"],
+            "stablehlo/transforms/StablehloLegalizeDeprecatedOpsPatterns.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/transforms/StablehloLegalizeDeprecatedOpsPatterns.td",
+    deps = [
+        ":stablehlo_ops_td_files",
+    ],
+)
+
 cc_library(
     name = "interpreter_ops",
     srcs = [
@@ -942,6 +957,7 @@ cc_library(
         "stablehlo/transforms/StablehloCanonicalizeDynamism.cpp",
         "stablehlo/transforms/StablehloInstrumentWithProbe.cpp",
         "stablehlo/transforms/StablehloLegalizeCompositeToCall.cpp",
+        "stablehlo/transforms/StablehloLegalizeDeprecatedOps.cpp",
         "stablehlo/transforms/StablehloLegalizeToVhlo.cpp",
         "stablehlo/transforms/StablehloRefineArguments.cpp",
         "stablehlo/transforms/StablehloRefineShapes.cpp",
@@ -960,6 +976,7 @@ cc_library(
         ":chlo_ops",
         ":chlo_rewriters_inc_gen",
         ":interpreter_ops",
+        ":stablehlo_legalize_deprecated_ops_inc_gen",
         ":stablehlo_ops",
         ":stablehlo_ops_inc_gen",
         ":stablehlo_pass_inc_gen",
