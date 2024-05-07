@@ -977,8 +977,6 @@ SmallVector<InterpreterValue> eval(Region &region,
       scope.add(op.getResult(), result);
     } else if (isa<TorchIndexSelectOp>(operation)) {
       failOnDecomposableOp(operation);
-    } else if (isa<TraceOp>(operation)) {
-      failOnDecomposableOp(operation);
     } else if (auto op = dyn_cast<TransposeOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto permutation = Axes(op.getPermutation());

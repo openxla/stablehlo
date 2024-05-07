@@ -112,8 +112,8 @@ void StablehloInstrumentWithProbePass::runOnOperation() {
 bool StablehloInstrumentWithProbePass::shouldProbeOp(Operation& op) const {
   if (isa<ConstantOp>(op)) return false;
 
-  // Operations that do not produce values should not be instrumented (ReturnOp,
-  // TraceOp, etc.)
+  // Operations that do not produce values should not be instrumented
+  // (ReturnOp, CustomCallOp with no result, etc)
   if (op.getNumResults() == 0) return false;
 
   return true;

@@ -2967,28 +2967,6 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   }];
 }
 
-def StableHLO_TraceOp: StableHLO_Op<"trace"> {
-  let summary = "Trace operation";
-  let description = [{
-    This operation is on its way out of StableHLO, so it is not included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/604.
-
-    It is not used by JAX, PyTorch or TensorFlow, so it looks like we should've
-    classified it as "Private to XLA" and not included it in StableHLO in the
-    first place. With that in mind, its semantics will not be documented here.
-
-    Example:
-    ```mlir
-    stablehlo.trace %arg0, "In test code." : tensor<5x1x5xi32>
-    ```
-  }];
-  let arguments = (ins
-    HLO_Tensor:$operand,
-    StrAttr:$tag
-  );
-  let assemblyFormat = "$operand `,` $tag attr-dict `:` type($operand)";
-}
-
 def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
       [ConditionallySpeculatable, NoMemoryEffect,
       HLO_CompatibleOperandsAndResultElementType, /*transpose_c1*/
