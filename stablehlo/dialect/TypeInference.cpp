@@ -1,4 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+	/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
    Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -2357,8 +2357,8 @@ LogicalResult inferDynamicGatherOp(
   if (failed(verifyGather(location, /*operandShape=*/operandShape,
                           /*startIndicesShape=*/startIndicesShape,
                           /*sliceSizesShape=*/sliceSizesShape, offsetDims,
-                          collapsedSliceDims, /*operandBatchingDims=*/{},
-                          /*startIndicesBatchingDims=*/{}, startIndexMap,
+                          collapsedSliceDims, operandBatchingDims,
+                          startIndicesBatchingDims, startIndexMap,
                           indexVectorDim)))
     return failure();
 
@@ -2370,7 +2370,7 @@ LogicalResult inferDynamicGatherOp(
   };
   return inferGatherReturnTypeComponents(
       location, operandShape, startIndices, getSliceDim, offsetDims,
-      collapsedSliceDims, /*operandBatchingDims=*/{}, indexVectorDim,
+      collapsedSliceDims, operandBatchingDims, indexVectorDim,
       inferredReturnShapes);
 }
 
