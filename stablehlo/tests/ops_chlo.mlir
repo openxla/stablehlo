@@ -73,33 +73,6 @@ func.func @constant_like(%arg0: tensor<1x2xi64>) -> (tensor<1x2xi32>) {
 
 // -----
 
-// CHECK-LABEL: func @minimum_broadcast_shapes
-func.func @minimum_broadcast_shapes(%lhs: tensor<?xindex>, %rhs: tensor<?xindex>)
-    -> (tensor<?xindex>, tensor<?xindex>) {
-  %0, %1 = chlo.minimum_broadcast_shapes %lhs, %rhs :
-      tensor<?xindex>, tensor<?xindex> -> tensor<?xindex>, tensor<?xindex>
-  func.return %0, %1 : tensor<?xindex>, tensor<?xindex>
-}
-
-// -----
-
-func.func @minimum_broadcast_shapes_mismatch_operand_and_result_count(%lhs: tensor<?xindex>, %rhs: tensor<?xindex>) {
-  // expected-error @+1{{number of operand shapes (2) does not match number of result shapes (1)}}
-  %0 = chlo.minimum_broadcast_shapes %lhs, %rhs :
-      tensor<?xindex>, tensor<?xindex> -> tensor<?xindex>
-  func.return
-}
-
-// -----
-
-func.func @minimum_broadcast_shapes_one_operand(%arg: tensor<?xindex>) {
-  // expected-error @+1{{number of operand shapes (1) should be >= 2}}
-  %0 = chlo.minimum_broadcast_shapes %arg : tensor<?xindex> -> tensor<?xindex>
-  func.return
-}
-
-// -----
-
 func.func @top_k(%arg0 : tensor<f32>) {
   // expected-error @+2 {{failed to infer returned types}}
   // @expected-error @+1{{operand's rank must be at least 1}}
