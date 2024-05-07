@@ -3667,7 +3667,7 @@ func.func @gather_c7(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
 
 func.func @gather_c8(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{collapsed dimension -1 is out of bounds for operand rank 3}}
+  // expected-error@+1 {{collapsed slice dimension -1 is out of bounds for operand rank 3}}
   %res = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2],
@@ -3685,7 +3685,7 @@ func.func @gather_c8(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
 
 func.func @gather_c8(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{collapsed dimension 17 is out of bounds for operand rank 3}}
+  // expected-error@+1 {{collapsed slice dimension 17 is out of bounds for operand rank 3}}
   %res = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2],
@@ -3740,7 +3740,7 @@ func.func @gather_c10(%operand : tensor<2x4x9xi32>, %start_indices : tensor<4x2x
 
 func.func @gather_c11(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{batching dimension -1 is out of bounds for operand rank 3}}
+  // expected-error@+1 {{operand batching dimension -1 is out of bounds for operand rank 3}}
   %res = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2],
@@ -3760,7 +3760,7 @@ func.func @gather_c11(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x
 
 func.func @gather_c11(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{batching dimension 3 is out of bounds for operand rank 3}}
+  // expected-error@+1 {{operand batching dimension 3 is out of bounds for operand rank 3}}
   %res = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2],

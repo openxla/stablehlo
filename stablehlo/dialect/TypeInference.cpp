@@ -262,15 +262,15 @@ LogicalResult verifyQPerAxisScaleAndZeroPointConstraints(
 //===----------------------------------------------------------------------===//
 
 // Checks if the vector `nums` has duplicates.
-const auto isUnique = [](const ArrayRef<int64_t> nums) {
+bool isUnique(ArrayRef<int64_t> nums) {
   llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
   return set.size() == nums.size();
-};
+}
 
-const auto checkDimsDistinct =
-    [](std::optional<Location> location, ArrayRef<int64_t> lhsDims,
-       ArrayRef<int64_t> rhsDims, llvm::StringRef lhs,
-       llvm::StringRef rhs) -> LogicalResult {
+LogicalResult checkDimsDistinct(std::optional<Location> loc,
+                                ArrayRef<int64_t> lhsDims,
+                                ArrayRef<int64_t> rhsDims, llvm::StringRef lhs,
+                                llvm::StringRef rhs) {
   llvm::SmallDenseSet<int64_t> dimSet;
   dimSet.reserve(lhsDims.size() + rhsDims.size());
   for (auto dim : llvm::concat<const int64_t>(lhsDims, rhsDims)) {
@@ -280,7 +280,19 @@ const auto checkDimsDistinct =
                                " and ", rhs, ": ", dim);
   }
   return success();
-};
+}
+
+LogicalResult checkDimsInBounds(std::optional<Location> loc,
+                                ArrayRef<int64_t> dims, int64_t upperBound,
+                                StringRef dimsName, StringRef upperBoundName) {
+  for (int64_t dim : dims) {
+    if (dim < 0 || dim >= upperBound)
+      return emitOptionalError(loc, "Expects each element of ", dimsName,
+                               " to be in range [0, ", upperBoundName,
+                               " i.e. [0, ", upperBound, "). got: ", dim, ".");
+  }
+  return success();
+}
 
 bool tensorsHaveSameElType(TypeRange types, bool ignoreFpPrecision = true) {
   if (!types.empty()) {
@@ -1254,14 +1266,9 @@ LogicalResult validateScatterDimensionNumbers(
 
   // scatter_c8
   if (updatesTypeRanked) {
-    for (int64_t windowDim : updateWindowDims) {
-      if (windowDim < 0 || windowDim >= updateType.getRank())
-        return emitOptionalError(
-            loc,
-            "Expects each element of update_window_dims to be in range "
-            "[0, rank-of('updates') i.e. [0, ",
-            updateType.getRank(), "). got: ", windowDim, ".");
-    }
+    if (failed(checkDimsInBounds(loc, updateWindowDims, updateType.getRank(),
+                               "update_window_dims", "rank-of('updates')")))
+    return failure();
   }
 
   // scatter_c9
@@ -1275,24 +1282,10 @@ LogicalResult validateScatterDimensionNumbers(
         loc, "Expects inserted_window_dims to be sorted; got: [",
         insertedWindowDims, "].");
 
-  auto checkInputDimInBounds = [&](ArrayRef<int64_t> dims, StringRef name) {
-    if (!operandTypeRanked) {
-      return success();
-    }
-    for (int64_t dim : dims)
-      if (dim < 0 || dim >= operandType.getRank())
-        return emitOptionalError(
-            loc, "Expects each element of ", name,
-            " to be in range [0, rank-of('operand') i.e. [0, ",
-            operandType.getRank(), "). got: ", dim, ".");
-    return success();
-  };
-
   // scatter_c11
-  if (failed(
-          checkInputDimInBounds(insertedWindowDims, "inserted_window_dims"))) {
+  if (failed(checkDimsInBounds(loc, insertedWindowDims, operandType.getRank(),
+                               "inserted_window_dims", "rank-of('operand')")))
     return failure();
-  }
 
   // scatter_c12
   if (!llvm::is_sorted(inputBatchingDims))
@@ -1301,9 +1294,9 @@ LogicalResult validateScatterDimensionNumbers(
                              inputBatchingDims, "].");
 
   // scatter_c13
-  if (failed(checkInputDimInBounds(inputBatchingDims, "input_batching_dims"))) {
+  if (failed(checkDimsInBounds(loc, inputBatchingDims, operandType.getRank(),
+                              "input_batching_dims", "rank-of('operand')")))
     return failure();
-  }
 
   // scatter_c14
   if (!isUnique(scatterIndicesBatchingDims))
@@ -1313,15 +1306,10 @@ LogicalResult validateScatterDimensionNumbers(
 
   // scatter_c15
   if (scatterIndicesTypeRanked) {
-    for (int64_t batchingDim : scatterIndicesBatchingDims) {
-      if (batchingDim < 0 ||
-          batchingDim >= static_cast<int64_t>(scatterIndicesShape.size()))
-        return emitOptionalError(
-            loc,
-            "Expects each element of scatter_indices_batching_dims to be in "
-            "range [0, rank-of('scatter_indices') i.e. [0, ",
-            scatterIndicesShape.size(), "). got: ", batchingDim, ".");
-    }
+    if (failed(checkDimsInBounds(
+            loc, scatterIndicesBatchingDims, scatterIndicesShape.size(),
+            "scatter_indices_batching_dims", "rank-of('scatter_indices')")))
+      return failure();
   }
 
   // scatter_c16
@@ -1384,16 +1372,10 @@ LogicalResult validateScatterDimensionNumbers(
 
   // scatter_c21
   if (operandTypeRanked) {
-    for (int64_t i = 0;
-         i < static_cast<int64_t>(scatterDimsToOperandDims.size()); ++i) {
-      int64_t scatterDimToOperandDim = scatterDimsToOperandDims[i];
-      if (scatterDimToOperandDim < 0 ||
-          scatterDimToOperandDim >= operandType.getRank())
-        return emitOptionalError(
-            loc, "Invalid scatter_dims_to_operand_dims mapping; domain is [0, ",
-            operandType.getRank(), "), got: ", i, "->", scatterDimToOperandDim,
-            ".");
-    }
+    if (failed(checkDimsInBounds(
+            loc, scatterDimsToOperandDims.size, operandType.getRank(),
+            "scatter_dims_to_operand_dims", "rank-of('operand')")))
+      return failure();
   }
 
   return success();
@@ -1459,20 +1441,10 @@ static LogicalResult verifyGather(
         location, "expects collapsed_slice_dims to be sorted, got: [",
         collapsedSliceDims, "]");
 
-  auto checkOperandDimInBounds = [&](ArrayRef<int64_t> dims, StringRef name) {
-    for (auto dim : dims) {
-      if (dim < 0 || dim >= operandShape.getRank())
-        return emitOptionalError(location, name, " dimension ", dim,
-                                 " is out of bounds for operand rank ",
-                                 operandShape.getRank());
-    }
-    return success();
-  };
-
   // gather_c8
-  if (failed(checkOperandDimInBounds(collapsedSliceDims, "collapsed"))) {
+  if (failed(checkDimsInBounds(loc, collapsedSliceDims, operandShape.getRank(),
+                               "collapsed_slice_dims", "rank-of('operand')")))
     return failure();
-  }
 
   // gather_c10
   if (!llvm::is_sorted(operandBatchingDims))
@@ -1481,9 +1453,9 @@ static LogicalResult verifyGather(
         operandBatchingDims, "]");
 
   // gather_c11
-  if (failed(checkOperandDimInBounds(operandBatchingDims, "batching"))) {
+  if (failed(checkDimsInBounds(loc, operandBatchingDims, operandShape.getRank(),
+                               "operand_batching_dims", "rank-of('operand')")))
     return failure();
-  }
 
   // gather_c13
   if (!isUnique(startIndicesBatchingDims))
@@ -1492,11 +1464,10 @@ static LogicalResult verifyGather(
         startIndicesBatchingDims, "]");
 
   // gather_c14
-  for (int64_t dim : startIndicesBatchingDims)
-    if (dim < 0 || (dim >= startIndicesShape.getRank()))
-      return emitOptionalError(location, "start indices batching dimension ",
-                               dim, " is out of bounds for start indices rank ",
-                               startIndicesShape.getRank());
+  if (failed(checkDimsInBounds(
+          location, startIndicesBatchingDims, startIndicesShape.getRank(),
+          "start_indices_batching_dims", "rank-of('start_indices')")))
+    return failure();
 
   // gather_c15
   if (llvm::is_contained(startIndicesBatchingDims, indexVectorDim))
@@ -1532,11 +1503,9 @@ static LogicalResult verifyGather(
     return failure();
 
   // gather_c19
-  for (int64_t i = 0; i < static_cast<int64_t>(startIndexMap.size()); ++i)
-    if (startIndexMap[i] < 0 || startIndexMap[i] >= operandShape.getRank())
-      return emitOptionalError(
-          location, "start_index_map[", i, "]: ", startIndexMap[i],
-          " is out of bounds for operand rank ", operandShape.getRank());
+  if (failed(checkDimsInBounds(loc, startIndexMap, operandShape.getRank(),
+                               "start_index_map", "rank-of('operand')")))
+    return failure();
 
   // gather_i9
   if (sliceSizesShape.getRank() != 1)
@@ -1642,11 +1611,9 @@ static LogicalResult inferGatherReturnTypeComponents(
   if (indexVectorDim == startIndicesRank) ++startIndicesRank;
   int64_t resultRank = offsetDims.size() + startIndicesRank - 1;
   // gather_c5
-  for (int64_t i = 0; i < static_cast<int64_t>(offsetDims.size()); ++i)
-    if (offsetDims[i] < 0 || offsetDims[i] >= resultRank)
-      return emitOptionalError(location, "offset_dims[", i,
-                               "]: ", offsetDims[i], " is out of bounds for ",
-                               "implied result rank ", resultRank);
+  if (failed(checkDimsInBounds(location, offsetDims, resultRank, "offset_dims",
+                               "implied result rank")))
+    return failure();
 
   auto getStartIndicesDim = [&](int64_t index) {
     return startIndicesShape.getDimSize(index);
@@ -2588,19 +2555,21 @@ LogicalResult inferGatherOp(
     for (auto dim : dims) {
       int64_t sliceDimSize = sliceSizes[dim];
       if (sliceDimSize > 1)
-        return emitOptionalError(location, "slice_sizes ", name, " dimension ",
-                                 dim, " should <= 1 but got ", sliceDimSize);
+        return emitOptionalError(location, "slice_sizes ", name, " ", dim,
+                                 " should <= 1 but got ", sliceDimSize);
     }
     return success();
   };
 
   // gather_c9
-  if (failed(checkSliceSizesOne(collapsedSliceDims, "collapsed"))) {
+  if (failed(checkSliceSizesOne(collapsedSliceDims,
+                                "collapsed slice dimension"))) {
     return failure();
   }
 
   // gather_c12
-  if (failed(checkSliceSizesOne(operandBatchingDims, "batching"))) {
+  if (failed(checkSliceSizesOne(operandBatchingDims,
+                                "operand batching dimension"))) {
     return failure();
   }
 

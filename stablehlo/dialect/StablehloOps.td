@@ -2548,7 +2548,7 @@ def StableHLO_GatherOp: StableHLO_Op<"gather",
         index_vector_dim = 3>,
       slice_sizes = array<i64: 1, 1, 2, 2>,
       indices_are_sorted = false
-    } : (tensor<2x3x4x2xi32>, tensor<2x2x3x2xi64>) -> tensor<2x2x3x2x2xi32>
+    } : (tensor<2x3x4x2xi64>, tensor<2x2x3x2xi64>) -> tensor<2x2x3x2x2xi64>
     ```
   }];
 
