@@ -282,14 +282,24 @@ LogicalResult checkDimsDistinct(std::optional<Location> loc,
   return success();
 }
 
+LogicalResult checkDimInBounds(std::optional<Location> loc, int64_t dim,
+                               int64_t upperBound, StringRef dimName,
+                               StringRef upperBoundName) {
+  if (dim < 0 || dim >= upperBound)
+    return emitOptionalError(loc, "Expects ", dimName, " to be in range [0, ",
+                             upperBoundName, ") i.e. [0, ", upperBound,
+                             "). got: ", dim, ".");
+  return success();
+}
+
 LogicalResult checkDimsInBounds(std::optional<Location> loc,
                                 ArrayRef<int64_t> dims, int64_t upperBound,
                                 StringRef dimsName, StringRef upperBoundName) {
   for (int64_t dim : dims) {
-    if (dim < 0 || dim >= upperBound)
+   if (dim < 0 || dim >= upperBound)
       return emitOptionalError(loc, "Expects each element of ", dimsName,
                                " to be in range [0, ", upperBoundName,
-                               " i.e. [0, ", upperBound, "). got: ", dim, ".");
+                               ") i.e. [0, ", upperBound, "). got: ", dim, ".");
   }
   return success();
 }
@@ -1268,7 +1278,7 @@ LogicalResult validateScatterDimensionNumbers(
   if (updatesTypeRanked) {
     if (failed(checkDimsInBounds(loc, updateWindowDims, updateType.getRank(),
                                "update_window_dims", "rank-of('updates')")))
-    return failure();
+      return failure();
   }
 
   // scatter_c9
@@ -1401,10 +1411,10 @@ static LogicalResult verifyGather(
   // gather_c2
   // index_vector_dim == start_indices.rank implies a trailing 1 on the
   // shape of start_indices.
-  if (indexVectorDim > startIndicesShape.getRank() || indexVectorDim < 0)
-    return emitOptionalError(location, "index_vector_dim ", indexVectorDim,
-                             " is out of bounds for start indices with rank ",
-                             startIndicesShape.getRank());
+  if (failed(checkDimInBounds(location, indexVectorDim,
+                              startIndicesShape.getRank(), "index_vector_dim",
+                              "rank-of('start_indices')")))
+    return failure();
 
   // gather_c3
   bool impliedTrailingDim = indexVectorDim == startIndicesShape.getRank();
@@ -1442,8 +1452,9 @@ static LogicalResult verifyGather(
         collapsedSliceDims, "]");
 
   // gather_c8
-  if (failed(checkDimsInBounds(loc, collapsedSliceDims, operandShape.getRank(),
-                               "collapsed_slice_dims", "rank-of('operand')")))
+  if (failed(checkDimsInBounds(location, collapsedSliceDims,
+                               operandShape.getRank(), "collapsed_slice_dims",
+                               "rank-of('operand')")))
     return failure();
 
   // gather_c10
@@ -1453,8 +1464,9 @@ static LogicalResult verifyGather(
         operandBatchingDims, "]");
 
   // gather_c11
-  if (failed(checkDimsInBounds(loc, operandBatchingDims, operandShape.getRank(),
-                               "operand_batching_dims", "rank-of('operand')")))
+  if (failed(checkDimsInBounds(location, operandBatchingDims,
+                               operandShape.getRank(), "operand_batching_dims",
+                               "rank-of('operand')")))
     return failure();
 
   // gather_c13
@@ -1612,7 +1624,7 @@ static LogicalResult inferGatherReturnTypeComponents(
   int64_t resultRank = offsetDims.size() + startIndicesRank - 1;
   // gather_c5
   if (failed(checkDimsInBounds(location, offsetDims, resultRank, "offset_dims",
-                               "implied result rank")))
+                               "implied_result_rank")))
     return failure();
 
   auto getStartIndicesDim = [&](int64_t index) {

@@ -427,7 +427,7 @@ func.func @scatter_c8() ->  tensor<512x1x6400x6400xf32> {
   %base = stablehlo.constant dense<0.000000e+00> : tensor<512x1x6400x6400xf32>
   %index = stablehlo.constant dense<0> : tensor<1xi32>
   %update = stablehlo.constant dense<1.000000e+00> : tensor<512x1x6400x6400xf32>
-  // expected-error @+1 {{Expects each element of update_window_dims to be in range [0, rank-of('updates') i.e. [0, 4). got: -1.}}
+  // expected-error @+1 {{Expects each element of update_window_dims to be in range [0, rank-of('updates')) i.e. [0, 4). got: -1.}}
   %scatter = "stablehlo.scatter"(%base, %index, %update) ({
     ^bb0(%arg5: tensor<f32>, %arg6: tensor<f32>):
       "stablehlo.return"(%arg6) : (tensor<f32>) -> ()
@@ -449,7 +449,7 @@ func.func @scatter_c8() ->  tensor<512x1x6400x6400xf32> {
   %base = stablehlo.constant dense<0.000000e+00> : tensor<512x1x6400x6400xf32>
   %index = stablehlo.constant dense<0> : tensor<1xi32>
   %update = stablehlo.constant dense<1.000000e+00> : tensor<512x1x6400x6400xf32>
-  // expected-error @+1 {{Expects each element of update_window_dims to be in range [0, rank-of('updates') i.e. [0, 4). got: 4.}}
+  // expected-error @+1 {{Expects each element of update_window_dims to be in range [0, rank-of('updates')) i.e. [0, 4). got: 4.}}
   %scatter = "stablehlo.scatter"(%base, %index, %update) ({
     ^bb0(%arg5: tensor<f32>, %arg6: tensor<f32>):
       "stablehlo.return"(%arg6) : (tensor<f32>) -> ()
@@ -543,7 +543,7 @@ func.func @scatter_c10(%input_tensor: tensor<?x?x?xf32>,
 func.func @scatter_c11(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<200x100x300xf32> {
-  // expected-error @+1 {{Expects each element of inserted_window_dims to be in range [0, rank-of('operand') i.e. [0, 3). got: -1.}}
+  // expected-error @+1 {{Expects each element of inserted_window_dims to be in range [0, rank-of('operand')) i.e. [0, 3). got: -1.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
@@ -567,7 +567,7 @@ func.func @scatter_c11(%input_tensor: tensor<200x100x300xf32>,
 func.func @scatter_c11(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<200x100x300xf32> {
-  // expected-error @+1 {{Expects each element of inserted_window_dims to be in range [0, rank-of('operand') i.e. [0, 3). got: 3.}}
+  // expected-error @+1 {{Expects each element of inserted_window_dims to be in range [0, rank-of('operand')) i.e. [0, 3). got: 3.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
@@ -615,7 +615,7 @@ func.func @scatter_c12(%input_tensor: tensor<?x?x?xf32>,
 func.func @scatter_c13(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<200x100x300xf32> {
-  // expected-error @+1 {{Expects each element of input_batching_dims to be in range [0, rank-of('operand') i.e. [0, 3). got: -1.}}
+  // expected-error @+1 {{Expects each element of input_batching_dims to be in range [0, rank-of('operand')) i.e. [0, 3). got: -1.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
@@ -641,7 +641,7 @@ func.func @scatter_c13(%input_tensor: tensor<200x100x300xf32>,
 func.func @scatter_c13(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<200x100x300xf32> {
-  // expected-error @+1 {{Expects each element of input_batching_dims to be in range [0, rank-of('operand') i.e. [0, 3). got: 3.}}
+  // expected-error @+1 {{Expects each element of input_batching_dims to be in range [0, rank-of('operand')) i.e. [0, 3). got: 3.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
@@ -691,7 +691,7 @@ func.func @scatter_c14(%input_tensor: tensor<?x?x?xf32>,
 func.func @scatter_c15(%input_tensor: tensor<?x?x?xf32>,
     %scatter_indices: tensor<?x?x?xi32>, %updates: tensor<?x?x?xf32>) ->
       tensor<?x?x?xf32> {
-  // expected-error @+1 {{Expects each element of scatter_indices_batching_dims to be in range [0, rank-of('scatter_indices') i.e. [0, 3). got: -1.}}
+  // expected-error @+1 {{Expects each element of scatter_indices_batching_dims to be in range [0, rank-of('scatter_indices')) i.e. [0, 3). got: -1.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
@@ -715,7 +715,7 @@ func.func @scatter_c15(%input_tensor: tensor<?x?x?xf32>,
 func.func @scatter_c15(%input_tensor: tensor<?x?x?xf32>,
     %scatter_indices: tensor<?x?x?xi32>, %updates: tensor<?x?x?xf32>) ->
       tensor<?x?x?xf32> {
-  // expected-error @+1 {{Expects each element of scatter_indices_batching_dims to be in range [0, rank-of('scatter_indices') i.e. [0, 3). got: 3.}}
+  // expected-error @+1 {{Expects each element of scatter_indices_batching_dims to be in range [0, rank-of('scatter_indices')) i.e. [0, 3). got: 3.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
@@ -911,7 +911,7 @@ func.func @scatter_c20(%input_tensor: tensor<200x10x300xf32>,
 
 func.func @scatter_c21(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<?x?x?xi32>, %updates: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
-  // expected-error @+1 {{Invalid scatter_dims_to_operand_dims mapping; domain is [0, 3), got: 0->-1.}}
+  // expected-error @+1 {{Expects each element of scatter_dims_to_operand_dims to be in range [0, rank-of('operand')) i.e. [0, 3). got: -1.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
@@ -933,7 +933,7 @@ func.func @scatter_c21(%input_tensor: tensor<200x100x300xf32>,
 
 func.func @scatter_c21(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<?x?xi32>, %updates: tensor<?x?xf32>) -> tensor<?x?x?xf32> {
-  // expected-error @+1 {{Invalid scatter_dims_to_operand_dims mapping; domain is [0, 3), got: 1->3.}}
+  // expected-error @+1 {{Expects each element of scatter_dims_to_operand_dims to be in range [0, rank-of('operand')) i.e. [0, 3). got: 3.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
