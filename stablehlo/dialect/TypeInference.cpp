@@ -3917,12 +3917,11 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
 
   auto resultType = cast<ShapedType>(result.getType());
   auto outputShapeType = cast<ShapedType>(outputShape.getType());
-
+  // dynamic_reshape_c4
   if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
                                                           resultType)))
     return failure();
 
-  // dynamic_reshape_c4
   if (outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
                              "result should have a rank equal to the number of "
