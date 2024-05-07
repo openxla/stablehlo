@@ -103,7 +103,7 @@ The following diagram shows how elements in `result` map on elements in
 `operand` using a concrete example. The diagram picks a few example `result`
 indices and explains in detail which `operand` indices they correspond to.
 
-![](images/20240311-gather-scatter-batching-dims/gather.svg)
+![gather](images/20240311-gather-scatter-batching-dims/gather.svg)
 
 More formally, `result[result_index] = operand[operand_index]` where:
 
@@ -116,12 +116,15 @@ More formally, `result[result_index] = operand[operand_index]` where:
     `index_vector_dim` < `rank(start_indices)`.
   * `[start_indices[batch_index]]` otherwise.
 * For `d_operand` in `axes(operand)`,
-  * `full_start_index[d_operand] = clamp(start_index[d_start], 0, dim(operand, d_operand) - slice_sizes[d_operand])`
+  * `full_start_index[d_operand] = clamp(start_index[d_start], 0,
+    dim(operand, d_operand) - slice_sizes[d_operand])`
     if `d_operand = start_index_map[d_start]`.
   * `full_start_index[d_operand] = 0` otherwise.
 * For `d_operand` in `axes(operand)`,
-  * `full_batching_index[d_operand] = batch_index[d_start - (d_start < index_vector_dim ? 0 : 1)]`
-    if `d_operand = operand_batching_dims[i_batching]` and `d_start = start_indices_batching_dims[i_batching]`.
+  * `full_batching_index[d_operand] =
+    batch_index[d_start - (d_start < index_vector_dim ? 0 : 1)]`
+    if `d_operand = operand_batching_dims[i_batching]` and
+    `d_start = start_indices_batching_dims[i_batching]`.
   * `full_batching_index[d_operand] = 0` otherwise.
 * `offset_index = result_index[offset_dims...]`.
 * `full_offset_index = [oi0, ..., 0, ..., oiN]` where `oi` are individual
@@ -158,7 +161,8 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 
 #### Constraints
 
-* (C1) `rank(operand) = size(offset_dims) + size(collapsed_slice_dims) + size(operand_batching_dims)`.
+* (C1) `rank(operand) = size(offset_dims) + size(collapsed_slice_dims) +
+       size(operand_batching_dims)`.
 * (C2) `0 <= index_vector_dim <= rank(start_indices)`.
 * (C3) `size(start_index_map) =
        index_vector_dim < rank(start_indices) ?
@@ -172,11 +176,12 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 * (C10) `is_sorted(operand_batching_dims)`.
 * (C11) `0 <= operand_batching_dims < rank(operand)`.
 * (C12) `slice_sizes[operand_batching_dims...] <= 1`.
-* (C13) `is_unique(start_indices_batching_dims) and is_sorted(start_indices_batching_dims)`.
+* (C13) `is_unique(start_indices_batching_dims)`.
 * (C14) `0 <= start_indices_batching_dims < rank(start_indices)`.
 * (C15) `index_vector_dim not in start_indices_batching_dims`.
 * (C16) `size(operand_batching_dims) == size(start_indices_batching_dims)`.
-* (C17) `dim(operand, operand_batching_dims...) = dim(start_indices, start_indices_batching_dims...)`.
+* (C17) `dim(operand, operand_batching_dims...) =
+        dim(start_indices, start_indices_batching_dims...)`.
 * (C18) `is_unique(concatenate(start_index_map, operand_batching_dims))`.
 * (C19) `0 <= start_index_map < rank(operand)`.
 * (C20) `size(slice_sizes) = rank(operand)`.
@@ -203,7 +208,7 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 //            [
 //             [[25, 26], [27, 28], [29, 30], [31, 32]],
 //             [[33, 34], [35, 36], [37, 38], [39, 40]],
-//             [[41, 42], [43, 44], [45, 46], [47, 49]]
+//             [[41, 42], [43, 44], [45, 46], [47, 48]]
 //            ]
 //           ]
 // %start_indices: [
@@ -288,8 +293,10 @@ More formally, for all `update_index` in `index_space(updates[0])`:
     `d_input = scatter_dims_to_operand_dims[d_start]`.
   * `full_start_index[d_input] = 0` otherwise.
 * For `d_input` in `axes(inputs[0])`,
-  * `full_batching_index[d_input] = update_scatter_index[d_start - (d_start < index_vector_dim ? 0 : 1)]`
-    if `d_input = input_batching_dims[i_batching]` and `d_start = scatter_indices_batching_dims[i_batching]`.
+  * `full_batching_index[d_input] =
+    update_scatter_index[d_start - (d_start < index_vector_dim ? 0 : 1)]`
+    if `d_input = input_batching_dims[i_batching]` and
+    `d_start = scatter_indices_batching_dims[i_batching]`.
   * `full_batching_index[d_input] = 0` otherwise.
 * `update_window_index = update_index[update_window_dims...]`.
 * `full_window_index = [wi0, ..., 0, ..., wiN]` where `wi` are individual
@@ -306,7 +313,8 @@ Given that, `results = exec(schedule, inputs)`, where:
     * `updates_converted = to_destination_type(
       updates...[update_index], type(func_inputs(update_computation)
       [len(func_inputs(update_computation))//2:])... )`
-    * `updated_values = update_computation(results...[result_index], updates_converted)`
+    * `updated_values = update_computation(results...[result_index],
+      updates_converted)`
     * `updated_results` is a copy of `results` with `results...[result_index]`
       set to `updated_values...`.
   * Otherwise
@@ -325,20 +333,20 @@ undefined.
 
 #### Inputs
 
-| Label | Name                                  | Type                                                       | Constraints                                         |
-|-------|---------------------------------------|------------------------------------------------------------|-----------------------------------------------------|
-| (I1)  | `inputs`                              | variadic number of tensors or per-tensor quantized tensors | (C1), (C2), (C4-C6), (C11), (C13), (C21), (C23-C24) |
-| (I2)  | `scatter_indices`                     | tensor of integer type                                     | (C4), (C15), (C19), (C22)                           |
-| (I3)  | `updates`                             | variadic number of tensors or per-tensor quantized tensors | (C3-C6), (C8)                                       |
-| (I4)  | `update_window_dims`                  | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C7-C8)                                 |
-| (I5)  | `inserted_window_dims`                | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9-C11)                                |
-| (I6)  | `input_batching_dims`                 | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9), (C12-13), (C17-18), (C20)         |
-| (I7)  | `scatter_indices_batching_dims`       | 1-dimensional tensor constant of type `si64`               | (C14-C18)                                           |
-| (I8)  | `scatter_dims_to_operand_dims`        | 1-dimensional tensor constant of type `si64`               | (C19-C21)                                           |
-| (I9)  | `index_vector_dim`                    | constant of type `si64`                                    | (C4), (C16), (C19), (C22)                           |
-| (I10) | `indices_are_sorted`                  | constant of type `i1`                                      |                                                     |
-| (I11) | `unique_indices`                      | constant of type `i1`                                      |                                                     |
-| (I12) | `update_computation`                  | function                                                   | (C23)                                               |
+| Label | Name                                  | Type                                                       | Constraints                                                |
+|-------|---------------------------------------|------------------------------------------------------------|------------------------------------------------------------|
+| (I1)  | `inputs`                              | variadic number of tensors or per-tensor quantized tensors | (C1), (C2), (C4-C6), (C11), (C13), (C18), (C21), (C23-C24) |
+| (I2)  | `scatter_indices`                     | tensor of integer type                                     | (C4), (C15), (C19), (C22)                                  |
+| (I3)  | `updates`                             | variadic number of tensors or per-tensor quantized tensors | (C3-C6), (C8)                                              |
+| (I4)  | `update_window_dims`                  | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C7-C8)                                        |
+| (I5)  | `inserted_window_dims`                | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9-C11)                                       |
+| (I6)  | `input_batching_dims`                 | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9), (C12-13), (C17-18), (C20)                |
+| (I7)  | `scatter_indices_batching_dims`       | 1-dimensional tensor constant of type `si64`               | (C14-C18)                                                  |
+| (I8)  | `scatter_dims_to_operand_dims`        | 1-dimensional tensor constant of type `si64`               | (C19-C21)                                                  |
+| (I9)  | `index_vector_dim`                    | constant of type `si64`                                    | (C4), (C16), (C19), (C22)                                  |
+| (I10) | `indices_are_sorted`                  | constant of type `i1`                                      |                                                            |
+| (I11) | `unique_indices`                      | constant of type `i1`                                      |                                                            |
+| (I12) | `update_computation`                  | function                                                   | (C23)                                                      |
 
 #### Outputs
 
@@ -349,11 +357,11 @@ undefined.
 #### Constraints
 
 * (C1) `same(shape(inputs...))`.
-* (C2) `rank(inputs[0]) = size(update_window_dims) +
-       size(inserted_window_dims) + size(input_batching_dims)`.
+* (C2) `rank(inputs[0]) = size(update_window_dims) + size(inserted_window_dims)
+       + size(input_batching_dims)`.
 * (C3) `same(shape(updates...))`.
-* (C4) `shape(updates[0]) =
-       combine(update_scatter_dim_sizes, update_window_dim_sizes)` where:
+* (C4) `shape(updates[0]) = combine(update_scatter_dim_sizes,
+       update_window_dim_sizes)` where:
   * `update_scatter_dim_sizes = shape(scatter_indices)` except that
     the dimension size of `scatter_indices` corresponding to
     `index_vector_dim` is not included.
@@ -372,15 +380,17 @@ undefined.
 * (C11) `0 <= inserted_window_dims < rank(inputs[0])`.
 * (C12) `is_sorted(input_batching_dims)`.
 * (C13) `0 <= input_batching_dims < rank(inputs[0]))`.
-* (C14) `is_unique(scatter_indices_batching_dims) and is_sorted(scatter_indices_batching_dims)`.
+* (C14) `is_unique(scatter_indices_batching_dims)`.
 * (C15) `0 <= scatter_indices_batching_dims < rank(scatter_indices)`.
 * (C16) `index_vector_dim not in scatter_indices_batching_dims`.
 * (C17) `size(input_batching_dims) == size(scatter_indices_batching_dims)`.
-* (C18) `dim(inputs[0], input_batching_dims...) = dim(start_indices, scatter_indices_batching_dims...)`.
+* (C18) `dim(inputs[0], input_batching_dims...) =
+        dim(scatter_indices, scatter_indices_batching_dims...)`.
 * (C19) `size(scatter_dims_to_operand_dims) =
-       index_vector_dim < rank(scatter_indices) ?
-       dim(scatter_indices, index_vector_dim) : 1`.
-* (C20) `is_unique(concatenate(scatter_dims_to_operand_dims, input_batching_dims))`.
+        index_vector_dim < rank(scatter_indices) ?
+        dim(scatter_indices, index_vector_dim) : 1`.
+* (C20) `is_unique(concatenate(scatter_dims_to_operand_dims,
+        input_batching_dims))`.
 * (C21) `0 <= scatter_dims_to_operand_dims < rank(inputs[0])`.
 * (C22) `0 <= index_vector_dim <= rank(scatter_indices)`.
 * (C23) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>,
@@ -401,7 +411,7 @@ undefined.
 //          [
 //           [[25, 26], [27, 28], [29, 30], [31, 32]],
 //           [[33, 34], [35, 36], [37, 38], [39, 40]],
-//           [[41, 42], [43, 44], [45, 46], [47, 49]]
+//           [[41, 42], [43, 44], [45, 46], [47, 48]]
 //          ]
 //         ]
 // %scatter_indices: [
@@ -448,7 +458,7 @@ undefined.
 //           [
 //            [[25, 26], [28, 29], [30, 31], [31, 32]],
 //            [[35, 36], [38, 39], [38, 39], [39, 40]],
-//            [[42, 43], [45, 46], [46, 47], [47, 49]]
+//            [[41, 42], [44, 45], [46, 47], [47, 48]]
 //           ]
 //          ]
 ```
