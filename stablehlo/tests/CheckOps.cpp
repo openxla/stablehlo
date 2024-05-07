@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/Support/Path.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/dialect/Base.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Tensor.h"

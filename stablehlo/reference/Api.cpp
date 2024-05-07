@@ -30,6 +30,7 @@ limitations under the License.
 #include "mlir/IR/Location.h"
 #include "mlir/IR/TypeRange.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/reference/Configuration.h"
@@ -41,6 +42,7 @@ limitations under the License.
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Value.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -136,6 +138,38 @@ LogicalResult validateEntrySignature(func::FuncOp func,
   return success();
 }
 
+// Specializes the shapes of arguments in function 'func' based on runtime input
+// values. If all argument types already have static shapes, this function does
+// nothing. Otherwise, it constructs a pipeline of MLIR passes to refine
+// argument shapes using the provided `inputs`.
+//
+// Args:
+//   module: The MLIR module containing the function.
+//   func: The function whose argument shapes need specialization.
+//   inputs: The runtime input values.
+//
+// Returns:
+//   A `LogicalResult` indicating success or failure of the shape
+//   refinement pipeline.
+LogicalResult removeDynamism(ModuleOp module, func::FuncOp func,
+                             ArrayRef<InterpreterValue> inputs) {
+  if (llvm::all_of(func.getArgumentTypes(), [](Type type) {
+        return llvm::cast<ShapedType>(type).hasStaticShape();
+      })) {
+    return success();
+  }
+  SmallVector<Type> refinedTypes = llvm::to_vector(llvm::map_range(
+      inputs, [](InterpreterValue input) { return input.getType(); }));
+
+  PassManager pm(module.getContext());
+  stablehlo::createStablehloRemoveDynamismPipeline(pm, refinedTypes);
+  if (failed(pm.run(module))) {
+    return func.emitError("Failed to refine dynamic shape in function: ")
+           << func.getName();
+  }
+  return success();
+}
+
 }  // namespace
 
 FailureOr<SmallVector<InterpreterValue>> evalModule(
@@ -148,8 +182,10 @@ FailureOr<SmallVector<InterpreterValue>> evalModule(
     return SmallVector<InterpreterValue>();
 
   auto mainFunc = getMainFunction(module, config.mainFunction);
-  if (failed(mainFunc) || failed(validateEntrySignature(*mainFunc, inputs)))
+  if (failed(mainFunc) || failed(removeDynamism(module, *mainFunc, inputs)) ||
+      failed(validateEntrySignature(*mainFunc, inputs))) {
     return failure();
+  }
 
   if (!config.probeInstrumentationDir.empty()) {
     llvm::SmallString<128> instrumentationMetadataFile(
@@ -169,18 +205,18 @@ FailureOr<SmallVector<InterpreterValue>> evalModule(
 FailureOr<SmallVector<DenseElementsAttr>> evalModule(
     ModuleOp module, ArrayRef<DenseElementsAttr> inputs,
     const InterpreterConfiguration &config) {
-  SmallVector<InterpreterValue> valueInputs = llvm::to_vector(
-      llvm::map_range(inputs, [](DenseElementsAttr attr) -> InterpreterValue {
+  SmallVector<InterpreterValue> valueInputs = llvm::map_to_vector(
+      inputs, [](DenseElementsAttr attr) -> InterpreterValue {
         return InterpreterValue(makeTensor(attr));
-      }));
+      });
 
   auto values = evalModule(module, valueInputs, config);
   if (failed(values)) return failure();
 
-  SmallVector<DenseElementsAttr> results = llvm::to_vector(llvm::map_range(
+  SmallVector<DenseElementsAttr> results = llvm::map_to_vector(
       values.value(), [](InterpreterValue val) -> DenseElementsAttr {
         return makeDenseElementsAttr(val.getTensor());
-      }));
+      });
 
   return results;
 }

@@ -30,6 +30,7 @@ limitations under the License.
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Support/LLVM.h"
+#include "stablehlo/dialect/Base.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/ProcessGrid.h"

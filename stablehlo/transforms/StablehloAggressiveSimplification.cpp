@@ -491,9 +491,9 @@ struct BroadcastInDimOpCanon final
     // Eliminate redundant nested BroadcastInDim.
     if (auto definingOp =
             operand.getDefiningOp<mlir::stablehlo::BroadcastInDimOp>()) {
-      auto newIndices = llvm::to_vector(
-          llvm::map_range(definingOp.getBroadcastDimensions(),
-                          [&dims](int64_t dim) { return dims[dim]; }));
+      auto newIndices =
+          llvm::map_to_vector(definingOp.getBroadcastDimensions(),
+                              [&dims](int64_t dim) { return dims[dim]; });
       rewriter.replaceOpWithNewOp<mlir::stablehlo::BroadcastInDimOp>(
           op, type, definingOp.getOperand(), newIndices);
       return success();
@@ -822,7 +822,7 @@ struct UnusedResultReduceOpCanon final
 
     auto newOp = rewriter.create<ReduceOp>(
         op.getLoc(), newInputs, newInitVals,
-        op.getDimensionsAttr().cast<DenseI64ArrayAttr>(), newElementTypes);
+        cast<DenseI64ArrayAttr>(op.getDimensionsAttr()), newElementTypes);
     Block *newReducerBlock = rewriter.createBlock(&newOp.getBody());
 
     IRMapping mapper;

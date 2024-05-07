@@ -880,25 +880,4 @@ def CHLO_MinimumBroadcastShapesOp :
   let hasVerifier = 1;
 }
 
-def CHLO_DynamicReshapeOp: CHLO_Op<"dynamic_reshape", [Pure,
-    DeclareOpInterfaceMethods<InferShapedTypeOpInterface>]> {
-  let summary = "Reshape a tensor to a given, possibly dynamic, shape.";
-  let description = [{
-    Reshapes `operand` to `output_shape`. This allows a single dimension to be
-    specified as -1, and it will be computed by the op to create a valid
-    reshape.
-
-    Requires:
-    - The length of `output_shape` is equal to the rank of `result`.
-    - The number of elements in `operand` (that is, the product of extents of
-      its shape) is equal to the number of elements in `output_shape` (that is,
-      the product of values in `output_shape` with one dimension possibly
-      computed).
-    - All shape values should be at least -1, and only one extent can be -1.
-  }];
-
-  let arguments = (ins HLO_AnyTensor:$operand, HLO_DimensionTensor:$output_shape);
-  let results = (outs HLO_AnyTensor:$result);
-}
-
 #endif  // STABLEHLO_DIALECT_CHLO_OPS

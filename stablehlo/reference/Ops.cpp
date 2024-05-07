@@ -140,8 +140,8 @@ SmallVector<InterpreterValue> callOp(ArrayRef<Tensor> inputs,
       symbolTableCollection.getSymbolTable(op->getParentOfType<ModuleOp>());
   auto func = symbolTable.lookupNearestSymbolFrom<func::FuncOp>(
       op, StringAttr::get(op->getContext(), funcName));
-  SmallVector<InterpreterValue> values = llvm::to_vector(llvm::map_range(
-      inputs, [](const Tensor &t) { return InterpreterValue(t); }));
+  SmallVector<InterpreterValue> values = llvm::map_to_vector(
+      inputs, [](const Tensor &t) { return InterpreterValue(t); });
   return eval(func.getBody(), values, fallback, process, nullptr);
 }
 
@@ -578,6 +578,11 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto result = dotGeneralOp(
           lhs, rhs, lhsBatchingDimensions, rhsBatchingDimensions,
           lhsContractingDimensions, rhsContractingDimensions, op.getType());
+      scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicIotaOp>(operation)) {
+      auto iotaDimension = op.getIotaDimension();
+      auto outputShape = scope.findTensor(op.getOutputShape());
+      auto result = dynamicIotaOp(iotaDimension, outputShape, op.getType());
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicSliceOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
@@ -1037,9 +1042,9 @@ Tensor allGatherOp(const Tensor &operand, int64_t allGatherDim,
 
   auto rendezvousResult =
       process->rendezvous(*processGroup, channelId, operand);
-  SmallVector<Tensor> groupOperands(llvm::map_range(
+  auto groupOperands = llvm::map_to_vector(
       *processGroup,
-      [&](const ProcessId &id) { return rendezvousResult.lookup(id); }));
+      [&](const ProcessId &id) { return rendezvousResult.lookup(id); });
 
   return concatenateOp(groupOperands, allGatherDim, resultType);
 }
@@ -1580,6 +1585,14 @@ Tensor dotGeneralOp(const Tensor &lhs, const Tensor &rhs,
     result.set(resultIndex, resultElement);
   }
   return result;
+}
+
+Tensor dynamicIotaOp(Axis iotaDimension, const Tensor &outputShape,
+                     ShapedType resultType) {
+  if (resultType.hasStaticShape()) return iotaOp(iotaDimension, resultType);
+
+  llvm::report_fatal_error(
+      "dynamic result types are not supported at the moment");
 }
 
 Tensor dynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,

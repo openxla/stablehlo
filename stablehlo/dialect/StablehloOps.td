@@ -124,20 +124,27 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
 def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "DynamicIota operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
+    Fills a `result` tensor with values in increasing order starting from zero
+    along the `iota_dimension` dimension.
 
     Informally, this operation does the same thing as IotaOp except that the
     result shape is specified dynamically via `output_shape`:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#iota
 
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_iota
+
     Example:
     ```mlir
-    %0 = stablehlo.dynamic_iota %arg0, dim = 0 : (tensor<1xindex>) -> tensor<4xi32>
+    %output_shape = stablehlo.constant dense<[4, 5]> : tensor<2xi64>
+    %0 = stablehlo.dynamic_iota %output_shape, dim = 0 : (tensor<2xi64>) -> tensor<4x5xi64>
     ```
   }];
 
-  let arguments = (ins HLO_StaticDimensionTensor:$output_shape, I64Attr:$iota_dimension);
+  let arguments = (ins
+    HLO_StaticDimensionTensor:$output_shape /*dynamic_iota_i1*/,
+    I64Attr:$iota_dimension /*dynamic_iota_i2*/
+  );
   let results = (outs HLO_Tensor:$result);
   let hasVerifier = 1;
 
@@ -3521,60 +3528,6 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
        HLO_Tensor:$d_padding),
     StableHLO_ConvolutionAttributes.attributes);
   let results = (outs HLO_Tensor);
-}
-
-def StableHLO_ComputeReshapeShapeOp : StableHLO_Op<
-    "compute_reshape_shape",
-    [Pure, AllShapesMatch<["dynamic_shape", "result"]>]> {
-  let summary = "ComputeReshapeShape operation";
-  let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
-
-    Informally, this operation computes an output_shape for DynamicReshapeOp
-    from the `num_elements` number of elements in an operand of DynamicReshapeOp
-    and the `dynamic_shape` shape provided to TF's reshape:
-    https://www.tensorflow.org/api_docs/python/tf/reshape
-
-    For example, for `num_elements = 12` and `dynamic_shape = [2, -1]`,
-    the `result` is going to be `[2, 6]`. If operands are not valid (e.g. if
-    dimensions do not evenly divide the number of elements, or if there are
-    multiple -1 values in dimensions), this leads to undefined behavior.
-
-    Example:
-    ```mlir
-    %result = stablehlo.compute_reshape_shape %num_elements, %dynamic_shape
-           : (index, tensor<2xi32>) -> tensor<2xi32>
-    ```
-  }];
-
-  let arguments = (ins Index:$num_elements, 1DTensorOf<[AnyInteger, Index]>:$dynamic_shape);
-  let results = (outs 1DTensorOf<[AnyInteger, Index]>:$result);
-
-  let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
-}
-
-def StableHLO_CstrReshapableOp :
-    StableHLO_Op<"cstr_reshapable", [Pure]> {
-  let summary = "CstrReshapable operation";
-  let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
-
-    Informally, this operation creates a witness on the constraint that
-    ComputeReshapeShape would succeed with the provided operands.
-
-    Example:
-    ```mlir
-    %result = stablehlo.cstr_reshapable %num_elements, %dynamic_shape
-           : (index, tensor<3xi32>) -> !shape.witness
-    ```
-  }];
-
-  let arguments = (ins Index:$num_elements, 1DTensorOf<[AnyInteger, Index]>:$dynamic_shape);
-  let results = (outs Shape_WitnessType:$result);
-
-  let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_OPS

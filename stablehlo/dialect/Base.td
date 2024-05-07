@@ -52,6 +52,9 @@ def HLO_Complex : Complex<AnyTypeOf<[F32, F64]>>;
 // Quantized element type definitions.
 //===----------------------------------------------------------------------===//
 
+def IsValidStablehloQuantizedElementType : CPred<"mlir::hlo::isValidStablehloQuantizedElementType($_self)">;
+def IsValidQuantizedDimension : CPred<"mlir::hlo::isValidQuantizedDimension($_self)">;
+
 // TODO(b/230381284): Upstream width-specific uniform quantized element types.
 class StableHLO_UniformQuantizedSignedInt<int width>
   : Type<And<[CPred<"isa<mlir::quant::UniformQuantizedType>($_self)">,
@@ -59,7 +62,7 @@ class StableHLO_UniformQuantizedSignedInt<int width>
                  ".getStorageTypeIntegralWidth() == " # width>,
            CPred<"cast<mlir::IntegerType>(" #
                    "cast<mlir::quant::UniformQuantizedType>($_self).getStorageType()" #
-                 ").isSignless()">]>,
+                 ").isSignless()">, IsValidStablehloQuantizedElementType]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedSignedInt";
   int bitwidth = width;
@@ -71,7 +74,7 @@ class StableHLO_UniformQuantizedPerAxisSignedInt<int width>
                  ".getStorageTypeIntegralWidth() == " # width>,
            CPred<"cast<mlir::IntegerType>(" #
                    "cast<mlir::quant::UniformQuantizedPerAxisType>($_self).getStorageType()" #
-                 ").isSignless()">]>,
+                 ").isSignless()">, IsValidStablehloQuantizedElementType]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedPerAxisSignedInt";
   int bitwidth = width;
@@ -82,7 +85,7 @@ class StableHLO_UniformQuantizedUnsignedInt<int width>
            CPred<"cast<mlir::quant::UniformQuantizedType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
            CPred<"!cast<mlir::quant::UniformQuantizedType>($_self)" #
-                 ".isSigned()">]>,
+                 ".isSigned()">, IsValidStablehloQuantizedElementType]>,
     "QUI" # width # " type"> {
   string name = "UniformQuantizedUnsignedInt";
   int bitwidth = width;
@@ -93,7 +96,7 @@ class StableHLO_UniformQuantizedPerAxisUnsignedInt<int width>
            CPred<"cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
            CPred<"!cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
-                 ".isSigned()">]>,
+                 ".isSigned()">, IsValidStablehloQuantizedElementType]>,
     "QUI" # width # " type"> {
   string name = "UniformQuantizedPerAxisUnsignedInt";
   int bitwidth = width;
@@ -152,10 +155,12 @@ def HLO_Fp32Or64Tensor : RankedTensorOf<[HLO_Float32Or64]>;
 def HLO_QuantizedIntTensor : RankedTensorOf<[HLO_QuantizedInt]>;
 
 // per-axis quantized integer tensor type
-def HLO_PerAxisQuantizedIntTensor : RankedTensorOf<[HLO_PerAxisQuantizedInt]>;
+def HLO_PerAxisQuantizedIntTensor : RankedTensorOf<[HLO_PerAxisQuantizedInt],
+    [IsValidQuantizedDimension]>;
 
 // per-tensor or per-axis quantized integer tensor type
-def HLO_QuantizedIntOrPerAxisQuantizedIntTensor : RankedTensorOf<[HLO_QuantizedInt, HLO_PerAxisQuantizedInt]>;
+def HLO_QuantizedIntOrPerAxisQuantizedIntTensor : RankedTensorOf<[HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
+    [IsValidQuantizedDimension]>;
 
 def HLO_PredTensor : RankedTensorOf<[HLO_Pred]>;
 
@@ -163,7 +168,8 @@ def HLO_Tensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_
 
 def HLO_NonQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex]>;
 
-def HLO_TensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt]>;
+def HLO_TensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
+    [IsValidQuantizedDimension]>;
 
 def HLO_ComplexTensor : RankedTensorOf<[HLO_Complex]>;
 
@@ -188,7 +194,8 @@ def HLO_DimensionTensor : 1DTensorOf<[HLO_DimensionValue]>;
 // TODO(b/326463552): Remove these when CHLO no longer needs unranked dynamism.
 //===----------------------------------------------------------------------===//
 
-def HLO_AnyTensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt]>;
+def HLO_AnyTensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
+    [IsValidQuantizedDimension]>;
 
 def HLO_AnyPredTensor : TensorOf<[HLO_Pred]>;
 
@@ -248,8 +255,8 @@ def HLO_StaticDimensionTensor : RankedTensorOf<[HLO_DimensionValue], [HasStaticS
 def HLO_StaticShapeTensor : StaticShapeTensorOf<[
       HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
 
-def HLO_StaticShapeTensorOrPerAxisQuantizedTensor : StaticShapeTensorOf<[
-      HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt]>;
+def HLO_StaticShapeTensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
+    [IsValidQuantizedDimension, HasStaticShapePred], "statically shaped tensor">;
 
 def HLO_StaticShapeTensorOrPerAxisQuantizedTensorOrToken : AnyTypeOf<[HLO_StaticShapeTensor, HLO_StaticShapeTensorOrPerAxisQuantizedTensor, HLO_Token]>;
 

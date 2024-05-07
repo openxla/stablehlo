@@ -80,8 +80,8 @@ InterpreterValue Scope::find(Value ssaValue) const {
 }
 
 SmallVector<InterpreterValue> Scope::find(ValueRange ssaValues) const {
-  return llvm::to_vector(
-      llvm::map_range(ssaValues, [&](Value value) { return find(value); }));
+  return llvm::map_to_vector(ssaValues,
+                             [&](Value value) { return find(value); });
 }
 
 Tensor Scope::findTensor(Value ssaValue) const {
@@ -89,8 +89,8 @@ Tensor Scope::findTensor(Value ssaValue) const {
 }
 
 SmallVector<Tensor> Scope::findTensors(ValueRange ssaValues) const {
-  return llvm::to_vector(llvm::map_range(
-      ssaValues, [&](Value value) { return find(value).getTensor(); }));
+  return llvm::map_to_vector(
+      ssaValues, [&](Value value) { return find(value).getTensor(); });
 }
 
 Token Scope::findToken(Value ssaValue) const {
@@ -98,8 +98,8 @@ Token Scope::findToken(Value ssaValue) const {
 }
 
 SmallVector<Token> Scope::findTokens(ValueRange ssaValues) const {
-  return llvm::to_vector(llvm::map_range(
-      ssaValues, [&](Value value) { return find(value).getToken(); }));
+  return llvm::map_to_vector(
+      ssaValues, [&](Value value) { return find(value).getToken(); });
 }
 
 Tuple Scope::findTuple(Value ssaValue) const {

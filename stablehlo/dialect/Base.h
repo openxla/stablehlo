@@ -90,6 +90,16 @@ bool isCompatibleForHloTypeInference(Value shape1, Type tp2);
 // compatible with the given type for the purposes of HLO type inference.
 bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2);
 
+// Returns true if the given element-type is a mlir::quant::QuantizedType
+// and follow the constraints corresponding to quantization parameters as
+// mentioned in the StableHLO specification.
+bool isValidStablehloQuantizedElementType(Type elementType);
+
+// Returns true if the given type is a ranked per-axis tensor type
+// and follow the constraints corresponding to quantized dimension as
+// mentioned in the StableHLO specification.
+bool isValidQuantizedDimension(Type type);
+
 // TODO(zhouxin) Move type inference related methods to TypeInference.cpp
 
 std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
