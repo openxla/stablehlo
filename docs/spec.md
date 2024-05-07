@@ -2634,6 +2634,7 @@ planning to address this in
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dot_general.mlir)
+
 ### dynamic_iota
 
 #### Semantics
@@ -2715,6 +2716,8 @@ op, but the result shape is specified dynamically via `output_shape`.
 %result = "stablehlo.dynamic_reshape"(%operand, %output_shape) : (tensor<2x3xi64>, tensor<2xi64>) -> tensor<3x2xi64>
 // %result: [[1, 2], [3, 4], [5, 6]]
 ```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_reshape.mlir)
 
 ### dynamic_slice
 

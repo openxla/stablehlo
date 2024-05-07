@@ -968,7 +968,7 @@ func.func @dynamic_reshape_mismatch_qdim_size(%arg0: tensor<1x2x3x4x5x!quant.uni
   // expected-error@+1 {{expect same quantization dimension size for operand and result}}
   %reshape = "stablehlo.dynamic_reshape" (%arg0, %shape)
   : (tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>, tensor<3xi64>)
-  -> tensor<2x3x?x!quant.uniform<i8:f32:1, {1.0:17}>>
+  -> tensor<?x3x?x!quant.uniform<i8:f32:1, {1.0:17, 1.0:17, 1.0:17}>>
   func.return
 }
 
