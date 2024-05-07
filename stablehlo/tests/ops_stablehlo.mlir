@@ -3467,7 +3467,7 @@ func.func @gather_c1(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
 
 func.func @gather_c2(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{Expects index_vector_dim to be in range [0, rank_of('start_indices')) i.e. [0, 3). got: -1.}}
+  // expected-error@+1 {{Expects index_vector_dim to be in range [0, rank_of('start_indices') + 1) i.e. [0, 4). got: -1.}}
   %res = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2],
@@ -3485,7 +3485,7 @@ func.func @gather_c2(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2
 
 func.func @gather_c2(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{Expects index_vector_dim to be in range [0, rank_of('start_indices')) i.e. [0, 3). got: 4.}}
+  // expected-error@+1 {{Expects index_vector_dim to be in range [0, rank_of('start_indices') + 1) i.e. [0, 4). got: 4.}}
   %res = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2],

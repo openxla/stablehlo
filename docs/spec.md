@@ -5029,20 +5029,20 @@ undefined.
 
 #### Inputs
 
-| Label | Name                                  | Type                                                       | Constraints                                         |
-|-------|---------------------------------------|------------------------------------------------------------|-----------------------------------------------------|
-| (I1)  | `inputs`                              | variadic number of tensors or per-tensor quantized tensors | (C1), (C2), (C4-C6), (C11), (C13), (C21), (C23-C24) |
-| (I2)  | `scatter_indices`                     | tensor of integer type                                     | (C4), (C15), (C19), (C22)                           |
-| (I3)  | `updates`                             | variadic number of tensors or per-tensor quantized tensors | (C3-C6), (C8)                                       |
-| (I4)  | `update_window_dims`                  | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C7-C8)                                 |
-| (I5)  | `inserted_window_dims`                | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9-C11)                                |
-| (I6)  | `input_batching_dims`                 | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9), (C12-13), (C17-18), (C20)         |
-| (I7)  | `scatter_indices_batching_dims`       | 1-dimensional tensor constant of type `si64`               | (C14-C18)                                           |
-| (I8)  | `scatter_dims_to_operand_dims`        | 1-dimensional tensor constant of type `si64`               | (C19-C21)                                           |
-| (I9)  | `index_vector_dim`                    | constant of type `si64`                                    | (C4), (C16), (C19), (C22)                           |
-| (I10) | `indices_are_sorted`                  | constant of type `i1`                                      |                                                     |
-| (I11) | `unique_indices`                      | constant of type `i1`                                      |                                                     |
-| (I12) | `update_computation`                  | function                                                   | (C23)                                               |
+| Label | Name                                  | Type                                                       | Constraints                                                |
+|-------|---------------------------------------|------------------------------------------------------------|------------------------------------------------------------|
+| (I1)  | `inputs`                              | variadic number of tensors or per-tensor quantized tensors | (C1), (C2), (C4-C6), (C11), (C13), (C18), (C21), (C23-C24) |
+| (I2)  | `scatter_indices`                     | tensor of integer type                                     | (C4), (C15), (C19), (C22)                                  |
+| (I3)  | `updates`                             | variadic number of tensors or per-tensor quantized tensors | (C3-C6), (C8)                                              |
+| (I4)  | `update_window_dims`                  | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C7-C8)                                        |
+| (I5)  | `inserted_window_dims`                | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9-C11)                                       |
+| (I6)  | `input_batching_dims`                 | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9), (C12-13), (C17-18), (C20)                |
+| (I7)  | `scatter_indices_batching_dims`       | 1-dimensional tensor constant of type `si64`               | (C14-C18)                                                  |
+| (I8)  | `scatter_dims_to_operand_dims`        | 1-dimensional tensor constant of type `si64`               | (C19-C21)                                                  |
+| (I9)  | `index_vector_dim`                    | constant of type `si64`                                    | (C4), (C16), (C19), (C22)                                  |
+| (I10) | `indices_are_sorted`                  | constant of type `i1`                                      |                                                            |
+| (I11) | `unique_indices`                      | constant of type `i1`                                      |                                                            |
+| (I12) | `update_computation`                  | function                                                   | (C23)                                                      |
 
 #### Outputs
 
@@ -5081,7 +5081,7 @@ undefined.
 * (C16) `index_vector_dim not in scatter_indices_batching_dims`.
 * (C17) `size(input_batching_dims) == size(scatter_indices_batching_dims)`.
 * (C18) `dim(inputs[0], input_batching_dims...) =
-        dim(start_indices, scatter_indices_batching_dims...)`.
+        dim(scatter_indices, scatter_indices_batching_dims...)`.
 * (C19) `size(scatter_dims_to_operand_dims) =
         index_vector_dim < rank(scatter_indices) ?
         dim(scatter_indices, index_vector_dim) : 1`.
