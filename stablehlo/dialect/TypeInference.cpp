@@ -257,17 +257,17 @@ LogicalResult verifyQPerAxisScaleAndZeroPointConstraints(
 
 LogicalResult verifyReshapeOpQuantizationConstraints(
     std::optional<Location> location, Type operandTy, Type resultTy) {
-  // reshape_c1, dynamic_reshape_c1
+  // dynamic_reshape_c1, reshape_c1
   if (failed(verifyQPerTensorScaleAndZeroPointConstraints(location, operandTy,
                                                           resultTy)))
     return failure();
 
-  // reshape_c1, dynamic_reshape_c1
+  // dynamic_reshape_c1, reshape_c1
   if (failed(verifyQPerAxisScaleAndZeroPointConstraints(location, operandTy,
                                                         resultTy)))
     return failure();
 
-  // reshape_c3, dynamic_reshape_c3
+  // dynamic_reshape_c3, reshape_c3
   if (allQuantized<quant::UniformQuantizedPerAxisType>(operandTy, resultTy)) {
     auto operandQDim = cast<quant::UniformQuantizedPerAxisType>(
                            getElementTypeOrSelf(operandTy))
