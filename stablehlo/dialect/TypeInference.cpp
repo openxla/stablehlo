@@ -2569,14 +2569,13 @@ LogicalResult inferGatherOp(
   };
 
   // gather_c9
-  if (failed(checkSliceSizesOne(collapsedSliceDims,
-                                "collapsed_slice_dims"))) {
+  if (failed(checkSliceSizesOne(collapsedSliceDims, "collapsed_slice_dims"))) {
     return failure();
   }
 
   // gather_c12
-  if (failed(checkSliceSizesOne(operandBatchingDims,
-                                "operand_batching_dims"))) {
+  if (failed(
+          checkSliceSizesOne(operandBatchingDims, "operand_batching_dims"))) {
     return failure();
   }
 

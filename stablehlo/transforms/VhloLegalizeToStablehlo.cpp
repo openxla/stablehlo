@@ -793,7 +793,7 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     if (isSplatTensor(pattern, vhloOp.getPaddingAttr(), 0ll))
       eraseAttrs(vhloAttrs, "padding");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV2>::value) {
     if (isBoolean(vhloOp.getIndicesAreSortedAttr(), false))
       eraseAttrs(vhloAttrs, "indices_are_sorted");
     if (isBoolean(vhloOp.getUniqueIndicesAttr(), false))
