@@ -17,7 +17,6 @@ limitations under the License.
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Error.h"
-#include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {
