@@ -1596,7 +1596,10 @@ Tensor dynamicIotaOp(Axis iotaDimension, const Tensor &outputShape,
 
 Tensor dynamicReshapeOp(const Tensor &operand, const Tensor &outputShape,
                         ShapedType resultType) {
-  return reshapeOp(operand, resultType);
+  if (resultType.hasStaticShape()) return reshapeOp(operand, resultType);
+
+  llvm::report_fatal_error(
+      "dynamic result types are not supported at the moment");
 }
 
 Tensor dynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,

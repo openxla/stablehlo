@@ -3915,20 +3915,30 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
         "expects operand and result to have compatible element type. Got: ",
         operand.getType(), " and ", result.getType());
 
+  // dynamic_reshape_c2
   auto resultType = cast<ShapedType>(result.getType());
-  auto outputShapeType = cast<ShapedType>(outputShape.getType());
+  auto operandType = cast<ShapedType>(operand.getType());
+  if (resultType.hasStaticShape() && operandType.hasStaticShape()) {
+    int64_t numResultElements = resultType.getNumElements();
+    int64_t numOperandElements = operandType.getNumElements();
+    if (numResultElements != numOperandElements)
+      return emitOptionalError(location, "number of output elements (",
+                               numResultElements,
+                               ") doesn't match expected number of elements (",
+                               numOperandElements, ")");
+  }
 
   // dynamic_reshape_c4
   if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
                                                           resultType)))
     return failure();
 
+  auto outputShapeType = cast<ShapedType>(outputShape.getType());
   if (outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
                              "result should have a rank equal to the number of "
                              "elements in output_shape");
 
-  auto operandType = cast<RankedTensorType>(operand.getType());
   if (SmallVector<int64_t> shape; operandType.hasStaticShape() &&
                                   matchInts(outputShape, shape).succeeded()) {
     int64_t operandCount = operandType.getNumElements();
