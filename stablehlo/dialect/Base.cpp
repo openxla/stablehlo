@@ -651,14 +651,14 @@ bool isValidStablehloQuantizedElementType(Type elementType) {
 
   // quantized_type_c5
   auto maxPosFiniteNum =
-      APFloat::getLargest(quantizedElementType.getExpressedType()
-                              .cast<FloatType>()
-                              .getFloatSemantics())
+      APFloat::getLargest(
+          cast<FloatType>(quantizedElementType.getExpressedType())
+              .getFloatSemantics())
           .convertToDouble();
   auto minPosFiniteNum =
-      APFloat::getSmallest(quantizedElementType.getExpressedType()
-                               .cast<FloatType>()
-                               .getFloatSemantics())
+      APFloat::getSmallest(
+          cast<FloatType>(quantizedElementType.getExpressedType())
+              .getFloatSemantics())
           .convertToDouble();
   if (llvm::any_of(scales, [&](double scale) {
         return scale < minPosFiniteNum || scale > maxPosFiniteNum;
