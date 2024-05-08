@@ -286,14 +286,17 @@ LogicalResult checkDimsDistinct(std::optional<Location> loc,
   return success();
 }
 
-// Checks that `dim` vector is within range [0, `upperBound`).
+// Checks that `dim` vector is within range [0, `upperBound`) or
+//  [0, `upperBound`] if `upperBoundInclusive` is true.
 LogicalResult checkDimInBounds(std::optional<Location> loc, int64_t dim,
                                int64_t upperBound, StringRef dimName,
-                               StringRef upperBoundName) {
+                               StringRef upperBoundName,
+                               bool upperBoundInclusive = false) {
+  StringRef rangeEnd = upperBoundInclusive ? "]" : ")";
   if (dim < 0 || dim >= upperBound)
     return emitOptionalError(loc, "Expects ", dimName, " to be in range [0, ",
-                             upperBoundName, ") i.e. [0, ", upperBound,
-                             "). got: ", dim, ".");
+                             upperBoundName, rangeEnd, " i.e. [0, ", upperBound,
+                             rangeEnd, ". got: ", dim, ".");
   return success();
 }
 
@@ -1405,9 +1408,10 @@ static LogicalResult verifyGather(
   // gather_c2
   // index_vector_dim == start_indices.rank implies a trailing 1 on the
   // shape of start_indices.
-  if (failed(checkDimInBounds(
-          location, indexVectorDim, startIndicesShape.getRank() + 1,
-          "index_vector_dim", "rank-of('start_indices') + 1")))
+  if (failed(checkDimInBounds(location, indexVectorDim,
+                              startIndicesShape.getRank(), "index_vector_dim",
+                              "rank-of('start_indices')",
+                              /*upperBoundInclusive=*/true)))
     return failure();
 
   // gather_c3
@@ -4439,9 +4443,10 @@ LogicalResult verifyScatterOp(
                                "Not all updates have compatible shapes.");
 
   // scatter_c22
-  if (failed(checkDimInBounds(
-          location, indexVectorDim, scatterIndicesType.getRank() + 1,
-          "index_vector_dim", "rank-of('scatter_indices') + 1")))
+  if (failed(checkDimInBounds(location, indexVectorDim,
+                              scatterIndicesType.getRank(), "index_vector_dim",
+                              "rank-of('scatter_indices')",
+                              /*upperBoundInclusive=*/true)))
     return failure();
 
   SmallVector<ShapedType> inputTypes, initValueTypes;

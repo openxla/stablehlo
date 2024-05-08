@@ -956,7 +956,7 @@ func.func @scatter_c21(%input_tensor: tensor<200x100x300xf32>,
 func.func @scatter_c22(%input_tensor: tensor<?x?x?xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<?x?x?xf32>) ->
       tensor<?x?x?xf32> {
-  // expected-error @+1 {{Expects index_vector_dim to be in range [0, rank-of('scatter_indices') + 1) i.e. [0, 3). got: 3.}}
+  // expected-error @+1 {{Expects index_vector_dim to be in range [0, rank-of('scatter_indices')] i.e. [0, 2]. got: 3.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
@@ -980,7 +980,7 @@ func.func @scatter_c22(%input_tensor: tensor<?x?x?xf32>,
 func.func @scatter_c22(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<200x100x300xf32> {
-  // expected-error @+1 {{Expects index_vector_dim to be in range [0, rank-of('scatter_indices') + 1) i.e. [0, 3). got: -1.}}
+  // expected-error @+1 {{Expects index_vector_dim to be in range [0, rank-of('scatter_indices')] i.e. [0, 2]. got: -1.}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
