@@ -2187,14 +2187,15 @@ For quantized types, performs `dequantize_op_quantize(
         kernel_spatial_dimensions, output_batch_dimension,
         output_feature_dimension, output_spatial_dimensions,
         feature_group_count, batch_group_count, precision_config), lhs, rhs,
-    type(result))`.
+        type(result))`.
 
 For hybrid quantized types, performs `hybrid_dequantize_then_op(
-    lambda lhs, rhs: convolution(lhs, rhs, window_strides, padding, lhs_dilation,
-        rhs_dilation, window_reversal, input_batch_dimension, input_feature_dimension,
-        input_spatial_dimensions, kernel_input_feature_dimension,
-        kernel_output_feature_dimension, kernel_spatial_dimensions,
-        output_batch_dimension, output_feature_dimension, output_spatial_dimensions,
+    lambda lhs, rhs: convolution(lhs, rhs, window_strides, padding,
+        lhs_dilation, rhs_dilation, window_reversal, input_batch_dimension,
+        input_feature_dimension, input_spatial_dimensions,
+        kernel_input_feature_dimension, kernel_output_feature_dimension,
+        kernel_spatial_dimensions, output_batch_dimension,
+        output_feature_dimension, output_spatial_dimensions,
         feature_group_count, batch_group_count, precision_config), lhs, rhs)`.
 
 #### Inputs
@@ -2223,9 +2224,9 @@ For hybrid quantized types, performs `hybrid_dequantize_then_op(
 
 #### Outputs
 
-| Name     | Type                       | Constraints                 |
-|----------|----------------------------|-----------------------------|
-| `result` | tensor or quantized tensor | (C25-C28), (C30), (C32-34)  |
+| Name     | Type                       | Constraints                |
+|----------|----------------------------|----------------------------|
+| `result` | tensor or quantized tensor | (C25-C28), (C30), (C32-34) |
 
 #### Constraints
 
@@ -2564,9 +2565,9 @@ planning to address this in
 
 #### Outputs
 
-| Name     | Type                       | Constraints                |
-|----------|----------------------------|----------------------------|
-| `result` | tensor or quantized tensor | (C12), (C14), (C18-C20)    |
+| Name     | Type                       | Constraints             |
+|----------|----------------------------|-------------------------|
+| `result` | tensor or quantized tensor | (C12), (C14), (C18-C20) |
 
 #### Constraints
 
