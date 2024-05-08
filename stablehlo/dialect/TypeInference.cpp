@@ -293,7 +293,7 @@ LogicalResult checkDimInBounds(std::optional<Location> loc, int64_t dim,
                                StringRef upperBoundName,
                                bool upperBoundInclusive = false) {
   StringRef rangeEnd = upperBoundInclusive ? "]" : ")";
-  if (dim < 0 || dim >= upperBound)
+  if (dim < 0 || dim >= upperBound + (upperBoundInclusive ? 1 : 0))
     return emitOptionalError(loc, "Expects ", dimName, " to be in range [0, ",
                              upperBoundName, rangeEnd, " i.e. [0, ", upperBound,
                              rangeEnd, ". got: ", dim, ".");
