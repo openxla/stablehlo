@@ -3189,7 +3189,7 @@ func.func @dynamic_reshape_c1(%arg0: tensor<?xf32>, %shape: tensor<2xindex>) -> 
 
 // -----
 
-func.func @dynamic_reshape(%arg0: tensor<11xf32>, %shape: tensor<2xindex>) -> tensor<2x5xf32> {
+func.func @dynamic_reshape_c2(%arg0: tensor<11xf32>, %shape: tensor<2xindex>) -> tensor<2x5xf32> {
   // expected-error @+1 {{number of output elements (10) doesn't match expected number of elements}}
   %0 = "stablehlo.dynamic_reshape"(%arg0, %shape) : (tensor<11xf32>, tensor<2xindex>) -> tensor<2x5xf32>
   func.return %0 : tensor<2x5xf32>
