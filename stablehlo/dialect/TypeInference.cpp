@@ -3933,12 +3933,12 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                                           resultType)))
     return failure();
 
+  auto outputShapeType = cast<ShapedType>(outputShape.getType());
   if (outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
                              "result should have a rank equal to the number of "
                              "elements in output_shape");
 
-  auto outputShapeType = cast<ShapedType>(outputShape.getType());
   if (SmallVector<int64_t> shape; operandType.hasStaticShape() &&
                                   matchInts(outputShape, shape).succeeded()) {
     int64_t operandCount = operandType.getNumElements();
