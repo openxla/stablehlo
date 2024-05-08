@@ -24,6 +24,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
+#include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Types.h"
 
 namespace mlir {
@@ -559,6 +560,23 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
   }
 
   llvm::report_fatal_error("Only FloatType and IntType are handled currently.");
+}
+
+Sizes makeSizes(Tensor tensor) {
+  if (tensor.getRank() != 1 || !isa<IntegerType>(tensor.getElementType())) {
+    std::string str;
+    llvm::raw_string_ostream os(str);
+    os << "makeSizes(Tensor) only accepts integer tensors of rank 1, but got: ";
+    tensor.print(os);
+    llvm::report_fatal_error(str.c_str());
+  }
+  SmallVector<int64_t> values;
+  values.reserve(tensor.getNumElements());
+  for (auto it = tensor.index_begin(), end = tensor.index_end(); it != end;
+       it++) {
+    values.push_back(tensor.get(*it).getIntegerValue().getSExtValue());
+  }
+  return Sizes(values);
 }
 
 }  // namespace stablehlo

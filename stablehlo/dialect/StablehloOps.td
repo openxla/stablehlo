@@ -2950,7 +2950,7 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   }];
   let arguments = (ins
     HLO_Tensor:$operand /*pad_i1*/,
-    HLO_Tensor:$padding_value /*pad_i2*/,
+    HLO_ScalarTensor:$padding_value /*pad_i2*/,
     GenericDenseI64ArrayAttr:$edge_padding_low /*pad_i3*/,
     GenericDenseI64ArrayAttr:$edge_padding_high /*pad_i4*/,
     GenericDenseI64ArrayAttr:$interior_padding /*pad_i5*/
@@ -3419,37 +3419,36 @@ def StableHLO_RealDynamicSliceOp: StableHLO_ShapedInterfaceOp<
 
 def StableHLO_DynamicPadOp: StableHLO_ShapedInterfaceOp<"dynamic_pad",
       [ConditionallySpeculatable, NoMemoryEffect,
-      AllElementTypesMatch<["operand", "padding_value", "result"]>,
-      AllTypesMatch<["edge_padding_low", "edge_padding_high", "interior_padding"]>]> {
+      AllElementTypesMatch<["operand", "padding_value", "result"]> /*dynamic_pad_c1*/,
+      AllTypesMatch<["edge_padding_low", "edge_padding_high", "interior_padding"]> /*dynamic_pad_c2*/,
+      AllRanksMatch<["operand", "result"]> /*dynamic_pad_c4*/]> {
   let summary = "DynamicPad operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
+    This operation is functionally identical to
+    [pad](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad)
+    op, but the amounts of padding are specified dynamically via `edge_padding_low`,
+    `edge_padding_high` and `interior_padding`.
 
-    Informally, this operation does the same thing as PadOp except
-    that `edge_padding_low`, `edge_padding_high` and `interior_padding` are
-    specified dynamically:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad
+    See: https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_pad
 
     Example:
     ```mlir
+    %edge_padding_low = stablehlo.constant dense<[0, 1]> : tensor<2xi32>
+    %edge_padding_high = stablehlo.constant dense<[2, 1]> : tensor<2xi32>
+    %interior_padding = stablehlo.constant dense<[1, 2]> : tensor<2xi32>
     %result = stablehlo.dynamic_pad %operand, %padding_value,
                 %edge_padding_low, %edge_padding_high, %interior_padding
-           : (tensor<?x?xf32>, tensor<f32>, tensor<2xindex>, tensor<2xindex>, tensor<2xindex>) -> tensor<?x?xf32>
+                : (tensor<2x3xi32>, tensor<i32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<5x9xi32>
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_Tensor:$padding_value,
-    HLO_DimensionTensor:$edge_padding_low,
-    HLO_DimensionTensor:$edge_padding_high,
-    HLO_DimensionTensor:$interior_padding
+    HLO_Tensor:$operand /*dynamic_pad_i1*/,
+    HLO_ScalarTensor:$padding_value /*dynamic_pad_i2*/,
+    HLO_StaticDimensionTensor:$edge_padding_low /*dynamic_pad_i3*/,
+    HLO_StaticDimensionTensor:$edge_padding_high /*dynamic_pad_i4*/,
+    HLO_StaticDimensionTensor:$interior_padding /*dynamic_pad_i5*/
   );
   let results = (outs HLO_Tensor:$result);
-  let description = [{
-    Dynamically Pads the `operand`, with amount of padding added at
-    low-end/high-end/interior is passed through input tensors.
-  }];
   let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
