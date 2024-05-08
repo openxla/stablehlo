@@ -2665,15 +2665,15 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape",
   let description = [{
     This operation is functionally identical to
     [reshape](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape)
-    op, except the result shape is specified dynamically via `output_shape`.
+    op, but the result shape is specified dynamically via `output_shape`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_reshape
 
     Example:
     ```mlir
-    %0 = stablehlo.constant dense<[3, 2]> : tensor<2xi64>
-    %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<2x3xi64>, tensor<2xi64>) -> tensor<3x2xi64>
+    %output_shape = stablehlo.constant dense<[3, 2]> : tensor<2xi64>
+    %result = stablehlo.dynamic_reshape %operand, %output_shape : (tensor<2x3xi64>, tensor<2xi64>) -> tensor<3x2xi64>
     ```
   }];
 

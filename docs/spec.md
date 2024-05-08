@@ -2685,7 +2685,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 This operation is functionally identical to
 [reshape](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape)
-op, except the result shape is specified dynamically via `output_shape`.
+op, but the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 

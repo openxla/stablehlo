@@ -3917,6 +3917,7 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
 
   auto resultType = cast<ShapedType>(result.getType());
   auto outputShapeType = cast<ShapedType>(outputShape.getType());
+
   // dynamic_reshape_c4
   if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
                                                           resultType)))
