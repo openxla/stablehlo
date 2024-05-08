@@ -2646,16 +2646,16 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 
-| Label | Name             | Type                                                                               | Constraints |
-|-------|------------------|------------------------------------------------------------------------------------|-------------|
-| (I1)  | `output_shape`   | 1-dimensional tensor constant of type `si64`                                       | (C1), (C2)  |
-| (I2)  | `iota_dimension` | `si64`                                                                             | (C1)        |
+| Label | Name             | Type                                         | Constraints |
+|-------|------------------|----------------------------------------------|-------------|
+| (I1)  | `output_shape`   | 1-dimensional tensor constant of type `si64` | (C1), (C2)  |
+| (I2)  | `iota_dimension` | `si64`                                       | (C1)        |
 
 #### Outputs
 
 | Name     | Type                                                                              | Constraints |
 |----------|-----------------------------------------------------------------------------------|-------------|
-| `result` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor |     (C2)    |
+| `result` | tensor of integer, floating-point, or complex type or per-tensor quantized tensor | (C2)        |
 
 #### Constraints
 
@@ -2679,6 +2679,60 @@ op, but the result shape is specified dynamically via `output_shape`.
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_iota.mlir)
+
+### dynamic_reshape
+
+#### Semantics
+
+This operation is functionally identical to
+[reshape](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape)
+op, but the result shape is specified dynamically via `output_shape`.
+
+#### Inputs
+
+| Label | Name           | Type                                         | Constraints |
+|-------|----------------|----------------------------------------------|-------------|
+| (I1)  | `operand`      | tensor or quantized tensor                   | (C1-C3)     |
+| (I2)  | `output_shape` | 1-dimensional tensor constant of type `si64` | (C4)        |
+
+#### Outputs
+
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1-C4)     |
+
+#### Constraints
+
+* (C1) `element_type(result)` is given by:
+  * `element_type(operand)`, if `!is_per_axis_quantized(operand)`.
+  * `element_type(operand)` except that `quantization_dimension(operand)` and
+    `quantization_dimension(result)` may differ, otherwise.
+* (C2) `size(operand) = size(result)`.
+* (C3) If `is_per_axis_quantized(operand)`:
+  * `reduce(dims(operand, [0, 1, ..., quantization_dimension(operand) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
+    reduce(dims(result, [0, 1, ..., quantization_dimension(result) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
+  * `dim(operand, quantization_dimension(operand)) =
+    dim(result, quantization_dimension(result))`.
+  * `reduce(dims(operand,
+    [quantization_dimension(operand) + 1, ..., rank(operand) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
+    reduce(dims(result,
+    [quantization_dimension(result) + 1, ..., rank(result) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
+* (C4) `size(output_shape) = rank(result)`.
+
+#### Examples
+
+```mlir
+// %operand: [[1, 2, 3], [4, 5, 6]]
+%output_shape = stablehlo.constant dense<[3, 2]> : tensor<2xi64>
+%result = "stablehlo.dynamic_reshape"(%operand, %output_shape) : (tensor<2x3xi64>, tensor<2xi64>) -> tensor<3x2xi64>
+// %result: [[1, 2], [3, 4], [5, 6]]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_reshape.mlir)
 
 ### dynamic_slice
 
