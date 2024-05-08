@@ -931,7 +931,7 @@ func.func @transpose_c4(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {
 
 // -----
 
-func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
+func.func @dynamic_reshape_c1_reshape_c1_mismtach_scales(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
   // expected-error@+1 {{expect same quantization scale and zero_point}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 0.2:17>>
   func.return
@@ -939,7 +939,7 @@ func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
 
 // -----
 
-func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
+func.func @dynamic_reshape_c1_reshape_c1_mismatch_zp(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
   // expected-error@+1 {{expect same quantization scale and zero_point}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:18>>
   func.return
@@ -947,7 +947,7 @@ func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>){
 
 // -----
 
-func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:0, {1.0:17}>>){
+func.func @dynamic_reshape_c1_reshape_c1_mismatch_zps(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:0, {1.0:17}>>){
   // expected-error@+1 {{expect same quantization scales and zero_points}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<1x2x2x!quant.uniform<i8:f32:0, {1.0:18}>>
   func.return
@@ -955,7 +955,7 @@ func.func @reshape_c1(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:0, {1.0:17}>>){
 
 // -----
 
-func.func @reshape_c3_mismatch_qdim_size(%arg0: tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>){
+func.func @dynamic_reshape_c3_reshape_c3_mismatch_qdim_size(%arg0: tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>){
   // expected-error@+1 {{expect same quantization dimension size for operand and result}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<2x3x20x!quant.uniform<i8:f32:1, {1.0:17, 1.0:17, 1.0:17}>>
   func.return
@@ -963,7 +963,7 @@ func.func @reshape_c3_mismatch_qdim_size(%arg0: tensor<1x2x3x4x5x!quant.uniform<
 
 // -----
 
-func.func @reshape_c3_mismatch_product_before(%arg0: tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>){
+func.func @dynamic_reshape_c3_reshape_c3_mismatch_product_before(%arg0: tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>){
   // expected-error@+1 {{product of dimensions before quantization dimension must match between operand and result}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<2x1x3x20x!quant.uniform<i8:f32:1, {1.0:17}>>
   func.return

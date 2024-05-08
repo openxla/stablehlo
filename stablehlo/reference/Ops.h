@@ -93,6 +93,8 @@ Tensor dotGeneralOp(const Tensor &lhs, const Tensor &rhs,
                     ShapedType resultType);
 Tensor dynamicIotaOp(Axis iotaDimension, const Tensor &outputShape,
                      ShapedType resultType);
+Tensor dynamicReshapeOp(const Tensor &operand, const Tensor &outputShape,
+                        ShapedType resultType);
 Tensor dynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
                       const Sizes &sliceSizes, ShapedType resultType);
 Tensor dynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,

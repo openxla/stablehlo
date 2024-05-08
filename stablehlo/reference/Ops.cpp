@@ -584,6 +584,11 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto outputShape = scope.findTensor(op.getOutputShape());
       auto result = dynamicIotaOp(iotaDimension, outputShape, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicReshapeOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto outputShape = scope.findTensor(op.getOutputShape());
+      auto result = dynamicReshapeOp(operand, outputShape, op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicSliceOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto startIndices = scope.findTensors(op.getStartIndices());
@@ -1590,6 +1595,14 @@ Tensor dotGeneralOp(const Tensor &lhs, const Tensor &rhs,
 Tensor dynamicIotaOp(Axis iotaDimension, const Tensor &outputShape,
                      ShapedType resultType) {
   if (resultType.hasStaticShape()) return iotaOp(iotaDimension, resultType);
+
+  llvm::report_fatal_error(
+      "dynamic result types are not supported at the moment");
+}
+
+Tensor dynamicReshapeOp(const Tensor &operand, const Tensor &outputShape,
+                        ShapedType resultType) {
+  if (resultType.hasStaticShape()) return reshapeOp(operand, resultType);
 
   llvm::report_fatal_error(
       "dynamic result types are not supported at the moment");

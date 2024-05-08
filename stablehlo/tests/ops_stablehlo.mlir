@@ -3181,8 +3181,24 @@ func.func @dynamic_reshape(%arg0: tensor<?xf32>, %shape: tensor<2xindex>) -> ten
 
 // -----
 
+func.func @dynamic_reshape_c1(%arg0: tensor<?xf32>, %shape: tensor<2xindex>) -> tensor<?x?xf64> {
+  // expected-error @+1 {{expects operand and result to have compatible element type}}
+  %0 = "stablehlo.dynamic_reshape"(%arg0, %shape) : (tensor<?xf32>, tensor<2xindex>) -> tensor<?x?xf64>
+  func.return %0 : tensor<?x?xf64>
+}
+
+// -----
+
+func.func @dynamic_reshape_c2(%arg0: tensor<11xf32>, %shape: tensor<2xindex>) -> tensor<2x5xf32> {
+  // expected-error @+1 {{number of output elements (10) doesn't match expected number of elements}}
+  %0 = "stablehlo.dynamic_reshape"(%arg0, %shape) : (tensor<11xf32>, tensor<2xindex>) -> tensor<2x5xf32>
+  func.return %0 : tensor<2x5xf32>
+}
+
+// -----
+
 func.func @dynamic_reshape_incompatible_shapes(%arg0: tensor<?xf32>, %shape: tensor<2xindex>) -> tensor<?xf32> {
-  // expected-error @+1 {{output should have a rank equal to the number of elements in output_shape}}
+  // expected-error @+1 {{result should have a rank equal to the number of elements in output_shape}}
   %0 = "stablehlo.dynamic_reshape"(%arg0, %shape) : (tensor<?xf32>, tensor<2xindex>) -> tensor<?xf32>
   func.return %0 : tensor<?xf32>
 }
