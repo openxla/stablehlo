@@ -316,7 +316,6 @@ gentbl_cc_library(
     ],
 )
 
-
 cc_library(
     name = "interpreter_ops",
     srcs = [
