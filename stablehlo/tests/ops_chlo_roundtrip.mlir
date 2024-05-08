@@ -396,17 +396,6 @@ func.func @chlo_top_k(%arg : tensor<16x16xi32>) -> (tensor<16x8xi32>, tensor<16x
   return %1#0, %1#1 : tensor<16x8xi32>, tensor<16x8xi32>
 }
 
-// CHECK-LABEL:  func @chlo_minimum_broadcast_shapes(
-// CHECK-SAME:   %[[A0:.*]]: tensor<?xindex>,
-// CHECK-SAME:   %[[A1:.*]]: tensor<?xindex>
-// CHECK:        %[[T:.*]]:2 = chlo.minimum_broadcast_shapes %[[A0]], %[[A1]] : tensor<?xindex>, tensor<?xindex> -> tensor<?xindex>, tensor<?xindex>
-// CHECK:        return %[[T]]#0, %[[T]]#1 : tensor<?xindex>, tensor<?xindex>
-func.func @chlo_minimum_broadcast_shapes(%lhs: tensor<?xindex>, %rhs: tensor<?xindex>) -> (tensor<?xindex>, tensor<?xindex>) {
-  %0, %1 = chlo.minimum_broadcast_shapes %lhs, %rhs :
-      tensor<?xindex>, tensor<?xindex> -> tensor<?xindex>, tensor<?xindex>
-  func.return %0, %1 : tensor<?xindex>, tensor<?xindex>
-}
-
 // CHECK-LABEL:  func @chlo_erf_inv
 // CHECK-SAME:   %[[A0:.*0]]: tensor<16x16xf32>)
 // CHECK:          chlo.erf_inv %[[A0]] : tensor<16x16xf32> -> tensor<16x16xf32>

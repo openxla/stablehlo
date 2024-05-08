@@ -2131,7 +2131,6 @@ struct ChloLegalizeToStablehloPass final
   LogicalResult initialize(MLIRContext *context) override {
     target = std::make_shared<ConversionTarget>(*context);
     target->addIllegalDialect<chlo::ChloDialect>();
-    target->addLegalOp<chlo::MinimumBroadcastShapesOp>();
     target->addLegalDialect<mlir::stablehlo::StablehloDialect,
                             mlir::arith::ArithDialect, mlir::func::FuncDialect,
                             mlir::shape::ShapeDialect,
