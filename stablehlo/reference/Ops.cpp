@@ -598,7 +598,6 @@ SmallVector<InterpreterValue> eval(Region &region,
           Axis(op.getDimensionNumbers().getIndexVectorDim()),
           makeSizes(sliceSizes), op.getIndicesAreSorted(), op.getType());
       scope.add(op.getResult(), result);
-
     } else if (auto op = dyn_cast<DynamicIotaOp>(operation)) {
       auto iotaDimension = op.getIotaDimension();
       auto result = iotaOp(iotaDimension, op.getType());

@@ -1443,22 +1443,20 @@ static LogicalResult verifyGather(
   if (sliceSizesShape.getRank() != 1)
     return emitOptionalError(location, "slice_sizes.rank != 1 (got ",
                              sliceSizesShape.getRank(), ')');
-  if (sliceSizesShape.hasStaticShape()) {
-    int64_t sliceSize = sliceSizesShape.getNumElements();
+  int64_t sliceSize = sliceSizesShape.getNumElements();
 
-    // gather_c11, dynamic_gather_c11
-    if (sliceSize != impliedOperandRank)
-      return emitOptionalError(location, "slice_sizes size (", sliceSize,
-                               ") not equal to (implied) operand rank (",
-                               impliedOperandRank, ")");
+  // gather_c11, dynamic_gather_c11
+  if (sliceSize != impliedOperandRank)
+    return emitOptionalError(location, "slice_sizes size (", sliceSize,
+                             ") not equal to (implied) operand rank (",
+                             impliedOperandRank, ")");
 
-    // gather_c7, dynamic_gather_c7
-    for (auto dim : collapsedSliceDims)
-      if (dim < 0 || dim >= sliceSize)
-        return emitOptionalError(location, "collapsed dimension ", dim,
-                                 " is out of bounds for slice_sizes.size (",
-                                 sliceSize, ")");
-  }
+  // gather_c7, dynamic_gather_c7
+  for (auto dim : collapsedSliceDims)
+    if (dim < 0 || dim >= sliceSize)
+      return emitOptionalError(location, "collapsed dimension ", dim,
+                               " is out of bounds for slice_sizes.size (",
+                               sliceSize, ")");
 
   return success();
 }
@@ -2291,14 +2289,14 @@ LogicalResult inferDynamicGatherOp(
     }
 
     // dynamic_gather_c12
-    for (const auto& it : llvm::enumerate(sliceSizesValues)) {
-      if (operandShape.isDynamicDim(it.index())) continue;
-      auto operandDimSize = operandShape.getDimSize(it.index());
-      auto sliceDimSize = it.value();
-      if (sliceDimSize < 0 || sliceDimSize > operandDimSize)
-        return emitOptionalError(location, "slice size (", sliceDimSize,
+    for (auto [index, size] : llvm::enumerate(sliceSizesValues)) {
+      if (size < 0 || (!operandShape.isDynamicDim(index) &&
+                       size > operandShape.getDimSize(index))) {
+        return emitOptionalError(location, "slice size (", size,
                                  ") is out of bounds for operand dimension (",
-                                 operandDimSize, ") at index ", it.index());
+                                 operandShape.getDimSize(index), ") at index ",
+                                 index);
+      }
     }
   }
 
@@ -2530,14 +2528,14 @@ LogicalResult inferGatherOp(
   }
 
   // gather_c12
-  for (const auto& it : llvm::enumerate(sliceSizes)) {
-    if (operandShape.isDynamicDim(it.index())) continue;
-    auto operandDimSize = operandShape.getDimSize(it.index());
-    auto sliceDimSize = it.value();
-    if (sliceDimSize < 0 || sliceDimSize > operandDimSize)
-      return emitOptionalError(location, "slice size (", sliceDimSize,
+  for (auto [index, size] : llvm::enumerate(sliceSizes)) {
+    if (size < 0 || (!operandShape.isDynamicDim(index) &&
+                     size > operandShape.getDimSize(index))) {
+      return emitOptionalError(location, "slice size (", size,
                                ") is out of bounds for operand dimension (",
-                               operandDimSize, ") at index ", it.index());
+                               operandShape.getDimSize(index), ") at index ",
+                               index);
+    }
   }
 
   auto getSliceDim = [&sliceSizes](int64_t index) -> int64_t {

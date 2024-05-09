@@ -4047,7 +4047,6 @@ func.func @dynamic_gather_c8(%operand : tensor<?x?x?xi32>, %start_indices : tens
       start_index_map = [0, 1],
       index_vector_dim = 2
     >,
-    slice_sizes = array<i64: 1, 1, 8>,
     indices_are_sorted = false
   } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
   func.return %res : tensor<?x?x?xi32>

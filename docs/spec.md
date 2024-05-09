@@ -2641,7 +2641,7 @@ planning to address this in
 
 This operation is functionally identical to
 [iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
-op, with the `slice_sizes` specified dynamically as an operand.
+op, with the `slice_sizes` specified dynamically as a value.
 
 #### Inputs
 
@@ -2699,7 +2699,7 @@ op, with the `slice_sizes` specified dynamically as an operand.
 //                  [[0, 0], [1, 0], [2, 1]],
 //                  [[0, 1], [1, 1], [0, 2]]
 //                 ]
-// %slize_sizes: [ 1, 2, 2]
+// %slize_sizes: [1, 2, 2]
 %result = "stablehlo.dynamic_gather"(%operand, %start_indices, %slize_sizes) {
   dimension_numbers = #stablehlo.gather<
     offset_dims = [2, 3],
@@ -2775,7 +2775,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 This operation is functionally identical to
 [pad](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad)
 op, but with `edge_padding_low`, `edge_padding_high` and `interior_padding`
-specified dynamically as operands.
+specified dynamically as values.
 
 #### Inputs
 
