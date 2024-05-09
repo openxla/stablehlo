@@ -94,3 +94,8 @@ jobs:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON
           STABLEHLO_ENABLE_PYTHON_TF_TESTS: ON
+
+    - name: Check documentation is up to date
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_docs.sh -c "$STABLEHLO_BUILD_DIR"

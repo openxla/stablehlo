@@ -13,6 +13,7 @@
 
 set(LLVM_TARGET_DEFINITIONS Passes.td)
 mlir_tablegen(Passes.h.inc -gen-pass-decls -name StablehloLinalgTransforms)
+mlir_tablegen(StablehloLinalgPasses.md -gen-pass-doc)
 add_public_tablegen_target(StablehloLinalgTransformsPassIncGen)
 
 add_mlir_library(StablehloLinalgTransforms
