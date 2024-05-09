@@ -1,9 +1,9 @@
 // RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
-// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=0.18.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=0.20.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
 // RUN: stablehlo-translate --deserialize %s.bc | stablehlo-opt > %t.0
 // RUN: stablehlo-opt --strip-debuginfo %s > %t.1
 // RUN: diff %t.0 %t.1
-// RUN: stablehlo-translate --serialize --target=0.18.0 --strip-debuginfo %s > %t.2
+// RUN: stablehlo-translate --serialize --target=0.20.0 --strip-debuginfo %s > %t.2
 // RUN: diff %s.bc %t.2
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
@@ -430,6 +430,21 @@ func.func @default_compare(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }
 
+// CHECK-LABEL: "default_composite"
+func.func @default_composite(%arg0: tensor<f32>) -> tensor<f32> {
+  //               CHECK: "vhlo.composite_v1"(%arg0) <{
+  //          CHECK-SAME:   composite_attributes = #vhlo.dict_v1<{}>
+  //          CHECK-SAME:   decomposition = #vhlo.string_v1<"composite_target">
+  //          CHECK-SAME:   name = #vhlo.string_v1<"stablehlo.composite_target">
+  //          CHECK-SAME:   version = #vhlo.integer_v1<0 : i64>
+  //          CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+  %0 = "stablehlo.composite"(%arg0) {
+    name = "stablehlo.composite_target",
+    decomposition = @composite_target
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
 // CHECK-LABEL: "default_convolution"
 func.func @default_convolution(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>) -> tensor<1x6x6x16xf32> {
   //      CHECK: "vhlo.convolution_v1"(%arg0, %arg1) <{
@@ -521,7 +536,7 @@ func.func @default_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tenso
 
 // CHECK-LABEL: "default_dynamic_conv"
 func.func @default_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>, %arg2: tensor<2x2xi32>) -> tensor<1x?x?x16xf32> {
-  //      CHECK: "vhlo.dynamic_conv_v1"(%arg0, %arg1, %arg2) <{
+  //      CHECK: "vhlo.dynamic_conv_v2"(%arg0, %arg1, %arg2) <{
   // CHECK-SAME:   batch_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   feature_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   input_batch_dimension = #vhlo.integer_v1<0 : i64>,
@@ -534,7 +549,6 @@ func.func @default_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x
   // CHECK-SAME:   output_batch_dimension = #vhlo.integer_v1<0 : i64>,
   // CHECK-SAME:   output_feature_dimension = #vhlo.integer_v1<3 : i64>,
   // CHECK-SAME:   output_spatial_dimensions = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   padding = #vhlo.tensor_v1<dense<0> : tensor<2x2xi64>>,
   // CHECK-SAME:   precision_config = #vhlo.array_v1<[#vhlo<precision_v1 DEFAULT>, #vhlo<precision_v1 DEFAULT>]>,
   // CHECK-SAME:   rhs_dilation = #vhlo.tensor_v1<dense<1> : tensor<2xi64>>,
   // CHECK-SAME:   window_reversal = #vhlo.tensor_v1<dense<false> : tensor<2xi1>>,
@@ -1037,6 +1051,26 @@ func.func @op_complex(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<complex<
   func.return %0 : tensor<complex<f32>>
 }
 
+// CHECK-LABEL: "op_composite"
+func.func @op_composite(%arg0: tensor<f32>) -> tensor<f32> {
+  //               CHECK: "vhlo.composite_v1"(%arg0) <{
+  //          CHECK-SAME:   composite_attributes = #vhlo.dict_v1<{#vhlo.string_v1<"my_int"> = #vhlo.integer_v1<1 : i64>, #vhlo.string_v1<"my_string"> = #vhlo.string_v1<"foo">}>
+  //          CHECK-SAME:   decomposition = #vhlo.string_v1<"composite_target">
+  //          CHECK-SAME:   name = #vhlo.string_v1<"stablehlo.composite_target">
+  //          CHECK-SAME:   version = #vhlo.integer_v1<1 : i32>
+  //          CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+  %0 = "stablehlo.composite"(%arg0) {
+    name = "stablehlo.composite_target",
+    decomposition = @composite_target,
+    version = 1 : i32,
+    composite_attributes = {
+      my_string = "foo",
+      my_int = 1 : i64
+    }
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
 // CHECK-LABEL: "op_concatenate"
 func.func @op_concatenate(%arg0: tensor<8xf32>, %arg1: tensor<8xf32>) -> tensor<16xf32> {
   //      CHECK: "vhlo.concatenate_v1"(%arg0, %arg1) <{
@@ -1214,7 +1248,7 @@ func.func @op_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tensor<2xi
 
 // CHECK-LABEL: "op_dynamic_conv"
 func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>, %arg2: tensor<2x2xi32>) -> tensor<1x?x?x16xf32> {
-  //      CHECK: "vhlo.dynamic_conv_v1"(%arg0, %arg1, %arg2) <{
+  //      CHECK: "vhlo.dynamic_conv_v2"(%arg0, %arg1, %arg2) <{
   // CHECK-SAME:   batch_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   feature_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   input_batch_dimension = #vhlo.integer_v1<0 : i64>,
@@ -1227,7 +1261,6 @@ func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x1
   // CHECK-SAME:   output_batch_dimension = #vhlo.integer_v1<0 : i64>,
   // CHECK-SAME:   output_feature_dimension = #vhlo.integer_v1<3 : i64>,
   // CHECK-SAME:   output_spatial_dimensions = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   padding = #vhlo.tensor_v1<dense<1> : tensor<2x2xi64>>,
   // CHECK-SAME:   precision_config = #vhlo.array_v1<[#vhlo<precision_v1 HIGHEST>, #vhlo<precision_v1 HIGHEST>]>,
   // CHECK-SAME:   rhs_dilation = #vhlo.tensor_v1<dense<2> : tensor<2xi64>>,
   // CHECK-SAME:   window_reversal = #vhlo.tensor_v1<dense<true> : tensor<2xi1>>,
@@ -1235,7 +1268,6 @@ func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x1
   // CHECK-SAME: }> : (!vhlo.tensor_v1<1x8x8x207x!vhlo.f32_v1>, !vhlo.tensor_v1<3x3x207x16x!vhlo.f32_v1>, !vhlo.tensor_v1<2x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x?x?x16x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_conv"(%arg0, %arg1, %arg2) {
     window_strides = array<i64: 2, 2>,
-    padding = dense<1> : tensor<2x2xi64>,
     lhs_dilation = array<i64: 2, 2>,
     rhs_dilation = array<i64: 2, 2>,
     window_reversal = array<i1: true, true>,
@@ -2392,4 +2424,10 @@ func.func @type_tuple(%arg0: tuple<tensor<f32>>) -> tuple<!stablehlo.token> {
   // CHECK: (!vhlo.tuple_v1<!vhlo.tensor_v1<!vhlo.f32_v1>>) -> !vhlo.tuple_v1<!vhlo.token_v1>
   } : (tuple<tensor<f32>>) -> tuple<!stablehlo.token>
   return %0 : tuple<!stablehlo.token>
+}
+
+// ============ DEPENDENCIES  ============
+
+func.func @composite_target(%arg0: tensor<f32>) -> tensor<f32> {
+  return %arg0: tensor<f32>
 }

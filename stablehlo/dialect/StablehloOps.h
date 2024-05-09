@@ -129,8 +129,21 @@ void printWindowAttributes(OpAsmPrinter &p, Operation *op,
                            std::optional<Attribute> rhsDilation,
                            std::optional<Attribute> windowReversal);
 
+// TODO(#2216) Cleanup Attribute -> DenseArrayAttr for print/parse.
+// Custom formatting for convolution window attributes.
+void printWindowAttributes(OpAsmPrinter &p, Operation *op,
+                           std::optional<Attribute> windowStrides,
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal);
+
 ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
                                   DenseIntElementsAttr &padding,
+                                  Attribute &lhsDilation,
+                                  Attribute &rhsDilation,
+                                  Attribute &windowReversal);
+
+ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
                                   Attribute &lhsDilation,
                                   Attribute &rhsDilation,
                                   Attribute &windowReversal);

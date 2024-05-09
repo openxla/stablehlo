@@ -821,8 +821,6 @@ struct RefineDynamicConvOpPattern : public OpRewritePattern<DynamicConvOp> {
     SmallVector<int64_t> padding;
     if (failed(hlo::matchInts(op.getDPadding(), padding)))
       return rewriter.notifyMatchFailure(op, "expected constant d_padding");
-    if (op.getPadding().has_value())
-      return rewriter.notifyMatchFailure(op, "expected empty padding");
     auto paddingType = RankedTensorType::get(
         op.getDPadding().getType().getShape(), rewriter.getIntegerType(64));
     auto paddingAttr = DenseIntElementsAttr::get(paddingType, padding);

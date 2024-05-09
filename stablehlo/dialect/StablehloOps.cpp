@@ -1382,6 +1382,27 @@ DynamicBroadcastInDimOp::getSpeculatability() {
 }
 
 //===----------------------------------------------------------------------===//
+// DynamicBroadcastInDimOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult DynamicConvOp::verify() {
+  return hlo::verifyDynamicConvOp(
+      getLoc(), getLhs().getType(), getRhs().getType(), getDPadding(),
+      getWindowStrides(), getLhsDilation(), getRhsDilation(),
+      getWindowReversal(), getDimensionNumbers().getInputBatchDimension(),
+      getDimensionNumbers().getInputFeatureDimension(),
+      getDimensionNumbers().getInputSpatialDimensions(),
+      getDimensionNumbers().getKernelInputFeatureDimension(),
+      getDimensionNumbers().getKernelOutputFeatureDimension(),
+      getDimensionNumbers().getKernelSpatialDimensions(),
+      getDimensionNumbers().getOutputBatchDimension(),
+      getDimensionNumbers().getOutputFeatureDimension(),
+      getDimensionNumbers().getOutputSpatialDimensions(),
+      getFeatureGroupCount(), getBatchGroupCount(), getPrecisionConfig(),
+      getResult().getType());
+}
+
+//===----------------------------------------------------------------------===//
 // ClampOp
 //===----------------------------------------------------------------------===//
 
@@ -3244,6 +3265,15 @@ void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
   });
 }
 
+void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
+                           std::optional<Attribute> windowStrides,
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal) {
+  printWindowAttributes(p, nullptr, windowStrides, /*padding=*/{}, lhsDilation,
+                        rhsDilation, windowReversal);
+}
+
 ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
                                   DenseIntElementsAttr& padding,
                                   Attribute& lhsDilation,
@@ -3325,6 +3355,15 @@ ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
     if (parser.parseOptionalComma().failed()) break;
   }
   return success();
+}
+
+ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
+                                  Attribute& lhsDilation,
+                                  Attribute& rhsDilation,
+                                  Attribute& windowReversal) {
+  auto padding = parser.getBuilder().getI64TensorAttr({});
+  return parseWindowAttributes(parser, windowStrides, padding, lhsDilation,
+                               rhsDilation, windowReversal);
 }
 
 //===----------------------------------------------------------------------===//
