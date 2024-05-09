@@ -1,4 +1,4 @@
-/* Copyright 2023 The StableHLO Authors.
+/* Copyright 2024 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
-// Implements composite inlining.
 
 #include <cassert>
 #include <cstdint>
@@ -37,13 +35,8 @@ namespace {
 struct StablehloLegalizeDeprecatedOpsPass final
     : impl::StablehloLegalizeDeprecatedOpsPassBase<
           StablehloLegalizeDeprecatedOpsPass> {
-  StablehloLegalizeDeprecatedOpsPass()
-      : StablehloLegalizeDeprecatedOpsPassBase<
-            StablehloLegalizeDeprecatedOpsPass>() {};
-  StablehloLegalizeDeprecatedOpsPass(
-      const StablehloLegalizeDeprecatedOpsPassOptions &opts)
-      : StablehloLegalizeDeprecatedOpsPassBase<
-            StablehloLegalizeDeprecatedOpsPass>(opts) {};
+  using StablehloLegalizeDeprecatedOpsPassBase::
+      StablehloLegalizeDeprecatedOpsPassBase;
 
   LogicalResult initialize(MLIRContext *context) override {
     target = std::make_shared<ConversionTarget>(*context);
@@ -126,7 +119,7 @@ DenseElementsAttr getScalarOfType(Type ty, int64_t rawValue) {
                                     std::complex<APFloat>(real, imag));
     }
   }
-  llvm_unreachable("unsupported type");
+  llvm::report_fatal_error("unsupported type");
 }
 
 DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value dotOpLhs) {
@@ -142,10 +135,9 @@ DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value dotOpLhs) {
 DenseI64ArrayAttr getBroadcastDimensions(RankedTensorType resultType,
                                          DenseI64ArrayAttr broadcastSizes) {
   int64_t operandRank = resultType.getRank() - broadcastSizes.size();
-  SmallVector<int64_t> broadcastDimensions;
-  for (int64_t i = 0; i < operandRank; ++i) {
-    broadcastDimensions.push_back(i + broadcastSizes.size());
-  }
+  auto broadcastDimensions =
+      llvm::map_to_vector(llvm::seq(operandRank),
+                          [&](int64_t i) { return i + broadcastSizes.size(); });
   return DenseI64ArrayAttr::get(resultType.getContext(), broadcastDimensions);
 }
 
