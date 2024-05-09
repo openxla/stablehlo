@@ -66,6 +66,10 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
                                                RewritePatternSet *patterns,
                                                PatternBenefit benefit = 1);
 
+/// Collection of patterns to upgrade deprecated ops to long-term supported ops.
+void populateStablehloLegalizeDeprecatedOpsPatterns(
+    MLIRContext *context, RewritePatternSet *patterns);
+
 /// Collection of shape dialect to StableHLO patterns.
 void populateShapeToStablehloPatterns(MLIRContext *context,
                                       RewritePatternSet *patterns);
