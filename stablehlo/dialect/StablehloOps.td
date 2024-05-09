@@ -2424,6 +2424,9 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
   let extraClassDeclaration = commonClassDeclaration # [{
     /// Interface method for ConditionallySpeculatable.
     mlir::Speculation::Speculatability getSpeculatability();
+
+    /// Determines if this DotGeneral instance can be expressed as a DotOp.
+    bool isSimpleDot();
   }];
 }
 

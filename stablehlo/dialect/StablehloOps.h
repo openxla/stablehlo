@@ -144,6 +144,10 @@ ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
 namespace mlir {
 namespace stablehlo {
 
+// Returns the dimension numbers for a DotGeneral op that can be expressed as
+// a DotOp, given the LHS of such an operation.
+DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value lhs);
+
 SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
                     const llvm::ArrayRef<Value> &operands,
                     const llvm::ArrayRef<Type> &elementTypes, int64_t dimension,

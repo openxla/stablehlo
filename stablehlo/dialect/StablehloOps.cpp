@@ -635,6 +635,21 @@ mlir::Speculation::Speculatability DotGeneralOp::getSpeculatability() {
   return mlir::Speculation::Speculatable;
 }
 
+DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value lhs) {
+  return DotDimensionNumbersAttr::get(
+      lhs.getContext(),
+      /*lhsBatchingDimensions=*/{},
+      /*rhsBatchingDimensions=*/{},
+      /*lhsContractingDimensions=*/
+      {cast<ShapedType>(lhs.getType()).getRank() - 1},
+      /*rhsContractingDimensions=*/{0});
+}
+
+bool DotGeneralOp::isSimpleDot() {
+  return getDotDimensionNumbersAttr() ==
+         getDefaultDotDimensionNumbers(getLhs());
+}
+
 //===----------------------------------------------------------------------===//
 // FftOp
 //===----------------------------------------------------------------------===//
