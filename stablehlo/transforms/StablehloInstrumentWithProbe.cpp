@@ -41,7 +41,7 @@ class StablehloInstrumentWithProbePass
   StablehloInstrumentWithProbePass(
       const StablehloInstrumentWithProbePassOptions& opts)
       : StablehloInstrumentWithProbePassBase<StablehloInstrumentWithProbePass>(
-            opts) {};
+            opts){};
   void runOnOperation() override;
 
  private:
