@@ -1377,20 +1377,20 @@ static LogicalResult verifyGather(
     ShapeAdaptor startIndicesShape, ShapeAdaptor sliceSizesShape,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim) {
-  // gather_c9
+  // gather_c9, dynamic_gather_c9
   if (!isUnique(startIndexMap))
     return emitOptionalError(location,
                              "expects start_index_map to not repeat, got: [",
                              startIndexMap, "]");
 
-  // gather_c10
+  // gather_c10, dynamic_gather_c10
   for (int64_t i = 0; i < static_cast<int64_t>(startIndexMap.size()); ++i)
     if (startIndexMap[i] < 0 || startIndexMap[i] >= operandShape.getRank())
       return emitOptionalError(
           location, "start_index_map[", i, "]: ", startIndexMap[i],
           " is out of bounds for ", "operand rank ", operandShape.getRank());
 
-  // gather_c2
+  // gather_c2, dynamic_gather_c2
   // index_vector_dim == start_indices.rank implies a trailing 1 on the
   // shape of start_indices.
   if (indexVectorDim > startIndicesShape.getRank() || indexVectorDim < 0)
@@ -1398,7 +1398,7 @@ static LogicalResult verifyGather(
                              " is out of bounds for start indices with rank ",
                              startIndicesShape.getRank());
 
-  // gather_c3
+  // gather_c3, dynamic_gather_c3
   bool impliedTrailingDim = indexVectorDim == startIndicesShape.getRank();
   if (impliedTrailingDim || !startIndicesShape.isDynamicDim(indexVectorDim)) {
     int64_t effectiveDimSize;
@@ -1413,7 +1413,7 @@ static LogicalResult verifyGather(
           ") of start_indices (", effectiveDimSize, ")");
   }
 
-  // gather_c4
+  // gather_c4, dynamic_gather_c4
   if (!llvm::is_sorted(offsetDims))
     return emitOptionalError(
         location, "expects offset_dims to be sorted, got: [", offsetDims, "]");
@@ -1421,7 +1421,7 @@ static LogicalResult verifyGather(
     return emitOptionalError(
         location, "expects offset_dims to not repeat, got: [", offsetDims, "]");
 
-  // gather_c6
+  // gather_c6, dynamic_gather_c6
   if (!llvm::is_sorted(collapsedSliceDims))
     return emitOptionalError(
         location, "expects collapsed_slice_dims to be sorted, got: [",
@@ -1431,7 +1431,7 @@ static LogicalResult verifyGather(
         location, "expects collapsed_slice_dims to not repeat, got: [",
         collapsedSliceDims, "]");
 
-  // gather_c1
+  // gather_c1, dynamic_gather_c1
   int64_t impliedOperandRank = offsetDims.size() + collapsedSliceDims.size();
   if (operandShape.getRank() != impliedOperandRank)
     return emitOptionalError(
@@ -1446,13 +1446,13 @@ static LogicalResult verifyGather(
   if (sliceSizesShape.hasStaticShape()) {
     int64_t sliceSize = sliceSizesShape.getNumElements();
 
-    // gather_c11
+    // gather_c11, dynamic_gather_c11
     if (sliceSize != impliedOperandRank)
       return emitOptionalError(location, "slice_sizes size (", sliceSize,
                                ") not equal to (implied) operand rank (",
                                impliedOperandRank, ")");
 
-    // gather_c7
+    // gather_c7, dynamic_gather_c7
     for (auto dim : collapsedSliceDims)
       if (dim < 0 || dim >= sliceSize)
         return emitOptionalError(location, "collapsed dimension ", dim,
@@ -1545,7 +1545,7 @@ static LogicalResult inferGatherReturnTypeComponents(
   // appended to start_indices shape.
   if (indexVectorDim == startIndicesRank) ++startIndicesRank;
   int64_t resultRank = offsetDims.size() + startIndicesRank - 1;
-  // gather_c5
+  // gather_c5, dynamic_gather_c5
   for (int64_t i = 0; i < static_cast<int64_t>(offsetDims.size()); ++i)
     if (offsetDims[i] < 0 || offsetDims[i] >= resultRank)
       return emitOptionalError(location, "offset_dims[", i,
@@ -1556,7 +1556,7 @@ static LogicalResult inferGatherReturnTypeComponents(
     return startIndicesShape.getDimSize(index);
   };
 
-  // gather_c13
+  // gather_c13, gather_c14, dynamic_gather_c13, dynamic_gather_c14
   SmallVector<int64_t> shape;
   inferGatherShape<int64_t>(resultRank, getStartIndicesDim, getSliceDim,
                             offsetDims, collapsedSliceDims, startIndexMap,
@@ -2280,12 +2280,35 @@ LogicalResult inferDynamicGatherOp(
                           collapsedSliceDims, startIndexMap, indexVectorDim)))
     return failure();
 
+  if (SmallVector<int64_t> sliceSizesValues;
+      matchInts(sliceSizes, sliceSizesValues).succeeded()) {
+    // dynamic_gather_c8
+    for (auto dim : collapsedSliceDims) {
+      int64_t sliceDimSize = sliceSizesValues[dim];
+      if (sliceDimSize > 1)
+        return emitOptionalError(location, "slice_sizes collapsed dimension ",
+                                 dim, " should <= 1 but got ", sliceDimSize);
+    }
+
+    // dynamic_gather_c12
+    for (const auto& it : llvm::enumerate(sliceSizesValues)) {
+      if (operandShape.isDynamicDim(it.index())) continue;
+      auto operandDimSize = operandShape.getDimSize(it.index());
+      auto sliceDimSize = it.value();
+      if (sliceDimSize < 0 || sliceDimSize > operandDimSize)
+        return emitOptionalError(location, "slice size (", sliceDimSize,
+                                 ") is out of bounds for operand dimension (",
+                                 operandDimSize, ") at index ", it.index());
+    }
+  }
+
   auto getSliceDim = [&](int64_t index) {
     DenseIntElementsAttr sliceSizesAttr;
     if (!matchPattern(sliceSizes, m_Constant(&sliceSizesAttr)))
       return ShapedType::kDynamic;
     return sliceSizesAttr.getValues<APInt>()[index].getSExtValue();
   };
+
   return inferGatherReturnTypeComponents(
       location, operandShape, startIndices, getSliceDim, offsetDims,
       collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);

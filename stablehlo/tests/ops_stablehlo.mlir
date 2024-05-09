@@ -3836,7 +3836,7 @@ func.func @dynamic_gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<?xi32>) -> tensor<?x?x?xi32> {
+func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?x?x?xi32> {
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
     dimension_numbers = #stablehlo.gather<
       collapsed_slice_dims = [0, 1],
@@ -3845,13 +3845,13 @@ func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false
-  } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<?xi32>) -> tensor<?x?x?xi32>
+  } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
   func.return %res : tensor<?x?x?xi32>
 }
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<?xi32>) -> tensor<?x?x?xi32> {
+func.func @dynamic_gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?x?x?xi32> {
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
     dimension_numbers = #stablehlo.gather<
       collapsed_slice_dims = [0, 1],
@@ -3860,14 +3860,30 @@ func.func @dynamic_gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false
-  } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<?xi32>) -> tensor<?x?x?xi32>
+  } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
   func.return %res : tensor<?x?x?xi32>
 }
 
+// -----
+
+func.func @dynamic_gather_c1(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>, %slice_sizes : tensor<3xi32>) -> tensor<1x5x8xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{offset_dims size (2) plus collapse_slice_dims size (2) is not equal to operand rank (3)}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [1, 2],
+      collapsed_slice_dims = [0, 1],
+      start_index_map = [0, 1],
+      index_vector_dim = 2
+    >,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x8xi32>
+  func.return %res : tensor<1x5x8xi32>
+}
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<?xi32>) -> tensor<?xi32> {
+func.func @dynamic_gather_c2(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{index_vector_dim 4 is out of bounds for start indices with rank 3}}
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
@@ -3878,30 +3894,13 @@ func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false
-  } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<?xi32>) -> tensor<?xi32>
+  } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?xi32>
   func.return %res : tensor<?xi32>
 }
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<?xi32>) -> tensor<?xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{offset_dims size (2) plus collapse_slice_dims size (2) is not equal to operand rank (3)}}
-  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
-    dimension_numbers = #stablehlo.gather<
-      collapsed_slice_dims = [0, 1],
-      index_vector_dim = 2,
-      offset_dims = [1, 2],
-      start_index_map = [0, 1]
-    >,
-    indices_are_sorted = false
-  } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<?xi32>) -> tensor<?xi32>
-  func.return %res : tensor<?xi32>
-}
-
-// -----
-
-func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x2xi32>, %slice_sizes : tensor<?xi32>) -> tensor<?xi32> {
+func.func @dynamic_gather_c3(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x2xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{start_index_map size (1) is not equal to size of index dimension (2) of start_indices (2)}}
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
@@ -3912,30 +3911,204 @@ func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<
       start_index_map = [0]
     >,
     indices_are_sorted = false
-  } : (tensor<?x?x?xi32>, tensor<?x?x2xi32>, tensor<?xi32>) -> tensor<?xi32>
+  } : (tensor<?x?x?xi32>, tensor<?x?x2xi32>, tensor<3xi32>) -> tensor<?xi32>
   func.return %res : tensor<?xi32>
 }
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<?x?xi32>) -> tensor<?xi32> {
+func.func @dynamic_gather_c4(%operand : tensor<2x4x9xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?x?x?xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{slice_sizes.rank != 1}}
+  // expected-error@+1 {{expects offset_dims to be sorted, got: [2, 1]}}
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
     dimension_numbers = #stablehlo.gather<
       collapsed_slice_dims = [0, 1],
+      index_vector_dim = 2,
+      offset_dims = [2, 1],
+      start_index_map = [0, 1]
+    >,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c5(%operand : tensor<2x4x9xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?x?x?xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{offset_dims[0]: -1 is out of bounds for implied result rank 3}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      collapsed_slice_dims = [0, 1],
+      index_vector_dim = 2,
+      offset_dims = [-1],
+      start_index_map = [0, 1]
+    >,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c5(%operand : tensor<2x4x9xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?x?x?xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{offset_dims[0]: 3 is out of bounds for implied result rank 3}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      collapsed_slice_dims = [0, 1],
+      index_vector_dim = 2,
+      offset_dims = [3],
+      start_index_map = [0, 1]
+    >,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c6(%operand : tensor<2x4x9xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?x?x?xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{expects collapsed_slice_dims to be sorted, got: [1, 0]}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      collapsed_slice_dims = [1, 0],
       index_vector_dim = 2,
       offset_dims = [2],
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false
-  } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<?x?xi32>) -> tensor<?xi32>
-  func.return %res : tensor<?xi32>
+  } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
 }
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<2xi32>) -> tensor<?x?x?xi32> {
+func.func @dynamic_gather_c6(%operand : tensor<2x4x9xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?x?x?xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{expects collapsed_slice_dims to not repeat, got: [1, 1]}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      collapsed_slice_dims = [1, 1],
+      index_vector_dim = 2,
+      offset_dims = [2],
+      start_index_map = [0, 1]
+    >,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c7(%operand : tensor<2x4x9xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?x?x?xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{collapsed dimension -1 is out of bounds for slice_sizes.size (3)}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      collapsed_slice_dims = [-1, 1],
+      index_vector_dim = 2,
+      offset_dims = [2],
+      start_index_map = [0, 1]
+    >,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c7(%operand : tensor<2x4x9xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?x?x?xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{collapsed dimension 17 is out of bounds for slice_sizes.size (3)}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      collapsed_slice_dims = [0, 17],
+      index_vector_dim = 2,
+      offset_dims = [2],
+      start_index_map = [0, 1]
+    >,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c8(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>) -> tensor<?x?x?xi32> {
+  %slize_sizes = stablehlo.constant dense<[1,1,8]> : tensor<3xi32>
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{slice_sizes collapsed dimension 2 should <= 1 but got 8}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slize_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2],
+      collapsed_slice_dims = [0, 2],
+      start_index_map = [0, 1],
+      index_vector_dim = 2
+    >,
+    slice_sizes = array<i64: 1, 1, 8>,
+    indices_are_sorted = false
+  } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c9(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>, %slize_sizes : tensor<3xi32>) -> tensor<1x5x8xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{expects start_index_map to not repeat, got: [0, 0]}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slize_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2],
+      collapsed_slice_dims = [0, 1],
+      start_index_map = [0, 0],
+      index_vector_dim = 2
+    >,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x8xi32>
+  func.return %res : tensor<1x5x8xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c10(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>, %slize_sizes : tensor<3xi32>) -> tensor<1x5x8xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{start_index_map[0]: -2 is out of bounds for operand rank 3}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slize_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2],
+      collapsed_slice_dims = [0, 1],
+      start_index_map = [-2, -1],
+      index_vector_dim = 2
+    >,
+    slice_sizes = array<i64: 1, 1, 8>,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x8xi32>
+  func.return %res : tensor<1x5x8xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c10(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>, %slize_sizes : tensor<3xi32>) -> tensor<1x5x8xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{start_index_map[1]: 3 is out of bounds for operand rank 3}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slize_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2],
+      collapsed_slice_dims = [0, 1],
+      start_index_map = [0, 3],
+      index_vector_dim = 2
+    >,
+    slice_sizes = array<i64: 1, 1, 8>,
+    indices_are_sorted = false
+  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x8xi32>
+  func.return %res : tensor<1x5x8xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c11(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<2xi32>) -> tensor<?x?x?xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{slice_sizes size (2) not equal to (implied) operand rank (3)}}
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
@@ -3952,7 +4125,44 @@ func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>, %slice_sizes : tensor<3xi32>) -> tensor<3xi32> {
+func.func @dynamic_gather_c12(%operand : tensor<?x?x2xi32>, %start_indices : tensor<?x?x?xi32>) -> tensor<?x?x?xi32> {
+  %slice_sizes = stablehlo.constant dense<[1,1,-1]> : tensor<3xi32>
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{slice size (-1) is out of bounds for operand dimension (2) at index 2}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2],
+      collapsed_slice_dims = [0, 1],
+      start_index_map = [0, 1],
+      index_vector_dim = 2
+    >,
+    indices_are_sorted = false
+  } : (tensor<?x?x2xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c12(%operand : tensor<?x?x2xi32>, %start_indices : tensor<?x?x?xi32>) -> tensor<?x?x?xi32> {
+  %slice_sizes = stablehlo.constant dense<[1,1,8]> : tensor<3xi32>
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{slice size (8) is out of bounds for operand dimension (2) at index 2}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2],
+      collapsed_slice_dims = [0, 1],
+      start_index_map = [0, 1],
+      index_vector_dim = 2
+    >,
+    slice_sizes = array<i64: 1, 1, 8>,
+    indices_are_sorted = false
+  } : (tensor<?x?x2xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
+func.func @dynamic_gather_c13(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>, %slice_sizes : tensor<3xi32>) -> tensor<3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{inferred type(s) 'tensor<1x5x?xi32>' are incompatible with return type(s) of operation 'tensor<3xi32>'}}
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
@@ -3969,7 +4179,7 @@ func.func @dynamic_gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>, %slice_sizes : tensor<?xi32>) -> tensor<3xi32> {
+func.func @dynamic_gather_c13(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>, %slice_sizes : tensor<3xi32>) -> tensor<3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{inferred type(s) 'tensor<1x5x?xi32>' are incompatible with return type(s) of operation 'tensor<3xi32>'}}
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
@@ -3980,13 +4190,13 @@ func.func @dynamic_gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false
-  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<?xi32>) -> tensor<3xi32>
+  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<3xi32>
   func.return %res : tensor<3xi32>
 }
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<3xi32> {
+func.func @dynamic_gather_c13(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{inferred type(s) 'tensor<?x?x?xi32>' are incompatible with return type(s) of operation 'tensor<3xi32>'}}
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
@@ -4003,7 +4213,7 @@ func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<
 
 // -----
 
-func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<?xi32>) -> tensor<?xi32> {
+func.func @dynamic_gather_c13(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?x?xi32>, %slice_sizes : tensor<3xi32>) -> tensor<?xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{inferred type(s) 'tensor<?x?x?xi32>' are incompatible with return type(s) of operation 'tensor<?xi32>'}}
   %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
@@ -4014,7 +4224,7 @@ func.func @dynamic_gather(%operand : tensor<?x?x?xi32>, %start_indices : tensor<
       start_index_map = [0, 1]
     >,
     indices_are_sorted = false
-  } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<?xi32>) -> tensor<?xi32>
+  } : (tensor<?x?x?xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?xi32>
   func.return %res : tensor<?xi32>
 }
 
