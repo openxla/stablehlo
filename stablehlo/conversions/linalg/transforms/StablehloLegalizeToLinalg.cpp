@@ -352,10 +352,6 @@ struct DataMovementOpConverter : OpConversionPattern<OpTy> {
   LogicalResult matchAndRewrite(
       OpTy op, typename OpTy::Adaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op)))
-      return rewriter.notifyMatchFailure(
-          op, "failed to verify hlo buffer or tensor semantics");
-
     ShapedType resultType = getHloOpResultType(op);
     resultType =
         this->getTypeConverter()->template convertType<ShapedType>(resultType);
@@ -842,8 +838,6 @@ struct BitcastConvertConverter final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::BitcastConvertOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) return failure();
-
     auto inputType =
         llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
     auto outputType =
@@ -1044,7 +1038,6 @@ struct ReshapeOpConverter final
       mlir::stablehlo::ReshapeOp reshapeOp,
       mlir::stablehlo::ReshapeOp::Adaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    if (failed(verifyHloOpBufferOrTensorSemantics(reshapeOp))) return failure();
     Value operand = adaptor.getOperand();
     auto operandType = llvm::cast<ShapedType>(operand.getType());
     Type elemType = operandType.getElementType();
@@ -1583,8 +1576,6 @@ struct MapOpToGenericConverter final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::MapOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) return failure();
-
     auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
@@ -1636,8 +1627,6 @@ struct MapOpToMapConverter final : OpConversionPattern<mlir::stablehlo::MapOp> {
   LogicalResult matchAndRewrite(
       mlir::stablehlo::MapOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) return failure();
-
     auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");

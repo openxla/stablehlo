@@ -100,14 +100,6 @@ Value coerceTensorShape(OpBuilder &builder, Location loc,
       value);
 }
 
-LogicalResult verifyHloOpBufferOrTensorSemantics(Operation *op) {
-  auto isRankedTensor = [](Value val) {
-    return isa<RankedTensorType>(val.getType());
-  };
-  if (!llvm::all_of(op->getOperands(), isRankedTensor)) return failure();
-  return success(llvm::all_of(op->getResults(), isRankedTensor));
-}
-
 Value fillTensorWithZeros(OpBuilder &builder, Location loc, Value tensor) {
   auto type = cast<ShapedType>(tensor.getType());
   Value zero;
