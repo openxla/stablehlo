@@ -19,7 +19,9 @@ limitations under the License.
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/conversions/tosa/transforms/Passes.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -90,12 +92,9 @@ struct ConvertStablehloConcatenateOp
   }
 };
 
-struct ConvertStablehloDotOp : public OpRewritePattern<stablehlo::DotOp> {
-  using OpRewritePattern<stablehlo::DotOp>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(stablehlo::DotOp op,
-                                PatternRewriter& rewriter) const override {
-    auto lhsType = op.getLhs().getType();
+template<typename DotOpTy>
+LogicalResult rewriteSimpleDotOp(DotOpTy op, PatternRewriter& rewriter) {
+  auto lhsType = op.getLhs().getType();
     auto rhsType = op.getRhs().getType();
 
     auto resultType = op.getType();
@@ -175,6 +174,25 @@ struct ConvertStablehloDotOp : public OpRewritePattern<stablehlo::DotOp> {
     rewriter.replaceOpWithNewOp<tosa::ReshapeOp>(
         op, resultType, matMulOp, rewriter.getDenseI64ArrayAttr(resultShape));
     return success();
+}
+
+struct ConvertStablehloDotOp : public OpRewritePattern<stablehlo::DotOp> {
+  using OpRewritePattern<stablehlo::DotOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(stablehlo::DotOp op,
+                                PatternRewriter& rewriter) const override {
+    return rewriteSimpleDotOp(op, rewriter);
+  }
+};
+
+struct ConvertStablehloDotGeneralOp : public OpRewritePattern<stablehlo::DotGeneralOp> {
+  using OpRewritePattern<stablehlo::DotGeneralOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(stablehlo::DotGeneralOp op,
+                                PatternRewriter& rewriter) const override {
+    if (!op.isSimpleDot())
+      return rewriter.notifyMatchFailure(op, "only simple dot op supported");
+    return rewriteSimpleDotOp(op, rewriter);
   }
 };
 
@@ -461,6 +479,7 @@ LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
   patternList.addWithLabel<ConvertStablehloConcatenateOp>(
       {"StablehloConcatenate"}, ctx);
   patternList.addWithLabel<ConvertStablehloDotOp>({"StablehloDot"}, ctx);
+  patternList.addWithLabel<ConvertStablehloDotGeneralOp>({"StablehloDotGeneral"}, ctx);
   patternList.addWithLabel<ConvertStablehloGatherOp>({"StablehloGather"}, ctx);
   patternList.addWithLabel<ConvertStablehloIotaOp>({"StablehloIota"}, ctx);
   patternList.addWithLabel<ConvertStablehloReduceOp>({"StablehloReduce"}, ctx);
