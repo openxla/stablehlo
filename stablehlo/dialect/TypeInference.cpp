@@ -3942,8 +3942,8 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
   if (SmallVector<int64_t> shape; operandType.hasStaticShape() &&
                                   matchInts(outputShape, shape).succeeded()) {
     int64_t operandCount = operandType.getNumElements();
-    int64_t shapeCount = std::accumulate(
-        shape.begin(), shape.end(), int64_t{1}, std::multiplies<int64_t>());
+    int64_t shapeCount = std::accumulate(shape.begin(), shape.end(), int64_t{1},
+                                         std::multiplies<int64_t>());
     if (operandCount != shapeCount) {
       return emitOptionalError(location,
                                "output_shape is incompatible with input type "
