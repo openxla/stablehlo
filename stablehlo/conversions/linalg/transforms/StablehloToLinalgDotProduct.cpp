@@ -94,9 +94,6 @@ struct DotOpConversion final : OpConversionPattern<mlir::stablehlo::DotOp> {
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) {
-      return failure();
-    }
     if (getDotOperationType(op) != op_type) return failure();
 
     Location loc = op.getLoc();
@@ -126,9 +123,6 @@ struct DotGeneralBatchMatMulOpConversion final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotGeneralOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) {
-      return failure();
-    }
     if (op.getType().getRank() != 3) {
       return rewriter.notifyMatchFailure(op, "expected a batch matmul");
     }
@@ -183,10 +177,6 @@ struct DotGeneralOpConversion final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotGeneralOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) {
-      return failure();
-    }
-
     // Get various dimension iterator information
     mlir::stablehlo::DotDimensionNumbersAttr dimNumbers =
         op.getDotDimensionNumbers();
