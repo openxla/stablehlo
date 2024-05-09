@@ -2647,7 +2647,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 | Label | Name             | Type                                         | Constraints |
 |-------|------------------|----------------------------------------------|-------------|
-| (I1)  | `output_shape`   | 1-dimensional tensor of type `si64`          | (C1), (C2)  |
+| (I1)  | `output_shape`   | 1-dimensional tensor of integer type         | (C1), (C2)  |
 | (I2)  | `iota_dimension` | `si64`                                       | (C1)        |
 
 #### Outputs
@@ -2694,9 +2694,9 @@ specified dynamically as values.
 |-------|---------------------|-----------------------------------------------------|------------------|
 | (I1)  | `operand`           | tensor or per-tensor quantized tensor               | (C1), (C2), (C4) |
 | (I2)  | `padding_value`     | 0-dimensional tensor or per-tensor quantized tensor | (C1)             |
-| (I3)  | `edge_padding_low`  | 1-dimensional tensor of type `si64`                 | (C1), (C4)       |
-| (I4)  | `edge_padding_high` | 1-dimensional tensor of type `si64`                 | (C1), (C4)       |
-| (I5)  | `interior_padding`  | 1-dimensional tensor of type `si64`                 | (C2-C4)          |
+| (I3)  | `edge_padding_low`  | 1-dimensional tensor of integer type                | (C1), (C4)       |
+| (I4)  | `edge_padding_high` | 1-dimensional tensor of integer type                | (C1), (C4)       |
+| (I5)  | `interior_padding`  | 1-dimensional tensor of integer type                | (C2-C4)          |
 
 #### Outputs
 
@@ -2752,7 +2752,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 | Label | Name           | Type                                         | Constraints |
 |-------|----------------|----------------------------------------------|-------------|
 | (I1)  | `operand`      | tensor or quantized tensor                   | (C1-C3)     |
-| (I2)  | `output_shape` | 1-dimensional tensor of type `si64`          | (C4)        |
+| (I2)  | `output_shape` | 1-dimensional tensor of integer type         | (C4)        |
 
 #### Outputs
 

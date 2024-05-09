@@ -3426,8 +3426,9 @@ def StableHLO_DynamicPadOp: StableHLO_ShapedInterfaceOp<"dynamic_pad",
   let description = [{
     This operation is functionally identical to
     [pad](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad)
-    op, but the amounts of padding are specified dynamically via `edge_padding_low`,
-    `edge_padding_high` and `interior_padding`.
+    https://github.com/openxla/stablehlo/pull/2306#discussion_r1595669709
+    op, but with `edge_padding_low`, `edge_padding_high` and `interior_padding`
+    specified dynamically as values.
 
     See: https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_pad
 
