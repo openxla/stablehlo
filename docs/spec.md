@@ -2724,7 +2724,6 @@ op, with the `slice_sizes` specified dynamically as an operand.
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_gather.mlir)
 
-
 ### dynamic_iota
 
 #### Semantics
