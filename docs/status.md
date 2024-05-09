@@ -82,7 +82,7 @@ one of the following tracking labels.
 | dynamic_conv             | no            | revisit      | no             | no              | no          |
 | dynamic_gather           | no            | revisit      | revisit        | no              | no          |
 | dynamic_iota             | yes           | yes          | infeasible     | yes             | revisit     |
-| dynamic_pad              | no            | revisit      | no             | yes             | no          |
+| dynamic_pad              | yes           | yes          | infeasible     | yes             | revisit     |
 | dynamic_reshape          | yes           | yes          | infeasible     | yes             | revisit     |
 | dynamic_slice            | yes           | yes          | yes            | yes             | yes         |
 | dynamic_update_slice     | yes           | yes          | yes            | yes             | yes         |

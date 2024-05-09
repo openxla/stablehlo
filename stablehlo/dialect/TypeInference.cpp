@@ -2677,14 +2677,6 @@ LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
                          ArrayRef<int64_t> interiorPadding,
                          SmallVectorImpl<Type>& inferredReturnTypes) {
   auto inputType = cast<RankedTensorType>(operandType);
-  auto padType = cast<RankedTensorType>(paddingValueType);
-
-  // pad_i2
-  if (padType.getRank() != 0)
-    return emitOptionalError(location,
-                             "padding value type should be a rank-0 "
-                             "tensor, is rank ",
-                             padType.getRank());
 
   int64_t rank = inputType.getRank();
   // pad_c2
@@ -3871,33 +3863,46 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
   auto inputType = cast<RankedTensorType>(operand.getType());
   int inputRank = inputType.getRank();
 
-  auto padType = cast<RankedTensorType>(paddingValue.getType());
-  if (padType.getRank() != 0)
-    return emitOptionalError(location, "padding value type should be a rank-0");
-
+  /*dynamic_pad_c2*/
+  // edgePaddingLow, edgePaddingHigh and interiorPadding are enforced to have
+  // the same size by ODS
   auto paddingLowType = cast<RankedTensorType>(edgePaddingLow.getType());
-  if (paddingLowType.getNumElements() != inputRank)
-    return emitOptionalError(location, "edge_padding_low length(",
-                             paddingLowType.getNumElements(),
-                             ") must match operand rank(", inputRank, ").");
+  auto paddingSize = paddingLowType.getDimSize(0);
+  if (paddingSize != inputRank)
+    return emitOptionalError(location, "padding operands size (", paddingSize,
+                             ") must match operand rank (", inputRank, ")");
 
-  auto paddingHighType = cast<RankedTensorType>(edgePaddingHigh.getType());
-  if (paddingHighType.getNumElements() != inputRank)
-    return emitOptionalError(location, "edge_padding_high length(",
-                             paddingHighType.getNumElements(),
-                             ") must match operand rank(", inputRank, ").");
-
-  auto interiorPaddingType = cast<RankedTensorType>(interiorPadding.getType());
-  if (interiorPaddingType.getNumElements() != inputRank)
-    return emitOptionalError(location, "edge_padding_interior length(",
-                             interiorPaddingType.getNumElements(),
-                             ") must match operand rank(", inputRank, ").");
+  /*dynamic_pad_c3*/
+  SmallVector<int64_t> interiorPaddingValues;
+  auto interiorPaddingMatched =
+      matchInts(interiorPadding, interiorPaddingValues);
+  if (succeeded(interiorPaddingMatched)) {
+    if (llvm::any_of(interiorPaddingValues, [](int64_t i) { return i < 0; }))
+      return emitOptionalError(
+          location, "interior_padding must be non-negative, but got ",
+          interiorPaddingValues);
+  };
 
   auto outputType = cast<RankedTensorType>(result.getType());
-  int outputRank = outputType.getRank();
-  if (inputRank != outputRank)
-    return emitOptionalError(location, "operand rank(", inputRank,
-                             ") must match result(", outputRank, ").");
+  if (!inputType.hasStaticShape() || !outputType.hasStaticShape() ||
+      failed(interiorPaddingMatched))
+    return success();
+
+  SmallVector<int64_t> edgePaddingLowValues;
+  if (failed(matchInts(edgePaddingLow, edgePaddingLowValues))) return success();
+  SmallVector<int64_t> edgePaddingHighValues;
+  if (failed(matchInts(edgePaddingHigh, edgePaddingHighValues)))
+    return success();
+
+  /*dynamic_pad_c4*/
+  for (auto [i, in, out, low, high, interior] : llvm::enumerate(
+           inputType.getShape(), outputType.getShape(), edgePaddingLowValues,
+           edgePaddingHighValues, interiorPaddingValues)) {
+    auto want = in + low + std::max(in - 1, long(0)) * interior + high;
+    if (out != want)
+      return emitOptionalError(location, "expected output dimension at index ",
+                               i, " to equal ", want, ", but got ", out);
+  }
 
   return success();
 }

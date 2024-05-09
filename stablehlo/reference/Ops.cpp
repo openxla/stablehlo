@@ -321,6 +321,14 @@ SmallVector<InterpreterValue> eval(Region &region,
   scope.add(block.getArguments(), args);
 
   for (Operation &operation : block) {
+    if (!llvm::all_of(operation.getResults(), [](OpResult r) {
+          if (auto shaped = dyn_cast<ShapedType>(r.getType()))
+            return shaped.hasStaticShape();
+          return true;
+        }))
+      llvm::report_fatal_error(
+          "dynamic result types are not supported at the moment");
+
     if (auto op = dyn_cast<AbsOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto result = absOp(operand, op.getType());
@@ -581,13 +589,21 @@ SmallVector<InterpreterValue> eval(Region &region,
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicIotaOp>(operation)) {
       auto iotaDimension = op.getIotaDimension();
-      auto outputShape = scope.findTensor(op.getOutputShape());
-      auto result = dynamicIotaOp(iotaDimension, outputShape, op.getType());
+      auto result = iotaOp(iotaDimension, op.getType());
+      scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicPadOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto paddingValue = scope.findTensor(op.getPaddingValue());
+      auto edgePaddingLow = scope.findTensor(op.getEdgePaddingLow());
+      auto edgePaddingHigh = scope.findTensor(op.getEdgePaddingHigh());
+      auto interiorPadding = scope.findTensor(op.getInteriorPadding());
+      auto result =
+          padOp(operand, paddingValue, makeSizes(edgePaddingLow),
+                makeSizes(edgePaddingHigh), makeSizes(interiorPadding));
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicReshapeOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
-      auto outputShape = scope.findTensor(op.getOutputShape());
-      auto result = dynamicReshapeOp(operand, outputShape, op.getType());
+      auto result = reshapeOp(operand, op.getType());
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicSliceOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
@@ -1584,22 +1600,6 @@ Tensor dotGeneralOp(const Tensor &lhs, const Tensor &rhs,
     result.set(resultIndex, resultElement);
   }
   return result;
-}
-
-Tensor dynamicIotaOp(Axis iotaDimension, const Tensor &outputShape,
-                     ShapedType resultType) {
-  if (resultType.hasStaticShape()) return iotaOp(iotaDimension, resultType);
-
-  llvm::report_fatal_error(
-      "dynamic result types are not supported at the moment");
-}
-
-Tensor dynamicReshapeOp(const Tensor &operand, const Tensor &outputShape,
-                        ShapedType resultType) {
-  if (resultType.hasStaticShape()) return reshapeOp(operand, resultType);
-
-  llvm::report_fatal_error(
-      "dynamic result types are not supported at the moment");
 }
 
 Tensor dynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,

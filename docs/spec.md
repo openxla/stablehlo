@@ -332,8 +332,7 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
   `trace` ([#604](https://github.com/openxla/stablehlo/issues/604)).
 * "Dynamism" category of StableHLO operations - they were bootstrapped from
    MHLO,and we are in the process of speccing them: `dynamic_broadcast_in_dim`,
-  `dynamic_conv`, `dynamic_gather`, `dynamic_pad`, `real_dynamic_slice`,
-  `set_dimension_size`.
+  `dynamic_conv`, `dynamic_gather`, `real_dynamic_slice`, `set_dimension_size`.
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
 * Shape computations, including `arith`, `shape` and `tensor` operations
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
@@ -2648,7 +2647,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 | Label | Name             | Type                                         | Constraints |
 |-------|------------------|----------------------------------------------|-------------|
-| (I1)  | `output_shape`   | 1-dimensional tensor constant of type `si64` | (C1), (C2)  |
+| (I1)  | `output_shape`   | 1-dimensional tensor of integer type         | (C1), (C2)  |
 | (I2)  | `iota_dimension` | `si64`                                       | (C1)        |
 
 #### Outputs
@@ -2680,6 +2679,66 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_iota.mlir)
 
+### dynamic_pad
+
+#### Semantics
+
+This operation is functionally identical to
+[pad](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad)
+op, but with `edge_padding_low`, `edge_padding_high` and `interior_padding`
+specified dynamically as values.
+
+#### Inputs
+
+| Label | Name                | Type                                                | Constraints      |
+|-------|---------------------|-----------------------------------------------------|------------------|
+| (I1)  | `operand`           | tensor or per-tensor quantized tensor               | (C1), (C2), (C4) |
+| (I2)  | `padding_value`     | 0-dimensional tensor or per-tensor quantized tensor | (C1)             |
+| (I3)  | `edge_padding_low`  | 1-dimensional tensor of integer type                | (C1), (C4)       |
+| (I4)  | `edge_padding_high` | 1-dimensional tensor of integer type                | (C1), (C4)       |
+| (I5)  | `interior_padding`  | 1-dimensional tensor of integer type                | (C2-C4)          |
+
+#### Outputs
+
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C3-C6)     |
+
+#### Constraints
+
+* (C1) `element_type(operand) = element_type(padding_value) =
+  element_type(result)`.
+* (C2) `size(edge_padding_low) = size(edge_padding_high) =
+  size(interior_padding) = rank(operand)`.
+* (C3) `0 <= interior_padding`.
+* (C4) `shape(result) = shape(operand) + edge_padding_low +
+  max(shape(operand) - 1, 0) * interior_padding + edge_padding_high`.
+
+#### Examples
+
+```mlir
+// %operand: [
+//            [1, 2, 3],
+//            [4, 5, 6]
+//           ]
+// %padding_value: 0
+// %edge_padding_low: [0, 1]
+// %edge_padding_high: [2, 1]
+// %interior_padding: [1, 2]
+%result = "stablehlo.dynamic_pad"(%operand, %padding_value,
+  %edge_padding_low, %edge_padding_high, %interior_padding
+) : (tensor<2x3xi32>, tensor<i32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<5x9xi32>
+// %result: [
+//           [0, 1, 0, 0, 2, 0, 0, 3, 0],
+//           [0, 0, 0, 0, 0, 0, 0, 0, 0],
+//           [0, 4, 0, 0, 5, 0, 0, 6, 0],
+//           [0, 0, 0, 0, 0, 0, 0, 0, 0],
+//           [0, 0, 0, 0, 0, 0, 0, 0, 0]
+//          ]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_pad.mlir)
+
 ### dynamic_reshape
 
 #### Semantics
@@ -2693,7 +2752,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 | Label | Name           | Type                                         | Constraints |
 |-------|----------------|----------------------------------------------|-------------|
 | (I1)  | `operand`      | tensor or quantized tensor                   | (C1-C3)     |
-| (I2)  | `output_shape` | 1-dimensional tensor constant of type `si64` | (C4)        |
+| (I2)  | `output_shape` | 1-dimensional tensor of integer type         | (C4)        |
 
 #### Outputs
 

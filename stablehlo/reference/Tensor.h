@@ -144,6 +144,9 @@ Tensor makeTensor(DenseElementsAttr attr);
 /// Creates a DenseElementsAttr from a Tensor.
 DenseElementsAttr makeDenseElementsAttr(Tensor tensor);
 
+/// Creates a Sizes from a Tensor.
+Sizes makeSizes(Tensor tensor);
+
 }  // namespace stablehlo
 }  // namespace mlir
 
