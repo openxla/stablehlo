@@ -39,7 +39,7 @@ if [[ $# -ne 0 ]] ; then
   exit 1
 fi
 
-clang-format --version
+clang-format-14 --version
 
 echo "Gathering changed files..."
 mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep '.*\.h\|.*\.cpp')
