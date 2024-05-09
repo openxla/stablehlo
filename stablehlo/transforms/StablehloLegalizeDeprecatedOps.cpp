@@ -122,16 +122,6 @@ DenseElementsAttr getScalarOfType(Type ty, int64_t rawValue) {
   llvm::report_fatal_error("unsupported type");
 }
 
-DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value dotOpLhs) {
-  return DotDimensionNumbersAttr::get(
-      dotOpLhs.getContext(),
-      /*lhsBatchingDimensions=*/{},
-      /*rhsBatchingDimensions=*/{},
-      /*lhsContractingDimensions=*/
-      {cast<ShapedType>(dotOpLhs.getType()).getRank() - 1},
-      /*rhsContractingDimensions=*/{0});
-}
-
 DenseI64ArrayAttr getBroadcastDimensions(RankedTensorType resultType,
                                          DenseI64ArrayAttr broadcastSizes) {
   int64_t operandRank = resultType.getRank() - broadcastSizes.size();

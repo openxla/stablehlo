@@ -24,69 +24,82 @@ limitations under the License.
 
 namespace mlir::stablehlo {
 namespace {
-enum class DotOperationType {
-  kVectorDot = 0,
-  kMatrixVector,
-  kVectorMatrix,
-  kMatrixMatrix,
-  kUnsupported
-};
 
-DotOperationType getDotOperationType(mlir::stablehlo::DotOp dotOp) {
-  ArrayRef<int64_t> lhsShape = dotOp.getLhs().getType().getShape();
-  ArrayRef<int64_t> rhsShape = dotOp.getRhs().getType().getShape();
-  auto shapeMatches = [](int64_t a, int64_t b) {
+template <typename LinalgOpTy, typename StablehloOpTy>
+bool opMatchesLinalgTarget(StablehloOpTy op) {
+  ArrayRef<int64_t> lhsShape = op.getLhs().getType().getShape();
+  ArrayRef<int64_t> rhsShape = op.getRhs().getType().getShape();
+  auto areCompatible = [](int64_t a, int64_t b) {
     return a == ShapedType::kDynamic || b == ShapedType::kDynamic || a == b;
   };
   if (lhsShape.size() == 1 && rhsShape.size() == 1 &&
-      shapeMatches(lhsShape[0], rhsShape[0])) {
-    return DotOperationType::kVectorDot;
+      areCompatible(lhsShape[0], rhsShape[0])) {
+    return std::is_same<LinalgOpTy, linalg::DotOp>::value;
   }
   if (lhsShape.size() == 2 && rhsShape.size() == 1 &&
-      shapeMatches(lhsShape[1], rhsShape[0])) {
-    return DotOperationType::kMatrixVector;
+      areCompatible(lhsShape[1], rhsShape[0])) {
+    return std::is_same<LinalgOpTy, linalg::MatvecOp>::value;
   }
   if (lhsShape.size() == 1 && rhsShape.size() == 2 &&
-      shapeMatches(lhsShape[0], rhsShape[0])) {
-    return DotOperationType::kVectorMatrix;
+      areCompatible(lhsShape[0], rhsShape[0])) {
+    return std::is_same<LinalgOpTy, linalg::VecmatOp>::value;
   }
   if (lhsShape.size() == 2 && rhsShape.size() == 2 &&
-      shapeMatches(lhsShape[1], rhsShape[0])) {
-    return DotOperationType::kMatrixMatrix;
+      areCompatible(lhsShape[1], rhsShape[0])) {
+    return std::is_same<LinalgOpTy, linalg::MatmulOp>::value;
   }
-  return DotOperationType::kUnsupported;
+  return false;
 }
 
+template <typename LinalgOp>
 SmallVector<Value, 2> getDotOpEmptyTensorDynSizes(OpBuilder &b, Location loc,
-                                                  Value lhs, Value rhs,
-                                                  DotOperationType type) {
+                                                  Value lhs, Value rhs) {
   SmallVector<Value, 2> dynShape;
-  switch (type) {
-    case DotOperationType::kMatrixMatrix: {
-      if (llvm::cast<ShapedType>(lhs.getType()).isDynamicDim(0))
-        dynShape.push_back(b.create<tensor::DimOp>(loc, lhs, 0));
-      if (llvm::cast<ShapedType>(rhs.getType()).isDynamicDim(1))
-        dynShape.push_back(b.create<tensor::DimOp>(loc, rhs, 1));
-      break;
-    }
-    case DotOperationType::kMatrixVector: {
-      if (llvm::cast<ShapedType>(lhs.getType()).isDynamicDim(0))
-        dynShape.push_back(b.create<tensor::DimOp>(loc, lhs, 0));
-      break;
-    }
-    case DotOperationType::kVectorMatrix: {
-      if (llvm::cast<ShapedType>(rhs.getType()).isDynamicDim(1))
-        dynShape.push_back(b.create<tensor::DimOp>(loc, rhs, 1));
-      break;
-    }
-    case DotOperationType::kVectorDot:
-    case DotOperationType::kUnsupported:
-      break;
+
+  auto lhsType = cast<ShapedType>(lhs.getType());
+  auto rhsType = cast<ShapedType>(rhs.getType());
+
+  auto lhsIsMatrix = std::is_same<LinalgOp, linalg::MatvecOp>::value;
+  auto rhsIsMatrix = std::is_same<LinalgOp, linalg::VecmatOp>::value;
+  if (std::is_same<LinalgOp, linalg::MatmulOp>::value) {
+    lhsIsMatrix = rhsIsMatrix = true;
   }
+
+  if (lhsIsMatrix && lhsType.isDynamicDim(0))
+    dynShape.push_back(b.create<tensor::DimOp>(loc, lhs, 0));
+  if (rhsIsMatrix && rhsType.isDynamicDim(1))
+    dynShape.push_back(b.create<tensor::DimOp>(loc, rhs, 1));
   return dynShape;
 }
 
-template <DotOperationType op_type, typename LinalgOp>
+template <typename OpTy, typename OpAdaptor, typename LinalgOpTy>
+LogicalResult lowerDotOp(ConversionPatternRewriter &rewriter,
+                         const TypeConverter *typeConverter, OpTy op,
+                         OpAdaptor adaptor) {
+  if (!opMatchesLinalgTarget<LinalgOpTy>(op)) return failure();
+
+  auto loc = op.getLoc();
+
+  // Convert unsigned to signed. This works because signed and unsigned
+  // integer matmul is the same operation in two's complement.
+  auto outputType = cast<ShapedType>(typeConverter->convertType(op.getType()));
+
+  SmallVector<Value, 2> dynShape = getDotOpEmptyTensorDynSizes<LinalgOpTy>(
+      rewriter, loc, adaptor.getLhs(), adaptor.getRhs());
+
+  Value emptyTensor =
+      !sparse_tensor::getSparseTensorEncoding(outputType)
+          ? getEmptyTensor(rewriter, loc, outputType, dynShape)
+          : getEmptySparseTensor(rewriter, loc, outputType, dynShape);
+  Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
+
+  rewriter.replaceOpWithNewOp<LinalgOpTy>(
+      op, TypeRange{outputType}, ValueRange{adaptor.getLhs(), adaptor.getRhs()},
+      ValueRange{zeroTensor}, linalg::getPrunedAttributeList(op));
+  return success();
+}
+
+template <typename LinalgOpTy>
 struct DotOpConversion final : OpConversionPattern<mlir::stablehlo::DotOp> {
   using OpConversionPattern<mlir::stablehlo::DotOp>::OpConversionPattern;
   using OpAdaptor = mlir::stablehlo::DotOp::Adaptor;
@@ -94,25 +107,8 @@ struct DotOpConversion final : OpConversionPattern<mlir::stablehlo::DotOp> {
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    if (getDotOperationType(op) != op_type) return failure();
-
-    Location loc = op.getLoc();
-    // Convert unsigned to signed. This works because signed and unsigned
-    // integer matmul is the same operation in two's complement.
-    auto outputType =
-        cast<ShapedType>(getTypeConverter()->convertType(op.getType()));
-    SmallVector<Value, 2> dynShape = getDotOpEmptyTensorDynSizes(
-        rewriter, loc, adaptor.getLhs(), adaptor.getRhs(), op_type);
-    Value emptyTensor =
-        !sparse_tensor::getSparseTensorEncoding(outputType)
-            ? getEmptyTensor(rewriter, loc, outputType, dynShape)
-            : getEmptySparseTensor(rewriter, loc, outputType, dynShape);
-    Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
-    rewriter.replaceOpWithNewOp<LinalgOp>(
-        op, TypeRange{outputType},
-        ValueRange{adaptor.getLhs(), adaptor.getRhs()}, ValueRange{zeroTensor},
-        linalg::getPrunedAttributeList(op));
-    return success();
+    return lowerDotOp<DotOp, OpAdaptor, LinalgOpTy>(
+        rewriter, getTypeConverter(), op, adaptor);
   }
 };
 
@@ -177,6 +173,26 @@ struct DotGeneralOpConversion final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotGeneralOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
+    if (op.isSimpleDot()) {
+      if (succeeded(lowerDotOp<DotGeneralOp, OpAdaptor, linalg::MatmulOp>(
+              rewriter, getTypeConverter(), op, adaptor)))
+        return success();
+      if (succeeded(lowerDotOp<DotGeneralOp, OpAdaptor, linalg::MatvecOp>(
+              rewriter, getTypeConverter(), op, adaptor)))
+        return success();
+      if (succeeded(lowerDotOp<DotGeneralOp, OpAdaptor, linalg::VecmatOp>(
+              rewriter, getTypeConverter(), op, adaptor)))
+        return success();
+      if (succeeded(lowerDotOp<DotGeneralOp, OpAdaptor, linalg::DotOp>(
+              rewriter, getTypeConverter(), op, adaptor)))
+        return success();
+      std::string str;
+      llvm::raw_string_ostream os(str);
+      os << "supposedly simple DotGeneralOp could not be converted: ";
+      op.print(os);
+      llvm::report_fatal_error(str.c_str());
+    }
+
     // Get various dimension iterator information
     mlir::stablehlo::DotDimensionNumbersAttr dimNumbers =
         op.getDotDimensionNumbers();
@@ -270,13 +286,11 @@ void populateStablehloDotProdToLinalgConversionPatterns(
     RewritePatternSet *patterns) {
   // Ensure specialized patterns are higher priority than their generic
   // versions.
-  patterns
-      ->add<DotOpConversion<DotOperationType::kMatrixMatrix, linalg::MatmulOp>,
-            DotOpConversion<DotOperationType::kMatrixVector, linalg::MatvecOp>,
-            DotOpConversion<DotOperationType::kVectorMatrix, linalg::VecmatOp>,
-            DotOpConversion<DotOperationType::kVectorDot, linalg::DotOp>,
-            DotGeneralBatchMatMulOpConversion>(typeConverter, context,
-                                               PatternBenefit(2));
+  patterns->add<
+      DotOpConversion<linalg::MatmulOp>, DotOpConversion<linalg::MatvecOp>,
+      DotOpConversion<linalg::VecmatOp>, DotOpConversion<linalg::DotOp>,
+      DotGeneralBatchMatMulOpConversion>(typeConverter, context,
+                                         PatternBenefit(2));
   patterns->add<DotGeneralOpConversion>(typeConverter, context,
                                         PatternBenefit(1));
 }
