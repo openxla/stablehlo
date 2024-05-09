@@ -310,6 +310,41 @@ LogicalResult verifyReshapeOpQuantizationConstraints(
   return success();
 }
 
+LogicalResult verifyBroadcastInDimOpQuantConstraints(
+    std::optional<Location> location, Value operand, Value result,
+    ArrayRef<int64_t> broadcastDimensions) {
+  auto operandType = cast<RankedTensorType>(operand.getType());
+  auto resultType = cast<RankedTensorType>(result.getType());
+  auto resultQType = cast<quant::UniformQuantizedPerAxisType>(
+      getElementTypeOrSelf(result.getType()));
+  auto operandQType = cast<quant::UniformQuantizedPerAxisType>(
+      getElementTypeOrSelf(operand.getType()));
+  auto operandQDim = operandQType.getQuantizedDimension();
+  auto resultQDim = resultQType.getQuantizedDimension();
+  // broadcast_in_dimm_c6, dynamic_broadcast_in_dimm_c6
+  if (resultQDim != broadcastDimensions[operandQDim])
+    return emitOptionalError(location, "result quantization_dimension ",
+                             resultQDim, " not same as broadcast_dimensions[",
+                             operandQDim,
+                             "] = ", broadcastDimensions[operandQDim]);
+  if (operandType.getDimSize(operandQDim) == 1) {
+    for (int64_t j = 0; j != resultType.getDimSize(resultQDim); ++j) {
+      if (resultQType.getScales()[j] != operandQType.getScales()[0])
+        return emitOptionalError(location, "mismatch result scale ", j, " (",
+                                 resultQType.getScales()[j],
+                                 ") and operand scale 0 (",
+                                 operandQType.getScales()[0], ")");
+      if (resultQType.getZeroPoints()[j] != operandQType.getZeroPoints()[0])
+        return emitOptionalError(location, "mismatch result zero_point ", j,
+                                 " (", resultQType.getZeroPoints()[j],
+                                 ") and operand zero_point 0 (",
+                                 operandQType.getZeroPoints()[0], ")");
+    }
+  }
+
+  return success();
+}
+
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -3419,32 +3454,9 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
   }
 
   // broadcast_in_dim_c6
-  if (auto resultQType = dyn_cast<quant::UniformQuantizedPerAxisType>(
-          getElementTypeOrSelf(result.getType()))) {
-    auto operandQType = cast<quant::UniformQuantizedPerAxisType>(
-        getElementTypeOrSelf(operand.getType()));
-    auto operandQDim = operandQType.getQuantizedDimension();
-    auto resultQDim = resultQType.getQuantizedDimension();
-    if (resultQDim != broadcastDimensions[operandQDim])
-      return emitOptionalError(location, "result quantization_dimension ",
-                               resultQDim, " not same as broadcast_dimensions[",
-                               operandQDim,
-                               "] = ", broadcastDimensions[operandQDim]);
-    if (operandType.getDimSize(operandQDim) == 1) {
-      for (int64_t j = 0; j != resultType.getDimSize(resultQDim); ++j) {
-        if (resultQType.getScales()[j] != operandQType.getScales()[0])
-          return emitOptionalError(location, "mismatch result scale ", j, " (",
-                                   resultQType.getScales()[j],
-                                   ") and operand scale 0 (",
-                                   operandQType.getScales()[0], ")");
-        if (resultQType.getZeroPoints()[j] != operandQType.getZeroPoints()[0])
-          return emitOptionalError(location, "mismatch result zero_point ", j,
-                                   " (", resultQType.getZeroPoints()[j],
-                                   ") and operand zero_point 0 (",
-                                   operandQType.getZeroPoints()[0], ")");
-      }
-    }
-  }
+  if (isa<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(result.getType())))
+    return verifyBroadcastInDimOpQuantConstraints(location, operand,
+                                                  result, broadcastDimensions);
 
   return success();
 }
@@ -3748,32 +3760,44 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     Value result) {
   auto operandType = cast<RankedTensorType>(operand.getType());
   auto resultType = cast<RankedTensorType>(result.getType());
-
-  auto outputDimensionsType =
-      cast<RankedTensorType>(outputDimensions.getType());
-  auto outputDimensionsSize = outputDimensionsType.getDimSize(0);
   auto resultRank = resultType.getRank();
-
-  // Verify broadcast_dimensions.
   auto bcastDimensions = broadcastDimensions;
   int64_t bcastDimensionsSize = bcastDimensions.size();
   auto operandRank = operandType.getRank();
+
+  // dynamic_broadcast_in_dim_c1
+  if (!anyQuantized<quant::QuantizedType>(
+          {operand.getType(), result.getType()}) &&
+      !isCompatibleElementTypeForHloTypeInference(operand.getType(),
+                                                  result.getType()))
+    return emitOptionalError(
+        location,
+        "expects operand and result to have compatible element type. Got: ",
+        operand.getType(), " and ", result.getType());
+
+  // dynamic_broadcast_in_dim_c2
   if (bcastDimensionsSize != operandRank)
     return emitOptionalError(
         location, "broadcast_dimensions size (", bcastDimensionsSize,
         ") does not match operand rank (", operandRank, ")");
 
+  // dynamic_broadcast_in_dim_c3
   if (resultRank < operandRank)
     return emitOptionalError(location, "result rank (", resultRank,
                              ") is less than operand rank (", operandRank, ")");
 
+  // dynamic_broadcast_in_dim_c4
+  if (!isUnique(broadcastDimensions))
+    return emitOptionalError(location,
+                             "broadcast_dimensions should not have duplicates");
+
+  // dynamic_broadcast_in_dim_c5
   for (int i = 0; i != bcastDimensionsSize; ++i) {
     auto dimIndex = bcastDimensions[i];
     if (dimIndex < 0 || dimIndex >= resultRank)
       return emitOptionalError(location,
                                "broadcast_dimensions contains invalid value ",
                                dimIndex, " for result with rank ", resultRank);
-
     auto dimSize = operandType.getDimSize(i);
     auto resultDimSize = resultType.getDimSize(dimIndex);
     // Note: verifyCompatibleShapes doesn't consider size-1 broadcasting, so
@@ -3786,13 +3810,11 @@ LogicalResult verifyDynamicBroadcastInDimOp(
                                dimIndex, " (", resultDimSize, ")");
   }
 
-  if (outputDimensionsSize != resultRank)
-    return emitOptionalError(location, "result rank (", resultRank,
-                             ") is not equal to number of output dimensions (",
-                             outputDimensionsSize, ")");
+  // dynamic_broadcast_in_dim_c7
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(
+          location, outputDimensions, resultType)))
+    return failure();
 
-  // Verify that the known expanding and non-expanding dimensions are a subset
-  // of the operand's dimensions.
   int64_t numKnownExpansionBehavior = 0;
   DenseSet<int64_t> knownExpansionBehavior;
   auto collectExpansionBehaviorDims =
@@ -3805,16 +3827,19 @@ LogicalResult verifyDynamicBroadcastInDimOp(
       };
   collectExpansionBehaviorDims(knownExpandingDimensions);
   collectExpansionBehaviorDims(knownNonexpandingDimensions);
+
+  // dynamic_broadcast_in_dim_c8
   if (knownExpansionBehavior.size() != numKnownExpansionBehavior)
     return emitOptionalError(
         location,
         "duplicate expansion hint for at least one operand dimension");
+
+  // dynamic_broadcast_in_dim_c9
   for (int64_t i : knownExpansionBehavior)
     if (i < 0 || i >= operandType.getRank())
       return emitOptionalError(location, "hint for expanding dimension ", i,
                                " does not refer to a "
                                "valid operand dimension");
-
   if (SmallVector<int64_t> shape;
       operandType.hasStaticShape() &&
       matchInts(outputDimensions, shape).succeeded()) {
@@ -3831,9 +3856,10 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     }
   }
 
-  if (failed(verifyShapeOperandIsCompatibleWithResultType(
-          location, outputDimensions, resultType)))
-    return failure();
+  // dynamic_broadcast_in_dim_c6
+  if (isa<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(result.getType())))
+    return verifyBroadcastInDimOpQuantConstraints(location, operand,
+                                                  result, broadcastDimensions);
 
   return success();
 }
