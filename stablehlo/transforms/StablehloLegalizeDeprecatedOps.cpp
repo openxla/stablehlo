@@ -45,7 +45,7 @@ struct StablehloLegalizeDeprecatedOpsPass final
 
     if (failOnUnusedOps) {
       // Deprecated ops to be removed with no replacements
-      target->addIllegalOp<MapOp, RngOp, TraceOp>();
+      target->addIllegalOp<MapOp, RngOp>();
     }
 
     target->addLegalDialect<StablehloDialect>();

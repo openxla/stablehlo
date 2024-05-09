@@ -148,7 +148,6 @@ one of the following tracking labels.
 | subtract                 | yes           | yes          | yes            | yes             | yes         |
 | tanh                     | yes           | yes          | yes            | yes             | yes         |
 | torch_index_select       | no            | revisit      | no             | no              | revisit     |
-| trace                    | no            | revisit      | no             | yes             | revisit     |
 | transpose                | yes           | yes          | yes            | yes             | yes         |
 | triangular_solve         | yes           | revisit      | yes            | no              | revisit     |
 | tuple                    | yes           | yes          | yes            | yes             | yes         |
