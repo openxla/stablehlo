@@ -2647,7 +2647,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 | Label | Name             | Type                                         | Constraints |
 |-------|------------------|----------------------------------------------|-------------|
-| (I1)  | `output_shape`   | 1-dimensional tensor of type `si64` | (C1), (C2)  |
+| (I1)  | `output_shape`   | 1-dimensional tensor of type `si64`          | (C1), (C2)  |
 | (I2)  | `iota_dimension` | `si64`                                       | (C1)        |
 
 #### Outputs
@@ -2685,8 +2685,8 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 This operation is functionally identical to
 [pad](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad)
-op, but the amounts of padding are specified dynamically via `edge_padding_low`,
-`edge_padding_high` and `interior_padding`.
+op, but with `edge_padding_low`, `edge_padding_high` and `interior_padding`
+specified dynamically as values.
 
 #### Inputs
 
@@ -2722,9 +2722,9 @@ op, but the amounts of padding are specified dynamically via `edge_padding_low`,
 //            [4, 5, 6]
 //           ]
 // %padding_value: 0
-// %edge_padding_low = [0, 1]
-// %edge_padding_high = [2, 1]
-// %interior_padding = [1, 2]
+// %edge_padding_low: [0, 1]
+// %edge_padding_high: [2, 1]
+// %interior_padding: [1, 2]
 %result = "stablehlo.dynamic_pad"(%operand, %padding_value,
   %edge_padding_low, %edge_padding_high, %interior_padding
 ) : (tensor<2x3xi32>, tensor<i32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<5x9xi32>
@@ -2737,7 +2737,7 @@ op, but the amounts of padding are specified dynamically via `edge_padding_low`,
 //          ]
 ```
 
-&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/pad.mlir)
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_pad.mlir)
 
 ### dynamic_reshape
 
