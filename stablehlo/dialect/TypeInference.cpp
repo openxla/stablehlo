@@ -321,22 +321,22 @@ LogicalResult verifyBroadcastInDimOpQuantConstraints(
       getElementTypeOrSelf(operand.getType()));
   auto operandQDim = operandQType.getQuantizedDimension();
   auto resultQDim = resultQType.getQuantizedDimension();
-  // broadcast_in_dimm_c6, dynamic_broadcast_in_dimm_c6
+  // broadcast_in_dim_c6, dynamic_broadcast_in_dim_c6
   if (resultQDim != broadcastDimensions[operandQDim])
     return emitOptionalError(location, "result quantization_dimension ",
                              resultQDim, " not same as broadcast_dimensions[",
                              operandQDim,
                              "] = ", broadcastDimensions[operandQDim]);
   if (operandType.getDimSize(operandQDim) == 1) {
-    for (int64_t j = 0; j != resultType.getDimSize(resultQDim); ++j) {
-      if (resultQType.getScales()[j] != operandQType.getScales()[0])
-        return emitOptionalError(location, "mismatch result scale ", j, " (",
-                                 resultQType.getScales()[j],
+    for (int64_t i = 0; i != resultType.getDimSize(resultQDim); ++i) {
+      if (resultQType.getScales()[i] != operandQType.getScales()[0])
+        return emitOptionalError(location, "mismatch result scale ", i, " (",
+                                 resultQType.getScales()[i],
                                  ") and operand scale 0 (",
                                  operandQType.getScales()[0], ")");
-      if (resultQType.getZeroPoints()[j] != operandQType.getZeroPoints()[0])
-        return emitOptionalError(location, "mismatch result zero_point ", j,
-                                 " (", resultQType.getZeroPoints()[j],
+      if (resultQType.getZeroPoints()[i] != operandQType.getZeroPoints()[0])
+        return emitOptionalError(location, "mismatch result zero_point ", i,
+                                 " (", resultQType.getZeroPoints()[i],
                                  ") and operand zero_point 0 (",
                                  operandQType.getZeroPoints()[0], ")");
     }

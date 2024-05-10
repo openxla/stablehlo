@@ -2642,7 +2642,7 @@ This operation is functionally identical to
 [broadcast_in_dim](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim)
 op, but the result shape is specified dynamically via `output_dimensions`.
 
-Op also accepts optional attributes `known_expanding_dimensions`, `known_non_expanding_dimensions`
+The operation also accepts optional attributes `known_expanding_dimensions`, `known_non_expanding_dimensions`
 to express static knowledge about the expanding behavior of dimensions.
 If not specified, all dimensions are assumed to be possibly expanding.
 
@@ -2690,29 +2690,25 @@ If not specified, all dimensions are assumed to be possibly expanding.
 
 ```mlir
 // %operand: [
-//            [1],
-//            [2],
-//            [3]
+//            [1, 2, 3]
 //           ]
-%operand = stablehlo.constant dense<[[1], [2], [3]]> : tensor<3x1xi64>
-%output_dimensions = stablehlo.constant dense<[3, 2, 2]> : tensor<3xi64>
+%operand = stablehlo.constant dense<[[1, 2, 3]]> : tensor<1x3xi64>
+%output_dimensions = stablehlo.constant dense<[2, 3, 2]> : tensor<3xi64>
 %result = "stablehlo.dynamic_broadcast_in_dim"(%operand, %output_dimensions) {
-  broadcast_dimensions = array<i64: 0, 2>,
-  known_expanding_dimensions = array<i64: 1>,
-  known_non_expanding_dimensions = array<i64: 0>
-} : (tensor<3x1xi64>, tensor<3xi64>) -> tensor<3x2x2xi64>
+  broadcast_dimensions = array<i64: 2, 1>,
+  known_expanding_dimensions = array<i64: 0>,
+  known_non_expanding_dimensions = array<i64: 1>
+} : (tensor<1x3xi64>, tensor<3xi64>) -> tensor<2x3x2xi64>
 // %result: [
 //            [
 //             [1, 1],
+//             [2, 2],
+//             [3, 3]
+//            ],
+//            [
 //             [1, 1],
-//            ],
-//            [
 //             [2, 2],
-//             [2, 2],
-//            ],
-//            [
-//             [3, 3],
-//             [3, 3],
+//             [3, 3]
 //            ]
 //          ]
 ```
