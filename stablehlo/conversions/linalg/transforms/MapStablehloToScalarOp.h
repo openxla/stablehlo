@@ -829,33 +829,6 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::BitcastConvertOp>(
 }
 
 template <>
-inline Value mapStablehloOpToStdScalarOp<stablehlo::DotOp>(
-    Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
-    stablehlo::DotOp::Adaptor adaptor, OpBuilder *b) {
-  // Dot Op converter from lhlo to affine only accepts float and integer types.
-  const auto &lhs = adaptor.getOperands()[0];
-  const auto &rhs = adaptor.getOperands()[1];
-  const auto &result = adaptor.getOperands()[2];
-  Type elementType = lhs.getType();
-  if (isa<FloatType>(elementType)) {
-    Value floatMul =
-        MapStablehloOpToScalarOpImpl<IsFloatType, ::mlir::arith::MulFOp>{}(
-            loc, resultTypes, argTypes, {lhs, rhs}, b);
-    return MapStablehloOpToScalarOpImpl<IsFloatType, ::mlir::arith::AddFOp>{}(
-        loc, resultTypes, argTypes, {floatMul, result}, b);
-  }
-  if (isa<IntegerType>(elementType)) {
-    Value intMul =
-        MapStablehloOpToScalarOpImpl<IsAnyIntegerType, ::mlir::arith::MulIOp>{}(
-            loc, resultTypes, argTypes, {lhs, rhs}, b);
-    return MapStablehloOpToScalarOpImpl<IsAnyIntegerType,
-                                        ::mlir::arith::AddIOp>{}(
-        loc, resultTypes, argTypes, {intMul, result}, b);
-  }
-  return nullptr;
-}
-
-template <>
 inline Value mapStablehloOpToStdScalarOp<stablehlo::IsFiniteOp>(
     Location loc, ArrayRef<Type> /*ResultTypes*/, ArrayRef<Type> /*argTypes*/,
     stablehlo::IsFiniteOp::Adaptor adaptor, OpBuilder *b) {
