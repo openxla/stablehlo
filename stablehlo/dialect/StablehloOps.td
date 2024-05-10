@@ -3464,7 +3464,7 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
   let arguments = (ins
     HLO_Tensor:$operand /*dynamic_gather_i1*/,
     HLO_IntTensor:$start_indices /*dynamic_gather_i2*/,
-    HLO_StaticDimensionTensor:$slice_sizes /*dynamic_gather_i3*/,
+    HLO_Static1DIntTensor:$slice_sizes /*dynamic_gather_i3*/,
     StableHLO_GatherDimensionNumbers:$dimension_numbers /*dynamic_gather_i3, dynamic_gather_i4, dynamic_gather_i5, dynamic_gather_i6, dynamic_gather_i7*/,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*dynamic_gather_i8*/
   );
