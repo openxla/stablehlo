@@ -2642,11 +2642,9 @@ This operation is functionally identical to
 [broadcast_in_dim](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim)
 op, but the result shape is specified dynamically via `output_dimensions`.
 
-Op also accepts optional attributes to express static knowledge about the
-expanding behavior of dimensions. If not specified, all dimensions are
-assumed to be possibly expanding. The sets of dimensions that are known to
-be expanding and the set of dimensions that are known to be non-expanding
-must be disjoint and they must be a subset of the operand's dimensions.
+Op also accepts optional attributes `known_expanding_dimensions`, `known_non_expanding_dimensions`
+to express static knowledge about the expanding behavior of dimensions.
+If not specified, all dimensions are assumed to be possibly expanding.
 
 #### Inputs
 
