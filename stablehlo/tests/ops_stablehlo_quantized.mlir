@@ -1240,7 +1240,6 @@ func.func @dynamic_broadcast_in_dim_c6(
   func.return
 }
 
-
 // -----
 
 func.func @dynamic_broadcast_in_dim_c6(

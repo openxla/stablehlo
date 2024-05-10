@@ -321,6 +321,7 @@ LogicalResult verifyBroadcastInDimOpQuantConstraints(
       getElementTypeOrSelf(operand.getType()));
   auto operandQDim = operandQType.getQuantizedDimension();
   auto resultQDim = resultQType.getQuantizedDimension();
+
   // broadcast_in_dim_c6, dynamic_broadcast_in_dim_c6
   if (resultQDim != broadcastDimensions[operandQDim])
     return emitOptionalError(location, "result quantization_dimension ",
@@ -3990,13 +3991,13 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   collectExpansionBehaviorDims(knownExpandingDimensions);
   collectExpansionBehaviorDims(knownNonexpandingDimensions);
 
-  // dynamic_broadcast_in_dim_c8
+  // dynamic_broadcast_in_dim_c8, dynamic_broadcast_in_dim_c9, dynamic_broadcast_in_dim_c10
   if (knownExpansionBehavior.size() != numKnownExpansionBehavior)
     return emitOptionalError(
         location,
         "duplicate expansion hint for at least one operand dimension");
 
-  // dynamic_broadcast_in_dim_c9
+  // dynamic_broadcast_in_dim_c11, dynamic_broadcast_in_dim_c12
   for (int64_t i : knownExpansionBehavior)
     if (i < 0 || i >= operandType.getRank())
       return emitOptionalError(location, "hint for expanding dimension ", i,

@@ -1058,6 +1058,14 @@ func.func @dynamic_broadcast_in_dim_c3_negative_size(%arg0: tensor<1xf32>, %shap
 
 // -----
 
+func.func @dynamic_broadcast_in_dim_c3_too_large(%arg0: tensor<1xf32>, %shape: tensor<3xi64>) -> tensor<7x8x9xf32> {
+  // expected-error@+1 {{broadcast_dimensions contains invalid value 3 for result with rank 3}}
+  %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %shape) {broadcast_dimensions = array<i64: 3>} : (tensor<1xf32>, tensor<3xi64>) -> tensor<7x8x9xf32>
+  func.return %0 : tensor<7x8x9xf32>
+}
+
+// -----
+
 func.func @dynamic_broadcast_in_dim_c4(%arg0: tensor<?x?xi32>, %shape: tensor<3xi64>) -> tensor<?x?x?xi32> {
   // expected-error@+1 {{broadcast_dimensions should not have duplicates}}
   %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %shape) {broadcast_dimensions = array<i64: 1, 1>} : (tensor<?x?xi32>, tensor<3xi64>) -> tensor<?x?x?xi32>
@@ -1109,7 +1117,7 @@ func.func @dynamic_broadcast_in_dim_c7_output_dimensions_mismatching_size(%arg0:
 
 // -----
 
-func.func @dynamic_broadcast_in_dim_c8(%arg0: tensor<?x?xi32>, %shape: tensor<3xi64>) -> tensor<?x?x?xi32> {
+func.func @dynamic_broadcast_in_dim_c8_c9_c10(%arg0: tensor<?x?xi32>, %shape: tensor<3xi64>) -> tensor<?x?x?xi32> {
   // expected-error@+1 {{duplicate expansion hint for at least one operand dimension}}
   %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %shape) {
     broadcast_dimensions = array<i64: 1, 2>,
@@ -1120,7 +1128,7 @@ func.func @dynamic_broadcast_in_dim_c8(%arg0: tensor<?x?xi32>, %shape: tensor<3x
 
 // -----
 
-func.func @dynamic_broadcast_in_dim_c9(%arg0: tensor<?x?xi32>, %shape: tensor<3xi64>) -> tensor<?x?x?xi32> {
+func.func @dynamic_broadcast_in_dim_c11_c12(%arg0: tensor<?x?xi32>, %shape: tensor<3xi64>) -> tensor<?x?x?xi32> {
   // expected-error@+1 {{hint for expanding dimension 3 does not refer to a valid operand dimension}}
   %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %shape) {
     broadcast_dimensions = array<i64: 1, 2>,

@@ -2683,8 +2683,11 @@ If not specified, all dimensions are assumed to be possibly expanding.
     zero_points(operand)[0] for i in
     range(dim(result, quantization_dimension(result)))`.
 * (C7) `size(output_dimensions) = rank(result)`.
-* (C8) `is_unique(known_expanding_dimensions + known_non_expanding_dimensions)`.
-* (C9) `0 <= known_expanding_dimensions, known_non_expanding_dimensions  < rank(operand)`.
+* (C8) `is_unique(known_expanding_dimensions)`.
+* (C9) `is_unique(known_non_expanding_dimensions)`.
+* (C10) `is_unique(known_expanding_dimensions + known_non_expanding_dimensions)`.
+* (C11) `0 <= known_expanding_dimensions < rank(operand)`.
+* (C12) `0 <= known_non_expanding_dimensions < rank(operand)`.
 
 #### Examples
 
