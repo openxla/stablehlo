@@ -587,6 +587,12 @@ SmallVector<InterpreterValue> eval(Region &region,
           lhs, rhs, lhsBatchingDimensions, rhsBatchingDimensions,
           lhsContractingDimensions, rhsContractingDimensions, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicBroadcastInDimOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto broadcastDimensions = Axes(op.getBroadcastDimensions());
+      auto result =
+          broadcastInDimOp(operand, broadcastDimensions, op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicConvOp>(operation)) {
       auto lhs = scope.findTensor(op.getLhs());
       auto rhs = scope.findTensor(op.getRhs());

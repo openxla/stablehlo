@@ -78,7 +78,7 @@ one of the following tracking labels.
 | divide                   | yes           | yes          | yes            | yes             | yes         |
 | dot                      | no            | revisit      | infeasible     | yes             | revisit     |
 | dot_general              | yes           | revisit      | infeasible     | no              | yes         |
-| dynamic_broadcast_in_dim | no            | revisit      | infeasible     | no              | no          |
+| dynamic_broadcast_in_dim | yes           | yes          | infeasible     | yes             | revisit     |
 | dynamic_conv             | yes           | yes          | infeasible     | yes             | revisit     |
 | dynamic_gather           | yes           | yes          | infeasible     | yes             | revisit     |
 | dynamic_iota             | yes           | yes          | infeasible     | yes             | revisit     |

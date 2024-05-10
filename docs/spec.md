@@ -330,8 +330,8 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
   `torch_index_select`, `unary_einsum`
   ([#3](https://github.com/openxla/stablehlo/issues/3)).
 * "Dynamism" category of StableHLO operations - they were bootstrapped from
-   MHLO,and we are in the process of speccing them: `dynamic_broadcast_in_dim`,
-  `real_dynamic_slice`, `set_dimension_size`.
+   MHLO,and we are in the process of speccing them: `real_dynamic_slice`,
+   `set_dimension_size`.
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
 * Shape computations, including `arith`, `shape` and `tensor` operations
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
@@ -2633,6 +2633,90 @@ planning to address this in
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dot_general.mlir)
+
+### dynamic_broadcast_in_dim
+
+#### Semantics
+
+This operation is functionally identical to
+[broadcast_in_dim](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim)
+op, but the result shape is specified dynamically via `output_dimensions`.
+
+The operation also accepts optional attributes `known_expanding_dimensions`, `known_non_expanding_dimensions`
+to express static knowledge about the expanding behavior of dimensions.
+If not specified, all dimensions are assumed to be possibly expanding.
+
+#### Inputs
+
+| Label | Name                             | Type                                          | Constraints            |
+|-------|----------------------------------|-----------------------------------------------|------------------------|
+| (I1)  | `operand`                        | tensor or quantized tensor                    | (C1-C2), (C5-C6), (C9) |
+| (I2)  | `output_dimensions`              | 1-dimensional tensor of integer type          | (C7)                   |
+| (I3)  | `broadcast_dimensions`           | 1-dimensional constant tensor of integer type | (C2-C6)                |
+| (I4)  | `known_expanding_dimensions`     | 1-dimensional constant tensor of integer type | (C8-C9)                |
+| (I5)  | `known_non_expanding_dimensions` | 1-dimensional constant tensor of integer type | (C8-C9)                |
+
+#### Outputs
+
+| Name     | Type                       | Constraints         |
+|----------|----------------------------|---------------------|
+| `result` | tensor or quantized tensor | (C1), (C3), (C5-C7) |
+
+#### Constraints
+
+* (C1) `element_type(result)` is given by:
+  * `element_type(operand)`, if `!is_per_axis_quantized(operand)`.
+  * `element_type(operand)` except that `quantization_dimension(operand)`,
+  `scales(operand)`, and `zero_points(operand)` may differ from
+  `quantization_dimension(result)`, `scales(result)`, and `zero_points(result)`
+  resp., otherwise.
+* (C2) `size(broadcast_dimensions) = rank(operand)`.
+* (C3) `0 <= broadcast_dimensions < rank(result)`.
+* (C4) `is_unique(broadcast_dimensions)`.
+* (C5) For all `d` in `axes(operand)`:
+  * `dim(operand, d) = 1` or
+  * `dim(operand, d) = dim(result, broadcast_dimensions[d])`.
+* (C6) If `is_per_axis_quantized(result)`:
+  * `quantization_dimension(result) = broadcast_dimensions[quantization_dimension(operand)]`.
+  * If `dim(operand, quantization_dimension(operand)) = 1`, then
+    `scales(result)[i] = scales(operand)[0] and zero_points(result)[i] =
+    zero_points(operand)[0] for i in
+    range(dim(result, quantization_dimension(result)))`.
+* (C7) `size(output_dimensions) = rank(result)`.
+* (C8) `is_unique(known_expanding_dimensions)`.
+* (C9) `is_unique(known_non_expanding_dimensions)`.
+* (C10) `is_unique(known_expanding_dimensions + known_non_expanding_dimensions)`.
+* (C11) `0 <= known_expanding_dimensions < rank(operand)`.
+* (C12) `0 <= known_non_expanding_dimensions < rank(operand)`.
+
+#### Examples
+
+```mlir
+// %operand: [
+//            [1, 2, 3]
+//           ]
+%operand = stablehlo.constant dense<[[1, 2, 3]]> : tensor<1x3xi64>
+%output_dimensions = stablehlo.constant dense<[2, 3, 2]> : tensor<3xi64>
+%result = "stablehlo.dynamic_broadcast_in_dim"(%operand, %output_dimensions) {
+  broadcast_dimensions = array<i64: 2, 1>,
+  known_expanding_dimensions = array<i64: 0>,
+  known_non_expanding_dimensions = array<i64: 1>
+} : (tensor<1x3xi64>, tensor<3xi64>) -> tensor<2x3x2xi64>
+// %result: [
+//            [
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
+//            ],
+//            [
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
+//            ]
+//          ]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_broadcast_in_dim.mlir)
 
 ### dynamic_conv
 

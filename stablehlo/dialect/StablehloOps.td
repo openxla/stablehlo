@@ -1956,25 +1956,37 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
     [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "DynamicBroadcastInDim operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
-
-    Informally, this operation does the same thing as BroadcastInDimOp except
-    that the result shape is specified dynamically via `output_dimensions`:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim
+    This operation is functionally identical to
+    [broadcast_in_dim](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim)
+    op, but the result shape is specified dynamically via `output_dimensions`.
 
     It also accepts optional attributes to express static knowledge about the
     expanding behavior of dimensions. If not specified, all dimensions are
     assumed to be possibly expanding. The sets of dimensions that are known to
     be expanding and the set of dimensions that are known to be non-expanding
     must be disjoint and they must be a subset of the operand's dimensions.
+
+    See: https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_broadcast_in_dim
+
+    Example:
+    ```mlir
+    %operand = stablehlo.constant dense<[[1, 2, 3]]> : tensor<1x3xi64>
+    %output_dimensions = stablehlo.constant dense<[2, 3, 2]> : tensor<3xi64>
+    %result = "stablehlo.dynamic_broadcast_in_dim"(%operand, %output_dimensions) {
+      broadcast_dimensions = array<i64: 2, 1>,
+      known_expanding_dimensions = array<i64: 0>,
+      known_non_expanding_dimensions = array<i64: 1>
+    } : (tensor<1x3xi64>, tensor<3xi64>) -> tensor<2x3x2xi64>
+    ```
+
   }];
+
   let arguments = (ins
-    HLO_TensorOrPerAxisQuantizedTensor:$operand,
-    HLO_StaticDimensionTensor:$output_dimensions,
-    GenericDenseI64ArrayAttr:$broadcast_dimensions,
-    OptionalAttr<GenericDenseI64ArrayAttr>:$known_expanding_dimensions,
-    OptionalAttr<GenericDenseI64ArrayAttr>:$known_nonexpanding_dimensions
+    HLO_TensorOrPerAxisQuantizedTensor:$operand /*dynamic_broadcast_in_dim_i1*/,
+    HLO_StaticDimensionTensor:$output_dimensions /*dynamic_broadcast_in_dim_i2*/,
+    GenericDenseI64ArrayAttr:$broadcast_dimensions /*dynamic_broadcast_in_dim_i3*/,
+    OptionalAttr<GenericDenseI64ArrayAttr>:$known_expanding_dimensions /*dynamic_broadcast_in_dim_i4*/,
+    OptionalAttr<GenericDenseI64ArrayAttr>:$known_nonexpanding_dimensions /*dynamic_broadcast_in_dim_i5*/
   );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
