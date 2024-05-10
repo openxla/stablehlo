@@ -330,8 +330,8 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
   `torch_index_select`, `unary_einsum`
   ([#3](https://github.com/openxla/stablehlo/issues/3)).
 * "Dynamism" category of StableHLO operations - they were bootstrapped from
-   MHLO,and we are in the process of speccing them: `dynamic_broadcast_in_dim`,
-  `dynamic_conv`, `real_dynamic_slice`, `set_dimension_size`.
+   MHLO,and we are in the process of speccing them: `dynamic_conv`,
+   `real_dynamic_slice`, `set_dimension_size`.
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
 * Shape computations, including `arith`, `shape` and `tensor` operations
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
