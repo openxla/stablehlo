@@ -72,10 +72,10 @@ SmallVector<Value, 2> getDotOpEmptyTensorDynSizes(OpBuilder &b, Location loc,
   return dynShape;
 }
 
-template <typename OpTy, typename OpAdaptor, typename LinalgOpTy>
+template <typename OpTy, typename LinalgOpTy>
 LogicalResult lowerDotOp(ConversionPatternRewriter &rewriter,
                          const TypeConverter *typeConverter, OpTy op,
-                         OpAdaptor adaptor) {
+                         typename OpTy::Adaptor adaptor) {
   if (!opMatchesLinalgTarget<LinalgOpTy>(op)) return failure();
 
   auto loc = op.getLoc();
@@ -107,7 +107,7 @@ struct DotOpConversion final : OpConversionPattern<mlir::stablehlo::DotOp> {
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    return lowerDotOp<DotOp, OpAdaptor, LinalgOpTy>(
+    return lowerDotOp<DotOp, LinalgOpTy>(
         rewriter, getTypeConverter(), op, adaptor);
   }
 };
@@ -174,16 +174,16 @@ struct DotGeneralOpConversion final
       mlir::stablehlo::DotGeneralOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
     if (op.isSimpleDot()) {
-      if (succeeded(lowerDotOp<DotGeneralOp, OpAdaptor, linalg::MatmulOp>(
+      if (succeeded(lowerDotOp<DotGeneralOp, linalg::MatmulOp>(
               rewriter, getTypeConverter(), op, adaptor)))
         return success();
-      if (succeeded(lowerDotOp<DotGeneralOp, OpAdaptor, linalg::MatvecOp>(
+      if (succeeded(lowerDotOp<DotGeneralOp, linalg::MatvecOp>(
               rewriter, getTypeConverter(), op, adaptor)))
         return success();
-      if (succeeded(lowerDotOp<DotGeneralOp, OpAdaptor, linalg::VecmatOp>(
+      if (succeeded(lowerDotOp<DotGeneralOp, linalg::VecmatOp>(
               rewriter, getTypeConverter(), op, adaptor)))
         return success();
-      if (succeeded(lowerDotOp<DotGeneralOp, OpAdaptor, linalg::DotOp>(
+      if (succeeded(lowerDotOp<DotGeneralOp, linalg::DotOp>(
               rewriter, getTypeConverter(), op, adaptor)))
         return success();
       std::string str;
