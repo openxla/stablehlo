@@ -271,59 +271,23 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
 
-TensorV1Attr getEmptyI64Tensor(OpBuilder& builder) {
-  auto shape = vhlo::RankedTensorV1Type::get(
-      builder.getContext(), {0},
-      vhlo::IntegerSI64V1Type::get(builder.getContext()), {});
-  return vhlo::TensorV1Attr::get(builder.getContext(), shape, {});
+TensorV1Attr getDefaultPadding(OpBuilder& builder, Value lhs) {
+  auto lhsType = dyn_cast<RankedTensorV1Type>(lhs.getType());
+  if (!lhsType) return TensorV1Attr();
+
+  // Convert to DenseElements for getRawData handling.
+  int64_t rankMinusTwo = lhsType.getShape().size() - 2;
+  auto denseElements = DenseIntElementsAttr::get(
+      RankedTensorType::get({rankMinusTwo, 2}, builder.getI64Type()),
+      SmallVector<int64_t>(rankMinusTwo * 2, 0ll));
+
+  return TensorV1Attr::get(
+      builder.getContext(),
+      RankedTensorV1Type::get(builder.getContext(), {rankMinusTwo, 2},
+                              IntegerSI64V1Type::get(builder.getContext()),
+                              nullptr),
+      denseElements.getRawData());
 }
-
-struct DynamicConvOpV2ToV1 : public OpRewritePattern<DynamicConvOpV2> {
-  using OpRewritePattern<DynamicConvOpV2>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(DynamicConvOpV2 op,
-                                PatternRewriter& rewriter) const override {
-    auto shape =
-        cast<mlir::vhlo::RankedTensorV1Type>(op.getDPadding().getType())
-            .getShape();
-    int64_t size = std::accumulate(shape.begin(), shape.end(), 1,
-                                   std::multiplies<int64_t>());
-    auto padding = DenseIntElementsAttr::get(
-        RankedTensorType::get({static_cast<int64_t>(shape.size()), 2},
-                              rewriter.getI64Type()),
-        SmallVector<int64_t>(size, 1ll));
-    rewriter.replaceOpWithNewOp<DynamicConvOpV1>(
-        op, op->getResultTypes(), op.getLhs(), op.getRhs(), op.getDPadding(),
-        op.getWindowStrides(), padding, op.getLhsDilation(),
-        op.getRhsDilation(), op.getWindowReversal(),
-        op.getInputBatchDimension(), op.getInputFeatureDimension(),
-        op.getInputSpatialDimensions(), op.getKernelInputFeatureDimension(),
-        op.getKernelOutputFeatureDimension(), op.getKernelSpatialDimensions(),
-        op.getOutputBatchDimension(), op.getOutputFeatureDimension(),
-        op.getOutputSpatialDimensions(), op.getFeatureGroupCount(),
-        op.getBatchGroupCount(), op.getPrecisionConfig());
-    return success();
-  }
-};
-
-struct DynamicConvOpV1ToV2 : public OpRewritePattern<DynamicConvOpV1> {
-  using OpRewritePattern<DynamicConvOpV1>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(DynamicConvOpV1 op,
-                                PatternRewriter& rewriter) const override {
-    rewriter.replaceOpWithNewOp<DynamicConvOpV2>(
-        op, op->getResultTypes(), op.getLhs(), op.getRhs(), op.getDPadding(),
-        op.getWindowStrides(), op.getLhsDilation(), op.getRhsDilation(),
-        op.getWindowReversal(), op.getInputBatchDimension(),
-        op.getInputFeatureDimension(), op.getInputSpatialDimensions(),
-        op.getKernelInputFeatureDimension(),
-        op.getKernelOutputFeatureDimension(), op.getKernelSpatialDimensions(),
-        op.getOutputBatchDimension(), op.getOutputFeatureDimension(),
-        op.getOutputSpatialDimensions(), op.getFeatureGroupCount(),
-        op.getBatchGroupCount(), op.getPrecisionConfig());
-    return success();
-  }
-};
 
 #include "stablehlo/transforms/VhloToVersionPatterns.h.inc"
 
@@ -337,7 +301,6 @@ void populateVhloToVersionPatterns(RewritePatternSet* patterns,
   // Currently empty because we're starting from a clean slate in v0.9.0 and
   // changes so far are additive.
   vhlo::populateWithGenerated(*patterns);
-  patterns->add<vhlo::DynamicConvOpV1ToV2, vhlo::DynamicConvOpV2ToV1>(context);
 }
 
 }  // namespace stablehlo
