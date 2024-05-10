@@ -429,8 +429,8 @@ int64_t getBroadcastSizes(BroadcastInDimOp op) {
 
 template <typename OpTy>
 LogicalResult lowerSimpleBroadcast(ConversionPatternRewriter &rewriter,
-                               const TypeConverter *typeConverter, OpTy op,
-                               typename OpTy::Adaptor adaptor) {
+                                   const TypeConverter *typeConverter, OpTy op,
+                                   typename OpTy::Adaptor adaptor) {
   auto resultTy = typeConverter->convertType<ShapedType>(op.getType());
   if (!resultTy)
     return rewriter.notifyMatchFailure(op, "type conversion failed");
