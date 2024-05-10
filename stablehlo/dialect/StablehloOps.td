@@ -3449,7 +3449,7 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
 
     Example:
     ```mlir
-    %slice_sizes = stablehlo.constant dense<[1, 2, 2]> : tensor<3xi32>
+    %slice_sizes = stablehlo.constant dense<[1, 2, 2]> : tensor<3xi64>
     %result = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
       dimension_numbers = #stablehlo.gather<
         offset_dims = [2, 3],
@@ -3457,7 +3457,7 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
         start_index_map = [0, 2],
         index_vector_dim = 2>,
       indices_are_sorted = false
-    } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<2x3x2x2xi32>
+    } : (tensor<3x4x2xi64>, tensor<2x3x2xi64>, tensor<3xi64>) -> tensor<2x3x2x2xi64>
     ```
   }];
 
