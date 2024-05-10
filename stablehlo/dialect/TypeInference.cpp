@@ -4055,7 +4055,7 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
   auto inputType = cast<RankedTensorType>(operand.getType());
   int inputRank = inputType.getRank();
 
-  /*dynamic_pad_c2*/
+  // dynamic_pad_c2
   // edgePaddingLow, edgePaddingHigh and interiorPadding are enforced to have
   // the same size by ODS
   auto paddingLowType = cast<RankedTensorType>(edgePaddingLow.getType());
@@ -4064,7 +4064,7 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
     return emitOptionalError(location, "padding operands size (", paddingSize,
                              ") must match operand rank (", inputRank, ")");
 
-  /*dynamic_pad_c3*/
+  // dynamic_pad_c3
   SmallVector<int64_t> interiorPaddingValues;
   auto interiorPaddingMatched =
       matchInts(interiorPadding, interiorPaddingValues);
@@ -4082,11 +4082,12 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
 
   SmallVector<int64_t> edgePaddingLowValues;
   if (failed(matchInts(edgePaddingLow, edgePaddingLowValues))) return success();
+
   SmallVector<int64_t> edgePaddingHighValues;
   if (failed(matchInts(edgePaddingHigh, edgePaddingHighValues)))
     return success();
 
-  /*dynamic_pad_c4*/
+  // dynamic_pad_c4
   for (auto [i, in, out, low, high, interior] : llvm::enumerate(
            inputType.getShape(), outputType.getShape(), edgePaddingLowValues,
            edgePaddingHighValues, interiorPaddingValues)) {

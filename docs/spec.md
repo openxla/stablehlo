@@ -2973,7 +2973,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 This operation is functionally identical to
 [pad](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad)
-op, but with `edge_padding_low`, `edge_padding_high` and `interior_padding`
+op, but with `edge_padding_low`, `edge_padding_high`, and `interior_padding`
 specified dynamically as values.
 
 #### Inputs
@@ -3015,7 +3015,7 @@ specified dynamically as values.
 // %interior_padding: [1, 2]
 %result = "stablehlo.dynamic_pad"(%operand, %padding_value,
   %edge_padding_low, %edge_padding_high, %interior_padding
-) : (tensor<2x3xi32>, tensor<i32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<5x9xi32>
+) : (tensor<2x3xi64>, tensor<i64>, tensor<2xi64>, tensor<2xi64>, tensor<2xi64>) -> tensor<5x9xi64>
 // %result: [
 //           [0, 1, 0, 0, 2, 0, 0, 3, 0],
 //           [0, 0, 0, 0, 0, 0, 0, 0, 0],
