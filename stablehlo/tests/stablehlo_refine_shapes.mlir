@@ -874,7 +874,6 @@ func.func @refine_while(%arg0: tensor<4xf32>) -> tensor<?xf32> {
 // -----
 
 // TODO: Implement support for these ops.
-// * dynamic_conv (#867).
 // * dynamic_fft (#1366).
 // * dynamic_reduce_window (#1258).
 // * dynamic_rng_bit_generator (#1344).
