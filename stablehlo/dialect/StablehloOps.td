@@ -3457,14 +3457,14 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
         start_index_map = [0, 2],
         index_vector_dim = 2>,
       indices_are_sorted = false
-    } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi64>) -> tensor<2x3x2x2xi32>
+    } : (tensor<3x4x2xi64>, tensor<2x3x2xi64>, tensor<3xi64>) -> tensor<2x3x2x2xi64>
     ```
   }];
 
   let arguments = (ins
     HLO_Tensor:$operand /*dynamic_gather_i1*/,
     HLO_IntTensor:$start_indices /*dynamic_gather_i2*/,
-    HLO_StaticIDIntTensor:$slice_sizes /*dynamic_gather_i3*/,
+    HLO_Static1DIntTensor:$slice_sizes /*dynamic_gather_i3*/,
     StableHLO_GatherDimensionNumbers:$dimension_numbers /*dynamic_gather_i3, dynamic_gather_i4, dynamic_gather_i5, dynamic_gather_i6, dynamic_gather_i7*/,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*dynamic_gather_i8*/
   );
