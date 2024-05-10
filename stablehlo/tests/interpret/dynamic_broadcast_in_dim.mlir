@@ -7,7 +7,7 @@ func.func @broadcast_in_dim() {
   broadcast_dimensions = array<i64: 0, 2>,
   known_expanding_dimensions = array<i64: 1>,
   known_non_expanding_dimensions = array<i64: 0>
-} : (tensor<3x1xi64>, tensor<3xi64>) -> tensor<3x2x2xi64> 
+} : (tensor<3x1xi64>, tensor<3xi64>) -> tensor<3x2x2xi64>
   check.expect_eq_const %result, dense<[
                                         [
                                           [1, 1],

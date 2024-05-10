@@ -3991,7 +3991,8 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   collectExpansionBehaviorDims(knownExpandingDimensions);
   collectExpansionBehaviorDims(knownNonexpandingDimensions);
 
-  // dynamic_broadcast_in_dim_c8, dynamic_broadcast_in_dim_c9, dynamic_broadcast_in_dim_c10
+  // dynamic_broadcast_in_dim_c8, dynamic_broadcast_in_dim_c9,
+  // dynamic_broadcast_in_dim_c10
   if (knownExpansionBehavior.size() != numKnownExpansionBehavior)
     return emitOptionalError(
         location,
