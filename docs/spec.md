@@ -331,7 +331,7 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
   ([#3](https://github.com/openxla/stablehlo/issues/3)).
 * "Dynamism" category of StableHLO operations - they were bootstrapped from
    MHLO,and we are in the process of speccing them: `dynamic_broadcast_in_dim`,
-  `dynamic_conv`, `dynamic_gather`, `real_dynamic_slice`, `set_dimension_size`.
+  `dynamic_conv`, `real_dynamic_slice`, `set_dimension_size`.
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
 * Shape computations, including `arith`, `shape` and `tensor` operations
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
@@ -2633,6 +2633,95 @@ planning to address this in
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dot_general.mlir)
+
+### dynamic_gather
+
+#### Semantics
+
+This operation is functionally identical to
+[iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
+op, with the `slice_sizes` specified dynamically as a value.
+
+#### Inputs
+
+| Label | Name                   | Type                                         | Constraints                  |
+|-------|------------------------|----------------------------------------------|------------------------------|
+| (I1)  | `operand`              | tensor or per-tensor quantized tensor        | (C1), (C7), (C10-C12), (C14) |
+| (I2)  | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)            |
+| (I3)  | `slice_sizes`          | 1-dimensional tensor of integer type         | (C8), (C11-C13)              |
+| (I4)  | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4-C5), (C13)         |
+| (I5)  | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6-C8), (C13)         |
+| (I6)  | `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)            |
+| (I7)  | `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13)            |
+| (I8)  | `indices_are_sorted`   | constant of type `i1`                        |                              |
+
+#### Outputs
+
+| Name     | Type                                  | Constraints     |
+|----------|---------------------------------------|-----------------|
+| `result` | tensor or per-tensor quantized tensor | (C5), (C13-C14) |
+
+#### Constraints
+
+* (C1) `rank(operand) = size(offset_dims) + size(collapsed_slice_dims)`.
+* (C2) `0 <= index_vector_dim <= rank(start_indices)`.
+* (C3) `size(start_index_map) =
+       index_vector_dim < rank(start_indices) ?
+       dim(start_indices, index_vector_dim) : 1`.
+* (C4) `is_unique(offset_dims) and is_sorted(offset_dims)`.
+* (C5) `0 <= offset_dims < rank(result)`.
+* (C6) `is_unique(collapsed_slice_dims) and is_sorted(collapsed_slice_dims)`.
+* (C7) `0 <= collapsed_slice_dims < rank(operand)`.
+* (C8) `slice_sizes[collapsed_slice_dims...] <= 1`.
+* (C9) `is_unique(start_index_map)`.
+* (C10) `0 <= start_index_map < rank(operand)`.
+* (C11) `size(slice_sizes) = rank(operand)`.
+* (C12) `0 <= slice_sizes <= shape(operand)`.
+* (C13) `shape(result) = combine(batch_dim_sizes, offset_dim_sizes)` where:
+  * `batch_dim_sizes = shape(start_indices)` except that the dimension size
+    of `start_indices` corresponding to `index_vector_dim` is not included.
+  * `offset_dim_sizes = shape(slice_sizes)` except that the dimension sizes
+    in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
+  * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
+   `offset_dim_sizes` at axes corresponding to `offset_dims`.
+* (C14) `element_type(operand) = element_type(result)`.
+
+#### Examples
+
+```mlir
+// %operand: [
+//            [[1, 2], [3, 4], [5, 6], [7, 8]],
+//            [[9, 10],[11, 12], [13, 14], [15, 16]],
+//            [[17, 18], [19, 20], [21, 22], [23, 24]]
+//           ]
+// %start_indices: [
+//                  [[0, 0], [1, 0], [2, 1]],
+//                  [[0, 1], [1, 1], [0, 2]]
+//                 ]
+// %slize_sizes: [1, 2, 2]
+%result = "stablehlo.dynamic_gather"(%operand, %start_indices, %slize_sizes) {
+  dimension_numbers = #stablehlo.gather<
+    offset_dims = [2, 3],
+    collapsed_slice_dims = [0],
+    start_index_map = [1, 0],
+    index_vector_dim = 2>,
+  indices_are_sorted = false
+} : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<2x3x2x2xi32>
+// %result: [
+//            [
+//              [[1, 2], [3, 4]],
+//              [[3, 4], [5, 6]],
+//              [[13, 14], [15, 16]]
+//            ],
+//            [
+//              [[9, 10], [11, 12]],
+//              [[11, 12], [13, 14]],
+//              [[17, 18], [19, 20]]
+//            ]
+//          ]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_gather.mlir)
 
 ### dynamic_iota
 

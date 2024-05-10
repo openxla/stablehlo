@@ -587,6 +587,17 @@ SmallVector<InterpreterValue> eval(Region &region,
           lhs, rhs, lhsBatchingDimensions, rhsBatchingDimensions,
           lhsContractingDimensions, rhsContractingDimensions, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicGatherOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto startIndices = scope.findTensor(op.getStartIndices());
+      auto sliceSizes = scope.findTensor(op.getSliceSizes());
+      auto result = gatherOp(
+          operand, startIndices, Axes(op.getDimensionNumbers().getOffsetDims()),
+          Axes(op.getDimensionNumbers().getCollapsedSliceDims()),
+          Axes(op.getDimensionNumbers().getStartIndexMap()),
+          Axis(op.getDimensionNumbers().getIndexVectorDim()),
+          makeSizes(sliceSizes), op.getIndicesAreSorted(), op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicIotaOp>(operation)) {
       auto iotaDimension = op.getIotaDimension();
       auto result = iotaOp(iotaDimension, op.getType());
