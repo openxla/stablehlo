@@ -19,7 +19,9 @@ limitations under the License.
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/conversions/tosa/transforms/Passes.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -90,91 +92,107 @@ struct ConvertStablehloConcatenateOp
   }
 };
 
+template <typename DotOpTy>
+LogicalResult rewriteSimpleDotOp(DotOpTy op, PatternRewriter& rewriter) {
+  auto lhsType = op.getLhs().getType();
+  auto rhsType = op.getRhs().getType();
+
+  auto resultType = op.getType();
+  if (!resultType) {
+    return rewriter.notifyMatchFailure(op, "result tensor does not have shape");
+  }
+
+  if (lhsType.getElementType() != rhsType.getElementType()) {
+    return rewriter.notifyMatchFailure(op,
+                                       "lhs and rhs element types must match");
+  }
+
+  auto lhsShape = lhsType.getShape();
+  auto rhsShape = rhsType.getShape();
+  auto resultShape = resultType.getShape();
+  llvm::SmallVector<int64_t, 3> lhsReshape;
+  llvm::SmallVector<int64_t, 3> rhsReshape;
+  llvm::SmallVector<int64_t, 3> matMulShape;
+
+  // tosa.matmul requires input tensors to have a rank of 3, so lhs and rhs
+  // need to be reshaped first.
+  if (lhsType.getRank() == 1) {
+    // Reshape lhs to [1, 1, N].
+    lhsReshape = {1, 1, lhsShape[0]};
+    if (rhsType.getRank() == 1) {
+      // Reshape rhs to [1, N, 1].
+      rhsReshape = {1, rhsShape[0], 1};
+      // MatMul shape is [1, 1, 1].
+      matMulShape = {1, 1, 1};
+    } else if (rhsType.getRank() == 2) {
+      // Reshape rhs to [1, N, K].
+      rhsReshape = {1, rhsShape[0], rhsShape[1]};
+      // MatMul shape is [1, 1, K].
+      matMulShape = {1, 1, rhsShape[1]};
+    } else {
+      return rewriter.notifyMatchFailure(op, "rhs must have rank of 1 or 2");
+    }
+  } else if (lhsType.getRank() == 2) {
+    // Reshape lhs to [1, M, K].
+    lhsReshape = {1, lhsShape[0], lhsShape[1]};
+    if (rhsType.getRank() == 1) {
+      // Reshape rhs to [1, K, 1].
+      rhsReshape = {1, rhsShape[0], 1};
+      // MatMul shape is [1, M, 1].
+      matMulShape = {1, lhsShape[0], 1};
+    } else if (rhsType.getRank() == 2) {
+      // Reshape rhs to [1, K, N].
+      rhsReshape = {1, rhsShape[0], rhsShape[1]};
+      // MatMul shape is [1, M, N].
+      matMulShape = {1, lhsShape[0], rhsShape[1]};
+    } else {
+      return rewriter.notifyMatchFailure(op, "rhs must have rank of 1 or 2");
+    }
+  } else {
+    return rewriter.notifyMatchFailure(op, "lhs must have rank of 1 or 2");
+  }
+
+  auto lhsReshapeType =
+      RankedTensorType::get(lhsReshape, lhsType.getElementType());
+  auto lhsReshapeOp = rewriter.create<tosa::ReshapeOp>(
+      op->getLoc(), lhsReshapeType, op.getLhs(),
+      rewriter.getDenseI64ArrayAttr(lhsReshape));
+
+  auto rhsReshapeType =
+      RankedTensorType::get(rhsReshape, rhsType.getElementType());
+  auto rhsReshapeOp = rewriter.create<tosa::ReshapeOp>(
+      op->getLoc(), rhsReshapeType, op.getRhs(),
+      rewriter.getDenseI64ArrayAttr(rhsReshape));
+
+  auto matMulType =
+      RankedTensorType::get(matMulShape, lhsType.getElementType());
+  auto matMulOp = rewriter.create<tosa::MatMulOp>(op->getLoc(), matMulType,
+                                                  lhsReshapeOp, rhsReshapeOp);
+
+  // Reshape the matmul result back to the original result shape.
+  rewriter.replaceOpWithNewOp<tosa::ReshapeOp>(
+      op, resultType, matMulOp, rewriter.getDenseI64ArrayAttr(resultShape));
+  return success();
+}
+
 struct ConvertStablehloDotOp : public OpRewritePattern<stablehlo::DotOp> {
   using OpRewritePattern<stablehlo::DotOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(stablehlo::DotOp op,
                                 PatternRewriter& rewriter) const override {
-    auto lhsType = op.getLhs().getType();
-    auto rhsType = op.getRhs().getType();
+    return rewriteSimpleDotOp(op, rewriter);
+  }
+};
 
-    auto resultType = op.getType();
-    if (!resultType) {
-      return rewriter.notifyMatchFailure(op,
-                                         "result tensor does not have shape");
-    }
+struct ConvertStablehloDotGeneralOp
+    : public OpRewritePattern<stablehlo::DotGeneralOp> {
+  using OpRewritePattern<stablehlo::DotGeneralOp>::OpRewritePattern;
 
-    if (lhsType.getElementType() != rhsType.getElementType()) {
-      return rewriter.notifyMatchFailure(
-          op, "lhs and rhs element types must match");
-    }
-
-    auto lhsShape = lhsType.getShape();
-    auto rhsShape = rhsType.getShape();
-    auto resultShape = resultType.getShape();
-    llvm::SmallVector<int64_t, 3> lhsReshape;
-    llvm::SmallVector<int64_t, 3> rhsReshape;
-    llvm::SmallVector<int64_t, 3> matMulShape;
-
-    // tosa.matmul requires input tensors to have a rank of 3, so lhs and rhs
-    // need to be reshaped first.
-    if (lhsType.getRank() == 1) {
-      // Reshape lhs to [1, 1, N].
-      lhsReshape = {1, 1, lhsShape[0]};
-      if (rhsType.getRank() == 1) {
-        // Reshape rhs to [1, N, 1].
-        rhsReshape = {1, rhsShape[0], 1};
-        // MatMul shape is [1, 1, 1].
-        matMulShape = {1, 1, 1};
-      } else if (rhsType.getRank() == 2) {
-        // Reshape rhs to [1, N, K].
-        rhsReshape = {1, rhsShape[0], rhsShape[1]};
-        // MatMul shape is [1, 1, K].
-        matMulShape = {1, 1, rhsShape[1]};
-      } else {
-        return rewriter.notifyMatchFailure(op, "rhs must have rank of 1 or 2");
-      }
-    } else if (lhsType.getRank() == 2) {
-      // Reshape lhs to [1, M, K].
-      lhsReshape = {1, lhsShape[0], lhsShape[1]};
-      if (rhsType.getRank() == 1) {
-        // Reshape rhs to [1, K, 1].
-        rhsReshape = {1, rhsShape[0], 1};
-        // MatMul shape is [1, M, 1].
-        matMulShape = {1, lhsShape[0], 1};
-      } else if (rhsType.getRank() == 2) {
-        // Reshape rhs to [1, K, N].
-        rhsReshape = {1, rhsShape[0], rhsShape[1]};
-        // MatMul shape is [1, M, N].
-        matMulShape = {1, lhsShape[0], rhsShape[1]};
-      } else {
-        return rewriter.notifyMatchFailure(op, "rhs must have rank of 1 or 2");
-      }
-    } else {
-      return rewriter.notifyMatchFailure(op, "lhs must have rank of 1 or 2");
-    }
-
-    auto lhsReshapeType =
-        RankedTensorType::get(lhsReshape, lhsType.getElementType());
-    auto lhsReshapeOp = rewriter.create<tosa::ReshapeOp>(
-        op->getLoc(), lhsReshapeType, op.getLhs(),
-        rewriter.getDenseI64ArrayAttr(lhsReshape));
-
-    auto rhsReshapeType =
-        RankedTensorType::get(rhsReshape, rhsType.getElementType());
-    auto rhsReshapeOp = rewriter.create<tosa::ReshapeOp>(
-        op->getLoc(), rhsReshapeType, op.getRhs(),
-        rewriter.getDenseI64ArrayAttr(rhsReshape));
-
-    auto matMulType =
-        RankedTensorType::get(matMulShape, lhsType.getElementType());
-    auto matMulOp = rewriter.create<tosa::MatMulOp>(op->getLoc(), matMulType,
-                                                    lhsReshapeOp, rhsReshapeOp);
-
-    // Reshape the matmul result back to the original result shape.
-    rewriter.replaceOpWithNewOp<tosa::ReshapeOp>(
-        op, resultType, matMulOp, rewriter.getDenseI64ArrayAttr(resultShape));
-    return success();
+  LogicalResult matchAndRewrite(stablehlo::DotGeneralOp op,
+                                PatternRewriter& rewriter) const override {
+    if (!op.isSimpleDot())
+      return rewriter.notifyMatchFailure(op, "only simple dot op supported");
+    return rewriteSimpleDotOp(op, rewriter);
   }
 };
 
@@ -461,6 +479,8 @@ LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
   patternList.addWithLabel<ConvertStablehloConcatenateOp>(
       {"StablehloConcatenate"}, ctx);
   patternList.addWithLabel<ConvertStablehloDotOp>({"StablehloDot"}, ctx);
+  patternList.addWithLabel<ConvertStablehloDotGeneralOp>(
+      {"StablehloDotGeneral"}, ctx);
   patternList.addWithLabel<ConvertStablehloGatherOp>({"StablehloGather"}, ctx);
   patternList.addWithLabel<ConvertStablehloIotaOp>({"StablehloIota"}, ctx);
   patternList.addWithLabel<ConvertStablehloReduceOp>({"StablehloReduce"}, ctx);
