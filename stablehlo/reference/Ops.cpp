@@ -593,6 +593,49 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto result =
           broadcastInDimOp(operand, broadcastDimensions, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicConvOp>(operation)) {
+      auto lhs = scope.findTensor(op.getLhs());
+      auto rhs = scope.findTensor(op.getRhs());
+      auto dPadding = scope.findTensor(op.getDPadding());
+      auto rank = lhs.getRank();
+
+      SmallVector<int64_t> windowStrides(rank - 2, 1);
+      if (auto windowStridesAttr = op.getWindowStrides())
+        windowStrides = SmallVector<int64_t>(windowStridesAttr.value());
+
+      SmallVector<int64_t> lhsDilation(rank - 2, 1);
+      if (auto lhsDilationAttr = op.getLhsDilation())
+        lhsDilation = SmallVector<int64_t>(lhsDilationAttr.value());
+
+      SmallVector<int64_t> rhsDilation(rank - 2, 1);
+      if (auto rhsDilationAttr = op.getRhsDilation())
+        rhsDilation = SmallVector<int64_t>(rhsDilationAttr.value());
+
+      SmallVector<bool> windowReversal(rank - 2, false);
+      if (auto windowReversalAttr = op.getWindowReversal())
+        windowReversal = SmallVector<bool>(windowReversalAttr.value());
+
+      auto dimensionNumbers = op.getDimensionNumbers();
+      SmallVector<std::pair<int64_t, int64_t>> padding;
+      for (auto it = dPadding.index_begin(); it != dPadding.index_end(); ++it) {
+        auto paddingLow = dPadding.get(*it).getIntegerValue().getSExtValue();
+        auto paddingHigh =
+            dPadding.get(*(++it)).getIntegerValue().getSExtValue();
+        padding.push_back({paddingLow, paddingHigh});
+      }
+      auto result = convolutionOp(
+          lhs, rhs, windowStrides, padding, lhsDilation, rhsDilation,
+          windowReversal, dimensionNumbers.getInputBatchDimension(),
+          dimensionNumbers.getInputFeatureDimension(),
+          Axes(dimensionNumbers.getInputSpatialDimensions()),
+          dimensionNumbers.getKernelInputFeatureDimension(),
+          dimensionNumbers.getKernelOutputFeatureDimension(),
+          Axes(dimensionNumbers.getKernelSpatialDimensions()),
+          dimensionNumbers.getOutputBatchDimension(),
+          dimensionNumbers.getOutputFeatureDimension(),
+          Axes(dimensionNumbers.getOutputSpatialDimensions()),
+          op.getFeatureGroupCount(), op.getBatchGroupCount(), op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicGatherOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto startIndices = scope.findTensor(op.getStartIndices());

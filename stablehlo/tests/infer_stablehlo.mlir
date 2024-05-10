@@ -259,7 +259,7 @@ func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
 
 // The following tests checks the inferred output-type of ConvolutionOp. We
 // deliberately put an invalid output-type in these tests so that the
-// inffered-type can be highlighted in the error message.
+// inferred-type can be highlighted in the error message.
 
 // Dynamic input-batch-dimension
 func.func @invalid_conv_dynamic_shapes(%arg0: tensor<?x8x8x207xf32>,

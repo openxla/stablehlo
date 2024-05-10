@@ -520,6 +520,25 @@ func.func @broadcast(%arg: tensor<4x?x16xf32>) -> tensor<4x2x1x4x?x16xf32> {
 
 // -----
 
+// CHECK-DAG: #[[OPERAND_MAP:.+]] = affine_map<(d0, d1, d2, d3, d4, d5) -> (d3, d4, d5)>
+// CHECK-DAG: #[[RESULT_MAP:.+]] = affine_map<(d0, d1, d2, d3, d4, d5) -> (d0, d1, d2, d3, d4, d5)>
+// CHECK: func @broadcast
+func.func @broadcast_in_dim_as_broadcast(%arg: tensor<4x3x16xf32>) -> tensor<4x2x1x4x3x16xf32> {
+  %0 = stablehlo.broadcast_in_dim %arg, dims = [3, 4, 5] : (tensor<4x3x16xf32>) -> tensor<4x2x1x4x3x16xf32>
+  func.return %0: tensor<4x2x1x4x3x16xf32>
+}
+// CHECK: %{{.*}} = tensor.empty() : tensor<4x2x1x4x3x16xf32>
+// CHECK: linalg.generic {{{.*}}indexing_maps = [#[[OPERAND_MAP]], #[[RESULT_MAP]]]
+// CHECK-NEXT: ^bb0(%[[OPERAND:.*]]: f32, %{{.*}}: f32):
+// CHECK-NEXT:   linalg.yield %[[OPERAND]] : f32
+
+// CHECK-PRIMITIVE-LABEL: func @broadcast
+// CHECK-PRIMITIVE: %{{.*}} = tensor.empty() : tensor<4x2x1x4x3x16xf32>
+// CHECK-PRIMITIVE: linalg.broadcast
+// CHECK-PRIMITIVE:   dimensions = [0, 1, 2]
+
+// -----
+
 // CHECK: #[[RESULT_MAP:.*]] = affine_map<(d0, d1) -> (d0, d1)>
 // CHECK: func @iota_f32
 func.func @iota_f32() -> tensor<7x10xf32> {

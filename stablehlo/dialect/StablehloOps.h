@@ -129,8 +129,21 @@ void printWindowAttributes(OpAsmPrinter &p, Operation *op,
                            std::optional<Attribute> rhsDilation,
                            std::optional<Attribute> windowReversal);
 
+// TODO(#2216) Cleanup Attribute -> DenseArrayAttr for print/parse.
+// Custom formatting for convolution window attributes.
+void printWindowAttributes(OpAsmPrinter &p, Operation *op,
+                           std::optional<Attribute> windowStrides,
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal);
+
 ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
                                   DenseIntElementsAttr &padding,
+                                  Attribute &lhsDilation,
+                                  Attribute &rhsDilation,
+                                  Attribute &windowReversal);
+
+ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
                                   Attribute &lhsDilation,
                                   Attribute &rhsDilation,
                                   Attribute &windowReversal);
@@ -143,6 +156,11 @@ ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
 
 namespace mlir {
 namespace stablehlo {
+
+// Returns the broadcast_dimensions for a BroadcastInDimOp from the
+// result_type and broadcast_sizes from a BroadcastOp.
+DenseI64ArrayAttr getBroadcastDimensionsFromBroadcastSizes(
+    RankedTensorType resultType, DenseI64ArrayAttr broadcastSizes);
 
 // Returns the dimension numbers for a DotGeneral op that can be expressed as
 // a DotOp, given the LHS of such an operation.

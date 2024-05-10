@@ -316,6 +316,21 @@ gentbl_cc_library(
     ],
 )
 
+gentbl_cc_library(
+    name = "vhlo_rewriters_inc_gen",
+    tbl_outs = [
+        (
+            ["--gen-rewriters"],
+            "stablehlo/transforms/VhloToVersionPatterns.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/transforms/VhloToVersionPatterns.td",
+    deps = [
+        ":vhlo_ops_td_files",
+    ],
+)
+
 cc_library(
     name = "interpreter_ops",
     srcs = [
@@ -983,6 +998,7 @@ cc_library(
         ":stablehlo_type_inference",
         ":version",
         ":vhlo_ops",
+        ":vhlo_rewriters_inc_gen",
         ":vhlo_types",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithDialect",
