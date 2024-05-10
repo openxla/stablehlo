@@ -28,7 +28,7 @@ def GetDefaultDotDimensionNumbers : NativeCodeCall<
   "getDefaultDotDimensionNumbers($0)">;
 
 def GetDefaultBroadcastDimensions : NativeCodeCall<
-  "getBroadcastDimensions(cast<RankedTensorType>($0.getType()), cast<DenseI64ArrayAttr>($1))">;
+  "getBroadcastDimensionsFromBroadcastSizes(cast<RankedTensorType>($0.getType()), cast<DenseI64ArrayAttr>($1))">;
 
 
 // Here, the element type can be any integer or float type. But, note that only

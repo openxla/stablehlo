@@ -419,6 +419,41 @@ struct BroadcastConverter final
   }
 };
 
+template <typename OpTy>
+int64_t getBroadcastSizes(OpTy op) {
+  if constexpr (std::is_same<OpTy, BroadcastOp>::value)
+    return op.getBroadcastSizes().size();
+  if constexpr (std::is_same<OpTy, BroadcastInDimOp>::value)
+    return op.getType().getRank() - op.getBroadcastDimensions().size();
+  std::string str;
+  llvm::raw_string_ostream os(str);
+  os << "getBroadcastSizes called on non-broadcast op: ";
+  op.print(os);
+  llvm::report_fatal_error(str.c_str());
+}
+
+template <typename OpTy, typename OpAdaptor>
+LogicalResult lowerBroadcastOp(ConversionPatternRewriter &rewriter,
+                               const TypeConverter *typeConverter, OpTy op,
+                               OpAdaptor adaptor) {
+  auto resultTy = typeConverter->convertType<ShapedType>(op.getType());
+  if (!resultTy)
+    return rewriter.notifyMatchFailure(op, "type conversion failed");
+
+  int64_t numPrependedDims = getBroadcastSizes(op);
+  SmallVector<int64_t> dimensions =
+      llvm::to_vector(llvm::seq<int64_t>(0, numPrependedDims));
+
+  Location loc = op.getLoc();
+  Value emptyTensor =
+      getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
+
+  rewriter.replaceOpWithNewOp<linalg::BroadcastOp>(
+      op, op.getOperand(), emptyTensor, dimensions,
+      linalg::getPrunedAttributeList(op));
+  return success();
+}
+
 struct BroadcastOpToBroadcastConverter final
     : OpConversionPattern<mlir::stablehlo::BroadcastOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -426,22 +461,7 @@ struct BroadcastOpToBroadcastConverter final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::BroadcastOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto resultTy = getTypeConverter()->convertType<ShapedType>(op.getType());
-    if (!resultTy)
-      return rewriter.notifyMatchFailure(op, "type conversion failed");
-
-    int64_t numPrependedDims = op.getBroadcastSizes().size();
-    SmallVector<int64_t> dimensions =
-        llvm::to_vector(llvm::seq<int64_t>(0, numPrependedDims));
-
-    Location loc = op.getLoc();
-    Value emptyTensor =
-        getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
-
-    rewriter.replaceOpWithNewOp<linalg::BroadcastOp>(
-        op, op.getOperand(), emptyTensor, dimensions,
-        linalg::getPrunedAttributeList(op));
-    return success();
+    return lowerBroadcastOp(rewriter, getTypeConverter(), op, adaptor);
   }
 };
 
@@ -557,6 +577,9 @@ struct BroadcastInDimOpToBroadcastConverter final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::BroadcastInDimOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
+    if (op.isSimpleBroadcast())
+      return lowerBroadcastOp(rewriter, getTypeConverter(), op, adaptor);
+
     Location loc = op.getLoc();
 
     SmallVector<int64_t> broadcastDimensions =

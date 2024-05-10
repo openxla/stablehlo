@@ -122,15 +122,6 @@ DenseElementsAttr getScalarOfType(Type ty, int64_t rawValue) {
   llvm::report_fatal_error("unsupported type");
 }
 
-DenseI64ArrayAttr getBroadcastDimensions(RankedTensorType resultType,
-                                         DenseI64ArrayAttr broadcastSizes) {
-  int64_t operandRank = resultType.getRank() - broadcastSizes.size();
-  auto broadcastDimensions =
-      llvm::map_to_vector(llvm::seq(operandRank),
-                          [&](int64_t i) { return i + broadcastSizes.size(); });
-  return DenseI64ArrayAttr::get(resultType.getContext(), broadcastDimensions);
-}
-
 #include "stablehlo/transforms/StablehloLegalizeDeprecatedOpsPatterns.h.inc"
 }  // namespace
 
