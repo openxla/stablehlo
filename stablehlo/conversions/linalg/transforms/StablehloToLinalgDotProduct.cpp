@@ -107,8 +107,8 @@ struct DotOpConversion final : OpConversionPattern<mlir::stablehlo::DotOp> {
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    return lowerDotOp<DotOp, LinalgOpTy>(
-        rewriter, getTypeConverter(), op, adaptor);
+    return lowerDotOp<DotOp, LinalgOpTy>(rewriter, getTypeConverter(), op,
+                                         adaptor);
   }
 };
 
