@@ -98,6 +98,46 @@ func.func @dot_matrix_matrix(%arg0 : tensor<2x3xf32>, %arg1 : tensor<3x4xf32>) -
   return %0 : tensor<2x4xf32>
 }
 
+// CHECK-LABEL: @dot_general_vector_vector
+func.func @dot_general_vector_vector(%arg0: tensor<3xf32>, %arg1: tensor<3xf32>) -> tensor<f32> {
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.reshape %arg0 {new_shape = array<i64: 1, 1, 3>}
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.reshape %arg1 {new_shape = array<i64: 1, 3, 1>}
+  // CHECK-DAG: %[[VAR2:.*]] = tosa.matmul %[[VAR0]], %[[VAR1]]
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.reshape %[[VAR2]]
+  %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [0] x [0] : (tensor<3xf32>, tensor<3xf32>) -> tensor<f32>
+  return %0 : tensor<f32>
+}
+
+// CHECK-LABEL: @dot_general_vector_matrix
+func.func @dot_general_vector_matrix(%arg0: tensor<2xf32>, %arg1: tensor<2x3xf32>) -> tensor<3xf32> {
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.reshape %arg0 {new_shape = array<i64: 1, 1, 2>}
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.reshape %arg1 {new_shape = array<i64: 1, 2, 3>}
+  // CHECK-DAG: %[[VAR2:.*]] = tosa.matmul %[[VAR0]], %[[VAR1]]
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.reshape %[[VAR2]]
+  %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [0] x [0] : (tensor<2xf32>, tensor<2x3xf32>) -> tensor<3xf32>
+  return %0 : tensor<3xf32>
+}
+
+// CHECK-LABEL: @dot_general_matrix_vector
+func.func @dot_general_matrix_vector(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2xf32> {
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.reshape %arg0 {new_shape = array<i64: 1, 2, 3>}
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.reshape %arg1 {new_shape = array<i64: 1, 3, 1>}
+  // CHECK-DAG: %[[VAR2:.*]] = tosa.matmul %[[VAR0]], %[[VAR1]]
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.reshape %[[VAR2]]
+  %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [1] x [0] : (tensor<2x3xf32>, tensor<3xf32>) -> tensor<2xf32>
+  return %0 : tensor<2xf32>
+}
+
+// CHECK-LABEL: @dot_general_matrix_matrix
+func.func @dot_general_matrix_matrix(%arg0: tensor<2x3xf32>, %arg1: tensor<3x4xf32>) -> tensor<2x4xf32> {
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.reshape %arg0 {new_shape = array<i64: 1, 2, 3>}
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.reshape %arg1 {new_shape = array<i64: 1, 3, 4>}
+  // CHECK-DAG: %[[VAR2:.*]] = tosa.matmul %[[VAR0]], %[[VAR1]]
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.reshape %[[VAR2]]
+  %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [1] x [0] : (tensor<2x3xf32>, tensor<3x4xf32>) -> tensor<2x4xf32>
+  return %0 : tensor<2x4xf32>
+}
+
 // CHECK-LABEL: @gather
 func.func @gather(%arg0 : tensor<3x4x5xi32>, %arg1 : tensor<3x2xi32>) -> tensor<3x2x5xi32> {
   // CHECK: tosa.gather

@@ -1007,16 +1007,6 @@ def VHLO_TorchIndexSelectOpV1 : VHLO_Op<"torch_index_select_v1", "0.9.0", "curre
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#3): TraceOp is not part of the StableHLO spec.
-// This operation is on its way out of StableHLO, so it is not included in
-// the StableHLO specification.
-def VHLO_TraceOpV1 : VHLO_Op<"trace_v1", "0.9.0", "current"> {
-  let arguments = (ins
-    VHLO_AnyType:$operand,
-    VHLO_AnyAttr:$tag
-  );
-}
-
 def VHLO_TransposeOpV1 : VHLO_Op<"transpose_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,

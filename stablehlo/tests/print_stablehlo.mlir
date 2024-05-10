@@ -43,9 +43,7 @@ func.func @zero_input() -> !stablehlo.token {
 
 // CHECK-LABEL: func @zero_output_ret2
 func.func @zero_output_ret2(%arg0 : tensor<3xi64>) -> (tensor<3xi64>, tensor<3xi64>) {
-  // CHECK:      stablehlo.trace %arg0, "This is a test" : tensor<3xi64>
-  // CHECK-NEXT: stablehlo.return %arg0, %arg0 : tensor<3xi64>, tensor<3xi64>
-  "stablehlo.trace"(%arg0) {tag = "This is a test"} : (tensor<3xi64>) -> ()
+  // CHECK: stablehlo.return %arg0, %arg0 : tensor<3xi64>, tensor<3xi64>
   "stablehlo.return"(%arg0, %arg0) : (tensor<3xi64>, tensor<3xi64>) -> ()
 }
 

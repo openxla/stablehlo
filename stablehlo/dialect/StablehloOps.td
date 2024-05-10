@@ -2435,6 +2435,9 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
   let extraClassDeclaration = commonClassDeclaration # [{
     /// Interface method for ConditionallySpeculatable.
     mlir::Speculation::Speculatability getSpeculatability();
+
+    /// Determines if this DotGeneral instance can be expressed as a DotOp.
+    bool isSimpleDot();
   }];
 }
 
@@ -2975,28 +2978,6 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   }];
 }
 
-def StableHLO_TraceOp: StableHLO_Op<"trace"> {
-  let summary = "Trace operation";
-  let description = [{
-    This operation is on its way out of StableHLO, so it is not included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/604.
-
-    It is not used by JAX, PyTorch or TensorFlow, so it looks like we should've
-    classified it as "Private to XLA" and not included it in StableHLO in the
-    first place. With that in mind, its semantics will not be documented here.
-
-    Example:
-    ```mlir
-    stablehlo.trace %arg0, "In test code." : tensor<5x1x5xi32>
-    ```
-  }];
-  let arguments = (ins
-    HLO_Tensor:$operand,
-    StrAttr:$tag
-  );
-  let assemblyFormat = "$operand `,` $tag attr-dict `:` type($operand)";
-}
-
 def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
       [ConditionallySpeculatable, NoMemoryEffect,
       HLO_CompatibleOperandsAndResultElementType, /*transpose_c1*/
@@ -3473,15 +3454,13 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
       InferTensorTypeWithReify]> {
   let summary = "DynamicGather operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
-
-    Informally, this operation does the same thing as GatherOp except
-    that `slice_sizes` are specified dynamically:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather
+    This operation is functionally identical to
+    [iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
+    op, with the `slice_sizes` specified dynamically as an operand.
 
     Example:
     ```mlir
+    %slice_sizes = stablehlo.constant dense<[1, 2, 2]> : tensor<3xi32>
     %result = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
       dimension_numbers = #stablehlo.gather<
         offset_dims = [2, 3],
@@ -3489,16 +3468,16 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
         start_index_map = [0, 2],
         index_vector_dim = 2>,
       indices_are_sorted = false
-    } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi64>) -> tensor<2x3x2x2xi32>
+    } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<2x3x2x2xi32>
     ```
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_IntTensor:$start_indices,
-    HLO_IntTensor:$slice_sizes,
-    StableHLO_GatherDimensionNumbers:$dimension_numbers,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted
+    HLO_Tensor:$operand /*dynamic_gather_i1*/,
+    HLO_IntTensor:$start_indices /*dynamic_gather_i2*/,
+    HLO_StaticDimensionTensor:$slice_sizes /*dynamic_gather_i3*/,
+    StableHLO_GatherDimensionNumbers:$dimension_numbers /*dynamic_gather_i3, dynamic_gather_i4, dynamic_gather_i5, dynamic_gather_i6, dynamic_gather_i7*/,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*dynamic_gather_i8*/
   );
   let results = (outs HLO_Tensor);
 }

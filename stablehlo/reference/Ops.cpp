@@ -593,6 +593,17 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto result =
           broadcastInDimOp(operand, broadcastDimensions, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicGatherOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto startIndices = scope.findTensor(op.getStartIndices());
+      auto sliceSizes = scope.findTensor(op.getSliceSizes());
+      auto result = gatherOp(
+          operand, startIndices, Axes(op.getDimensionNumbers().getOffsetDims()),
+          Axes(op.getDimensionNumbers().getCollapsedSliceDims()),
+          Axes(op.getDimensionNumbers().getStartIndexMap()),
+          Axis(op.getDimensionNumbers().getIndexVectorDim()),
+          makeSizes(sliceSizes), op.getIndicesAreSorted(), op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicIotaOp>(operation)) {
       auto iotaDimension = op.getIotaDimension();
       auto result = iotaOp(iotaDimension, op.getType());
@@ -982,8 +993,6 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto result = tanhOp(operand, op.getType());
       scope.add(op.getResult(), result);
     } else if (isa<TorchIndexSelectOp>(operation)) {
-      failOnDecomposableOp(operation);
-    } else if (isa<TraceOp>(operation)) {
       failOnDecomposableOp(operation);
     } else if (auto op = dyn_cast<TransposeOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());

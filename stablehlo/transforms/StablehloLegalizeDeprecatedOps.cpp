@@ -45,7 +45,7 @@ struct StablehloLegalizeDeprecatedOpsPass final
 
     if (failOnUnusedOps) {
       // Deprecated ops to be removed with no replacements
-      target->addIllegalOp<MapOp, RngOp, TraceOp>();
+      target->addIllegalOp<MapOp, RngOp>();
     }
 
     target->addLegalDialect<StablehloDialect>();
@@ -120,16 +120,6 @@ DenseElementsAttr getScalarOfType(Type ty, int64_t rawValue) {
     }
   }
   llvm::report_fatal_error("unsupported type");
-}
-
-DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value dotOpLhs) {
-  return DotDimensionNumbersAttr::get(
-      dotOpLhs.getContext(),
-      /*lhsBatchingDimensions=*/{},
-      /*rhsBatchingDimensions=*/{},
-      /*lhsContractingDimensions=*/
-      {cast<ShapedType>(dotOpLhs.getType()).getRank() - 1},
-      /*rhsContractingDimensions=*/{0});
 }
 
 DenseI64ArrayAttr getBroadcastDimensions(RankedTensorType resultType,
