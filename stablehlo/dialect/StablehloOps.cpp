@@ -1338,6 +1338,30 @@ LogicalResult BroadcastInDimOp::verify() {
                                      getBroadcastDimensions(), getResult());
 }
 
+// Creates BroadcastInDimOp.broadcast_dimensions from BroadcastOp using the
+// number of broadcast_sizes and the rank of the operand.
+SmallVector<int64_t> getBroadcastDimensionsFromBroadcast(
+    int64_t broadcastSizesSize, int64_t operandRank) {
+  return llvm::to_vector(
+      llvm::seq(broadcastSizesSize, broadcastSizesSize + operandRank));
+}
+
+DenseI64ArrayAttr getBroadcastDimensionsFromBroadcastSizes(
+    RankedTensorType resultType, DenseI64ArrayAttr broadcastSizes) {
+  int64_t broadcastSizesSize = broadcastSizes.size();
+  int64_t operandRank = resultType.getRank() - broadcastSizesSize;
+  return DenseI64ArrayAttr::get(
+      resultType.getContext(),
+      getBroadcastDimensionsFromBroadcast(broadcastSizesSize, operandRank));
+}
+
+bool BroadcastInDimOp::isSimpleBroadcast() {
+  auto operandRank = getOperand().getType().getRank();
+  auto broadcastSizesSize = getType().getRank() - operandRank;
+  return llvm::to_vector(getBroadcastDimensions()) ==
+         getBroadcastDimensionsFromBroadcast(broadcastSizesSize, operandRank);
+}
+
 //===----------------------------------------------------------------------===//
 // DynamicBroadcastInDimOp
 //===----------------------------------------------------------------------===//

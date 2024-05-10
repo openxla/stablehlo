@@ -1944,6 +1944,11 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
     $operand `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
       attr-dict `:` functional-type(operands, results)
   }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Determines if this BroadcastInDim instance can be expressed as a Broadcast.
+    bool isSimpleBroadcast();
+  }];
 }
 
 def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
