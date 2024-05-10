@@ -3454,9 +3454,10 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
   }
 
   // broadcast_in_dim_c6
-  if (isa<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(result.getType())))
-    return verifyBroadcastInDimOpQuantConstraints(location, operand,
-                                                  result, broadcastDimensions);
+  if (isa<quant::UniformQuantizedPerAxisType>(
+          getElementTypeOrSelf(result.getType())))
+    return verifyBroadcastInDimOpQuantConstraints(location, operand, result,
+                                                  broadcastDimensions);
 
   return success();
 }
@@ -3857,9 +3858,10 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   }
 
   // dynamic_broadcast_in_dim_c6
-  if (isa<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(result.getType())))
-    return verifyBroadcastInDimOpQuantConstraints(location, operand,
-                                                  result, broadcastDimensions);
+  if (isa<quant::UniformQuantizedPerAxisType>(
+          getElementTypeOrSelf(result.getType())))
+    return verifyBroadcastInDimOpQuantConstraints(location, operand, result,
+                                                  broadcastDimensions);
 
   return success();
 }

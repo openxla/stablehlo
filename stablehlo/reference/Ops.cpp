@@ -587,13 +587,13 @@ SmallVector<InterpreterValue> eval(Region &region,
           lhs, rhs, lhsBatchingDimensions, rhsBatchingDimensions,
           lhsContractingDimensions, rhsContractingDimensions, op.getType());
       scope.add(op.getResult(), result);
-    }else if (auto op = dyn_cast<DynamicBroadcastInDimOp>(operation)) {
+    } else if (auto op = dyn_cast<DynamicBroadcastInDimOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto broadcastDimensions = Axes(op.getBroadcastDimensions());
       auto result =
           broadcastInDimOp(operand, broadcastDimensions, op.getType());
       scope.add(op.getResult(), result);
-    }else if (auto op = dyn_cast<DynamicIotaOp>(operation)) {
+    } else if (auto op = dyn_cast<DynamicIotaOp>(operation)) {
       auto iotaDimension = op.getIotaDimension();
       auto result = iotaOp(iotaDimension, op.getType());
       scope.add(op.getResult(), result);

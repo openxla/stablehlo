@@ -1206,6 +1206,55 @@ func.func @dot_general_c20(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5x!quant.
 
 // -----
 
+func.func @dynamic_broadcast_in_dim_c6(
+  %arg0: tensor<1x2x1x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30}>>,
+  %shape: tensor<4xi64>) {
+  // expected-error@+1 {{result quantization_dimension 3 not same as broadcast_dimensions[2] = 2}}
+  %broadcast_in_dim = "stablehlo.dynamic_broadcast_in_dim" (%arg0, %shape) {broadcast_dimensions = array<i64: 0, 1, 2>
+  } : (tensor<1x2x1x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30}>>, tensor<4xi64>) ->
+        tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.1:-30}>>
+  func.return
+}
+
+// -----
+
+func.func @dynamic_broadcast_in_dim_c6(
+  %arg0: tensor<1x2x1x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30}>>,
+  %shape: tensor<4xi64>) {
+  // expected-error@+1 {{mismatch result scale 0 (2.000000e-01) and operand scale 0 (1.000000e-01)}}
+  %broadcast_in_dim = "stablehlo.dynamic_broadcast_in_dim" (%arg0, %shape) {broadcast_dimensions = array<i64: 0, 1, 3>
+  } : (tensor<1x2x1x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30}>>, tensor<4xi64>) ->
+        tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.2:2, 0.5:-20}>>
+  func.return
+}
+
+// -----
+
+func.func @dynamic_broadcast_in_dim_c6(
+  %arg0: tensor<1x2x1x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30}>>,
+  %shape: tensor<4xi64>) {
+  // expected-error@+1 {{mismatch result scale 0 (2.000000e-01) and operand scale 0 (1.000000e-01)}}
+  %broadcast_in_dim = "stablehlo.dynamic_broadcast_in_dim" (%arg0, %shape) {broadcast_dimensions = array<i64: 0, 1, 3>
+  } : (tensor<1x2x1x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30}>>, tensor<4xi64>) ->
+        tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.2:2, 0.5:-20}>>
+  func.return
+}
+
+
+// -----
+
+func.func @dynamic_broadcast_in_dim_c6(
+  %arg0: tensor<1x2x1x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30}>>,
+  %shape: tensor<4xi64>) {
+  // expected-error@+1 {{mismatch result zero_point 1 (-20) and operand zero_point 0 (-30)}}
+  %broadcast_in_dim = "stablehlo.dynamic_broadcast_in_dim" (%arg0, %shape) {broadcast_dimensions = array<i64: 0, 1, 3>
+  } : (tensor<1x2x1x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30}>>, tensor<4xi64>) ->
+        tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.1:-20}>>
+  func.return
+}
+
+// -----
+
 func.func @quantized_element_type_c8(%arg0: tensor<1x2x!quant.uniform<i8<-128:127>:f32, 1.0:300>>) {
   // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}} 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer or 4/8/16/32-bit uniform quantized per axis signed integer or 4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x2x!quant.uniform<i8:f32, 1.000000e+00:300>>'}}
   %0 = stablehlo.add %arg0,  %arg0 : tensor<1x2x!quant.uniform<i8<-128:127>:f32, 1.0:300>>
