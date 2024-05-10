@@ -419,23 +419,18 @@ struct BroadcastConverter final
   }
 };
 
-template <typename OpTy>
-int64_t getBroadcastSizes(OpTy op) {
-  if constexpr (std::is_same<OpTy, BroadcastOp>::value)
-    return op.getBroadcastSizes().size();
-  if constexpr (std::is_same<OpTy, BroadcastInDimOp>::value)
-    return op.getType().getRank() - op.getBroadcastDimensions().size();
-  std::string str;
-  llvm::raw_string_ostream os(str);
-  os << "getBroadcastSizes called on non-broadcast op: ";
-  op.print(os);
-  llvm::report_fatal_error(str.c_str());
+int64_t getBroadcastSizes(BroadcastOp op) {
+  return op.getBroadcastSizes().size();
 }
 
-template <typename OpTy, typename OpAdaptor>
-LogicalResult lowerBroadcastOp(ConversionPatternRewriter &rewriter,
+int64_t getBroadcastSizes(BroadcastInDimOp op) {
+  return op.getType().getRank() - op.getBroadcastDimensions().size();
+}
+
+template <typename OpTy>
+LogicalResult lowerSimpleBroadcast(ConversionPatternRewriter &rewriter,
                                const TypeConverter *typeConverter, OpTy op,
-                               OpAdaptor adaptor) {
+                               typename OpTy::Adaptor adaptor) {
   auto resultTy = typeConverter->convertType<ShapedType>(op.getType());
   if (!resultTy)
     return rewriter.notifyMatchFailure(op, "type conversion failed");
@@ -461,7 +456,7 @@ struct BroadcastOpToBroadcastConverter final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::BroadcastOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    return lowerBroadcastOp(rewriter, getTypeConverter(), op, adaptor);
+    return lowerSimpleBroadcast(rewriter, getTypeConverter(), op, adaptor);
   }
 };
 
@@ -578,7 +573,7 @@ struct BroadcastInDimOpToBroadcastConverter final
       mlir::stablehlo::BroadcastInDimOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     if (op.isSimpleBroadcast())
-      return lowerBroadcastOp(rewriter, getTypeConverter(), op, adaptor);
+      return lowerSimpleBroadcast(rewriter, getTypeConverter(), op, adaptor);
 
     Location loc = op.getLoc();
 
