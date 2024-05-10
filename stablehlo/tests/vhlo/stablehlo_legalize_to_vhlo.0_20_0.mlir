@@ -1,9 +1,9 @@
 // RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
-// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=0.19.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=0.20.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
 // RUN: stablehlo-translate --deserialize %s.bc | stablehlo-opt > %t.0
 // RUN: stablehlo-opt --strip-debuginfo %s > %t.1
 // RUN: diff %t.0 %t.1
-// RUN: stablehlo-translate --serialize --target=0.19.0 --strip-debuginfo %s > %t.2
+// RUN: stablehlo-translate --serialize --target=0.20.0 --strip-debuginfo %s > %t.2
 // RUN: diff %s.bc %t.2
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
@@ -536,7 +536,7 @@ func.func @default_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tenso
 
 // CHECK-LABEL: "default_dynamic_conv"
 func.func @default_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>, %arg2: tensor<2x2xi32>) -> tensor<1x?x?x16xf32> {
-  //      CHECK: "vhlo.dynamic_conv_v1"(%arg0, %arg1, %arg2) <{
+  //      CHECK: "vhlo.dynamic_conv_v2"(%arg0, %arg1, %arg2) <{
   // CHECK-SAME:   batch_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   feature_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   input_batch_dimension = #vhlo.integer_v1<0 : i64>,
@@ -549,7 +549,6 @@ func.func @default_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x
   // CHECK-SAME:   output_batch_dimension = #vhlo.integer_v1<0 : i64>,
   // CHECK-SAME:   output_feature_dimension = #vhlo.integer_v1<3 : i64>,
   // CHECK-SAME:   output_spatial_dimensions = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   padding = #vhlo.tensor_v1<dense<0> : tensor<2x2xi64>>,
   // CHECK-SAME:   precision_config = #vhlo.array_v1<[#vhlo<precision_v1 DEFAULT>, #vhlo<precision_v1 DEFAULT>]>,
   // CHECK-SAME:   rhs_dilation = #vhlo.tensor_v1<dense<1> : tensor<2xi64>>,
   // CHECK-SAME:   window_reversal = #vhlo.tensor_v1<dense<false> : tensor<2xi1>>,
@@ -1249,7 +1248,7 @@ func.func @op_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tensor<2xi
 
 // CHECK-LABEL: "op_dynamic_conv"
 func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>, %arg2: tensor<2x2xi32>) -> tensor<1x?x?x16xf32> {
-  //      CHECK: "vhlo.dynamic_conv_v1"(%arg0, %arg1, %arg2) <{
+  //      CHECK: "vhlo.dynamic_conv_v2"(%arg0, %arg1, %arg2) <{
   // CHECK-SAME:   batch_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   feature_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   input_batch_dimension = #vhlo.integer_v1<0 : i64>,
@@ -1262,7 +1261,6 @@ func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x1
   // CHECK-SAME:   output_batch_dimension = #vhlo.integer_v1<0 : i64>,
   // CHECK-SAME:   output_feature_dimension = #vhlo.integer_v1<3 : i64>,
   // CHECK-SAME:   output_spatial_dimensions = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   padding = #vhlo.tensor_v1<dense<0> : tensor<2x2xi64>>,
   // CHECK-SAME:   precision_config = #vhlo.array_v1<[#vhlo<precision_v1 HIGHEST>, #vhlo<precision_v1 HIGHEST>]>,
   // CHECK-SAME:   rhs_dilation = #vhlo.tensor_v1<dense<2> : tensor<2xi64>>,
   // CHECK-SAME:   window_reversal = #vhlo.tensor_v1<dense<true> : tensor<2xi1>>,

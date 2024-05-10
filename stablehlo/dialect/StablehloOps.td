@@ -3475,12 +3475,8 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
       [HLO_SpeculatableIfAllInputsStaticAndShapeConstant, NoMemoryEffect]> {
   let summary = "DynamicConv operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
-
-    Informally, this operation does the same thing as ConvolutionOp except
-    that `padding` is specified dynamically via `d_padding`:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution
+    Computes dot products between windows of `lhs` and slices of `rhs` and
+    produces `result`.
 
     Example:
     ```mlir
@@ -3493,17 +3489,41 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
       feature_group_count = 1 : i64,
       batch_group_count = 1 : i64,
       precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
-    } : (tensor<1x4x4x1xi32>, tensor<3x3x1x1xi32>, tensor<2x2xi64>) -> tensor<1x2x2x1xi32>
+    } : (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>, tensor<2x2xi64>) -> tensor<1x2x2x1xi64>
     ```
   }];
 
-  let arguments = !con(
-    (ins
-       HLO_Tensor:$lhs,
-       HLO_Tensor:$rhs,
-       HLO_Tensor:$d_padding),
-    StableHLO_ConvolutionAttributes.attributes);
+  let arguments = (ins
+       HLO_Tensor:$lhs, /*dynamic_conv_i1*/
+       HLO_Tensor:$rhs, /*dynamic_conv_i2*/
+       HLO_Tensor:$d_padding, /*dynamic_conv_i3*/
+       OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*dynamic_conv_i4*/
+       OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*dynamic_conv_i5*/
+       OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*dynamic_conv_i6*/
+       OptionalAttr<GenericDenseBoolArrayAttr>:$window_reversal, /*dynamic_conv_i7*/
+       StableHLO_ConvDimensionNumbers:$dimension_numbers, /*dynamic_conv_i8...dynamic_conv_i16*/
+       I64Attr:$feature_group_count, /*dynamic_conv_i17*/
+       I64Attr:$batch_group_count, /*dynamic_conv_i18*/
+       StableHLO_PrecisionConfigAttr:$precision_config /*dynamic_conv_i19*/
+    );
   let results = (outs HLO_Tensor);
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    bool hasWindowReversal() {
+      auto reversal = getWindowReversal();
+      return reversal.has_value() && llvm::any_of(reversal.value(), [](bool v) { return v; });
+    }
+  }];
+
+  let assemblyFormat = [{
+    `(`operands`)`
+       `dim_numbers` `=` custom<ConvolutionDimensions>($dimension_numbers) `,`
+       `window` `=` `{` custom<WindowAttributes>($window_strides,
+                                                 $lhs_dilation, $rhs_dilation,
+                                                 $window_reversal) `}`
+       attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_OPS

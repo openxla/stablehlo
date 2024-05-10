@@ -520,7 +520,7 @@ func.func @default_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tenso
 }
 
 // CHECK-LABEL: "default_dynamic_conv"
-func.func @default_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>, %arg2: tensor<4xi32>) -> tensor<1x?x?x16xf32> {
+func.func @default_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>, %arg2: tensor<2x2xi32>) -> tensor<1x?x?x16xf32> {
   //      CHECK: "vhlo.dynamic_conv_v1"(%arg0, %arg1, %arg2) <{
   // CHECK-SAME:   batch_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   feature_group_count = #vhlo.integer_v1<1 : i64>,
@@ -539,12 +539,12 @@ func.func @default_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x
   // CHECK-SAME:   rhs_dilation = #vhlo.tensor_v1<dense<1> : tensor<2xi64>>,
   // CHECK-SAME:   window_reversal = #vhlo.tensor_v1<dense<false> : tensor<2xi1>>,
   // CHECK-SAME:   window_strides = #vhlo.tensor_v1<dense<1> : tensor<2xi64>>
-  // CHECK-SAME: }> : (!vhlo.tensor_v1<1x8x8x207x!vhlo.f32_v1>, !vhlo.tensor_v1<3x3x207x16x!vhlo.f32_v1>, !vhlo.tensor_v1<4x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x?x?x16x!vhlo.f32_v1>
+  // CHECK-SAME: }> : (!vhlo.tensor_v1<1x8x8x207x!vhlo.f32_v1>, !vhlo.tensor_v1<3x3x207x16x!vhlo.f32_v1>, !vhlo.tensor_v1<2x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x?x?x16x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_conv"(%arg0, %arg1, %arg2) {
     dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
     feature_group_count = 1 : i64,
     batch_group_count = 1 : i64
-  } : (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>, tensor<4xi32>) -> tensor<1x?x?x16xf32>
+  } : (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>, tensor<2x2xi32>) -> tensor<1x?x?x16xf32>
   func.return %0 : tensor<1x?x?x16xf32>
 }
 
@@ -1213,7 +1213,7 @@ func.func @op_dynamic_broadcast_in_dim(%arg0: tensor<?x?xf32>, %arg1: tensor<2xi
 }
 
 // CHECK-LABEL: "op_dynamic_conv"
-func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>, %arg2: tensor<4xi32>) -> tensor<1x?x?x16xf32> {
+func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>, %arg2: tensor<2x2xi32>) -> tensor<1x?x?x16xf32> {
   //      CHECK: "vhlo.dynamic_conv_v1"(%arg0, %arg1, %arg2) <{
   // CHECK-SAME:   batch_group_count = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   feature_group_count = #vhlo.integer_v1<1 : i64>,
@@ -1227,15 +1227,14 @@ func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x1
   // CHECK-SAME:   output_batch_dimension = #vhlo.integer_v1<0 : i64>,
   // CHECK-SAME:   output_feature_dimension = #vhlo.integer_v1<3 : i64>,
   // CHECK-SAME:   output_spatial_dimensions = #vhlo.tensor_v1<dense<[1, 2]> : tensor<2xi64>>,
-  // CHECK-SAME:   padding = #vhlo.tensor_v1<dense<1> : tensor<2x2xi64>>,
+  // CHECK-SAME:   padding = #vhlo.tensor_v1<dense<0> : tensor<2x2xi64>>,
   // CHECK-SAME:   precision_config = #vhlo.array_v1<[#vhlo<precision_v1 HIGHEST>, #vhlo<precision_v1 HIGHEST>]>,
   // CHECK-SAME:   rhs_dilation = #vhlo.tensor_v1<dense<2> : tensor<2xi64>>,
   // CHECK-SAME:   window_reversal = #vhlo.tensor_v1<dense<true> : tensor<2xi1>>,
   // CHECK-SAME:   window_strides = #vhlo.tensor_v1<dense<2> : tensor<2xi64>>
-  // CHECK-SAME: }> : (!vhlo.tensor_v1<1x8x8x207x!vhlo.f32_v1>, !vhlo.tensor_v1<3x3x207x16x!vhlo.f32_v1>, !vhlo.tensor_v1<4x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x?x?x16x!vhlo.f32_v1>
+  // CHECK-SAME: }> : (!vhlo.tensor_v1<1x8x8x207x!vhlo.f32_v1>, !vhlo.tensor_v1<3x3x207x16x!vhlo.f32_v1>, !vhlo.tensor_v1<2x2x!vhlo.i32_v1>) -> !vhlo.tensor_v1<1x?x?x16x!vhlo.f32_v1>
   %0 = "stablehlo.dynamic_conv"(%arg0, %arg1, %arg2) {
     window_strides = array<i64: 2, 2>,
-    padding = dense<1> : tensor<2x2xi64>,
     lhs_dilation = array<i64: 2, 2>,
     rhs_dilation = array<i64: 2, 2>,
     window_reversal = array<i1: true, true>,
@@ -1243,7 +1242,7 @@ func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x1
     feature_group_count = 1 : i64,
     batch_group_count = 1 : i64,
     precision_config = [#stablehlo<precision HIGHEST>, #stablehlo<precision HIGHEST>]
-  } : (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>, tensor<4xi32>) -> tensor<1x?x?x16xf32>
+  } : (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>, tensor<2x2xi32>) -> tensor<1x?x?x16xf32>
   func.return %0 : tensor<1x?x?x16xf32>
 }
 
