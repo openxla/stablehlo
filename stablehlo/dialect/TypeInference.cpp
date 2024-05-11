@@ -3991,14 +3991,13 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   collectExpansionBehaviorDims(knownExpandingDimensions);
   collectExpansionBehaviorDims(knownNonexpandingDimensions);
 
-  // dynamic_broadcast_in_dim_c8, dynamic_broadcast_in_dim_c9,
-  // dynamic_broadcast_in_dim_c10
+  // dynamic_broadcast_in_dim_c8
   if (knownExpansionBehavior.size() != numKnownExpansionBehavior)
     return emitOptionalError(
         location,
         "duplicate expansion hint for at least one operand dimension");
 
-  // dynamic_broadcast_in_dim_c11, dynamic_broadcast_in_dim_c12
+  // dynamic_broadcast_in_dim_c9, dynamic_broadcast_in_dim_c10
   for (int64_t i : knownExpansionBehavior)
     if (i < 0 || i >= operandType.getRank())
       return emitOptionalError(location, "hint for expanding dimension ", i,
