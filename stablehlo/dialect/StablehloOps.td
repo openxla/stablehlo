@@ -3434,7 +3434,7 @@ def StableHLO_DynamicPadOp: StableHLO_ShapedInterfaceOp<"dynamic_pad",
     %interior_padding = stablehlo.constant dense<[1, 2]> : tensor<2xi32>
     %result = stablehlo.dynamic_pad %operand, %padding_value,
                 %edge_padding_low, %edge_padding_high, %interior_padding
-                : (tensor<2x3xi32>, tensor<i32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<5x9xi32>
+                : (tensor<2x3xi64>, tensor<i64>, tensor<2xi64>, tensor<2xi64>, tensor<2xi64>) -> tensor<5x9xi64>
     ```
   }];
   let arguments = (ins

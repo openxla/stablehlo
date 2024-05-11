@@ -3229,6 +3229,52 @@ func.func @dot_general_one_element_precision_config(%arg0: tensor<2x3x4xf32>, %a
 
 // -----
 
+func.func @dynamic_pad(
+  %arg: tensor<4xf64>, %padding_value: tensor<f64>,
+  %padding_low: tensor<1xi32>, %padding_high: tensor<1xi32>, %interior_padding: tensor<1xi32>
+) {
+  %0 = stablehlo.dynamic_pad %arg, %padding_value, %padding_low, %padding_high, %interior_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  func.return
+}
+
+// -----
+
+func.func @dynamic_pad_c2(
+  %arg: tensor<4xf64>, %padding_value: tensor<f64>,
+  %padding_low: tensor<2xi32>, %padding_high: tensor<2xi32>, %interior_padding: tensor<2xi32>
+) {
+  // @expected-error@+1 {{padding operands size (2) must match operand rank (1)}}
+  %0 = stablehlo.dynamic_pad %arg, %padding_value, %padding_low, %padding_high, %interior_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<?xf64>
+  func.return
+}
+
+// -----
+
+func.func @dynamic_pad_c3(
+  %arg: tensor<4xf64>, %padding_value: tensor<f64>,
+  %padding_low: tensor<1xi32>, %padding_high: tensor<1xi32>
+) {
+  %interior_padding = stablehlo.constant dense<-1> : tensor<1xi32>
+  // @expected-error@+1 {{interior_padding must be non-negative, but got -1}}
+  %0 = stablehlo.dynamic_pad %arg, %padding_value, %padding_low, %padding_high, %interior_padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
+  func.return
+}
+
+// -----
+
+func.func @dynamic_pad_c4(%arg: tensor<4xf64>, %padding_value: tensor<f64>) {
+  %padding = stablehlo.constant dense<1> : tensor<1xi32>
+  // @expected-error@+1 {{expected output dimension at index 0 to equal 9, but got 4}}
+  %0 = stablehlo.dynamic_pad %arg, %padding_value, %padding, %padding, %padding
+         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xf64>
+  func.return
+}
+
+// -----
+
 func.func @dynamic_reshape(%arg0: tensor<?xf32>, %shape: tensor<2xindex>) -> tensor<?x?xf32> {
   %0 = "stablehlo.dynamic_reshape"(%arg0, %shape) : (tensor<?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
   func.return %0 : tensor<?x?xf32>
@@ -5897,51 +5943,5 @@ func.func @composite_c4(%arg0: !stablehlo.token) {
   %0 = stablehlo.composite "stablehlo.identity" %arg0 {
     decomposition = @foo
   } : (!stablehlo.token) -> tensor<f32>
-  func.return
-}
-
-// -----
-
-func.func @dynamic_pad(
-  %arg: tensor<4xf64>, %padding_value: tensor<f64>,
-  %padding_low: tensor<1xi32>, %padding_high: tensor<1xi32>, %interior_padding: tensor<1xi32>
-) {
-  %0 = stablehlo.dynamic_pad %arg, %padding_value, %padding_low, %padding_high, %interior_padding
-         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
-  func.return
-}
-
-// -----
-
-func.func @dynamic_pad_c2(
-  %arg: tensor<4xf64>, %padding_value: tensor<f64>,
-  %padding_low: tensor<2xi32>, %padding_high: tensor<2xi32>, %interior_padding: tensor<2xi32>
-) {
-  // @expected-error@+1 {{padding operands size (2) must match operand rank (1)}}
-  %0 = stablehlo.dynamic_pad %arg, %padding_value, %padding_low, %padding_high, %interior_padding
-         : (tensor<4xf64>, tensor<f64>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<?xf64>
-  func.return
-}
-
-// -----
-
-func.func @dynamic_pad_c3(
-  %arg: tensor<4xf64>, %padding_value: tensor<f64>,
-  %padding_low: tensor<1xi32>, %padding_high: tensor<1xi32>
-) {
-  %interior_padding = stablehlo.constant dense<-1> : tensor<1xi32>
-  // @expected-error@+1 {{interior_padding must be non-negative, but got -1}}
-  %0 = stablehlo.dynamic_pad %arg, %padding_value, %padding_low, %padding_high, %interior_padding
-         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf64>
-  func.return
-}
-
-// -----
-
-func.func @dynamic_pad_c4(%arg: tensor<4xf64>, %padding_value: tensor<f64>) {
-  %padding = stablehlo.constant dense<1> : tensor<1xi32>
-  // @expected-error@+1 {{expected output dimension at index 0 to equal 9, but got 4}}
-  %0 = stablehlo.dynamic_pad %arg, %padding_value, %padding, %padding, %padding
-         : (tensor<4xf64>, tensor<f64>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xf64>
   func.return
 }
