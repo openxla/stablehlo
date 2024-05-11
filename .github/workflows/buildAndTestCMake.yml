@@ -89,6 +89,7 @@ jobs:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: OFF
           STABLEHLO_ENABLE_SANITIZER: address
+          ASAN_OPTIONS: allow_user_poisoning=false
 
     - name: Build and Test StableHLO (with Python bindings)
       shell: bash
