@@ -4056,8 +4056,6 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
   int inputRank = inputType.getRank();
 
   // dynamic_pad_c2
-  // edgePaddingLow, edgePaddingHigh and interiorPadding are enforced to have
-  // the same size by ODS
   auto paddingLowType = cast<RankedTensorType>(edgePaddingLow.getType());
   auto paddingSize = paddingLowType.getDimSize(0);
   if (paddingSize != inputRank)
