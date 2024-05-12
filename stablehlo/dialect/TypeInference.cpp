@@ -4118,7 +4118,7 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
   for (auto [i, in, out, low, high, interior] : llvm::enumerate(
            inputType.getShape(), outputType.getShape(), edgePaddingLowValues,
            edgePaddingHighValues, interiorPaddingValues)) {
-    auto want = in + low + std::max(in - 1, long(0)) * interior + high;
+    auto want = in + low + std::max(static_cast<long>(in - 1), long(0)) * interior + high;
     if (out != want)
       return emitOptionalError(location, "expected output dimension at index ",
                                i, " to equal ", want, ", but got ", out);
