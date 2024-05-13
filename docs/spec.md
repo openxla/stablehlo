@@ -3650,7 +3650,8 @@ component of the type. The element-type could be anything.
 
 > Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
 > this op is being explored for deprecation as it appears to be unused by both
-> frameworks and compilers. As such, it has limited compatibility guarantees.
+> frameworks and compilers. As such, it has limited compatibility guarantees
+> (6 months).
 
 #### Semantics
 
@@ -4024,7 +4025,8 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 
 > Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
 > this op is being explored for deprecation as it appears to be unused by both
-> frameworks and compilers. As such, it has limited compatibility guarantees.
+> frameworks and compilers. As such, it has limited compatibility guarantees
+> (6 months).
 
 #### Semantics
 
@@ -5156,6 +5158,11 @@ and produces a `result` tensor. More formally,
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/reverse.mlir)
 
 ### rng
+
+> Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
+> this op is being explored for deprecation as it appears to be unused by both
+> frameworks and compilers. As such, it has limited compatibility guarantees
+> (6 months).
 
 #### Semantics
 
@@ -6326,7 +6333,8 @@ unit_diagonal, transpose_a), a, b, type(result))`.
 
 > Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
 > this op is being explored for deprecation as it appears to be unused by both
-> frameworks and compilers. As such, it has limited compatibility guarantees.
+> frameworks and compilers. As such, it has limited compatibility guarantees
+> (6 months).
 
 #### Semantics
 
@@ -6597,7 +6605,7 @@ These operations fall into a few categories:
 * "Not in HLO" category of StableHLO operations - they were initially part of
   the StableHLO opset but have been later deemed to not fit it well:
   `broadcast`, `create_token`, `cross-replica-sum`, `dot`, `einsum`,
-  `torch_index_select`, `unary_einsum`, `trace`
+  `torch_index_select`, `unary_einsum`
   ([#3](https://github.com/openxla/stablehlo/issues/3)).
 * Unused ops - These operations may have been useful at some point, but the ops
   were either underdeveloped, or the pipelines using these ops have been
@@ -6605,7 +6613,7 @@ These operations fall into a few categories:
   `get_tuple_element`, `rng`.
 
 Some of these ops can confidently be easily removed (`broadcast`,
-`create_token`, `cross-replica-sum`, `dot`, `unary_einsum`, `trace`) and will be
+`create_token`, `cross-replica-sum`, `dot`, `unary_einsum`) and will be
 removed after the existing compatibilty window passes (6 months). Others
 are still being explored for removal (`einsum`, `get_tuple_element`, `map`,
 `rng` `torch_index_select`, `tuple`). Pending community feedback, these ops will
