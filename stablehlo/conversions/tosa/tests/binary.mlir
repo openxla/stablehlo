@@ -45,17 +45,9 @@ func.func @concatenate(%arg0 : tensor<3x3xf32>, %arg1 : tensor<3x3xf32>) -> tens
 
 // CHECK-LABEL: @divide
 func.func @divide(%arg0 : tensor<10xi32>, %arg1 : tensor<10xi32>) -> tensor<10xi32> {
-  // CHECK: tosa.div
+  // CHECK: tosa.int_div
   %0 = "stablehlo.divide"(%arg0, %arg1) : (tensor<10xi32>, tensor<10xi32>) -> tensor<10xi32>
   return %0 : tensor<10xi32>
-}
-
-// CHECK-LABEL: @divide_f32
-func.func @divide_f32(%arg0 : tensor<10xf32>, %arg1 : tensor<10xf32>) -> tensor<10xf32> {
-  // tosa.div only supports i32, so this should not legalize.
-  // CHECK: stablehlo.divide
-  %0 = "stablehlo.divide"(%arg0, %arg1) : (tensor<10xf32>, tensor<10xf32>) -> tensor<10xf32>
-  return %0 : tensor<10xf32>
 }
 
 // CHECK-LABEL: @dot_vector_vector

@@ -125,7 +125,7 @@ Pattern =>
 Pattern =>
   replace op<stablehlo.divide>(input0 : Value<_: Tosa_Int32Tensor>,
                           input1 : Value<_: Tosa_Int32Tensor>)
-     with op<tosa.div>(input0, input1);
+     with op<tosa.int_div>(input0, input1);
 Pattern =>
   replace op<stablehlo.maximum>(input0 : Value<_: Tosa_Tensor>,
                            input1 : Value<_: Tosa_Tensor>)
