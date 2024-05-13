@@ -37,6 +37,7 @@ def VHLO_Dialect : Dialect {
       0.17.0: Allow reduce operations to promote to higher bitwidth.
       0.18.0: Introduce `UniformQuantizedPerAxisType` type.
       0.19.0: Introduce `composite` operation.
+      0.20.0: Remove `padding` attribute from `dynamic_conv`.
   }];
 
   let useDefaultAttributePrinterParser = 0;
