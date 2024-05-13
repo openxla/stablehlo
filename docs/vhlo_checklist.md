@@ -12,7 +12,7 @@ approved, the following steps must be completed:
 
 Prior to updating VHLO ops, attributes, types, or conversions, increment the
 minor version number in [Version.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.h),
-and update the verison log in [VhloDialect.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloDialect.td#L29)
+and update the version log in [VhloDialect.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloDialect.td)
 
 Any new VHLO features added would use this bumped version, for example after
 bumping `0.10.0 --> 0.11.0`, a new op in [VhloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloOps.td)
