@@ -316,26 +316,6 @@ inputs/outputs and a signature. The name consists of the `stablehlo.` prefix and
 a **mnemonic** which uniquely identifies one of the supported ops. See below for
 a comprehensive list of all supported ops.
 
-At the moment, StableHLO programs in the wild sometimes contain operations that
-are not described in this document. In the future, we are planning to either
-absorb these operations into the StableHLO opset or prohibit them from appearing
-in StableHLO programs. In the meanwhile, here is the list of these operations:
-
-* `builtin.module`, `func.func`, `func.call` and `func.return`
-  ([#425](https://github.com/openxla/stablehlo/issues/425)).
-* `chlo` operations ([#602](https://github.com/openxla/stablehlo/issues/602)).
-* "Not in HLO" category of StableHLO operations - they were initially part of
-  the StableHLO opset but have been later deemed to not fit it well:
-  `broadcast`, `create_token`, `cross-replica-sum`, `dot`, `einsum`,
-  `torch_index_select`, `unary_einsum`
-  ([#3](https://github.com/openxla/stablehlo/issues/3)).
-* "Dynamism" category of StableHLO operations - they were bootstrapped from
-   MHLO,and we are in the process of speccing them: `real_dynamic_slice`,
-   `set_dimension_size`.
-  ([#8](https://github.com/openxla/stablehlo/issues/8)).
-* Shape computations, including `arith`, `shape` and `tensor` operations
-  ([#8](https://github.com/openxla/stablehlo/issues/8)).
-
 ```ebnf
 OpInputs        ::= OpInputValues OpInputFuncs OpInputAttrs
 OpInputValues   ::= '(' [OpInputValue {',' OpInputValue}] ')'
@@ -3668,6 +3648,10 @@ component of the type. The element-type could be anything.
 
 ### get_tuple_element
 
+> Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
+> this op is being explored for deprecation as it appears to be unused by both
+> frameworks and compilers. As such, it has limited compatibility guarantees.
+
 #### Semantics
 
 Extracts element at `index` position of the `operand` tuple and produces a
@@ -3695,7 +3679,6 @@ Extracts element at `index` position of the `operand` tuple and produces a
 
 ```mlir
 // %operand: ([1.0, 2.0], (3))
-%result = "stablehlo.get_tuple_element"(%operand) {
   index = 0 : i32
 } : (tuple<tensor<2xf32>, tuple<tensor<i32>>>) -> tensor<2xf32>
 // %result: [1.0, 2.0]
@@ -4038,6 +4021,10 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/logistic.mlir)
 
 ### map
+
+> Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
+> this op is being explored for deprecation as it appears to be unused by both
+> frameworks and compilers. As such, it has limited compatibility guarantees.
 
 #### Semantics
 
@@ -6337,6 +6324,10 @@ unit_diagonal, transpose_a), a, b, type(result))`.
 
 ### tuple
 
+> Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
+> this op is being explored for deprecation as it appears to be unused by both
+> frameworks and compilers. As such, it has limited compatibility guarantees.
+
 #### Semantics
 
 Produces a `result` tuple from values `val`.
@@ -6558,6 +6549,68 @@ tensor. Depending on the element type, does the following:
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/xor.mlir)
+
+## Dialect Interop
+
+At the moment, StableHLO programs in the wild sometimes contain operations that
+are not defined by StableHLO.
+
+### Module, Function, Call and Return
+
+StableHLO uses upstream MLIR operations for ModuleOp, FuncOp, CallOp, and
+ReturnOp. This was done for better interop with existing MLIR machinery, as many
+useful passes are written targeting FuncOp and ModuleOp, and many compilation
+pipelines expect these ops to be present.  Full compatibility guarantees are
+applied to these ops. If anything ever changes about these ops in an
+incompatible way (i.e. removal), StableHLO equivalents will be added to preserve
+compatibility.
+
+### CHLO
+
+The CHLO opset contains higher level operations that decompose to StableHLO.
+Currently there are no compatibility guarantees for CHLO. For compatibility
+guarantees, the [CHLO-to-StableHLO decomposition pass](https://github.com/openxla/stablehlo/blob/12fd0a9e7b3c6f3dea3defc513870c962e62726d/stablehlo/transforms/Passes.td#L119)
+must be used prior to serialization.
+
+### Shape Operations
+
+It is a common use case in the community to use certain operations from core
+MLIR dialects in dynamic StableHLO programs to perform shape computations.
+Most commonly, these include [`shape` dialect](https://mlir.llvm.org/docs/Dialects/ShapeDialect/)
+ops like `shape_of` or `num_elements`, [`tensor` dialect](https://mlir.llvm.org/docs/Dialects/TensorOps/)
+ops like `dim` or `from_elements`, and the builtin `index` type.
+
+The [Dynamism RFC > O2](https://github.com/openxla/stablehlo/blob/main/rfcs/20230704-dynamism-101.md#o2)
+denotes these as out of scope, however some support for `index` types is
+included for interop purposes. There are no compatibility guarantees for these
+ops or types. The [Shape-to-StableHLO](https://github.com/openxla/stablehlo/blob/12fd0a9e7b3c6f3dea3defc513870c962e62726d/stablehlo/transforms/Passes.td#L136)
+pass can be used to convert these operations to fully supported StableHLO ops.
+
+## Deprecated Operations
+
+There are several StableHLO operations that were inherited from MHLO which are
+deprecated and on the way out of StableHLO. The full details on these removals
+can be found in the [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283).
+
+These operations fall into a few categories:
+
+* "Not in HLO" category of StableHLO operations - they were initially part of
+  the StableHLO opset but have been later deemed to not fit it well:
+  `broadcast`, `create_token`, `cross-replica-sum`, `dot`, `einsum`,
+  `torch_index_select`, `unary_einsum`, `trace`
+  ([#3](https://github.com/openxla/stablehlo/issues/3)).
+* Unused ops - These operations may have been useful at some point, but the ops
+  were either underdeveloped, or the pipelines using these ops have been
+  refactored to not require them anymore. This includes `map`, `tuple` and
+  `get_tuple_element`, `rng`. 
+
+Some of these ops can confidently be easily removed (`broadcast`,
+`create_token`, `cross-replica-sum`, `dot`, `unary_einsum`, `trace`) and will be
+removed after the existing compatibilty window passes (6 months). Others
+are still being explored for removal (`einsum`, `get_tuple_element`, `map`,
+`rng` `torch_index_select`, `tuple`). Pending community feedback, these ops will
+either be removed, or added to the spec with full support. Until these ops
+futures are known, they are only guaranteed 6 months of compatibility.
 
 ## Execution
 
