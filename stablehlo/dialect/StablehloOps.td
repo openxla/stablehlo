@@ -3493,8 +3493,8 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
   let summary = "DynamicConv operation";
   let description = [{
     This operation is functionally identical to
-    [iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#iota)
-    op, but the result shape is specified dynamically via `output_shape`.
+    [convolution](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution)
+    op, but the padding is specified dynamically via `d_padding`.
 
     Example:
     ```mlir
