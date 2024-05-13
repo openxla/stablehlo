@@ -2836,7 +2836,7 @@ op, but the padding is specified dynamically via `d_padding`.
 //         [[[1]], [[1]], [[1]]]
 //        ]
 // %d_padding: [[1, 1],
-//               [1, 1]]
+//              [1, 1]]
 %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %d_padding) {
   window_strides = array<i64: 4, 4>,
   lhs_dilation = array<i64: 2, 2>,
