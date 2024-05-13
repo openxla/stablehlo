@@ -1,6 +1,6 @@
 # The VHLO Dialect
 
-See `vhlo_checklist.md` for steps to follow when making changes to VHLO.
+See [`vhlo_checklist.md`](vhlo_checklist.md) for steps to follow when making changes to VHLO.
 
 ## What is the VHLO Dialect?
 

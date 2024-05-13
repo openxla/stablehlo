@@ -1,6 +1,6 @@
 # VHLO Checklist
 
-See `vhlo.md` for information about VHLO.
+See [`vhlo.md`](vhlo.md) for information about VHLO.
 
 ## Contributing Incompatible Changes
 
