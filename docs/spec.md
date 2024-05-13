@@ -6577,7 +6577,7 @@ compatibility.
 
 The CHLO opset contains higher level operations that decompose to StableHLO.
 Currently there are no compatibility guarantees for CHLO. For compatibility
-guarantees, the [CHLO-to-StableHLO decomposition pass](https://github.com/openxla/stablehlo/blob/12fd0a9e7b3c6f3dea3defc513870c962e62726d/stablehlo/transforms/Passes.td#L119)
+guarantees, the [chlo-legalize-to-stablehlo pass](https://github.com/openxla/stablehlo/blob/12fd0a9e7b3c6f3dea3defc513870c962e62726d/stablehlo/transforms/Passes.td#L119)
 must be used prior to serialization.
 
 ### Shape Operations
@@ -6591,14 +6591,15 @@ ops like `dim` or `from_elements`, and the builtin `index` type.
 The [Dynamism RFC > O2](https://github.com/openxla/stablehlo/blob/main/rfcs/20230704-dynamism-101.md#o2)
 denotes these as out of scope, however some support for `index` types is
 included for interop purposes. There are no compatibility guarantees for these
-ops or types. The [Shape-to-StableHLO](https://github.com/openxla/stablehlo/blob/12fd0a9e7b3c6f3dea3defc513870c962e62726d/stablehlo/transforms/Passes.td#L136)
+ops or types. The [shape-legalize-to-stablehlo](https://github.com/openxla/stablehlo/blob/12fd0a9e7b3c6f3dea3defc513870c962e62726d/stablehlo/transforms/Passes.td#L136)
 pass can be used to convert these operations to fully supported StableHLO ops.
 
 ## Deprecated Operations
 
-There are several StableHLO operations that were inherited from MHLO which are
-deprecated and on the way out of StableHLO. The full details on these removals
-can be found in the [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283).
+There are several StableHLO operations that were inherited from
+[MHLO](https://github.com/openxla/xla/blob/d63deb9250b9c212445290bd08c6effb5b6d0a2b/xla/mlir_hlo/mhlo/IR/hlo_ops.td)
+which are deprecated and on the way out of StableHLO. The full details on these
+removals can be found in the [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283).
 
 These operations fall into a few categories:
 
@@ -6609,16 +6610,17 @@ These operations fall into a few categories:
   ([#3](https://github.com/openxla/stablehlo/issues/3)).
 * Unused ops - These operations may have been useful at some point, but the ops
   were either underdeveloped, or the pipelines using these ops have been
-  refactored to not require them anymore. This includes `map`, `tuple` and
-  `get_tuple_element`, `rng`.
+  refactored to not require them anymore. This includes `map`, `tuple`,
+  `get_tuple_element`, and `rng`.
 
-Some of these ops can confidently be easily removed (`broadcast`,
-`create_token`, `cross-replica-sum`, `dot`, `unary_einsum`) and will be
-removed after the existing compatibilty window passes (6 months). Others
-are still being explored for removal (`einsum`, `get_tuple_element`, `map`,
-`rng` `torch_index_select`, `tuple`). Pending community feedback, these ops will
-either be removed, or added to the spec with full support. Until these ops
-futures are known, they are only guaranteed 6 months of compatibility.
+Some of these ops can be removed easily given that they can be expressed using
+existing ops (`broadcast`, `create_token`, `cross-replica-sum`, `dot`,
+`unary_einsum`) and will be removed after the existing compatibilty window
+passes (6 months). Others are still being explored for removal (`einsum`,
+`get_tuple_element`, `map`, `rng` `torch_index_select`, `tuple`). Pending
+community feedback, these ops will either be removed, or added to the spec with
+full support. Until these ops futures are known, they are only guaranteed 6
+months of compatibility.
 
 ## Execution
 
