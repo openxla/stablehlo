@@ -6602,7 +6602,7 @@ These operations fall into a few categories:
 * Unused ops - These operations may have been useful at some point, but the ops
   were either underdeveloped, or the pipelines using these ops have been
   refactored to not require them anymore. This includes `map`, `tuple` and
-  `get_tuple_element`, `rng`. 
+  `get_tuple_element`, `rng`.
 
 Some of these ops can confidently be easily removed (`broadcast`,
 `create_token`, `cross-replica-sum`, `dot`, `unary_einsum`, `trace`) and will be
