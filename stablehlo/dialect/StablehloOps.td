@@ -3461,7 +3461,7 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
   let summary = "DynamicGather operation";
   let description = [{
     This operation is functionally identical to
-    [iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
+    [gather](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
     op, with the `slice_sizes` specified dynamically as an operand.
 
     Example:
