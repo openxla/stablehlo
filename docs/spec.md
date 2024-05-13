@@ -2902,7 +2902,7 @@ For hybrid quantized types, performs `hybrid_dequantize_then_op(
 #### Semantics
 
 This operation is functionally identical to
-[iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
+[gather](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
 op, with the `slice_sizes` specified dynamically as a value.
 
 #### Inputs
