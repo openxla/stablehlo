@@ -170,7 +170,7 @@ We also make nightly wheels available on our GitHub Releases page.
 pip install stablehlo -f https://github.com/openxla/stablehlo/releases/expanded_assets/dev-wheels
 ```
 
-## StableHLO to TensorFLow SavedModel
+## StableHLO to TensorFlow SavedModel
 
 This repository offers tooling for the conversion of a StableHLO program,
 including its metadata (representing trained weights and biases), into a
