@@ -3492,19 +3492,21 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
       [HLO_SpeculatableIfAllInputsStaticAndShapeConstant, NoMemoryEffect]> {
   let summary = "DynamicConv operation";
   let description = [{
-    Computes dot products between windows of `lhs` and slices of `rhs` and
-    produces `result`.
+    This operation is functionally identical to
+    [convolution](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution)
+    op, but the padding is specified dynamically via `d_padding`.
 
     Example:
     ```mlir
+    %d_padding = stablehlo.constant dense<2> : tensor<2x2xi64>
     %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %d_padding) {
       window_strides = array<i64: 4, 4>,
       lhs_dilation = array<i64: 2, 2>,
       rhs_dilation = array<i64: 1, 1>,
       window_reversal = array<i1: false, false>,
       dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
-      feature_group_count = 1 : i64,
       batch_group_count = 1 : i64,
+      feature_group_count = 1 : i64,
       precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
     } : (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>, tensor<2x2xi64>) -> tensor<1x2x2x1xi64>
     ```
@@ -3513,7 +3515,7 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
   let arguments = (ins
        HLO_Tensor:$lhs, /*dynamic_conv_i1*/
        HLO_Tensor:$rhs, /*dynamic_conv_i2*/
-       HLO_Tensor:$d_padding, /*dynamic_conv_i3*/
+       HLO_2DIntTensor:$d_padding, /*dynamic_conv_i3*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*dynamic_conv_i4*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*dynamic_conv_i5*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*dynamic_conv_i6*/
@@ -3531,15 +3533,6 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
       auto reversal = getWindowReversal();
       return reversal.has_value() && llvm::any_of(reversal.value(), [](bool v) { return v; });
     }
-  }];
-
-  let assemblyFormat = [{
-    `(`operands`)`
-       `dim_numbers` `=` custom<ConvolutionDimensions>($dimension_numbers) `,`
-       `window` `=` `{` custom<WindowAttributes>($window_strides,
-                                                 $lhs_dilation, $rhs_dilation,
-                                                 $window_reversal) `}`
-       attr-dict `:` functional-type(operands, results)
   }];
 }
 

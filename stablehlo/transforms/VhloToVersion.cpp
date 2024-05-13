@@ -271,19 +271,20 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
 
-TensorV1Attr getDefaultPadding(OpBuilder& builder, Value lhs) {
+TensorV1Attr getDefaultConvPadding(OpBuilder& builder, Value lhs) {
   auto lhsType = dyn_cast<RankedTensorV1Type>(lhs.getType());
   if (!lhsType) return TensorV1Attr();
 
   // Convert to DenseElements for getRawData handling.
-  int64_t rankMinusTwo = lhsType.getShape().size() - 2;
+  SmallVector<int64_t> paddingShape{
+      static_cast<int64_t>(lhsType.getShape().size() - 2), 2};
   auto denseElements = DenseIntElementsAttr::get(
-      RankedTensorType::get({rankMinusTwo, 2}, builder.getI64Type()),
-      SmallVector<int64_t>(rankMinusTwo * 2, 0ll));
+      RankedTensorType::get(paddingShape, builder.getI64Type()),
+      SmallVector<int64_t>(paddingShape[0] * 2, 0ll));
 
   return TensorV1Attr::get(
       builder.getContext(),
-      RankedTensorV1Type::get(builder.getContext(), {rankMinusTwo, 2},
+      RankedTensorV1Type::get(builder.getContext(), paddingShape,
                               IntegerSI64V1Type::get(builder.getContext()),
                               nullptr),
       denseElements.getRawData());
@@ -298,8 +299,6 @@ namespace stablehlo {
 void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    TypeConverter* converter,
                                    MLIRContext* context) {
-  // Currently empty because we're starting from a clean slate in v0.9.0 and
-  // changes so far are additive.
   vhlo::populateWithGenerated(*patterns);
 }
 
