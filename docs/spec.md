@@ -2730,7 +2730,7 @@ op, but the padding is specified dynamically via `d_padding`.
 |-------|-----------------------------------|--------------------------------------------------------------|-----------------------------------------------------------|
 | (I1)  | `lhs`                             | tensor or per-tensor quantized tensor                        | (C1), (C10-C11), (C14) (C25), (C26-C27), (C30-C31), (C33) |
 | (I2)  | `rhs`                             | tensor or quantized tensor                                   | (C1), (C14-C16), (C26-C28), (C30-C33)                     |
-| (I3)  | `d_padding`                       | 2-dimensional tensor of type `si64`                          | (C4)                                                      |
+| (I3)  | `d_padding`                       | 2-dimensional tensor of integer type                         | (C4)                                                      |
 | (I4)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C2-C3)                                                   |
 | (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C5-C6)                                                   |
 | (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C7-C8)                                                   |
@@ -2964,10 +2964,10 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 
-| Label | Name             | Type                                         | Constraints |
-|-------|------------------|----------------------------------------------|-------------|
-| (I1)  | `output_shape`   | 1-dimensional tensor of integer type         | (C1), (C2)  |
-| (I2)  | `iota_dimension` | `si64`                                       | (C1)        |
+| Label | Name             | Type                                 | Constraints |
+|-------|------------------|--------------------------------------|-------------|
+| (I1)  | `output_shape`   | 1-dimensional tensor of integer type | (C1), (C2)  |
+| (I2)  | `iota_dimension` | `si64`                               | (C1)        |
 
 #### Outputs
 
@@ -3067,10 +3067,10 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 
-| Label | Name           | Type                                         | Constraints |
-|-------|----------------|----------------------------------------------|-------------|
-| (I1)  | `operand`      | tensor or quantized tensor                   | (C1-C3)     |
-| (I2)  | `output_shape` | 1-dimensional tensor of integer type         | (C4)        |
+| Label | Name           | Type                                 | Constraints |
+|-------|----------------|--------------------------------------|-------------|
+| (I1)  | `operand`      | tensor or quantized tensor           | (C1-C3)     |
+| (I2)  | `output_shape` | 1-dimensional tensor of integer type | (C4)        |
 
 #### Outputs
 

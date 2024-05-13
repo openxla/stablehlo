@@ -3515,7 +3515,7 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
   let arguments = (ins
        HLO_Tensor:$lhs, /*dynamic_conv_i1*/
        HLO_Tensor:$rhs, /*dynamic_conv_i2*/
-       HLO_Tensor:$d_padding, /*dynamic_conv_i3*/
+       HLO_2DIntTensor:$d_padding, /*dynamic_conv_i3*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*dynamic_conv_i4*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*dynamic_conv_i5*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*dynamic_conv_i6*/
