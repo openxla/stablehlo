@@ -21,7 +21,8 @@ including:
 opset updates: `real_dynamic_slice` vs `dynamic_slice`.
 - Potentially unused ops like stateful `rng` [#597](https://github.com/openxla/stablehlo/issues/597)
 and `map`.
-- Tuple Ops, including `get_tuple_element` and `tuple` ([#598](https://github.com/openxla/stablehlo/issues/598)).
+- Tuple Ops and type, including `get_tuple_element` and `tuple` op, along with
+`tuple` type support in `custom_call` ([#598](https://github.com/openxla/stablehlo/issues/598)).
 
 In general (unless the op is unused and can be trivially deleted), the
 deprecation steps will be as follows:
@@ -72,7 +73,9 @@ this op, and eventually we may, but we propose to move it to CHLO in the short
 term since frameworks map to this op, and this will keep the refactoring fairly
 trivial.
 
-### P4: (Feedback Requested) Deprecate `MapOp`, `RngOp`, `EinsumOp`, `TorchIndexSelectOp`, TupleOps
+### P4: Deprecate `MapOp`, `RngOp`, `EinsumOp` `TorchIndexSelectOp`, Tuple support
+
+**Feedback Requested:** These opset changes are pending community feedback.
 
 These are all ops that seem to have very limited use in StableHLO. It would be
 great to remove them all or move them to CHLO, as opposed to providing long term
@@ -94,8 +97,9 @@ linalg lowerings though.
 [lowering to `gather`][torch-index-select] which can be used for a
 decomposition. However, similar to `einsum`, it is unclear how necessary this
 abstraction is to the community.
-- **Tuple Ops** include `get_tuple_element` and `tuple`, per [#598](https://github.com/openxla/stablehlo/issues/598)
-the use of tuples in MLIR is limited, and these are mostly kept around for
+- **Tuple Support** includes `get_tuple_element` and `tuple` ops, along with,
+support for `tuple` type in `custom_call` ([#598](https://github.com/openxla/stablehlo/issues/598)).
+The use of tuples in MLIR is limited, and these are mostly kept around for
 interop with XLA and other dialects.
 
 Interested in feedback on any of the above proposals, or ideas for how to keep
