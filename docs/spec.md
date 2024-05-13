@@ -23,7 +23,7 @@ To view the spec from a previous release of StableHLO, open the repo at the
 [tagged release](https://github.com/openxla/stablehlo/tags) of interest.
 For example, the [StableHLO v0.19.0 Spec](https://github.com/openxla/stablehlo/blob/v0.19.0/docs/spec.md).
 To view changes that occurred at each minor version bump of StableHLO, refer to
-the version log in [VhloDialect.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloDialect.td#L29).
+the version log in [VhloDialect.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloDialect.td).
 
 ## Programs
 
