@@ -142,9 +142,6 @@ def HLO_Token : Type<CPred<"isa<TokenType>($_self)">, "token">;
 // Any integer tensor types
 def HLO_IntTensor : RankedTensorOf<[HLO_Int]>;
 
-// Any integer tensor type with rank 2.
-def HLO_Static2DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[2]>], "statically shaped 2-dimensional integer tensor">;
-
 // Any integer tensor type with rank 0 (i.e. representing a single integer).
 def HLO_ScalarIntTensor : 0DTensorOf<[HLO_Int]>;
 
@@ -257,6 +254,9 @@ def HLO_StaticDimensionTensor : RankedTensorOf<[HLO_DimensionValue], [HasStaticS
 
 // Static representation of a 1D tensor of int.
 def HLO_Static1DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[1]>], "statically shaped 1-dimensional integer tensor">;
+
+// Static representation of a 2D tensor of int.
+def HLO_Static2DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[2]>], "statically shaped 2-dimensional integer tensor">;
 
 // In general, static shaped tensor constraints should be avoided unless
 // it is for a legacy op which is only correct with static shapes.
