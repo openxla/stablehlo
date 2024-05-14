@@ -71,4 +71,4 @@ jobs:
     - name: Build and check docs
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_docs.sh
+        ./build_tools/github_actions/ci_build_docs.sh -c
