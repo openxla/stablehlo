@@ -66,7 +66,7 @@ new tests to that file as well. You will also need to create an associated
 bytecode file using `stablehlo-translate`:
 
 ```bash
-export TARGET_VERSION=0.X.0
+export TARGET_VERSION=1.X.0
 export TARGET_FILENAME=${TARGET_VERSION//./_}
 stablehlo-translate --serialize --target=$TARGET_VERSION --strip-debuginfo stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir > stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir.bc
 ```
