@@ -1815,8 +1815,7 @@ the following IEEE-754 operations:
 
 For floating-point element types with `compare_type = TOTALORDER`, the op
 uses the combination of `totalOrder` and `compareQuietEqual` operations from
-IEEE-754. This feature appears to be unused, so in the future, we are planning
-to remove it ([#584](https://github.com/openxla/stablehlo/issues/584)).
+IEEE-754.
 
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
 performed using the provided `comparison_direction` and `compare_type`.
@@ -3988,8 +3987,6 @@ Applies a map function `computation` to `inputs` along the `dimensions` and
 produces a `result` tensor.
 
 More formally, `result[result_index] = computation(inputs...[result_index])`.
-Note that `dimensions` are currently unused and will likely be removed in
-the future ([#487](https://github.com/openxla/stablehlo/issues/487)).
 
 #### Inputs
 
@@ -6554,6 +6551,7 @@ There are several StableHLO operations that were inherited from
 [MHLO](https://github.com/openxla/xla/blob/d63deb9250b9c212445290bd08c6effb5b6d0a2b/xla/mlir_hlo/mhlo/IR/hlo_ops.td)
 which are deprecated and on the way out of StableHLO. The full details on these
 removals can be found in the [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283).
+The tracker issue for these deprecations is [#2340](https://github.com/openxla/stablehlo/issues/2340).
 
 These operations fall into a few categories:
 
@@ -6564,17 +6562,18 @@ These operations fall into a few categories:
   ([#3](https://github.com/openxla/stablehlo/issues/3)).
 * Unused ops - These operations may have been useful at some point, but the ops
   were either underdeveloped, or the pipelines using these ops have been
-  refactored to not require them anymore. This includes `map`, `tuple`,
-  `get_tuple_element`, and `rng`.
+  refactored to not require them anymore. This includes `map`, `tuple` ([#598](https://github.com/openxla/stablehlo/issues/598)),
+  `get_tuple_element`, `rng`, `complex` comparisons [#560](https://github.com/openxla/stablehlo/issues/560),
+  and convolution `window_reversal` ([#1181](https://github.com/openxla/stablehlo/issues/1181)).
 
 Some of these ops can be removed easily given that they can be expressed using
 existing ops (`broadcast`, `create_token`, `cross-replica-sum`, `dot`,
 `unary_einsum`) and will be removed after the existing compatibilty window
 passes (6 months). Others are still being explored for removal (`einsum`,
-`get_tuple_element`, `map`, `rng` `torch_index_select`, `tuple`). Pending
-community feedback, these ops will either be removed, or added to the spec with
-full support. Until these ops futures are known, they are only guaranteed 6
-months of compatibility.
+`get_tuple_element`, `map`, `rng` `torch_index_select`, `tuple`, `complex`
+comparisons, `window_reversal`). Pending community feedback,
+these ops will either be removed, or added to the spec with full support. Until
+these ops futures are known, they are only guaranteed 6 months of compatibility.
 
 ## Execution
 

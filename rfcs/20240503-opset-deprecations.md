@@ -1,8 +1,8 @@
 # RFC: StableHLO v1.0 Opset Deprecations & Cleanups
 
 Author: gleasonk<br/>
-Last Modified: 5/3/24<br/>
-Status: In review<br/>
+Last Modified: 5/13/24<br/>
+Status: Approved<br/>
 
 ## Background
 
@@ -23,6 +23,10 @@ opset updates: `real_dynamic_slice` vs `dynamic_slice`.
 and `map`.
 - Tuple Ops and type, including `get_tuple_element` and `tuple` op, along with
 `tuple` type support in `custom_call` ([#598](https://github.com/openxla/stablehlo/issues/598)).
+- Features explicitly denoted as "to be removed" in the spec, such as `tuple`
+type ([#598](https://github.com/openxla/stablehlo/issues/598)), comparisons of
+complex types ([#560](https://github.com/openxla/stablehlo/issues/560)), and
+`convolution` op's `window_reversal`, which are unreliable or unused.
 
 In general (unless the op is unused and can be trivially deleted), the
 deprecation steps will be as follows:
