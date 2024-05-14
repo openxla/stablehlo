@@ -15,7 +15,6 @@
 
 set(LLVM_TARGET_DEFINITIONS Passes.td)
 mlir_tablegen(Passes.h.inc -gen-pass-decls -name StablehloTOSATransforms)
-mlir_tablegen(StablehloTosaPasses.md -gen-pass-doc)
 add_public_tablegen_target(StablehloTOSATransformsPassIncGen)
 
 add_mlir_pdll_library(StablehloTOSAPDLLPatternsIncGen
