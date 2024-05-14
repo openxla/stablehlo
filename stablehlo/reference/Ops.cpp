@@ -602,7 +602,7 @@ SmallVector<InterpreterValue> eval(Region &region,
     } else if (auto op = dyn_cast<DynamicConvOp>(operation)) {
       auto lhs = scope.findTensor(op.getLhs());
       auto rhs = scope.findTensor(op.getRhs());
-      auto dPadding = scope.findTensor(op.getDPadding());
+      auto dPadding = scope.findTensor(op.getPadding());
       auto rank = lhs.getRank();
 
       SmallVector<int64_t> windowStrides(rank - 2, 1);

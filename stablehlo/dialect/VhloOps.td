@@ -450,13 +450,13 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "0.19.0"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// `d_padding` should be used instead of `padding` for dynamic convolution, so
-// `padding` is removed for clarity.
+// Padding should be specified as an operand only, not an attribute.
+// Remove `d_padding` and convert `padding` to an operand.
 def VHLO_DynamicConvOpV2 : VHLO_Op<"dynamic_conv_v2", "0.20.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
-    VHLO_AnyType:$d_padding,
+    VHLO_AnyType:$padding,
     VHLO_AnyAttr:$window_strides,
     VHLO_AnyAttr:$lhs_dilation,
     VHLO_AnyAttr:$rhs_dilation,

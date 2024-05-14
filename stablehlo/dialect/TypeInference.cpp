@@ -2300,8 +2300,8 @@ LogicalResult inferDotGeneralOp(
 }
 
 LogicalResult inferDynamicConvOp(
-    std::optional<Location> location, Type lhsType, Type rhsType,
-    Value dPadding, std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
@@ -2359,38 +2359,26 @@ LogicalResult inferDynamicConvOp(
     windowDimensions[i] = rankedRhsType.getShape()[kernelSpatialDimensions[i]];
 
   // dynamic_conv_c4, dynamic_conv_i3
-  auto dPaddingType = cast<RankedTensorType>(dPadding.getType());
-  auto dPaddingShape = dPaddingType.getShape();
-  if (dPaddingType.getRank() != 2)
+  auto paddingType = cast<RankedTensorType>(padding.getType());
+  auto paddingShape = paddingType.getShape();
+  if (paddingType.getRank() != 2)
     return emitOptionalError(location,
-                             "expects d_padding to be of rank 2 but got ",
-                             dPaddingType.getRank());
+                             "expects padding to be of rank 2 but got ",
+                             paddingType.getRank());
 
   // dynamic_conv_c4
-  if (((dPaddingShape[0] != ShapedType::kDynamic &&
-        dPaddingShape[0] != numDims - 2) ||
-       (dPaddingShape[1] != ShapedType::kDynamic && dPaddingShape[1] != 2))) {
-    std::string expectedDPaddingShapeDim0 =
-        dPaddingShape[0] == ShapedType::kDynamic ? "?"
-                                                 : std::to_string(numDims - 2);
-    std::string expectedDPaddingShapeDim1 =
-        dPaddingShape[1] == ShapedType::kDynamic ? "?" : "2";
-    std::string actualDPaddingShapeDim0 =
-        dPaddingShape[0] == ShapedType::kDynamic
-            ? "?"
-            : std::to_string(dPaddingShape[0]);
-    std::string actualDPaddingShapeDim1 =
-        dPaddingShape[1] == ShapedType::kDynamic
-            ? "?"
-            : std::to_string(dPaddingShape[1]);
-    return emitOptionalError(location, "expects d_padding to be of shape [",
-                             expectedDPaddingShapeDim0, ", ",
-                             expectedDPaddingShapeDim1, "], but got [",
-                             actualDPaddingShapeDim0, ", ",
-                             actualDPaddingShapeDim1, "]");
+  if (((paddingShape[0] != numDims - 2) || (paddingShape[1] != 2))) {
+    std::string expectedPaddingShapeDim0 = std::to_string(numDims - 2);
+    std::string expectedPaddingShapeDim1 = "2";
+    std::string actualPaddingShapeDim0 = std::to_string(paddingShape[0]);
+    std::string actualPaddingShapeDim1 = std::to_string(paddingShape[1]);
+    return emitOptionalError(
+        location, "expects padding to be of shape [", expectedPaddingShapeDim0,
+        ", ", expectedPaddingShapeDim1, "], but got [", actualPaddingShapeDim0,
+        ", ", actualPaddingShapeDim1, "]");
   }
 
-  if (SmallVector<int64_t> shape; succeeded(matchInts(dPadding, shape))) {
+  if (SmallVector<int64_t> shape; succeeded(matchInts(padding, shape))) {
     auto it = shape.begin();
     SmallVector<std::pair<int64_t, int64_t>> padding(shape.size() / 2);
     for (auto& item : padding) {
@@ -4029,8 +4017,8 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 }
 
 LogicalResult verifyDynamicConvOp(
-    std::optional<Location> location, Type lhsType, Type rhsType,
-    Value dPadding, std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
@@ -4042,7 +4030,7 @@ LogicalResult verifyDynamicConvOp(
     std::optional<ArrayAttr> precisionConfig, Type resultType) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
   if (failed(inferDynamicConvOp(
-          location, lhsType, rhsType, dPadding, windowStrides, lhsDilation,
+          location, lhsType, rhsType, padding, windowStrides, lhsDilation,
           rhsDilation, windowReversal, inputBatchDimension,
           inputFeatureDimension, inputSpatialDimensions,
           kernelInputFeatureDimension, kernelOutputFeatureDimension,

@@ -2708,7 +2708,7 @@ If not specified, all dimensions are assumed to be possibly expanding.
 
 This operation is functionally identical to
 [convolution](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution)
-op, but the padding is specified dynamically via `d_padding`.
+op, but the padding is specified dynamically via `padding`.
 
 #### Inputs
 
@@ -2716,7 +2716,7 @@ op, but the padding is specified dynamically via `d_padding`.
 |-------|-----------------------------------|--------------------------------------------------------------|-----------------------------------------------------------|
 | (I1)  | `lhs`                             | tensor or per-tensor quantized tensor                        | (C1), (C10-C11), (C14) (C25), (C26-C27), (C30-C31), (C33) |
 | (I2)  | `rhs`                             | tensor or quantized tensor                                   | (C1), (C14-C16), (C26-C28), (C30-C33)                     |
-| (I3)  | `d_padding`                       | 2-dimensional tensor of integer type                         | (C4)                                                      |
+| (I3)  | `padding`                         | 2-dimensional tensor of integer type                         | (C4)                                                      |
 | (I4)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C2-C3)                                                   |
 | (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C5-C6)                                                   |
 | (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C7-C8)                                                   |
@@ -2746,7 +2746,7 @@ op, but the padding is specified dynamically via `d_padding`.
 * (C1) `N = rank(lhs) = rank(rhs)`.
 * (C2) `size(window_strides) = N - 2`.
 * (C3) `0 < window_strides`.
-* (C4) `shape(d_padding) = [N - 2, 2]`.
+* (C4) `shape(padding) = [N - 2, 2]`.
 * (C5) `size(lhs_dilation) = N - 2`.
 * (C6) `0 < lhs_dilation`.
 * (C7) `size(rhs_dilation) = N - 2`.
@@ -2784,7 +2784,7 @@ op, but the padding is specified dynamically via `d_padding`.
     * `lhs_dim = input_spatial_dimensions[spatial_dim]`.
     * `rhs_dim = kernel_spatial_dimensions[spatial_dim]`.
     * `dilated_input_shape[lhs_dim] = dim(lhs, lhs_dim) = 0 ? 0 : (dim(lhs, lhs_dim) - 1) * lhs_dilation[spatial_dim] + 1`.
-    * `padded_input_shape[lhs_dim] = d_padding[spatial_dim, 0] + dilated_input_shape[lhs_dim] + d_padding[spatial_dim, 1]`.
+    * `padded_input_shape[lhs_dim] = padding[spatial_dim, 0] + dilated_input_shape[lhs_dim] + padding[spatial_dim, 1]`.
     * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) = 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[spatial_dim] + 1`.
     * `is_empty_window[lhs_dim] = padded_input_shape[lhs_dim] = 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]`.
     * `num_windows = is_empty_window[lhs_dim] ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
@@ -2821,9 +2821,9 @@ op, but the padding is specified dynamically via `d_padding`.
 //         [[[1]], [[1]], [[1]]],
 //         [[[1]], [[1]], [[1]]]
 //        ]
-// %d_padding: [[1, 1],
-//              [1, 1]]
-%result = "stablehlo.dynamic_conv"(%lhs, %rhs, %d_padding) {
+// %padding: [[1, 1],
+//            [1, 1]]
+%result = "stablehlo.dynamic_conv"(%lhs, %rhs, %padding) {
   window_strides = array<i64: 4, 4>,
   lhs_dilation = array<i64: 2, 2>,
   rhs_dilation = array<i64: 1, 1>,
