@@ -16,7 +16,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-print_usage() {
+exit_with_usage() {
   echo "Usage:"
   echo "$0 [-g][-o output_dir] <llvm_build_dir> <stablehlo_build_dir>"
   echo "    -g               Generate HTML report (default false)"
@@ -29,15 +29,13 @@ while getopts 'go:' flag; do
   case "${flag}" in
     g) GENERATE_HTML=true ;;
     o) OUTPUT_DIR="$OPTARG" ;;
-    *) print_usage
-       exit 1 ;;
+    *) exit_with_usage ;;
   esac
 done
 shift $(( OPTIND - 1 ))
 
 if [[ $# -ne 2 ]] ; then
-  print_usage
-  exit 1
+  exit_with_usage
 fi
 
 LLVM_BUILD_DIR="$1"

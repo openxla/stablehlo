@@ -16,10 +16,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-print_usage() {
+exit_with_usage() {
   echo "Usage: $0 [-fb]"
   echo "    -f           Auto-fix clang-format issues."
   echo "    -b <branch>  Base branch name, defaults to main."
+  exit 1
 }
 
 FORMAT_MODE='validate'
@@ -28,15 +29,13 @@ while getopts 'fb:' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;
     b) BASE_BRANCH="$OPTARG" ;;
-    *) print_usage
-       exit 1 ;;
+    *) exit_with_usage ;;
   esac
 done
 shift $(( OPTIND - 1 ))
 
 if [[ $# -ne 0 ]] ; then
-  print_usage
-  exit 1
+  exit_with_usage
 fi
 
 clang-format --version
