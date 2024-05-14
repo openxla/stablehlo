@@ -2260,15 +2260,23 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution",
     (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>) -> tensor<1x2x2x1xi64>
     ```
   }];
-  let arguments = !con(
-    (ins
-       HLO_Tensor:$lhs, /*convolution_i1*/
-       HLO_TensorOrPerAxisQuantizedTensor:$rhs), /*convolution_i2*/
-    StableHLO_ConvolutionAttributes.attributes /*convolution_i3, convolution_i4,
-    convolution_i5, convolution_i6, convolution_i7, convolution_i8,
-    convolution_i9, convolution_i10, convolution_i11, convolution_i12,
-    convolution_i13, convolution_i14, convolution_i15, convolution_i16,
-    convolution_i17, convolution_i18, convolution_i19*/
+  let arguments = (ins
+    HLO_Tensor:$lhs, /*convolution_i1*/
+    HLO_TensorOrPerAxisQuantizedTensor:$rhs, /*convolution_i2*/
+    // Default value: one for each of the spatial dimension.
+    OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*convolution_i3*/
+    // Default value: two zeros for each of the spatial dimension.
+    OptionalAttr<I64ElementsAttr>:$padding, /*convolution_i4*/
+    // Default value: one for each of the spatial dimension.
+    OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*convolution_i5*/
+    // Default value: one for each of the spatial dimension.
+    OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*convolution_i6*/
+    // Default value: false for each of the spatial dimension.
+    OptionalAttr<GenericDenseBoolArrayAttr>:$window_reversal, /*convolution_i7*/
+    StableHLO_ConvDimensionNumbers:$dimension_numbers, /*convolution_i8...convolution_i16*/
+    I64Attr:$feature_group_count, /*convolution_i17*/
+    I64Attr:$batch_group_count, /*convolution_i18*/
+    StableHLO_PrecisionConfigAttr:$precision_config /*convolution_i19*/
   );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
