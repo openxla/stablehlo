@@ -3866,7 +3866,7 @@ LogicalResult verifyDotGeneralOpQuantizationConstraints(
     }
   }
 
-  // dot_general_c14, dot_general_c17 - dot_general_c20
+  // dot_general_c14, dot_general_c17...dot_general_c20
   return verifyConvolutionDotGeneralCommonQuantizationConstraints(
       location, lhsElementType, rhsElementType, resultElementType);
 }
