@@ -10,23 +10,25 @@ that StableHLO provides, based on the process established in
 The current version of StableHLO can be found in
 [Version.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.h#:~:text=getCurrentVersion).
 
-In the 0.x.x series, the minor version is bumped every time changes to
-the StableHLO opset or
+The minor version is bumped every time changes to the StableHLO opset or
 [the StableHLO serialization format](bytecode.md) are made, and the patch
 version is bumped every time we integrate StableHLO downstream, i.e. into the
 openxla/xla repository.
 
 ## Guarantees
 
-**6 months of backward compatibility:** Portable artifacts serialized by an old
+Per the [StableHLO v1.0 Compatibility RFC](https://github.com/openxla/stablehlo/blob/main/rfcs/20230623-compatibility.md),
+the compatibility window includes the following:
+
+**5 years of backward compatibility:** Portable artifacts serialized by an old
 version of libStablehlo have the same semantics* when deserialized by a new
 version of libStablehlo if these versions are built from openxla/stablehlo
-commits which are less than 6 months apart.
+commits which are less than 5 years apart.
 
-**1 month of forward compatibility:** Portable artifacts serialized by a new
+**2 years of forward compatibility:** Portable artifacts serialized by a new
 version of libStablehlo have the same semantics* when deserialized by an old
 version of libStablehlo if these versions are built from openxla/stablehlo
-commits which are less than 1 month apart, unless the program is using new
+commits which are less than 2 years apart, unless the program is using new
 features introduced since the old version.
 
 \* StableHLO programs are converted to/from portable artifacts via
