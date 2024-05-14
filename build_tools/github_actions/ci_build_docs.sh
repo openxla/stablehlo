@@ -20,38 +20,36 @@ set -o nounset
 set -o pipefail
 
 exit_with_usage() {
-  echo "Usage: $0 [-c] <stablehlo_build_dir>"
+  echo "Usage: $0 [-c]"
   echo "    -c Check if the docs are up to date."
   exit 1
 }
 
-if (( $# < 1 )); then
+if (( $# > 1 )); then
   exit_with_usage
 fi
 
 CHECK=
-if [[ $1 == -c ]]; then
+if (( $# == 1)) && [[ $1 == -c ]]; then
   CHECK=true
   shift
 fi
 
-if (( $# != 1 )); then
+if (( $# != 0 )); then
   exit_with_usage
 fi
 
-STABLEHLO_BUILD_DIR="$1"
-cd "$STABLEHLO_BUILD_DIR"
+declare -A targets
+targets[":stablehlo_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/transforms/StablehloPasses.md"
+targets[":linalg_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/linalg/transforms/StablehloLinalgPasses.md"
+targets[":tosa_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/tosa/transforms/StablehloTosaPasses.md"
 
-targets=(
-  stablehlo/transforms/StablehloPasses.md
-  stablehlo/conversions/linalg/transforms/StablehloLinalgPasses.md
-  stablehlo/conversions/tosa/transforms/StablehloTosaPasses.md
-)
-cmake --build . --target "${targets[@]}"
-cp "${targets[@]}" ../docs/generated
+bazel build "${!targets[@]}"
+
+cp "${targets[@]}" docs/generated
 
 [[ "$CHECK" ]] && [[ "$(git diff)" ]] && {
   echo "Generated pass documentation is out of date. Please re-generate the documentation before pushing:"
-  echo "  ./build_tools/github_actions/ci_build_docs.sh <stablehlo_build_dir>"
+  echo "  ./build_tools/github_actions/ci_build_docs.sh"
   exit 1
 } || exit 0
