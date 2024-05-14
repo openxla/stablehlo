@@ -19,7 +19,8 @@ between frameworks and compilers, even as StableHLO continues to evolve.
 
 This repository includes the [StableHLO specification](docs/spec.md)
 along with an MLIR-based implementation in C++ and Python, which you can use to
-define StableHLO programs for consumption by compilers such as XLA and IREE.
+define StableHLO programs for consumption by compilers such as XLA and IREE, as
+well as on-device use via [Google AI Edge](https://github.com/google-ai-edge/).
 
 ## Build instructions
 
