@@ -8,8 +8,8 @@ func.func @dynamic_conv_op_test_si64() {
                                     [[12], [13], [16], [17]]
                                   ]]> : tensor<1x4x4x1xi64>
   %rhs = stablehlo.constant dense<1> : tensor<3x3x1x1xi64>
-  %d_padding = stablehlo.constant dense<1> : tensor<2x2xi64>
-  %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %d_padding) {
+  %padding = stablehlo.constant dense<1> : tensor<2x2xi64>
+  %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %padding) {
     window_strides = array<i64: 4, 4>,
     lhs_dilation = array<i64: 2, 2>,
     rhs_dilation = array<i64: 1, 1>,

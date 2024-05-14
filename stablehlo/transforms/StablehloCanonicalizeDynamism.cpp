@@ -124,7 +124,7 @@ struct CanonicalizeDynamicConvOpPattern
     // ConvolutionOp supports dynamic shapes for operands and results, so we
     // don't check for that here unlike in some other patterns in this pass.
     SmallVector<int64_t> padding;
-    if (!succeeded(hlo::matchInts(op.getDPadding(), padding)))
+    if (!succeeded(hlo::matchInts(op.getPadding(), padding)))
       return rewriter.notifyMatchFailure(op, "expected static padding");
     auto paddingAttr = DenseIntElementsAttr::get(
         RankedTensorType::get({static_cast<int64_t>(padding.size()) / 2, 2},

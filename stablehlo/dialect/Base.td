@@ -143,7 +143,7 @@ def HLO_Token : Type<CPred<"isa<TokenType>($_self)">, "token">;
 def HLO_IntTensor : RankedTensorOf<[HLO_Int]>;
 
 // Any integer tensor type with rank 2.
-def HLO_2DIntTensor : TensorRankOf<[HLO_Int], [2]>;
+def HLO_Static2DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[2]>], "statically shaped 2-dimensional integer tensor">;
 
 // Any integer tensor type with rank 0 (i.e. representing a single integer).
 def HLO_ScalarIntTensor : 0DTensorOf<[HLO_Int]>;

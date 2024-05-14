@@ -3494,12 +3494,12 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
   let description = [{
     This operation is functionally identical to
     [convolution](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution)
-    op, but the padding is specified dynamically via `d_padding`.
+    op, but the padding is specified dynamically via `padding`.
 
     Example:
     ```mlir
-    %d_padding = stablehlo.constant dense<2> : tensor<2x2xi64>
-    %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %d_padding) {
+    %padding = stablehlo.constant dense<2> : tensor<2x2xi64>
+    %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %padding) {
       window_strides = array<i64: 4, 4>,
       lhs_dilation = array<i64: 2, 2>,
       rhs_dilation = array<i64: 1, 1>,
@@ -3515,7 +3515,7 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
   let arguments = (ins
        HLO_Tensor:$lhs, /*dynamic_conv_i1*/
        HLO_Tensor:$rhs, /*dynamic_conv_i2*/
-       HLO_2DIntTensor:$d_padding, /*dynamic_conv_i3*/
+       HLO_Static2DIntTensor:$padding, /*dynamic_conv_i3*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*dynamic_conv_i4*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*dynamic_conv_i5*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*dynamic_conv_i6*/

@@ -218,7 +218,7 @@ LogicalResult inferDotGeneralOp(
 
 LogicalResult inferDynamicConvOp(
     std::optional<Location> location, Type lhsType, Type rhsType,
-    Value dPadding, std::optional<ArrayRef<int64_t>> windowStrides,
+    Value padding, std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
@@ -463,7 +463,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 
 LogicalResult verifyDynamicConvOp(
     std::optional<Location> location, Type lhsType, Type rhsType,
-    Value dPadding, std::optional<ArrayRef<int64_t>> windowStrides,
+    Value padding, std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
