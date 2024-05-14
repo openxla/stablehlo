@@ -2300,8 +2300,8 @@ LogicalResult inferDotGeneralOp(
 }
 
 LogicalResult inferDynamicConvOp(
-    std::optional<Location> location, Type lhsType, Type rhsType,
-    Value padding, std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
@@ -2367,17 +2367,15 @@ LogicalResult inferDynamicConvOp(
                              paddingType.getRank());
 
   // dynamic_conv_c4
-  if (((paddingShape[0] != numDims - 2) ||
-       (paddingShape[1] != 2))) {
+  if (((paddingShape[0] != numDims - 2) || (paddingShape[1] != 2))) {
     std::string expectedPaddingShapeDim0 = std::to_string(numDims - 2);
     std::string expectedPaddingShapeDim1 = "2";
     std::string actualPaddingShapeDim0 = std::to_string(paddingShape[0]);
     std::string actualPaddingShapeDim1 = std::to_string(paddingShape[1]);
-    return emitOptionalError(location, "expects padding to be of shape [",
-                             expectedPaddingShapeDim0, ", ",
-                             expectedPaddingShapeDim1, "], but got [",
-                             actualPaddingShapeDim0, ", ",
-                             actualPaddingShapeDim1, "]");
+    return emitOptionalError(
+        location, "expects padding to be of shape [", expectedPaddingShapeDim0,
+        ", ", expectedPaddingShapeDim1, "], but got [", actualPaddingShapeDim0,
+        ", ", actualPaddingShapeDim1, "]");
   }
 
   if (SmallVector<int64_t> shape; succeeded(matchInts(padding, shape))) {
@@ -4019,8 +4017,8 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 }
 
 LogicalResult verifyDynamicConvOp(
-    std::optional<Location> location, Type lhsType, Type rhsType,
-    Value padding, std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
