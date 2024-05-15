@@ -1,11 +1,11 @@
 /* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-Copyright 2022 The StableHLO Authors.
+   Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -2559,15 +2559,16 @@ LogicalResult inferDynamicGatherOp(
       for (auto dim : dims) {
         int64_t sliceDimSize = sliceSizesValues[dim];
         if (sliceDimSize > 1)
-          return emitOptionalError(location, "Expects for each dim in ", name,
-                                   " that slice_sizes[dim] <= 1 but got ",
-                                   sliceDimSize);
+          return emitOptionalError(
+              location, "Expects that for each dim in ", name,
+              ", slice_sizes[dim] should be <= 1, but got ", sliceDimSize);
       }
       return success();
     };
 
     // dynamic_gather_c9
-    if (failed(checkSliceSizesOne(collapsedSliceDims, "collapsed_slice_dims"))) {
+    if (failed(
+            checkSliceSizesOne(collapsedSliceDims, "collapsed_slice_dims"))) {
       return failure();
     }
 
@@ -2817,9 +2818,9 @@ LogicalResult inferGatherOp(
     for (auto dim : dims) {
       int64_t sliceDimSize = sliceSizes[dim];
       if (sliceDimSize > 1)
-        return emitOptionalError(location, "Expects for each dim in ", name,
-                                 " that slice_sizes[dim] <= 1 but got ",
-                                 sliceDimSize);
+        return emitOptionalError(
+            location, "Expects that for each dim in ", name,
+            ", slice_sizes[dim] should be <= 1, but got ", sliceDimSize);
     }
     return success();
   };
