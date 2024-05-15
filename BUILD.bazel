@@ -400,7 +400,7 @@ gentbl_cc_library(
             [
                 "-gen-pass-doc",
             ],
-            "stablehlo/conversions/linalg/transforms/StablehloLinalgPasses.md",
+            "stablehlo/conversions/linalg/transforms/stablehlo_linalg_passes.md",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
@@ -966,7 +966,7 @@ gentbl_cc_library(
             [
                 "-gen-pass-doc",
             ],
-            "stablehlo/transforms/StablehloPasses.md",
+            "stablehlo/transforms/stablehlo_passes.md",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
@@ -1217,7 +1217,7 @@ gentbl_cc_library(
             [
                 "-gen-pass-doc",
             ],
-            "stablehlo/conversions/tosa/transforms/StablehloTosaPasses.md",
+            "stablehlo/conversions/tosa/transforms/stablehlo_tosa_passes.md",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
