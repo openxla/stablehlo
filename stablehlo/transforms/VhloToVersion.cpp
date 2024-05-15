@@ -281,7 +281,7 @@ TensorV1Attr getEmptyI64Tensor(OpBuilder& builder) {
 }
 
 bool isEmptyTensor(Attribute attr) {
-  auto tensor = attr.dyn_cast<TensorV1Attr>();
+  auto tensor = dyn_cast<TensorV1Attr>(attr);
   if (tensor) return tensor.getData().empty();
   return false;
 }
