@@ -69,7 +69,7 @@ in the spec checklist.
 - Type Inference: Type inference design principles and testing details can be
 found in [`type_inference.md`](https://github.com/openxla/stablehlo/blob/main/docs/type_inference.md).
 - Compatibility: Tips on managing forward/backward compatibility are in
-[`vhlo.md`](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md#contributing-incompatible-changes).
+[`vhlo_checklist.md`](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md#contributing-incompatible-changes).
 - Reference: Steps for adding interpreter support can be found in
 [`reference_checklist.md`](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md).
 - Tests: For each of the above modifications, consider positive and negative

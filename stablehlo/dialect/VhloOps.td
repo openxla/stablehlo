@@ -413,9 +413,6 @@ def VHLO_DotOpV1 : VHLO_Op<"dot_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicBroadcastInDimOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
@@ -453,11 +450,13 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "0.19.0"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
+// Padding should be specified as an operand only, not an attribute.
+// Remove `d_padding` and convert `padding` to an operand.
 def VHLO_DynamicConvOpV2 : VHLO_Op<"dynamic_conv_v2", "0.20.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
-    VHLO_AnyType:$d_padding,
+    VHLO_AnyType:$padding,
     VHLO_AnyAttr:$window_strides,
     VHLO_AnyAttr:$lhs_dilation,
     VHLO_AnyAttr:$rhs_dilation,
@@ -478,9 +477,6 @@ def VHLO_DynamicConvOpV2 : VHLO_Op<"dynamic_conv_v2", "0.20.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicGatherOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
@@ -495,17 +491,11 @@ def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicIotaOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicIotaOpV1 : VHLO_Op<"dynamic_iota_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$output_shape, VHLO_AnyAttr:$iota_dimension);
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicPadOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
@@ -517,9 +507,6 @@ def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicReshapeOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicReshapeOpV1 : VHLO_Op<"dynamic_reshape_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand, VHLO_AnyType:$output_shape);
   let results = (outs VHLO_AnyType:$result);

@@ -1411,7 +1411,7 @@ DynamicBroadcastInDimOp::getSpeculatability() {
 
 LogicalResult DynamicConvOp::verify() {
   return hlo::verifyDynamicConvOp(
-      getLoc(), getLhs().getType(), getRhs().getType(), getDPadding(),
+      getLoc(), getLhs().getType(), getRhs().getType(), getPadding(),
       getWindowStrides(), getLhsDilation(), getRhsDilation(),
       getWindowReversal(), getDimensionNumbers().getInputBatchDimension(),
       getDimensionNumbers().getInputFeatureDimension(),

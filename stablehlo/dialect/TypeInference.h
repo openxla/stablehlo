@@ -217,8 +217,8 @@ LogicalResult inferDotGeneralOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicConvOp(
-    std::optional<Location> location, Type lhsType, Type rhsType,
-    Value dPadding, std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
@@ -462,8 +462,8 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     std::optional<ArrayRef<int64_t>> knownNonexpandingDimensions, Value result);
 
 LogicalResult verifyDynamicConvOp(
-    std::optional<Location> location, Type lhsType, Type rhsType,
-    Value dPadding, std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,

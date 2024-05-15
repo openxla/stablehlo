@@ -819,10 +819,10 @@ struct RefineDynamicConvOpPattern : public OpRewritePattern<DynamicConvOp> {
   LogicalResult matchAndRewrite(DynamicConvOp op,
                                 PatternRewriter& rewriter) const override {
     SmallVector<int64_t> padding;
-    if (failed(hlo::matchInts(op.getDPadding(), padding)))
-      return rewriter.notifyMatchFailure(op, "expected constant d_padding");
+    if (failed(hlo::matchInts(op.getPadding(), padding)))
+      return rewriter.notifyMatchFailure(op, "expected constant padding");
     auto paddingType = RankedTensorType::get(
-        op.getDPadding().getType().getShape(), rewriter.getIntegerType(64));
+        op.getPadding().getType().getShape(), rewriter.getIntegerType(64));
     auto paddingAttr = DenseIntElementsAttr::get(paddingType, padding);
 
     SmallVector<ShapedTypeComponents> inferredReturnShapes;

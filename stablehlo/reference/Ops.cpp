@@ -55,6 +55,13 @@ Index evalIndex(Tensor tensor) {
   return result;
 }
 
+template <typename T>
+SmallVector<T> extractAttributeOrDefault(std::optional<ArrayRef<T>> attr,
+                                         int64_t size, T value) {
+  if (attr.has_value()) return llvm::to_vector(attr.value());
+  return SmallVector<T>(size, value);
+}
+
 Tensor dotGeneralOp(const Tensor &lhs, const Tensor &rhs,
                     const Axes &lhsContractingDimensions,
                     const Axes &rhsContractingDimensions) {
@@ -519,9 +526,8 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto rhs = scope.findTensor(op.getRhs());
       auto rank = lhs.getRank();
 
-      SmallVector<int64_t> windowStrides(rank - 2, 1);
-      if (auto windowStridesAttr = op.getWindowStrides())
-        windowStrides = SmallVector<int64_t>(windowStridesAttr.value());
+      SmallVector<int64_t> windowStrides = extractAttributeOrDefault<int64_t>(
+          op.getWindowStrides(), rank - 2, 1);
 
       SmallVector<std::pair<int64_t, int64_t>> padding(rank - 2, {0, 0});
       if (auto paddingAttr = op.getPaddingAttr()) {
@@ -596,7 +602,7 @@ SmallVector<InterpreterValue> eval(Region &region,
     } else if (auto op = dyn_cast<DynamicConvOp>(operation)) {
       auto lhs = scope.findTensor(op.getLhs());
       auto rhs = scope.findTensor(op.getRhs());
-      auto dPadding = scope.findTensor(op.getDPadding());
+      auto dPadding = scope.findTensor(op.getPadding());
       auto rank = lhs.getRank();
 
       SmallVector<int64_t> windowStrides(rank - 2, 1);
