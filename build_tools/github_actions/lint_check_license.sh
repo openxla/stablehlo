@@ -16,24 +16,23 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-print_usage() {
+exit_with_usage() {
   echo "Usage: $0 [-b]"
   echo "    -b <branch>  Base branch name, defaults to main."
+  exit 1
 }
 
 BASE_BRANCH=main
 while getopts 'b:' flag; do
   case "${flag}" in
     b) BASE_BRANCH="$OPTARG" ;;
-    *) print_usage
-       exit 1 ;;
+    *) exit_with_usage ;;
   esac
 done
 shift $(( OPTIND - 1 ))
 
 if [[ $# -ne 0 ]] ; then
-  print_usage
-  exit 1
+  exit_with_usage
 fi
 
 echo "Gathering changed files..."

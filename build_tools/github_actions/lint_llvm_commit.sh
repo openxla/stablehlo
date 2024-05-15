@@ -16,10 +16,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-print_usage() {
+exit_with_usage() {
   echo "Usage: $0 [-f] <path/to/stablehlo/root>"
   echo "    -f           Auto-fix LLVM commit mismatch."
   echo "    -s           Skip sha256 hash validation."
+  exit 1
 }
 
 FORMAT_MODE='validate'
@@ -28,15 +29,13 @@ while getopts 'fs' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;
     s) VALIDATE_SHA256="false" ;;
-    *) print_usage
-       exit 1 ;;
+    *) exit_with_usage ;;
   esac
 done
 shift $(( OPTIND - 1 ))
 
 if [[ $# -ne 1 ]] ; then
-  print_usage
-  exit 1
+  exit_with_usage
 fi
 
 PATH_TO_STABLEHLO_ROOT="$1"
