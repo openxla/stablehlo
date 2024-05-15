@@ -171,7 +171,7 @@ LogicalResult verifyBinaryOpQuantizationConstraints(
 LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
     std::optional<Location> location, Type lhsElementType, Type rhsElementType,
     Type resultElementType) {
-  // convolution_c28 and dot_general_c14
+  // convolution_c28, dot_general_c14, dynamic_conv_c28
   if (!isa<quant::QuantizedType>(rhsElementType) ||
       (isa<quant::QuantizedType>(lhsElementType) !=
        isa<quant::QuantizedType>(resultElementType))) {
@@ -184,19 +184,19 @@ LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
   auto rhsQuantType = cast<quant::QuantizedType>(rhsElementType);
   if (auto lhsQuantType = dyn_cast<quant::QuantizedType>(lhsElementType)) {
     auto resultQuantType = cast<quant::QuantizedType>(resultElementType);
-    // convolution_c31 and dot_general_c17
+    // convolution_c31, dot_general_c17, dynamic_conv_c31
     if (lhsQuantType.getStorageType() != rhsQuantType.getStorageType()) {
       return emitOptionalError(
           location, "mismatched lhs and rhs quantization storage types");
     }
-    // convolution_c32 and dot_general_c18
+    // convolution_c32, dot_general_c18, dynamic_conv_c32
     if (lhsQuantType.getExpressedType() != rhsQuantType.getExpressedType() ||
         lhsQuantType.getExpressedType() != resultQuantType.getExpressedType()) {
       return emitOptionalError(
           location,
           "mismatched lhs, rhs and result quantization expressed types");
     }
-    // convolution_c33 and dot_general_c19
+    // convolution_c33, dot_general_c19, dynamic_conv_c33
     if (isa<quant::UniformQuantizedType>(rhsQuantType) &&
         !isa<quant::UniformQuantizedType>(resultQuantType)) {
       return emitOptionalError(
@@ -204,7 +204,7 @@ LogicalResult verifyConvolutionDotGeneralCommonQuantizationConstraints(
     }
   } else {
     Type rhsExpressedType = rhsQuantType.getExpressedType();
-    // convolution_c34 and dot_general_c20
+    // convolution_c34, dot_general_c20, dynamic_conv_c34
     if (lhsElementType != rhsExpressedType ||
         lhsElementType != resultElementType) {
       return emitOptionalError(location,
@@ -304,6 +304,42 @@ LogicalResult verifyReshapeOpQuantizationConstraints(
             "product of dimensions before quantization dimension must match "
             "between operand and result for ",
             operandProd, " and ", resultProd);
+    }
+  }
+
+  return success();
+}
+
+LogicalResult verifyBroadcastInDimOpQuantConstraints(
+    std::optional<Location> location, Value operand, Value result,
+    ArrayRef<int64_t> broadcastDimensions) {
+  auto operandType = cast<RankedTensorType>(operand.getType());
+  auto resultType = cast<RankedTensorType>(result.getType());
+  auto resultQType = cast<quant::UniformQuantizedPerAxisType>(
+      getElementTypeOrSelf(result.getType()));
+  auto operandQType = cast<quant::UniformQuantizedPerAxisType>(
+      getElementTypeOrSelf(operand.getType()));
+  auto operandQDim = operandQType.getQuantizedDimension();
+  auto resultQDim = resultQType.getQuantizedDimension();
+
+  // broadcast_in_dim_c6, dynamic_broadcast_in_dim_c6
+  if (resultQDim != broadcastDimensions[operandQDim])
+    return emitOptionalError(location, "result quantization_dimension ",
+                             resultQDim, " not same as broadcast_dimensions[",
+                             operandQDim,
+                             "] = ", broadcastDimensions[operandQDim]);
+  if (operandType.getDimSize(operandQDim) == 1) {
+    for (int64_t i = 0; i != resultType.getDimSize(resultQDim); ++i) {
+      if (resultQType.getScales()[i] != operandQType.getScales()[0])
+        return emitOptionalError(location, "mismatch result scale ", i, " (",
+                                 resultQType.getScales()[i],
+                                 ") and operand scale 0 (",
+                                 operandQType.getScales()[0], ")");
+      if (resultQType.getZeroPoints()[i] != operandQType.getZeroPoints()[0])
+        return emitOptionalError(location, "mismatch result zero_point ", i,
+                                 " (", resultQType.getZeroPoints()[i],
+                                 ") and operand zero_point 0 (",
+                                 operandQType.getZeroPoints()[0], ")");
     }
   }
 
@@ -723,22 +759,22 @@ verifyWindowAttributesAndInferWindowDimensions(
         " to have same dimension-size as size of window dimensions (",
         windowDimensions.size(), "), but got: ", attrSize, ".");
   };
-  // convolution_c2, reduce_window_c6, select_and_scatter_c6
+  // convolution_c2, dynamic_conv_c2, reduce_window_c6, select_and_scatter_c6
   if (failed(verifySize(windowStrides.size(), "window-strides")))
     return failure();
 
-  // convolution_c5, reduce_window_c8
+  // convolution_c5, dynamic_conv_c5, reduce_window_c8
   if (failed(verifySize(lhsDilation.size(), "base-dilation factors")))
     return failure();
 
-  // convolution_c7, reduce_window_c10
+  // convolution_c7, dynamic_conv_c7, reduce_window_c10
   if (failed(verifySize(rhsDilation.size(), "window-dilation factors")))
     return failure();
 
   // convolution_c4, reduce_window_c12
   if (failed(verifySize(padding.size(), "padding-entries"))) return failure();
 
-  // convolution_c9
+  // convolution_c9, dynamic_conv_c9
   if (failed(verifySize(windowReversal.size(), "window-reversal")))
     return failure();
 
@@ -755,7 +791,7 @@ verifyWindowAttributesAndInferWindowDimensions(
 
     if (!windowStrides.empty()) dim.stride = windowStrides[i];
 
-    // convolution_c3, reduce_window_c7, select_and_scatter_c7
+    // convolution_c3, dynamic_conv_c3, reduce_window_c7, select_and_scatter_c7
     if (dim.stride <= 0)
       return emitOptionalError(
           loc, "expects window to have positive stride for ", i,
@@ -763,7 +799,7 @@ verifyWindowAttributesAndInferWindowDimensions(
 
     if (!lhsDilation.empty()) dim.baseDilation = lhsDilation[i];
 
-    // convolution_c6, reduce_window_c9
+    // convolution_c6, dynamic_conv_c6, reduce_window_c9
     if (dim.baseDilation <= 0)
       return emitOptionalError(
           loc, "expects window to have positive base dilation factor for ", i,
@@ -771,7 +807,7 @@ verifyWindowAttributesAndInferWindowDimensions(
 
     if (!rhsDilation.empty()) dim.windowDilation = rhsDilation[i];
 
-    // convolution_c8, reduce_window_c11
+    // convolution_c8, dynamic_conv_c8, reduce_window_c11
     if (dim.windowDilation <= 0)
       return emitOptionalError(
           loc, "expects window to have positive window dilation factor for ", i,
@@ -1131,7 +1167,7 @@ LogicalResult isSpatialDimensionsValid(
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
     std::optional<Location> location) {
   uint64_t spatialDimNum = inputSpatialDimensions.size();
-  // convolution_c17, convolution_c19
+  // convolution_c17, convolution_c19, dynamic_conv_c17, dynamic_conv_c19
   if ((spatialDimNum != kernelSpatialDimensions.size()) ||
       (spatialDimNum != outputSpatialDimensions.size()))
     return emitOptionalError(location,
@@ -1161,7 +1197,8 @@ LogicalResult isSpatialDimensionsValid(
 
   auto numDims = cast<RankedTensorType>(lhsType).getRank();
   const auto inRange = [numDims](int64_t i) { return 0 <= i && i < numDims; };
-  // convolution_c13, convolution_c18, convolution_c20
+  // convolution_c13, convolution_c18, convolution_c20, dynamic_conv_c13,
+  // dynamic_conv_c18, dynamic_conv_c20
   if (!llvm::all_of(inputDimNums, inRange) ||
       !llvm::all_of(windowDimNums, inRange) ||
       !llvm::all_of(outputDimNums, inRange))
@@ -1170,19 +1207,19 @@ LogicalResult isSpatialDimensionsValid(
                              "dimension-numbers to be in-range [0, ",
                              numDims, ").");
 
-  // convolution_c13
+  // convolution_c13, dynamic_conv_c13
   if (!isUnique(inputDimNums))
     return emitOptionalError(
         location, "expects input dimension-numbers to be unique, got {",
         inputDimNums, "}.");
 
-  // convolution_c18
+  // convolution_c18, dynamic_conv_c18
   if (!isUnique(windowDimNums))
     return emitOptionalError(
         location, "expects kernel dimension-numbers to be unique, got {",
         windowDimNums, "}.");
 
-  // convolution_c20
+  // convolution_c20, dynamic_conv_c20
   if (!isUnique(outputDimNums))
     return emitOptionalError(
         location, "expects output dimension-numbers to be unique, got {",
@@ -1221,19 +1258,19 @@ LogicalResult verifyConvolutionAttributes(
           location)))
     return failure();
 
-  // convolution_c21
+  // convolution_c21, dynamic_conv_c21
   if (featureGroupCount <= 0)
     return emitOptionalError(
         location, "expects feature_group_count to be a positive number, got ",
         featureGroupCount, ".");
 
-  // convolution_c22
+  // convolution_c22, dynamic_conv_c22
   if (batchGroupCount <= 0)
     return emitOptionalError(
         location, "expects batch_group_count to be a positive number, got ",
         batchGroupCount, ".");
 
-  // convolution_c23
+  // convolution_c23, dynamic_conv_c23
   if (batchGroupCount > 1 && featureGroupCount > 1)
     return emitOptionalError(
         location,
@@ -1251,7 +1288,7 @@ LogicalResult verifyConvolutionAttributes(
   const int64_t kernelOutputFeatures =
       rankedRhsType.getShape()[kernelOutputFeatureDimension];
 
-  // convolution_c10
+  // convolution_c10, dynamic_conv_c10
   if (!isDynamicDimSize(inputBatch) && inputBatch % batchGroupCount != 0)
     return emitOptionalError(location, "expects input batch dimension (",
                              inputBatch,
@@ -1260,7 +1297,7 @@ LogicalResult verifyConvolutionAttributes(
                              batchGroupCount, ".");
 
   if (!isDynamicDimSize(inputFeatures)) {
-    // convolution_c11
+    // convolution_c11, dynamic_conv_c11
     if (inputFeatures % featureGroupCount != 0)
       return emitOptionalError(location, "expects input feature dimension (",
                                inputFeatures,
@@ -1268,7 +1305,7 @@ LogicalResult verifyConvolutionAttributes(
                                "feature_group_count = ",
                                featureGroupCount, ".");
 
-    // convolution_c14
+    // convolution_c14, dynamic_conv_c14
     if (!isDynamicDimSize(kernelInputFeatures) &&
         inputFeatures / featureGroupCount != kernelInputFeatures)
       return emitOptionalError(
@@ -1280,7 +1317,7 @@ LogicalResult verifyConvolutionAttributes(
   }
 
   if (!isDynamicDimSize(kernelOutputFeatures)) {
-    // convolution_c15
+    // convolution_c15, dynamic_conv_c15
     if (kernelOutputFeatures % batchGroupCount != 0)
       return emitOptionalError(
           location, "expects output feature dimension size (",
@@ -1288,7 +1325,7 @@ LogicalResult verifyConvolutionAttributes(
           ") to be a multiple of batch_group_count. Got batch_group_count = ",
           batchGroupCount, ".");
 
-    // convolution_c16
+    // convolution_c16, dynamic_conv_c16
     if (kernelOutputFeatures % featureGroupCount != 0)
       return emitOptionalError(location,
                                "expects kernel output feature dimension (",
@@ -1298,7 +1335,7 @@ LogicalResult verifyConvolutionAttributes(
                                featureGroupCount, ".");
   }
 
-  // convolution_c24
+  // convolution_c24, dynamic_conv_c24
   if (failed(verifyPrecisionConfig(location, precisionConfig)))
     return failure();
 
@@ -1450,7 +1487,7 @@ static LogicalResult verifyGather(
     ArrayRef<int64_t> operandBatchingDims,
     ArrayRef<int64_t> startIndicesBatchingDims, ArrayRef<int64_t> startIndexMap,
     int64_t indexVectorDim) {
-  // gather_c1
+  // dynamic_gather_c1, gather_c1
   int64_t impliedOperandRank = offsetDims.size() + collapsedSliceDims.size() +
                                operandBatchingDims.size();
   if (operandShape.getRank() != impliedOperandRank)
@@ -1460,7 +1497,7 @@ static LogicalResult verifyGather(
         ") plus operand_batching_dims size (", operandBatchingDims.size(),
         ") is not equal to operand rank (", operandShape.getRank(), ")");
 
-  // gather_c2
+  // dynamic_gather_c2, gather_c2
   // index_vector_dim == start_indices.rank implies a trailing 1 on the
   // shape of start_indices.
   if (failed(checkDimInBounds(location, indexVectorDim,
@@ -1469,7 +1506,7 @@ static LogicalResult verifyGather(
                               /*upperBoundInclusive=*/true)))
     return failure();
 
-  // gather_c3
+  // dynamic_gather_c3, gather_c3
   bool impliedTrailingDim = indexVectorDim == startIndicesShape.getRank();
   if (impliedTrailingDim || !startIndicesShape.isDynamicDim(indexVectorDim)) {
     int64_t effectiveDimSize;
@@ -1484,7 +1521,7 @@ static LogicalResult verifyGather(
           ") of start_indices (", effectiveDimSize, ")");
   }
 
-  // gather_c4
+  // dynamic_gather_c4, gather_c4
   if (!llvm::is_sorted(offsetDims))
     return emitOptionalError(
         location, "expects offset_dims to be sorted, got: [", offsetDims, "]");
@@ -1492,56 +1529,56 @@ static LogicalResult verifyGather(
     return emitOptionalError(
         location, "expects offset_dims to not repeat, got: [", offsetDims, "]");
 
-  // gather_c6
+  // dynamic_gather_c6, gather_c6
   if (failed(checkDimsDistinct(location, collapsedSliceDims,
                                operandBatchingDims, "collapsed_slice_dims",
                                "operand_batching_dims")))
     return failure();
 
-  // gather_c7
+  // dynamic_gather_c7, gather_c7
   if (!llvm::is_sorted(collapsedSliceDims))
     return emitOptionalError(
         location, "expects collapsed_slice_dims to be sorted, got: [",
         collapsedSliceDims, "]");
 
-  // gather_c8
+  // dynamic_gather_c8, gather_c8
   if (failed(checkDimsInBounds(location, collapsedSliceDims,
                                operandShape.getRank(), "collapsed_slice_dims",
                                "rank-of('operand')")))
     return failure();
 
-  // gather_c10
+  // dynamic_gather_c10, gather_c10
   if (!llvm::is_sorted(operandBatchingDims))
     return emitOptionalError(
         location, "expects operand_batching_dims to be sorted, got: [",
         operandBatchingDims, "]");
 
-  // gather_c11
+  // dynamic_gather_c11, gather_c11
   if (failed(checkDimsInBounds(location, operandBatchingDims,
                                operandShape.getRank(), "operand_batching_dims",
                                "rank-of('operand')")))
     return failure();
 
-  // gather_c13
+  // dynamic_gather_c13, gather_c13
   if (!isUnique(startIndicesBatchingDims))
     return emitOptionalError(
         location, "expects start_indices_batching_dims to not repeat, got: [",
         startIndicesBatchingDims, "]");
 
-  // gather_c14
+  // dynamic_gather_c14, gather_c14
   if (failed(checkDimsInBounds(
           location, startIndicesBatchingDims, startIndicesShape.getRank(),
           "start_indices_batching_dims", "rank-of('start_indices')")))
     return failure();
 
-  // gather_c15
+  // dynamic_gather_c15, gather_c15
   if (llvm::is_contained(startIndicesBatchingDims, indexVectorDim))
     return emitOptionalError(
         location,
         "expects start_indices_batching_dims not to include index_vector_dim ",
         indexVectorDim);
 
-  // gather_c16
+  // dynamic_gather_c16, gather_c16
   if (operandBatchingDims.size() != startIndicesBatchingDims.size()) {
     return emitOptionalError(
         location,
@@ -1549,7 +1586,7 @@ static LogicalResult verifyGather(
         "should have the same size");
   }
 
-  // gather_c17
+  // dynamic_gather_c17, gather_c17
   for (auto [index, dims] : llvm::enumerate(
            llvm::zip(operandBatchingDims, startIndicesBatchingDims))) {
     auto [operandDim, startIndicesDim] = dims;
@@ -1562,12 +1599,12 @@ static LogicalResult verifyGather(
                                operandDimSize, " and ", startIndicesDimSize);
   }
 
-  // gather_c18
+  // dynamic_gather_c18, gather_c18
   if (failed(checkDimsDistinct(location, startIndexMap, operandBatchingDims,
                                "start_index_map", "operand_batching_dims")))
     return failure();
 
-  // gather_c19
+  // dynamic_gather_c19, gather_c19
   if (failed(checkDimsInBounds(location, startIndexMap, operandShape.getRank(),
                                "start_index_map", "rank-of('operand')")))
     return failure();
@@ -1576,16 +1613,13 @@ static LogicalResult verifyGather(
   if (sliceSizesShape.getRank() != 1)
     return emitOptionalError(location, "slice_sizes.rank != 1 (got ",
                              sliceSizesShape.getRank(), ')');
+  int64_t sliceSize = sliceSizesShape.getNumElements();
 
-  if (sliceSizesShape.hasStaticShape()) {
-    int64_t sliceSize = sliceSizesShape.getNumElements();
-
-    // gather_c20
-    if (sliceSize != operandShape.getRank())
-      return emitOptionalError(location, "slice_sizes size (", sliceSize,
-                               ") not equal to operand rank (",
-                               operandShape.getRank(), ")");
-  }
+  // dynamic_gather_c20, gather_c20
+  if (sliceSize != operandShape.getRank())
+    return emitOptionalError(location, "slice_sizes size (", sliceSize,
+                             ") not equal to operand rank (",
+                             operandShape.getRank(), ")");
 
   return success();
 }
@@ -1675,7 +1709,7 @@ static LogicalResult inferGatherReturnTypeComponents(
   // appended to start_indices shape.
   if (indexVectorDim == startIndicesRank) ++startIndicesRank;
   int64_t resultRank = offsetDims.size() + startIndicesRank - 1;
-  // gather_c5
+  // dynamic_gather_c5, gather_c5
   if (failed(checkDimsInBounds(location, offsetDims, resultRank, "offset_dims",
                                "implied-result-rank")))
     return failure();
@@ -1684,7 +1718,7 @@ static LogicalResult inferGatherReturnTypeComponents(
     return startIndicesShape.getDimSize(index);
   };
 
-  // gather_c22
+  // dynamic_gather_c22, dynamic_gather_c23, gather_c22, gather_c23
   SmallVector<int64_t> shape;
   inferGatherShape<int64_t>(resultRank, getStartIndicesDim, getSliceDim,
                             offsetDims, collapsedSliceDims, operandBatchingDims,
@@ -2376,6 +2410,132 @@ LogicalResult inferDotGeneralOp(
   return success();
 }
 
+LogicalResult inferDynamicConvOp(
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<ArrayRef<int64_t>> lhsDilation,
+    std::optional<ArrayRef<int64_t>> rhsDilation,
+    std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
+    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
+    int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
+    ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount,
+    std::optional<ArrayAttr> precisionConfig,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto rankedLhsType = cast<RankedTensorType>(lhsType);
+  auto rankedRhsType = cast<RankedTensorType>(rhsType);
+
+  // dynamic_conv_c13
+  int numDims = rankedLhsType.getRank();
+  if (numDims < 2)
+    return emitOptionalError(
+        location,
+        "expects convolution arguments to have >= 2 dimensions. Got: ",
+        rankedLhsType, " and ", rankedRhsType, ".");
+
+  // dynamic_conv_c1
+  if (numDims != rankedRhsType.getRank())
+    return emitOptionalError(location,
+                             "expects convolution arguments to have same "
+                             "number of dimensions. Got: ",
+                             rankedLhsType, " and ", rankedRhsType, ".");
+
+  // dynamic_conv_c27
+  if (!anyQuantized<quant::QuantizedType>({rankedLhsType, rankedRhsType}) &&
+      !isCompatibleForHloTypeInference(rankedLhsType.getElementType(),
+                                       rankedRhsType.getElementType()))
+    return emitOptionalError(
+        location, "expects lhs and rhs to have compatible element type. Got: ",
+        rankedLhsType.getElementType(), " and ",
+        rankedRhsType.getElementType());
+
+  if (failed(verifyConvolutionAttributes(
+          location, lhsType, rhsType, inputBatchDimension,
+          inputFeatureDimension, inputSpatialDimensions,
+          kernelInputFeatureDimension, kernelOutputFeatureDimension,
+          kernelSpatialDimensions, outputBatchDimension, outputFeatureDimension,
+          outputSpatialDimensions, featureGroupCount, batchGroupCount,
+          precisionConfig)))
+    return failure();
+
+  // dynamic_conv_c12
+  if ((size_t)numDims != inputSpatialDimensions.size() + 2)
+    return emitOptionalError(location, "expects convolution arguments to have ",
+                             inputSpatialDimensions.size() + 2,
+                             " dimensions. Got: ", numDims);
+
+  SmallVector<int64_t> windowDimensions(kernelSpatialDimensions.size());
+  for (size_t i = 0; i < windowDimensions.size(); i++)
+    windowDimensions[i] = rankedRhsType.getShape()[kernelSpatialDimensions[i]];
+
+  // dynamic_conv_c4, dynamic_conv_i3
+  auto paddingType = cast<RankedTensorType>(padding.getType());
+  auto paddingShape = paddingType.getShape();
+  if (paddingType.getRank() != 2)
+    return emitOptionalError(location,
+                             "expects padding to be of rank 2 but got ",
+                             paddingType.getRank());
+
+  // dynamic_conv_c4
+  if (((paddingShape[0] != numDims - 2) || (paddingShape[1] != 2))) {
+    std::string expectedPaddingShapeDim0 = std::to_string(numDims - 2);
+    std::string expectedPaddingShapeDim1 = "2";
+    std::string actualPaddingShapeDim0 = std::to_string(paddingShape[0]);
+    std::string actualPaddingShapeDim1 = std::to_string(paddingShape[1]);
+    return emitOptionalError(
+        location, "expects padding to be of shape [", expectedPaddingShapeDim0,
+        ", ", expectedPaddingShapeDim1, "], but got [", actualPaddingShapeDim0,
+        ", ", actualPaddingShapeDim1, "]");
+  }
+
+  if (SmallVector<int64_t> shape; succeeded(matchInts(padding, shape))) {
+    auto it = shape.begin();
+    SmallVector<std::pair<int64_t, int64_t>> padding(shape.size() / 2);
+    for (auto& item : padding) {
+      int64_t first = *it;
+      ++it;
+      int64_t second = *it;
+      ++it;
+      item = {first, second};
+    }
+
+    auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
+        windowDimensions, windowStrides.value_or(ArrayRef<int64_t>{}), padding,
+        lhsDilation.value_or(ArrayRef<int64_t>{}),
+        rhsDilation.value_or(ArrayRef<int64_t>{}),
+        windowReversal.value_or(ArrayRef<bool>{}), location);
+    if (failed(windowOrErr)) return failure();
+
+    // dynamic_conv_c25, dynamic_conv_c26
+    SmallVector<int64_t> outputDimensions(rankedLhsType.getShape().size(),
+                                          ShapedType::kDynamic);
+
+    auto numSpatialDims = inputSpatialDimensions.size();
+    SmallVector<int64_t> inputSpatialDimVals(numSpatialDims);
+    for (int64_t i = 0; i < static_cast<int64_t>(numSpatialDims); ++i)
+      inputSpatialDimVals[i] =
+          rankedLhsType.getShape()[inputSpatialDimensions[i]];
+    auto windowOutputShape =
+        inferWindowOutputShape(inputSpatialDimVals, *windowOrErr);
+
+    for (int64_t i = 0; i < static_cast<int64_t>(windowOrErr->size()); ++i)
+      outputDimensions[outputSpatialDimensions[i]] = windowOutputShape[i];
+
+    const int64_t inputBatch = rankedLhsType.getShape()[inputBatchDimension];
+    const int64_t kernelOutputFeatures =
+        rankedRhsType.getShape()[kernelOutputFeatureDimension];
+    outputDimensions[outputBatchDimension] = isDynamicDimSize(inputBatch)
+                                                 ? ShapedType::kDynamic
+                                                 : inputBatch / batchGroupCount;
+    outputDimensions[outputFeatureDimension] = kernelOutputFeatures;
+
+    inferredReturnShapes.emplace_back(outputDimensions);
+  }
+
+  return success();
+}
+
 LogicalResult inferDynamicGatherOp(
     std::optional<Location> location, Value operand, Value startIndices,
     Value sliceSizes, ArrayRef<int64_t> offsetDims,
@@ -2393,13 +2553,50 @@ LogicalResult inferDynamicGatherOp(
                           startIndexMap, indexVectorDim)))
     return failure();
 
+  if (SmallVector<int64_t> sliceSizesValues;
+      matchInts(sliceSizes, sliceSizesValues).succeeded()) {
+    auto checkSliceSizesOne = [&](ArrayRef<int64_t> dims, StringRef name) {
+      for (auto dim : dims) {
+        int64_t sliceDimSize = sliceSizesValues[dim];
+        if (sliceDimSize > 1)
+          return emitOptionalError(location, "Expects for each dim in ", name,
+                                   " that slice_sizes[dim] <= 1 but got ",
+                                   sliceDimSize);
+      }
+      return success();
+    };
+
+    // dynamic_gather_c9
+    if (failed(checkSliceSizesOne(collapsedSliceDims, "collapsed_slice_dims"))) {
+      return failure();
+    }
+
+    // dynamic_gather_c12
+    if (failed(
+            checkSliceSizesOne(operandBatchingDims, "operand_batching_dims"))) {
+      return failure();
+    }
+
+    // dynamic_gather_c21
+    for (auto [index, size] : llvm::enumerate(sliceSizesValues)) {
+      if (size < 0 || (!operandShape.isDynamicDim(index) &&
+                       size > operandShape.getDimSize(index))) {
+        return emitOptionalError(location, "slice size (", size,
+                                 ") is out of bounds for operand dimension (",
+                                 operandShape.getDimSize(index), ") at index ",
+                                 index);
+      }
+    }
+  }
+
   auto getSliceDim = [&](int64_t index) {
     DenseIntElementsAttr sliceSizesAttr;
     if (!matchPattern(sliceSizes, m_Constant(&sliceSizesAttr)))
       return ShapedType::kDynamic;
     return sliceSizesAttr.getValues<APInt>()[index].getSExtValue();
   };
-  // gather_c5, gather_c22
+
+  // dynamic_gather_c5, dynamic_gather_c22, gather_c5, gather_c22
   return inferGatherReturnTypeComponents(
       location, operandShape, startIndices, getSliceDim, offsetDims,
       collapsedSliceDims, operandBatchingDims, indexVectorDim,
@@ -2639,14 +2836,14 @@ LogicalResult inferGatherOp(
   }
 
   // gather_c21
-  for (const auto& it : llvm::enumerate(sliceSizes)) {
-    if (operandShape.isDynamicDim(it.index())) continue;
-    auto operandDimSize = operandShape.getDimSize(it.index());
-    auto sliceDimSize = it.value();
-    if (sliceDimSize < 0 || sliceDimSize > operandDimSize)
-      return emitOptionalError(location, "slice size (", sliceDimSize,
+  for (auto [index, size] : llvm::enumerate(sliceSizes)) {
+    if (size < 0 || (!operandShape.isDynamicDim(index) &&
+                     size > operandShape.getDimSize(index))) {
+      return emitOptionalError(location, "slice size (", size,
                                ") is out of bounds for operand dimension (",
-                               operandDimSize, ") at index ", it.index());
+                               operandShape.getDimSize(index), ") at index ",
+                               index);
+    }
   }
 
   auto getSliceDim = [&sliceSizes](int64_t index) -> int64_t {
@@ -2811,14 +3008,6 @@ LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
                          ArrayRef<int64_t> interiorPadding,
                          SmallVectorImpl<Type>& inferredReturnTypes) {
   auto inputType = cast<RankedTensorType>(operandType);
-  auto padType = cast<RankedTensorType>(paddingValueType);
-
-  // pad_i2
-  if (padType.getRank() != 0)
-    return emitOptionalError(location,
-                             "padding value type should be a rank-0 "
-                             "tensor, is rank ",
-                             padType.getRank());
 
   int64_t rank = inputType.getRank();
   // pad_c2
@@ -3561,32 +3750,10 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
   }
 
   // broadcast_in_dim_c6
-  if (auto resultQType = dyn_cast<quant::UniformQuantizedPerAxisType>(
-          getElementTypeOrSelf(result.getType()))) {
-    auto operandQType = cast<quant::UniformQuantizedPerAxisType>(
-        getElementTypeOrSelf(operand.getType()));
-    auto operandQDim = operandQType.getQuantizedDimension();
-    auto resultQDim = resultQType.getQuantizedDimension();
-    if (resultQDim != broadcastDimensions[operandQDim])
-      return emitOptionalError(location, "result quantization_dimension ",
-                               resultQDim, " not same as broadcast_dimensions[",
-                               operandQDim,
-                               "] = ", broadcastDimensions[operandQDim]);
-    if (operandType.getDimSize(operandQDim) == 1) {
-      for (int64_t j = 0; j != resultType.getDimSize(resultQDim); ++j) {
-        if (resultQType.getScales()[j] != operandQType.getScales()[0])
-          return emitOptionalError(location, "mismatch result scale ", j, " (",
-                                   resultQType.getScales()[j],
-                                   ") and operand scale 0 (",
-                                   operandQType.getScales()[0], ")");
-        if (resultQType.getZeroPoints()[j] != operandQType.getZeroPoints()[0])
-          return emitOptionalError(location, "mismatch result zero_point ", j,
-                                   " (", resultQType.getZeroPoints()[j],
-                                   ") and operand zero_point 0 (",
-                                   operandQType.getZeroPoints()[0], ")");
-      }
-    }
-  }
+  if (isa<quant::UniformQuantizedPerAxisType>(
+          getElementTypeOrSelf(result.getType())))
+    return verifyBroadcastInDimOpQuantConstraints(location, operand, result,
+                                                  broadcastDimensions);
 
   return success();
 }
@@ -3727,7 +3894,7 @@ LogicalResult verifyConvolutionOpQuantizationConstraints(
   Type rhsElementType = getElementTypeOrSelf(rhsType);
   Type resultElementType = getElementTypeOrSelf(resultType);
 
-  // convolution_c29
+  // convolution_c29, dynamic_conv_c29
   if (auto rhsPerAxisType =
           dyn_cast<quant::UniformQuantizedPerAxisType>(rhsElementType)) {
     if (rhsPerAxisType.getQuantizedDimension() !=
@@ -3738,7 +3905,7 @@ LogicalResult verifyConvolutionOpQuantizationConstraints(
     }
   }
 
-  // convolution_c30
+  // convolution_c30, dynamic_conv_c30
   if (auto resultPerAxisType =
           dyn_cast<quant::UniformQuantizedPerAxisType>(resultElementType)) {
     if (resultPerAxisType.getQuantizedDimension() != outputFeatureDimension) {
@@ -3748,7 +3915,8 @@ LogicalResult verifyConvolutionOpQuantizationConstraints(
     }
   }
 
-  // convolution_c28, convolution_c31 - convolution_c34
+  // convolution_c28, convolution_c31...convolution_c34, dynamic_conv_c28,
+  // dynamic_conv_c31...dynamic_conv_c34
   return verifyConvolutionDotGeneralCommonQuantizationConstraints(
       location, lhsElementType, rhsElementType, resultElementType);
 }
@@ -3845,7 +4013,7 @@ LogicalResult verifyDotGeneralOpQuantizationConstraints(
     }
   }
 
-  // dot_general_c14, dot_general_c17 - dot_general_c20
+  // dot_general_c14, dot_general_c17...dot_general_c20
   return verifyConvolutionDotGeneralCommonQuantizationConstraints(
       location, lhsElementType, rhsElementType, resultElementType);
 }
@@ -3890,32 +4058,44 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     Value result) {
   auto operandType = cast<RankedTensorType>(operand.getType());
   auto resultType = cast<RankedTensorType>(result.getType());
-
-  auto outputDimensionsType =
-      cast<RankedTensorType>(outputDimensions.getType());
-  auto outputDimensionsSize = outputDimensionsType.getDimSize(0);
   auto resultRank = resultType.getRank();
-
-  // Verify broadcast_dimensions.
   auto bcastDimensions = broadcastDimensions;
   int64_t bcastDimensionsSize = bcastDimensions.size();
   auto operandRank = operandType.getRank();
+
+  // dynamic_broadcast_in_dim_c1
+  if (!anyQuantized<quant::QuantizedType>(
+          {operand.getType(), result.getType()}) &&
+      !isCompatibleElementTypeForHloTypeInference(operand.getType(),
+                                                  result.getType()))
+    return emitOptionalError(
+        location,
+        "expects operand and result to have compatible element type. Got: ",
+        operand.getType(), " and ", result.getType());
+
+  // dynamic_broadcast_in_dim_c2
   if (bcastDimensionsSize != operandRank)
     return emitOptionalError(
         location, "broadcast_dimensions size (", bcastDimensionsSize,
         ") does not match operand rank (", operandRank, ")");
 
+  // dynamic_broadcast_in_dim_c3
   if (resultRank < operandRank)
     return emitOptionalError(location, "result rank (", resultRank,
                              ") is less than operand rank (", operandRank, ")");
 
+  // dynamic_broadcast_in_dim_c4
+  if (!isUnique(broadcastDimensions))
+    return emitOptionalError(location,
+                             "broadcast_dimensions should not have duplicates");
+
+  // dynamic_broadcast_in_dim_c5
   for (int i = 0; i != bcastDimensionsSize; ++i) {
     auto dimIndex = bcastDimensions[i];
     if (dimIndex < 0 || dimIndex >= resultRank)
       return emitOptionalError(location,
                                "broadcast_dimensions contains invalid value ",
                                dimIndex, " for result with rank ", resultRank);
-
     auto dimSize = operandType.getDimSize(i);
     auto resultDimSize = resultType.getDimSize(dimIndex);
     // Note: verifyCompatibleShapes doesn't consider size-1 broadcasting, so
@@ -3928,13 +4108,11 @@ LogicalResult verifyDynamicBroadcastInDimOp(
                                dimIndex, " (", resultDimSize, ")");
   }
 
-  if (outputDimensionsSize != resultRank)
-    return emitOptionalError(location, "result rank (", resultRank,
-                             ") is not equal to number of output dimensions (",
-                             outputDimensionsSize, ")");
+  // dynamic_broadcast_in_dim_c7
+  if (failed(verifyShapeOperandIsCompatibleWithResultType(
+          location, outputDimensions, resultType)))
+    return failure();
 
-  // Verify that the known expanding and non-expanding dimensions are a subset
-  // of the operand's dimensions.
   int64_t numKnownExpansionBehavior = 0;
   DenseSet<int64_t> knownExpansionBehavior;
   auto collectExpansionBehaviorDims =
@@ -3947,16 +4125,19 @@ LogicalResult verifyDynamicBroadcastInDimOp(
       };
   collectExpansionBehaviorDims(knownExpandingDimensions);
   collectExpansionBehaviorDims(knownNonexpandingDimensions);
+
+  // dynamic_broadcast_in_dim_c8
   if (knownExpansionBehavior.size() != numKnownExpansionBehavior)
     return emitOptionalError(
         location,
         "duplicate expansion hint for at least one operand dimension");
+
+  // dynamic_broadcast_in_dim_c9, dynamic_broadcast_in_dim_c10
   for (int64_t i : knownExpansionBehavior)
     if (i < 0 || i >= operandType.getRank())
       return emitOptionalError(location, "hint for expanding dimension ", i,
                                " does not refer to a "
                                "valid operand dimension");
-
   if (SmallVector<int64_t> shape;
       operandType.hasStaticShape() &&
       matchInts(outputDimensions, shape).succeeded()) {
@@ -3973,10 +4154,43 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     }
   }
 
-  if (failed(verifyShapeOperandIsCompatibleWithResultType(
-          location, outputDimensions, resultType)))
+  // dynamic_broadcast_in_dim_c6
+  if (isa<quant::UniformQuantizedPerAxisType>(
+          getElementTypeOrSelf(result.getType())))
+    return verifyBroadcastInDimOpQuantConstraints(location, operand, result,
+                                                  broadcastDimensions);
+
+  return success();
+}
+
+LogicalResult verifyDynamicConvOp(
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<ArrayRef<int64_t>> lhsDilation,
+    std::optional<ArrayRef<int64_t>> rhsDilation,
+    std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
+    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
+    int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
+    ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount,
+    std::optional<ArrayAttr> precisionConfig, Type resultType) {
+  SmallVector<ShapedTypeComponents> inferredReturnShapes;
+  if (failed(inferDynamicConvOp(
+          location, lhsType, rhsType, padding, windowStrides, lhsDilation,
+          rhsDilation, windowReversal, inputBatchDimension,
+          inputFeatureDimension, inputSpatialDimensions,
+          kernelInputFeatureDimension, kernelOutputFeatureDimension,
+          kernelSpatialDimensions, outputBatchDimension, outputFeatureDimension,
+          outputSpatialDimensions, featureGroupCount, batchGroupCount,
+          precisionConfig, inferredReturnShapes)))
     return failure();
 
+  if (anyQuantized<quant::QuantizedType>({lhsType, rhsType, resultType})) {
+    return verifyConvolutionOpQuantizationConstraints(
+        location, lhsType, rhsType, resultType, kernelOutputFeatureDimension,
+        outputFeatureDimension);
+  }
   return success();
 }
 
@@ -4005,33 +4219,47 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
   auto inputType = cast<RankedTensorType>(operand.getType());
   int inputRank = inputType.getRank();
 
-  auto padType = cast<RankedTensorType>(paddingValue.getType());
-  if (padType.getRank() != 0)
-    return emitOptionalError(location, "padding value type should be a rank-0");
-
+  // dynamic_pad_c2
   auto paddingLowType = cast<RankedTensorType>(edgePaddingLow.getType());
-  if (paddingLowType.getNumElements() != inputRank)
-    return emitOptionalError(location, "edge_padding_low length(",
-                             paddingLowType.getNumElements(),
-                             ") must match operand rank(", inputRank, ").");
+  auto paddingSize = paddingLowType.getDimSize(0);
+  if (paddingSize != inputRank)
+    return emitOptionalError(location, "padding operands size (", paddingSize,
+                             ") must match operand rank (", inputRank, ")");
 
-  auto paddingHighType = cast<RankedTensorType>(edgePaddingHigh.getType());
-  if (paddingHighType.getNumElements() != inputRank)
-    return emitOptionalError(location, "edge_padding_high length(",
-                             paddingHighType.getNumElements(),
-                             ") must match operand rank(", inputRank, ").");
-
-  auto interiorPaddingType = cast<RankedTensorType>(interiorPadding.getType());
-  if (interiorPaddingType.getNumElements() != inputRank)
-    return emitOptionalError(location, "edge_padding_interior length(",
-                             interiorPaddingType.getNumElements(),
-                             ") must match operand rank(", inputRank, ").");
+  // dynamic_pad_c3
+  SmallVector<int64_t> interiorPaddingValues;
+  auto interiorPaddingMatched =
+      matchInts(interiorPadding, interiorPaddingValues);
+  if (succeeded(interiorPaddingMatched)) {
+    if (llvm::any_of(interiorPaddingValues, [](int64_t i) { return i < 0; }))
+      return emitOptionalError(
+          location, "interior_padding must be non-negative, but got ",
+          interiorPaddingValues);
+  };
 
   auto outputType = cast<RankedTensorType>(result.getType());
-  int outputRank = outputType.getRank();
-  if (inputRank != outputRank)
-    return emitOptionalError(location, "operand rank(", inputRank,
-                             ") must match result(", outputRank, ").");
+  if (!inputType.hasStaticShape() || !outputType.hasStaticShape() ||
+      failed(interiorPaddingMatched))
+    return success();
+
+  SmallVector<int64_t> edgePaddingLowValues;
+  if (failed(matchInts(edgePaddingLow, edgePaddingLowValues))) return success();
+
+  SmallVector<int64_t> edgePaddingHighValues;
+  if (failed(matchInts(edgePaddingHigh, edgePaddingHighValues)))
+    return success();
+
+  // dynamic_pad_c4
+  for (auto [i, in, out, low, high, interior] : llvm::enumerate(
+           inputType.getShape(), outputType.getShape(), edgePaddingLowValues,
+           edgePaddingHighValues, interiorPaddingValues)) {
+    auto want = in + low +
+                std::max(static_cast<int64_t>(in - 1), int64_t(0)) * interior +
+                high;
+    if (out != want)
+      return emitOptionalError(location, "expected output dimension at index ",
+                               i, " to equal ", want, ", but got ", out);
+  }
 
   return success();
 }
@@ -4076,7 +4304,7 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
   if (SmallVector<int64_t> shape; operandType.hasStaticShape() &&
                                   matchInts(outputShape, shape).succeeded()) {
     int64_t operandCount = operandType.getNumElements();
-    int64_t shapeCount = std::accumulate(shape.begin(), shape.end(), 1,
+    int64_t shapeCount = std::accumulate(shape.begin(), shape.end(), int64_t{1},
                                          std::multiplies<int64_t>());
     if (operandCount != shapeCount) {
       return emitOptionalError(location,

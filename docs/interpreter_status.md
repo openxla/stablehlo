@@ -64,10 +64,7 @@ Apart from the specced ops, this category consists of 8 unspecced ops (see
 [StableHLO Ops Categories](#stablehlo-ops-categories)) which are planned to be
 moved out of StableHLO. Most of these ops have existing passes in
 [mhlo](https://github.com/openxla/xla/tree/main/xla/mlir_hlo/mhlo/transforms) to
-convert them to StableHLO equivalent ops. There is one op the interpreter
-does not support because there is no existing decomposition to StableHLO ops:
-`trace`. `trace` op is private to XLA and there no users in JAX, PyTorch or
-TensorFlow (see [#604](https://github.com/openxla/stablehlo/issues/604)).
+convert them to StableHLO equivalent ops.
 
 <!-- markdownlint-disable line-length -->
 The tool to convert remaining ops in this category to equivalent StableHLO ops
@@ -260,9 +257,6 @@ mlir-hlo-opt -mhlo-legalize-einsum-to-dot-general <path/to/input>
 # torch_index_select
 mlir-hlo-opt -mhlo-legalize-torch-index-select-to-gather <path/to/input>
 
-# trace
-# There are no current users of trace (see #604).
-
 # unary_einsum
 mlir-hlo-opt --canonicalize -mhlo-legalize-einsum-to-dot-general <path/to/input>
 ```
@@ -280,6 +274,6 @@ mlir-hlo-opt --canonicalize -mhlo-legalize-einsum-to-dot-general <path/to/input>
 | Extensibility | custom_call, get_tuple_element, tuple                                                                                                                                                                                                                                                                                                                                                                                                                                       | 3     |
 | Miscellaneous | batch_norm_grad, batch_norm_inference, batch_norm_training, cholesky, constant, fft, iota, rng, rng_bit_generator, triangular_solve                                                                                                                                                                                                                                                                                                                                         | 10    |
 | Modularity    | call, func, module, return                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 4     |
-| Not In HLO    | broadcast, create_token, cross-replica-sum, dot, einsum, torch_index_select, trace, unary_einsum                                                                                                                                                                                                                                                                                                                                                                            | 8     |
+| Not In HLO    | broadcast, create_token, cross-replica-sum, dot, einsum, torch_index_select, unary_einsum                                                                                                                                                                                                                                                                                                                                                                            | 8     |
 | Quantization  | uniform_dequantize, uniform_quantize                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2     |
 | Reduction     | convolution, dot_general, reduce, reduce_window, select_and_scatter                                                                                                                                                                                                                                                                                                                                                                                                         | 5     |

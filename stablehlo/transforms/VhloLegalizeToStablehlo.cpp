@@ -382,7 +382,7 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                              SmallVector<NamedAttribute>& vhloAttrs,
                              SmallVector<NamedAttribute>& stablehloAttrs) {
   if constexpr (std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::DynamicConvOpV1>::value) {
+                std::is_same<VhloOpTy, vhlo::DynamicConvOpV2>::value) {
     auto stablehloAttr =
         convertConvDimensionNumbers(vhloOp, pattern.getTypeConverter());
     if (!stablehloAttr) return failure();
@@ -595,7 +595,7 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                                   stablehloAttrs);
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::DynamicConvOpV1>::value) {
+                std::is_same<VhloOpTy, vhlo::DynamicConvOpV2>::value) {
     if (vhloName == "lhs_dilation" || vhloName == "rhs_dilation" ||
         vhloName == "window_strides")
       return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
@@ -715,11 +715,13 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     }
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::DynamicConvOpV1>::value) {
+                std::is_same<VhloOpTy, vhlo::DynamicConvOpV2>::value) {
     if (isSplatTensor(pattern, vhloOp.getWindowStridesAttr(), 1ll))
       eraseAttrs(vhloAttrs, "window_strides");
-    if (isSplatTensor(pattern, vhloOp.getPaddingAttr(), 0ll))
-      eraseAttrs(vhloAttrs, "padding");
+    if constexpr (std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value) {
+      if (isSplatTensor(pattern, vhloOp.getPaddingAttr(), 0ll))
+        eraseAttrs(vhloAttrs, "padding");
+    }
     if (isSplatTensor(pattern, vhloOp.getLhsDilationAttr(), 1ll))
       eraseAttrs(vhloAttrs, "lhs_dilation");
     if (isSplatTensor(pattern, vhloOp.getRhsDilationAttr(), 1ll))

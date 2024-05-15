@@ -12,24 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This runs markdownlint-cli with the specified files, using Docker.
+# This runs markdownlint-cli with the specified arguments, using Docker.
 # If passing the files as a glob, be sure to wrap in quotes. For more info,
 # see https://github.com/igorshubovych/markdownlint-cli#globbing
 
 set -o errexit
 set -o nounset
 set -o pipefail
-
-if [[ $# -gt 2 ]] ; then
-  echo "Usage: $0 [-f] <files|directories|globs>"
-  echo "  -f  Autofix markdown issues."
-  echo " "
-  echo "All file/directory/glob paths must be relative to the repo root."
-  echo "Glob patterns must be wrapped in quotes."
-  echo "To lint all .md files, run this command:"
-  echo "    bash lint_markdown.sh \"./**/*.md\""
-  exit 1
-fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR

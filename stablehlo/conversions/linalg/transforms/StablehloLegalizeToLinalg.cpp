@@ -352,10 +352,6 @@ struct DataMovementOpConverter : OpConversionPattern<OpTy> {
   LogicalResult matchAndRewrite(
       OpTy op, typename OpTy::Adaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op)))
-      return rewriter.notifyMatchFailure(
-          op, "failed to verify hlo buffer or tensor semantics");
-
     ShapedType resultType = getHloOpResultType(op);
     resultType =
         this->getTypeConverter()->template convertType<ShapedType>(resultType);
@@ -423,6 +419,36 @@ struct BroadcastConverter final
   }
 };
 
+int64_t getBroadcastSizes(BroadcastOp op) {
+  return op.getBroadcastSizes().size();
+}
+
+int64_t getBroadcastSizes(BroadcastInDimOp op) {
+  return op.getType().getRank() - op.getBroadcastDimensions().size();
+}
+
+template <typename OpTy>
+LogicalResult lowerSimpleBroadcast(ConversionPatternRewriter &rewriter,
+                                   const TypeConverter *typeConverter, OpTy op,
+                                   typename OpTy::Adaptor adaptor) {
+  auto resultTy = typeConverter->convertType<ShapedType>(op.getType());
+  if (!resultTy)
+    return rewriter.notifyMatchFailure(op, "type conversion failed");
+
+  int64_t numPrependedDims = getBroadcastSizes(op);
+  SmallVector<int64_t> dimensions =
+      llvm::to_vector(llvm::seq<int64_t>(0, numPrependedDims));
+
+  Location loc = op.getLoc();
+  Value emptyTensor =
+      getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
+
+  rewriter.replaceOpWithNewOp<linalg::BroadcastOp>(
+      op, op.getOperand(), emptyTensor, dimensions,
+      linalg::getPrunedAttributeList(op));
+  return success();
+}
+
 struct BroadcastOpToBroadcastConverter final
     : OpConversionPattern<mlir::stablehlo::BroadcastOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -430,22 +456,7 @@ struct BroadcastOpToBroadcastConverter final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::BroadcastOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto resultTy = getTypeConverter()->convertType<ShapedType>(op.getType());
-    if (!resultTy)
-      return rewriter.notifyMatchFailure(op, "type conversion failed");
-
-    int64_t numPrependedDims = op.getBroadcastSizes().size();
-    SmallVector<int64_t> dimensions =
-        llvm::to_vector(llvm::seq<int64_t>(0, numPrependedDims));
-
-    Location loc = op.getLoc();
-    Value emptyTensor =
-        getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
-
-    rewriter.replaceOpWithNewOp<linalg::BroadcastOp>(
-        op, op.getOperand(), emptyTensor, dimensions,
-        linalg::getPrunedAttributeList(op));
-    return success();
+    return lowerSimpleBroadcast(rewriter, getTypeConverter(), op, adaptor);
   }
 };
 
@@ -561,6 +572,9 @@ struct BroadcastInDimOpToBroadcastConverter final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::BroadcastInDimOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
+    if (op.isSimpleBroadcast())
+      return lowerSimpleBroadcast(rewriter, getTypeConverter(), op, adaptor);
+
     Location loc = op.getLoc();
 
     SmallVector<int64_t> broadcastDimensions =
@@ -842,8 +856,6 @@ struct BitcastConvertConverter final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::BitcastConvertOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) return failure();
-
     auto inputType =
         llvm::cast<RankedTensorType>(adaptor.getOperand().getType());
     auto outputType =
@@ -1044,7 +1056,6 @@ struct ReshapeOpConverter final
       mlir::stablehlo::ReshapeOp reshapeOp,
       mlir::stablehlo::ReshapeOp::Adaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    if (failed(verifyHloOpBufferOrTensorSemantics(reshapeOp))) return failure();
     Value operand = adaptor.getOperand();
     auto operandType = llvm::cast<ShapedType>(operand.getType());
     Type elemType = operandType.getElementType();
@@ -1583,8 +1594,6 @@ struct MapOpToGenericConverter final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::MapOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) return failure();
-
     auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");
@@ -1636,8 +1645,6 @@ struct MapOpToMapConverter final : OpConversionPattern<mlir::stablehlo::MapOp> {
   LogicalResult matchAndRewrite(
       mlir::stablehlo::MapOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    if (failed(verifyHloOpBufferOrTensorSemantics(op))) return failure();
-
     auto resultType = getTypeConverter()->convertType<ShapedType>(op.getType());
     if (!resultType)
       return rewriter.notifyMatchFailure(op, "type conversion failed");

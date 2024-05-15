@@ -1944,6 +1944,11 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
     $operand `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
       attr-dict `:` functional-type(operands, results)
   }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    /// Determines if this BroadcastInDim instance can be expressed as a Broadcast.
+    bool isSimpleBroadcast();
+  }];
 }
 
 def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
@@ -1951,25 +1956,37 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
     [ConditionallySpeculatable, NoMemoryEffect]> {
   let summary = "DynamicBroadcastInDim operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
-
-    Informally, this operation does the same thing as BroadcastInDimOp except
-    that the result shape is specified dynamically via `output_dimensions`:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim
+    This operation is functionally identical to
+    [broadcast_in_dim](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim)
+    op, but the result shape is specified dynamically via `output_dimensions`.
 
     It also accepts optional attributes to express static knowledge about the
     expanding behavior of dimensions. If not specified, all dimensions are
     assumed to be possibly expanding. The sets of dimensions that are known to
     be expanding and the set of dimensions that are known to be non-expanding
     must be disjoint and they must be a subset of the operand's dimensions.
+
+    See: https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_broadcast_in_dim
+
+    Example:
+    ```mlir
+    %operand = stablehlo.constant dense<[[1, 2, 3]]> : tensor<1x3xi64>
+    %output_dimensions = stablehlo.constant dense<[2, 3, 2]> : tensor<3xi64>
+    %result = "stablehlo.dynamic_broadcast_in_dim"(%operand, %output_dimensions) {
+      broadcast_dimensions = array<i64: 2, 1>,
+      known_expanding_dimensions = array<i64: 0>,
+      known_non_expanding_dimensions = array<i64: 1>
+    } : (tensor<1x3xi64>, tensor<3xi64>) -> tensor<2x3x2xi64>
+    ```
+
   }];
+
   let arguments = (ins
-    HLO_TensorOrPerAxisQuantizedTensor:$operand,
-    HLO_StaticDimensionTensor:$output_dimensions,
-    GenericDenseI64ArrayAttr:$broadcast_dimensions,
-    OptionalAttr<GenericDenseI64ArrayAttr>:$known_expanding_dimensions,
-    OptionalAttr<GenericDenseI64ArrayAttr>:$known_nonexpanding_dimensions
+    HLO_TensorOrPerAxisQuantizedTensor:$operand /*dynamic_broadcast_in_dim_i1*/,
+    HLO_StaticDimensionTensor:$output_dimensions /*dynamic_broadcast_in_dim_i2*/,
+    GenericDenseI64ArrayAttr:$broadcast_dimensions /*dynamic_broadcast_in_dim_i3*/,
+    OptionalAttr<GenericDenseI64ArrayAttr>:$known_expanding_dimensions /*dynamic_broadcast_in_dim_i4*/,
+    OptionalAttr<GenericDenseI64ArrayAttr>:$known_nonexpanding_dimensions /*dynamic_broadcast_in_dim_i5*/
   );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
@@ -2243,15 +2260,23 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution",
     (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>) -> tensor<1x2x2x1xi64>
     ```
   }];
-  let arguments = !con(
-    (ins
-       HLO_Tensor:$lhs, /*convolution_i1*/
-       HLO_TensorOrPerAxisQuantizedTensor:$rhs), /*convolution_i2*/
-    StableHLO_ConvolutionAttributes.attributes /*convolution_i3, convolution_i4,
-    convolution_i5, convolution_i6, convolution_i7, convolution_i8,
-    convolution_i9, convolution_i10, convolution_i11, convolution_i12,
-    convolution_i13, convolution_i14, convolution_i15, convolution_i16,
-    convolution_i17, convolution_i18, convolution_i19*/
+  let arguments = (ins
+    HLO_Tensor:$lhs, /*convolution_i1*/
+    HLO_TensorOrPerAxisQuantizedTensor:$rhs, /*convolution_i2*/
+    // Default value: one for each of the spatial dimension.
+    OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*convolution_i3*/
+    // Default value: two zeros for each of the spatial dimension.
+    OptionalAttr<I64ElementsAttr>:$padding, /*convolution_i4*/
+    // Default value: one for each of the spatial dimension.
+    OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*convolution_i5*/
+    // Default value: one for each of the spatial dimension.
+    OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*convolution_i6*/
+    // Default value: false for each of the spatial dimension.
+    OptionalAttr<GenericDenseBoolArrayAttr>:$window_reversal, /*convolution_i7*/
+    StableHLO_ConvDimensionNumbers:$dimension_numbers, /*convolution_i8...convolution_i16*/
+    I64Attr:$feature_group_count, /*convolution_i17*/
+    I64Attr:$batch_group_count, /*convolution_i18*/
+    StableHLO_PrecisionConfigAttr:$precision_config /*convolution_i19*/
   );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
@@ -2424,6 +2449,9 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
   let extraClassDeclaration = commonClassDeclaration # [{
     /// Interface method for ConditionallySpeculatable.
     mlir::Speculation::Speculatability getSpeculatability();
+
+    /// Determines if this DotGeneral instance can be expressed as a DotOp.
+    bool isSimpleDot();
   }];
 }
 
@@ -2951,7 +2979,7 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   }];
   let arguments = (ins
     HLO_Tensor:$operand /*pad_i1*/,
-    HLO_Tensor:$padding_value /*pad_i2*/,
+    HLO_ScalarTensor:$padding_value /*pad_i2*/,
     GenericDenseI64ArrayAttr:$edge_padding_low /*pad_i3*/,
     GenericDenseI64ArrayAttr:$edge_padding_high /*pad_i4*/,
     GenericDenseI64ArrayAttr:$interior_padding /*pad_i5*/
@@ -2966,28 +2994,6 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
       `interior` `=` custom<DenseI64Array>($interior_padding)
       attr-dict `:` functional-type(operands, results)
   }];
-}
-
-def StableHLO_TraceOp: StableHLO_Op<"trace"> {
-  let summary = "Trace operation";
-  let description = [{
-    This operation is on its way out of StableHLO, so it is not included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/604.
-
-    It is not used by JAX, PyTorch or TensorFlow, so it looks like we should've
-    classified it as "Private to XLA" and not included it in StableHLO in the
-    first place. With that in mind, its semantics will not be documented here.
-
-    Example:
-    ```mlir
-    stablehlo.trace %arg0, "In test code." : tensor<5x1x5xi32>
-    ```
-  }];
-  let arguments = (ins
-    HLO_Tensor:$operand,
-    StrAttr:$tag
-  );
-  let assemblyFormat = "$operand `,` $tag attr-dict `:` type($operand)";
 }
 
 def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
@@ -3420,37 +3426,37 @@ def StableHLO_RealDynamicSliceOp: StableHLO_ShapedInterfaceOp<
 
 def StableHLO_DynamicPadOp: StableHLO_ShapedInterfaceOp<"dynamic_pad",
       [ConditionallySpeculatable, NoMemoryEffect,
-      AllElementTypesMatch<["operand", "padding_value", "result"]>,
-      AllTypesMatch<["edge_padding_low", "edge_padding_high", "interior_padding"]>]> {
+      AllElementTypesMatch<["operand", "padding_value", "result"]> /*dynamic_pad_c1*/,
+      AllTypesMatch<["edge_padding_low", "edge_padding_high", "interior_padding"]> /*dynamic_pad_c2*/,
+      AllRanksMatch<["operand", "result"]> /*dynamic_pad_c4*/]> {
   let summary = "DynamicPad operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
+    This operation is functionally identical to
+    [pad](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad)
+    https://github.com/openxla/stablehlo/pull/2306#discussion_r1595669709
+    op, but with `edge_padding_low`, `edge_padding_high` and `interior_padding`
+    specified dynamically as values.
 
-    Informally, this operation does the same thing as PadOp except
-    that `edge_padding_low`, `edge_padding_high` and `interior_padding` are
-    specified dynamically:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad
+    See: https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dynamic_pad
 
     Example:
     ```mlir
+    %edge_padding_low = stablehlo.constant dense<[0, 1]> : tensor<2xi32>
+    %edge_padding_high = stablehlo.constant dense<[2, 1]> : tensor<2xi32>
+    %interior_padding = stablehlo.constant dense<[1, 2]> : tensor<2xi32>
     %result = stablehlo.dynamic_pad %operand, %padding_value,
                 %edge_padding_low, %edge_padding_high, %interior_padding
-           : (tensor<?x?xf32>, tensor<f32>, tensor<2xindex>, tensor<2xindex>, tensor<2xindex>) -> tensor<?x?xf32>
+                : (tensor<2x3xi64>, tensor<i64>, tensor<2xi64>, tensor<2xi64>, tensor<2xi64>) -> tensor<5x9xi64>
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_Tensor:$padding_value,
-    HLO_DimensionTensor:$edge_padding_low,
-    HLO_DimensionTensor:$edge_padding_high,
-    HLO_DimensionTensor:$interior_padding
+    HLO_Tensor:$operand /*dynamic_pad_i1*/,
+    HLO_ScalarTensor:$padding_value /*dynamic_pad_i2*/,
+    HLO_StaticDimensionTensor:$edge_padding_low /*dynamic_pad_i3*/,
+    HLO_StaticDimensionTensor:$edge_padding_high /*dynamic_pad_i4*/,
+    HLO_StaticDimensionTensor:$interior_padding /*dynamic_pad_i5*/
   );
   let results = (outs HLO_Tensor:$result);
-  let description = [{
-    Dynamically Pads the `operand`, with amount of padding added at
-    low-end/high-end/interior is passed through input tensors.
-  }];
   let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
@@ -3466,15 +3472,13 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
       InferTensorTypeWithReify]> {
   let summary = "DynamicGather operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
-
-    Informally, this operation does the same thing as GatherOp except
-    that `slice_sizes` are specified dynamically:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather
+    This operation is functionally identical to
+    [gather](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
+    op, with the `slice_sizes` specified dynamically as an operand.
 
     Example:
     ```mlir
+    %slice_sizes = stablehlo.constant dense<[1, 2, 2]> : tensor<3xi64>
     %result = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
       dimension_numbers = #stablehlo.gather<
         offset_dims = [2, 3],
@@ -3482,16 +3486,16 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
         start_index_map = [0, 2],
         index_vector_dim = 2>,
       indices_are_sorted = false
-    } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi64>) -> tensor<2x3x2x2xi32>
+    } : (tensor<3x4x2xi64>, tensor<2x3x2xi64>, tensor<3xi64>) -> tensor<2x3x2x2xi64>
     ```
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_IntTensor:$start_indices,
-    HLO_IntTensor:$slice_sizes,
-    StableHLO_GatherDimensionNumbers:$dimension_numbers,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted
+    HLO_Tensor:$operand /*dynamic_gather_i1*/,
+    HLO_IntTensor:$start_indices /*dynamic_gather_i2*/,
+    HLO_Static1DIntTensor:$slice_sizes /*dynamic_gather_i3*/,
+    StableHLO_GatherDimensionNumbers:$dimension_numbers /*dynamic_gather_i3, dynamic_gather_i4, dynamic_gather_i5, dynamic_gather_i6, dynamic_gather_i7*/,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*dynamic_gather_i8*/
   );
   let results = (outs HLO_Tensor);
 }
@@ -3500,35 +3504,48 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
       [HLO_SpeculatableIfAllInputsStaticAndShapeConstant, NoMemoryEffect]> {
   let summary = "DynamicConv operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
-
-    Informally, this operation does the same thing as ConvolutionOp except
-    that `padding` is specified dynamically via `d_padding`:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution
+    This operation is functionally identical to
+    [convolution](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution)
+    op, but the padding is specified dynamically via `padding`.
 
     Example:
     ```mlir
-    %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %d_padding) {
+    %padding = stablehlo.constant dense<2> : tensor<2x2xi64>
+    %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %padding) {
       window_strides = array<i64: 4, 4>,
       lhs_dilation = array<i64: 2, 2>,
       rhs_dilation = array<i64: 1, 1>,
       window_reversal = array<i1: false, false>,
       dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
-      feature_group_count = 1 : i64,
       batch_group_count = 1 : i64,
+      feature_group_count = 1 : i64,
       precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
-    } : (tensor<1x4x4x1xi32>, tensor<3x3x1x1xi32>, tensor<2x2xi64>) -> tensor<1x2x2x1xi32>
+    } : (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>, tensor<2x2xi64>) -> tensor<1x2x2x1xi64>
     ```
   }];
 
-  let arguments = !con(
-    (ins
-       HLO_Tensor:$lhs,
-       HLO_Tensor:$rhs,
-       HLO_Tensor:$d_padding),
-    StableHLO_ConvolutionAttributes.attributes);
+  let arguments = (ins
+       HLO_Tensor:$lhs, /*dynamic_conv_i1*/
+       HLO_Tensor:$rhs, /*dynamic_conv_i2*/
+       HLO_Static2DIntTensor:$padding, /*dynamic_conv_i3*/
+       OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*dynamic_conv_i4*/
+       OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*dynamic_conv_i5*/
+       OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*dynamic_conv_i6*/
+       OptionalAttr<GenericDenseBoolArrayAttr>:$window_reversal, /*dynamic_conv_i7*/
+       StableHLO_ConvDimensionNumbers:$dimension_numbers, /*dynamic_conv_i8...dynamic_conv_i16*/
+       I64Attr:$feature_group_count, /*dynamic_conv_i17*/
+       I64Attr:$batch_group_count, /*dynamic_conv_i18*/
+       StableHLO_PrecisionConfigAttr:$precision_config /*dynamic_conv_i19*/
+    );
   let results = (outs HLO_Tensor);
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    bool hasWindowReversal() {
+      auto reversal = getWindowReversal();
+      return reversal.has_value() && llvm::any_of(reversal.value(), [](bool v) { return v; });
+    }
+  }];
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_OPS

@@ -19,6 +19,12 @@ these ops executing together within a program. Finally, the
 [Notation](#notation) section discusses the notation used throughout the
 specification.
 
+To view the spec from a previous release of StableHLO, open the repo at the
+[tagged release](https://github.com/openxla/stablehlo/tags) of interest.
+For example, the [StableHLO v0.19.0 Spec](https://github.com/openxla/stablehlo/blob/v0.19.0/docs/spec.md).
+To view changes that occurred at each minor version bump of StableHLO, refer to
+the version log in [VhloDialect.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloDialect.td).
+
 ## Programs
 
 ```ebnf
@@ -315,28 +321,6 @@ OpMnemonic    ::= 'abs' | 'add' | ...
 inputs/outputs and a signature. The name consists of the `stablehlo.` prefix and
 a **mnemonic** which uniquely identifies one of the supported ops. See below for
 a comprehensive list of all supported ops.
-
-At the moment, StableHLO programs in the wild sometimes contain operations that
-are not described in this document. In the future, we are planning to either
-absorb these operations into the StableHLO opset or prohibit them from appearing
-in StableHLO programs. In the meanwhile, here is the list of these operations:
-
-* `builtin.module`, `func.func`, `func.call` and `func.return`
-  ([#425](https://github.com/openxla/stablehlo/issues/425)).
-* `chlo` operations ([#602](https://github.com/openxla/stablehlo/issues/602)).
-* "Not in HLO" category of StableHLO operations - they were initially part of
-  the StableHLO opset but have been later deemed to not fit it well:
-  `broadcast`, `create_token`, `cross-replica-sum`, `dot`, `einsum`,
-  `torch_index_select`, `unary_einsum`
-  ([#3](https://github.com/openxla/stablehlo/issues/3)), and
-  `trace` ([#604](https://github.com/openxla/stablehlo/issues/604)).
-* "Dynamism" category of StableHLO operations - they were bootstrapped from
-   MHLO,and we are in the process of speccing them: `dynamic_broadcast_in_dim`,
-  `dynamic_conv`, `dynamic_gather`, `dynamic_pad`, `real_dynamic_slice`,
-  `set_dimension_size`.
-  ([#8](https://github.com/openxla/stablehlo/issues/8)).
-* Shape computations, including `arith`, `shape` and `tensor` operations
-  ([#8](https://github.com/openxla/stablehlo/issues/8)).
 
 ```ebnf
 OpInputs        ::= OpInputValues OpInputFuncs OpInputAttrs
@@ -1831,8 +1815,7 @@ the following IEEE-754 operations:
 
 For floating-point element types with `compare_type = TOTALORDER`, the op
 uses the combination of `totalOrder` and `compareQuietEqual` operations from
-IEEE-754. This feature appears to be unused, so in the future, we are planning
-to remove it ([#584](https://github.com/openxla/stablehlo/issues/584)).
+IEEE-754.
 
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
 performed using the provided `comparison_direction` and `compare_type`.
@@ -2312,11 +2295,11 @@ For hybrid quantized types, performs `hybrid_dequantize_then_op(
 //        ]
 //      ]]
 //
-// %rhs : [
-//         [[[1]], [[1]], [[1]]],
-//         [[[1]], [[1]], [[1]]],
-//         [[[1]], [[1]], [[1]]]
-//        ]
+// %rhs: [
+//        [[[1]], [[1]], [[1]]],
+//        [[[1]], [[1]], [[1]]],
+//        [[[1]], [[1]], [[1]]]
+//       ]
 %result = "stablehlo.convolution"(%lhs, %rhs) {
   window_strides = array<i64: 4, 4>,
   padding = dense<0> : tensor<2x2xi64>,
@@ -2636,6 +2619,326 @@ planning to address this in
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dot_general.mlir)
 
+### dynamic_broadcast_in_dim
+
+#### Semantics
+
+This operation is functionally identical to
+[broadcast_in_dim](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim)
+op, but the result shape is specified dynamically via `output_dimensions`.
+
+The operation also accepts optional attributes `known_expanding_dimensions`, `known_non_expanding_dimensions`
+to express static knowledge about the expanding behavior of dimensions.
+If not specified, all dimensions are assumed to be possibly expanding.
+
+#### Inputs
+
+| Label | Name                             | Type                                          | Constraints            |
+|-------|----------------------------------|-----------------------------------------------|------------------------|
+| (I1)  | `operand`                        | tensor or quantized tensor                    | (C1-C2), (C5-C6), (C9) |
+| (I2)  | `output_dimensions`              | 1-dimensional tensor of integer type          | (C7)                   |
+| (I3)  | `broadcast_dimensions`           | 1-dimensional constant tensor of integer type | (C2-C6)                |
+| (I4)  | `known_expanding_dimensions`     | 1-dimensional constant tensor of integer type | (C8-C9)                |
+| (I5)  | `known_non_expanding_dimensions` | 1-dimensional constant tensor of integer type | (C8-C9)                |
+
+#### Outputs
+
+| Name     | Type                       | Constraints         |
+|----------|----------------------------|---------------------|
+| `result` | tensor or quantized tensor | (C1), (C3), (C5-C7) |
+
+#### Constraints
+
+* (C1) `element_type(result)` is given by:
+  * `element_type(operand)`, if `!is_per_axis_quantized(operand)`.
+  * `element_type(operand)` except that `quantization_dimension(operand)`,
+  `scales(operand)`, and `zero_points(operand)` may differ from
+  `quantization_dimension(result)`, `scales(result)`, and `zero_points(result)`
+  resp., otherwise.
+* (C2) `size(broadcast_dimensions) = rank(operand)`.
+* (C3) `0 <= broadcast_dimensions < rank(result)`.
+* (C4) `is_unique(broadcast_dimensions)`.
+* (C5) For all `d` in `axes(operand)`:
+  * `dim(operand, d) = 1` or
+  * `dim(operand, d) = dim(result, broadcast_dimensions[d])`.
+* (C6) If `is_per_axis_quantized(result)`:
+  * `quantization_dimension(result) = broadcast_dimensions[quantization_dimension(operand)]`.
+  * If `dim(operand, quantization_dimension(operand)) = 1`, then
+    `scales(result)[i] = scales(operand)[0] and zero_points(result)[i] =
+    zero_points(operand)[0] for i in
+    range(dim(result, quantization_dimension(result)))`.
+* (C7) `size(output_dimensions) = rank(result)`.
+* (C8) `is_unique(known_expanding_dimensions + known_non_expanding_dimensions)`.
+* (C9) `0 <= known_expanding_dimensions < rank(operand)`.
+* (C10) `0 <= known_non_expanding_dimensions < rank(operand)`.
+
+#### Examples
+
+```mlir
+// %operand: [
+//            [1, 2, 3]
+//           ]
+%operand = stablehlo.constant dense<[[1, 2, 3]]> : tensor<1x3xi64>
+%output_dimensions = stablehlo.constant dense<[2, 3, 2]> : tensor<3xi64>
+%result = "stablehlo.dynamic_broadcast_in_dim"(%operand, %output_dimensions) {
+  broadcast_dimensions = array<i64: 2, 1>,
+  known_expanding_dimensions = array<i64: 0>,
+  known_non_expanding_dimensions = array<i64: 1>
+} : (tensor<1x3xi64>, tensor<3xi64>) -> tensor<2x3x2xi64>
+// %result: [
+//            [
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
+//            ],
+//            [
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
+//            ]
+//          ]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_broadcast_in_dim.mlir)
+
+### dynamic_conv
+
+#### Semantics
+
+This operation is functionally identical to
+[convolution](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution)
+op, but the padding is specified dynamically via `padding`.
+
+#### Inputs
+
+| Label | Name                              | Type                                                         | Constraints                                               |
+|-------|-----------------------------------|--------------------------------------------------------------|-----------------------------------------------------------|
+| (I1)  | `lhs`                             | tensor or per-tensor quantized tensor                        | (C1), (C10-C11), (C14) (C25), (C26-C27), (C30-C31), (C33) |
+| (I2)  | `rhs`                             | tensor or quantized tensor                                   | (C1), (C14-C16), (C26-C28), (C30-C33)                     |
+| (I3)  | `padding`                         | 2-dimensional tensor of integer type                         | (C4)                                                      |
+| (I4)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C2-C3)                                                   |
+| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C5-C6)                                                   |
+| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C7-C8)                                                   |
+| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                   | (C9)                                                      |
+| (I8)  | `input_batch_dimension`           | constant of type `si64`                                      | (C10), (C13)                                              |
+| (I9)  | `input_feature_dimension`         | constant of type `si64`                                      | (C11), (C13-C14)                                          |
+| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                 | (C12), (C13)                                              |
+| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                      | (C14), (C18)                                              |
+| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                      | (C15-C16), (C18), (C28)                                   |
+| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C17-C18)                                                 |
+| (I14) | `output_batch_dimension`          | constant of type `si64`                                      | (C20)                                                     |
+| (I15) | `output_feature_dimension`        | constant of type `si64`                                      | (C20), (C29)                                              |
+| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C19-C20)                                                 |
+| (I17) | `feature_group_count`             | constant of type `si64`                                      | (C11), (C14), (C16), (C21), (C23)                         |
+| (I18) | `batch_group_count`               | constant of type `si64`                                      | (C10), (C15), (C22), (C23)                                |
+| (I19) | `precision_config`                | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C24)                                                     |
+
+#### Outputs
+
+| Name     | Type                       | Constraints                 |
+|----------|----------------------------|-----------------------------|
+| `result` | tensor or quantized tensor | (C25-C27), (C29), (C31-C33) |
+
+#### Constraints
+
+<!-- markdownlint-disable line-length -->
+* (C1) `N = rank(lhs) = rank(rhs)`.
+* (C2) `size(window_strides) = N - 2`.
+* (C3) `0 < window_strides`.
+* (C4) `shape(padding) = [N - 2, 2]`.
+* (C5) `size(lhs_dilation) = N - 2`.
+* (C6) `0 < lhs_dilation`.
+* (C7) `size(rhs_dilation) = N - 2`.
+* (C8) `0 < rhs_dilation`.
+* (C9) `size(window_reversal) = N - 2`.
+* (C10) `dim(lhs, input_batch_dimension) % batch_group_count = 0`.
+* (C11) `dim(lhs, input_feature_dimension) % feature_group_count = 0`.
+* (C12) `size(input_spatial_dimensions) = N - 2`.
+* (C13) Given `input_dimensions = [input_batch_dimension] +
+       input_spatial_dimensions + [input_feature_dimension]`:
+  * `is_unique(input_dimensions)`.
+  * `0 <= input_dimensions < N`.
+* (C14) `dim(rhs, kernel_input_feature_dimension) = dim(lhs, input_feature_dimension) / feature_group_count`.
+* (C15) `dim(rhs, kernel_output_feature_dimension) % batch_group_count = 0`.
+* (C16) `dim(rhs, kernel_output_feature_dimension) % feature_group_count = 0`.
+* (C17) `size(kernel_spatial_dimensions) = N - 2`.
+* (C18) Given `kernel_dimensions = kernel_spatial_dimensions +
+        [kernel_input_feature_dimension] + [kernel_output_feature_dimension]`:
+  * `is_unique(kernel_dimensions)`.
+  * `0 <= kernel_dimensions < N`.
+* (C19) `size(output_spatial_dimensions) = N - 2`.
+* (C20) Given `output_dimensions = [output_batch_dimension] +
+        output_spatial_dimensions + [output_feature_dimension]`:
+  * `is_unique(output_dimensions)`.
+  * `0 <= output_dimensions < N`.
+* (C21) `0 < feature_group_count`.
+* (C22) `0 < batch_group_count`.
+* (C23) `feature_group_count = 1 or batch_group_count = 1`.
+* (C24) `size(precision_config) = 2`.
+* (C25) `dim(result, result_dim)` is defined as:
+  * `dim(lhs, input_batch_dimension) / batch_group_count` if `result_dim = output_batch_dimension`.
+  * `dim(rhs, kernel_output_feature_dimension)` if `result_dim = output_feature_dimension`.
+  * `num_windows` otherwise, where:
+    * `output_spatial_dimensions[spatial_dim] = result_dim`.
+    * `lhs_dim = input_spatial_dimensions[spatial_dim]`.
+    * `rhs_dim = kernel_spatial_dimensions[spatial_dim]`.
+    * `dilated_input_shape[lhs_dim] = dim(lhs, lhs_dim) = 0 ? 0 : (dim(lhs, lhs_dim) - 1) * lhs_dilation[spatial_dim] + 1`.
+    * `padded_input_shape[lhs_dim] = padding[spatial_dim, 0] + dilated_input_shape[lhs_dim] + padding[spatial_dim, 1]`.
+    * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) = 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[spatial_dim] + 1`.
+    * `is_empty_window[lhs_dim] = padded_input_shape[lhs_dim] = 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]`.
+    * `num_windows = is_empty_window[lhs_dim] ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
+* (C26) `rank(result) = N`.
+* If the operation uses non-quantized tensors:
+  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)`.
+* If the operation uses quantized tensors:
+  * (C28) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
+  * (C29) If `is_per_axis_quantized(rhs)`,
+    then `quantization_dimension(rhs) = kernel_output_feature_dimension`.
+  * (C30) If `is_per_axis_quantized(result)`, then
+    `quantization_dimension(result) = output_feature_dimension`.
+  * If `is_quantized(lhs)`:
+    * (C31) `storage_type(lhs) = storage_type(rhs)`.
+    * (C32) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+    * (C33) If `is_per_tensor_quantized(rhs)`, then
+      `is_per_tensor_quantized(result)`.
+  * If `!is_quantized(lhs)`:
+    * (C34) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
+<!-- markdownlint-enable line-length -->
+
+#### Examples
+
+```mlir
+// %lhs: [[
+//        [[1], [2], [5], [6]],
+//        [[3], [4], [7], [8]],
+//        [[10], [11], [14], [15]],
+//        [[12], [13], [16], [17]]
+//      ]]
+//
+// %rhs: [
+//         [[[1]], [[1]], [[1]]],
+//         [[[1]], [[1]], [[1]]],
+//         [[[1]], [[1]], [[1]]]
+//        ]
+// %padding: [[1, 1],
+//            [1, 1]]
+%result = "stablehlo.dynamic_conv"(%lhs, %rhs, %padding) {
+  window_strides = array<i64: 4, 4>,
+  lhs_dilation = array<i64: 2, 2>,
+  rhs_dilation = array<i64: 1, 1>,
+  window_reversal = array<i1: false, false>,
+  dimension_numbers = #stablehlo.conv<raw
+    input_batch_dimension = 0,
+    input_feature_dimension = 3,
+    input_spatial_dimensions = [0, 1],
+    kernel_input_feature_dimension = 2,
+    kernel_output_feature_dimension = 3,
+    kernel_spatial_dimensions = [0, 1],
+    output_batch_dimension = 0,
+    output_feature_dimension = 3,
+    output_spatial_dimensions = [1, 2]
+  >,
+  feature_group_count = 1 : i64,
+  batch_group_count = 1 : i64,
+  precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+} : (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>, tensor<2x2xi64>) -> tensor<1x2x2x1xi64>
+// %result: [[
+//            [[1], [5]],
+//            [[10], [14]]
+//          ]]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_conv.mlir)
+
+### dynamic_gather
+
+#### Semantics
+
+This operation is functionally identical to
+[gather](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
+op, with the `slice_sizes` specified dynamically as a value.
+
+#### Inputs
+
+| Label | Name                   | Type                                         | Constraints                  |
+|-------|------------------------|----------------------------------------------|------------------------------|
+| (I1)  | `operand`              | tensor or per-tensor quantized tensor        | (C1), (C7), (C10-C12), (C14) |
+| (I2)  | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)            |
+| (I3)  | `slice_sizes`          | 1-dimensional tensor of integer type         | (C8), (C11-C13)              |
+| (I4)  | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4-C5), (C13)         |
+| (I5)  | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6-C8), (C13)         |
+| (I6)  | `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)            |
+| (I7)  | `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13)            |
+| (I8)  | `indices_are_sorted`   | constant of type `i1`                        |                              |
+
+#### Outputs
+
+| Name     | Type                                  | Constraints     |
+|----------|---------------------------------------|-----------------|
+| `result` | tensor or per-tensor quantized tensor | (C5), (C13-C14) |
+
+#### Constraints
+
+* (C1) `rank(operand) = size(offset_dims) + size(collapsed_slice_dims)`.
+* (C2) `0 <= index_vector_dim <= rank(start_indices)`.
+* (C3) `size(start_index_map) =
+       index_vector_dim < rank(start_indices) ?
+       dim(start_indices, index_vector_dim) : 1`.
+* (C4) `is_unique(offset_dims) and is_sorted(offset_dims)`.
+* (C5) `0 <= offset_dims < rank(result)`.
+* (C6) `is_unique(collapsed_slice_dims) and is_sorted(collapsed_slice_dims)`.
+* (C7) `0 <= collapsed_slice_dims < rank(operand)`.
+* (C8) `slice_sizes[collapsed_slice_dims...] <= 1`.
+* (C9) `is_unique(start_index_map)`.
+* (C10) `0 <= start_index_map < rank(operand)`.
+* (C11) `size(slice_sizes) = rank(operand)`.
+* (C12) `0 <= slice_sizes <= shape(operand)`.
+* (C13) `shape(result) = combine(batch_dim_sizes, offset_dim_sizes)` where:
+  * `batch_dim_sizes = shape(start_indices)` except that the dimension size
+    of `start_indices` corresponding to `index_vector_dim` is not included.
+  * `offset_dim_sizes = shape(slice_sizes)` except that the dimension sizes
+    in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
+  * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
+   `offset_dim_sizes` at axes corresponding to `offset_dims`.
+* (C14) `element_type(operand) = element_type(result)`.
+
+#### Examples
+
+```mlir
+// %operand: [
+//            [[1, 2], [3, 4], [5, 6], [7, 8]],
+//            [[9, 10],[11, 12], [13, 14], [15, 16]],
+//            [[17, 18], [19, 20], [21, 22], [23, 24]]
+//           ]
+// %start_indices: [
+//                  [[0, 0], [1, 0], [2, 1]],
+//                  [[0, 1], [1, 1], [0, 2]]
+//                 ]
+// %slize_sizes: [1, 2, 2]
+%result = "stablehlo.dynamic_gather"(%operand, %start_indices, %slize_sizes) {
+  dimension_numbers = #stablehlo.gather<
+    offset_dims = [2, 3],
+    collapsed_slice_dims = [0],
+    start_index_map = [1, 0],
+    index_vector_dim = 2>,
+  indices_are_sorted = false
+} : (tensor<3x4x2xi64>, tensor<2x3x2xi64>, tensor<3xi64>) -> tensor<2x3x2x2xi64>
+// %result: [
+//            [
+//              [[1, 2], [3, 4]],
+//              [[3, 4], [5, 6]],
+//              [[13, 14], [15, 16]]
+//            ],
+//            [
+//              [[9, 10], [11, 12]],
+//              [[11, 12], [13, 14]],
+//              [[17, 18], [19, 20]]
+//            ]
+//          ]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_gather.mlir)
+
 ### dynamic_iota
 
 #### Semantics
@@ -2646,10 +2949,10 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 
-| Label | Name             | Type                                         | Constraints |
-|-------|------------------|----------------------------------------------|-------------|
-| (I1)  | `output_shape`   | 1-dimensional tensor constant of type `si64` | (C1), (C2)  |
-| (I2)  | `iota_dimension` | `si64`                                       | (C1)        |
+| Label | Name             | Type                                 | Constraints |
+|-------|------------------|--------------------------------------|-------------|
+| (I1)  | `output_shape`   | 1-dimensional tensor of integer type | (C1), (C2)  |
+| (I2)  | `iota_dimension` | `si64`                               | (C1)        |
 
 #### Outputs
 
@@ -2665,7 +2968,6 @@ op, but the result shape is specified dynamically via `output_shape`.
 #### Examples
 
 ```mlir
-
 %output_shape = stablehlo.constant dense<[4, 5]> : tensor<2xi64>
 %result = "stablehlo.dynamic_iota"(%output_shape) {
   iota_dimension = 0 : i64
@@ -2680,6 +2982,66 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_iota.mlir)
 
+### dynamic_pad
+
+#### Semantics
+
+This operation is functionally identical to
+[pad](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad)
+op, but with `edge_padding_low`, `edge_padding_high`, and `interior_padding`
+specified dynamically as values.
+
+#### Inputs
+
+| Label | Name                | Type                                                | Constraints      |
+|-------|---------------------|-----------------------------------------------------|------------------|
+| (I1)  | `operand`           | tensor or per-tensor quantized tensor               | (C1), (C2), (C4) |
+| (I2)  | `padding_value`     | 0-dimensional tensor or per-tensor quantized tensor | (C1)             |
+| (I3)  | `edge_padding_low`  | 1-dimensional tensor of integer type                | (C1), (C4)       |
+| (I4)  | `edge_padding_high` | 1-dimensional tensor of integer type                | (C1), (C4)       |
+| (I5)  | `interior_padding`  | 1-dimensional tensor of integer type                | (C2-C4)          |
+
+#### Outputs
+
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C3-C6)     |
+
+#### Constraints
+
+* (C1) `element_type(operand) = element_type(padding_value) =
+  element_type(result)`.
+* (C2) `size(edge_padding_low) = size(edge_padding_high) =
+  size(interior_padding) = rank(operand)`.
+* (C3) `0 <= interior_padding`.
+* (C4) `shape(result) = shape(operand) + edge_padding_low +
+  max(shape(operand) - 1, 0) * interior_padding + edge_padding_high`.
+
+#### Examples
+
+```mlir
+// %operand: [
+//            [1, 2, 3],
+//            [4, 5, 6]
+//           ]
+// %padding_value: 0
+// %edge_padding_low: [0, 1]
+// %edge_padding_high: [2, 1]
+// %interior_padding: [1, 2]
+%result = "stablehlo.dynamic_pad"(%operand, %padding_value,
+  %edge_padding_low, %edge_padding_high, %interior_padding
+) : (tensor<2x3xi64>, tensor<i64>, tensor<2xi64>, tensor<2xi64>, tensor<2xi64>) -> tensor<5x9xi64>
+// %result: [
+//           [0, 1, 0, 0, 2, 0, 0, 3, 0],
+//           [0, 0, 0, 0, 0, 0, 0, 0, 0],
+//           [0, 4, 0, 0, 5, 0, 0, 6, 0],
+//           [0, 0, 0, 0, 0, 0, 0, 0, 0],
+//           [0, 0, 0, 0, 0, 0, 0, 0, 0]
+//          ]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_pad.mlir)
+
 ### dynamic_reshape
 
 #### Semantics
@@ -2690,10 +3052,10 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 #### Inputs
 
-| Label | Name           | Type                                         | Constraints |
-|-------|----------------|----------------------------------------------|-------------|
-| (I1)  | `operand`      | tensor or quantized tensor                   | (C1-C3)     |
-| (I2)  | `output_shape` | 1-dimensional tensor constant of type `si64` | (C4)        |
+| Label | Name           | Type                                 | Constraints |
+|-------|----------------|--------------------------------------|-------------|
+| (I1)  | `operand`      | tensor or quantized tensor           | (C1-C3)     |
+| (I2)  | `output_shape` | 1-dimensional tensor of integer type | (C4)        |
 
 #### Outputs
 
@@ -2727,7 +3089,7 @@ op, but the result shape is specified dynamically via `output_shape`.
 
 ```mlir
 // %operand: [[1, 2, 3], [4, 5, 6]]
-%output_shape = stablehlo.constant dense<[3, 2]> : tensor<2xi64>
+// %output_shape: [3, 2]
 %result = "stablehlo.dynamic_reshape"(%operand, %output_shape) : (tensor<2x3xi64>, tensor<2xi64>) -> tensor<3x2xi64>
 // %result: [[1, 2], [3, 4], [5, 6]]
 ```
@@ -3289,6 +3651,11 @@ component of the type. The element-type could be anything.
 
 ### get_tuple_element
 
+> Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
+> this op is being explored for deprecation as it appears to be unused by both
+> frameworks and compilers. As such, it has limited compatibility guarantees
+> (6 months).
+
 #### Semantics
 
 Extracts element at `index` position of the `operand` tuple and produces a
@@ -3316,7 +3683,6 @@ Extracts element at `index` position of the `operand` tuple and produces a
 
 ```mlir
 // %operand: ([1.0, 2.0], (3))
-%result = "stablehlo.get_tuple_element"(%operand) {
   index = 0 : i32
 } : (tuple<tensor<2xf32>, tuple<tensor<i32>>>) -> tensor<2xf32>
 // %result: [1.0, 2.0]
@@ -3660,14 +4026,17 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 
 ### map
 
+> Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
+> this op is being explored for deprecation as it appears to be unused by both
+> frameworks and compilers. As such, it has limited compatibility guarantees
+> (6 months).
+
 #### Semantics
 
 Applies a map function `computation` to `inputs` along the `dimensions` and
 produces a `result` tensor.
 
 More formally, `result[result_index] = computation(inputs...[result_index])`.
-Note that `dimensions` are currently unused and will likely be removed in
-the future ([#487](https://github.com/openxla/stablehlo/issues/487)).
 
 #### Inputs
 
@@ -4790,6 +5159,11 @@ and produces a `result` tensor. More formally,
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/reverse.mlir)
 
 ### rng
+
+> Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
+> this op is being explored for deprecation as it appears to be unused by both
+> frameworks and compilers. As such, it has limited compatibility guarantees
+> (6 months).
 
 #### Semantics
 
@@ -6008,6 +6382,11 @@ unit_diagonal, transpose_a), a, b, type(result))`.
 
 ### tuple
 
+> Note: Per [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283),
+> this op is being explored for deprecation as it appears to be unused by both
+> frameworks and compilers. As such, it has limited compatibility guarantees
+> (6 months).
+
 #### Semantics
 
 Produces a `result` tuple from values `val`.
@@ -6229,6 +6608,72 @@ tensor. Depending on the element type, does the following:
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/xor.mlir)
+
+## Dialect Interop
+
+At the moment, StableHLO programs in the wild sometimes contain operations that
+are not defined by StableHLO.
+
+### Module, Function, Call and Return
+
+StableHLO uses upstream MLIR operations for ModuleOp, FuncOp, CallOp, and
+ReturnOp. This was done for better interop with existing MLIR machinery, as many
+useful passes are written targeting FuncOp and ModuleOp, and many compilation
+pipelines expect these ops to be present.  Full compatibility guarantees are
+applied to these ops. If anything ever changes about these ops in an
+incompatible way (i.e. removal), StableHLO equivalents will be added to preserve
+compatibility.
+
+### CHLO
+
+The CHLO opset contains higher level operations that decompose to StableHLO.
+Currently there are no compatibility guarantees for CHLO. For compatibility
+guarantees, the [chlo-legalize-to-stablehlo pass](https://github.com/openxla/stablehlo/blob/12fd0a9e7b3c6f3dea3defc513870c962e62726d/stablehlo/transforms/Passes.td#L119)
+must be used prior to serialization.
+
+### Shape Operations
+
+It is a common use case in the community to use certain operations from core
+MLIR dialects in dynamic StableHLO programs to perform shape computations.
+Most commonly, these include [`shape` dialect](https://mlir.llvm.org/docs/Dialects/ShapeDialect/)
+ops like `shape_of` or `num_elements`, [`tensor` dialect](https://mlir.llvm.org/docs/Dialects/TensorOps/)
+ops like `dim` or `from_elements`, and the builtin `index` type.
+
+The [Dynamism RFC > O2](https://github.com/openxla/stablehlo/blob/main/rfcs/20230704-dynamism-101.md#o2)
+denotes these as out of scope, however some support for `index` types is
+included for interop purposes. There are no compatibility guarantees for these
+ops or types. The [shape-legalize-to-stablehlo](https://github.com/openxla/stablehlo/blob/12fd0a9e7b3c6f3dea3defc513870c962e62726d/stablehlo/transforms/Passes.td#L136)
+pass can be used to convert these operations to fully supported StableHLO ops.
+
+## Deprecated Operations
+
+There are several StableHLO operations that were inherited from
+[MHLO](https://github.com/openxla/xla/blob/d63deb9250b9c212445290bd08c6effb5b6d0a2b/xla/mlir_hlo/mhlo/IR/hlo_ops.td)
+which are deprecated and on the way out of StableHLO. The full details on these
+removals can be found in the [StableHLO v1.0 Cleanup #2283](https://github.com/openxla/stablehlo/pull/2283).
+The tracker issue for these deprecations is [#2340](https://github.com/openxla/stablehlo/issues/2340).
+
+These operations fall into a few categories:
+
+* "Not in HLO" category of StableHLO operations - they were initially part of
+  the StableHLO opset but have been later deemed to not fit it well:
+  `broadcast`, `create_token`, `cross-replica-sum`, `dot`, `einsum`,
+  `torch_index_select`, `unary_einsum`
+  ([#3](https://github.com/openxla/stablehlo/issues/3)).
+* Unused ops - These operations may have been useful at some point, but the ops
+  were either underdeveloped, or the pipelines using these ops have been
+  refactored to not require them anymore. This includes `map`, `tuple` ([#598](https://github.com/openxla/stablehlo/issues/598)),
+  `get_tuple_element`, `rng`, `complex` comparisons [#560](https://github.com/openxla/stablehlo/issues/560),
+  and convolution `window_reversal` ([#1181](https://github.com/openxla/stablehlo/issues/1181)).
+
+Some of these ops can be removed easily given that they can be expressed using
+existing ops (`broadcast`, `create_token`, `cross-replica-sum`, `dot`,
+`unary_einsum`) and will be removed after the existing compatibilty window
+passes (6 months). Others are still being explored for removal (`einsum`,
+`get_tuple_element`, `map`, `rng` `torch_index_select`, `tuple`, `complex`
+comparisons, `window_reversal`). Pending community feedback,
+these ops will either be removed, or added to the spec with full support. Until
+these ops futures are known, they are only guaranteed 6 months of compatibility.
 
 ## Execution
 

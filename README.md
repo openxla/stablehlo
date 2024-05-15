@@ -1,5 +1,7 @@
 # StableHLO
 
+Official Documentation: <https://openxla.org/stablehlo>
+
 StableHLO is an operation set for high-level operations (HLO) in machine
 learning (ML) models. Essentially, it's a portability layer between different
 ML frameworks and ML compilers: ML frameworks that produce StableHLO programs
@@ -17,7 +19,8 @@ between frameworks and compilers, even as StableHLO continues to evolve.
 
 This repository includes the [StableHLO specification](docs/spec.md)
 along with an MLIR-based implementation in C++ and Python, which you can use to
-define StableHLO programs for consumption by compilers such as XLA and IREE.
+define StableHLO programs for consumption by compilers such as XLA and IREE, as
+well as on-device use via [Google AI Edge](https://github.com/google-ai-edge/).
 
 ## Build instructions
 
@@ -168,7 +171,7 @@ We also make nightly wheels available on our GitHub Releases page.
 pip install stablehlo -f https://github.com/openxla/stablehlo/releases/expanded_assets/dev-wheels
 ```
 
-## StableHLO to TensorFLow SavedModel
+## StableHLO to TensorFlow SavedModel
 
 This repository offers tooling for the conversion of a StableHLO program,
 including its metadata (representing trained weights and biases), into a

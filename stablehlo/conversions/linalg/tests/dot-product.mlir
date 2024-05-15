@@ -273,3 +273,77 @@ func.func @dot_dot_unsigned(%arg0: tensor<?xui32>,
 // CHECK: linalg.dot
 // CHECK-SAME: ins(%{{.*}} : tensor<?xi32>, tensor<?xi32>)
 // CHECK-SAME: outs(%[[FILL]] : tensor<i32>)
+
+// -----
+
+func.func @simple_dot_general_matmul(
+  %arg0: tensor<2x3xf32>,
+  %arg1: tensor<3x?xf32>
+) -> tensor<2x?xf32> {
+  %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [1] x [0] {someattr}
+       : (tensor<2x3xf32>, tensor<3x?xf32>) -> tensor<2x?xf32>
+  func.return %0 : tensor<2x?xf32>
+}
+
+// CHECK-LABEL: func @simple_dot_general_matmul
+// CHECK-SAME:  (%[[ARG0:.*]]: tensor<2x3xf32>, %[[ARG1:.*]]: tensor<3x?xf32>)
+// CHECK: %[[C1:.*]] = arith.constant 1 : index
+// CHECK: %[[D1:.*]] = tensor.dim %[[ARG1]], %[[C1]]
+// CHECK: %[[INIT:.*]] = tensor.empty(%[[D1]])
+// CHECK: %[[FILL:.*]] = linalg.fill ins(%{{.*}}{{.*}}outs(%[[INIT]]
+// CHECK: linalg.matmul
+// CHECK-SAME: {someattr}
+// CHECK-SAME: ins(%[[ARG0]], %[[ARG1]] : tensor<2x3xf32>, tensor<3x?xf32>)
+// CHECK-SAME: outs(%[[FILL]] : tensor<2x?xf32>)
+
+// -----
+
+func.func @simple_dot_general_matvec(%arg0: tensor<?x3xf32>,
+                 %arg1: tensor<3xf32>) -> tensor<?xf32> {
+  %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [1] x [0]
+       : (tensor<?x3xf32>, tensor<3xf32>) -> tensor<?xf32>
+  func.return %0 : tensor<?xf32>
+}
+// CHECK-LABEL: func @simple_dot_general_matvec(
+// CHECK-SAME: %[[ARG0:.*]]: tensor<?x3xf32>, %[[ARG1:.*]]: tensor<3xf32>)
+// CHECK: %[[C0:.*]] = arith.constant 0 : index
+// CHECK: %[[D0:.*]] = tensor.dim %[[ARG0]], %[[C0]]
+// CHECK: %[[INIT:.*]] = tensor.empty(%[[D0]])
+// CHECK: %[[FILL:.*]] = linalg.fill ins(%{{.*}}{{.*}}outs(%[[INIT]]
+// CHECK: linalg.matvec
+// CHECK-SAME: ins(%[[ARG0]], %[[ARG1]] : tensor<?x3xf32>, tensor<3xf32>)
+// CHECK-SAME: outs(%[[FILL]] : tensor<?xf32>)
+
+// -----
+
+func.func @simple_dot_general_vecmat(%arg0: tensor<3xf32>,
+                 %arg1: tensor<3x?xf32>) -> tensor<?xf32> {
+  %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [0] x [0]
+       : (tensor<3xf32>, tensor<3x?xf32>) -> tensor<?xf32>
+  func.return %0 : tensor<?xf32>
+}
+// CHECK-LABEL: func @simple_dot_general_vecmat(
+// CHECK-SAME: %[[ARG0:.*]]: tensor<3xf32>, %[[ARG1:.*]]: tensor<3x?xf32>)
+// CHECK: %[[C1:.*]] = arith.constant 1 : index
+// CHECK: %[[D1:.*]] = tensor.dim %[[ARG1]], %[[C1]]
+// CHECK: %[[INIT:.*]] = tensor.empty(%[[D1]])
+// CHECK: %[[FILL:.*]] = linalg.fill ins(%{{.*}}{{.*}}outs(%[[INIT]]
+// CHECK: linalg.vecmat
+// CHECK-SAME: ins(%[[ARG0]], %[[ARG1]] : tensor<3xf32>, tensor<3x?xf32>)
+// CHECK-SAME: outs(%[[FILL]] : tensor<?xf32>)
+
+// -----
+
+func.func @simple_dot_general_dot(%arg0: tensor<?xf32>,
+              %arg1: tensor<?xf32>) -> tensor<f32> {
+  %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [0] x [0]
+       : (tensor<?xf32>, tensor<?xf32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+// CHECK-LABEL: func @simple_dot_general_dot(
+// CHECK-SAME: %[[ARG0:.*]]: tensor<?xf32>, %[[ARG1:.*]]: tensor<?xf32>)
+// CHECK: %[[INIT:.*]] = tensor.empty()
+// CHECK: %[[FILL:.*]] = linalg.fill ins(%{{.*}}{{.*}}outs(%[[INIT]]
+// CHECK: linalg.dot
+// CHECK-SAME: ins(%[[ARG0]], %[[ARG1]] : tensor<?xf32>, tensor<?xf32>)
+// CHECK-SAME: outs(%[[FILL]] : tensor<f32>)

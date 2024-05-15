@@ -55,6 +55,13 @@ Index evalIndex(Tensor tensor) {
   return result;
 }
 
+template <typename T>
+SmallVector<T> extractAttributeOrDefault(std::optional<ArrayRef<T>> attr,
+                                         int64_t size, T value) {
+  if (attr.has_value()) return llvm::to_vector(attr.value());
+  return SmallVector<T>(size, value);
+}
+
 Tensor dotGeneralOp(const Tensor &lhs, const Tensor &rhs,
                     const Axes &lhsContractingDimensions,
                     const Axes &rhsContractingDimensions) {
@@ -321,6 +328,14 @@ SmallVector<InterpreterValue> eval(Region &region,
   scope.add(block.getArguments(), args);
 
   for (Operation &operation : block) {
+    if (!llvm::all_of(operation.getResults(), [](OpResult r) {
+          if (auto shaped = dyn_cast<ShapedType>(r.getType()))
+            return shaped.hasStaticShape();
+          return true;
+        }))
+      llvm::report_fatal_error(
+          "dynamic result types are not supported at the moment");
+
     if (auto op = dyn_cast<AbsOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto result = absOp(operand, op.getType());
@@ -511,9 +526,8 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto rhs = scope.findTensor(op.getRhs());
       auto rank = lhs.getRank();
 
-      SmallVector<int64_t> windowStrides(rank - 2, 1);
-      if (auto windowStridesAttr = op.getWindowStrides())
-        windowStrides = SmallVector<int64_t>(windowStridesAttr.value());
+      SmallVector<int64_t> windowStrides = extractAttributeOrDefault<int64_t>(
+          op.getWindowStrides(), rank - 2, 1);
 
       SmallVector<std::pair<int64_t, int64_t>> padding(rank - 2, {0, 0});
       if (auto paddingAttr = op.getPaddingAttr()) {
@@ -579,15 +593,85 @@ SmallVector<InterpreterValue> eval(Region &region,
           lhs, rhs, lhsBatchingDimensions, rhsBatchingDimensions,
           lhsContractingDimensions, rhsContractingDimensions, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicBroadcastInDimOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto broadcastDimensions = Axes(op.getBroadcastDimensions());
+      auto result =
+          broadcastInDimOp(operand, broadcastDimensions, op.getType());
+      scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicConvOp>(operation)) {
+      auto lhs = scope.findTensor(op.getLhs());
+      auto rhs = scope.findTensor(op.getRhs());
+      auto dPadding = scope.findTensor(op.getPadding());
+      auto rank = lhs.getRank();
+
+      SmallVector<int64_t> windowStrides(rank - 2, 1);
+      if (auto windowStridesAttr = op.getWindowStrides())
+        windowStrides = SmallVector<int64_t>(windowStridesAttr.value());
+
+      SmallVector<int64_t> lhsDilation(rank - 2, 1);
+      if (auto lhsDilationAttr = op.getLhsDilation())
+        lhsDilation = SmallVector<int64_t>(lhsDilationAttr.value());
+
+      SmallVector<int64_t> rhsDilation(rank - 2, 1);
+      if (auto rhsDilationAttr = op.getRhsDilation())
+        rhsDilation = SmallVector<int64_t>(rhsDilationAttr.value());
+
+      SmallVector<bool> windowReversal(rank - 2, false);
+      if (auto windowReversalAttr = op.getWindowReversal())
+        windowReversal = SmallVector<bool>(windowReversalAttr.value());
+
+      auto dimensionNumbers = op.getDimensionNumbers();
+      SmallVector<std::pair<int64_t, int64_t>> padding;
+      for (auto it = dPadding.index_begin(); it != dPadding.index_end(); ++it) {
+        auto paddingLow = dPadding.get(*it).getIntegerValue().getSExtValue();
+        auto paddingHigh =
+            dPadding.get(*(++it)).getIntegerValue().getSExtValue();
+        padding.push_back({paddingLow, paddingHigh});
+      }
+      auto result = convolutionOp(
+          lhs, rhs, windowStrides, padding, lhsDilation, rhsDilation,
+          windowReversal, dimensionNumbers.getInputBatchDimension(),
+          dimensionNumbers.getInputFeatureDimension(),
+          Axes(dimensionNumbers.getInputSpatialDimensions()),
+          dimensionNumbers.getKernelInputFeatureDimension(),
+          dimensionNumbers.getKernelOutputFeatureDimension(),
+          Axes(dimensionNumbers.getKernelSpatialDimensions()),
+          dimensionNumbers.getOutputBatchDimension(),
+          dimensionNumbers.getOutputFeatureDimension(),
+          Axes(dimensionNumbers.getOutputSpatialDimensions()),
+          op.getFeatureGroupCount(), op.getBatchGroupCount(), op.getType());
+      scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicGatherOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto startIndices = scope.findTensor(op.getStartIndices());
+      auto sliceSizes = scope.findTensor(op.getSliceSizes());
+      auto result = gatherOp(
+          operand, startIndices, Axes(op.getDimensionNumbers().getOffsetDims()),
+          Axes(op.getDimensionNumbers().getCollapsedSliceDims()),
+          Axes(op.getDimensionNumbers().getOperandBatchingDims()),
+          Axes(op.getDimensionNumbers().getStartIndicesBatchingDims()),
+          Axes(op.getDimensionNumbers().getStartIndexMap()),
+          Axis(op.getDimensionNumbers().getIndexVectorDim()),
+          makeSizes(sliceSizes), op.getIndicesAreSorted(), op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicIotaOp>(operation)) {
       auto iotaDimension = op.getIotaDimension();
-      auto outputShape = scope.findTensor(op.getOutputShape());
-      auto result = dynamicIotaOp(iotaDimension, outputShape, op.getType());
+      auto result = iotaOp(iotaDimension, op.getType());
+      scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<DynamicPadOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto paddingValue = scope.findTensor(op.getPaddingValue());
+      auto edgePaddingLow = scope.findTensor(op.getEdgePaddingLow());
+      auto edgePaddingHigh = scope.findTensor(op.getEdgePaddingHigh());
+      auto interiorPadding = scope.findTensor(op.getInteriorPadding());
+      auto result =
+          padOp(operand, paddingValue, makeSizes(edgePaddingLow),
+                makeSizes(edgePaddingHigh), makeSizes(interiorPadding));
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicReshapeOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
-      auto outputShape = scope.findTensor(op.getOutputShape());
-      auto result = dynamicReshapeOp(operand, outputShape, op.getType());
+      auto result = reshapeOp(operand, op.getType());
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<DynamicSliceOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
@@ -966,8 +1050,6 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto result = tanhOp(operand, op.getType());
       scope.add(op.getResult(), result);
     } else if (isa<TorchIndexSelectOp>(operation)) {
-      failOnDecomposableOp(operation);
-    } else if (isa<TraceOp>(operation)) {
       failOnDecomposableOp(operation);
     } else if (auto op = dyn_cast<TransposeOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
@@ -1590,22 +1672,6 @@ Tensor dotGeneralOp(const Tensor &lhs, const Tensor &rhs,
     result.set(resultIndex, resultElement);
   }
   return result;
-}
-
-Tensor dynamicIotaOp(Axis iotaDimension, const Tensor &outputShape,
-                     ShapedType resultType) {
-  if (resultType.hasStaticShape()) return iotaOp(iotaDimension, resultType);
-
-  llvm::report_fatal_error(
-      "dynamic result types are not supported at the moment");
-}
-
-Tensor dynamicReshapeOp(const Tensor &operand, const Tensor &outputShape,
-                        ShapedType resultType) {
-  if (resultType.hasStaticShape()) return reshapeOp(operand, resultType);
-
-  llvm::report_fatal_error(
-      "dynamic result types are not supported at the moment");
 }
 
 Tensor dynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,

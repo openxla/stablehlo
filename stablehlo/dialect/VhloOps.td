@@ -413,9 +413,6 @@ def VHLO_DotOpV1 : VHLO_Op<"dot_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicBroadcastInDimOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
@@ -427,10 +424,7 @@ def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim_v1", "0.9
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicConvOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
-def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "current"> {
+def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "0.19.0"> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
@@ -456,10 +450,34 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicGatherOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
-def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "0.19.0"> {
+// Padding should be specified as an operand only, not an attribute.
+// Remove `d_padding` and convert `padding` to an operand.
+def VHLO_DynamicConvOpV2 : VHLO_Op<"dynamic_conv_v2", "0.20.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$lhs,
+    VHLO_AnyType:$rhs,
+    VHLO_AnyType:$padding,
+    VHLO_AnyAttr:$window_strides,
+    VHLO_AnyAttr:$lhs_dilation,
+    VHLO_AnyAttr:$rhs_dilation,
+    VHLO_AnyAttr:$window_reversal,
+    VHLO_AnyAttr:$input_batch_dimension,
+    VHLO_AnyAttr:$input_feature_dimension,
+    VHLO_AnyAttr:$input_spatial_dimensions,
+    VHLO_AnyAttr:$kernel_input_feature_dimension,
+    VHLO_AnyAttr:$kernel_output_feature_dimension,
+    VHLO_AnyAttr:$kernel_spatial_dimensions,
+    VHLO_AnyAttr:$output_batch_dimension,
+    VHLO_AnyAttr:$output_feature_dimension,
+    VHLO_AnyAttr:$output_spatial_dimensions,
+    VHLO_AnyAttr:$feature_group_count,
+    VHLO_AnyAttr:$batch_group_count,
+    VHLO_AnyAttr:$precision_config
+  );
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "1.0.0"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -473,7 +491,7 @@ def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "0.19.0"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_DynamicGatherOpV2 : VHLO_Op<"dynamic_gather_v2", "0.20.0", "current"> {
+def VHLO_DynamicGatherOpV2 : VHLO_Op<"dynamic_gather_v2", "1.1.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -489,17 +507,11 @@ def VHLO_DynamicGatherOpV2 : VHLO_Op<"dynamic_gather_v2", "0.20.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicIotaOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicIotaOpV1 : VHLO_Op<"dynamic_iota_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$output_shape, VHLO_AnyAttr:$iota_dimension);
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicPadOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
@@ -511,9 +523,6 @@ def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicReshapeOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicReshapeOpV1 : VHLO_Op<"dynamic_reshape_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand, VHLO_AnyType:$output_shape);
   let results = (outs VHLO_AnyType:$result);
@@ -587,7 +596,7 @@ def VHLO_FuncOpV1 : VHLO_Op<"func_v1", "0.9.0", "current"> {
   let assemblyFormat = "custom<FunctionBody>($sym_name, $body, $function_type) attr-dict";
 }
 
-def VHLO_GatherOpV1 : VHLO_Op<"gather_v1", "0.9.0", "0.19.0"> {
+def VHLO_GatherOpV1 : VHLO_Op<"gather_v1", "0.9.0", "1.0.0"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -601,7 +610,7 @@ def VHLO_GatherOpV1 : VHLO_Op<"gather_v1", "0.9.0", "0.19.0"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_GatherOpV2 : VHLO_Op<"gather_v2", "0.20.0", "current"> {
+def VHLO_GatherOpV2 : VHLO_Op<"gather_v2", "1.1.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -906,7 +915,7 @@ def VHLO_RsqrtOpV1 : VHLO_Op<"rsqrt_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "0.19.0",
+def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "1.0.0",
     [SameVariadicOperandSize, DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
@@ -923,7 +932,7 @@ def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "0.19.0",
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
-def VHLO_ScatterOpV2 : VHLO_Op<"scatter_v2", "0.20.0", "current",
+def VHLO_ScatterOpV2 : VHLO_Op<"scatter_v2", "1.1.0", "current",
     [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
@@ -1056,16 +1065,6 @@ def VHLO_TorchIndexSelectOpV1 : VHLO_Op<"torch_index_select_v1", "0.9.0", "curre
     VHLO_AnyAttr:$batch_dims
   );
   let results = (outs VHLO_AnyType:$result);
-}
-
-// TODO(#3): TraceOp is not part of the StableHLO spec.
-// This operation is on its way out of StableHLO, so it is not included in
-// the StableHLO specification.
-def VHLO_TraceOpV1 : VHLO_Op<"trace_v1", "0.9.0", "current"> {
-  let arguments = (ins
-    VHLO_AnyType:$operand,
-    VHLO_AnyAttr:$tag
-  );
 }
 
 def VHLO_TransposeOpV1 : VHLO_Op<"transpose_v1", "0.9.0", "current"> {

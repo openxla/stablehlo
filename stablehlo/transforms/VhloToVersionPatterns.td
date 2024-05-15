@@ -20,6 +20,16 @@ def VHLO_GetEmptyDims : NativeCodeCall<"getEmptyI64Tensor($_builder)">;
 
 def VHLO_EmptyDims : AttrConstraint<CPred<"isEmptyTensor($_self)">, "Empty dims">;
 
+def VHLO_GetDefaultConvPadding : NativeCodeCall<"getDefaultConvPadding($_builder, $0)">;
+
+def DynamicConvUpgradeV1ToV2:
+  Pat<(VHLO_DynamicConvOpV1 $lhs, $rhs, $d_padding, $window_strides, $padding, $lhs_dilation, $rhs_dilation, $window_reversal, $input_batch_dimension, $input_feature_dimension, $input_spatial_dimensions, $kernel_input_feature_dimension, $kernel_output_feature_dimension, $kernel_spatial_dimensions, $output_batch_dimension, $output_feature_dimension, $output_spatial_dimensions, $feature_group_count, $batch_group_count, $precision_config),
+      (VHLO_DynamicConvOpV2 $lhs, $rhs, $d_padding, $window_strides, $lhs_dilation, $rhs_dilation, $window_reversal, $input_batch_dimension, $input_feature_dimension, $input_spatial_dimensions, $kernel_input_feature_dimension, $kernel_output_feature_dimension, $kernel_spatial_dimensions, $output_batch_dimension, $output_feature_dimension, $output_spatial_dimensions, $feature_group_count, $batch_group_count, $precision_config)>;
+
+def DynamicConvDowngradeV2ToV1:
+  Pat<(VHLO_DynamicConvOpV2 $lhs, $rhs, $d_padding, $window_strides, $lhs_dilation, $rhs_dilation, $window_reversal, $input_batch_dimension, $input_feature_dimension, $input_spatial_dimensions, $kernel_input_feature_dimension, $kernel_output_feature_dimension, $kernel_spatial_dimensions, $output_batch_dimension, $output_feature_dimension, $output_spatial_dimensions, $feature_group_count, $batch_group_count, $precision_config),
+      (VHLO_DynamicConvOpV1 $lhs, $rhs, $d_padding, $window_strides, (VHLO_GetDefaultConvPadding $lhs), $lhs_dilation, $rhs_dilation, $window_reversal, $input_batch_dimension, $input_feature_dimension, $input_spatial_dimensions, $kernel_input_feature_dimension, $kernel_output_feature_dimension, $kernel_spatial_dimensions, $output_batch_dimension, $output_feature_dimension, $output_spatial_dimensions, $feature_group_count, $batch_group_count, $precision_config)>;
+
 def GatherOpUpgradeV1ToV2:
   Pat<(VHLO_GatherOpV1 $operand, $start_indices, $offset_dims, $collapsed_slice_dims, $start_index_map, $index_vector_dim, $slice_sizes, $indices_are_sorted),
       (VHLO_GatherOpV2 $operand, $start_indices, $offset_dims, $collapsed_slice_dims, (VHLO_GetEmptyDims), (VHLO_GetEmptyDims), $start_index_map, $index_vector_dim, $slice_sizes, $indices_are_sorted)>;

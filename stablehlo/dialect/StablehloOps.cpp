@@ -635,6 +635,21 @@ mlir::Speculation::Speculatability DotGeneralOp::getSpeculatability() {
   return mlir::Speculation::Speculatable;
 }
 
+DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value lhs) {
+  return DotDimensionNumbersAttr::get(
+      lhs.getContext(),
+      /*lhsBatchingDimensions=*/{},
+      /*rhsBatchingDimensions=*/{},
+      /*lhsContractingDimensions=*/
+      {cast<ShapedType>(lhs.getType()).getRank() - 1},
+      /*rhsContractingDimensions=*/{0});
+}
+
+bool DotGeneralOp::isSimpleDot() {
+  return getDotDimensionNumbersAttr() ==
+         getDefaultDotDimensionNumbers(getLhs());
+}
+
 //===----------------------------------------------------------------------===//
 // FftOp
 //===----------------------------------------------------------------------===//
@@ -1327,6 +1342,30 @@ LogicalResult BroadcastInDimOp::verify() {
                                      getBroadcastDimensions(), getResult());
 }
 
+// Creates BroadcastInDimOp.broadcast_dimensions from BroadcastOp using the
+// number of broadcast_sizes and the rank of the operand.
+SmallVector<int64_t> getBroadcastDimensionsFromBroadcast(
+    int64_t broadcastSizesSize, int64_t operandRank) {
+  return llvm::to_vector(
+      llvm::seq(broadcastSizesSize, broadcastSizesSize + operandRank));
+}
+
+DenseI64ArrayAttr getBroadcastDimensionsFromBroadcastSizes(
+    RankedTensorType resultType, DenseI64ArrayAttr broadcastSizes) {
+  int64_t broadcastSizesSize = broadcastSizes.size();
+  int64_t operandRank = resultType.getRank() - broadcastSizesSize;
+  return DenseI64ArrayAttr::get(
+      resultType.getContext(),
+      getBroadcastDimensionsFromBroadcast(broadcastSizesSize, operandRank));
+}
+
+bool BroadcastInDimOp::isSimpleBroadcast() {
+  auto operandRank = getOperand().getType().getRank();
+  auto broadcastSizesSize = getType().getRank() - operandRank;
+  return llvm::to_vector(getBroadcastDimensions()) ==
+         getBroadcastDimensionsFromBroadcast(broadcastSizesSize, operandRank);
+}
+
 //===----------------------------------------------------------------------===//
 // DynamicBroadcastInDimOp
 //===----------------------------------------------------------------------===//
@@ -1368,6 +1407,27 @@ DynamicBroadcastInDimOp::getSpeculatability() {
     return mlir::Speculation::Speculatable;
 
   return mlir::Speculation::NotSpeculatable;
+}
+
+//===----------------------------------------------------------------------===//
+// DynamicBroadcastInDimOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult DynamicConvOp::verify() {
+  return hlo::verifyDynamicConvOp(
+      getLoc(), getLhs().getType(), getRhs().getType(), getPadding(),
+      getWindowStrides(), getLhsDilation(), getRhsDilation(),
+      getWindowReversal(), getDimensionNumbers().getInputBatchDimension(),
+      getDimensionNumbers().getInputFeatureDimension(),
+      getDimensionNumbers().getInputSpatialDimensions(),
+      getDimensionNumbers().getKernelInputFeatureDimension(),
+      getDimensionNumbers().getKernelOutputFeatureDimension(),
+      getDimensionNumbers().getKernelSpatialDimensions(),
+      getDimensionNumbers().getOutputBatchDimension(),
+      getDimensionNumbers().getOutputFeatureDimension(),
+      getDimensionNumbers().getOutputSpatialDimensions(),
+      getFeatureGroupCount(), getBatchGroupCount(), getPrecisionConfig(),
+      getResult().getType());
 }
 
 //===----------------------------------------------------------------------===//
@@ -3252,6 +3312,15 @@ void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
   });
 }
 
+void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
+                           std::optional<Attribute> windowStrides,
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal) {
+  printWindowAttributes(p, nullptr, windowStrides, /*padding=*/{}, lhsDilation,
+                        rhsDilation, windowReversal);
+}
+
 ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
                                   DenseIntElementsAttr& padding,
                                   Attribute& lhsDilation,
@@ -3333,6 +3402,15 @@ ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
     if (parser.parseOptionalComma().failed()) break;
   }
   return success();
+}
+
+ParseResult parseWindowAttributes(OpAsmParser& parser, Attribute& windowStrides,
+                                  Attribute& lhsDilation,
+                                  Attribute& rhsDilation,
+                                  Attribute& windowReversal) {
+  auto padding = parser.getBuilder().getI64TensorAttr({});
+  return parseWindowAttributes(parser, windowStrides, padding, lhsDilation,
+                               rhsDilation, windowReversal);
 }
 
 //===----------------------------------------------------------------------===//

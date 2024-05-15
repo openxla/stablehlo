@@ -656,17 +656,20 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                 std::is_same<StablehloOpTy, stablehlo::DynamicConvOp>::value) {
     auto numSpatialDimensions = static_cast<int64_t>(
         stablehloOp.getDimensionNumbers().getInputSpatialDimensions().size());
-    if (!stablehloOp.getWindowStridesAttr()) {
+    if (!stablehloOp.getWindowStridesAttr())
       addDefaultAttr("window_strides",
                      builder.getDenseI64ArrayAttr(
                          SmallVector<int64_t>(numSpatialDimensions, 1ll)));
+    if constexpr (std::is_same<StablehloOpTy,
+                               stablehlo::ConvolutionOp>::value) {
+      if (!stablehloOp.getPaddingAttr())
+        addDefaultAttr(
+            "padding",
+            DenseIntElementsAttr::get(
+                RankedTensorType::get({numSpatialDimensions, 2},
+                                      builder.getI64Type()),
+                SmallVector<int64_t>(numSpatialDimensions * 2, 0ll)));
     }
-    if (!stablehloOp.getPaddingAttr())
-      addDefaultAttr("padding",
-                     DenseIntElementsAttr::get(
-                         RankedTensorType::get({numSpatialDimensions, 2},
-                                               builder.getI64Type()),
-                         SmallVector<int64_t>(numSpatialDimensions * 2, 0ll)));
     if (!stablehloOp.getLhsDilationAttr())
       addDefaultAttr("lhs_dilation",
                      builder.getDenseI64ArrayAttr(

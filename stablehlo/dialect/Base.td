@@ -166,6 +166,8 @@ def HLO_PredTensor : RankedTensorOf<[HLO_Pred]>;
 
 def HLO_Tensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
 
+def HLO_ScalarTensor: 0DTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
+
 def HLO_NonQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex]>;
 
 def HLO_TensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
@@ -249,6 +251,12 @@ def HLO_PredIntFpOrQuantizedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Floa
 
 // Static representation of a shape vector as a tensor.
 def HLO_StaticDimensionTensor : RankedTensorOf<[HLO_DimensionValue], [HasStaticShapePred, HasAnyRankOfPred<[1]>], "statically shaped 1-dimensional tensor">;
+
+// Static representation of a 1D tensor of int.
+def HLO_Static1DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[1]>], "statically shaped 1-dimensional integer tensor">;
+
+// Static representation of a 2D tensor of int.
+def HLO_Static2DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[2]>], "statically shaped 2-dimensional integer tensor">;
 
 // In general, static shaped tensor constraints should be avoided unless
 // it is for a legacy op which is only correct with static shapes.
