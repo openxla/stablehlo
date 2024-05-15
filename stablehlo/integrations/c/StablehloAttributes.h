@@ -13,9 +13,8 @@ limitations under the License.
 #ifndef STABLEHLO_INTEGRATIONS_C_STABLEHLO_ATTRIBUTES_H
 #define STABLEHLO_INTEGRATIONS_C_STABLEHLO_ATTRIBUTES_H
 
+#include <stdint.h>
 #include <sys/types.h>
-
-#include <optional>
 
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"

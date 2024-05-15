@@ -38,8 +38,6 @@ if [[ $# -ne 0 ]] ; then
   exit_with_usage
 fi
 
-clang-format --version
-
 echo "Gathering changed files..."
 mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep '.*\.h\|.*\.cpp')
 if (( ${#CHANGED_FILES[@]} == 0 )); then
@@ -50,7 +48,13 @@ fi
 echo "Running clang-format [mode=$FORMAT_MODE]..."
 echo "  Files: " "${CHANGED_FILES[@]}"
 if [[ $FORMAT_MODE == 'fix' ]]; then
-  clang-format --style=google -i "${CHANGED_FILES[@]}"
+  clang-format -i "${CHANGED_FILES[@]}"
 else
-  clang-format --style=google --dry-run --Werror "${CHANGED_FILES[@]}"
+  clang-format --dry-run --Werror "${CHANGED_FILES[@]}" || {
+    echo "Please format your code before pushing:"
+    echo "  ./build_tools/github_actions/lint_clang_format.sh -f"
+    echo "Make sure you are using the right major version of clang-format:"
+    echo "  $(clang-format --version)"
+    exit 1
+  }
 fi
