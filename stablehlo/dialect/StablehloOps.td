@@ -2551,8 +2551,8 @@ def StableHLO_FftOp: StableHLO_Op<"fft",
 
 def StableHLO_GatherOp: StableHLO_Op<"gather",
     [ConditionallySpeculatable, NoMemoryEffect,
-    InferTensorTypeWithReify /*gather_c13*/,
-    AllElementTypesMatch<["operand", "result"]> /*gather_c14*/]> {
+    InferTensorTypeWithReify /*gather_c22*/,
+    AllElementTypesMatch<["operand", "result"]> /*gather_c23*/]> {
   let summary = "Gather operation";
   let description = [{
     Gathers slices from `operand` tensor from offsets specified in
@@ -2565,22 +2565,24 @@ def StableHLO_GatherOp: StableHLO_Op<"gather",
     ```mlir
     %result = "stablehlo.gather"(%operand, %start_indices) {
       dimension_numbers = #stablehlo.gather<
-        offset_dims = [2, 3],
-        collapsed_slice_dims = [0],
-        start_index_map = [1, 0],
-        index_vector_dim = 2>,
-      slice_sizes = array<i64: 1, 2, 2>,
+        offset_dims = [3, 4],
+        collapsed_slice_dims = [1],
+        operand_batching_dims = [0],
+        start_indices_batching_dims = [1],
+        start_index_map = [2, 1],
+        index_vector_dim = 3>,
+      slice_sizes = array<i64: 1, 1, 2, 2>,
       indices_are_sorted = false
-    } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
+    } : (tensor<2x3x4x2xi64>, tensor<2x2x3x2xi64>) -> tensor<2x2x3x2x2xi64>
     ```
   }];
 
   let arguments = (ins
     HLO_Tensor:$operand /*gather_i1*/,
     HLO_IntTensor:$start_indices /*gather_i2*/,
-    StableHLO_GatherDimensionNumbers:$dimension_numbers /*gather_i3, gather_i4, gather_i5, gather_i6*/,
-    GenericDenseI64ArrayAttr:$slice_sizes /*gather_i7*/,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*gather_i8*/
+    StableHLO_GatherDimensionNumbers:$dimension_numbers /*gather_i3...gather_i8*/,
+    GenericDenseI64ArrayAttr:$slice_sizes /*gather_i9*/,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*gather_i10*/
   );
 
   let results = (outs HLO_Tensor:$result);
@@ -2716,8 +2718,8 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape",
 def StableHLO_ScatterOp: StableHLO_Op<"scatter",
       [ConditionallySpeculatable, RecursiveMemoryEffects,
       SameVariadicOperandSize /*scatter_c5*/,
-      DeclareOpInterfaceMethods<InferTypeOpInterface> /*scatter_c16,
-      scater_c17*/]> {
+      DeclareOpInterfaceMethods<InferTypeOpInterface> /*scatter_c24,
+      scater_c25*/]> {
   let summary = "Scatter operation";
   let description = [{
     Produces `results` tensors which are equal to `inputs` tensors except that
@@ -2735,25 +2737,27 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter",
        stablehlo.return %0 : tensor<i64>
    }) {
      scatter_dimension_numbers = #stablehlo.scatter<
-       update_window_dims = [2, 3],
-       inserted_window_dims = [0],
-       scatter_dims_to_operand_dims = [1, 0],
-       index_vector_dim = 2>,
+       update_window_dims = [3, 4],
+       inserted_window_dims = [1],
+       input_batching_dims = [0],
+       scatter_indices_batching_dims = [1],
+       scatter_dims_to_operand_dims = [2, 1],
+       index_vector_dim = 3>,
      indices_are_sorted = false,
      unique_indices = false
-   } : (tensor<3x4x2xi64>, tensor<2x3x2xi64>, tensor<2x3x2x2xi64>) -> tensor<3x4x2xi64>
+   } : (tensor<2x3x4x2xi64>, tensor<2x2x3x2xi64>, tensor<2x2x3x2x2xi64>) -> tensor<2x3x4x2xi64>
    ```
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs, /*scatter_i1*/
     RankedTensorOf<[AnyInteger, Index]>:$scatter_indices, /*scatter_i2*/
     Variadic<HLO_Tensor>:$updates, /*scatter_i3*/
-    StableHLO_ScatterDimensionNumbers:$scatter_dimension_numbers, /*scatter_i4...scatter_i7*/
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted, /*scatter_i8*/
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$unique_indices /*scatter_i9*/
+    StableHLO_ScatterDimensionNumbers:$scatter_dimension_numbers, /*scatter_i4...scatter_i9*/
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted, /*scatter_i10*/
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$unique_indices /*scatter_i11*/
   );
 
-  let regions = (region SizedRegion<1>:$update_computation /*scatter_i10*/);
+  let regions = (region SizedRegion<1>:$update_computation /*scatter_i12*/);
 
   let results = (outs Variadic<HLO_Tensor>);
 

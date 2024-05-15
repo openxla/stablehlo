@@ -24,11 +24,16 @@ limitations under the License.
 MlirAttribute stablehloScatterDimensionNumbersGet(
     MlirContext ctx, intptr_t nUpdateWindowDims,
     const int64_t *updateWindowDims, intptr_t nInsertedWindowDims,
-    const int64_t *insertedWindowDims, intptr_t nScatteredDimsToOperandDims,
+    const int64_t *insertedWindowDims, intptr_t nInputBatchingDims,
+    const int64_t *inputBatchingDims, intptr_t nScatterIndicesBatchingDims,
+    const int64_t *scatterIndicesBatchingDims,
+    intptr_t nScatteredDimsToOperandDims,
     const int64_t *scatteredDimsToOperandDims, int64_t indexVectorDim) {
   return wrap(mlir::stablehlo::ScatterDimensionNumbersAttr::get(
       unwrap(ctx), llvm::ArrayRef(updateWindowDims, nUpdateWindowDims),
       llvm::ArrayRef(insertedWindowDims, nInsertedWindowDims),
+      llvm::ArrayRef(inputBatchingDims, nInputBatchingDims),
+      llvm::ArrayRef(scatterIndicesBatchingDims, nScatterIndicesBatchingDims),
       llvm::ArrayRef(scatteredDimsToOperandDims, nScatteredDimsToOperandDims),
       indexVectorDim));
 }
@@ -63,6 +68,32 @@ int64_t stablehloScatterDimensionNumbersGetInsertedWindowDimsElem(
       .getInsertedWindowDims()[pos];
 }
 
+intptr_t stablehloScatterDimensionNumbersGetInputBatchingDimsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::ScatterDimensionNumbersAttr>(unwrap(attr))
+      .getInputBatchingDims()
+      .size();
+}
+
+int64_t stablehloScatterDimensionNumbersGetInputBatchingDimsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::stablehlo::ScatterDimensionNumbersAttr>(unwrap(attr))
+      .getInputBatchingDims()[pos];
+}
+
+intptr_t stablehloScatterDimensionNumbersGetScatterIndicesBatchingDimsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::ScatterDimensionNumbersAttr>(unwrap(attr))
+      .getScatterIndicesBatchingDims()
+      .size();
+}
+
+int64_t stablehloScatterDimensionNumbersGetScatterIndicesBatchingDimsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::stablehlo::ScatterDimensionNumbersAttr>(unwrap(attr))
+      .getScatterIndicesBatchingDims()[pos];
+}
+
 intptr_t stablehloScatterDimensionNumbersGetScatteredDimsToOperandDimsSize(
     MlirAttribute attr) {
   return llvm::cast<mlir::stablehlo::ScatterDimensionNumbersAttr>(unwrap(attr))
@@ -88,11 +119,15 @@ int64_t stablehloDimensionNumbersGetIndexVectorDim(MlirAttribute attr) {
 MlirAttribute stablehloGatherDimensionNumbersGet(
     MlirContext ctx, intptr_t nOffsetDims, const int64_t *offsetDims,
     intptr_t nCollapsedSliceDims, const int64_t *collapsedSliceDims,
+    intptr_t nOperandBatchingDims, const int64_t *operandBatchingDims,
+    intptr_t nStartIndicesBatchingDims, const int64_t *startIndicesBatchingDims,
     intptr_t nStartIndexMap, const int64_t *startIndexMap,
     int64_t indexVectorDim) {
   return wrap(mlir::stablehlo::GatherDimensionNumbersAttr::get(
       unwrap(ctx), llvm::ArrayRef(offsetDims, nOffsetDims),
       llvm::ArrayRef(collapsedSliceDims, nCollapsedSliceDims),
+      llvm::ArrayRef(operandBatchingDims, nOperandBatchingDims),
+      llvm::ArrayRef(startIndicesBatchingDims, nStartIndicesBatchingDims),
       llvm::ArrayRef(startIndexMap, nStartIndexMap), indexVectorDim));
 }
 
@@ -123,6 +158,32 @@ int64_t stablehloGatherDimensionNumbersGetCollapsedSliceDimsElem(
     MlirAttribute attr, intptr_t pos) {
   return llvm::cast<mlir::stablehlo::GatherDimensionNumbersAttr>(unwrap(attr))
       .getCollapsedSliceDims()[pos];
+}
+
+intptr_t stablehloGatherDimensionNumbersGetOperandBatchingDimsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::GatherDimensionNumbersAttr>(unwrap(attr))
+      .getOperandBatchingDims()
+      .size();
+}
+
+int64_t stablehloGatherDimensionNumbersGetOperandBatchingDimsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::stablehlo::GatherDimensionNumbersAttr>(unwrap(attr))
+      .getOperandBatchingDims()[pos];
+}
+
+intptr_t stablehloGatherDimensionNumbersGetStartIndicesBatchingDimsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::GatherDimensionNumbersAttr>(unwrap(attr))
+      .getStartIndicesBatchingDims()
+      .size();
+}
+
+int64_t stablehloGatherDimensionNumbersGetStartIndicesBatchingDimsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::stablehlo::GatherDimensionNumbersAttr>(unwrap(attr))
+      .getStartIndicesBatchingDims()[pos];
 }
 
 intptr_t stablehloGatherDimensionNumbersGetStartIndexMapSize(

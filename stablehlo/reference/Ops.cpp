@@ -649,6 +649,8 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto result = gatherOp(
           operand, startIndices, Axes(op.getDimensionNumbers().getOffsetDims()),
           Axes(op.getDimensionNumbers().getCollapsedSliceDims()),
+          Axes(op.getDimensionNumbers().getOperandBatchingDims()),
+          Axes(op.getDimensionNumbers().getStartIndicesBatchingDims()),
           Axes(op.getDimensionNumbers().getStartIndexMap()),
           Axis(op.getDimensionNumbers().getIndexVectorDim()),
           makeSizes(sliceSizes), op.getIndicesAreSorted(), op.getType());
@@ -705,6 +707,8 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto result = gatherOp(
           operand, startIndices, Axes(op.getDimensionNumbers().getOffsetDims()),
           Axes(op.getDimensionNumbers().getCollapsedSliceDims()),
+          Axes(op.getDimensionNumbers().getOperandBatchingDims()),
+          Axes(op.getDimensionNumbers().getStartIndicesBatchingDims()),
           Axes(op.getDimensionNumbers().getStartIndexMap()),
           Axis(op.getDimensionNumbers().getIndexVectorDim()),
           Sizes(op.getSliceSizes()), op.getIndicesAreSorted(), op.getType());
@@ -936,6 +940,9 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto scatterDimensionNumbers = op.getScatterDimensionNumbers();
       Axes updateWindowDims(scatterDimensionNumbers.getUpdateWindowDims());
       Axes insertedWindowDims(scatterDimensionNumbers.getInsertedWindowDims());
+      Axes inputBatchingDims(scatterDimensionNumbers.getInputBatchingDims());
+      Axes scatterIndicesBatchingDims(
+          scatterDimensionNumbers.getScatterIndicesBatchingDims());
       Axes scatterDimsToOperandDims(
           scatterDimensionNumbers.getScatterDimsToOperandDims());
       Axis indexVectorDim(scatterDimensionNumbers.getIndexVectorDim());
@@ -943,6 +950,7 @@ SmallVector<InterpreterValue> eval(Region &region,
       SmallVector<ShapedType> resultTypes(op->getResultTypes());
       auto results = scatterOp(inputs, scatterIndices, updates,
                                updateWindowDims, insertedWindowDims,
+                               inputBatchingDims, scatterIndicesBatchingDims,
                                scatterDimsToOperandDims, indexVectorDim,
                                updateComputation, process, scope, resultTypes);
       scope.add(op.getResults(), results);
@@ -1721,9 +1729,10 @@ Tensor floorOp(const Tensor &operand, ShapedType resultType) {
 
 Tensor gatherOp(const Tensor &operand, const Tensor &startIndices,
                 const Axes &offsetDims, const Axes &collapsedSliceDims,
-                const Axes &startIndexMap, Axis indexVectorDim,
-                const Sizes &sliceSizes, bool indicesAreSorted,
-                ShapedType resultType) {
+                const Axes &operandBatchingDims,
+                const Axes &startIndicesBatchingDims, const Axes &startIndexMap,
+                Axis indexVectorDim, const Sizes &sliceSizes,
+                bool indicesAreSorted, ShapedType resultType) {
   Tensor result(resultType);
   Axes batchDims;
   for (auto d : result.getAxes())
@@ -1752,16 +1761,28 @@ Tensor gatherOp(const Tensor &operand, const Tensor &startIndices,
           operand.getShape()[dOperand] - sliceSizes[dOperand]);
     }
 
+    Index fullBatchingIndex(operand.getRank(), 0);
+    for (auto dOperand : operand.getAxes()) {
+      auto dBatchingIt = llvm::find(operandBatchingDims, dOperand);
+      if (dBatchingIt == operandBatchingDims.end()) continue;
+      auto iBatching = dBatchingIt - operandBatchingDims.begin();
+      auto dStart = startIndicesBatchingDims[iBatching];
+      fullBatchingIndex[dOperand] =
+          batchIndex[dStart - (dStart < indexVectorDim ? 0 : 1)];
+    }
+
     Index offsetIndex;
     for (auto d : offsetDims) offsetIndex.push_back(resultIndex[d]);
 
-    Index fullOffsetIndex(offsetIndex.size() + collapsedSliceDims.size(), 0);
+    Index fullOffsetIndex(operand.getRank(), 0);
     for (size_t i = 0, oi = 0; i < fullOffsetIndex.size(); ++i) {
-      if (llvm::is_contained(collapsedSliceDims, i)) continue;
+      if (llvm::is_contained(collapsedSliceDims, i) ||
+          llvm::is_contained(operandBatchingDims, i))
+        continue;
       fullOffsetIndex[i] = offsetIndex[oi++];
     }
 
-    auto operandIndex = fullStartIndex + fullOffsetIndex;
+    auto operandIndex = fullStartIndex + fullBatchingIndex + fullOffsetIndex;
     result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
@@ -2153,9 +2174,11 @@ Tensor rsqrtOp(const Tensor &operand, ShapedType resultType) {
 SmallVector<Tensor> scatterOp(
     ArrayRef<Tensor> inputs, const Tensor &scatterIndices,
     ArrayRef<Tensor> updates, const Axes &updateWindowDims,
-    const Axes &insertedWindowDims, const Axes &scatterDimsToOperandDims,
-    Axis indexVectorDim, Region &updateComputation, Process *process,
-    Scope &scope, ArrayRef<ShapedType> resultTypes) {
+    const Axes &insertedWindowDims, const Axes &inputBatchingDims,
+    const Axes &scatterIndicesBatchingDims,
+    const Axes &scatterDimsToOperandDims, Axis indexVectorDim,
+    Region &updateComputation, Process *process, Scope &scope,
+    ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
   for (const auto &input : inputs) results.push_back(input);
 
@@ -2185,17 +2208,28 @@ SmallVector<Tensor> scatterOp(
       fullStartIndex[dInput] = startIndex[dStart];
     }
 
+    Index fullBatchingIndex(inputs[0].getRank(), 0);
+    for (auto dInput : inputs[0].getAxes()) {
+      auto dBatchingIt = llvm::find(inputBatchingDims, dInput);
+      if (dBatchingIt == inputBatchingDims.end()) continue;
+      auto iBatching = dBatchingIt - inputBatchingDims.begin();
+      auto dStart = scatterIndicesBatchingDims[iBatching];
+      fullBatchingIndex[dInput] =
+          updateScatterIndex[dStart - (dStart < indexVectorDim ? 0 : 1)];
+    }
+
     Index updateWindowIndex;
     for (auto d : updateWindowDims) updateWindowIndex.push_back(updateIndex[d]);
 
-    Index fullWindowIndex(updateWindowIndex.size() + insertedWindowDims.size(),
-                          0);
+    Index fullWindowIndex(inputs[0].getRank(), 0);
     for (size_t i = 0, wi = 0; i < fullWindowIndex.size(); ++i) {
-      if (llvm::is_contained(insertedWindowDims, i)) continue;
+      if (llvm::is_contained(insertedWindowDims, i) ||
+          llvm::is_contained(inputBatchingDims, i))
+        continue;
       fullWindowIndex[i] = updateWindowIndex[wi++];
     }
 
-    auto resultIndex = fullStartIndex + fullWindowIndex;
+    auto resultIndex = fullStartIndex + fullBatchingIndex + fullWindowIndex;
     if (!resultIndex.inBounds(results[0].getShape())) continue;
 
     SmallVector<InterpreterValue> updateComputationArgs;

@@ -112,17 +112,23 @@ def test_gather_dimension_numbers():
   attr = stablehlo.GatherDimensionNumbers.get(
       offset_dims=[1, 2],
       collapsed_slice_dims=[3, 4, 5],
-      start_index_map=[6],
-      index_vector_dim=7)
+      operand_batching_dims=[6, 7],
+      start_indices_batching_dims=[8, 9],
+      start_index_map=[10],
+      index_vector_dim=11)
   assert attr is not None
   assert str(attr) == ("#stablehlo.gather<offset_dims = [1, 2], "
                        "collapsed_slice_dims = [3, 4, 5], "
-                       "start_index_map = [6], "
-                       "index_vector_dim = 7>")
+                       "operand_batching_dims = [6, 7], "
+                       "start_indices_batching_dims = [8, 9], "
+                       "start_index_map = [10], "
+                       "index_vector_dim = 11>")
   assert attr.offset_dims == [1, 2]
   assert attr.collapsed_slice_dims == [3, 4, 5]
-  assert attr.start_index_map == [6]
-  assert attr.index_vector_dim == 7
+  assert attr.operand_batching_dims == [6, 7]
+  assert attr.start_indices_batching_dims == [8, 9]
+  assert attr.start_index_map == [10]
+  assert attr.index_vector_dim == 11
 
 
 @run
@@ -169,17 +175,23 @@ def test_scatter_dimension_numbers():
   attr = stablehlo.ScatterDimensionNumbers.get(
       update_window_dims=[1, 2, 3],
       inserted_window_dims=[4, 5],
-      scattered_dims_to_operand_dims=[6, 7],
-      index_vector_dim=8)
+      input_batching_dims=[6, 7],
+      scatter_indices_batching_dims=[8, 9],
+      scattered_dims_to_operand_dims=[10, 11],
+      index_vector_dim=12)
   assert attr is not None
   assert str(attr) == ("#stablehlo.scatter<update_window_dims = [1, 2, 3], "
                        "inserted_window_dims = [4, 5], "
-                       "scatter_dims_to_operand_dims = [6, 7], "
-                       "index_vector_dim = 8>")
+                       "input_batching_dims = [6, 7], "
+                       "scatter_indices_batching_dims = [8, 9], "
+                       "scatter_dims_to_operand_dims = [10, 11], "
+                       "index_vector_dim = 12>")
   assert attr.update_window_dims == [1, 2, 3]
   assert attr.inserted_window_dims == [4, 5]
-  assert attr.scattered_dims_to_operand_dims == [6, 7]
-  assert attr.index_vector_dim == 8
+  assert attr.input_batching_dims == [6, 7]
+  assert attr.scatter_indices_batching_dims == [8, 9]
+  assert attr.scattered_dims_to_operand_dims == [10, 11]
+  assert attr.index_vector_dim == 12
 
 
 @run

@@ -275,7 +275,7 @@ The following diagram shows how elements in `updates...` map on elements in
 `updates...` indices and explains in detail which `results...` indices they
 correspond to.
 
-![](images/20240311-gather-scatter-batching-dims/scatter.svg)
+![scatter](images/20240311-gather-scatter-batching-dims/scatter.svg)
 
 More formally, for all `update_index` in `index_space(updates[0])`:
 
