@@ -4387,7 +4387,7 @@ func.func @dynamic_gather_c6(%operand : tensor<2x4x9xi32>, %start_indices : tens
       collapsed_slice_dims = [1, 1],
       index_vector_dim = 2,
       offset_dims = [2],
-      start_index_map = [0, 1] 
+      start_index_map = [0, 1]
     >,
     indices_are_sorted = false
   } : (tensor<2x4x9xi32>, tensor<?x?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
