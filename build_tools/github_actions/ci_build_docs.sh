@@ -40,9 +40,9 @@ if (( $# != 0 )); then
 fi
 
 declare -A targets
-targets[":stablehlo_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/transforms/StablehloPasses.md"
-targets[":linalg_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/linalg/transforms/StablehloLinalgPasses.md"
-targets[":tosa_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/tosa/transforms/StablehloTosaPasses.md"
+targets[":stablehlo_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/transforms/stablehlo_passes.md"
+targets[":linalg_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/linalg/transforms/stablehlo_linalg_passes.md"
+targets[":tosa_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/tosa/transforms/stablehlo_tosa_passes.md"
 
 bazel build "${!targets[@]}"
 
