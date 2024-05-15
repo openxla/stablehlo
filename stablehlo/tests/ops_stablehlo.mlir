@@ -4465,6 +4465,25 @@ func.func @dynamic_gather_c9(%operand : tensor<?x?x?xi32>, %start_indices : tens
 
 // -----
 
+func.func @dynamic_gather_c12(%operand : tensor<?x?x?xi32>, %start_indices : tensor<?x?xi32>) -> tensor<?x?x?xi32> {
+  %slize_sizes = stablehlo.constant dense<[2,1,8]> : tensor<3xi32>
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{Expects that for each dim in operand_batching_dims, slice_sizes[dim] should be <= 1, but got 2}}
+  %res = "stablehlo.dynamic_gather"(%operand, %start_indices, %slize_sizes) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2],
+      operand_batching_dims = [0, 1],
+      start_indices_batching_dims = [0, 1],
+      start_index_map = [2],
+      index_vector_dim = 2
+    >,
+    indices_are_sorted = false
+  } : (tensor<?x?x?xi32>, tensor<?x?xi32>, tensor<3xi32>) -> tensor<?x?x?xi32>
+  func.return %res : tensor<?x?x?xi32>
+}
+
+// -----
+
 func.func @dynamic_gather_c18(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>, %slize_sizes : tensor<3xi32>) -> tensor<1x5x8xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{has duplicated dimension from start_index_map and operand_batching_dims: 0}}
