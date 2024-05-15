@@ -52,9 +52,10 @@ if [[ $FORMAT_MODE == 'fix' ]]; then
   clang-format -i "${CHANGED_FILES[@]}"
 else
   clang-format --dry-run --Werror "${CHANGED_FILES[@]}" || {
-      echo "Please format your code before pushing:"
-      echo "  ./build_tools/github_actions/lint_clang_format.sh -f"
-      echo "Make sure you are using the right major version of clang-format:"
-      echo "  $(clang-format --version)"
-    }
+    echo "Please format your code before pushing:"
+    echo "  ./build_tools/github_actions/lint_clang_format.sh -f"
+    echo "Make sure you are using the right major version of clang-format:"
+    echo "  $(clang-format --version)"
+    exit 1
+  }
 fi
