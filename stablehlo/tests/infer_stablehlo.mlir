@@ -160,12 +160,14 @@ func.func @abs(%arg0: tensor<1x2xf32>) -> tensor<1x2xindex> {
 
 // -----
 
-// CHECK-LABEL: @concat
-func.func @concat(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>)  -> tensor<3xindex> {
-  %0 = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 0 : i64 } : (tensor<1xi32>, tensor<2xi32>) -> tensor<3xi32>
-  // CHECK: types0 = tensor<3xi32>
-  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<3xi32>) -> tensor<3xindex>
-  func.return %1 : tensor<3xindex>
+// CHECK-LABEL: func @collective_broadcast_c3
+func.func @collective_broadcast_c3(%arg0: tensor<16x8xf32>) -> tensor<16x8xindex> {
+  %0 = "stablehlo.collective_broadcast"(%arg0) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : (tensor<16x8xf32>) -> tensor<16x8xf32>
+  // CHECK: types0 = tensor<16x8xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<16x8xf32>) -> tensor<16x8xindex>
+  func.return %1 : tensor<16x8xindex>
 }
 
 // -----
@@ -179,6 +181,196 @@ func.func @collective_permute_c5(%arg0: tensor<2x2xi64>) -> tensor<2x2xindex> {
   // CHECK: types0 = tensor<2x2xi64>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x2xi64>) -> tensor<2x2xindex>
   func.return %1 : tensor<2x2xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @concat
+func.func @concat(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>)  -> tensor<3xindex> {
+  %0 = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 0 : i64 } : (tensor<1xi32>, tensor<2xi32>) -> tensor<3xi32>
+  // CHECK: types0 = tensor<3xi32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<3xi32>) -> tensor<3xindex>
+  func.return %1 : tensor<3xindex>
+}
+
+// -----
+
+// Invalid rank of output-type.
+
+func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
+    %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x16xf32> {
+  // expected-error @+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x8x16xf32>'}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1, 1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         } :
+       (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<1x8x16xf32>
+  func.return %0 : tensor<1x8x16xf32>
+}
+
+// -----
+
+// Invalid batch dimension in output-type. Should be equal to
+// input-batch-dimension / batch_group_count.
+
+func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
+    %arg1: tensor<3x3x207x16xf32>) -> tensor<2x8x8x16xf32> {
+  // expected-error@+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<2x8x8x16xf32>'}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1,1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         } :
+       (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<2x8x8x16xf32>
+  func.return %0 : tensor<2x8x8x16xf32>
+}
+
+// -----
+
+// Invalid feature dimension in output-type. Should be equal to
+// kernel_output_feature_dimension.
+
+func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
+    %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x32xf32> {
+  // expected-error@+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x8x8x32xf32>'}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1,1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         } :
+       (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<1x8x8x32xf32>
+  func.return %0 : tensor<1x8x8x32xf32>
+}
+
+// -----
+
+// The following tests checks the inferred output-type of ConvolutionOp. We
+// deliberately put an invalid output-type in these tests so that the
+// inferred-type can be highlighted in the error message.
+
+// Dynamic input-batch-dimension
+func.func @invalid_conv_dynamic_shapes(%arg0: tensor<?x8x8x207xf32>,
+    %arg1: tensor<3x3x207x16xf32>) -> tensor<1x1x1x1xf32> {
+  // expected-error@+1 {{inferred shape '[?, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1,1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         } :
+       (tensor<?x8x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<1x1x1x1xf32>
+  func.return %0 : tensor<1x1x1x1xf32>
+}
+
+// -----
+
+// Dynamic input-feature-dimension: No effect on output dimensions.
+func.func @invalid_conv_dynamic_shapes(%arg0: tensor<1x8x8x?xf32>,
+    %arg1: tensor<3x3x207x16xf32>) -> tensor<1x1x1x1xf32> {
+  // expected-error@+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1,1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         } :
+       (tensor<1x8x8x?xf32>, tensor<3x3x207x16xf32>) -> tensor<1x1x1x1xf32>
+  func.return %0 : tensor<1x1x1x1xf32>
+}
+
+// -----
+
+// Dynamic input-spatial-dimension
+func.func @invalid_conv_dynamic_shapes(%arg0: tensor<1x?x8x207xf32>,
+    %arg1: tensor<3x3x207x16xf32>) -> tensor<1x1x1x1xf32> {
+  // expected-error@+1 {{inferred shape '[1, ?, 8, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1,1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         } :
+       (tensor<1x?x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<1x1x1x1xf32>
+  func.return %0 : tensor<1x1x1x1xf32>
+}
+
+// -----
+
+// Dynamic kernel-input-feature-dimension: No effect on output dimensions.
+func.func @invalid_conv_dynamic_shapes(%arg0: tensor<1x8x8x207xf32>,
+    %arg1: tensor<3x3x?x16xf32>) -> tensor<1x1x1x1xf32> {
+  // expected-error@+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1,1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         } :
+       (tensor<1x8x8x207xf32>, tensor<3x3x?x16xf32>) -> tensor<1x1x1x1xf32>
+  func.return %0 : tensor<1x1x1x1xf32>
+}
+
+// -----
+
+// Dynamic kernel-output-feature-dimension
+func.func @check_inferred_type_with_dynamic_input_dims(%arg0: tensor<1x8x8x207xf32>,
+    %arg1: tensor<3x3x207x?xf32>) -> tensor<1x1x1x1xf32> {
+  // expected-error@+1 {{inferred shape '[1, 8, 8, ?]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1,1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         } :
+       (tensor<1x8x8x207xf32>, tensor<3x3x207x?xf32>) -> tensor<1x1x1x1xf32>
+  func.return %0 : tensor<1x1x1x1xf32>
+}
+
+// -----
+
+// Dynamic kernel-spatial-dimension
+func.func @check_inferred_type_with_dynamic_input_dims(%arg0: tensor<1x8x8x207xf32>,
+    %arg1: tensor<3x?x207x16xf32>) -> tensor<1x1x1x1xf32> {
+  // expected-error@+1 {{inferred shape '[1, 8, ?, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1,1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         } :
+       (tensor<1x8x8x207xf32>, tensor<3x?x207x16xf32>) -> tensor<1x1x1x1xf32>
+  func.return %0 : tensor<1x1x1x1xf32>
 }
 
 // -----
@@ -1204,7 +1396,8 @@ func.func @add_bounds(
 func.func @add_bounds_mismatch(
   %arg0: tensor<3xf32, #stablehlo.bounds<?>>,
   %arg1: tensor<?xf32, #stablehlo.bounds<2>>) -> tensor<?xindex> {
-  // expected-error@+1 {{requires compatible types for all operands and results}}
+  // expected-error@+2 {{op failed to infer returned types}}
+  // expected-error@+1 {{Mismatched dimension size 3 and bound 2 in dimension 0}}
   %result = "stablehlo.add"(%arg0, %arg1) : (
     tensor<3xf32, #stablehlo.bounds<?>>,
     tensor<?xf32, #stablehlo.bounds<2>>) -> tensor<?xf32>
@@ -1825,4 +2018,17 @@ func.func @select(%pred : tensor<i1>,
   // CHECK: types0 = tensor<1x2x3x?xf32, #stablehlo.bounds<?, ?, ?, 7>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x?x?x?xf32>) -> tensor<?x?x?x?xindex>
   func.return %1 : tensor<?x?x?x?xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @reverse
+// CHECK-SAME:   %[[A:.*]]: tensor<?x?x?x?xf32>
+func.func @reverse(%a : tensor<?x?x?x?xf32>) -> tensor<4xindex> {
+  %0 = "stablehlo.reverse"(%a) {
+    dimensions = array<i64: 1, 3>, someattr
+  } : (tensor<?x?x?x?xf32>) -> tensor<?x?x?x?xf32>
+  // CHECK: %[[SHAPE:.*]] = shape.shape_of %[[A]] : tensor<?x?x?x?xf32> -> tensor<4xindex>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%0) : (tensor<?x?x?x?xf32>) -> tensor<4xindex>
+  func.return %1 : tensor<4xindex>
 }

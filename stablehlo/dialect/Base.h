@@ -38,6 +38,7 @@ limitations under the License.
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 
 // Include order matters
@@ -85,6 +86,20 @@ bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
 // undefined behavior.
 bool isCompatibleForHloTypeInference(Value shape1, Type tp2);
 
+// Returns true if the given shape, expressed as a slice of integers, is
+// compatible with the given type for the purposes of HLO type inference.
+bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2);
+
+// Returns true if the given element-type is a mlir::quant::QuantizedType
+// and follow the constraints corresponding to quantization parameters as
+// mentioned in the StableHLO specification.
+bool isValidStablehloQuantizedElementType(Type elementType);
+
+// Returns true if the given type is a ranked per-axis tensor type
+// and follow the constraints corresponding to quantized dimension as
+// mentioned in the StableHLO specification.
+bool isValidQuantizedDimension(Type type);
+
 // TODO(zhouxin) Move type inference related methods to TypeInference.cpp
 
 std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
@@ -117,6 +132,9 @@ FailureOr<Type> inferMostSpecificType(std::optional<Location> location,
 LogicalResult inferMostSpecificTypeComponents(
     std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
+
+// Matches a constant with integer value into int64_t.
+LogicalResult matchInt(Value value, int64_t &result);
 
 // Matches a constant tensor with integer values into a 1-dimensional vector.
 // Doesn't preserve the bitness or the signedness of the underlying values,
@@ -246,6 +264,13 @@ void writeEnumAttribute(EnumTypeAttr val, DialectBytecodeWriter &writer) {
   writer.writeVarInt(enumVal);
 }
 }  // namespace bytecode
+
+// Determines the speculatability for a shaped operation `op` with `shapeCount`
+// shape operands. The last `count` operands are assumed to be shape operands.
+// To be speculatable, such an op must have only static inputs and constant
+// shape operands.
+mlir::Speculation::Speculatability getShapedSpeculatability(Operation *op,
+                                                            int64_t shapeCount);
 
 namespace OpTrait {
 
@@ -386,10 +411,89 @@ class CompatibleOperandsAndResultType
                                 inferredReturnTypes)))
       return failure();
     if (inferredReturnTypes.size() != 1) return failure();
-    auto inferredReturnType = inferredReturnTypes[0].dyn_cast<ShapedType>();
+    auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
     if (!inferredReturnType) return failure();
     inferredReturnShapes.push_back(inferredReturnType);
     return success();
+  }
+};
+
+template <typename ConcreteType>
+struct SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType,
+          SpeculatableIfStaticDimInOutputIsStaticInInputImplTrait> {
+  // A unary elementwise op is not speculatable if a dimension of the result
+  // type is static while the corresponding dimension in the input type is
+  // dynamic. Indeed, the input dimension could differ at runtime.
+  // If the output dimension is dynamic, there is no expectation, so there
+  // cannot be a mismatch.
+  // If the input dimension is static, the output dimension can be inferred from
+  // it, so there cannot be a mismatch.
+  mlir::Speculation::Speculatability getSpeculatability() {
+    auto op = this->getOperation();
+    auto inputType = cast<RankedTensorType>(op->getOperand(0).getType());
+    auto resultType = cast<RankedTensorType>(op->getResult(0).getType());
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
+    return mlir::Speculation::Speculatable;
+  }
+};
+
+template <typename ConcreteType>
+struct RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType,
+          RecursivelySpeculatableIfStaticDimInOutputIsStaticInInputImplTrait> {
+  mlir::Speculation::Speculatability getSpeculatability() {
+    auto op = this->getOperation();
+    auto inputType = cast<RankedTensorType>(op->getOperand(0).getType());
+    auto resultType = cast<RankedTensorType>(op->getResult(0).getType());
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
+    return mlir::Speculation::RecursivelySpeculatable;
+  }
+};
+
+template <typename ConcreteType>
+struct SpeculatableIfAllInputsStaticImplTrait
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      SpeculatableIfAllInputsStaticImplTrait> {
+  mlir::Speculation::Speculatability getSpeculatability() {
+    return llvm::all_of(this->getOperation()->getOperandTypes(),
+                        [](Type t) {
+                          return cast<RankedTensorType>(t).hasStaticShape();
+                        })
+               ? mlir::Speculation::Speculatable
+               : mlir::Speculation::NotSpeculatable;
+  }
+};
+
+template <typename ConcreteType>
+struct RecursivelySpeculatableIfAllInputsStaticImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType, RecursivelySpeculatableIfAllInputsStaticImplTrait> {
+  mlir::Speculation::Speculatability getSpeculatability() {
+    return llvm::all_of(this->getOperation()->getOperandTypes(),
+                        [](Type t) {
+                          return cast<RankedTensorType>(t).hasStaticShape();
+                        })
+               ? mlir::Speculation::RecursivelySpeculatable
+               : mlir::Speculation::NotSpeculatable;
+  }
+};
+
+template <typename ConcreteType>
+struct SpeculatableIfAllInputsStaticAndShapeConstantImplTrait
+    : public mlir::OpTrait::TraitBase<
+          ConcreteType,
+          SpeculatableIfAllInputsStaticAndShapeConstantImplTrait> {
+  mlir::Speculation::Speculatability getSpeculatability() {
+    return getShapedSpeculatability(this->getOperation(), 1);
   }
 };
 

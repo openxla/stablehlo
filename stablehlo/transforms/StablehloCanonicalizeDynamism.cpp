@@ -43,7 +43,7 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
     if (failed(hlo::getShapeRefinements(op.getLoc(), op, refinements)))
       return rewriter.notifyMatchFailure(op, "expected valid refinements");
     auto indicesAttr =
-        op->getAttr("indices_of_shape_operands").cast<DenseIntElementsAttr>();
+        cast<DenseIntElementsAttr>(op->getAttr("indices_of_shape_operands"));
     DenseSet<int64_t> indices(indicesAttr.value_begin<int64_t>(),
                               indicesAttr.value_end<int64_t>());
 
@@ -79,7 +79,7 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
     for (auto& operand : op->getOpOperands()) {
       if (indices.contains(operand.getOperandNumber())) {
         auto resultType =
-            op->getResult(resultIndex).getType().dyn_cast<ShapedType>();
+            dyn_cast<ShapedType>(op->getResult(resultIndex).getType());
         if (!resultType || !resultType.hasStaticShape())
           return rewriter.notifyMatchFailure(op,
                                              "expected static result types");
@@ -124,7 +124,7 @@ struct CanonicalizeDynamicConvOpPattern
     // ConvolutionOp supports dynamic shapes for operands and results, so we
     // don't check for that here unlike in some other patterns in this pass.
     SmallVector<int64_t> padding;
-    if (!succeeded(hlo::matchInts(op.getDPadding(), padding)))
+    if (!succeeded(hlo::matchInts(op.getPadding(), padding)))
       return rewriter.notifyMatchFailure(op, "expected static padding");
     auto paddingAttr = DenseIntElementsAttr::get(
         RankedTensorType::get({static_cast<int64_t>(padding.size()) / 2, 2},

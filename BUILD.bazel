@@ -45,12 +45,14 @@ cc_library(
     deps = [
         ":base_attr_interfaces_inc_gen",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:BytecodeOpInterface",
         "@llvm-project//mlir:BytecodeReader",
         "@llvm-project//mlir:BytecodeWriter",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:ShapeDialect",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -268,6 +270,7 @@ cc_library(
         ":chlo_ops_inc_gen",
         ":stablehlo_type_inference",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:BytecodeOpInterface",
         "@llvm-project//mlir:BytecodeReader",
         "@llvm-project//mlir:BytecodeWriter",
         "@llvm-project//mlir:ComplexDialect",
@@ -275,7 +278,9 @@ cc_library(
         "@llvm-project//mlir:Dialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
+        "@llvm-project//mlir:InliningUtils",
         "@llvm-project//mlir:QuantOps",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:TransformUtils",
     ],
 )
@@ -296,6 +301,36 @@ gentbl_cc_library(
     ],
 )
 
+gentbl_cc_library(
+    name = "stablehlo_legalize_deprecated_ops_inc_gen",
+    tbl_outs = [
+        (
+            ["--gen-rewriters"],
+            "stablehlo/transforms/StablehloLegalizeDeprecatedOpsPatterns.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/transforms/StablehloLegalizeDeprecatedOpsPatterns.td",
+    deps = [
+        ":stablehlo_ops_td_files",
+    ],
+)
+
+gentbl_cc_library(
+    name = "vhlo_rewriters_inc_gen",
+    tbl_outs = [
+        (
+            ["--gen-rewriters"],
+            "stablehlo/transforms/VhloToVersionPatterns.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/transforms/VhloToVersionPatterns.td",
+    deps = [
+        ":vhlo_ops_td_files",
+    ],
+)
+
 cc_library(
     name = "interpreter_ops",
     srcs = [
@@ -306,6 +341,7 @@ cc_library(
     ],
     strip_include_prefix = ".",
     deps = [
+        ":base",
         ":interpreter_ops_inc_gen",
         ":reference_numpy",
         ":reference_ops",
@@ -360,6 +396,12 @@ gentbl_cc_library(
             ],
             "stablehlo/conversions/linalg/transforms/Passes.h.inc",
         ),
+        (
+            [
+                "-gen-pass-doc",
+            ],
+            "stablehlo/conversions/linalg/transforms/stablehlo_linalg_passes.md",
+        ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/conversions/linalg/transforms/Passes.td",
@@ -409,6 +451,7 @@ cc_library(
         "@llvm-project//mlir:SparseTensorDialect",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TensorDialect",
+        "@llvm-project//mlir:TransformUtils",
         "@llvm-project//mlir:Transforms",
         "@llvm-project//mlir:VectorDialect",
     ],
@@ -434,10 +477,12 @@ cc_library(
         ":reference_tensor",
         ":reference_value",
         ":register",
+        ":stablehlo_passes",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -917,6 +962,12 @@ gentbl_cc_library(
             ],
             "stablehlo/transforms/Passes.h.inc",
         ),
+        (
+            [
+                "-gen-pass-doc",
+            ],
+            "stablehlo/transforms/stablehlo_passes.md",
+        ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/transforms/Passes.td",
@@ -929,10 +980,12 @@ cc_library(
         "stablehlo/transforms/ChloLegalizeToStablehlo.cpp",
         "stablehlo/transforms/PassPipelines.cpp",
         "stablehlo/transforms/ShapeLegalizeToStablehlo.cpp",
+        "stablehlo/transforms/StablehloAggressiveFolder.cpp",
         "stablehlo/transforms/StablehloAggressiveSimplification.cpp",
         "stablehlo/transforms/StablehloCanonicalizeDynamism.cpp",
         "stablehlo/transforms/StablehloInstrumentWithProbe.cpp",
         "stablehlo/transforms/StablehloLegalizeCompositeToCall.cpp",
+        "stablehlo/transforms/StablehloLegalizeDeprecatedOps.cpp",
         "stablehlo/transforms/StablehloLegalizeToVhlo.cpp",
         "stablehlo/transforms/StablehloRefineArguments.cpp",
         "stablehlo/transforms/StablehloRefineShapes.cpp",
@@ -951,18 +1004,21 @@ cc_library(
         ":chlo_ops",
         ":chlo_rewriters_inc_gen",
         ":interpreter_ops",
+        ":stablehlo_legalize_deprecated_ops_inc_gen",
         ":stablehlo_ops",
         ":stablehlo_ops_inc_gen",
         ":stablehlo_pass_inc_gen",
         ":stablehlo_type_inference",
         ":version",
         ":vhlo_ops",
+        ":vhlo_rewriters_inc_gen",
         ":vhlo_types",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithDialect",
         "@llvm-project//mlir:AsmParser",
         "@llvm-project//mlir:CommonFolders",
         "@llvm-project//mlir:ComplexDialect",
+        "@llvm-project//mlir:DialectUtils",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:FunctionInterfaces",
         "@llvm-project//mlir:IR",
@@ -1064,14 +1120,18 @@ cc_library(
         ":stablehlo_ops_inc_gen",
         ":stablehlo_type_inference",
         ":stablehlo_types_inc_gen",
+        ":version",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithDialect",
+        "@llvm-project//mlir:BytecodeOpInterface",
         "@llvm-project//mlir:ComplexDialect",
         "@llvm-project//mlir:FunctionInterfaces",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
+        "@llvm-project//mlir:InliningUtils",
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:ShapeDialect",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:SparseTensorDialect",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TensorDialect",
@@ -1154,6 +1214,12 @@ gentbl_cc_library(
             ],
             "stablehlo/conversions/tosa/transforms/Passes.h.inc",
         ),
+        (
+            [
+                "-gen-pass-doc",
+            ],
+            "stablehlo/conversions/tosa/transforms/stablehlo_tosa_passes.md",
+        ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/conversions/tosa/transforms/Passes.td",
@@ -1181,7 +1247,9 @@ cc_library(
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:QuantOps",
+        "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TosaDialect",
+        "@llvm-project//mlir:TransformUtils",
         "@llvm-project//mlir:Transforms",
     ],
 )
@@ -1391,6 +1459,7 @@ cc_library(
         ":vhlo_types",
         ":vhlo_types_inc_gen",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:BytecodeOpInterface",
         "@llvm-project//mlir:FunctionInterfaces",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:QuantOps",
@@ -1456,6 +1525,7 @@ cc_library(
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:ShapeDialect",
         "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:TransformUtils",
         "@llvm-project//mlir:Transforms",
     ],
 )

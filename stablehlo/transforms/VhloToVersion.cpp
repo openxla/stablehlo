@@ -14,9 +14,11 @@ limitations under the License.
 
 #include <climits>
 #include <memory>
+#include <numeric>
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
@@ -24,6 +26,7 @@ limitations under the License.
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -112,24 +115,24 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   }
 
   // Recursively check attrs if VHLO attr is a container
-  if (auto arrAttr = attr.dyn_cast<ArrayV1Attr>())
+  if (auto arrAttr = dyn_cast<ArrayV1Attr>(attr))
     return success(llvm::all_of(arrAttr.getValue(), [&](Attribute ele) {
       return succeeded(isLegalAttribute(ele, targetVersion));
     }));
-  if (auto arrAttr = attr.dyn_cast<DictionaryV1Attr>()) {
+  if (auto arrAttr = dyn_cast<DictionaryV1Attr>(attr)) {
     return success(llvm::all_of(
         arrAttr.getValue(), [&](std::pair<Attribute, Attribute> entry) {
           return succeeded(isLegalAttribute(entry.first, targetVersion)) &&
                  succeeded(isLegalAttribute(entry.second, targetVersion));
         }));
   }
-  if (auto floatAttr = attr.dyn_cast<FloatV1Attr>())
+  if (auto floatAttr = dyn_cast<FloatV1Attr>(attr))
     return isLegalType(floatAttr.getType(), targetVersion);
-  if (auto intAttr = attr.dyn_cast<IntegerV1Attr>())
+  if (auto intAttr = dyn_cast<IntegerV1Attr>(attr))
     return isLegalType(intAttr.getType(), targetVersion);
-  if (auto tensorAttr = attr.dyn_cast<TensorV1Attr>())
+  if (auto tensorAttr = dyn_cast<TensorV1Attr>(attr))
     return isLegalType(tensorAttr.getType(), targetVersion);
-  if (auto typeAttr = attr.dyn_cast<TypeV1Attr>())
+  if (auto typeAttr = dyn_cast<TypeV1Attr>(attr))
     return isLegalType(typeAttr.getValue(), targetVersion);
 
   // Is VHLO and valid version, success.
@@ -146,30 +149,30 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
   }
 
   // Recursively check types if VHLO type is a container.
-  if (auto complex = type.dyn_cast<ComplexV1Type>())
+  if (auto complex = dyn_cast<ComplexV1Type>(type))
     return isLegalType(complex.getElementType(), targetVersion);
-  if (auto func = type.dyn_cast<FunctionV1Type>()) {
+  if (auto func = dyn_cast<FunctionV1Type>(type)) {
     auto validateType = [&](Type ele) {
       return succeeded(isLegalType(ele, targetVersion));
     };
     return success(llvm::all_of(func.getInputs(), validateType) &&
                    llvm::all_of(func.getOutputs(), validateType));
   }
-  if (auto ranked = type.dyn_cast<RankedTensorV1Type>()) {
+  if (auto ranked = dyn_cast<RankedTensorV1Type>(type)) {
     auto encoding = ranked.getEncoding();
     if (encoding && failed(isLegalAttribute(encoding, targetVersion)))
       return failure();
     return isLegalType(ranked.getElementType(), targetVersion);
   }
-  if (auto tuple = type.dyn_cast<TupleV1Type>())
+  if (auto tuple = dyn_cast<TupleV1Type>(type))
     return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
       return succeeded(isLegalType(ele, targetVersion));
     }));
-  if (auto quant = type.dyn_cast<UniformQuantizedV1Type>())
+  if (auto quant = dyn_cast<UniformQuantizedV1Type>(type))
     return success(
         succeeded(isLegalType(quant.getStorageType(), targetVersion)) &&
         succeeded(isLegalType(quant.getExpressedType(), targetVersion)));
-  if (auto unranked = type.dyn_cast<UnrankedTensorV1Type>())
+  if (auto unranked = dyn_cast<UnrankedTensorV1Type>(type))
     return isLegalType(unranked.getElementType(), targetVersion);
 
   // Is VHLO and valid version, success.
@@ -266,35 +269,81 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
   FrozenRewritePatternSet patterns;
 };
 
-////////////////////////////////////////////
-/// Upgrade and Downgrade Infrastructure ///
-////////////////////////////////////////////
+/////////////////////////////////////////
+/// Upgrade and Downgrade Definitions ///
+/////////////////////////////////////////
 
-template <typename SourceOp, typename TargetOp>
-struct VersionConversionPattern : OpConversionPattern<SourceOp> {
-  using OpConversionPattern<SourceOp>::OpConversionPattern;
+TensorV1Attr getEmptyI64Tensor(OpBuilder& builder) {
+  auto shape = vhlo::RankedTensorV1Type::get(
+      builder.getContext(), {0},
+      vhlo::IntegerSI64V1Type::get(builder.getContext()), {});
+  return vhlo::TensorV1Attr::get(builder.getContext(), shape, {});
+}
 
-  // This method allows subclasses to add or remove attributes if needed.
-  // Can also fail if an op uses a feature that cannot be represented
-  // in previous versions of the opset.
-  virtual LogicalResult prepareOpForConversion(SourceOp op) const = 0;
+bool isEmptyTensor(Attribute attr) {
+  auto tensor = dyn_cast<TensorV1Attr>(attr);
+  if (tensor) return tensor.getData().empty();
+  return false;
+}
 
-  LogicalResult matchAndRewrite(
-      SourceOp op, typename SourceOp::Adaptor /*adaptor*/,
-      ConversionPatternRewriter& rewriter) const override {
-    if (failed(prepareOpForConversion(op))) return failure();
-    auto newOp = rewriter.replaceOpWithNewOp<TargetOp>(
-        op, op->getResultTypes(), op->getOperands(), op->getAttrs());
-    for (auto [oldRegion, newRegion] :
-         llvm::zip(op->getRegions(), newOp->getRegions()))
-      rewriter.inlineRegionBefore(oldRegion, newRegion, newRegion.end());
+TensorV1Attr getDefaultConvPadding(OpBuilder& builder, Value lhs) {
+  auto lhsType = dyn_cast<RankedTensorV1Type>(lhs.getType());
+  if (!lhsType) return TensorV1Attr();
+
+  // Convert to DenseElements for getRawData handling.
+  SmallVector<int64_t> paddingShape{
+      static_cast<int64_t>(lhsType.getShape().size() - 2), 2};
+  auto denseElements = DenseIntElementsAttr::get(
+      RankedTensorType::get(paddingShape, builder.getI64Type()),
+      SmallVector<int64_t>(paddingShape[0] * 2, 0ll));
+
+  return TensorV1Attr::get(
+      builder.getContext(),
+      RankedTensorV1Type::get(builder.getContext(), paddingShape,
+                              IntegerSI64V1Type::get(builder.getContext()),
+                              nullptr),
+      denseElements.getRawData());
+}
+
+// DRR has limited support for ops with regions
+struct ScatterOpV2ToV1 : public OpRewritePattern<ScatterOpV2> {
+  using OpRewritePattern<ScatterOpV2>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOpV2 op,
+                                PatternRewriter& rewriter) const override {
+    if (!isEmptyTensor(op.getScatterIndicesBatchingDims()) ||
+        !isEmptyTensor(op.getInputBatchingDims())) {
+      return rewriter.notifyMatchFailure(op, "non-empty batching dims");
+    }
+    auto newOp = rewriter.replaceOpWithNewOp<ScatterOpV1>(
+        op, op->getResultTypes(), op.getInputs(), op.getScatterIndices(),
+        op.getUpdates(), op.getUpdateWindowDims(), op.getInsertedWindowDims(),
+        op.getScatterDimsToOperandDims(), op.getIndexVectorDim(),
+        op.getIndicesAreSorted(), op.getUniqueIndices());
+    Region& body = newOp.getUpdateComputation();
+    rewriter.inlineRegionBefore(op.getUpdateComputation(), body, body.begin());
     return success();
   }
 };
 
-/////////////////////////////////////////
-/// Upgrade and Downgrade Definitions ///
-/////////////////////////////////////////
+struct ScatterOpV1ToV2 : public OpRewritePattern<ScatterOpV1> {
+  using OpRewritePattern<ScatterOpV1>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOpV1 op,
+                                PatternRewriter& rewriter) const override {
+    auto newOp = rewriter.replaceOpWithNewOp<ScatterOpV2>(
+        op, op->getResultTypes(), op.getInputs(), op.getScatterIndices(),
+        op.getUpdates(), op.getUpdateWindowDims(), op.getInsertedWindowDims(),
+        getEmptyI64Tensor(rewriter), getEmptyI64Tensor(rewriter),
+        op.getScatterDimsToOperandDims(), op.getIndexVectorDim(),
+        op.getIndicesAreSorted(), op.getUniqueIndices());
+    Region& body = newOp.getUpdateComputation();
+    rewriter.inlineRegionBefore(op.getUpdateComputation(), body, body.begin());
+    return success();
+  }
+};
+
+#include "stablehlo/transforms/VhloToVersionPatterns.h.inc"
 
 }  // namespace
 }  // namespace vhlo
@@ -303,8 +352,8 @@ namespace stablehlo {
 void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    TypeConverter* converter,
                                    MLIRContext* context) {
-  // Currently empty because we're starting from a clean slate in v0.9.0 and
-  // changes so far are additive.
+  vhlo::populateWithGenerated(*patterns);
+  patterns->add<vhlo::ScatterOpV1ToV2, vhlo::ScatterOpV2ToV1>(context);
 }
 
 }  // namespace stablehlo

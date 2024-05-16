@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/Support/Path.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/dialect/Base.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Tensor.h"
@@ -61,7 +62,7 @@ CheckDialect::CheckDialect(MLIRContext *context)
 }
 
 llvm::Error evalExpectAlmostEqConstOp(const Tensor &lhs, ElementsAttr value) {
-  auto rhs = makeTensor(value.cast<DenseElementsAttr>());
+  auto rhs = makeTensor(cast<DenseElementsAttr>(value));
   return evalExpectAlmostEqOp(lhs, rhs);
 }
 
@@ -80,7 +81,7 @@ llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs) {
 }
 
 llvm::Error evalExpectEqConstOp(const Tensor &lhs, ElementsAttr value) {
-  auto rhs = makeTensor(value.cast<DenseElementsAttr>());
+  auto rhs = makeTensor(cast<DenseElementsAttr>(value));
   return evalExpectEqOp(lhs, rhs);
 }
 

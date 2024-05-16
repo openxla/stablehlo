@@ -38,20 +38,20 @@ Type convertBuiltinIntegerType(IntegerType type) {
   auto ctx = type.getContext();
   switch (type.getWidth()) {
     case 4:
-      return isSignless ? IntegerSI4V1Type::get(ctx).cast<Type>()
-                        : IntegerUI4V1Type::get(ctx).cast<Type>();
+      return isSignless ? cast<Type>(IntegerSI4V1Type::get(ctx))
+                        : cast<Type>(IntegerUI4V1Type::get(ctx));
     case 8:
-      return isSignless ? IntegerSI8V1Type::get(ctx).cast<Type>()
-                        : IntegerUI8V1Type::get(ctx).cast<Type>();
+      return isSignless ? cast<Type>(IntegerSI8V1Type::get(ctx))
+                        : cast<Type>(IntegerUI8V1Type::get(ctx));
     case 16:
-      return isSignless ? IntegerSI16V1Type::get(ctx).cast<Type>()
-                        : IntegerUI16V1Type::get(ctx).cast<Type>();
+      return isSignless ? cast<Type>(IntegerSI16V1Type::get(ctx))
+                        : cast<Type>(IntegerUI16V1Type::get(ctx));
     case 32:
-      return isSignless ? IntegerSI32V1Type::get(ctx).cast<Type>()
-                        : IntegerUI32V1Type::get(ctx).cast<Type>();
+      return isSignless ? cast<Type>(IntegerSI32V1Type::get(ctx))
+                        : cast<Type>(IntegerUI32V1Type::get(ctx));
     case 64:
-      return isSignless ? IntegerSI64V1Type::get(ctx).cast<Type>()
-                        : IntegerUI64V1Type::get(ctx).cast<Type>();
+      return isSignless ? cast<Type>(IntegerSI64V1Type::get(ctx))
+                        : cast<Type>(IntegerUI64V1Type::get(ctx));
   }
   return {};
 }
@@ -124,8 +124,8 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
     Type convertedStorageType = convertType(type.getStorageType());
     Type convertedExpressedType = convertType(type.getExpressedType());
     if (!convertedStorageType || !convertedExpressedType) return {};
-    SmallVector<APFloat> scales = llvm::to_vector(llvm::map_range(
-        type.getScales(), [](double scale) { return APFloat(scale); }));
+    auto scales = llvm::map_to_vector(
+        type.getScales(), [](double scale) { return APFloat(scale); });
     return vhlo::UniformQuantizedPerAxisV1Type::get(
         type.getContext(), type.getFlags(), convertedStorageType,
         convertedExpressedType, type.getQuantizedDimension(), scales,
@@ -239,9 +239,9 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
     Type convertedStorageType = convertType(type.getStorageType());
     Type convertedExpressedType = convertType(type.getExpressedType());
     if (!convertedStorageType || !convertedExpressedType) return {};
-    SmallVector<double> scales = llvm::to_vector(llvm::map_range(
+    auto scales = llvm::map_to_vector(
         type.getScales(),
-        [](const APFloat& scale) { return scale.convertToDouble(); }));
+        [](const APFloat& scale) { return scale.convertToDouble(); });
     return quant::UniformQuantizedPerAxisType::get(
         type.getFlags(), convertedStorageType, convertedExpressedType, scales,
         type.getZeroPoints(), type.getQuantizedDimension(),

@@ -1,4 +1,4 @@
-# Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2024 The StableHLO Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,3 +13,7 @@
 # limitations under the License.
 
 add_subdirectory(c++)
+
+if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
+  add_subdirectory(python)
+endif()

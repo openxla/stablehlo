@@ -125,6 +125,14 @@ def ChloLegalizeToStablehloPass : Pass<"chlo-legalize-to-stablehlo", "func::Func
   ];
 }
 
+def StablehloAggressiveFolderPass
+    : Pass<"stablehlo-aggressive-folder", "func::FuncOp"> {
+  let summary = "Folds StableHLO operations";
+  let dependentDialects = [
+    "mlir::tensor::TensorDialect",
+  ];
+}
+
 def StablehloAggressiveSimplificationPass
     : Pass<"stablehlo-aggressive-simplification", "func::FuncOp"> {
   let summary = "Canonicalizes StableHLO operations";
@@ -143,6 +151,21 @@ def ShapeLegalizeToStablehloPass : Pass<"shape-legalize-to-stablehlo", "func::Fu
     compilation pipelines that use StableHLO operations to model dynamism.
   }];
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
+}
+
+def StablehloLegalizeDeprecatedOpsPass : Pass<"stablehlo-legalize-deprecated-ops", "func::FuncOp"> {
+  let summary = "Legalize deprecated ops to well-supported ops.";
+  let description = [{
+    The StableHLO v1.0 Opset Deprecations RFC (#2283) proposes to remove
+    several redundant ops. This pass helps to evaluate the impact of these op
+    removals in various compilation pipelines by legalizing them to their
+    long-term supported counterparts.
+  }];
+  let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
+  let options = [
+    Option<"failOnUnusedOps", "fail-on-unused", "bool", /*default=*/"true",
+           "Fail on (mostly) unused ops that are deprecated without any fallback.">,
+  ];
 }
 
 def StablehloLegalizeCompositeToCallPass :

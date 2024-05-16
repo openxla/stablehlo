@@ -361,18 +361,20 @@ func.func @test_fft(%arg0: tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>> {
   func.return %0 : tensor<3x5xcomplex<f32>>
 }
 
-func.func @test_gather(%arg0: tensor<200x100x300xf32>, %arg1: tensor<10x2xi32>) -> tensor<10x300xf32> {
-                    %0 = "stablehlo.gather"(%arg0, %arg1) {
+func.func @test_gather(%arg0: tensor<5x200x100x300xf32>, %arg1: tensor<5x10x2xi32>) -> tensor<5x10x300xf32> {
+  %0 = "stablehlo.gather"(%arg0, %arg1) {
     dimension_numbers = #stablehlo.gather<
-      collapsed_slice_dims = [0, 1],
-      index_vector_dim = 1,
-      offset_dims = [1],
-      start_index_map = [0,1],
+      offset_dims = [2],
+      collapsed_slice_dims = [1, 2],
+      operand_batching_dims = [0],
+      start_indices_batching_dims = [0],
+      start_index_map = [1,2],
+      index_vector_dim = 2,
     >,
     indices_are_sorted = true,
-    slice_sizes = array<i64: 1, 1, 300>
-  } : (tensor<200x100x300xf32>, tensor<10x2xi32>) -> tensor<10x300xf32>
-  func.return %0 : tensor<10x300xf32>
+    slice_sizes = array<i64: 1, 1, 1, 300>
+  } : (tensor<5x200x100x300xf32>, tensor<5x10x2xi32>) -> tensor<5x10x300xf32>
+  func.return %0 : tensor<5x10x300xf32>
 }
 
 func.func @test_set_get_dimension_size(%arg: tensor<4x2xf32>, %size: tensor<i32>) -> tensor<i32> {
@@ -599,22 +601,24 @@ func.func @test_rng_bit_generator(%arg: tensor<3xui64>) -> tuple<tensor<3xui64>,
   func.return %1 : tuple<tensor<3xui64>, tensor<2x2xui32>>
 }
 
-func.func @test_scatter(%input_tensor: tensor<200x100x300xf32>, %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) -> tensor<200x100x300xf32> {
+func.func @test_scatter(%input_tensor: tensor<5x200x100x300xf32>, %scatter_indices: tensor<5x10x2xi32>, %updates: tensor<5x10x300xf32>) -> tensor<5x200x100x300xf32> {
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
     "stablehlo.return"(%add) : (tensor<f32>) -> ()
   }) {
     scatter_dimension_numbers = #stablehlo.scatter<
-      update_window_dims = [1],
-      inserted_window_dims = [0, 1],
-      scatter_dims_to_operand_dims = [0, 1],
-      index_vector_dim = 1
+      update_window_dims = [2],
+      inserted_window_dims = [1, 2],
+      input_batching_dims = [0],
+      scatter_indices_batching_dims = [0],
+      scatter_dims_to_operand_dims = [1, 2],
+      index_vector_dim = 2
     >,
     indices_are_sorted = true,
     unique_indices = true
-  } : (tensor<200x100x300xf32>, tensor<10x2xi32>, tensor<10x300xf32>) -> tensor<200x100x300xf32>
-  func.return %0 : tensor<200x100x300xf32>
+  } : (tensor<5x200x100x300xf32>, tensor<5x10x2xi32>, tensor<5x10x300xf32>) -> tensor<5x200x100x300xf32>
+  func.return %0 : tensor<5x200x100x300xf32>
 }
 
 func.func @test_scatter2(%arg0: tensor<200x100x300xf32>, %arg1: tensor<10x2xi64>, %arg2: tensor<10x300xf32>) -> (tensor<200x100x300xf32>, tensor<200x100x300xf32>) {

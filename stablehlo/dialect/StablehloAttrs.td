@@ -25,12 +25,32 @@ def StableHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
   let printer = "printDimSizes($_printer, $_self)";
 }
 
+def GenericDenseI64ArrayAttr : Attr<DenseI64ArrayAttr.predicate, "DenseI64ArrayAttr with generic Attribute storage"> {
+  let storageType = "Attribute";
+  let valueType = DenseI64ArrayAttr.valueType;
+  let returnType = "::llvm::ArrayRef<int64_t>";
+  let baseAttr = DenseI64ArrayAttr;
+  let convertFromStorage = "cast<DenseI64ArrayAttr>($_self).asArrayRef()";
+  let constBuilderCall = "$_builder.getDenseI64ArrayAttr($0)";
+}
+
+def GenericDenseBoolArrayAttr : Attr<DenseBoolArrayAttr.predicate, "DenseBoolArrayAttr with generic Attribute storage"> {
+  let storageType = "Attribute";
+  let valueType = DenseBoolArrayAttr.valueType;
+  let returnType = "::llvm::ArrayRef<bool>";
+  let convertFromStorage = "cast<DenseBoolArrayAttr>($_self).asArrayRef()";
+  let constBuilderCall = "$_builder.getDenseBoolArrayAttr($0)";
+}
+
+
 def StableHLO_ScatterDimensionNumbers : AttrDef<StableHLO_Dialect, "ScatterDimensionNumbers"> {
   let mnemonic = "scatter";
   let summary = "Attribute that models the dimension information for scatter";
   let parameters = (ins
       StableHLO_Dims:$updateWindowDims,
       StableHLO_Dims:$insertedWindowDims,
+      StableHLO_Dims:$inputBatchingDims,
+      StableHLO_Dims:$scatterIndicesBatchingDims,
       StableHLO_Dims:$scatterDimsToOperandDims,
       "int64_t":$indexVectorDim
   );
@@ -43,6 +63,8 @@ def StableHLO_GatherDimensionNumbers : AttrDef<StableHLO_Dialect, "GatherDimensi
   let parameters = (ins
       StableHLO_Dims:$offsetDims,
       StableHLO_Dims:$collapsedSliceDims,
+      StableHLO_Dims:$operandBatchingDims,
+      StableHLO_Dims:$startIndicesBatchingDims,
       StableHLO_Dims:$startIndexMap,
       "int64_t":$indexVectorDim
   );
@@ -141,7 +163,7 @@ def StableHLO_TypeExtensions : AttrDef<StableHLO_Dialect, "TypeExtensions", [
 // A layout attribute (1D tensor of index type)
 def StableHLO_LayoutAttr : Attr<
   And<[IndexElementsAttr.predicate,
-       CPred<[{$_self.cast<::mlir::DenseIntElementsAttr>().getType().getRank()
+       CPred<[{cast<::mlir::DenseIntElementsAttr>($_self).getType().getRank()
                == 1}]>]>,
   "A 1D tensor of index type (layout)"> {
   let storageType = IndexElementsAttr.storageType;
@@ -177,25 +199,6 @@ def StableHLO_ConvDimensionNumbers : AttrDef<StableHLO_Dialect, "ConvDimensionNu
     StableHLO_Dims:$outputSpatialDimensions
   );
   let hasCustomAssemblyFormat = 1;
-}
-
-def StableHLO_ConvolutionAttributes {
-  dag attributes = (ins
-    // Default value: one for each of the spatial dimension.
-    OptionalAttr<DenseI64ArrayAttr>:$window_strides,
-    // Default value: two zeros for each of the spatial dimension.
-    OptionalAttr<I64ElementsAttr>:$padding,
-    // Default value: one for each of the spatial dimension.
-    OptionalAttr<DenseI64ArrayAttr>:$lhs_dilation,
-    // Default value: one for each of the spatial dimension.
-    OptionalAttr<DenseI64ArrayAttr>:$rhs_dilation,
-    // Default value: false for each of the spatial dimension.
-    OptionalAttr<DenseBoolArrayAttr>:$window_reversal,
-    StableHLO_ConvDimensionNumbers:$dimension_numbers,
-    I64Attr:$feature_group_count,
-    I64Attr:$batch_group_count,
-    StableHLO_PrecisionConfigAttr:$precision_config
-  );
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_ATTRS

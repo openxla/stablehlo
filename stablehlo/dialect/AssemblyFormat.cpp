@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "stablehlo/dialect/AssemblyFormat.h"
 
+#include <cassert>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -100,7 +101,7 @@ ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser& parser,
   if (parser.parseType(type)) return failure();
 
   // Handle if function type, all operand types did not match result type.
-  if (auto fnType = type.dyn_cast<FunctionType>())
+  if (auto fnType = dyn_cast<FunctionType>(type))
     return assignFromFunctionType(parser, loc, operands, result, fnType);
 
   // Handle bare types. ` : type` indicating all input/output types match.
@@ -132,6 +133,51 @@ ParseResult parseVariadicSameOperandsAndResultType(
   return detail::parseSameOperandsAndResultTypeImpl(parser, typePtrs, result);
 }
 
+void printConstantOp(OpAsmPrinter& p, Operation* op, ElementsAttr value) {
+  assert(op->getNumResults() == 1);
+  // If not all types are the same, use generic form.
+  if (value.getType() != op->getResultTypes().front()) {
+    p.printGenericOp(op, /*printOpName=*/false);
+    return;
+  }
+
+  p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"value"});
+  p << ' ';
+  p.printStrippedAttrOrType(value);
+}
+
+ParseResult parseConstantOp(OpAsmParser& parser, OperationState& result) {
+  // Parse the generic form.
+  if (succeeded(parser.parseOptionalLParen())) {
+    if (parser.parseRParen()) return failure();
+    // Parse optional properties
+    if (succeeded(parser.parseOptionalLess()) &&
+        (failed(parser.parseAttribute(result.propertiesAttr)) ||
+         failed(parser.parseGreater())))
+      return failure();
+
+    // Parse optional attributes
+    if (parser.parseOptionalAttrDict(result.attributes)) return failure();
+
+    // Parse type signature
+    if (parser.parseColon() || parser.parseLParen() || parser.parseRParen() ||
+        parser.parseArrow())
+      return failure();
+    Type resultTy;
+    if (parser.parseType(resultTy)) return failure();
+    result.addTypes(resultTy);
+    return success();
+  }
+
+  ElementsAttr valueAttr;
+  if (parser.parseOptionalAttrDict(result.attributes)) return failure();
+  if (parser.parseCustomAttributeWithFallback(valueAttr, Type{}, "value",
+                                              result.attributes))
+    return failure();
+  result.addTypes(valueAttr.getType());
+  return success();
+}
+
 void printTupleOpType(OpAsmPrinter& p, Operation*, TypeRange operands,
                       Type result) {
   p.printType(result);
@@ -143,7 +189,7 @@ ParseResult parseTupleOpType(OpAsmParser& parser,
   llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseType(result)) return failure();
 
-  auto tupType = result.dyn_cast<TupleType>();
+  auto tupType = dyn_cast<TupleType>(result);
   if (!tupType) return parser.emitError(loc, "expected tuple type");
 
   // Assign operand types to tuple types
@@ -210,12 +256,12 @@ ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
   if (failed(parser.parseType(type))) return failure();
 
   // Handle if function type, all operand types did not match result type.
-  if (auto fnType = type.dyn_cast<FunctionType>())
+  if (auto fnType = dyn_cast<FunctionType>(type))
     return assignFromFunctionType(parser, loc, {&lhs, &rhs}, result, fnType);
 
   // Otherwise, operand type is inferred from complex type
-  auto shapedType = type.dyn_cast<ShapedType>();
-  if (!shapedType || !shapedType.getElementType().isa<ComplexType>())
+  auto shapedType = dyn_cast<ShapedType>(type);
+  if (!shapedType || !isa<ComplexType>(shapedType.getElementType()))
     return parser.emitError(loc, "expected tensor with complex element type");
 
   // Assign LHS and RHS to inferred type
@@ -302,7 +348,7 @@ static bool isReduceEligibleForCompactPrint(Operation* op, ValueRange inputs,
   LLVM_DEBUG(llvm::dbgs() << "Checking ReduceOp compact print E3\n");
   if (inputs.empty()) return false;
 
-  auto elemType = inputs[0].getType().cast<ShapedType>().getElementType();
+  auto elemType = cast<ShapedType>(inputs[0].getType()).getElementType();
   auto expectedInnerOpType = RankedTensorType::get(/*shape=*/{}, elemType);
   if (innerOp.getOperands()[0].getType() != expectedInnerOpType) return false;
 
@@ -567,8 +613,8 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
 
   // Error handling for invalid types
   // Fail if not two types, or single functional type
-  bool isValidType = (types.size() == 2 ||
-                      (types.size() == 1 && types[0].isa<FunctionType>()));
+  bool isValidType =
+      (types.size() == 2 || (types.size() == 1 && isa<FunctionType>(types[0])));
   if (!isValidType)
     return parser.emitError(loc,
                             "expected functional type or list of two types");
@@ -581,7 +627,7 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
   }
 
   // stablehlo.select %0, %1 : (<op_types> ...) -> <result_type>
-  auto fnType = types[0].cast<FunctionType>();
+  auto fnType = cast<FunctionType>(types[0]);
   return assignFromFunctionType(parser, loc, {&pred, &onTrue, &onFalse}, result,
                                 fnType);
 }
@@ -648,39 +694,41 @@ ParseResult parseWhileOp(OpAsmParser& parser, OperationState& result) {
 //===----------------------------------------------------------------------===//
 
 void printSliceRanges(OpAsmPrinter& p, Operation* op,
-                      ArrayRef<int64_t> startIndices,
-                      ArrayRef<int64_t> limitIndices,
-                      ArrayRef<int64_t> strides) {
+                      Attribute startIndicesAttr, Attribute limitIndicesAttr,
+                      Attribute stridesAttr) {
+  auto startIndices = cast<DenseI64ArrayAttr>(startIndicesAttr);
+  auto limitIndices = cast<DenseI64ArrayAttr>(limitIndicesAttr);
+  auto strides = cast<DenseI64ArrayAttr>(stridesAttr);
   p << "[";
   // Let's be safe if we're printing invalid IR somehow: this can't be parsed
   // back!
   if (startIndices.size() != limitIndices.size() ||
       startIndices.size() != strides.size()) {
     p << "start_indices: ";
-    llvm::interleaveComma(startIndices, p);
+    llvm::interleaveComma(startIndices.asArrayRef(), p);
     p << ", limit_indices: ";
-    llvm::interleaveComma(limitIndices, p);
+    llvm::interleaveComma(limitIndices.asArrayRef(), p);
     p << ", strides: ";
-    llvm::interleaveComma(strides, p);
+    llvm::interleaveComma(strides.asArrayRef(), p);
     p << "]";
     return;
   }
 
-  llvm::interleaveComma(llvm::zip(startIndices, limitIndices, strides), p,
-                        [&](std::tuple<int64_t, int64_t, int64_t> pack) {
-                          auto [start, limit, stride] = pack;
-                          p << start << ":" << limit;
-                          if (stride != 1) {
-                            p << ":" << stride;
-                          }
-                        });
+  llvm::interleaveComma(
+      llvm::zip(startIndices.asArrayRef(), limitIndices.asArrayRef(),
+                strides.asArrayRef()),
+      p, [&](std::tuple<int64_t, int64_t, int64_t> pack) {
+        auto [start, limit, stride] = pack;
+        p << start << ":" << limit;
+        if (stride != 1) {
+          p << ":" << stride;
+        }
+      });
   p << "]";
 }
 
-ParseResult parseSliceRanges(OpAsmParser& parser,
-                             DenseI64ArrayAttr& startIndices,
-                             DenseI64ArrayAttr& limitIndices,
-                             DenseI64ArrayAttr& strides) {
+ParseResult parseSliceRanges(OpAsmParser& parser, Attribute& startIndices,
+                             Attribute& limitIndices, Attribute& strides) {
   if (parser.parseLSquare()) return failure();
   // Parse groups of comma-separated: `start`:`limit`[:`stride`]
   // If the stride isn't provided it'll be 1.
@@ -708,6 +756,17 @@ ParseResult parseSliceRanges(OpAsmParser& parser,
   strides = parser.getBuilder().getDenseI64ArrayAttr(stride);
 
   return success();
+}
+
+void printDenseI64Array(OpAsmPrinter& p, Operation* op, Attribute attr) {
+  cast<DenseI64ArrayAttr>(attr).print(p);
+}
+
+ParseResult parseDenseI64Array(OpAsmParser& parser, Attribute& attr) {
+  if ((attr = DenseI64ArrayAttr::parse(parser, Type{}))) {
+    return success();
+  }
+  return failure();
 }
 
 ParseResult dimSizeFromString(AsmParser& parser, int64_t& result) {

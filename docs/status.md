@@ -66,26 +66,24 @@ one of the following tracking labels.
 | compare                  | yes           | yes          | yes            | yes             | yes         |
 | complex                  | yes           | yes          | yes            | yes             | yes         |
 | composite                | yes           | yes          | infeasible     | yes             | yes         |
-| compute_reshape_shape    | no            | revisit      | no             | yes             | no          |
 | concatenate              | yes           | yes          | yes            | yes             | yes         |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
 | convert                  | yes           | yes          | infeasible     | yes             | yes         |
-| convolution              | yes           | yes          | infeasible     | revisit         | no          |
+| convolution              | yes           | yes          | infeasible     | revisit         | yes         |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | yes         |
 | create_token             | no            | yes\*        | yes\*          | yes             | revisit     |
 | cross-replica-sum        | no            | revisit      | yes\*          | no              | revisit     |
-| cstr_reshapable          | no            | revisit      | no             | yes             | no          |
 | custom_call              | yes           | yes          | infeasible     | yes             | yes         |
 | divide                   | yes           | yes          | yes            | yes             | yes         |
 | dot                      | no            | revisit      | infeasible     | yes             | revisit     |
 | dot_general              | yes           | revisit      | infeasible     | no              | yes         |
-| dynamic_broadcast_in_dim | no            | revisit      | infeasible     | no              | no          |
-| dynamic_conv             | no            | revisit      | no             | no              | no          |
-| dynamic_gather           | no            | revisit      | revisit        | no              | no          |
-| dynamic_iota             | no            | revisit      | infeasible     | yes             | no          |
-| dynamic_pad              | no            | revisit      | no             | yes             | no          |
-| dynamic_reshape          | no            | revisit      | infeasible     | yes             | no          |
+| dynamic_broadcast_in_dim | yes           | yes          | infeasible     | yes             | revisit     |
+| dynamic_conv             | yes           | yes          | infeasible     | revisit         | revisit     |
+| dynamic_gather           | yes           | yes          | infeasible     | no              | revisit     |
+| dynamic_iota             | yes           | yes          | infeasible     | yes             | revisit     |
+| dynamic_pad              | yes           | yes          | infeasible     | yes             | revisit     |
+| dynamic_reshape          | yes           | yes          | infeasible     | yes             | revisit     |
 | dynamic_slice            | yes           | yes          | yes            | yes             | yes         |
 | dynamic_update_slice     | yes           | yes          | yes            | yes             | yes         |
 | einsum                   | no            | revisit      | no             | yes             | revisit     |
@@ -150,7 +148,6 @@ one of the following tracking labels.
 | subtract                 | yes           | yes          | yes            | yes             | yes         |
 | tanh                     | yes           | yes          | yes            | yes             | yes         |
 | torch_index_select       | no            | revisit      | no             | no              | revisit     |
-| trace                    | no            | revisit      | no             | yes             | revisit     |
 | transpose                | yes           | yes          | yes            | yes             | yes         |
 | triangular_solve         | yes           | revisit      | yes            | no              | revisit     |
 | tuple                    | yes           | yes          | yes            | yes             | yes         |
@@ -159,3 +156,18 @@ one of the following tracking labels.
 | uniform_quantize         | yes           | revisit      | infeasible     | yes             | no          |
 | while                    | yes           | revisit      | yes            | revisit         | yes         |
 | xor                      | yes           | yes          | yes            | yes             | yes         |
+
+## Type inference for quantized operations
+
+The `Type Inference` column from the table above is intended to focus on
+non-quantized operations. For the majority of the quantized operations, it is
+not feasible to infer the result type because the quantization parameters of
+the result types may vary from those of the operands. With the exception of
+few cases where, operand and result types must match identically, or the op
+has constraints useful to infer result type, such ops are listed below:
+`all_gather`, `all_to_all`, `case`, `collective_permute`,
+`compare`, `concatenate`, `constant`, `dynamic_slice`,
+`dynamic_update_slice`, `gather`, `get_tuple_element`, `if`, `infeed`,
+`is_finite`, `map`, `optimization_barrier`, `outfeed`, `pad`, `recv`, `reduce`,
+`reduce_scatter`, `reduce_window`, `reverse`, `scatter`, `select_and_scatter`,
+`send`, `slice`, `sort`, `transpose`, `tuple`, `uniform_dequantized`, `while`.

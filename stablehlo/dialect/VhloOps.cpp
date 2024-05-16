@@ -142,12 +142,12 @@ ParseResult parseAttributeDictionary(
 // Print function using: @name(arg : type, ...) -> (res_type...) { body_ops }
 void printFunctionBody(OpAsmPrinter& p, Operation*, Attribute name,
                        Region& region, Attribute funcType) {
-  p.printSymbolName(name.cast<StringV1Attr>().getValue());
+  p.printSymbolName(cast<StringV1Attr>(name).getValue());
   p << '(';
   llvm::interleaveComma(region.getArguments(), p,
                         [&](auto arg) { p.printRegionArgument(arg); });
   p << ") -> (";
-  auto fnType = funcType.cast<TypeV1Attr>().getValue().cast<FunctionV1Type>();
+  auto fnType = cast<FunctionV1Type>(cast<TypeV1Attr>(funcType).getValue());
   llvm::interleaveComma(fnType.getOutputs(), p,
                         [&](auto res) { p.printType(res); });
   p << ") ";
@@ -182,7 +182,7 @@ ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
 void TensorV1Attr::print(mlir::AsmPrinter& p) const {
   p << '<'
     << DenseIntOrFPElementsAttr::getFromRawBuffer(
-           convertTypeToBuiltinForPrint(getType()).cast<ShapedType>(),
+           llvm::cast<ShapedType>(convertTypeToBuiltinForPrint(getType())),
            getData())
     << '>';
 }
@@ -306,18 +306,18 @@ void VhloDialect::printAttribute(Attribute attr, DialectAsmPrinter& os) const {
 
 namespace {
 Type getVhloElementType(Type tensorType) {
-  if (auto ranked = tensorType.dyn_cast<RankedTensorV1Type>()) {
+  if (auto ranked = dyn_cast<RankedTensorV1Type>(tensorType)) {
     return ranked.getElementType();
   }
-  return tensorType.cast<UnrankedTensorV1Type>().getElementType();
+  return cast<UnrankedTensorV1Type>(tensorType).getElementType();
 }
 
 bool checkIfOperandAndResultElementTypesMatch(TypeRange operandTypes,
                                               TypeRange resultTypes) {
-  SmallVector<Type> inputElementTypes{llvm::map_range(
-      operandTypes, [](Type t) { return getVhloElementType(t); })};
-  SmallVector<Type> resultElementTypes{llvm::map_range(
-      resultTypes, [](Type t) { return getVhloElementType(t); })};
+  auto inputElementTypes = llvm::map_to_vector(
+      operandTypes, [](Type t) { return getVhloElementType(t); });
+  auto resultElementTypes = llvm::map_to_vector(
+      resultTypes, [](Type t) { return getVhloElementType(t); });
 
   return llvm::all_of(
       llvm::zip(inputElementTypes, resultElementTypes),

@@ -29,8 +29,8 @@ namespace hlo {
 
 bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
                                  llvm::ArrayRef<int64_t> broadcastDimensions) {
-  RankedTensorType lhsType = lhs.getType().dyn_cast<RankedTensorType>();
-  RankedTensorType rhsType = rhs.getType().dyn_cast<RankedTensorType>();
+  RankedTensorType lhsType = dyn_cast<RankedTensorType>(lhs.getType());
+  RankedTensorType rhsType = dyn_cast<RankedTensorType>(rhs.getType());
   if (!lhsType || !rhsType) return false;
   if (lhsType.getRank() == rhsType.getRank()) return true;
 
@@ -56,13 +56,13 @@ Value computeBinaryElementwiseBroadcastingResultExtents(Location loc, Value lhs,
 Value computeNaryElementwiseBroadcastingResultExtents(Location loc,
                                                       ValueRange operands,
                                                       OpBuilder& builder) {
-  auto shapes = llvm::to_vector<4>(llvm::map_range(operands, [&](Value v) {
+  auto shapes = llvm::map_to_vector<4>(operands, [&](Value v) {
     return builder.createOrFold<shape::ShapeOfOp>(loc, v);
-  }));
+  });
 
   int64_t resultRank = 0;
   for (Value s : shapes) {
-    auto ty = s.getType().cast<RankedTensorType>();
+    auto ty = cast<RankedTensorType>(s.getType());
     assert(ty.getRank() == 1 && "expect extent tensor type");
     if (ty.isDynamicDim(0)) {
       resultRank = ShapedType::kDynamic;

@@ -16,10 +16,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-print_usage() {
+exit_with_usage() {
   echo "Usage: $0 [-fb]"
   echo "    -f           Auto-fix whitespace issues."
   echo "    -b <branch>  Base branch name, defaults to main."
+  exit 1
 }
 
 FORMAT_MODE='validate'
@@ -28,19 +29,17 @@ while getopts 'fb:' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;
     b) BASE_BRANCH="$OPTARG" ;;
-    *) print_usage
-       exit 1 ;;
+    *) exit_with_usage ;;
   esac
 done
 shift $(( OPTIND - 1 ))
 
 if [[ $# -ne 0 ]] ; then
-  print_usage
-  exit 1
+  exit_with_usage
 fi
 
 echo "Gathering changed files..."
-mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep '.*\.cpp$\|.*\.h$\|.*\.md$\|.*\.mlir$\|.*\.sh$\|.*\.td$\|.*\.txt$\|.*\.yml$\|.*\.yaml$')
+mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep -Ev '.*\.(bc|png|svg|ipynb)$')
 if (( ${#CHANGED_FILES[@]} == 0 )); then
   echo "No files to check."
   exit 0

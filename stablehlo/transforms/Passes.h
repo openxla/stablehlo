@@ -61,10 +61,23 @@ void populateVhloToVersionPatterns(RewritePatternSet *patterns,
 void populateChloToStablehloPatterns(MLIRContext *context,
                                      RewritePatternSet *patterns);
 
+/// Collection of folding patterns for StableHLO.
+void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
+                                               MLIRContext *context);
+
+/// A subset of folding patterns for StableHLO that is necessary for shape
+/// refinement.
+void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
+                                          MLIRContext *context);
+
 /// Collection of canonicalization patterns for StableHLO.
 void populateStablehloCanonicalizationPatterns(MLIRContext *context,
                                                RewritePatternSet *patterns,
                                                PatternBenefit benefit = 1);
+
+/// Collection of patterns to upgrade deprecated ops to long-term supported ops.
+void populateStablehloLegalizeDeprecatedOpsPatterns(
+    MLIRContext *context, RewritePatternSet *patterns);
 
 /// Collection of shape dialect to StableHLO patterns.
 void populateShapeToStablehloPatterns(MLIRContext *context,
@@ -85,6 +98,21 @@ std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
 // an option to specify VHLO target version since it always converts VHLO to
 // the current version in order to legalize to StableHLO.
 void createStablehloDeserializePipeline(OpPassManager &pm);
+
+// Creates a pipeline of StableHLO-specific MLIR passes to remove dynamism from
+// the program. This is achieved via refining the "main" function's arguments
+// and propagating new shapes throughout the program argument types and shapes
+// within an MLIR module. The main function is either a function with name
+// "main", if there are multiple functions, or the single function within the
+// module.
+//
+// This pipeline focuses on:
+//   1. Refining function argument types based on provided `refinedTypes`.
+//   2. Refining shape information of operations within functions.
+//   3. Replaces dynamic StableHLO ops with the corresponding static
+//   counterparts if applicable.
+void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
+                                           TypeRange refinedTypes);
 
 // Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
 // for opt tools.

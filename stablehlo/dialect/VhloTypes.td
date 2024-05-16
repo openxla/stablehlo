@@ -237,8 +237,8 @@ def VHLO_QuantizationScalesV1 : ArrayRefParameter<"::llvm::APFloat", "array of d
         return $_parser.parseFloat(scales.emplace_back());
       });
       if(failed(parseResult)) return failure();
-      return llvm::to_vector(llvm::map_range(
-        scales, [](double scale) { return APFloat(scale); }));
+      return llvm::map_to_vector(
+        scales, [](double scale) { return APFloat(scale); });
     }()
   }];
   let printer = [{

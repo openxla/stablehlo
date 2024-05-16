@@ -520,6 +520,25 @@ func.func @broadcast(%arg: tensor<4x?x16xf32>) -> tensor<4x2x1x4x?x16xf32> {
 
 // -----
 
+// CHECK-DAG: #[[OPERAND_MAP:.+]] = affine_map<(d0, d1, d2, d3, d4, d5) -> (d3, d4, d5)>
+// CHECK-DAG: #[[RESULT_MAP:.+]] = affine_map<(d0, d1, d2, d3, d4, d5) -> (d0, d1, d2, d3, d4, d5)>
+// CHECK: func @broadcast
+func.func @broadcast_in_dim_as_broadcast(%arg: tensor<4x3x16xf32>) -> tensor<4x2x1x4x3x16xf32> {
+  %0 = stablehlo.broadcast_in_dim %arg, dims = [3, 4, 5] : (tensor<4x3x16xf32>) -> tensor<4x2x1x4x3x16xf32>
+  func.return %0: tensor<4x2x1x4x3x16xf32>
+}
+// CHECK: %{{.*}} = tensor.empty() : tensor<4x2x1x4x3x16xf32>
+// CHECK: linalg.generic {{{.*}}indexing_maps = [#[[OPERAND_MAP]], #[[RESULT_MAP]]]
+// CHECK-NEXT: ^bb0(%[[OPERAND:.*]]: f32, %{{.*}}: f32):
+// CHECK-NEXT:   linalg.yield %[[OPERAND]] : f32
+
+// CHECK-PRIMITIVE-LABEL: func @broadcast
+// CHECK-PRIMITIVE: %{{.*}} = tensor.empty() : tensor<4x2x1x4x3x16xf32>
+// CHECK-PRIMITIVE: linalg.broadcast
+// CHECK-PRIMITIVE:   dimensions = [0, 1, 2]
+
+// -----
+
 // CHECK: #[[RESULT_MAP:.*]] = affine_map<(d0, d1) -> (d0, d1)>
 // CHECK: func @iota_f32
 func.func @iota_f32() -> tensor<7x10xf32> {
@@ -865,7 +884,7 @@ func.func @reshape_0D_1D(%arg0: tensor<i32>) -> tensor<1xi32> {
   %0 = "stablehlo.reshape"(%arg0) : (tensor<i32>) -> tensor<1xi32>
   func.return %0 : tensor<1xi32>
 }
-// CHECK: tensor.expand_shape %{{.*}} [] : tensor<i32> into tensor<1xi32>
+// CHECK: tensor.expand_shape %{{.*}} [] output_shape [1] : tensor<i32> into tensor<1xi32>
 
 // -----
 
@@ -876,7 +895,7 @@ func.func @reshape_0D_1D_unsigned(%arg0: tensor<ui32>) -> tensor<1xui32> {
   func.return %0 : tensor<1xui32>
 }
 // CHECK:         %[[ARG_SIGNLESS:.*]] = builtin.unrealized_conversion_cast %[[ARG_UNSIGNED]] : tensor<ui32> to tensor<i32>
-// CHECK:         %[[RET_SIGNLESS:.*]] = tensor.expand_shape %[[ARG_SIGNLESS]] [] : tensor<i32> into tensor<1xi32>
+// CHECK:         %[[RET_SIGNLESS:.*]] = tensor.expand_shape %[[ARG_SIGNLESS]] [] output_shape [1] : tensor<i32> into tensor<1xi32>
 // CHECK:         %[[RET_UNSIGNED:.*]] = builtin.unrealized_conversion_cast %[[RET_SIGNLESS]] : tensor<1xi32> to tensor<1xui32>
 // CHECK:         return %[[RET_UNSIGNED]] : tensor<1xui32>
 
@@ -978,7 +997,7 @@ func.func @reshape_dynamic_in(%arg0: tensor<?x?xf32>) -> tensor<2x4x5xf32> {
 }
 // CHECK: %[[FLATTEN:.*]] = tensor.collapse_shape %{{.*}} {{\[}}[0, 1]] : tensor<?x?xf32> into tensor<?xf32>
 // CHECK: %[[CAST:.*]] = tensor.cast %[[FLATTEN]] : tensor<?xf32> to tensor<40xf32>
-// CHECK: tensor.expand_shape %[[CAST]] {{\[}}[0, 1, 2]] : tensor<40xf32> into tensor<2x4x5xf32>
+// CHECK: tensor.expand_shape %[[CAST]] {{\[}}[0, 1, 2]] output_shape [2, 4, 5] : tensor<40xf32> into tensor<2x4x5xf32>
 
 // -----
 
@@ -988,7 +1007,7 @@ func.func @reshape_1D_2D_dynamic(%arg0: tensor<?xi32>) -> tensor<1x3xi32> {
   func.return %0 : tensor<1x3xi32>
 }
 // CHECK: %[[CAST:.*]] = tensor.cast %{{.*}} : tensor<?xi32> to tensor<3xi32>
-// CHECK: tensor.expand_shape %[[CAST]] {{\[}}[0, 1]] : tensor<3xi32> into tensor<1x3xi32>
+// CHECK: tensor.expand_shape %[[CAST]] {{\[}}[0, 1]] output_shape [1, 3] : tensor<3xi32> into tensor<1x3xi32>
 
 // -----
 
@@ -1065,6 +1084,21 @@ func.func @reverse(%input: tensor<2x3xf32>) -> tensor<2x3xf32> {
     dimensions = array<i64: 1>, someattr
   } : (tensor<2x3xf32>) -> tensor<2x3xf32>
   func.return %result : tensor<2x3xf32>
+}
+// CHECK: linalg.generic
+// CHECK-SAME: indexing_maps = [#[[OPERAND_MAP]], #[[RESULT_MAP]]]
+// CHECK-SAME: {someattr}
+
+// -----
+
+// CHECK-DAG: #[[OPERAND_MAP:.*]] = affine_map<(d0, d1) -> (d0, -d1 + 2)>
+// CHECK-DAG: #[[RESULT_MAP:.*]]  = affine_map<(d0, d1) -> (d0, d1)>
+// CHECK: func @reverse_dynamic
+func.func @reverse_dynamic(%input: tensor<?x3xf32>) -> tensor<?x3xf32> {
+  %result = "stablehlo.reverse"(%input) {
+    dimensions = array<i64: 1>, someattr
+  } : (tensor<?x3xf32>) -> tensor<?x3xf32>
+  func.return %result : tensor<?x3xf32>
 }
 // CHECK: linalg.generic
 // CHECK-SAME: indexing_maps = [#[[OPERAND_MAP]], #[[RESULT_MAP]]]

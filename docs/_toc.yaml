@@ -25,6 +25,14 @@ toc:
     path: /stablehlo/reference
   - title: Roadmap
     path: /stablehlo/roadmap
+- title: Tutorials
+  section:
+  - title: JAX Export to StableHLO
+    path: /stablehlo/tutorials/jax-export
+  - title: PyTorch Export to StableHLO
+    path: /stablehlo/tutorials/pytorch-export
+  - title: StableHLO Embed in SavedModel
+    path: /stablehlo/tutorials/savedmodel-embed
 - title: Contributing
   section:
   - title: Governance
@@ -43,3 +51,9 @@ toc:
     path: /stablehlo/type_inference
   - title: The VHLO dialect
     path: /stablehlo/vhlo
+  - title: StableHLO Passes
+    path: /stablehlo/generated/stablehlo_passes
+  - title: StableHLO Linalg Passes
+    path: /stablehlo/generated/stablehlo_linalg_passes
+  - title: StableHLO TOSA Passes
+    path: /stablehlo/generated/stablehlo_tosa_passes

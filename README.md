@@ -1,5 +1,7 @@
 # StableHLO
 
+Official Documentation: <https://openxla.org/stablehlo>
+
 StableHLO is an operation set for high-level operations (HLO) in machine
 learning (ML) models. Essentially, it's a portability layer between different
 ML frameworks and ML compilers: ML frameworks that produce StableHLO programs
@@ -17,7 +19,8 @@ between frameworks and compilers, even as StableHLO continues to evolve.
 
 This repository includes the [StableHLO specification](docs/spec.md)
 along with an MLIR-based implementation in C++ and Python, which you can use to
-define StableHLO programs for consumption by compilers such as XLA and IREE.
+define StableHLO programs for consumption by compilers such as XLA and IREE, as
+well as on-device use via [Google AI Edge](https://github.com/google-ai-edge/).
 
 ## Build instructions
 
@@ -104,6 +107,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
      -DSTABLEHLO_ENABLE_SPLIT_DWARF=ON \
      -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
      -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
      -DSTABLEHLO_ENABLE_SANITIZER=address \
      -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
 
@@ -139,11 +143,14 @@ If you'd like to build the Python bindings, you'll need to install a few
 additional dependencies.
 
 ```sh
-pip install  install -r ./llvm-project/mlir/python/requirements.txt
+pip install -r ./llvm-project/mlir/python/requirements.txt
 ```
 
-If you've built MLIR & StableHLO using the script above, the Python bindings
-for MLIR may already built.
+Then build StableHLO with python bindings enabled:
+
+```sh
+STABLEHLO_ENABLE_BINDINGS_PYTHON=ON ./build_tools/github_actions/ci_build_cmake.sh ${PWD}/llvm-build ${PWD}/build
+```
 
 After you have built the project you can import the Python bindings to begin
 by modifying your Python path variable
@@ -163,6 +170,14 @@ We also make nightly wheels available on our GitHub Releases page.
 ```shell
 pip install stablehlo -f https://github.com/openxla/stablehlo/releases/expanded_assets/dev-wheels
 ```
+
+## StableHLO to TensorFlow SavedModel
+
+This repository offers tooling for the conversion of a StableHLO program,
+including its metadata (representing trained weights and biases), into a
+TensorFlow SavedModel. Please refer to
+[README.md](https://github.com/openxla/stablehlo/blob/main/stablehlo/integrations/python/stablehlo/savedmodel/README.md)
+for details.
 
 ## Community
 

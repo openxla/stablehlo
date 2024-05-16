@@ -57,7 +57,7 @@ class VHLO_Op<string mnemonic, string minVersion, string maxVersion, list<Trait>
       }] # !if(
         !eq(maxVersion, "current"),
         [{ return mlir::vhlo::Version::getCurrentVersion(); }],
-        [{ return mlir::vhlo::Version("}] # !subst(".", ", ", maxVersion) # [{"); }]
+        [{ return mlir::vhlo::Version(}] # !subst(".", ", ", maxVersion) # [{); }]
       ) # [{
     }
   }];
@@ -296,14 +296,6 @@ def VHLO_CompositeOpV1 : VHLO_Op<"composite_v1", "0.19.0", "current"> {
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
-// TODO(#8): ComputeReshapeShapeOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
-def VHLO_ComputeReshapeShapeOpV1 : VHLO_Op<"compute_reshape_shape_v1", "0.9.0", "current"> {
-  let arguments = (ins VHLO_AnyType:$num_elements, VHLO_AnyType:$dynamic_shape);
-  let results = (outs VHLO_AnyType:$result);
-}
-
 def VHLO_ConcatenateOpV1 : VHLO_Op<"concatenate_v1", "0.9.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
@@ -370,14 +362,6 @@ def VHLO_CrossReplicaSumOpV1 : VHLO_Op<"cross-replica-sum_v1", "0.9.0", "current
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): CstrReshapableOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
-def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable_v1", "0.9.0", "current"> {
-  let results = (outs VHLO_AnyType:$result);
-  let arguments = (ins VHLO_AnyType:$num_elements, VHLO_AnyType:$dynamic_shape);
-}
-
 // TODO(#1187): api_version is different between VHLO and the StableHLO spec:
 // in VHLO it's an enum, in the spec it's an si32.
 // TODO(#629): operand_layouts/result_layouts are not part of the spec.
@@ -429,9 +413,6 @@ def VHLO_DotOpV1 : VHLO_Op<"dot_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicBroadcastInDimOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
@@ -443,10 +424,7 @@ def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim_v1", "0.9
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicConvOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
-def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "current"> {
+def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "0.19.0"> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
@@ -472,10 +450,34 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicGatherOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
-def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "current"> {
+// Padding should be specified as an operand only, not an attribute.
+// Remove `d_padding` and convert `padding` to an operand.
+def VHLO_DynamicConvOpV2 : VHLO_Op<"dynamic_conv_v2", "0.20.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$lhs,
+    VHLO_AnyType:$rhs,
+    VHLO_AnyType:$padding,
+    VHLO_AnyAttr:$window_strides,
+    VHLO_AnyAttr:$lhs_dilation,
+    VHLO_AnyAttr:$rhs_dilation,
+    VHLO_AnyAttr:$window_reversal,
+    VHLO_AnyAttr:$input_batch_dimension,
+    VHLO_AnyAttr:$input_feature_dimension,
+    VHLO_AnyAttr:$input_spatial_dimensions,
+    VHLO_AnyAttr:$kernel_input_feature_dimension,
+    VHLO_AnyAttr:$kernel_output_feature_dimension,
+    VHLO_AnyAttr:$kernel_spatial_dimensions,
+    VHLO_AnyAttr:$output_batch_dimension,
+    VHLO_AnyAttr:$output_feature_dimension,
+    VHLO_AnyAttr:$output_spatial_dimensions,
+    VHLO_AnyAttr:$feature_group_count,
+    VHLO_AnyAttr:$batch_group_count,
+    VHLO_AnyAttr:$precision_config
+  );
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "1.0.0"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -489,17 +491,27 @@ def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicIotaOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
+def VHLO_DynamicGatherOpV2 : VHLO_Op<"dynamic_gather_v2", "1.1.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyType:$start_indices,
+    VHLO_AnyType:$slice_sizes,
+    VHLO_AnyAttr:$offset_dims,
+    VHLO_AnyAttr:$collapsed_slice_dims,
+    VHLO_AnyAttr:$operand_batching_dims,
+    VHLO_AnyAttr:$start_indices_batching_dims,
+    VHLO_AnyAttr:$start_index_map,
+    VHLO_AnyAttr:$index_vector_dim,
+    VHLO_AnyAttr:$indices_are_sorted
+  );
+  let results = (outs VHLO_AnyType:$result);
+}
+
 def VHLO_DynamicIotaOpV1 : VHLO_Op<"dynamic_iota_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$output_shape, VHLO_AnyAttr:$iota_dimension);
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicPadOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
@@ -511,9 +523,6 @@ def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-// TODO(#8): DynamicReshapeOp is not part of the StableHLO spec.
-// This operation is a work in progress, so it is not yet included in
-// the StableHLO specification.
 def VHLO_DynamicReshapeOpV1 : VHLO_Op<"dynamic_reshape_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand, VHLO_AnyType:$output_shape);
   let results = (outs VHLO_AnyType:$result);
@@ -587,12 +596,28 @@ def VHLO_FuncOpV1 : VHLO_Op<"func_v1", "0.9.0", "current"> {
   let assemblyFormat = "custom<FunctionBody>($sym_name, $body, $function_type) attr-dict";
 }
 
-def VHLO_GatherOpV1 : VHLO_Op<"gather_v1", "0.9.0", "current"> {
+def VHLO_GatherOpV1 : VHLO_Op<"gather_v1", "0.9.0", "1.0.0"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
     VHLO_AnyAttr:$offset_dims,
     VHLO_AnyAttr:$collapsed_slice_dims,
+    VHLO_AnyAttr:$start_index_map,
+    VHLO_AnyAttr:$index_vector_dim,
+    VHLO_AnyAttr:$slice_sizes,
+    VHLO_AnyAttr:$indices_are_sorted
+  );
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_GatherOpV2 : VHLO_Op<"gather_v2", "1.1.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyType:$start_indices,
+    VHLO_AnyAttr:$offset_dims,
+    VHLO_AnyAttr:$collapsed_slice_dims,
+    VHLO_AnyAttr:$operand_batching_dims,
+    VHLO_AnyAttr:$start_indices_batching_dims,
     VHLO_AnyAttr:$start_index_map,
     VHLO_AnyAttr:$index_vector_dim,
     VHLO_AnyAttr:$slice_sizes,
@@ -890,7 +915,7 @@ def VHLO_RsqrtOpV1 : VHLO_Op<"rsqrt_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "current",
+def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "1.0.0",
     [SameVariadicOperandSize, DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
@@ -898,6 +923,25 @@ def VHLO_ScatterOpV1 : VHLO_Op<"scatter_v1", "0.9.0", "current",
     Variadic<VHLO_AnyType>:$updates,
     VHLO_AnyAttr:$update_window_dims,
     VHLO_AnyAttr:$inserted_window_dims,
+    VHLO_AnyAttr:$scatter_dims_to_operand_dims,
+    VHLO_AnyAttr:$index_vector_dim,
+    VHLO_AnyAttr:$indices_are_sorted,
+    VHLO_AnyAttr:$unique_indices
+  );
+  let regions = (region VHLO_AnyRegion:$update_computation);
+  let results = (outs Variadic<VHLO_AnyType>:$results);
+}
+
+def VHLO_ScatterOpV2 : VHLO_Op<"scatter_v2", "1.1.0", "current",
+    [SameVariadicOperandSize]> {
+  let arguments = (ins
+    Variadic<VHLO_AnyType>:$inputs,
+    VHLO_AnyType:$scatter_indices,
+    Variadic<VHLO_AnyType>:$updates,
+    VHLO_AnyAttr:$update_window_dims,
+    VHLO_AnyAttr:$inserted_window_dims,
+    VHLO_AnyAttr:$input_batching_dims,
+    VHLO_AnyAttr:$scatter_indices_batching_dims,
     VHLO_AnyAttr:$scatter_dims_to_operand_dims,
     VHLO_AnyAttr:$index_vector_dim,
     VHLO_AnyAttr:$indices_are_sorted,
@@ -1021,16 +1065,6 @@ def VHLO_TorchIndexSelectOpV1 : VHLO_Op<"torch_index_select_v1", "0.9.0", "curre
     VHLO_AnyAttr:$batch_dims
   );
   let results = (outs VHLO_AnyType:$result);
-}
-
-// TODO(#3): TraceOp is not part of the StableHLO spec.
-// This operation is on its way out of StableHLO, so it is not included in
-// the StableHLO specification.
-def VHLO_TraceOpV1 : VHLO_Op<"trace_v1", "0.9.0", "current"> {
-  let arguments = (ins
-    VHLO_AnyType:$operand,
-    VHLO_AnyAttr:$tag
-  );
 }
 
 def VHLO_TransposeOpV1 : VHLO_Op<"transpose_v1", "0.9.0", "current"> {
