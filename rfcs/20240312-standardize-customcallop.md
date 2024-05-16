@@ -13,15 +13,15 @@ This includes: MHLO
 [`custom_call`](https://github.com/tensorflow/mlir-hlo/blob/master/mhlo/IR/hlo_ops.td#L2483)
 `backend_config` to take a `DictionaryAttr`.
 
-StableHLO `custom_call` op does not support this feature. There are several
+The current StableHLO `custom_call` op does not support this feature. There are several
 occurrences of users working around this gap in `custom_call` today, examples -
 JAX uses [unregistered attributes](https://github.com/google/jax/blob/1ed27ecebb92e916b45601e3a107971170a4592b/jaxlib/hlo_helpers.py#L191)
 to hold the `DictionaryAttr` or serializing the dictionary as a string
-to pass around for StableHLO `custom_call` op.
+to pass around for the StableHLO `custom_call` op.
 
-We propose standardizing StableHLO `custom_call` op to extend `backend_config`
-to take a `DictionaryAttr`.  So they can be used safely by the community without
-workarounds. It will help to unify metadata under single `DictionaryAttr` which
+We propose standardizing the StableHLO `custom_call` op to extend `backend_config`
+to take a `DictionaryAttr` so they can be used safely by the community without
+workarounds. This will help to unify metadata under a single `DictionaryAttr` which
 provides more stable serialization of `custom_call` metadata, a feature that is
 desired by frameworks and compilers. Standardizing this feature to StableHLO
 will benefit the entire ecosystem.
