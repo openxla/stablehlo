@@ -13,17 +13,17 @@ This includes: feature to support variadic operands/results for collective
 (`AllGatherOp`,`AllReduceOp`, `AllToAllOp`) ops.
 
 We propose adding this feature to the StableHLO spec so they can be used by the community.
-StableHLO collective ops support is limited to **single-operand** and **single-result**.
+StableHLO collective ops support is currently limited to **single-operand** and **single-result**.
 [MHLO collective ops](https://github.com/tensorflow/mlir-hlo/blob/master/mhlo/IR/hlo_ops.td)
 support
 **multi-operand** and **multi-result** which is in sync with multi-operand and
 multi-result XLA semantics
-([`all_reduce`](https://openxla.org/xla/operation_semantics#allreduce)
+([`all_reduce`](https://openxla.org/xla/operation_semantics#allreduce),
 [`all_gather`](https://openxla.org/xla/operation_semantics#allgather) and
 [`all_to_all`](https://openxla.org/xla/operation_semantics#alltoall)) and
 horizontal scaling. `all_reduce`
 support is requested
-in [#1370](https://github.com/openxla/stablehlo/issues/1370) is relied on by
+in [#1370](https://github.com/openxla/stablehlo/issues/1370) and is relied on by
 PyTorch/XLA today via XlaBuilder ([ref](https://github.com/pytorch/xla/blob/1bbe333ad137ace6b8134db640c0b24c8c428db6/torch_xla/csrc/cross_replica_reduces.cpp#L156)).
 `all_to_all` support is requested in
 [#574](https://github.com/openxla/stablehlo/issues/574) and identified as a feature
