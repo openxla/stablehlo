@@ -29,4 +29,9 @@ add_stablehlo_python_test(stablehlo-python-smoketest smoketest.py)
 add_stablehlo_python_test(stablehlo-python-stablehlo stablehlo.py)
 add_stablehlo_python_test(stablehlo-python-vhlo vhlo.py)
 
+if(STABLEHLO_ENABLE_PYTHON_TF_TESTS)
+  add_stablehlo_python_test(stablehlo-python-stablehlo-to-saved-model stablehlo_to_tf_saved_model_test.py)
+endif()
+
+
 add_dependencies(check-stablehlo-quick check-stablehlo-python)

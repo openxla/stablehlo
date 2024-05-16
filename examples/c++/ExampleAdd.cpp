@@ -14,10 +14,12 @@ limitations under the License.
 ==============================================================================*/
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Verifier.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Api.h"
 
 int main() {
   mlir::MLIRContext context;
@@ -31,10 +33,11 @@ int main() {
   module->setName("test_module");
 
   /** create function **/
-  // create function argument and result types
-  mlir::Type arg0 =
+  // create function argument and result types.
+  auto tensorType =
       mlir::RankedTensorType::get({3, 4}, mlir::FloatType::getF32(&context));
-  auto func_type = mlir::FunctionType::get(&context, {arg0, arg0}, {arg0});
+  auto func_type =
+      mlir::FunctionType::get(&context, {tensorType, tensorType}, {tensorType});
 
   // create the function and map arguments.
   llvm::ArrayRef<mlir::NamedAttribute> attrs;
@@ -43,7 +46,7 @@ int main() {
   function.setVisibility(mlir::func::FuncOp::Visibility::Public);
   module->push_back(function);
 
-  // create function block with add operations
+  // create function block with add operations.
   mlir::Block* block = function.addEntryBlock();
   llvm::SmallVector<mlir::Value, 4> arguments(block->args_begin(),
                                               block->args_end());
@@ -51,18 +54,26 @@ int main() {
   mlir::Location loc = block_builder.getUnknownLoc();
 
   llvm::SmallVector<mlir::NamedAttribute, 10> attributes;
-  block_builder.create<mlir::stablehlo::AddOp>(loc, arguments, attributes)
-      .getOperation();
-
   mlir::Operation* op =
-      block_builder
-          .create<mlir::stablehlo::AddOp>(loc, arg0, arguments, attributes)
+      block_builder.create<mlir::stablehlo::AddOp>(loc, arguments, attributes)
           .getOperation();
   block_builder.create<mlir::func::ReturnOp>(loc, op->getResult(0));
 
-  // verify the module and dump
+  /** verify and dump the module **/
   assert(mlir::succeeded(mlir::verify(module.get())));
-  module->dump();
 
-  return 0;
+  /* interpret the function "main" with concrete inputs **/
+  auto getConstValue = [&](double val) {
+    return mlir::DenseElementsAttr::get(
+        tensorType,
+        block_builder.getFloatAttr(tensorType.getElementType(), val));
+  };
+
+  auto inputValue1 = getConstValue(10.0);
+  auto inputValue2 = getConstValue(20.0);
+  auto expectedValue = getConstValue(30.0);
+
+  mlir::stablehlo::InterpreterConfiguration config;
+  auto results = evalModule(*module, {inputValue1, inputValue2}, config);
+  return failed(results) || (*results)[0] != expectedValue;
 }

@@ -40,6 +40,7 @@ limitations under the License.
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/Version.h"
 
 #define GET_TYPEDEF_CLASSES
 #include "stablehlo/dialect/StablehloTypeDefs.h.inc"
@@ -51,6 +52,29 @@ limitations under the License.
 
 namespace mlir {
 namespace stablehlo {
+
+struct StablehloDialectVersion : public mlir::DialectVersion {
+  StablehloDialectVersion(int64_t major, int64_t minor, int64_t patch)
+      : dialectVersion(major, minor, patch) {}
+
+  int64_t getMajor() const { return dialectVersion.getMajor(); }
+  int64_t getMinor() const { return dialectVersion.getMinor(); }
+  int64_t getPatch() const { return dialectVersion.getPatch(); }
+
+  static StablehloDialectVersion getCurrentVersion() {
+    // The same version as VHLO as this is serialization related only.
+    auto vhloVer = vhlo::Version::getCurrentVersion();
+    return {vhloVer.getMajor(), vhloVer.getMinor(), vhloVer.getPatch()};
+  }
+
+  bool operator<(const StablehloDialectVersion &other) const {
+    return this->dialectVersion < other.dialectVersion;
+  }
+
+ private:
+  // The dialect version read from bytecode.
+  vhlo::Version dialectVersion;
+};
 
 class StablehloDialect : public Dialect {
  public:
@@ -73,6 +97,16 @@ class StablehloDialect : public Dialect {
 
   // Prints an attribute registered to this dialect.
   void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
+
+  // Get the set dialect version.
+  std::optional<StablehloDialectVersion> getVersion() const;
+
+  // Set dialect version.
+  // Note: there is currently no validation.
+  void setVersion(std::optional<StablehloDialectVersion> version);
+
+ private:
+  std::optional<StablehloDialectVersion> version;
 };
 
 // Verifies the source target pairs attached to collective permute.
@@ -86,20 +120,33 @@ void printConvolutionDimensions(AsmPrinter &p, Operation *,
 ParseResult parseConvolutionDimensions(AsmParser &parser,
                                        ConvDimensionNumbersAttr &dimNums);
 
+// TODO(#2216) Cleanup Attribute -> DenseArrayAttr for print/parse.
 // Custom formatting for convolution window attributes.
 void printWindowAttributes(OpAsmPrinter &p, Operation *op,
-                           std::optional<DenseI64ArrayAttr> windowStrides,
+                           std::optional<Attribute> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
-                           std::optional<DenseI64ArrayAttr> lhsDilation,
-                           std::optional<DenseI64ArrayAttr> rhsDilation,
-                           std::optional<DenseBoolArrayAttr> windowReversal);
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal);
 
-ParseResult parseWindowAttributes(OpAsmParser &parser,
-                                  DenseI64ArrayAttr &windowStrides,
+// TODO(#2216) Cleanup Attribute -> DenseArrayAttr for print/parse.
+// Custom formatting for convolution window attributes.
+void printWindowAttributes(OpAsmPrinter &p, Operation *op,
+                           std::optional<Attribute> windowStrides,
+                           std::optional<Attribute> lhsDilation,
+                           std::optional<Attribute> rhsDilation,
+                           std::optional<Attribute> windowReversal);
+
+ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
                                   DenseIntElementsAttr &padding,
-                                  DenseI64ArrayAttr &lhsDilation,
-                                  DenseI64ArrayAttr &rhsDilation,
-                                  DenseBoolArrayAttr &windowReversal);
+                                  Attribute &lhsDilation,
+                                  Attribute &rhsDilation,
+                                  Attribute &windowReversal);
+
+ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
+                                  Attribute &lhsDilation,
+                                  Attribute &rhsDilation,
+                                  Attribute &windowReversal);
 
 }  // end namespace stablehlo
 }  // end namespace mlir
@@ -109,6 +156,15 @@ ParseResult parseWindowAttributes(OpAsmParser &parser,
 
 namespace mlir {
 namespace stablehlo {
+
+// Returns the broadcast_dimensions for a BroadcastInDimOp from the
+// result_type and broadcast_sizes from a BroadcastOp.
+DenseI64ArrayAttr getBroadcastDimensionsFromBroadcastSizes(
+    RankedTensorType resultType, DenseI64ArrayAttr broadcastSizes);
+
+// Returns the dimension numbers for a DotGeneral op that can be expressed as
+// a DotOp, given the LHS of such an operation.
+DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value lhs);
 
 SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
                     const llvm::ArrayRef<Value> &operands,

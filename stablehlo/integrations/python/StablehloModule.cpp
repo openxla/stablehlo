@@ -11,14 +11,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <vector>
+
 #include "mlir-c/IR.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/integrations/c/StablehloAttributes.h"
 #include "stablehlo/integrations/c/StablehloDialect.h"
 #include "stablehlo/integrations/c/StablehloTypes.h"
 #include "stablehlo/integrations/python/PortableApi.h"
+#include "stablehlo/reference/Api.h"
 
 namespace py = pybind11;
 
@@ -484,6 +488,38 @@ PYBIND11_MODULE(_stablehlo, m) {
   mlir::stablehlo::AddPortableApi(m);
 
   //
+  // Reference APIs
+  //
+  m.def(
+      "eval_module",
+      [](MlirModule module,
+         std::vector<MlirAttribute> &args) -> std::vector<MlirAttribute> {
+        std::vector<mlir::DenseElementsAttr> inputs;
+        for (auto arg : args) {
+          auto attr = llvm::dyn_cast<mlir::DenseElementsAttr>(unwrap(arg));
+          if (!attr) {
+            PyErr_SetString(PyExc_ValueError,
+                            "input args must be DenseElementsAttr");
+            return {};
+          }
+          inputs.push_back(attr);
+        }
+
+        mlir::stablehlo::InterpreterConfiguration config;
+        auto results =
+            mlir::stablehlo::evalModule(unwrap(module), inputs, config);
+        if (failed(results)) {
+          PyErr_SetString(PyExc_ValueError, "interpreter failed");
+          return {};
+        }
+
+        std::vector<MlirAttribute> pyResults;
+        for (auto res : *results) pyResults.push_back(wrap(res));
+        return pyResults;
+      },
+      py::arg("module"), py::arg("args"));
+
+  //
   // Serialization APIs.
   //
 
@@ -515,5 +551,5 @@ PYBIND11_MODULE(_stablehlo, m) {
 
         return {module.release()};
       },
-      py::arg("module"), py::arg("target"));
+      py::arg("context"), py::arg("artifact"));
 }

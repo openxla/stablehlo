@@ -3,7 +3,7 @@
 func.func @error_illformed(%arg0: tensor<3xf32>, %arg1: tensor<4xf32>) -> tensor<?xf32> {
   %0 = stablehlo.abs %arg0 : (tensor<3xf32>) -> tensor<?xf32>
   %1 = stablehlo.abs %arg1 : (tensor<4xf32>) -> tensor<?xf32>
-  // expected-error@+1{{requires compatible types for all operands and results}}
+  // expected-error@+1{{requires the same shape for all operands and results}}
   %2 = stablehlo.add %0, %1 : (tensor<?xf32>, tensor<?xf32>) -> tensor<?xf32>
   func.return %2 : tensor<?xf32>
 }
@@ -281,6 +281,18 @@ func.func @eval_convert_i1() -> tensor<2xi64> {
 
 // -----
 
+// CHECK-LABEL: func @eval_convert_infer_before_fold
+func.func @eval_convert_infer_before_fold() -> tensor<?xi32> {
+  // CHECK-NOT: stablehlo.convert
+  // CHECK: [[RESULT:%.*]] =  stablehlo.constant dense<9606> : tensor<2xi32>
+  // CHECK: return [[RESULT]]
+  %c_1 = stablehlo.constant dense<9606> : tensor<2xi32>
+  %0 = stablehlo.convert %c_1 : (tensor<2xi32>) -> tensor<?xi32>
+  return %0 : tensor<?xi32>
+}
+
+// -----
+
 // CHECK-LABEL: func @eval_divide
 func.func @eval_divide() -> tensor<i64> {
   // CHECK-NOT: stablehlo.divide
@@ -420,6 +432,70 @@ func.func @eval_slice() -> tensor<2xi64> {
     strides = array<i64: 1>
   } : (tensor<4xi64>) -> tensor<2xi64>
   func.return %1 : tensor<2xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_slice_wild_stride
+func.func @eval_slice_wild_stride() -> tensor<1x1x1xi64> {
+  // CHECK-NOT: stablehlo.slice
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<2> : tensor<1x1x1xi64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<[[[1, 2], [3, 4]]]> : tensor<1x2x2xi64>
+  %1 = "stablehlo.slice"(%0) {
+    start_indices = array<i64: 0, 0, 1>,
+    limit_indices = array<i64: 1, 1, 2>,
+    strides = array<i64: 99, 42, 1>
+  } : (tensor<1x2x2xi64>) -> tensor<1x1x1xi64>
+  func.return %1 : tensor<1x1x1xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_slice_unit_prefix
+func.func @eval_slice_unit_prefix() -> (tensor<1x1x1x2xi64>, tensor<1x1x1x2xi64>, tensor<1x1x1x2xi64>) {
+  // CHECK-NOT: stablehlo.slice
+  // CHECK: [[RESULT1:%.*]] = stablehlo.constant dense<{{\[\[\[}}[1, 2]]]]> : tensor<1x1x1x2xi64>
+  // CHECK: [[RESULT2:%.*]] = stablehlo.constant dense<{{\[\[\[}}[7, 8]]]]> : tensor<1x1x1x2xi64>
+  // CHECK: [[RESULT3:%.*]] = stablehlo.constant dense<{{\[\[\[}}[11, 12]]]]> : tensor<1x1x1x2xi64>
+  // CHECK: return [[RESULT1]], [[RESULT2]], [[RESULT3]]
+  %0 = stablehlo.constant dense<[[[[1, 2], [3, 4]], [[5, 6], [7, 8]], [[9, 10], [11, 12]]]]> : tensor<1x3x2x2xi64>
+
+  %1 = "stablehlo.slice"(%0) {
+    start_indices = array<i64: 0, 0, 0, 0>,
+    limit_indices = array<i64: 1, 1, 1, 2>,
+    strides = array<i64: 1, 1, 1, 1>
+  } : (tensor<1x3x2x2xi64>) -> tensor<1x1x1x2xi64>
+
+  %2 = "stablehlo.slice"(%0) {
+    start_indices = array<i64: 0, 1, 1, 0>,
+    limit_indices = array<i64: 1, 2, 2, 2>,
+    strides = array<i64: 1, 1, 1, 1>
+  } : (tensor<1x3x2x2xi64>) -> tensor<1x1x1x2xi64>
+
+  %3 = "stablehlo.slice"(%0) {
+    start_indices = array<i64: 0, 2, 1, 0>,
+    limit_indices = array<i64: 1, 3, 2, 2>,
+    strides = array<i64: 1, 1, 1, 1>
+  } : (tensor<1x3x2x2xi64>) -> tensor<1x1x1x2xi64>
+
+  func.return %1, %2, %3 : tensor<1x1x1x2xi64>, tensor<1x1x1x2xi64>, tensor<1x1x1x2xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_slice_non_unit_prefix
+func.func @eval_slice_non_unit_prefix() -> tensor<1x2x1xi64> {
+  // CHECK: stablehlo.constant {{.*}} : tensor<1x2x2xi64>
+  // CHECK: [[RESULT:%.*]] = stablehlo.slice{{.*}}
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<[[[1, 2], [3, 4]]]> : tensor<1x2x2xi64>
+  %1 = "stablehlo.slice"(%0) {
+    start_indices = array<i64: 0, 0, 1>,
+    limit_indices = array<i64: 1, 2, 2>,
+    strides = array<i64: 1, 1, 1>
+  } : (tensor<1x2x2xi64>) -> tensor<1x2x1xi64>
+  func.return %1 : tensor<1x2x1xi64>
 }
 
 // -----
@@ -798,7 +874,6 @@ func.func @refine_while(%arg0: tensor<4xf32>) -> tensor<?xf32> {
 // -----
 
 // TODO: Implement support for these ops.
-// * dynamic_conv (#867).
 // * dynamic_fft (#1366).
 // * dynamic_reduce_window (#1258).
 // * dynamic_rng_bit_generator (#1344).

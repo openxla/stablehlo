@@ -235,13 +235,13 @@ struct MapStablehloOpToScalarOpImpl<SupportedType, void, Args...> {
 };
 
 struct IsAnyIntegerType {
-  bool operator()(Type t) { return t.isa<IntegerType>(); }
+  bool operator()(Type t) { return isa<IntegerType>(t); }
 };
 
 struct IsSignedIntegerType {
   bool operator()(Type t) {
     // Pretend that signless is signed. This will change eventually.
-    return t.isa<IntegerType>() && !t.isUnsignedInteger() &&
+    return isa<IntegerType>(t) && !t.isUnsignedInteger() &&
            !t.isSignlessInteger(1);
   }
 };
@@ -253,11 +253,11 @@ struct IsUnsignedIntegerType {
 };
 
 struct IsFloatType {
-  bool operator()(Type t) { return t.isa<FloatType>(); }
+  bool operator()(Type t) { return isa<FloatType>(t); }
 };
 
 struct IsComplexType {
-  bool operator()(Type t) { return t.isa<ComplexType>(); }
+  bool operator()(Type t) { return isa<ComplexType>(t); }
 };
 
 template <template <typename T> class MapTy, typename OpTy,
@@ -292,11 +292,11 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::AbsOp>(
     Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
     stablehlo::AbsOp::Adaptor adaptor, OpBuilder *b) {
   Type elementType = getElementTypeOrSelf(argTypes.front());
-  if (elementType.isa<FloatType>()) {
+  if (isa<FloatType>(elementType)) {
     return MapStablehloOpToScalarOpImpl<IsFloatType, ::mlir::math::AbsFOp>{}(
         loc, resultTypes, argTypes, adaptor.getOperands(), b);
   }
-  if (elementType.isa<ComplexType>()) {
+  if (isa<ComplexType>(elementType)) {
     return MapStablehloOpToScalarOpImpl<IsComplexType,
                                         ::mlir::complex::AbsOp>{}(
         loc, resultTypes, argTypes, adaptor.getOperands(), b);
@@ -318,7 +318,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::AbsOp>(
 // Return a constant for v of type t, splat if t is a vector type.
 inline Value getConstantOrSplat(OpBuilder *b, Location loc, Type t,
                                 Attribute v) {
-  if (VectorType vecType = t.dyn_cast<VectorType>()) {
+  if (VectorType vecType = dyn_cast<VectorType>(t)) {
     v = SplatElementsAttr::get(vecType, v);
   }
   return b->create<arith::ConstantOp>(loc, t, cast<TypedAttr>(v));
@@ -368,8 +368,8 @@ getCmpPredicate<arith::CmpIPredicate>(
 inline Value cmpComplex(Location loc, Value lhs, Value rhs,
                         stablehlo::ComparisonDirection comparisonDirection,
                         OpBuilder *b) {
-  auto complexType = lhs.getType().cast<ComplexType>();
-  if (complexType.getElementType().isa<FloatType>()) {
+  auto complexType = cast<ComplexType>(lhs.getType());
+  if (isa<FloatType>(complexType.getElementType())) {
     if (comparisonDirection == stablehlo::ComparisonDirection::EQ) {
       return b->create<complex::EqualOp>(loc, lhs, rhs);
     }
@@ -414,7 +414,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::CompareOp>(
   const auto &lhs = adaptor.getLhs();
   const auto &rhs = adaptor.getRhs();
   Type elementType = getElementTypeOrSelf(argTypes.front());
-  if (elementType.isa<IntegerType>()) {
+  if (isa<IntegerType>(elementType)) {
     bool isUnsigned = IsUnsignedIntegerType{}(elementType);
     std::optional<arith::CmpIPredicate> predicate =
         getCmpPredicate<arith::CmpIPredicate>(comparisonDirection, !isUnsigned);
@@ -422,7 +422,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::CompareOp>(
     return b->create<ScalarIOp<stablehlo::CompareOp>>(loc, predicate.value(),
                                                       lhs, rhs);
   }
-  if (auto floatType = elementType.dyn_cast<FloatType>()) {
+  if (auto floatType = dyn_cast<FloatType>(elementType)) {
     if (adaptor.getCompareType() &&
         *adaptor.getCompareType() == stablehlo::ComparisonType::TOTALORDER) {
       // The semantics of totalorder fp compare are
@@ -466,7 +466,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::CompareOp>(
     return b->create<ScalarFOp<stablehlo::CompareOp>>(loc, predicate.value(),
                                                       lhs, rhs);
   }
-  if (auto complexType = elementType.dyn_cast<ComplexType>())
+  if (auto complexType = dyn_cast<ComplexType>(elementType))
     return cmpComplex(loc, lhs, rhs, comparisonDirection, b);
   return nullptr;
 }
@@ -480,7 +480,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ReducePrecisionOp>(
 
   // Integer and float types for casting and constant generation.
   auto floatType =
-      argTypes.front().cast<TensorType>().getElementType().cast<FloatType>();
+      cast<FloatType>(cast<TensorType>(argTypes.front()).getElementType());
   int64_t nbits = floatType.getWidth();
   auto intType = mlir::IntegerType::get(loc.getContext(), floatType.getWidth());
 
@@ -611,7 +611,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::MaxOp>(
   Value lhs = operands.front();
   Type complexTy = lhs.getType();
 
-  if (!complexTy.isa<ComplexType>())
+  if (!isa<ComplexType>(complexTy))
     return MapStablehloOpToScalarOpImpl<
         IsFloatType, arith::MaximumFOp, IsSignedIntegerType, arith::MaxSIOp,
         IsUnsignedIntegerType, arith::MaxUIOp>{}(loc, resultTypes, argTypes,
@@ -635,7 +635,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::MinOp>(
   Value lhs = operands.front();
   Type complexTy = lhs.getType();
 
-  if (!complexTy.isa<ComplexType>())
+  if (!isa<ComplexType>(complexTy))
     return MapStablehloOpToScalarOpImpl<
         IsFloatType, arith::MinimumFOp, IsSignedIntegerType, arith::MinSIOp,
         IsUnsignedIntegerType, arith::MinUIOp>{}(loc, resultTypes, argTypes,
@@ -655,7 +655,7 @@ template <>
 inline Value mapStablehloOpToStdScalarOp<stablehlo::RealOp>(
     Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
     stablehlo::RealOp::Adaptor adaptor, OpBuilder *b) {
-  if (!adaptor.getOperand().getType().isa<ComplexType>())
+  if (!isa<ComplexType>(adaptor.getOperand().getType()))
     return adaptor.getOperand();
   return MapStablehloOpToScalarOpImpl<complex::ReOp>{}(
       loc, resultTypes, argTypes, adaptor.getOperands(), b);
@@ -665,7 +665,7 @@ template <>
 inline Value mapStablehloOpToStdScalarOp<stablehlo::ImagOp>(
     Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
     stablehlo::ImagOp::Adaptor adaptor, OpBuilder *b) {
-  if (!adaptor.getOperand().getType().isa<ComplexType>())
+  if (!isa<ComplexType>(adaptor.getOperand().getType()))
     return b->create<arith::ConstantOp>(
         loc, b->getZeroAttr(adaptor.getOperand().getType()));
   return MapStablehloOpToScalarOpImpl<complex::ImOp>{}(
@@ -699,9 +699,9 @@ inline Value mapConvertOpToStdScalarOp(Location loc, ArrayRef<Type> targetTypes,
     return b->create<mlir::arith::SIToFPOp>(loc, resultTypes, args,
                                             std::nullopt);
   }
-  if (sourceType.isa<FloatType>() && targetType.isa<FloatType>()) {
-    auto src = sourceType.cast<FloatType>();
-    auto res = targetType.cast<FloatType>();
+  if (isa<FloatType>(sourceType) && isa<FloatType>(targetType)) {
+    auto src = cast<FloatType>(sourceType);
+    auto res = cast<FloatType>(targetType);
     if (src.getWidth() > res.getWidth()) {
       return b->create<mlir::arith::TruncFOp>(loc, resultTypes, args,
                                               std::nullopt);
@@ -729,16 +729,16 @@ inline Value mapConvertOpToStdScalarOp(Location loc, ArrayRef<Type> targetTypes,
       return b->create<mlir::arith::CmpIOp>(loc, arith::CmpIPredicate::ne,
                                             args.front(), zeroIntval);
     }
-    if (sourceType.isa<FloatType>()) {
+    if (isa<FloatType>(sourceType)) {
       Value zero = b->create<arith::ConstantOp>(
           loc, b->getZeroAttr(args.front().getType()));
       return b->create<mlir::arith::CmpFOp>(loc, arith::CmpFPredicate::UNE,
                                             args.front(), zero);
     }
   }
-  if (sourceType.isa<IntegerType>() && targetType.isa<IntegerType>()) {
-    auto src = sourceType.cast<IntegerType>();
-    auto res = targetType.cast<IntegerType>();
+  if (isa<IntegerType>(sourceType) && isa<IntegerType>(targetType)) {
+    auto src = cast<IntegerType>(sourceType);
+    auto res = cast<IntegerType>(targetType);
     if (src.getWidth() > res.getWidth()) {
       return b->create<mlir::arith::TruncIOp>(loc, resultTypes, args,
                                               std::nullopt);
@@ -766,17 +766,17 @@ inline Value mapConvertOpToStdScalarOp(Location loc, ArrayRef<Type> targetTypes,
     return b->create<mlir::arith::FPToSIOp>(loc, resultTypes, args,
                                             std::nullopt);
   }
-  if (targetType.isa<ComplexType>()) {
-    Type targetElementType = targetType.cast<ComplexType>().getElementType();
-    assert(!targetElementType.isa<ComplexType>() &&
+  if (isa<ComplexType>(targetType)) {
+    Type targetElementType = cast<ComplexType>(targetType).getElementType();
+    assert(!isa<ComplexType>(targetElementType) &&
            "elements of complex numbers should not be complex");
     Value targetReal;
     Value targetImag;
-    if (sourceType.isa<ComplexType>()) {
+    if (isa<ComplexType>(sourceType)) {
       // We are converting from complex type: convert real and imaginary parts
       // separately.
-      Type sourceElementType = sourceType.cast<ComplexType>().getElementType();
-      assert(!sourceElementType.isa<ComplexType>() &&
+      Type sourceElementType = cast<ComplexType>(sourceType).getElementType();
+      assert(!isa<ComplexType>(sourceElementType) &&
              "elements of complex numbers should not be complex");
       Value sourceReal =
           b->create<mlir::complex::ReOp>(loc, sourceElementType, args.front());
@@ -799,7 +799,7 @@ inline Value mapConvertOpToStdScalarOp(Location loc, ArrayRef<Type> targetTypes,
     return b->create<mlir::complex::CreateOp>(loc, targetType, targetReal,
                                               targetImag);
   }
-  if (auto sourceComplexType = sourceType.dyn_cast<ComplexType>()) {
+  if (auto sourceComplexType = dyn_cast<ComplexType>(sourceType)) {
     auto sourceElementType = sourceComplexType.getElementType();
     // When converting from complex to a non-complex type, we take just the real
     // part of the complex number.
@@ -829,39 +829,12 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::BitcastConvertOp>(
 }
 
 template <>
-inline Value mapStablehloOpToStdScalarOp<stablehlo::DotOp>(
-    Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
-    stablehlo::DotOp::Adaptor adaptor, OpBuilder *b) {
-  // Dot Op converter from lhlo to affine only accepts float and integer types.
-  const auto &lhs = adaptor.getOperands()[0];
-  const auto &rhs = adaptor.getOperands()[1];
-  const auto &result = adaptor.getOperands()[2];
-  Type elementType = lhs.getType();
-  if (elementType.isa<FloatType>()) {
-    Value floatMul =
-        MapStablehloOpToScalarOpImpl<IsFloatType, ::mlir::arith::MulFOp>{}(
-            loc, resultTypes, argTypes, {lhs, rhs}, b);
-    return MapStablehloOpToScalarOpImpl<IsFloatType, ::mlir::arith::AddFOp>{}(
-        loc, resultTypes, argTypes, {floatMul, result}, b);
-  }
-  if (elementType.isa<IntegerType>()) {
-    Value intMul =
-        MapStablehloOpToScalarOpImpl<IsAnyIntegerType, ::mlir::arith::MulIOp>{}(
-            loc, resultTypes, argTypes, {lhs, rhs}, b);
-    return MapStablehloOpToScalarOpImpl<IsAnyIntegerType,
-                                        ::mlir::arith::AddIOp>{}(
-        loc, resultTypes, argTypes, {intMul, result}, b);
-  }
-  return nullptr;
-}
-
-template <>
 inline Value mapStablehloOpToStdScalarOp<stablehlo::IsFiniteOp>(
     Location loc, ArrayRef<Type> /*ResultTypes*/, ArrayRef<Type> /*argTypes*/,
     stablehlo::IsFiniteOp::Adaptor adaptor, OpBuilder *b) {
-  if (adaptor.getX().getType().isa<FloatType>()) {
+  if (isa<FloatType>(adaptor.getX().getType())) {
     auto posInf = APFloat::getInf(
-        adaptor.getX().getType().cast<FloatType>().getFloatSemantics());
+        cast<FloatType>(adaptor.getX().getType()).getFloatSemantics());
     auto constPosInf = b->create<arith::ConstantOp>(
         loc, b->getFloatAttr(adaptor.getX().getType(), posInf));
     Value absX = b->create<::mlir::math::AbsFOp>(loc, adaptor.getX());
@@ -894,7 +867,7 @@ struct CompareSelectOpToStdScalarOp<SupportedType, StdCompareOp, Predicate,
                    ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
                    ValueRange args, OpBuilder *b) {
     Type elementType = getElementTypeOrSelf(argTypes.front());
-    if (elementType.isa<SupportedType>()) {
+    if (isa<SupportedType>(elementType)) {
       auto predicate = getCmpPredicate<Predicate>(
           comparisonDirection, !elementType.isUnsignedInteger());
       assert(predicate.has_value() && "expected valid comparison direction");
@@ -924,7 +897,7 @@ inline Value makeSafeIntDiv(ImplicitLocOpBuilder &lb, Type originalType,
                             Value lhs, Value rhs, Value returnedOnZero,
                             Value returnedOnSignedOverflow) {
   Type type = lhs.getType();
-  auto elementType = getElementTypeOrSelf(type).cast<IntegerType>();
+  auto elementType = cast<IntegerType>(getElementTypeOrSelf(type));
   Value zero = lb.create<arith::ConstantOp>(lb.getZeroAttr(type));
   auto makeConstant = [&](const APInt &i) {
     return getConstantOrSplat(&lb, lb.getLoc(), type,
@@ -962,7 +935,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::DivOp>(
     Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
     stablehlo::DivOp::Adaptor adaptor, OpBuilder *b) {
   Type originalType = getElementTypeOrSelf(argTypes.front());
-  if (originalType.isa<ComplexType, FloatType>()) {
+  if (isa<ComplexType, FloatType>(originalType)) {
     return MapStablehloOpToScalarOpImpl<IsFloatType, arith::DivFOp,
                                         IsComplexType, complex::DivOp>{}(
         loc, resultTypes, argTypes, adaptor.getOperands(), b);
@@ -974,7 +947,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::DivOp>(
   // INT_SMIN /s -1 = INT_SMIN
   ImplicitLocOpBuilder lb(loc, *b);
   Type type = adaptor.getLhs().getType();
-  auto elementType = getElementTypeOrSelf(type).cast<IntegerType>();
+  auto elementType = cast<IntegerType>(getElementTypeOrSelf(type));
   auto makeConstant = [&](const APInt &i) {
     return getConstantOrSplat(&lb, lb.getLoc(), type,
                               lb.getIntegerAttr(elementType, i));
@@ -992,7 +965,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::RemOp>(
     Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
     stablehlo::RemOp::Adaptor adaptor, OpBuilder *b) {
   Type originalType = getElementTypeOrSelf(argTypes.front());
-  if (originalType.isa<ComplexType, FloatType>()) {
+  if (isa<ComplexType, FloatType>(originalType)) {
     return MapStablehloOpToScalarOpImpl<IsFloatType, arith::RemFOp>{}(
         loc, resultTypes, argTypes, adaptor.getOperands(), b);
   }
@@ -1015,13 +988,13 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::NegOp>(
     Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
     stablehlo::NegOp::Adaptor adaptor, OpBuilder *b) {
   Type elementType = getElementTypeOrSelf(adaptor.getOperand().getType());
-  if (elementType.isa<ComplexType, FloatType>()) {
+  if (isa<ComplexType, FloatType>(elementType)) {
     return MapStablehloOpToScalarOpImpl<IsFloatType, ::mlir::arith::NegFOp,
                                         IsComplexType,
                                         ::mlir::complex::NegOp>{}(
         loc, resultTypes, argTypes, adaptor.getOperands(), b);
   }
-  if (elementType.isa<IntegerType>()) {
+  if (isa<IntegerType>(elementType)) {
     // lmhlo.neg(x, result) -> result = sub(0, x)
     Value lhs = adaptor.getOperand();
     Value zeroIntval =
@@ -1036,7 +1009,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::NotOp>(
     Location loc, ArrayRef<Type> /*ResultTypes*/, ArrayRef<Type> /*argTypes*/,
     stablehlo::NotOp::Adaptor adaptor, OpBuilder *b) {
   Type elementType = getElementTypeOrSelf(adaptor.getOperand().getType());
-  if (auto integerType = elementType.dyn_cast<IntegerType>()) {
+  if (auto integerType = dyn_cast<IntegerType>(elementType)) {
     // lmhlo.not(x) -> x ^ -1
     Value allOnes = getConstantOrSplat(
         b, loc, adaptor.getOperand().getType(),
@@ -1073,7 +1046,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::PowOp>(
   auto lb = ImplicitLocOpBuilder(loc, *b);
   // Floating point can use std::powf
   auto resultType = resultTypes.front();
-  if (resultType.isa<ComplexType, FloatType>()) {
+  if (isa<ComplexType, FloatType>(resultType)) {
     return MapStablehloOpToScalarOpImpl<IsFloatType, math::PowFOp,
                                         IsComplexType, complex::PowOp>{}(
         loc, resultTypes, argTypes, adaptor.getOperands(), b);
@@ -1159,7 +1132,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::SignOp>(
     stablehlo::SignOp::Adaptor adaptor, OpBuilder *b) {
   Value operand = adaptor.getOperand();
   Type elementType = getElementTypeOrSelf(operand.getType());
-  if (auto floatType = elementType.dyn_cast<FloatType>()) {
+  if (auto floatType = dyn_cast<FloatType>(elementType)) {
     Value zero =
         b->create<arith::ConstantOp>(loc, b->getZeroAttr(operand.getType()));
     Value ne0I1 = b->create<::mlir::arith::CmpFOp>(
@@ -1172,7 +1145,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::SignOp>(
         loc, arith::CmpFPredicate::UNO, operand, operand);
     return b->create<::mlir::arith::SelectOp>(loc, isNan, operand, copySign);
   }
-  if (auto integerType = elementType.dyn_cast<IntegerType>()) {
+  if (auto integerType = dyn_cast<IntegerType>(elementType)) {
     // sign(x) = x == 0 ? 0 : ((x s>> 31) | 1)
     Value zero =
         b->create<arith::ConstantOp>(loc, b->getZeroAttr(operand.getType()));
@@ -1188,7 +1161,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::SignOp>(
     Value orOp = b->create<::mlir::arith::OrIOp>(loc, ashr, one);
     return b->create<::mlir::arith::SelectOp>(loc, cmp, zero, orOp);
   }
-  if (elementType.isa<ComplexType>()) {
+  if (isa<ComplexType>(elementType)) {
     return b->create<::mlir::complex::SignOp>(loc, elementType, operand);
   }
   return nullptr;
@@ -1200,7 +1173,7 @@ inline Value selectShiftedOrSaturated(ImplicitLocOpBuilder &lb, Value rhs,
                                       Value shifted, Value saturated,
                                       Type type) {
   Type etype =
-      type.isa<ShapedType>() ? type.cast<ShapedType>().getElementType() : type;
+      isa<ShapedType>(type) ? cast<ShapedType>(type).getElementType() : type;
   auto bitWidthInt = etype.getIntOrFloatBitWidth();
   Value bitWidth = getConstantOrSplat(&lb, lb.getLoc(), type,
                                       lb.getIntegerAttr(etype, bitWidthInt));
@@ -1250,7 +1223,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ShiftRightArithmeticOp>(
   Value rhs = adaptor.getRhs();
   Type type = lhs.getType();
   Type etype =
-      type.isa<ShapedType>() ? type.cast<ShapedType>().getElementType() : type;
+      isa<ShapedType>(type) ? cast<ShapedType>(type).getElementType() : type;
   auto bitWidthInt = etype.getIntOrFloatBitWidth();
 
   // "Saturate" if the shift is greater than the bitwidth of the type
@@ -1281,7 +1254,9 @@ struct StablehloOpToStdScalarOp {
     static_assert(!std::is_same<StablehloOpTy, stablehlo::ConvertOp>::value);
     return mapOpOfType<StablehloOpTy>(
         op.getLoc(), resultTypes, argTypes,
-        typename StablehloOpTy::Adaptor(args, op->getAttrDictionary()), b);
+        typename StablehloOpTy::Adaptor(args, op->getAttrDictionary(),
+                                        op.getProperties()),
+        b);
   }
   // Overload for stablehlo::ConvertOp.
   static Value mapOpWithArgTypes(stablehlo::ConvertOp op,

@@ -44,6 +44,7 @@ endif()
 #-------------------------------------------------------------------------------
 option(STABLEHLO_BUILD_EMBEDDED "Build StableHLO as part of another project" OFF)
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
+option(STABLEHLO_ENABLE_PYTHON_TF_TESTS "Enables StableHLO to SavedModel tests requiring TF" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
 option(STABLEHLO_ENABLE_SANITIZER "Enable a sanitizer [OFF, address]" OFF)
 option(STABLEHLO_ENABLE_SPLIT_DWARF "Enable split DWARF if the platform supports it" OFF)

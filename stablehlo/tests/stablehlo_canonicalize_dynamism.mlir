@@ -137,7 +137,7 @@ func.func @custom_call_inapplicable_dynamic_shape_operand(%arg0: tensor<4xf32>, 
 
 // CHECK-LABEL: func @custom_call_inapplicable_missing_indices_of_shape_operands
 func.func @custom_call_inapplicable_missing_indices_of_shape_operands(%arg0: tensor<4xf32>) -> tensor<1x2xf32> {
-  // CHECK: stablehlo.custom_call @foo(%arg0, %0)
+  // CHECK: stablehlo.custom_call @foo(%arg0, %c)
   %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
   %1 = stablehlo.custom_call @foo(%arg0, %0) : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x2xf32>
   return %1 : tensor<1x2xf32>
@@ -147,7 +147,7 @@ func.func @custom_call_inapplicable_missing_indices_of_shape_operands(%arg0: ten
 
 // CHECK-LABEL: func @custom_call_inapplicable_dynamic_result_type
 func.func @custom_call_inapplicable_dynamic_result_type(%arg0: tensor<4xf32>) -> tensor<1x?xf32> {
-  // CHECK: stablehlo.custom_call @foo(%arg0, %0)
+  // CHECK: stablehlo.custom_call @foo(%arg0, %c)
   %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
   %1 = stablehlo.custom_call @foo(%arg0, %0) {
     indices_of_shape_operands = dense<[1]> : tensor<1xi64>
@@ -272,7 +272,7 @@ func.func @dynamic_conv_inapplicable_dynamic_padding(%arg0: tensor<100x26x26x32x
 // CHECK-LABEL: @dynamic_gather_success_static_result_type
 func.func @dynamic_gather_success_static_result_type(%arg0 : tensor<2x4x9xi32>, %arg1 : tensor<1x5x2xi32>) -> tensor<1x5x8xi32> {
   //  CHECK-NOT: stablehlo.dynamic_gather
-  //      CHECK: "stablehlo.gather"(%arg0, %arg1) {
+  //      CHECK: "stablehlo.gather"(%arg0, %arg1) <{
   // CHECK-SAME:   dimension_numbers = #stablehlo.gather<
   // CHECK-SAME:     offset_dims = [2],
   // CHECK-SAME:     collapsed_slice_dims = [0, 1],
@@ -280,7 +280,7 @@ func.func @dynamic_gather_success_static_result_type(%arg0 : tensor<2x4x9xi32>, 
   // CHECK-SAME:     index_vector_dim = 2
   // CHECK-SAME:   >,
   // CHECK-SAME:   slice_sizes = array<i64: 1, 1, 8>
-  // CHECK-SAME: } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
+  // CHECK-SAME: }> : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   %0 = stablehlo.constant dense<[1, 1, 8]> : tensor<3xi32>
   %1 = "stablehlo.dynamic_gather"(%arg0, %arg1, %0) {
     dimension_numbers = #stablehlo.gather<
@@ -298,7 +298,7 @@ func.func @dynamic_gather_success_static_result_type(%arg0 : tensor<2x4x9xi32>, 
 // CHECK-LABEL: @dynamic_gather_success_dynamic_result_type
 func.func @dynamic_gather_success_dynamic_result_type(%arg0 : tensor<2x4x9xi32>, %arg1 : tensor<1x5x2xi32>) -> tensor<1x5x?xi32> {
   //  CHECK-NOT: stablehlo.dynamic_gather
-  //      CHECK: "stablehlo.gather"(%arg0, %arg1) {
+  //      CHECK: "stablehlo.gather"(%arg0, %arg1) <{
   // CHECK-SAME:   dimension_numbers = #stablehlo.gather<
   // CHECK-SAME:     offset_dims = [2],
   // CHECK-SAME:     collapsed_slice_dims = [0, 1],
@@ -306,16 +306,16 @@ func.func @dynamic_gather_success_dynamic_result_type(%arg0 : tensor<2x4x9xi32>,
   // CHECK-SAME:     index_vector_dim = 2
   // CHECK-SAME:   >,
   // CHECK-SAME:   slice_sizes = array<i64: 1, 1, 8>
-  // CHECK-SAME: } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x?xi32>
+  // CHECK-SAME: }> : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x?xi32>
   %0 = stablehlo.constant dense<[1, 1, 8]> : tensor<3xi32>
-  %1 = "stablehlo.dynamic_gather"(%arg0, %arg1, %0) {
+  %1 = "stablehlo.dynamic_gather"(%arg0, %arg1, %0) <{
     dimension_numbers = #stablehlo.gather<
       collapsed_slice_dims = [0, 1],
       index_vector_dim = 2,
       offset_dims = [2],
       start_index_map = [0, 1]
     >
-  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x?xi32>
+  }> : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x?xi32>
   return %1 : tensor<1x5x?xi32>
 }
 
@@ -324,14 +324,14 @@ func.func @dynamic_gather_success_dynamic_result_type(%arg0 : tensor<2x4x9xi32>,
 // CHECK-LABEL: @dynamic_gather_inapplicable_dynamic_slice_sizes
 func.func @dynamic_gather_inapplicable_dynamic_slice_sizes(%arg0 : tensor<2x4x9xi32>, %arg1 : tensor<1x5x2xi32>, %arg2 : tensor<3xi32>) -> tensor<1x5x8xi32> {
   // CHECK: stablehlo.dynamic_gather
-  %0 = "stablehlo.dynamic_gather"(%arg0, %arg1, %arg2) {
+  %0 = "stablehlo.dynamic_gather"(%arg0, %arg1, %arg2) <{
     dimension_numbers = #stablehlo.gather<
       collapsed_slice_dims = [0, 1],
       index_vector_dim = 2,
       offset_dims = [2],
       start_index_map = [0, 1]
     >
-  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x8xi32>
+  }> : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x8xi32>
   return %0 : tensor<1x5x8xi32>
 }
 

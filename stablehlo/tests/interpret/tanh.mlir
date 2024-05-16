@@ -36,7 +36,7 @@ func.func @tanh_op_test_f64() {
 
 // -----
 
-func.func @tanh_op_test_c64() {
+func.func @tanh_op_test_c32() {
   %0 = stablehlo.constant dense<[(1.5, 2.5), (3.5, 4.5)]> : tensor<2xcomplex<f32>>
   %1 = stablehlo.tanh %0 : tensor<2xcomplex<f32>>
   check.expect_almost_eq_const %1, dense<[(0.967786788, -0.0926378369), (1.00166273, 7.52857188E-4)]> : tensor<2xcomplex<f32>>
@@ -45,7 +45,7 @@ func.func @tanh_op_test_c64() {
 
 // -----
 
-func.func @tanh_op_test_c128() {
+func.func @tanh_op_test_c64() {
   %0 = stablehlo.constant dense<[(1.5, 2.5), (3.5, 4.5)]> : tensor<2xcomplex<f64>>
   %1 = stablehlo.tanh %0 : tensor<2xcomplex<f64>>
   check.expect_almost_eq_const %1, dense<[(0.96778680215277412, -0.092637836268419898), (1.0016627850956348, 7.5285721538218659E-4)]> : tensor<2xcomplex<f64>>

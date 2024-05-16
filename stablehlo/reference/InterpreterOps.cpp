@@ -30,6 +30,7 @@ limitations under the License.
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Support/LLVM.h"
+#include "stablehlo/dialect/Base.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/ProcessGrid.h"
@@ -87,20 +88,20 @@ InterpreterDialect::InterpreterDialect(MLIRContext *context)
 //===----------------------------------------------------------------------===//
 
 LogicalResult RunParallelOp::verify() {
-  if (getPrograms().empty() || getPrograms()[0].cast<ArrayAttr>().empty())
+  if (getPrograms().empty() || cast<ArrayAttr>(getPrograms()[0]).empty())
     return emitOptionalError(getLoc(), "`programs` attribute cannot be empty");
 
   size_t numArgs = 0;
   size_t numResults = 0;
-  auto numPartitions = getPrograms()[0].cast<ArrayAttr>().size();
+  auto numPartitions = cast<ArrayAttr>(getPrograms()[0]).size();
   for (auto &replica : getPrograms()) {
-    if (replica.cast<ArrayAttr>().size() != numPartitions)
+    if (cast<ArrayAttr>(replica).size() != numPartitions)
       return emitOptionalError(
           getLoc(), "Sizes of second dimension of `programs` should all match ",
-          numPartitions, " but got ", replica.cast<ArrayAttr>().size());
+          numPartitions, " but got ", cast<ArrayAttr>(replica).size());
 
-    for (auto &program : replica.cast<ArrayAttr>()) {
-      auto funcName = program.cast<FlatSymbolRefAttr>().getAttr();
+    for (auto &program : cast<ArrayAttr>(replica)) {
+      auto funcName = cast<FlatSymbolRefAttr>(program).getAttr();
       auto func = getOperation()
                       ->getParentOfType<ModuleOp>()
                       .lookupSymbol<func::FuncOp>(funcName);
@@ -143,7 +144,7 @@ LogicalResult RunParallelOp::verify() {
                                  func.getNumResults());
 
       auto resultType = func.getResultTypes()[0];
-      if (!resultType.isa<ShapedType>())
+      if (!isa<ShapedType>(resultType))
         return emitOptionalError(
             getLoc(), "Function ", funcName,
             " should return a tensor type, but instead returns ", resultType);

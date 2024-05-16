@@ -18,14 +18,18 @@ add_mlir_library(StablehloReferenceApi
 
   LINK_LIBS PUBLIC
   MLIRIR
+  MLIRParser
+  MLIRPass
   MLIRSupport
   InterpreterOps
+  StablehloPasses
   StablehloReferenceConfiguration
   StablehloReferenceErrors
   StablehloReferenceNumPy
   StablehloReferenceOps
   StablehloReferenceProcess
   StablehloReferenceScope
+  StablehloReferenceTensor
   StablehloReferenceValue
   StablehloRegister
 )
@@ -91,6 +95,7 @@ add_mlir_dialect_library(InterpreterOps
   InterpreterOpsIncGen
 
   LINK_LIBS PUBLIC
+  StablehloBase
   StablehloReferenceValue
   StablehloReferenceNumPy
   StablehloReferenceOps

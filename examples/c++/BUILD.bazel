@@ -19,11 +19,12 @@ package(
 )
 
 cc_binary(
-    name = "stablehlo-add",
+    name = "example_add",
     srcs = [
-        "stablehlo_add.cpp",
+        "ExampleAdd.cpp",
     ],
     deps = [
+        "//:reference_api",
         "//:stablehlo_ops",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
@@ -32,11 +33,12 @@ cc_binary(
 )
 
 cc_test(
-    name = "stablehlo-add_test",
+    name = "example_add_test",
     srcs = [
-        "stablehlo_add.cpp",
+        "ExampleAdd.cpp",
     ],
     deps = [
+        "//:reference_api",
         "//:stablehlo_ops",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",

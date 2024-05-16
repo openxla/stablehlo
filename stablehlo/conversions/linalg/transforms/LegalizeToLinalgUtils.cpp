@@ -73,11 +73,13 @@ Value getEmptyTensorFor(OpBuilder &b, Location loc, ShapedType resultType,
   // new tensor initialization operation. This operation only needs the
   // dynamic sizes.
   SmallVector<Value> sizes;
-  if (resultType.hasRank() && !resultType.hasStaticShape()) {
+  if (!resultType.hasStaticShape()) {
     // Ask the op for its output shape.
     auto shapeSource = cast<InferShapedTypeOpInterface>(op);
     SmallVector<Value, 1> reifiedShapes;
-    (void)shapeSource.reifyReturnTypeShapes(b, operands, reifiedShapes);
+    if (failed(shapeSource.reifyReturnTypeShapes(b, operands, reifiedShapes))) {
+      llvm::report_fatal_error("could not reify");
+    }
     assert(reifiedShapes.size() == 1 && "Expected one reified result");
     // Construct sizes for the required dimensions.
     for (const auto &en : llvm::enumerate(resultType.getShape())) {
@@ -96,14 +98,6 @@ Value coerceTensorShape(OpBuilder &builder, Location loc,
   return builder.createOrFold<tensor::CastOp>(
       loc, targetType.cloneWith(std::nullopt, value.getType().getElementType()),
       value);
-}
-
-LogicalResult verifyHloOpBufferOrTensorSemantics(Operation *op) {
-  auto isRankedTensor = [](Value val) {
-    return isa<RankedTensorType>(val.getType());
-  };
-  if (!llvm::all_of(op->getOperands(), isRankedTensor)) return failure();
-  return success(llvm::all_of(op->getResults(), isRankedTensor));
 }
 
 Value fillTensorWithZeros(OpBuilder &builder, Location loc, Value tensor) {

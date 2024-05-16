@@ -43,9 +43,7 @@ func.func @zero_input() -> !stablehlo.token {
 
 // CHECK-LABEL: func @zero_output_ret2
 func.func @zero_output_ret2(%arg0 : tensor<3xi64>) -> (tensor<3xi64>, tensor<3xi64>) {
-  // CHECK:      stablehlo.trace %arg0, "This is a test" : tensor<3xi64>
-  // CHECK-NEXT: stablehlo.return %arg0, %arg0 : tensor<3xi64>, tensor<3xi64>
-  "stablehlo.trace"(%arg0) {tag = "This is a test"} : (tensor<3xi64>) -> ()
+  // CHECK: stablehlo.return %arg0, %arg0 : tensor<3xi64>, tensor<3xi64>
   "stablehlo.return"(%arg0, %arg0) : (tensor<3xi64>, tensor<3xi64>) -> ()
 }
 
@@ -59,6 +57,20 @@ func.func @zero_output_ret1(%arg0 : tensor<3xi64>) -> (tensor<3xi64>) {
 func.func @zero_output_ret0(%arg0 : tensor<3xi64>) -> () {
   // CHECK:     stablehlo.return
   "stablehlo.return"() : () -> ()
+}
+
+func.func @constants() -> () {
+  // CHECK:      %c = stablehlo.constant dense<-1> : tensor<1xi64>
+  // CHECK-NEXT: %c_0 = stablehlo.constant {attr = 1 : i32} dense<[-2, 4]> : tensor<2xi64>
+  // CHECK-NEXT: %cst = stablehlo.constant() <{value = dense<[1, 2]> : tensor<2xi8>}> : () -> tensor<2x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  // CHECK-NEXT: %cst_1 = stablehlo.constant() <{value = dense<3> : tensor<1xi8>}> : () -> tensor<1x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  // CHECK-NEXT: %cst_2 = stablehlo.constant() <{value = dense<4> : tensor<1xi8>}> {attr = 1 : i32} : () -> tensor<1x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  %cst = "stablehlo.constant"() <{value = dense<[-1]> : tensor<1xi64>}> : () -> tensor<1xi64>
+  %cst_attrs = "stablehlo.constant"() <{value = dense<[-2, 4]> : tensor<2xi64>}> {attr = 1 : i32} : () -> tensor<2xi64>
+  %cst_q = "stablehlo.constant"() {value = dense<[1, 2]> : tensor<2xi8>} : () -> tensor<2x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  %cst_q_attr = stablehlo.constant() {value = dense<[3]> : tensor<1xi8>} : () -> tensor<1x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  %cst_q_attrs = stablehlo.constant() {value = dense<[4]> : tensor<1xi8>, attr = 1 : i32} : () -> tensor<1x!quant.uniform<i8:f32, 2.000000e+00:15>>
+  return
 }
 
 // CHECK-LABEL: func @unary_ops
@@ -156,30 +168,6 @@ func.func @type_convert_ops(%arg0 : tensor<2xf32>) -> () {
   %1 = "stablehlo.reshape"(%arg0) : (tensor<2xf32>) -> tensor<1x2xf32>
   %2 = "stablehlo.bitcast_convert"(%arg0) : (tensor<2xf32>) -> tensor<2xi32>
   "stablehlo.return"() : () -> ()
-}
-
-// CHECK-LABEL: func @no_attr_ops
-func.func @no_attr_ops(%arg0 : tensor<4xf32>, %arg1 : !stablehlo.token,
-                       %arg2 : tensor<4xi32>, %arg3 : index) -> !stablehlo.token {
-  // CHECK-NEXT: %0 = stablehlo.clamp %arg0, %arg0, %arg0 : tensor<4xf32>
-  // CHECK-NEXT: %1 = stablehlo.complex %arg0, %arg0 : tensor<4xcomplex<f32>>
-  // CHECK-NEXT: %2 = stablehlo.compute_reshape_shape %arg3, %arg2 : (index, tensor<4xi32>) -> tensor<4xi32>
-  // CHECK-NEXT: %3 = stablehlo.uniform_quantize %arg0 : (tensor<4xf32>) -> tensor<4x!quant.uniform<u8:f32, 3.400000e+01:16>>
-  // CHECK-NEXT: %4 = stablehlo.uniform_dequantize %3 : (tensor<4x!quant.uniform<u8:f32, 3.400000e+01:16>>) -> tensor<4xf32>
-  // CHECK-NEXT: %5 = stablehlo.after_all %arg1, %arg1 : !stablehlo.token
-  // CHECK-NEXT: %6 = stablehlo.after_all : !stablehlo.token
-  // CHECK-NEXT: %7 = stablehlo.cstr_reshapable %arg3, %arg2 : (index, tensor<4xi32>) -> !shape.witness
-  // CHECK-NEXT: %8 = stablehlo.compute_reshape_shape %arg3, %arg2 : (index, tensor<4xi32>) -> tensor<4xi32>
-  %0 = "stablehlo.clamp"(%arg0, %arg0, %arg0) : (tensor<4xf32>, tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
-  %1 = "stablehlo.complex"(%arg0, %arg0) {} : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xcomplex<f32>>
-  %2 = "stablehlo.compute_reshape_shape"(%arg3, %arg2) : (index, tensor<4xi32>) -> tensor<4xi32>
-  %3 = "stablehlo.uniform_quantize"(%arg0) : (tensor<4xf32>) -> tensor<4x!quant.uniform<ui8:f32, 34.0:16>>
-  %4 = "stablehlo.uniform_dequantize"(%3) : (tensor<4x!quant.uniform<ui8:f32, 34.0:16>>) -> tensor<4xf32>
-  %5 = "stablehlo.after_all"(%arg1, %arg1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
-  %6 = "stablehlo.after_all"() : () -> !stablehlo.token
-  %7 = "stablehlo.cstr_reshapable"(%arg3, %arg2) : (index, tensor<4xi32>) -> !shape.witness
-  %8 = "stablehlo.compute_reshape_shape"(%arg3, %arg2) : (index, tensor<4xi32>) -> tensor<4xi32>
-  "stablehlo.return"(%arg1) : (!stablehlo.token) -> ()
 }
 
 // CHECK-LABEL: func @multiple_attr_ops

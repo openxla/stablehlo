@@ -1,31 +1,5 @@
 // RUN: stablehlo-opt --shape-legalize-to-stablehlo --split-input-file --verify-diagnostics %s | FileCheck %s
 
-// CHECK-LABEL: func.func @compute_reshape_shape
-func.func @compute_reshape_shape(%arg0: index, %arg1: tensor<2xi32>) -> tensor<2xi32> {
-  %0 = stablehlo.compute_reshape_shape %arg0, %arg1 : (index, tensor<2xi32>) -> tensor<2xi32>
-  func.return %0 : tensor<2xi32>
-  //      CHECK: %[[ARG0_I32:.*]] = builtin.unrealized_conversion_cast %arg0 : index to tensor<i32>
-  // CHECK-NEXT: %[[TMP0:.*]] = stablehlo.constant dense<-1> : tensor<i32>
-  // CHECK-NEXT: %[[INPUT_SIZE0x1:.*]] = stablehlo.slice %arg1 [0:1] : (tensor<2xi32>) -> tensor<1xi32>
-  // CHECK-NEXT: %[[INPUT_SIZE0:.*]] = stablehlo.reshape %[[INPUT_SIZE0x1]] : (tensor<1xi32>) -> tensor<i32>
-  // CHECK-NEXT: %[[TMP1:.*]] = stablehlo.multiply %[[TMP0]], %[[INPUT_SIZE0]] : tensor<i32>
-  // CHECK-NEXT: %[[INPUT_SIZE1x1:.*]] = stablehlo.slice %arg1 [1:2] : (tensor<2xi32>) -> tensor<1xi32>
-  // CHECK-NEXT: %[[INPUT_SIZE1:.*]] = stablehlo.reshape %[[INPUT_SIZE1x1]] : (tensor<1xi32>) -> tensor<i32>
-  // CHECK-NEXT: %[[INPUT_SIZE_PRODUCT:.*]] = stablehlo.multiply %[[TMP1]], %[[INPUT_SIZE1]] : tensor<i32>
-  // CHECK-NEXT: %[[COMPUTED_SIZE:.*]] = stablehlo.divide %[[ARG0_I32]], %[[INPUT_SIZE_PRODUCT]] : tensor<i32>
-  // CHECK-NEXT: %[[M1:.*]] = stablehlo.constant dense<-1> : tensor<i32>
-  // CHECK-NEXT: %[[INPUT_SIZE0_EQ_M1:.*]] = stablehlo.compare  EQ, %3, %[[M1]],  NOTYPE : (tensor<i32>, tensor<i32>) -> tensor<i1>
-  // CHECK-NEXT: %[[RESULT_SIZE0:.*]] = stablehlo.select %[[INPUT_SIZE0_EQ_M1]], %[[COMPUTED_SIZE]], %3 : tensor<i1>, tensor<i32>
-  // CHECK-NEXT: %[[RESULT_SIZE0x1:.*]] = stablehlo.reshape %[[RESULT_SIZE0]] : (tensor<i32>) -> tensor<1xi32>
-  // CHECK-NEXT: %[[INPUT_SIZE1_EQ_M1:.*]] = stablehlo.compare  EQ, %6, %[[M1]],  NOTYPE : (tensor<i32>, tensor<i32>) -> tensor<i1>
-  // CHECK-NEXT: %[[RESULT_SIZE1:.*]] = stablehlo.select %[[INPUT_SIZE1_EQ_M1]], %[[COMPUTED_SIZE]], %6 : tensor<i1>, tensor<i32>
-  // CHECK-NEXT: %[[RESULT_SIZE1x1:.*]] = stablehlo.reshape %[[RESULT_SIZE1]] : (tensor<i32>) -> tensor<1xi32>
-  // CHECK-NEXT: %[[RESULT:.*]] = stablehlo.concatenate %[[RESULT_SIZE0x1]], %[[RESULT_SIZE1x1]], dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-  // CHECK-NEXT: return %[[RESULT]] : tensor<2xi32>
-}
-
-// -----
-
 // CHECK-LABEL: func.func @num_elements_tensor_to_index
 func.func @num_elements_tensor_to_index(%arg0: tensor<2xindex>) -> index {
   %0 = shape.num_elements %arg0 : tensor<2xindex> -> index
@@ -213,18 +187,6 @@ func.func @shape_cstr_broadcastable(%arg0: tensor<2xindex>, %arg1: tensor<2xinde
 
 // -----
 
-func.func @mhlo_cstr_reshapable(%arg0: index, %arg1: tensor<2xindex>, %arg2: tensor<?x2xf32>) -> tensor<?x4xf32> {
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.cstr_reshapable' that was explicitly marked illegal}}
-  %0 = stablehlo.cstr_reshapable %arg0, %arg1 : (index, tensor<2xindex>) -> !shape.witness
-  %1 = shape.assuming %0 -> (tensor<?x4xf32>) {
-    %2 = stablehlo.dynamic_reshape %arg2, %arg1 : (tensor<?x2xf32>, tensor<2xindex>) -> tensor<?x4xf32>
-    shape.assuming_yield %2 : tensor<?x4xf32>
-  }
-  func.return %1 : tensor<?x4xf32>
-}
-
-// -----
-
 // CHECK-LABEL: func @const_shape
 func.func @const_shape() -> tensor<2xindex> {
   %0 = shape.const_shape [6, 4] : tensor<2xindex>
@@ -386,4 +348,16 @@ func.func @tensor_extract_dynamic(%arg0: tensor<?x3xindex>) -> index {
   // expected-error@+1 {{failed to legalize operation 'tensor.extract' that was explicitly marked illegal}}
   %0 = tensor.extract %arg0[%c1, %c2] : tensor<?x3xindex>
   return %0 : index
+}
+
+// -----
+
+// CHECK-LABEL: func @shape_of_zero_ranked_tensor
+func.func @shape_of_zero_ranked_tensor(%arg0: tensor<?x3xindex>) -> tensor<0xindex> {
+  //      CHECK: %[[CONST:.*]] = stablehlo.constant dense<> : tensor<0xi32>
+  // CHECK-NEXT: %[[RES_DIM0_INDEX:.*]] = builtin.unrealized_conversion_cast %[[CONST]] : tensor<0xi32> to tensor<0xindex>
+  // CHECK-NEXT: return %[[RES_DIM0_INDEX]] : tensor<0xindex>
+  %0 = arith.constant dense<0> : tensor<i32>
+  %1 = shape.shape_of %0 : tensor<i32> -> tensor<0xindex>
+  func.return %1 : tensor<0xindex>
 }

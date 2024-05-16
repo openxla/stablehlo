@@ -17,7 +17,7 @@
 
 // Helper functions.
 Rewrite onesLike(op: Op, type: Type) -> Op [{
-  auto elementType = type.cast<mlir::TensorType>().getElementType();
+  auto elementType = llvm::cast<mlir::TensorType>(type).getElementType();
   llvm::SmallVector<mlir::Attribute, 4> outputValue;
 
   if (elementType.isF16() || elementType.isF32() || elementType.isBF16()) {
@@ -33,9 +33,9 @@ Rewrite onesLike(op: Op, type: Type) -> Op [{
 }];
 
 Rewrite positiveFloatInfinityLike(op: Op, type: Type) -> Op [{
-  auto elementType = type.cast<mlir::TensorType>().getElementType();
+  auto elementType = llvm::cast<mlir::TensorType>(type).getElementType();
   const llvm::fltSemantics& semantic =
-      elementType.cast<mlir::FloatType>().getFloatSemantics();
+      llvm::cast<mlir::FloatType>(elementType).getFloatSemantics();
 
   llvm::SmallVector<mlir::Attribute, 4> outputValue;
   outputValue.push_back(rewriter.getFloatAttr(
@@ -48,12 +48,8 @@ Rewrite positiveFloatInfinityLike(op: Op, type: Type) -> Op [{
 }];
 
 Rewrite changeElementTypeToI1(type: Type) -> Type [{
-  auto tensorType = type.cast<mlir::TensorType>();
-  if (tensorType.hasRank()) {
-    return RankedTensorType::get(tensorType.getShape(), rewriter.getI1Type());
-  } else {
-    return UnrankedTensorType::get(rewriter.getI1Type());
-  }
+  auto tensorType = llvm::cast<mlir::RankedTensorType>(type);
+  return RankedTensorType::get(tensorType.getShape(), rewriter.getI1Type());
 }];
 
 // Nullary ops.
@@ -129,7 +125,7 @@ Pattern =>
 Pattern =>
   replace op<stablehlo.divide>(input0 : Value<_: Tosa_Int32Tensor>,
                           input1 : Value<_: Tosa_Int32Tensor>)
-     with op<tosa.div>(input0, input1);
+     with op<tosa.int_div>(input0, input1);
 Pattern =>
   replace op<stablehlo.maximum>(input0 : Value<_: Tosa_Tensor>,
                            input1 : Value<_: Tosa_Tensor>)

@@ -53,8 +53,6 @@ def CHLO_Dialect : Dialect {
     and provide conversion patterns to fully materialize into lower level
     dialects.
   }];
-
-  let usePropertiesForAttributes = 0;
 }
 
 class CHLO_Op<string mnemonic, list<Trait> traits> :
@@ -834,126 +832,6 @@ row for matrices).}]>:$k
     `(`$operand `,` `k` `=` $k`)` attr-dict `:`
     type($operand) `->` `(`type($values)`,` type($indices)`)`
   }];
-}
-
-//===----------------------------------------------------------------------===//
-// Helper ops
-//===----------------------------------------------------------------------===//
-
-def CHLO_MinimumBroadcastShapesOp :
-    CHLO_Op<"minimum_broadcast_shapes", [Pure]> {
-  string summary = "Minimizes the rank of two or more shapes to be broadcasted";
-
-  string description = [{
-    Given two or more 1D tensors representing shapes, returns one 1D tensor for
-    each operand, where operand `i` corresponds to output `i`.
-
-    The returned tensors have the property that they specify a shape which is a
-    reshape of the corresponding input shape, and the broadcasted output shape
-    (using shape::BroadcastOp) of the returned shapes is a reshape of the
-    broadcasted output shape of the input shapes. Among all possibilities with
-    this property, the one is chosen which minimizes the rank of each returned
-    shape.
-
-    The general idea of this op is that it can be used for ops which have a
-    broadcasting semantic to operate on shapes with a possibly smaller rank
-    while preserving equivalence of the computed values. After computing the
-    result of the op using reshaped operands, the result can be reshaped to the
-    result that would have been originally computed.
-
-    Here is an example with two input shapes:
-
-    ```mlir
-    chlo.minimum_broadcast_shapes [1, 2, 3, 1, 2, 1],
-                                     [1, 1, 1, 2, 3] -> [6, 2, 1], [2, 3]
-    ```
-
-    The broadcasted output shape of the operands is [1, 2, 3, 1, 2, 3], the
-    broadcasted output shape of the outputs is [6, 2, 3]. These two shapes are
-    reshapes of each other, and also each output is a reshape of the
-    corresponding input.
-  }];
-
-  let arguments = (ins Variadic<1DTensorOf<[Index]>>:$shapes);
-  let results = (outs Variadic<1DTensorOf<[Index]>>:$results);
-
-  let assemblyFormat = "$shapes attr-dict `:` type($shapes) `->` type($results)";
-
-  let hasVerifier = 1;
-}
-
-def CHLO_RankSpecializationClusterOp
-    : CHLO_Op<"rank_specialization_cluster", [
-    DeclareOpInterfaceMethods<RegionBranchOpInterface>,
-    SingleBlockImplicitTerminator<"RankSpecializationClusterYieldOp">,
-    RecursiveMemoryEffects]> {
-
-  let summary = "Cluster of operations that will be rank-specialized together.";
-
-  let description = [{
-    Groups compatible element-wise operatons together so that they can be
-    rank-specialized together. The operation takes and yields a variadic number
-    of (unranked) tensor operands. Its body region holds one block with one
-    block argument per input tensor of the same type. All operations in this
-    block must only operate on these block arguments. Results are returned
-    through the `rank_specialization_cluster_yield` operation.
-
-    Example:
-
-    ```
-    %0 = "chlo.rank_specialization_cluster"(%arg0, %arg1, %arg2) ({
-    ^bb0(%arg0_ : tensor<*xf32>, %arg1_ : tensor<*xf32>, %arg2_ : tensor<*xf32>):
-      %1 = chlo.broadcast_multiply %arg0_, %arg1_
-          : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-      %2 = chlo.broadcast_add %1, %arg2_
-          : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-      "chlo.rank_specialization_cluster_yield"(%2) : (tensor<*xf32>) -> ()
-    }) : (tensor<*xf32>, tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-    ```
-  }];
-
-  let arguments = (ins Variadic<HLO_AnyTensor>);
-  let results = (outs Variadic<HLO_AnyTensor>);
-  let regions = (region SizedRegion<1>:$body);
-
-  let hasVerifier = 1;
-}
-
-def CHLO_RankSpecializationClusterYieldOp
-    : CHLO_Op<"rank_specialization_cluster_yield", [Pure,
-    ReturnLike, Terminator, HasParent<"RankSpecializationClusterOp">]> {
-
-  let summary = "Yield operation for `rank_specialization_cluster`";
-  let description = [{
-    This operation yields the results from within the
-    `chlo.rank_specialization_cluster` operation's region. The operation takes
-    an arbitrary number of operands and produces no results. The operand number
-    and types must match the number and types of the parent
-    `rank_specialization_cluster` operation's results.
-  }];
-
-  let arguments = (ins Variadic<HLO_AnyTensor>:$results);
-}
-
-def CHLO_DynamicReshapeOp: CHLO_Op<"dynamic_reshape", [Pure,
-    DeclareOpInterfaceMethods<InferShapedTypeOpInterface>]> {
-  let summary = "Reshape a tensor to a given, possibly dynamic, shape.";
-  let description = [{
-    Reshapes `operand` to `output_shape`. This allows a single dimension to be
-    specified as -1, and it will be computed by the op to create a valid
-    reshape.
-
-    Requires:
-    - The length of `output_shape` is equal to the rank of `result`.
-    - The number of elements in `operand` (that is, the product of extents of
-      its shape) is equal to the number of elements in `output_shape` (that is,
-      the product of values in `output_shape` with one dimension possibly
-      computed).
-    - All shape values should be at least -1, and only one extent can be -1.
-  }];
-
-  let arguments = (ins HLO_AnyTensor:$operand, HLO_DimensionTensor:$output_shape);
-  let results = (outs HLO_AnyTensor:$result);
 }
 
 #endif  // STABLEHLO_DIALECT_CHLO_OPS

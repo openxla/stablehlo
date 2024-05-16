@@ -25,6 +25,14 @@ toc:
     path: /stablehlo/reference
   - title: Roadmap
     path: /stablehlo/roadmap
+- title: Tutorials
+  section:
+  - title: JAX Export to StableHLO
+    path: /stablehlo/tutorials/jax-export
+  - title: PyTorch Export to StableHLO
+    path: /stablehlo/tutorials/pytorch-export
+  - title: StableHLO Embed in SavedModel
+    path: /stablehlo/tutorials/savedmodel-embed
 - title: Contributing
   section:
   - title: Governance

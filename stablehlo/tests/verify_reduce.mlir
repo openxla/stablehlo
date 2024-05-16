@@ -80,13 +80,13 @@ func.func @reduce_with_promotable_types(%arg0: tensor<4x4xf32>, %arg1 : tensor<f
 
 // CHECK-LABEL: func @reduce_with_promotable_quantized_types
 func.func @reduce_with_promotable_quantized_types(%arg0: tensor<4x4x!quant.uniform<i8:f32, 2.000000e+00:15>>,
-  %arg1: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x!quant.uniform<i32:f32, 2.000000e+00:15>> {
-  %0 = stablehlo.reduce(%arg0 init: %arg1) across dimensions = [0] : (tensor<4x4x!quant.uniform<i8:f32, 2.000000e+00:15>>, tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x!quant.uniform<i32:f32, 2.000000e+00:15>>
-  reducer(%arg2: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %arg3: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>)  {
-    %1 = stablehlo.add %arg2, %arg3 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
-    stablehlo.return %1 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+  %arg1: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x!quant.uniform<i16:f32, 2.000000e+00:15>> {
+  %0 = stablehlo.reduce(%arg0 init: %arg1) across dimensions = [0] : (tensor<4x4x!quant.uniform<i8:f32, 2.000000e+00:15>>, tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x!quant.uniform<i16:f32, 2.000000e+00:15>>
+  reducer(%arg2: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>, %arg3: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>)  {
+    %1 = stablehlo.add %arg2, %arg3 : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
+    stablehlo.return %1 : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
   }
-  return %0 : tensor<4x!quant.uniform<i32:f32, 2.000000e+00:15>>
+  return %0 : tensor<4x!quant.uniform<i16:f32, 2.000000e+00:15>>
 }
 
 // -----
@@ -166,7 +166,7 @@ func.func @reduce_c2(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
 func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
     -> (tensor<?xf32>) {
 
-  // expected-error@+1 {{Out-of-bounds dimension -1, expected to be less than the input-tensor rank 2}}
+  // expected-error@+1 {{Out-of-bounds dimension -1, expected to be in range [0, 2)}}
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
 
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
@@ -182,7 +182,7 @@ func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
 func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
     -> (tensor<?xf32>) {
 
-  // expected-error@+1 {{Out-of-bounds dimension 2, expected to be less than the input-tensor rank 2}}
+  // expected-error@+1 {{Out-of-bounds dimension 2, expected to be in range [0, 2)}}
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
 
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
@@ -425,17 +425,17 @@ func.func @reduce_c6(%arg0: tensor<4x4x!quant.uniform<i8:f32, 2.000000e+00:15>>,
 // -----
 
 func.func @reduce_c6(%arg0: tensor<4x4x!quant.uniform<i8:f64, 2.000000e+00:15>>,
-  %arg1: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x!quant.uniform<i32:f32, 2.000000e+00:15>> {
+  %arg1: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x!quant.uniform<i16:f32, 2.000000e+00:15>> {
 
-  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be promotable from '!quant.uniform<i8:f64, 2.000000e+00:15>', but got '!quant.uniform<i32:f32, 2.000000e+00:15>'}}
+  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be promotable from '!quant.uniform<i8:f64, 2.000000e+00:15>', but got '!quant.uniform<i16:f32, 2.000000e+00:15>'}}
   %0 = stablehlo.reduce(%arg0 init: %arg1) across dimensions = [0] : (tensor<4x4x!quant.uniform<i8:f64, 2.000000e+00:15>>,
-      tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x!quant.uniform<i32:f32, 2.000000e+00:15>>
+      tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>) -> tensor<4x!quant.uniform<i16:f32, 2.000000e+00:15>>
 
-  reducer(%arg2: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>, %arg3: tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>)  {
-    %1 = stablehlo.add %arg2, %arg3 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
-    stablehlo.return %1 : tensor<!quant.uniform<i32:f32, 2.000000e+00:15>>
+  reducer(%arg2: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>, %arg3: tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>)  {
+    %1 = stablehlo.add %arg2, %arg3 : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
+    stablehlo.return %1 : tensor<!quant.uniform<i16:f32, 2.000000e+00:15>>
   }
-  return %0 : tensor<4x!quant.uniform<i32:f32, 2.000000e+00:15>>
+  return %0 : tensor<4x!quant.uniform<i16:f32, 2.000000e+00:15>>
 }
 
 // The following invalid cases arises while parsing a pretty-printed version of reduce-op will "non-eligible" inner-op.

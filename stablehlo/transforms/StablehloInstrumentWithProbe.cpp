@@ -67,7 +67,7 @@ class StablehloInstrumentWithProbePass
 
 std::string StablehloInstrumentWithProbePass::getLocationNameOrUniqueId(
     Location location, unsigned int id) {
-  auto namedLocation = location.dyn_cast<NameLoc>();
+  auto namedLocation = dyn_cast<NameLoc>(location);
   std::string probeName = "probe";
 
   if (useDebugInfoOption && namedLocation)
@@ -112,15 +112,15 @@ void StablehloInstrumentWithProbePass::runOnOperation() {
 bool StablehloInstrumentWithProbePass::shouldProbeOp(Operation& op) const {
   if (isa<ConstantOp>(op)) return false;
 
-  // Operations that do not produce values should not be instrumented (ReturnOp,
-  // TraceOp, etc.)
+  // Operations that do not produce values should not be instrumented
+  // (ReturnOp, CustomCallOp with no result, etc)
   if (op.getNumResults() == 0) return false;
 
   return true;
 }
 
 bool StablehloInstrumentWithProbePass::shouldProbeValue(Value value) const {
-  return value.getType().isa<TensorType>();
+  return isa<TensorType>(value.getType());
 }
 
 }  // namespace

@@ -29,6 +29,7 @@ limitations under the License.
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -171,7 +172,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
   for (auto it : llvm::zip(flattenedTypes, refinements)) {
     // Cannot use structured bindings to simplify this because capturing
     // structured bindings in a lambda is a C++ 20 extension.
-    ShapedType currentType = std::get<0>(it).dyn_cast<ShapedType>();
+    ShapedType currentType = dyn_cast<ShapedType>(std::get<0>(it));
     ShapedTypeComponents refinement = std::get<1>(it);
     auto failWithReason = [&](StringRef reason) {
       return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
@@ -217,7 +218,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
     // If either the current type or the refinement have encodings, then
     // we fail. Encodings are left for future work.
     Attribute currentEncoding = nullptr;
-    if (auto currentRankedType = currentType.dyn_cast<RankedTensorType>()) {
+    if (auto currentRankedType = dyn_cast<RankedTensorType>(currentType)) {
       currentEncoding = currentRankedType.getEncoding();
     }
     Attribute refinedEncoding = refinement.getAttribute();
@@ -255,7 +256,7 @@ DenseIntElementsAttr getTensorAttr(ShapedType type, ArrayRef<APSInt> values) {
 APSInt getAPSInt(Type type, uint64_t value) {
   unsigned numBits;
   bool isUnsigned;
-  if (auto integerType = type.dyn_cast<IntegerType>()) {
+  if (auto integerType = dyn_cast<IntegerType>(type)) {
     numBits = integerType.getWidth();
     // Signless types are treated as signed, per StableHLO convention.
     isUnsigned = integerType.isUnsignedInteger();
@@ -264,6 +265,14 @@ APSInt getAPSInt(Type type, uint64_t value) {
   }
   return APSInt({/*numBits=*/numBits, value},
                 /*isUnsigned=*/isUnsigned);
+}
+
+LogicalResult validateResultTypeForEval(PatternRewriter& rewriter,
+                                        Operation* op, ShapedType resultType) {
+  if (!resultType.hasStaticShape())
+    return rewriter.notifyMatchFailure(
+        op, "unable to fold dynamically shaped result type to constant");
+  return success();
 }
 
 // The patterns below implement partial evaluation of shape computations which
@@ -275,8 +284,10 @@ template <typename OpType, typename FuncType>
 LogicalResult evalElementwise(PatternRewriter& rewriter, OpType op,
                               FuncType fn) {
   auto resultType = op.getType();
-  if (!resultType.hasRank() ||
-      !resultType.getElementType().template isa<IntegerType>())
+  if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    return failure();
+
+  if (!isa<IntegerType>(resultType.getElementType()))
     return rewriter.notifyMatchFailure(op,
                                        "expected integer result tensor type");
 
@@ -343,8 +354,12 @@ struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(BroadcastInDimOp op,
                                 PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank() || operandType.getRank() != 0)
+    if (operandType.getRank() != 0)
       return rewriter.notifyMatchFailure(op, "expected 0-dimensional type");
 
     SmallVector<APSInt> operand;
@@ -408,7 +423,10 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
   LogicalResult matchAndRewrite(ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.hasRank() || op.getDimension() != 0)
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
+    if (op.getDimension() != 0)
       return rewriter.notifyMatchFailure(op, "expected dimension = 0");
 
     SmallVector<APSInt> result;
@@ -428,9 +446,12 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
   LogicalResult matchAndRewrite(ConvertOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.getElementType().isa<IntegerType>())
-      return rewriter.notifyMatchFailure(op,
-                                         "expected integer result tensor type");
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
+    if (!isa<IntegerType>(resultType.getElementType()))
+      return rewriter.notifyMatchFailure(
+          op, "expected integer result tensor type with static shapes");
     auto resultBitWidth = resultType.getElementType().getIntOrFloatBitWidth();
     return evalElementwise(rewriter, op, [&](APSInt operand) {
       return operand.extOrTrunc(resultBitWidth);
@@ -452,15 +473,17 @@ struct EvalGetDimensionSizeOpPattern
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(GetDimensionSizeOp op,
                                 PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank())
-      return rewriter.notifyMatchFailure(op, "expected ranked operand");
     if (operandType.isDynamicDim(op.getDimension()))
       return rewriter.notifyMatchFailure(op, "expected static dimension");
 
     auto result = operandType.getDimSize(op.getDimension());
     rewriter.replaceOpWithNewOp<ConstantOp>(
-        op, DenseIntElementsAttr::get<int32_t>(op.getType(), result));
+        op, DenseIntElementsAttr::get<int32_t>(resultType, result));
     return success();
   }
 };
@@ -521,10 +544,14 @@ struct EvalReshapeOpPattern : public OpRewritePattern<ReshapeOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ReshapeOp op,
                                 PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     DenseIntElementsAttr attr;
     if (!matchPattern(op.getOperand(), m_Constant(&attr)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
-    rewriter.replaceOpWithNewOp<ConstantOp>(op, attr.reshape(op.getType()));
+    rewriter.replaceOpWithNewOp<ConstantOp>(op, attr.reshape(resultType));
     return success();
   }
 };
@@ -533,6 +560,10 @@ struct EvalSelectOpPattern : public OpRewritePattern<SelectOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(SelectOp op,
                                 PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
     SmallVector<APSInt> pred, onTrue, onFalse;
     if (failed(hlo::matchInts(op.getPred(), pred)) ||
         failed(hlo::matchInts(op.getOnTrue(), onTrue)) ||
@@ -556,7 +587,7 @@ struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
   LogicalResult matchAndRewrite(SignOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.getElementType().isa<IntegerType>())
+    if (!isa<IntegerType>(resultType.getElementType()))
       return rewriter.notifyMatchFailure(op,
                                          "expected integer result tensor type");
     return evalElementwise(rewriter, op, [&](APSInt operand) {
@@ -577,20 +608,45 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
   LogicalResult matchAndRewrite(SliceOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.hasRank() || resultType.getRank() != 1)
-      return rewriter.notifyMatchFailure(op, "expected 1-dimensional type");
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
 
-    SmallVector<APSInt> operand;
-    if (failed(hlo::matchInts(op.getOperand(), operand)))
+    if (resultType.getRank() < 1)
+      return rewriter.notifyMatchFailure(
+          op, "expected non-0 ranked tensor result type");
+
+    auto operand = cast<TypedValue<RankedTensorType>>(op.getOperand());
+    RankedTensorType operandType = operand.getType();
+    if (!operandType.hasStaticShape())
+      return rewriter.notifyMatchFailure(
+          op, "expected operand with static ranked tensor type");
+
+    // A ranked tensor type with unit dimension prefix of R-1 size is physically
+    // compatible with 1-dimensional type.
+    if (!llvm::all_of(resultType.getShape().drop_back(),
+                      [](int64_t s) { return s == 1; }))
+      return rewriter.notifyMatchFailure(
+          op, "expected 1-dimensional compatible result type");
+
+    SmallVector<APSInt> operandData;
+    if (failed(hlo::matchInts(operand, operandData)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
 
-    int64_t start = op.getStartIndices()[0];
-    int64_t limit = op.getLimitIndices()[0];
-    int64_t stride = op.getStrides()[0];
+    const auto dimOffsets = computeSuffixProduct(operandType.getShape());
+    auto startIndices = op.getStartIndices();
+    auto limitIndices = op.getLimitIndices();
+    auto strides = op.getStrides();
+
+    int64_t start = 0;
+    for (size_t i = 0; i < startIndices.size(); ++i)
+      start += startIndices[i] * dimOffsets[i];
+
+    auto slicedDim = operandType.getRank() - 1;
+    int64_t limit = start + limitIndices[slicedDim] - startIndices[slicedDim];
+    int64_t stride = strides[slicedDim];
     SmallVector<APSInt> result;
-    for (auto i = start; i < limit; i += stride) {
-      result.push_back(operand[i]);
-    }
+    for (auto i = start; i < limit; i += stride)
+      result.push_back(operandData[i]);
 
     rewriter.replaceOpWithNewOp<ConstantOp>(op,
                                             getTensorAttr(resultType, result));
@@ -617,8 +673,6 @@ struct RefineAllGatherOpPattern : public OpRewritePattern<AllGatherOp> {
   LogicalResult matchAndRewrite(AllGatherOp op,
                                 PatternRewriter& rewriter) const override {
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank())
-      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
 
     // This represents the cross_replica_and_partition process grouping strategy
     // that requires num_partitions to compute shardCount. Since we don't know
@@ -641,8 +695,6 @@ struct RefineBitcastConvertOpPattern
   LogicalResult matchAndRewrite(BitcastConvertOp op,
                                 PatternRewriter& rewriter) const override {
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank())
-      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
 
     // If bit widths of the operand and the result are different, then
     // operand and result shapes have different ranks.
@@ -651,7 +703,7 @@ struct RefineBitcastConvertOpPattern
     auto resultType = op.getType();
     auto getBitWidthFn = [](ShapedType type) {
       auto elementType = type.getElementType();
-      if (auto complexType = elementType.dyn_cast<ComplexType>())
+      if (auto complexType = dyn_cast<ComplexType>(elementType))
         return complexType.getElementType().getIntOrFloatBitWidth();
       return elementType.getIntOrFloatBitWidth();
     };
@@ -769,8 +821,6 @@ struct RefineDynamicConvOpPattern : public OpRewritePattern<DynamicConvOp> {
     SmallVector<int64_t> padding;
     if (failed(hlo::matchInts(op.getDPadding(), padding)))
       return rewriter.notifyMatchFailure(op, "expected constant d_padding");
-    if (op.getPadding().has_value())
-      return rewriter.notifyMatchFailure(op, "expected empty padding");
     auto paddingType = RankedTensorType::get(
         op.getDPadding().getType().getShape(), rewriter.getIntegerType(64));
     auto paddingAttr = DenseIntElementsAttr::get(paddingType, padding);
@@ -939,8 +989,6 @@ struct RefineReduceScatterOpPattern : public OpRewritePattern<ReduceScatterOp> {
   LogicalResult matchAndRewrite(ReduceScatterOp op,
                                 PatternRewriter& rewriter) const override {
     auto operandType = op.getOperand().getType();
-    if (!operandType.hasRank())
-      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
 
     // This represents the cross_replica_and_partition process grouping strategy
     // that requires num_partitions to compute shardCount. Since we don't know

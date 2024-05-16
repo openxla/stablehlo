@@ -60,23 +60,11 @@ interpreter supports resides in [hlo_expand_main.cc](https://github.com/openxla/
 
 ### Not in HLO
 
-Apart from the specced ops, this category consists of 10 unspecced ops (see
-[StableHLO Ops Categories](#stablehlo-ops-categories)) which are planed to be
-moved out of StableHLO. Some of these ops have existing passes in
+Apart from the specced ops, this category consists of 8 unspecced ops (see
+[StableHLO Ops Categories](#stablehlo-ops-categories)) which are planned to be
+moved out of StableHLO. Most of these ops have existing passes in
 [mhlo](https://github.com/openxla/xla/tree/main/xla/mlir_hlo/mhlo/transforms) to
-convert them to StableHLO equivalent ops. There are three ops the interpreter
-does not support because there are no existing decompositions to StableHLO ops:
-
-* `compute_reshape_shape`
-* `cstr_reshapable`
-* `trace`
-
-`compute_reshape_shape` and `cstr_reshapable` ops are part of the ongoing
-Dynamism work, and they are planned to be removed from StableHLO (see
-[#1668](https://github.com/openxla/stablehlo/issues/1668)).
-
-`trace` op is private to XLA and there no no users in JAX, PyTorch or TensorFlow
-(see [#604](https://github.com/openxla/stablehlo/issues/604)).
+convert them to StableHLO equivalent ops.
 
 <!-- markdownlint-disable line-length -->
 The tool to convert remaining ops in this category to equivalent StableHLO ops
@@ -254,17 +242,11 @@ hlo-expand --triangular_solve_expander <path/to/hlo_module>
 # broadcast
 mlir-hlo-opt -mhlo-legalize-broadcast-to-broadcast-in-dim <path/to/input>
 
-# compute_reshape_shape
-# This op will be removed from StableHLO as part of Dynamism work (see #1668).
-
 # create_token
 mlir-hlo-opt -mhlo-legalize-create-token-to-after-all <path/to/input>
 
 # cross-replica-sum
 mlir-hlo-opt -mhlo-legalize-cross-replica-sum-to-all-reduce <path/to/input>
-
-# cstr_reshapable
-# This op will be removed from StableHLO as part of Dynamism work (see #1668).
 
 # dot
 mlir-hlo-opt -mhlo-legalize-dot-to-dot-general <path/to/input>
@@ -274,9 +256,6 @@ mlir-hlo-opt -mhlo-legalize-einsum-to-dot-general <path/to/input>
 
 # torch_index_select
 mlir-hlo-opt -mhlo-legalize-torch-index-select-to-gather <path/to/input>
-
-# trace
-# There are no current users of trace (see #604).
 
 # unary_einsum
 mlir-hlo-opt --canonicalize -mhlo-legalize-einsum-to-dot-general <path/to/input>
@@ -295,6 +274,6 @@ mlir-hlo-opt --canonicalize -mhlo-legalize-einsum-to-dot-general <path/to/input>
 | Extensibility | custom_call, get_tuple_element, tuple                                                                                                                                                                                                                                                                                                                                                                                                                                       | 3     |
 | Miscellaneous | batch_norm_grad, batch_norm_inference, batch_norm_training, cholesky, constant, fft, iota, rng, rng_bit_generator, triangular_solve                                                                                                                                                                                                                                                                                                                                         | 10    |
 | Modularity    | call, func, module, return                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 4     |
-| Not In HLO    | broadcast, compute_reshape_shape, create_token, cross-replica-sum, cstr_reshapable, dot, einsum, torch_index_select, trace, unary_einsum                                                                                                                                                                                                                                                                                                                                    | 10    |
+| Not In HLO    | broadcast, create_token, cross-replica-sum, dot, einsum, torch_index_select, unary_einsum                                                                                                                                                                                                                                                                                                                                                                            | 8     |
 | Quantization  | uniform_dequantize, uniform_quantize                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2     |
 | Reduction     | convolution, dot_general, reduce, reduce_window, select_and_scatter                                                                                                                                                                                                                                                                                                                                                                                                         | 5     |

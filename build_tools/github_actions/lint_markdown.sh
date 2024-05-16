@@ -47,6 +47,6 @@ then
 fi
 
 # Run markdownlint-cli in Docker to avoid node versioning issues
-docker run -v "$STABLEHLO_ROOT_DIR:/workdir" \
+docker run --volume "$STABLEHLO_ROOT_DIR:/workdir" \
     ghcr.io/igorshubovych/markdownlint-cli:v0.32.2 \
     --config $CONFIG "$@"

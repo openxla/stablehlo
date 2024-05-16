@@ -46,6 +46,13 @@ declare_mlir_dialect_python_bindings(
   SOURCES dialects/stablehlo.py
   DIALECT_NAME stablehlo)
 
+declare_mlir_python_sources(StablehloToSavedModelPythonSources
+  ADD_TO_PARENT StablehloPythonSources
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+  SOURCES
+    stablehlo/savedmodel/stablehlo_to_tf_saved_model.py
+)
+
 declare_mlir_python_sources(VhloPythonSources)
 declare_mlir_python_sources(VhloPythonSources.Dialects
   ADD_TO_PARENT VhloPythonSources
@@ -85,6 +92,7 @@ declare_mlir_python_extension(StablehloPythonExtensions.Main
     StablehloCAPI
   PRIVATE_LINK_LIBS
     StablehloPortableApi
+    StablehloReferenceApi
     StablehloSerialization
     LLVMSupport
 )
@@ -140,7 +148,7 @@ add_mlir_python_modules(StablehloUnifiedPythonModules
     VhloPythonExtensions
   COMMON_CAPI_LINK_LIBS
     StablehloUnifiedPythonCAPI
-  )
+)
 
 ################################################################################
 # Tests
