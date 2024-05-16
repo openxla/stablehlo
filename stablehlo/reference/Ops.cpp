@@ -1767,8 +1767,7 @@ Tensor gatherOp(const Tensor &operand, const Tensor &startIndices,
       if (dBatchingIt == operandBatchingDims.end()) continue;
       auto iBatching = dBatchingIt - operandBatchingDims.begin();
       auto dStart = startIndicesBatchingDims[iBatching];
-      fullBatchingIndex[dOperand] =
-          batchIndex[dStart - (dStart < indexVectorDim ? 0 : 1)];
+      fullBatchingIndex[dOperand] = startIndicesIndex[dStart];
     }
 
     Index offsetIndex;
@@ -2214,8 +2213,7 @@ SmallVector<Tensor> scatterOp(
       if (dBatchingIt == inputBatchingDims.end()) continue;
       auto iBatching = dBatchingIt - inputBatchingDims.begin();
       auto dStart = scatterIndicesBatchingDims[iBatching];
-      fullBatchingIndex[dInput] =
-          updateScatterIndex[dStart - (dStart < indexVectorDim ? 0 : 1)];
+      fullBatchingIndex[dInput] = startIndicesIndex[dStart];
     }
 
     Index updateWindowIndex;
