@@ -13,9 +13,8 @@ limitations under the License.
 #ifndef STABLEHLO_INTEGRATIONS_C_STABLEHLO_ATTRIBUTES_H
 #define STABLEHLO_INTEGRATIONS_C_STABLEHLO_ATTRIBUTES_H
 
+#include <stdint.h>
 #include <sys/types.h>
-
-#include <optional>
 
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
@@ -32,6 +31,9 @@ MLIR_CAPI_EXPORTED MlirAttribute stablehloScatterDimensionNumbersGet(
     MlirContext ctx,                                                  //
     intptr_t nUpdateWindowDims, const int64_t *updateWindowDims,      //
     intptr_t nInsertedWindowDims, const int64_t *insertedWindowDims,  //
+    intptr_t nInputBatchingDims, const int64_t *inputBatchingDims,    //
+    intptr_t nScatterIndicesBatchingDims,                             //
+    const int64_t *scatterIndicesBatchingDims,                        //
     intptr_t nScatteredDimsToOperandDims,                             //
     const int64_t *scatteredDimsToOperandDims,                        //
     int64_t indexVectorDim);
@@ -50,6 +52,17 @@ MLIR_CAPI_EXPORTED int64_t
 stablehloScatterDimensionNumbersGetInsertedWindowDimsElem(MlirAttribute attr,
                                                           intptr_t pos);
 MLIR_CAPI_EXPORTED intptr_t
+stablehloScatterDimensionNumbersGetInputBatchingDimsSize(MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+stablehloScatterDimensionNumbersGetInputBatchingDimsElem(MlirAttribute attr,
+                                                         intptr_t pos);
+MLIR_CAPI_EXPORTED intptr_t
+stablehloScatterDimensionNumbersGetScatterIndicesBatchingDimsSize(
+    MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+stablehloScatterDimensionNumbersGetScatterIndicesBatchingDimsElem(
+    MlirAttribute attr, intptr_t pos);
+MLIR_CAPI_EXPORTED intptr_t
 stablehloScatterDimensionNumbersGetScatteredDimsToOperandDimsSize(
     MlirAttribute attr);
 MLIR_CAPI_EXPORTED int64_t
@@ -65,6 +78,8 @@ stablehloDimensionNumbersGetIndexVectorDim(MlirAttribute attr);
 MLIR_CAPI_EXPORTED MlirAttribute stablehloGatherDimensionNumbersGet(
     MlirContext ctx, intptr_t nOffsetDims, const int64_t *offsetDims,
     intptr_t nCollapsedSliceDims, const int64_t *collapsedSliceDims,
+    intptr_t nOperandBatchingDims, const int64_t *operandBatchingDims,
+    intptr_t nStartIndicesBatchingDims, const int64_t *startIndicesBatchingDims,
     intptr_t nStartIndexMap, const int64_t *startIndexMap,
     int64_t indexVectorDim);
 
@@ -80,6 +95,17 @@ stablehloGatherDimensionNumbersGetCollapsedSliceDimsSize(MlirAttribute attr);
 MLIR_CAPI_EXPORTED int64_t
 stablehloGatherDimensionNumbersGetCollapsedSliceDimsElem(MlirAttribute attr,
                                                          intptr_t pos);
+MLIR_CAPI_EXPORTED intptr_t
+stablehloGatherDimensionNumbersGetOperandBatchingDimsSize(MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+stablehloGatherDimensionNumbersGetOperandBatchingDimsElem(MlirAttribute attr,
+                                                          intptr_t pos);
+MLIR_CAPI_EXPORTED intptr_t
+stablehloGatherDimensionNumbersGetStartIndicesBatchingDimsSize(
+    MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+stablehloGatherDimensionNumbersGetStartIndicesBatchingDimsElem(
+    MlirAttribute attr, intptr_t pos);
 MLIR_CAPI_EXPORTED intptr_t
 stablehloGatherDimensionNumbersGetStartIndexMapSize(MlirAttribute attr);
 MLIR_CAPI_EXPORTED int64_t stablehloGatherDimensionNumbersGetStartIndexMapElem(

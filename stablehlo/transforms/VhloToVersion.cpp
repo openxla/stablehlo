@@ -18,6 +18,7 @@ limitations under the License.
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
@@ -25,6 +26,7 @@ limitations under the License.
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -271,23 +273,75 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
 
-TensorV1Attr getDefaultPadding(OpBuilder& builder, Value lhs) {
+TensorV1Attr getEmptyI64Tensor(OpBuilder& builder) {
+  auto shape = vhlo::RankedTensorV1Type::get(
+      builder.getContext(), {0},
+      vhlo::IntegerSI64V1Type::get(builder.getContext()), {});
+  return vhlo::TensorV1Attr::get(builder.getContext(), shape, {});
+}
+
+bool isEmptyTensor(Attribute attr) {
+  auto tensor = dyn_cast<TensorV1Attr>(attr);
+  if (tensor) return tensor.getData().empty();
+  return false;
+}
+
+TensorV1Attr getDefaultConvPadding(OpBuilder& builder, Value lhs) {
   auto lhsType = dyn_cast<RankedTensorV1Type>(lhs.getType());
   if (!lhsType) return TensorV1Attr();
 
   // Convert to DenseElements for getRawData handling.
-  int64_t rankMinusTwo = lhsType.getShape().size() - 2;
+  SmallVector<int64_t> paddingShape{
+      static_cast<int64_t>(lhsType.getShape().size() - 2), 2};
   auto denseElements = DenseIntElementsAttr::get(
-      RankedTensorType::get({rankMinusTwo, 2}, builder.getI64Type()),
-      SmallVector<int64_t>(rankMinusTwo * 2, 0ll));
+      RankedTensorType::get(paddingShape, builder.getI64Type()),
+      SmallVector<int64_t>(paddingShape[0] * 2, 0ll));
 
   return TensorV1Attr::get(
       builder.getContext(),
-      RankedTensorV1Type::get(builder.getContext(), {rankMinusTwo, 2},
+      RankedTensorV1Type::get(builder.getContext(), paddingShape,
                               IntegerSI64V1Type::get(builder.getContext()),
                               nullptr),
       denseElements.getRawData());
 }
+
+// DRR has limited support for ops with regions
+struct ScatterOpV2ToV1 : public OpRewritePattern<ScatterOpV2> {
+  using OpRewritePattern<ScatterOpV2>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOpV2 op,
+                                PatternRewriter& rewriter) const override {
+    if (!isEmptyTensor(op.getScatterIndicesBatchingDims()) ||
+        !isEmptyTensor(op.getInputBatchingDims())) {
+      return rewriter.notifyMatchFailure(op, "non-empty batching dims");
+    }
+    auto newOp = rewriter.replaceOpWithNewOp<ScatterOpV1>(
+        op, op->getResultTypes(), op.getInputs(), op.getScatterIndices(),
+        op.getUpdates(), op.getUpdateWindowDims(), op.getInsertedWindowDims(),
+        op.getScatterDimsToOperandDims(), op.getIndexVectorDim(),
+        op.getIndicesAreSorted(), op.getUniqueIndices());
+    Region& body = newOp.getUpdateComputation();
+    rewriter.inlineRegionBefore(op.getUpdateComputation(), body, body.begin());
+    return success();
+  }
+};
+
+struct ScatterOpV1ToV2 : public OpRewritePattern<ScatterOpV1> {
+  using OpRewritePattern<ScatterOpV1>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOpV1 op,
+                                PatternRewriter& rewriter) const override {
+    auto newOp = rewriter.replaceOpWithNewOp<ScatterOpV2>(
+        op, op->getResultTypes(), op.getInputs(), op.getScatterIndices(),
+        op.getUpdates(), op.getUpdateWindowDims(), op.getInsertedWindowDims(),
+        getEmptyI64Tensor(rewriter), getEmptyI64Tensor(rewriter),
+        op.getScatterDimsToOperandDims(), op.getIndexVectorDim(),
+        op.getIndicesAreSorted(), op.getUniqueIndices());
+    Region& body = newOp.getUpdateComputation();
+    rewriter.inlineRegionBefore(op.getUpdateComputation(), body, body.begin());
+    return success();
+  }
+};
 
 #include "stablehlo/transforms/VhloToVersionPatterns.h.inc"
 
@@ -298,9 +352,8 @@ namespace stablehlo {
 void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    TypeConverter* converter,
                                    MLIRContext* context) {
-  // Currently empty because we're starting from a clean slate in v0.9.0 and
-  // changes so far are additive.
   vhlo::populateWithGenerated(*patterns);
+  patterns->add<vhlo::ScatterOpV1ToV2, vhlo::ScatterOpV2ToV1>(context);
 }
 
 }  // namespace stablehlo

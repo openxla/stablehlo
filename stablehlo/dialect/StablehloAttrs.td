@@ -49,6 +49,8 @@ def StableHLO_ScatterDimensionNumbers : AttrDef<StableHLO_Dialect, "ScatterDimen
   let parameters = (ins
       StableHLO_Dims:$updateWindowDims,
       StableHLO_Dims:$insertedWindowDims,
+      StableHLO_Dims:$inputBatchingDims,
+      StableHLO_Dims:$scatterIndicesBatchingDims,
       StableHLO_Dims:$scatterDimsToOperandDims,
       "int64_t":$indexVectorDim
   );
@@ -61,6 +63,8 @@ def StableHLO_GatherDimensionNumbers : AttrDef<StableHLO_Dialect, "GatherDimensi
   let parameters = (ins
       StableHLO_Dims:$offsetDims,
       StableHLO_Dims:$collapsedSliceDims,
+      StableHLO_Dims:$operandBatchingDims,
+      StableHLO_Dims:$startIndicesBatchingDims,
       StableHLO_Dims:$startIndexMap,
       "int64_t":$indexVectorDim
   );
@@ -195,25 +199,6 @@ def StableHLO_ConvDimensionNumbers : AttrDef<StableHLO_Dialect, "ConvDimensionNu
     StableHLO_Dims:$outputSpatialDimensions
   );
   let hasCustomAssemblyFormat = 1;
-}
-
-def StableHLO_ConvolutionAttributes {
-  dag attributes = (ins
-    // Default value: one for each of the spatial dimension.
-    OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides,
-    // Default value: two zeros for each of the spatial dimension.
-    OptionalAttr<I64ElementsAttr>:$padding,
-    // Default value: one for each of the spatial dimension.
-    OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation,
-    // Default value: one for each of the spatial dimension.
-    OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation,
-    // Default value: false for each of the spatial dimension.
-    OptionalAttr<GenericDenseBoolArrayAttr>:$window_reversal,
-    StableHLO_ConvDimensionNumbers:$dimension_numbers,
-    I64Attr:$feature_group_count,
-    I64Attr:$batch_group_count,
-    StableHLO_PrecisionConfigAttr:$precision_config
-  );
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_ATTRS

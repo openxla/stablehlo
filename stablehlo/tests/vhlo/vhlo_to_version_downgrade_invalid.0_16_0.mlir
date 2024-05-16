@@ -76,7 +76,7 @@ func.func @scatter_with_promotable_types(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<200x100x300xf64> {
 
-  // expected-error @+1 {{failed to legalize operation 'vhlo.scatter_v1' that was explicitly marked illegal}}
+  // expected-error @+1 {{failed to legalize operation 'vhlo.scatter_v2' that was explicitly marked illegal}}
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f64>, %rhs: tensor<f64>):
     %add = stablehlo.add %lhs, %rhs : tensor<f64>

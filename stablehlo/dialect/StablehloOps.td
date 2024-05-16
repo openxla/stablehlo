@@ -2260,15 +2260,23 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution",
     (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>) -> tensor<1x2x2x1xi64>
     ```
   }];
-  let arguments = !con(
-    (ins
-       HLO_Tensor:$lhs, /*convolution_i1*/
-       HLO_TensorOrPerAxisQuantizedTensor:$rhs), /*convolution_i2*/
-    StableHLO_ConvolutionAttributes.attributes /*convolution_i3, convolution_i4,
-    convolution_i5, convolution_i6, convolution_i7, convolution_i8,
-    convolution_i9, convolution_i10, convolution_i11, convolution_i12,
-    convolution_i13, convolution_i14, convolution_i15, convolution_i16,
-    convolution_i17, convolution_i18, convolution_i19*/
+  let arguments = (ins
+    HLO_Tensor:$lhs, /*convolution_i1*/
+    HLO_TensorOrPerAxisQuantizedTensor:$rhs, /*convolution_i2*/
+    // Default value: one for each of the spatial dimension.
+    OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*convolution_i3*/
+    // Default value: two zeros for each of the spatial dimension.
+    OptionalAttr<I64ElementsAttr>:$padding, /*convolution_i4*/
+    // Default value: one for each of the spatial dimension.
+    OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*convolution_i5*/
+    // Default value: one for each of the spatial dimension.
+    OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*convolution_i6*/
+    // Default value: false for each of the spatial dimension.
+    OptionalAttr<GenericDenseBoolArrayAttr>:$window_reversal, /*convolution_i7*/
+    StableHLO_ConvDimensionNumbers:$dimension_numbers, /*convolution_i8...convolution_i16*/
+    I64Attr:$feature_group_count, /*convolution_i17*/
+    I64Attr:$batch_group_count, /*convolution_i18*/
+    StableHLO_PrecisionConfigAttr:$precision_config /*convolution_i19*/
   );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
@@ -2543,8 +2551,8 @@ def StableHLO_FftOp: StableHLO_Op<"fft",
 
 def StableHLO_GatherOp: StableHLO_Op<"gather",
     [ConditionallySpeculatable, NoMemoryEffect,
-    InferTensorTypeWithReify /*gather_c13*/,
-    AllElementTypesMatch<["operand", "result"]> /*gather_c14*/]> {
+    InferTensorTypeWithReify /*gather_c22*/,
+    AllElementTypesMatch<["operand", "result"]> /*gather_c23*/]> {
   let summary = "Gather operation";
   let description = [{
     Gathers slices from `operand` tensor from offsets specified in
@@ -2557,22 +2565,24 @@ def StableHLO_GatherOp: StableHLO_Op<"gather",
     ```mlir
     %result = "stablehlo.gather"(%operand, %start_indices) {
       dimension_numbers = #stablehlo.gather<
-        offset_dims = [2, 3],
-        collapsed_slice_dims = [0],
-        start_index_map = [1, 0],
-        index_vector_dim = 2>,
-      slice_sizes = array<i64: 1, 2, 2>,
+        offset_dims = [3, 4],
+        collapsed_slice_dims = [1],
+        operand_batching_dims = [0],
+        start_indices_batching_dims = [1],
+        start_index_map = [2, 1],
+        index_vector_dim = 3>,
+      slice_sizes = array<i64: 1, 1, 2, 2>,
       indices_are_sorted = false
-    } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
+    } : (tensor<2x3x4x2xi64>, tensor<2x2x3x2xi64>) -> tensor<2x2x3x2x2xi64>
     ```
   }];
 
   let arguments = (ins
     HLO_Tensor:$operand /*gather_i1*/,
     HLO_IntTensor:$start_indices /*gather_i2*/,
-    StableHLO_GatherDimensionNumbers:$dimension_numbers /*gather_i3, gather_i4, gather_i5, gather_i6*/,
-    GenericDenseI64ArrayAttr:$slice_sizes /*gather_i7*/,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*gather_i8*/
+    StableHLO_GatherDimensionNumbers:$dimension_numbers /*gather_i3...gather_i8*/,
+    GenericDenseI64ArrayAttr:$slice_sizes /*gather_i9*/,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*gather_i10*/
   );
 
   let results = (outs HLO_Tensor:$result);
@@ -2708,8 +2718,8 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape",
 def StableHLO_ScatterOp: StableHLO_Op<"scatter",
       [ConditionallySpeculatable, RecursiveMemoryEffects,
       SameVariadicOperandSize /*scatter_c5*/,
-      DeclareOpInterfaceMethods<InferTypeOpInterface> /*scatter_c16,
-      scater_c17*/]> {
+      DeclareOpInterfaceMethods<InferTypeOpInterface> /*scatter_c24,
+      scater_c25*/]> {
   let summary = "Scatter operation";
   let description = [{
     Produces `results` tensors which are equal to `inputs` tensors except that
@@ -2727,25 +2737,27 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter",
        stablehlo.return %0 : tensor<i64>
    }) {
      scatter_dimension_numbers = #stablehlo.scatter<
-       update_window_dims = [2, 3],
-       inserted_window_dims = [0],
-       scatter_dims_to_operand_dims = [1, 0],
-       index_vector_dim = 2>,
+       update_window_dims = [3, 4],
+       inserted_window_dims = [1],
+       input_batching_dims = [0],
+       scatter_indices_batching_dims = [1],
+       scatter_dims_to_operand_dims = [2, 1],
+       index_vector_dim = 3>,
      indices_are_sorted = false,
      unique_indices = false
-   } : (tensor<3x4x2xi64>, tensor<2x3x2xi64>, tensor<2x3x2x2xi64>) -> tensor<3x4x2xi64>
+   } : (tensor<2x3x4x2xi64>, tensor<2x2x3x2xi64>, tensor<2x2x3x2x2xi64>) -> tensor<2x3x4x2xi64>
    ```
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs, /*scatter_i1*/
     RankedTensorOf<[AnyInteger, Index]>:$scatter_indices, /*scatter_i2*/
     Variadic<HLO_Tensor>:$updates, /*scatter_i3*/
-    StableHLO_ScatterDimensionNumbers:$scatter_dimension_numbers, /*scatter_i4...scatter_i7*/
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted, /*scatter_i8*/
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$unique_indices /*scatter_i9*/
+    StableHLO_ScatterDimensionNumbers:$scatter_dimension_numbers, /*scatter_i4...scatter_i9*/
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted, /*scatter_i10*/
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$unique_indices /*scatter_i11*/
   );
 
-  let regions = (region SizedRegion<1>:$update_computation /*scatter_i10*/);
+  let regions = (region SizedRegion<1>:$update_computation /*scatter_i12*/);
 
   let results = (outs Variadic<HLO_Tensor>);
 
@@ -3461,7 +3473,7 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
   let summary = "DynamicGather operation";
   let description = [{
     This operation is functionally identical to
-    [iota](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
+    [gather](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather)
     op, with the `slice_sizes` specified dynamically as an operand.
 
     Example:
@@ -3492,19 +3504,21 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
       [HLO_SpeculatableIfAllInputsStaticAndShapeConstant, NoMemoryEffect]> {
   let summary = "DynamicConv operation";
   let description = [{
-    Computes dot products between windows of `lhs` and slices of `rhs` and
-    produces `result`.
+    This operation is functionally identical to
+    [convolution](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution)
+    op, but the padding is specified dynamically via `padding`.
 
     Example:
     ```mlir
-    %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %d_padding) {
+    %padding = stablehlo.constant dense<2> : tensor<2x2xi64>
+    %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %padding) {
       window_strides = array<i64: 4, 4>,
       lhs_dilation = array<i64: 2, 2>,
       rhs_dilation = array<i64: 1, 1>,
       window_reversal = array<i1: false, false>,
       dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
-      feature_group_count = 1 : i64,
       batch_group_count = 1 : i64,
+      feature_group_count = 1 : i64,
       precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
     } : (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>, tensor<2x2xi64>) -> tensor<1x2x2x1xi64>
     ```
@@ -3513,7 +3527,7 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
   let arguments = (ins
        HLO_Tensor:$lhs, /*dynamic_conv_i1*/
        HLO_Tensor:$rhs, /*dynamic_conv_i2*/
-       HLO_Tensor:$d_padding, /*dynamic_conv_i3*/
+       HLO_Static2DIntTensor:$padding, /*dynamic_conv_i3*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*dynamic_conv_i4*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*dynamic_conv_i5*/
        OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*dynamic_conv_i6*/
@@ -3531,15 +3545,6 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
       auto reversal = getWindowReversal();
       return reversal.has_value() && llvm::any_of(reversal.value(), [](bool v) { return v; });
     }
-  }];
-
-  let assemblyFormat = [{
-    `(`operands`)`
-       `dim_numbers` `=` custom<ConvolutionDimensions>($dimension_numbers) `,`
-       `window` `=` `{` custom<WindowAttributes>($window_strides,
-                                                 $lhs_dilation, $rhs_dilation,
-                                                 $window_reversal) `}`
-       attr-dict `:` functional-type(operands, results)
   }];
 }
 

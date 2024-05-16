@@ -33,6 +33,7 @@ add_mlir_dialect_library(StablehloPasses
   ChloLegalizeToStablehlo.cpp
   PassPipelines.cpp
   ShapeLegalizeToStablehlo.cpp
+  StablehloAggressiveFolder.cpp
   StablehloAggressiveSimplification.cpp
   StablehloCanonicalizeDynamism.cpp
   StablehloInstrumentWithProbe.cpp

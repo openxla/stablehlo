@@ -61,6 +61,15 @@ void populateVhloToVersionPatterns(RewritePatternSet *patterns,
 void populateChloToStablehloPatterns(MLIRContext *context,
                                      RewritePatternSet *patterns);
 
+/// Collection of folding patterns for StableHLO.
+void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
+                                               MLIRContext *context);
+
+/// A subset of folding patterns for StableHLO that is necessary for shape
+/// refinement.
+void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
+                                          MLIRContext *context);
+
 /// Collection of canonicalization patterns for StableHLO.
 void populateStablehloCanonicalizationPatterns(MLIRContext *context,
                                                RewritePatternSet *patterns,

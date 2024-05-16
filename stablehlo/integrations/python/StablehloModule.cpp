@@ -96,16 +96,22 @@ PYBIND11_MODULE(_stablehlo, m) {
           "get",
           [](py::object cls, const std::vector<int64_t> &updateWindowDims,
              const std::vector<int64_t> &insertedWindowDims,
+             const std::vector<int64_t> &inputBatchingDims,
+             const std::vector<int64_t> &scatterIndicesBatchingDims,
              const std::vector<int64_t> &scatteredDimsToOperandDims,
              int64_t indexVectorDim, MlirContext ctx) {
             return cls(stablehloScatterDimensionNumbersGet(
                 ctx, updateWindowDims.size(), updateWindowDims.data(),
                 insertedWindowDims.size(), insertedWindowDims.data(),
+                inputBatchingDims.size(), inputBatchingDims.data(),
+                scatterIndicesBatchingDims.size(),
+                scatterIndicesBatchingDims.data(),
                 scatteredDimsToOperandDims.size(),
                 scatteredDimsToOperandDims.data(), indexVectorDim));
           },
           py::arg("cls"), py::arg("update_window_dims"),
-          py::arg("inserted_window_dims"),
+          py::arg("inserted_window_dims"), py::arg("input_batching_dims"),
+          py::arg("scatter_indices_batching_dims"),
           py::arg("scattered_dims_to_operand_dims"),
           py::arg("index_vector_dim"), py::arg("context") = py::none(),
           "Creates a ScatterDimensionNumbers with the given dimension "
@@ -124,6 +130,21 @@ PYBIND11_MODULE(_stablehlo, m) {
                 self, stablehloScatterDimensionNumbersGetInsertedWindowDimsSize,
                 stablehloScatterDimensionNumbersGetInsertedWindowDimsElem);
           })
+      .def_property_readonly(
+          "input_batching_dims",
+          [](MlirAttribute self) {
+            return attributePropertyVector(
+                self, stablehloScatterDimensionNumbersGetInputBatchingDimsSize,
+                stablehloScatterDimensionNumbersGetInputBatchingDimsElem);
+          })
+      .def_property_readonly(
+          "scatter_indices_batching_dims",
+          [](MlirAttribute self) {
+            return attributePropertyVector(
+                self,
+                stablehloScatterDimensionNumbersGetScatterIndicesBatchingDimsSize,  // NOLINT
+                stablehloScatterDimensionNumbersGetScatterIndicesBatchingDimsElem);  // NOLINT
+          })
       .def_property_readonly("scattered_dims_to_operand_dims",
                              scatteredDimsToOperandDimsFunc)
       .def_property_readonly("index_vector_dim", [](MlirAttribute self) {
@@ -136,15 +157,21 @@ PYBIND11_MODULE(_stablehlo, m) {
           "get",
           [](py::object cls, const std::vector<int64_t> &offsetDims,
              const std::vector<int64_t> &collapsedSliceDims,
+             const std::vector<int64_t> &operandBatchingDims,
+             const std::vector<int64_t> &startIndicesBatchingDims,
              const std::vector<int64_t> &startIndexMap, int64_t indexVectorDim,
              MlirContext ctx) {
             return cls(stablehloGatherDimensionNumbersGet(
                 ctx, offsetDims.size(), offsetDims.data(),
                 collapsedSliceDims.size(), collapsedSliceDims.data(),
-                startIndexMap.size(), startIndexMap.data(), indexVectorDim));
+                operandBatchingDims.size(), operandBatchingDims.data(),
+                startIndicesBatchingDims.size(),
+                startIndicesBatchingDims.data(), startIndexMap.size(),
+                startIndexMap.data(), indexVectorDim));
           },
           py::arg("cls"), py::arg("offset_dims"),
-          py::arg("collapsed_slice_dims"), py::arg("start_index_map"),
+          py::arg("collapsed_slice_dims"), py::arg("operand_batching_dims"),
+          py::arg("start_indices_batching_dims"), py::arg("start_index_map"),
           py::arg("index_vector_dim"), py::arg("context") = py::none(),
           "Creates a GatherDimensionNumbers attribute with the given dimension "
           "configuration.")
@@ -161,6 +188,21 @@ PYBIND11_MODULE(_stablehlo, m) {
             return attributePropertyVector(
                 self, stablehloGatherDimensionNumbersGetCollapsedSliceDimsSize,
                 stablehloGatherDimensionNumbersGetCollapsedSliceDimsElem);
+          })
+      .def_property_readonly(
+          "operand_batching_dims",
+          [](MlirAttribute self) {
+            return attributePropertyVector(
+                self, stablehloGatherDimensionNumbersGetOperandBatchingDimsSize,
+                stablehloGatherDimensionNumbersGetOperandBatchingDimsElem);
+          })
+      .def_property_readonly(
+          "start_indices_batching_dims",
+          [](MlirAttribute self) {
+            return attributePropertyVector(
+                self,
+                stablehloGatherDimensionNumbersGetStartIndicesBatchingDimsSize,
+                stablehloGatherDimensionNumbersGetStartIndicesBatchingDimsElem);
           })
       .def_property_readonly(
           "start_index_map",

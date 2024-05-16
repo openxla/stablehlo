@@ -51,3 +51,9 @@ toc:
     path: /stablehlo/type_inference
   - title: The VHLO dialect
     path: /stablehlo/vhlo
+  - title: StableHLO Passes
+    path: /stablehlo/generated/stablehlo_passes
+  - title: StableHLO Linalg Passes
+    path: /stablehlo/generated/stablehlo_linalg_passes
+  - title: StableHLO TOSA Passes
+    path: /stablehlo/generated/stablehlo_tosa_passes

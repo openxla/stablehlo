@@ -41,7 +41,7 @@ void reifyGatherDimSizes(int64_t resultRank,
                          llvm::function_ref<Value(int64_t)> getSliceDim,
                          ArrayRef<int64_t> offsetDims,
                          ArrayRef<int64_t> collapsedSliceDims,
-                         ArrayRef<int64_t> startIndexMap,
+                         ArrayRef<int64_t> operandBatchingDims,
                          int64_t indexVectorDim, SmallVectorImpl<Value>& shape);
 
 // Convert a Nx2 dense int64 padding attribute to a list of tuples.
@@ -217,8 +217,8 @@ LogicalResult inferDotGeneralOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicConvOp(
-    std::optional<Location> location, Type lhsType, Type rhsType,
-    Value dPadding, std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
@@ -233,7 +233,8 @@ LogicalResult inferDynamicConvOp(
 LogicalResult inferDynamicGatherOp(
     std::optional<Location> location, Value operand, Value startIndices,
     Value sliceSizes, ArrayRef<int64_t> offsetDims,
-    ArrayRef<int64_t> collapsedSliceDims, ArrayRef<int64_t> startIndexMap,
+    ArrayRef<int64_t> collapsedSliceDims, ArrayRef<int64_t> operandBatchingDims,
+    ArrayRef<int64_t> startIndicesBatchingDims, ArrayRef<int64_t> startIndexMap,
     int64_t indexVectorDim,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
@@ -255,8 +256,9 @@ LogicalResult inferFftOp(
 LogicalResult inferGatherOp(
     std::optional<Location> location, Value operand, Value startIndices,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
-    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
-    ArrayRef<int64_t> sliceSizes,
+    ArrayRef<int64_t> operandBatchingDims,
+    ArrayRef<int64_t> startIndicesBatchingDims, ArrayRef<int64_t> startIndexMap,
+    int64_t indexVectorDim, ArrayRef<int64_t> sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferGetDimensionSizeOp(
@@ -462,8 +464,8 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     std::optional<ArrayRef<int64_t>> knownNonexpandingDimensions, Value result);
 
 LogicalResult verifyDynamicConvOp(
-    std::optional<Location> location, Type lhsType, Type rhsType,
-    Value dPadding, std::optional<ArrayRef<int64_t>> windowStrides,
+    std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
+    std::optional<ArrayRef<int64_t>> windowStrides,
     std::optional<ArrayRef<int64_t>> lhsDilation,
     std::optional<ArrayRef<int64_t>> rhsDilation,
     std::optional<ArrayRef<bool>> windowReversal, int64_t inputBatchDimension,
@@ -540,14 +542,13 @@ LogicalResult verifyReverseOp(std::optional<Location> location, Value operand,
 LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,
                                       Value initialState, Value outputState);
 
-LogicalResult verifyScatterOp(std::optional<Location> location,
-                              ValueRange inputs, Value scatterIndices,
-                              ValueRange updates,
-                              ArrayRef<int64_t> updateWindowDims,
-                              ArrayRef<int64_t> insertedWindowDims,
-                              ArrayRef<int64_t> scatterDimsToOperandDims,
-                              int64_t indexVectorDim,
-                              Region& updateComputation);
+LogicalResult verifyScatterOp(
+    std::optional<Location> location, ValueRange inputs, Value scatterIndices,
+    ValueRange updates, ArrayRef<int64_t> updateWindowDims,
+    ArrayRef<int64_t> insertedWindowDims, ArrayRef<int64_t> inputBatchingDims,
+    ArrayRef<int64_t> scatterIndicesBatchingDims,
+    ArrayRef<int64_t> scatterDimsToOperandDims, int64_t indexVectorDim,
+    Region& updateComputation);
 
 LogicalResult verifySelectAndScatterOp(
     std::optional<Location> location, Value operand, Value source,
