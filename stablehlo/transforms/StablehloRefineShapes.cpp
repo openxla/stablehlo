@@ -346,7 +346,7 @@ struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
 
     // Clean up operand buffers after refinement
     // Must do in this pattern to avoid needing multiple refinement iterations
-    if (op.getCallTargetName().equals(kCustomCallOperandBarrierTarget)) {
+    if (op.getCallTargetName() == kCustomCallOperandBarrierTarget) {
       Value operand = op.getOperand(0);
       if (operand.getType() == op.getResult(0).getType()) {
         op.replaceAllUsesWith(ValueRange(operand));
