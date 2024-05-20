@@ -155,7 +155,7 @@ func.func @maximum(%arg0 : tensor<10xf32>, %arg1 : tensor<10xf32>) -> tensor<10x
 
 // CHECK-LABEL: @maximum_f64
 func.func @maximum_f64(%arg0 : tensor<10xf64>, %arg1 : tensor<10xf64>) -> tensor<10xf64> {
-  // CHECK: stablehlo.maximum
+  // CHECK: tosa.maximum
   %0 = "stablehlo.maximum"(%arg0, %arg1) : (tensor<10xf64>, tensor<10xf64>) -> tensor<10xf64>
   return %0 : tensor<10xf64>
 }
