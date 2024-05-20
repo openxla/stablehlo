@@ -44,7 +44,7 @@ def main():
         sources.append(target.make_comment(
             func.__doc__)) if func.__doc__ else None
         sources[-1] += src
-    source = "\n\n".join(sources)
+    source = "\n\n".join(sources) + "\n"
 
     if os.path.isfile(output_file):
         f = open(output_file, "r")

@@ -154,7 +154,7 @@ def main():
             f.write(
                 "// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s | stablehlo-translate --interpret\n"
             )
-            f.write(str(m))
+            f.write(str(m).rstrip() + "\n")
             f.close()
             print(f"Created {fname}")
 
