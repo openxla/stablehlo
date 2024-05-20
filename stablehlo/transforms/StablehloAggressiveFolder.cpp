@@ -477,15 +477,15 @@ struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(IotaOp op,
                                 PatternRewriter& rewriter) const override {
-    auto resultType = op.getType().cast<RankedTensorType>();
+    auto resultType = cast<RankedTensorType>(op.getType());
     auto elementType = resultType.getElementType();
 
     if (!elementType.isInteger())
       return rewriter.notifyMatchFailure(op, "expected integer result type");
 
     auto outputSize = resultType.getNumElements();
-    auto dimension = op.getIotaDimension();
     auto resultBitWidth = elementType.getIntOrFloatBitWidth();
+    int64_t dimension = op.getIotaDimension();
 
     llvm::SmallVector<APInt> values;
     values.reserve(outputSize);
@@ -493,7 +493,7 @@ struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
     int64_t sequences = 1;
     int64_t sequenceMax = resultType.getDimSize(dimension);
     int64_t elementRepetitions = 1;
-    for (uint64_t i = 0; i < resultType.getShape().size(); i++) {
+    for (int64_t i = 0; i < resultType.getRank(); i++) {
       sequences *= i < dimension ? resultType.getDimSize(i) : 1;
       elementRepetitions *= i > dimension ? resultType.getDimSize(i) : 1;
     }
