@@ -178,18 +178,26 @@ inline std::string toString(const Element &elem) {
 
 llvm::Error evalExpectIsCloseOp(const Tensor &lhs, const Tensor &rhs,
                                 const Tensor &abs_error, const Tensor &input) {
+  if (!isSupportedFloatType(abs_error.getElementType())) {
+    const std::string abs_errorType = debugString(abs_error.getType());
+    return invalidArgument("abs_error must be a float tensor, got %s",
+                           abs_errorType.c_str());
+  }
   std::ostringstream mismatches;
   for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin(),
             abs_errorIt = abs_error.index_begin(),
             inputIt = input.index_begin();
-       lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt, ++abs_errorIt, ++inputIt)
-    if (!areClose(lhs.get(*lhsIt), rhs.get(*rhsIt), abs_error.get(*abs_errorIt))
+       lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt, ++abs_errorIt, ++inputIt) {
+    double abs_error_ =
+        abs_error.get(*abs_errorIt).getFloatValue().convertToDouble();
+    if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt), abs_error_)
              .getBooleanValue())
       mismatches << "\n  index=" << debugString((*lhsIt))
                  << ", actual=" << toString(lhs.get(*lhsIt))
                  << ", expected=" << toString(rhs.get(*rhsIt))
                  << ", atol=" << toString(abs_error.get(*abs_errorIt))
                  << ", input=" << toString(input.get(*inputIt));
+  }
   if (mismatches.tellp() != 0) {
     return invalidArgument("Elements values don't match:%s",
                            mismatches.str().c_str());
