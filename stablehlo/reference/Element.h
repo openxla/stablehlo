@@ -155,6 +155,8 @@ Element atan2(const Element &e1, const Element &e2);
 /// individually equal modulo the tolerance.
 Element areApproximatelyEqual(const Element &e1, const Element &e2);
 
+Element areClose(const Element &e1, const Element &e2, const Element &abs_error);
+
 /// Various flavors of bitcast conversion as defined in the specification.
 Element bitcastConvertOneToOne(Type type, const Element &e);
 SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &e);

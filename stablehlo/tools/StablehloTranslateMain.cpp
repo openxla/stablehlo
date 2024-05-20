@@ -154,6 +154,18 @@ class StablehloTranslateInterpreterFallback
                                            "check.expect_serialized_eq");
     }
 
+    if (auto expectIsCloseOp =
+            dyn_cast<stablehlo::check::ExpectIsCloseOp>(op)) {
+      auto runtimeLhs = scope.findTensor(expectIsCloseOp.getLhs());
+      auto runtimeRhs = scope.findTensor(expectIsCloseOp.getRhs());
+      auto runtimeAbsError = scope.findTensor(expectIsCloseOp.getAbsError());
+      auto runtimeInput = scope.findTensor(expectIsCloseOp.getInput());
+      auto status = stablehlo::check::evalExpectIsCloseOp(
+          runtimeLhs, runtimeRhs, runtimeAbsError, runtimeInput);
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_is_close");
+    }
+
     return stablehlo::invalidArgument("Unsupported op: %s",
                                       debugString(op).c_str());
   }

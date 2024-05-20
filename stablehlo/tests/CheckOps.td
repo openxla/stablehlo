@@ -81,6 +81,42 @@ def CHECK_ExpectAlmostEqOp :
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
 }
 
+def CHECK_ExpectIsCloseOp :
+    Op<CHECK_Dialect, "expect_is_close", [AllTypesMatch<["lhs", "rhs", "input"]>]> {
+  let summary = [{Checks that the tensor operands are equal within a tolerance tensor}];
+  let description = [{
+    Verifies that the tensor operands with floating-point element
+    type are equal within an user-defined tolerance tensor:
+
+      abs(lhs - rhs) < abs_error
+
+    abs_error is typically
+
+      atol + rtol * abs(rhs)
+
+    where atol must be chosen carefully to match rhs magnitude.
+
+    When rhs operand is non-finite, expect_allclose is equivalent to
+    expect_eq with respect to that operand.
+
+    Input argument is used only when reporting mismatches between lhs
+    and rhs.
+
+    ```mlir
+    check.expect_is_close %arg0, %arg1, %arg2, %arg3 : tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>
+    ```
+  }];
+
+  let arguments = (ins
+      TensorOf<[AnyFloat, AnyComplex]>:$lhs,
+      TensorOf<[AnyFloat, AnyComplex]>:$rhs,
+      TensorOf<[AnyFloat]>:$abs_error,
+      TensorOf<[AnyFloat, AnyComplex]>:$input
+  );
+
+  let assemblyFormat = "$lhs `,` $rhs `,` $abs_error `,` $input `:` attr-dict type($lhs) `,` type($rhs) `,` type($abs_error) `,` type($input)";
+}
+
 def CHECK_ExpectEqConstOp :
     Op<CHECK_Dialect, "expect_eq_const", [AllTypesMatch<["lhs", "value"]>]> {
   let summary = [{Checks the tensor operand is equal to some constant}];

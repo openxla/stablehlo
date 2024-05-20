@@ -27,6 +27,7 @@ limitations under the License.
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Tensor.h"
+#include "stablehlo/reference/Types.h"
 #include "stablehlo/tests/CheckOps.cpp.inc"
 
 namespace mlir {
@@ -154,6 +155,46 @@ llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
                                    probeId.str().c_str());
 
   return evalExpectEqOp(expected, *tensor);
+}
+
+inline std::string toString(const Element &elem) {
+  auto type = elem.getType();
+  if (isSupportedFloatType(type)) {
+    SmallString<40> S;
+    elem.getFloatValue().toString(S);
+    return std::string(S);
+  } else if (isSupportedComplexType(type)) {
+    auto c = elem.getComplexValue();
+    SmallString<80> S("(");
+    c.real().toString(S);
+    S += ", ";
+    c.imag().toString(S);
+    S += ")";
+    return std::string(S);
+  } else {
+    return debugString(elem);
+  }
+}
+
+llvm::Error evalExpectIsCloseOp(const Tensor &lhs, const Tensor &rhs,
+                                const Tensor &abs_error, const Tensor &input) {
+  std::ostringstream mismatches;
+  for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin(),
+            abs_errorIt = abs_error.index_begin(),
+            inputIt = input.index_begin();
+       lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt, ++abs_errorIt, ++inputIt)
+    if (!areClose(lhs.get(*lhsIt), rhs.get(*rhsIt), abs_error.get(*abs_errorIt))
+             .getBooleanValue())
+      mismatches << "\n  index=" << debugString((*lhsIt))
+                 << ", actual=" << toString(lhs.get(*lhsIt))
+                 << ", expected=" << toString(rhs.get(*rhsIt))
+                 << ", atol=" << toString(abs_error.get(*abs_errorIt))
+                 << ", input=" << toString(input.get(*inputIt));
+  if (mismatches.tellp() != 0) {
+    return invalidArgument("Elements values don't match:%s",
+                           mismatches.str().c_str());
+  }
+  return llvm::Error::success();
 }
 
 }  // namespace check

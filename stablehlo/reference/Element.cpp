@@ -174,6 +174,33 @@ bool areApproximatelyEqual(APFloat f, APFloat g) {
   return std::fabs(f.convertToDouble() - g.convertToDouble()) <= 0.0001;
 }
 
+bool areClose(APFloat f, APFloat g, APFloat abs_error) {
+  if (&f.getSemantics() != &g.getSemantics()) return false;
+  llvm::APFloatBase::cmpResult cmpResult = f.compare(g);
+  if (cmpResult == APFloat::cmpEqual) return true;
+  if (cmpResult == APFloat::cmpUnordered) return f.isNaN() == g.isNaN();
+  if (!f.isFiniteNonZero() || !g.isFiniteNonZero()) {
+    // f and g could have the following cases
+    //          f                           g
+    //  (1) non-finite or zero      non-finite or zero
+    //  (2) non-finite or zero      finite and non-zero
+    //    (2.1) non-finite              finite and non-zero
+    //    (2.2) zero                    finite and non-zero
+    //  (3) finite and non-zero     non-finite or zero
+    //    (3.1) finite and non-zero     non-finite
+    //    (3.2) finite and non-zero     zero
+    //
+    // The equality of the cases (1), (2.1) and (3.1) have already been handled,
+    // and it safe to return false for these case. The remaining cases (2.2)
+    // and (3.2) will be handled in the following code.
+    if (!f.isZero() && !g.isZero()) return false;
+  }
+
+  // Both f and g are finite (zero, subnormal, or normal) values.
+  return std::fabs(f.convertToDouble() - g.convertToDouble()) <=
+         abs_error.convertToDouble();
+}
+
 }  // namespace
 
 Element::Element(Type type, APInt value) {
@@ -613,6 +640,35 @@ Element areApproximatelyEqual(const Element &e1, const Element &e2) {
         i1Type,
         areApproximatelyEqual(complexLhs.real(), complexRhs.real()) &&
             areApproximatelyEqual(complexLhs.imag(), complexRhs.imag()));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
+Element areClose(const Element &e1, const Element &e2,
+                 const Element &abs_error) {
+  auto type = e1.getType();
+  auto etype = abs_error.getType();
+  auto i1Type = IntegerType::get(e1.getType().getContext(), 1);
+  if (type != e2.getType() || !isSupportedFloatType(etype))
+    report_fatal_error(
+        invalidArgument("Element types don't match: %s vs %s vs %s",
+                        debugString(type).c_str(),
+                        debugString(e2.getType()).c_str()),
+        debugString(etype).c_str());
+
+  if (isSupportedFloatType(type))
+    return Element(i1Type, areClose(e1.getFloatValue(), e2.getFloatValue(),
+                                    abs_error.getFloatValue()));
+
+  if (isSupportedComplexType(type)) {
+    auto complexLhs = e1.getComplexValue();
+    auto complexRhs = e2.getComplexValue();
+    return Element(i1Type, areClose(complexLhs.real(), complexRhs.real(),
+                                    abs_error.getFloatValue()) &&
+                               areClose(complexLhs.imag(), complexRhs.imag(),
+                                        abs_error.getFloatValue()));
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",

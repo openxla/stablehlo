@@ -38,6 +38,10 @@ def StableHLO_ConstantLikePosInfValue : NativeCodeCall<
 def StableHLO_ConstantLikeNegInfValue : NativeCodeCall<
     "::mlir::stablehlo::getConstantLikeInfValue($_builder, $_loc, $0, /*negative=*/true)">;
 
+def StableHLO_ConstantLikeSmallestNormalizedValue : NativeCodeCall<
+    "::mlir::stablehlo::getConstantLikeSmallestNormalizedValue($_builder, $_loc, $0)">;
+
+
 //===----------------------------------------------------------------------===//
 // Unary op patterns.
 //===----------------------------------------------------------------------===//
@@ -154,25 +158,6 @@ def : Pat<(CHLO_AcoshOp ComplexElementType:$input),
     )
   )>;
 
-
-// Expand asin to MHLO dialect as follows:
-//   asin(x) = 2 * atan(x / (1 + sqrt(1 - x^2)))
-def : Pat<(CHLO_AsinOp $input),
-  (StableHLO_MulOp
-    (StableHLO_ConstantLike<"2"> $input),
-    (StableHLO_Atan2Op
-      $input,
-      (StableHLO_AddOp
-        (StableHLO_ConstantLike<"1"> $input),
-        (StableHLO_SqrtOp
-          (StableHLO_SubtractOp
-            (StableHLO_ConstantLike<"1"> $input),
-            (StableHLO_MulOp $input, $input)
-          )
-        )
-      )
-    )
-  )>;
 
 // Expand asinh for non-complex arguments to MHLO dialect as
 //   asinh(x) = log(x + sqrt(x^2 + 1))
@@ -385,3 +370,7 @@ def : Pat<(CHLO_TanOp ComplexElementType:$input),
 
 def : Pat<(CHLO_ConstantOp $v),
           (StableHLO_ConstantOp $v)>;
+
+
+// Include generated implementations of math functions:
+include "ChloDecompositionPatternsMath.td"
