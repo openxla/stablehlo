@@ -115,14 +115,17 @@ def test_gather_dimension_numbers():
       operand_batching_dims=[6, 7],
       start_indices_batching_dims=[8, 9],
       start_index_map=[10],
-      index_vector_dim=11)
+      index_vector_dim=11,
+  )
   assert attr is not None
-  assert str(attr) == ("#stablehlo.gather<offset_dims = [1, 2], "
-                       "collapsed_slice_dims = [3, 4, 5], "
-                       "operand_batching_dims = [6, 7], "
-                       "start_indices_batching_dims = [8, 9], "
-                       "start_index_map = [10], "
-                       "index_vector_dim = 11>")
+  assert str(attr) == (
+      "#stablehlo.gather<offset_dims = [1, 2], "
+      "collapsed_slice_dims = [3, 4, 5], "
+      "operand_batching_dims = [6, 7], "
+      "start_indices_batching_dims = [8, 9], "
+      "start_index_map = [10], "
+      "index_vector_dim = 11>"
+  )
   assert attr.offset_dims == [1, 2]
   assert attr.collapsed_slice_dims == [3, 4, 5]
   assert attr.operand_batching_dims == [6, 7]
@@ -178,14 +181,17 @@ def test_scatter_dimension_numbers():
       input_batching_dims=[6, 7],
       scatter_indices_batching_dims=[8, 9],
       scattered_dims_to_operand_dims=[10, 11],
-      index_vector_dim=12)
+      index_vector_dim=12,
+  )
   assert attr is not None
-  assert str(attr) == ("#stablehlo.scatter<update_window_dims = [1, 2, 3], "
-                       "inserted_window_dims = [4, 5], "
-                       "input_batching_dims = [6, 7], "
-                       "scatter_indices_batching_dims = [8, 9], "
-                       "scatter_dims_to_operand_dims = [10, 11], "
-                       "index_vector_dim = 12>")
+  assert str(attr) == (
+      "#stablehlo.scatter<update_window_dims = [1, 2, 3], "
+      "inserted_window_dims = [4, 5], "
+      "input_batching_dims = [6, 7], "
+      "scatter_indices_batching_dims = [8, 9], "
+      "scatter_dims_to_operand_dims = [10, 11], "
+      "index_vector_dim = 12>"
+  )
   assert attr.update_window_dims == [1, 2, 3]
   assert attr.inserted_window_dims == [4, 5]
   assert attr.input_batching_dims == [6, 7]
