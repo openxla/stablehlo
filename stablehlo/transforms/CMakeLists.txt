@@ -36,6 +36,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloAggressiveFolder.cpp
   StablehloAggressiveSimplification.cpp
   StablehloCanonicalizeDynamism.cpp
+  StablehloConvertToSignless.cpp
   StablehloInstrumentWithProbe.cpp
   StablehloLegalizeCompositeToCall.cpp
   StablehloLegalizeDeprecatedOps.cpp
