@@ -157,25 +157,6 @@ llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
   return evalExpectEqOp(expected, *tensor);
 }
 
-inline std::string toString(const Element &elem) {
-  auto type = elem.getType();
-  if (isSupportedFloatType(type)) {
-    SmallString<40> S;
-    elem.getFloatValue().toString(S);
-    return std::string(S);
-  } else if (isSupportedComplexType(type)) {
-    auto c = elem.getComplexValue();
-    SmallString<80> S("(");
-    c.real().toString(S);
-    S += ", ";
-    c.imag().toString(S);
-    S += ")";
-    return std::string(S);
-  } else {
-    return debugString(elem);
-  }
-}
-
 llvm::Error evalExpectIsCloseOp(const Tensor &lhs, const Tensor &rhs,
                                 const Tensor &abs_error, const Tensor &input) {
   if (!isSupportedFloatType(abs_error.getElementType())) {
@@ -183,7 +164,8 @@ llvm::Error evalExpectIsCloseOp(const Tensor &lhs, const Tensor &rhs,
     return invalidArgument("abs_error must be a float tensor, got %s",
                            abs_errorType.c_str());
   }
-  std::ostringstream mismatches;
+  std::string mismatches;
+  llvm::raw_string_ostream output(mismatches);
   for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin(),
             abs_errorIt = abs_error.index_begin(),
             inputIt = input.index_begin();
@@ -191,16 +173,16 @@ llvm::Error evalExpectIsCloseOp(const Tensor &lhs, const Tensor &rhs,
     double abs_error_ =
         abs_error.get(*abs_errorIt).getFloatValue().convertToDouble();
     if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt), abs_error_)
-             .getBooleanValue())
-      mismatches << "\n  index=" << debugString((*lhsIt))
-                 << ", actual=" << toString(lhs.get(*lhsIt))
-                 << ", expected=" << toString(rhs.get(*rhsIt))
-                 << ", atol=" << toString(abs_error.get(*abs_errorIt))
-                 << ", input=" << toString(input.get(*inputIt));
+             .getBooleanValue()) {
+      output << "\n  index=" << (*lhsIt) << ", actual=" << lhs.get(*lhsIt)
+             << ", expected=" << rhs.get(*rhsIt)
+             << ", atol=" << abs_error.get(*abs_errorIt)
+             << ", input=" << input.get(*inputIt);
+    }
   }
-  if (mismatches.tellp() != 0) {
+  if (mismatches.size() != 0) {
     return invalidArgument("Elements values don't match:%s",
-                           mismatches.str().c_str());
+                           mismatches.c_str());
   }
   return llvm::Error::success();
 }

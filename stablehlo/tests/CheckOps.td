@@ -96,7 +96,7 @@ def CHECK_ExpectIsCloseOp :
 
     where atol must be chosen carefully to match rhs magnitude.
 
-    When rhs operand is non-finite, expect_allclose is equivalent to
+    When rhs operand is non-finite, expect_is_close is equivalent to
     expect_eq with respect to that operand.
 
     Input argument is used only when reporting mismatches between lhs
