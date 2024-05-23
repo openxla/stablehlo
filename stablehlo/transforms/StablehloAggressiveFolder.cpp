@@ -490,6 +490,12 @@ struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
     llvm::SmallVector<APInt> values;
     values.reserve(outputSize);
 
+    if (outputSize == 0) {
+      rewriter.replaceOpWithNewOp<ConstantOp>(
+          op, DenseIntElementsAttr::get(resultType, values));
+      return success();
+    }
+
     int64_t sequences = 1;
     int64_t sequenceMax = resultType.getDimSize(dimension);
     int64_t elementRepetitions = 1;
