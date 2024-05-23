@@ -1005,6 +1005,7 @@ cc_library(
         ":chlo_ops",
         ":chlo_rewriters_inc_gen",
         ":interpreter_ops",
+        ":linalg_passes",
         ":stablehlo_legalize_deprecated_ops_inc_gen",
         ":stablehlo_ops",
         ":stablehlo_ops_inc_gen",
