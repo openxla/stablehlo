@@ -146,7 +146,7 @@ Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
 }
 
 // Checks if two APFloat values, f and g, are almost equal.
-bool areApproximatelyEqual(APFloat f, APFloat g, double abs_error) {
+bool areApproximatelyEqual(APFloat f, APFloat g) {
   if (&f.getSemantics() != &g.getSemantics()) return false;
 
   llvm::APFloatBase::cmpResult cmpResult = f.compare(g);
@@ -170,9 +170,8 @@ bool areApproximatelyEqual(APFloat f, APFloat g, double abs_error) {
   }
 
   // Both f and g are finite (zero, subnormal, or normal) values.
-  if (!(f.isZero() || g.isZero()) && (f.isNegative() != g.isNegative()))
-    return false;
-  return std::fabs(f.convertToDouble() - g.convertToDouble()) <= abs_error;
+  if (f.isNegative() != g.isNegative()) return false;
+  return std::fabs(f.convertToDouble() - g.convertToDouble()) <= 0.0001;
 }
 
 }  // namespace
@@ -595,8 +594,7 @@ Element abs(const Element &el) {
                                      debugString(type).c_str()));
 }
 
-Element areApproximatelyEqual(const Element &e1, const Element &e2,
-                              double abs_error) {
+Element areApproximatelyEqual(const Element &e1, const Element &e2) {
   auto type = e1.getType();
   auto i1Type = IntegerType::get(e1.getType().getContext(), 1);
   if (type != e2.getType())
@@ -605,18 +603,16 @@ Element areApproximatelyEqual(const Element &e1, const Element &e2,
                                        debugString(e2.getType()).c_str()));
 
   if (isSupportedFloatType(type))
-    return Element(i1Type,
-                   areApproximatelyEqual(e1.getFloatValue(), e2.getFloatValue(),
-                                         abs_error));
+    return Element(
+        i1Type, areApproximatelyEqual(e1.getFloatValue(), e2.getFloatValue()));
 
   if (isSupportedComplexType(type)) {
     auto complexLhs = e1.getComplexValue();
     auto complexRhs = e2.getComplexValue();
     return Element(
-        i1Type, areApproximatelyEqual(complexLhs.real(), complexRhs.real(),
-                                      abs_error) &&
-                    areApproximatelyEqual(complexLhs.imag(), complexRhs.imag(),
-                                          abs_error));
+        i1Type,
+        areApproximatelyEqual(complexLhs.real(), complexRhs.real()) &&
+            areApproximatelyEqual(complexLhs.imag(), complexRhs.imag()));
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",

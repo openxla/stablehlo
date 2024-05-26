@@ -150,11 +150,10 @@ Element abs(const Element &e);
 Element atan2(const Element &e1, const Element &e2);
 
 /// For floating point type T, checks if two normal values f1 and f2 are equal
-/// within a tolerance given by 0.0001 when unspecified.
+/// within a tolerance given by 0.0001.
 /// For complex element type, checks if both real and imaginary parts are
 /// individually equal modulo the tolerance.
-Element areApproximatelyEqual(const Element &e1, const Element &e2,
-                              double abs_error = 0.0001);
+Element areApproximatelyEqual(const Element &e1, const Element &e2);
 
 /// Various flavors of bitcast conversion as defined in the specification.
 Element bitcastConvertOneToOne(Type type, const Element &e);

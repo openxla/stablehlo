@@ -81,42 +81,6 @@ def CHECK_ExpectAlmostEqOp :
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
 }
 
-def CHECK_ExpectIsCloseOp :
-    Op<CHECK_Dialect, "expect_is_close", [AllTypesMatch<["lhs", "rhs", "input"]>]> {
-  let summary = [{Checks that the tensor operands are equal within a tolerance tensor}];
-  let description = [{
-    Verifies that the tensor operands with floating-point element
-    type are equal within an user-defined tolerance tensor:
-
-      abs(lhs - rhs) < abs_error
-
-    abs_error is typically
-
-      atol + rtol * abs(rhs)
-
-    where atol must be chosen carefully to match rhs magnitude.
-
-    When rhs operand is non-finite, expect_is_close is equivalent to
-    expect_eq with respect to that operand.
-
-    Input argument is used only when reporting mismatches between lhs
-    and rhs.
-
-    ```mlir
-    check.expect_is_close %arg0, %arg1, %arg2, %arg3 : tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>
-    ```
-  }];
-
-  let arguments = (ins
-      TensorOf<[AnyFloat, AnyComplex]>:$lhs,
-      TensorOf<[AnyFloat, AnyComplex]>:$rhs,
-      TensorOf<[AnyFloat]>:$abs_error,
-      TensorOf<[AnyFloat, AnyComplex]>:$input
-  );
-
-  let assemblyFormat = "$lhs `,` $rhs `,` $abs_error `,` $input `:` attr-dict type($lhs) `,` type($rhs) `,` type($abs_error) `,` type($input)";
-}
-
 def CHECK_ExpectEqConstOp :
     Op<CHECK_Dialect, "expect_eq_const", [AllTypesMatch<["lhs", "value"]>]> {
   let summary = [{Checks the tensor operand is equal to some constant}];
@@ -152,6 +116,44 @@ def CHECK_ExpectEqOp : Op<CHECK_Dialect, "expect_eq", [SameTypeOperands]> {
   );
 
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
+}
+
+def CHECK_ExpectIsCloseToReferenceOp :
+    Op<CHECK_Dialect, "expect_is_close_to_reference", [
+      AllTypesMatch<["actual", "reference"]>,
+      AllShapesMatch<["actual", "reference"]>]> {
+  let summary = [{Checks that the tensor operand ULP-distance to reference tensor operand is within specified limits}];
+  let description = [{
+
+    Verifies that the floating-point tensor operands, actual and
+    reference, are close within an user-defined limit:
+
+      ulp_difference(actual, reference) < max_ulp_difference
+
+    where ulp_difference returns the number of all possible floating
+    point values that are greater than or equal to actual and smaller
+    than reference.
+
+    When reference operand is non-finite, expect_is_close_to_reference
+    is equivalent to expect_eq with respect to that operand.
+
+    Input is the argument to a function that produces an actual value.
+    Input is included in the report of mismatches between actual and
+    reference values.
+
+    ```mlir
+    check.expect_is_close %arg0, %arg1, %arg2, max_ulp_difference = 3 : tensor<2xf32>, tensor<2xf32>, tensor<2xf32>
+    ```
+  }];
+
+  let arguments = (ins
+      TensorOf<[AnyFloat, AnyComplex]>:$actual,
+      TensorOf<[AnyFloat, AnyComplex]>:$reference,
+      TensorOf<[AnyFloat, AnyComplex]>:$input,
+      DefaultValuedOptionalAttr<UI64Attr, "1">:$max_ulp_difference
+  );
+
+  let assemblyFormat = "$actual `,` $reference `,` $input (`,` `max_ulp_difference` `=` $max_ulp_difference^)? `:` attr-dict type($actual) `,` type($reference) `,` type($input)";
 }
 
 def CHECK_ExpectSerializedEqOp : Op<CHECK_Dialect, "expect_serialized_eq", []> {

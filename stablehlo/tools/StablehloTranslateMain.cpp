@@ -143,6 +143,18 @@ class StablehloTranslateInterpreterFallback
                                            "check.expect_eq_const");
     }
 
+    if (auto expectIsCloseToRefOp =
+            dyn_cast<stablehlo::check::ExpectIsCloseToReferenceOp>(op)) {
+      auto runtimeActual = scope.findTensor(expectIsCloseToRefOp.getActual());
+      auto runtimeRef = scope.findTensor(expectIsCloseToRefOp.getReference());
+      auto runtimeInput = scope.findTensor(expectIsCloseToRefOp.getInput());
+      auto status = stablehlo::check::evalExpectIsCloseToReferenceOp(
+          runtimeActual, runtimeRef, runtimeInput,
+          expectIsCloseToRefOp.getMaxUlpDifference());
+      return stablehlo::wrapFallbackStatus(
+          std::move(status), funcName, "check.expect_is_close_to_reference");
+    }
+
     if (auto expectSerializedEqOp =
             dyn_cast<stablehlo::check::ExpectSerializedEqOp>(op)) {
       auto runtimeOperand =
@@ -152,18 +164,6 @@ class StablehloTranslateInterpreterFallback
           probeInstrumentationDir, expectSerializedEqOp.getIteration());
       return stablehlo::wrapFallbackStatus(std::move(status), funcName,
                                            "check.expect_serialized_eq");
-    }
-
-    if (auto expectIsCloseOp =
-            dyn_cast<stablehlo::check::ExpectIsCloseOp>(op)) {
-      auto runtimeLhs = scope.findTensor(expectIsCloseOp.getLhs());
-      auto runtimeRhs = scope.findTensor(expectIsCloseOp.getRhs());
-      auto runtimeAbsError = scope.findTensor(expectIsCloseOp.getAbsError());
-      auto runtimeInput = scope.findTensor(expectIsCloseOp.getInput());
-      auto status = stablehlo::check::evalExpectIsCloseOp(
-          runtimeLhs, runtimeRhs, runtimeAbsError, runtimeInput);
-      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
-                                           "check.expect_is_close");
     }
 
     return stablehlo::invalidArgument("Unsupported op: %s",

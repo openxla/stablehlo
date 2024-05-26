@@ -157,32 +157,92 @@ llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
   return evalExpectEqOp(expected, *tensor);
 }
 
-llvm::Error evalExpectIsCloseOp(const Tensor &lhs, const Tensor &rhs,
-                                const Tensor &abs_error, const Tensor &input) {
-  if (!isSupportedFloatType(abs_error.getElementType())) {
-    const std::string abs_errorType = debugString(abs_error.getType());
-    return invalidArgument("abs_error must be a float tensor, got %s",
-                           abs_errorType.c_str());
-  }
-  std::string mismatches;
-  llvm::raw_string_ostream output(mismatches);
-  for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin(),
-            abs_errorIt = abs_error.index_begin(),
-            inputIt = input.index_begin();
-       lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt, ++abs_errorIt, ++inputIt) {
-    double abs_error_ =
-        abs_error.get(*abs_errorIt).getFloatValue().convertToDouble();
-    if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt), abs_error_)
-             .getBooleanValue()) {
-      output << "\n  index=" << (*lhsIt) << ", actual=" << lhs.get(*lhsIt)
-             << ", expected=" << rhs.get(*rhsIt)
-             << ", atol=" << abs_error.get(*abs_errorIt)
-             << ", input=" << input.get(*inputIt);
+static uint64_t ULPDifference(APFloat f, APFloat g) {
+  // z is ULP-distance between exact 0 and largest subnormal:
+  uint64_t z = APFloat::getSmallestNormalized(f.getSemantics())
+                   .bitcastToAPInt()
+                   .getLimitedValue() -
+               1;
+  // a is ULP-distance between exact 0 and abs(f):
+  uint64_t a = (f.isNegative() ? -f : f).bitcastToAPInt().getLimitedValue();
+  // b is ULP-distance between exact 0 and abs(g):
+  uint64_t b = (g.isNegative() ? -g : g).bitcastToAPInt().getLimitedValue();
+  if (f.isFinite() && g.isFinite()) {
+    // subtract subnormals contribution, round subnormals to closest normal or
+    // zero:
+    if (z < a)
+      a -= z;
+    else
+      a = (2 * a < z ? 0 : 1);
+    if (z < b)
+      b -= z;
+    else
+      b = (2 * b < z ? 0 : 1);
+    if (f.isNegative() != g.isNegative()) {
+      // in case of overflow, return uint64 maximal value
+      if (a > std::numeric_limits<uint64_t>::max() - b)
+        return std::numeric_limits<uint64_t>::max();
+      return a + b;
     }
   }
+  return (a > b ? a - b : b - a);
+}
+
+static uint64_t ULPDifference(const Element &e1, const Element &e2) {
+  // caller is responsible for ensuring that e1, e2 have both the same
+  // float or complex types
+  if (isSupportedComplexType(e1.getType())) {
+    auto complexLhs = e1.getComplexValue();
+    auto complexRhs = e2.getComplexValue();
+    return std::max(ULPDifference(complexLhs.real(), complexRhs.real()),
+                    ULPDifference(complexLhs.imag(), complexRhs.imag()));
+  } else {
+    return ULPDifference(e1.getFloatValue(), e2.getFloatValue());
+  }
+}
+
+llvm::Error evalExpectIsCloseToReferenceOp(const Tensor &actual,
+                                           const Tensor &reference,
+                                           const Tensor &input,
+                                           uint64_t max_ulp_difference) {
+  auto type = actual.getElementType();
+  if (!(isSupportedFloatType(type) || isSupportedComplexType(type)))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  std::string mismatches;
+  llvm::raw_string_ostream output(mismatches);
+  constexpr int ulp_diff_counter_size = 5;
+  int ulp_diff_counter[ulp_diff_counter_size] = {};
+  for (auto lhsIt = actual.index_begin(), rhsIt = reference.index_begin(),
+            inputIt = input.index_begin();
+       lhsIt != actual.index_end(); ++lhsIt, ++rhsIt, ++inputIt) {
+    auto e1 = actual.get(*lhsIt);
+    auto e2 = reference.get(*rhsIt);
+    uint64_t ulp_diff = ULPDifference(e1, e2);
+    if (!(ulp_diff <= max_ulp_difference)) {
+      output << "\n  index=" << (*lhsIt) << ", input=" << input.get(*inputIt)
+             << ", actual=" << e1 << ", reference=" << e2
+             << ", ULP difference=" << ulp_diff;
+    }
+    // Gather ULP difference statistics:
+    ulp_diff_counter[(ulp_diff >= ulp_diff_counter_size
+                          ? ulp_diff_counter_size - 1
+                          : ulp_diff)] += 1;
+  }
   if (mismatches.size() != 0) {
-    return invalidArgument("Elements values don't match:%s",
-                           mismatches.c_str());
+    // Append ULP difference statistics in exception message:
+    for (int i = 0; i < ulp_diff_counter_size; i++) {
+      output << "\nULP difference";
+      if (i + 1 == ulp_diff_counter_size)
+        output << " >= ";
+      else
+        output << " == ";
+      output << i << " count is " << ulp_diff_counter[i];
+    }
+    return invalidArgument(
+        "Elements values don't match with respect to maximal ULP "
+        "difference=%" PRIu64 " limit:%s",
+        max_ulp_difference, mismatches.c_str());
   }
   return llvm::Error::success();
 }
