@@ -117,8 +117,8 @@ LogicalResult evalConvert(PatternRewriter& rewriter, OpType op,
   bool isOldTypeUnsigned = oldType.isInteger(1) || oldType.isUnsignedInteger();
   bool isNewTypeUnsigned = newType.isInteger(1) || newType.isUnsignedInteger();
 
-  if (oldType.isa<FloatType>()) {
-    if (auto newFloatType = newType.dyn_cast<FloatType>()) {
+  if (isa<FloatType>(oldType)) {
+    if (auto newFloatType = dyn_cast<FloatType>(newType)) {
       // Float -> Float
       const auto& targetSemantics = newFloatType.getFloatSemantics();
       return evalConvertHelper<FloatAttr, FloatAttr>(
@@ -152,7 +152,7 @@ LogicalResult evalConvert(PatternRewriter& rewriter, OpType op,
         });
   }
 
-  if (auto newFloatType = newType.dyn_cast<FloatType>()) {
+  if (auto newFloatType = dyn_cast<FloatType>(newType)) {
     // Int -> Float
     return evalConvertHelper<IntegerAttr, FloatAttr>(
         rewriter, op, elements, resultType,
