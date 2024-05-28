@@ -30,6 +30,10 @@ are actually constant.
 
 For example, if the output_shape operand of DynamicReshapeOp is a constant
 value, then the operation can be transformed to ReshapeOp.
+### `-stablehlo-convert-to-signless`
+
+_Pass to transform the IR to be on signless integers._
+
 ### `-stablehlo-instrument-with-probe`
 
 _Inserts probe instrumentation instructions in a StableHLO program._
