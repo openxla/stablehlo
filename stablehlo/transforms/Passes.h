@@ -63,12 +63,14 @@ void populateChloToStablehloPatterns(MLIRContext *context,
 
 /// Collection of folding patterns for StableHLO.
 void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
-                                               MLIRContext *context);
+                                               MLIRContext *context,
+                                               bool foldFloat);
 
 /// A subset of folding patterns for StableHLO that is necessary for shape
 /// refinement.
 void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
-                                          MLIRContext *context);
+                                          MLIRContext *context,
+                                          bool foldFloat = false);
 
 /// Collection of canonicalization patterns for StableHLO.
 void populateStablehloCanonicalizationPatterns(MLIRContext *context,

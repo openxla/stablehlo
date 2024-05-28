@@ -343,29 +343,39 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
 
 struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
   using OpRewritePattern::OpRewritePattern;
+
+  EvalConvertOpPattern(MLIRContext* context, bool foldFloat_)
+      : OpRewritePattern<ConvertOp>(context), foldFloat{foldFloat_} {}
+
   LogicalResult matchAndRewrite(ConvertOp op,
                                 PatternRewriter& rewriter) const override {
-    auto operandType = op.getOperand().getType();
+    auto operand = op.getOperand();
     RankedTensorType resultType = op.getType();
 
     if (failed(validateResultTypeForEval(rewriter, op, resultType)))
       return failure();
 
-    if (!resultType.getElementType().isIntOrFloat())
+    auto operandElemType = getElementTypeOrSelf(operand.getType());
+    auto resultElemType = getElementTypeOrSelf(resultType);
+    if (!(operandElemType.isInteger() && resultElemType.isInteger()) &&
+        !foldFloat)
+      return rewriter.notifyMatchFailure(op,
+                                         "lossy computations are not allowed");
+
+    if (!resultElemType.isIntOrFloat())
       return rewriter.notifyMatchFailure(
           op, "expected integer or float result tensor type");
 
-    if (!operandType.getElementType().isIntOrFloat())
-      return rewriter.notifyMatchFailure(
-          op, "expected integer or float operand tensor type");
-
     DenseIntOrFPElementsAttr elements;
-    if (!matchPattern(op.getOperand(), m_Constant(&elements)))
+    if (!matchPattern(operand, m_Constant(&elements)))
       return rewriter.notifyMatchFailure(
           op, "expected constant integer or float operand");
 
     return evalConvert(rewriter, op, elements, resultType);
   }
+
+ private:
+  bool foldFloat;
 };
 
 struct EvalDivOpPattern : public OpRewritePattern<DivOp> {
@@ -624,7 +634,7 @@ struct StablehloAggressiveFolderPass
 
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    populateStablehloAggressiveFolderPatterns(&patterns_, context);
+    populateStablehloAggressiveFolderPatterns(&patterns_, context, foldFloat);
     patterns = std::move(patterns_);
 
     return success();
@@ -642,20 +652,22 @@ struct StablehloAggressiveFolderPass
 }  // namespace
 
 void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
-                                               MLIRContext* context) {
-  populateStablehloShapeFolderPatterns(patterns, context);
+                                               MLIRContext* context,
+                                               bool foldFloat) {
+  populateStablehloShapeFolderPatterns(patterns, context, foldFloat);
   patterns->add<EvalIotaOpPattern>(context);
 }
 
 void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
-                                          MLIRContext* context) {
+                                          MLIRContext* context,
+                                          bool foldFloat) {
   patterns->add<EvalAddOpPattern>(context);
   patterns->add<EvalAndOpPattern>(context);
   patterns->add<EvalBroadcastInDimOpPattern>(context);
   patterns->add<EvalClampOpPattern>(context);
   patterns->add<EvalCompareOpPattern>(context);
   patterns->add<EvalConcatenateOpPattern>(context);
-  patterns->add<EvalConvertOpPattern>(context);
+  patterns->add<EvalConvertOpPattern>(context, foldFloat);
   patterns->add<EvalDivOpPattern>(context);
   patterns->add<EvalGetDimensionSizeOpPattern>(context);
   patterns->add<EvalMaxOpPattern>(context);

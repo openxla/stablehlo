@@ -131,6 +131,10 @@ def StablehloAggressiveFolderPass
   let dependentDialects = [
     "mlir::tensor::TensorDialect",
   ];
+  let options = [
+    Option<"foldFloat", "fold-float", "bool", /*default=*/"true",
+           "Allow for potentially lossy computations using float type.">,
+  ];
 }
 
 def StablehloAggressiveSimplificationPass
