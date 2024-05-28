@@ -141,6 +141,10 @@ def StablehloAggressiveSimplificationPass
   ];
 }
 
+def StablehloConvertToSignlessPass : Pass<"stablehlo-convert-to-signless", "ModuleOp"> {
+  let summary = "Pass to transform the IR to be on signless integers.";
+}
+
 def ShapeLegalizeToStablehloPass : Pass<"shape-legalize-to-stablehlo", "func::FuncOp"> {
   let summary = "Legalize shape-related ops to StableHLO.";
   let description = [{
