@@ -502,7 +502,7 @@ StablehloBytecodeInterface::readGatherDimensionNumbersAttr(
 
   return GatherDimensionNumbersAttr::get(
       getContext(), offsetDims, collapsedSliceDims,
-      /*startIndicesBatchingDims=*/{}, /*startIndicesBatchingDims=*/{},
+      /*operandBatchingDims=*/{}, /*startIndicesBatchingDims=*/{},
       startIndexMap, indexVectorDim);
 }
 
