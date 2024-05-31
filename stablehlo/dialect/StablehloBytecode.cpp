@@ -511,8 +511,6 @@ void StablehloBytecodeInterface::write(GatherDimensionNumbersAttr attr,
   writer.writeVarInt(stablehlo_encoding::kGatherDimensionNumbers);
   writer.writeSignedVarInts(attr.getOffsetDims());
   writer.writeSignedVarInts(attr.getCollapsedSliceDims());
-  writer.writeSignedVarInts(attr.getOperandBatchingDims());
-  writer.writeSignedVarInts(attr.getStartIndicesBatchingDims());
   writer.writeSignedVarInts(attr.getStartIndexMap());
   writer.writeSignedVarInt(attr.getIndexVectorDim());
 }
@@ -622,8 +620,6 @@ void StablehloBytecodeInterface::write(ScatterDimensionNumbersAttr attr,
   writer.writeVarInt(stablehlo_encoding::kScatterDimensionNumbersAttr);
   writer.writeSignedVarInts(attr.getUpdateWindowDims());
   writer.writeSignedVarInts(attr.getInsertedWindowDims());
-  writer.writeSignedVarInts(attr.getInputBatchingDims());
-  writer.writeSignedVarInts(attr.getScatterIndicesBatchingDims());
   writer.writeSignedVarInts(attr.getScatterDimsToOperandDims());
   writer.writeSignedVarInt(attr.getIndexVectorDim());
 }
