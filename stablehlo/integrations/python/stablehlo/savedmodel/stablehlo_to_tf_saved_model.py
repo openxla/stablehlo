@@ -208,7 +208,7 @@ class StableHLOToTFSavedModel:
 def stablehlo_to_tf_saved_model(
     module: ir.Module,
     saved_model_dir: os.PathLike,
-    target_version: str = stablehlo.get_current_version(),
+    target_version: str,
     input_locations: list = [],
     state_dict: dict = {},
 ):

@@ -51,9 +51,11 @@ state_dict = {
 
 
 saved_model_dir = tempfile.mkdtemp()
+stablehlo_version = stablehlo.get_current_version()
 stablehlo_to_tf_saved_model(
     module,
     saved_model_dir=saved_model_dir,
+    target_version=stablehlo_version,
     input_locations=input_locations,
     state_dict=state_dict,
 )
