@@ -186,11 +186,6 @@ struct DotGeneralOpConversion final
       if (succeeded(lowerDotOp<DotGeneralOp, linalg::DotOp>(
               rewriter, getTypeConverter(), op, adaptor)))
         return success();
-      std::string str;
-      llvm::raw_string_ostream os(str);
-      os << "supposedly simple DotGeneralOp could not be converted: ";
-      op.print(os);
-      llvm::report_fatal_error(str.c_str());
     }
 
     // Get various dimension iterator information

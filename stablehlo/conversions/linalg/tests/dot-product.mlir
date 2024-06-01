@@ -347,3 +347,25 @@ func.func @simple_dot_general_dot(%arg0: tensor<?xf32>,
 // CHECK: linalg.dot
 // CHECK-SAME: ins(%[[ARG0]], %[[ARG1]] : tensor<?xf32>, tensor<?xf32>)
 // CHECK-SAME: outs(%[[FILL]] : tensor<f32>)
+
+// -----
+
+func.func @not_simple_dot_general(
+  %arg0: tensor<2x3x3xf32>,
+  %arg1: tensor<3x?xf32>
+) -> tensor<2x3x?xf32> {
+  %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [2] x [0] {someattr}
+       : (tensor<2x3x3xf32>, tensor<3x?xf32>) -> tensor<2x3x?xf32>
+  func.return %0 : tensor<2x3x?xf32>
+}
+// CHECK: #[[MAP0:.*]] = affine_map<(d0, d1, d2, d3) -> (d0, d1, d3)>
+// CHECK: #[[MAP1:.*]] = affine_map<(d0, d1, d2, d3) -> (d3, d2)>
+// CHECK: #[[MAP2:.*]] = affine_map<(d0, d1, d2, d3) -> (d0, d1, d2)>
+// CHECK: func @not_simple_dot_general(
+// CHECK-SAME: %[[ARG0:.*]]: tensor<2x3x3xf32>, %[[ARG1:.*]]: tensor<3x?xf32>)
+// CHECK: linalg.generic
+// CHECK-SAME: indexing_maps = [#[[MAP0]], #[[MAP1]], #[[MAP2]]]
+// CHECK-SAME: iterator_types = ["parallel", "parallel", "parallel", "reduction"]}
+// CHECK-SAME: ins(%[[ARG0]], %[[ARG1]] : tensor<2x3x3xf32>, tensor<3x?xf32>)
+// CHECK-SAME: outs({{.*}} : tensor<2x3x?xf32>)
+// CHECK-SAME: {someattr}
