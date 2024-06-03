@@ -95,8 +95,9 @@ func.func @selectv2_pred_scalar(%arg0: tensor<i1>, %arg1: tensor<2xi32>, %arg2: 
 
 // CHECK-LABEL: func @selectv2_broadcast_then
 func.func @selectv2_broadcast_then(%arg0: tensor<i1>, %arg1: tensor<8x1xi32>, %arg2: tensor<2x8x8xi32>) -> tensor<2x8x8xi32> {
-  // CHECK-NEXT: %[[BROADCAST:.*]] = stablehlo.broadcast_in_dim %arg1, dims = [1, 2] : (tensor<8x1xi32>) -> tensor<2x8x8xi32>
-  // CHECK-NEXT: stablehlo.select %arg0, %[[BROADCAST]], %arg2
+  // CHECK: [[R0:%.*]] = stablehlo.reshape %arg1 : (tensor<8x1xi32>) -> tensor<1x8x1xi32>
+  // CHECK-NEXT: [[BROADCAST:%.*]] = stablehlo.broadcast_in_dim [[R0]], dims = [0, 1, 2] : (tensor<1x8x1xi32>) -> tensor<2x8x8xi32>
+  // CHECK-NEXT: stablehlo.select %arg0, [[BROADCAST]], %arg2
   %0 = "chlo.broadcast_select"(%arg0, %arg1, %arg2) : (tensor<i1>, tensor<8x1xi32>, tensor<2x8x8xi32>) -> tensor<2x8x8xi32>
   func.return %0: tensor<2x8x8xi32>
 }
@@ -105,8 +106,9 @@ func.func @selectv2_broadcast_then(%arg0: tensor<i1>, %arg1: tensor<8x1xi32>, %a
 
 // CHECK-LABEL: func @selectv2_broadcast_else
 func.func @selectv2_broadcast_else(%arg0: tensor<i1>, %arg1: tensor<2x8x8xi32>, %arg2: tensor<8x1xi32>) -> tensor<2x8x8xi32> {
-  // CHECK-NEXT: %[[BROADCAST:.*]] = stablehlo.broadcast_in_dim %arg2, dims = [1, 2] : (tensor<8x1xi32>) -> tensor<2x8x8xi32>
-  // CHECK-NEXT: stablehlo.select %arg0, %arg1, %[[BROADCAST]]
+  // CHECK: [[R0:%.*]] = stablehlo.reshape %arg2 : (tensor<8x1xi32>) -> tensor<1x8x1xi32>
+  // CHECK-NEXT: [[BROADCAST:%.*]] = stablehlo.broadcast_in_dim [[R0]], dims = [0, 1, 2] : (tensor<1x8x1xi32>) -> tensor<2x8x8xi32>
+  // CHECK-NEXT: stablehlo.select %arg0, %arg1, [[BROADCAST]]
   %0 = "chlo.broadcast_select"(%arg0, %arg1, %arg2) : (tensor<i1>, tensor<2x8x8xi32>, tensor<8x1xi32>) -> tensor<2x8x8xi32>
   func.return %0: tensor<2x8x8xi32>
 }
@@ -115,8 +117,9 @@ func.func @selectv2_broadcast_else(%arg0: tensor<i1>, %arg1: tensor<2x8x8xi32>, 
 
 // CHECK-LABEL: func @selectv2_broadcast_pred
 func.func @selectv2_broadcast_pred(%arg0: tensor<1xi1>, %arg1: tensor<2x8x8xi32>, %arg2: tensor<2x8x8xi32>) -> tensor<2x8x8xi32> {
-  // CHECK-NEXT: %[[BROADCAST:.*]] = stablehlo.broadcast_in_dim %arg0, dims = [2] : (tensor<1xi1>) -> tensor<2x8x8xi1>
-  // CHECK-NEXT: stablehlo.select %[[BROADCAST]], %arg1, %arg2
+  // CHECK: [[R0:%.*]] = stablehlo.reshape %arg0 : (tensor<1xi1>) -> tensor<1x1x1xi1>
+  // CHECK-NEXT: [[BROADCAST:%.*]] = stablehlo.broadcast_in_dim [[R0]], dims = [0, 1, 2] : (tensor<1x1x1xi1>) -> tensor<2x8x8xi1>
+  // CHECK-NEXT: stablehlo.select [[BROADCAST]], %arg1, %arg2
   %0 = "chlo.broadcast_select"(%arg0, %arg1, %arg2) : (tensor<1xi1>, tensor<2x8x8xi32>, tensor<2x8x8xi32>) -> tensor<2x8x8xi32>
   func.return %0: tensor<2x8x8xi32>
 }
@@ -125,8 +128,9 @@ func.func @selectv2_broadcast_pred(%arg0: tensor<1xi1>, %arg1: tensor<2x8x8xi32>
 
 // CHECK-LABEL: func @selectv2_broadcast_tensor_pred
 func.func @selectv2_broadcast_tensor_pred(%arg0: tensor<3xi1>, %arg1: tensor<2x3xf16>, %arg2: tensor<2x3xf16>) -> tensor<2x3xf16> {
-  // CHECK-NEXT: %[[BROADCAST:.*]] = stablehlo.broadcast_in_dim %arg0, dims = [1] : (tensor<3xi1>) -> tensor<2x3xi1>
-  // CHECK-NEXT: stablehlo.select %[[BROADCAST]], %arg1, %arg2
+  // CHECK: [[R0:%.*]] = stablehlo.reshape %arg0 : (tensor<3xi1>) -> tensor<1x3xi1>
+  // CHECK-NEXT: [[BROADCAST:%.*]] = stablehlo.broadcast_in_dim [[R0]], dims = [0, 1] : (tensor<1x3xi1>) -> tensor<2x3xi1>
+  // CHECK-NEXT: stablehlo.select [[BROADCAST]], %arg1, %arg2
   %0 = "chlo.broadcast_select"(%arg0, %arg1, %arg2) : (tensor<3xi1>, tensor<2x3xf16>, tensor<2x3xf16>) -> tensor<2x3xf16>
   func.return %0: tensor<2x3xf16>
 }

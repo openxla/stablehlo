@@ -498,6 +498,43 @@ struct BroadcastInDimOpCanon final
       return success();
     }
 
+    // Canonicalize broadcast_in_dim by reshaping operand to match rank(result)
+    // and expanding dims array to satisfy `size(broadcast_dimensions) =
+    // rank(operand)` constraint.
+    if (operandTy.hasStaticShape() && type.hasStaticShape() &&
+        operandTy.getRank() < type.getRank()) {
+      SmallVector<int64_t> sortedDims(dims);
+      llvm::sort(sortedDims);
+
+      constexpr int64_t expandedDim = -1;
+      constexpr int64_t unitDim = 1;
+      SmallVector<int64_t> newShape(type.getRank(), expandedDim);
+      SmallVector<int64_t> newDims;
+
+      for (auto en : llvm::enumerate(operandTy.getShape())) {
+        newShape[sortedDims[en.index()]] = en.value();
+      }
+
+      size_t oldDimIdx = 0;
+      for (size_t i = 0; i < newShape.size(); ++i) {
+        if (newShape[i] == expandedDim) {
+          newDims.push_back(i);
+          newShape[i] = unitDim;
+        } else {
+          newDims.push_back(dims[oldDimIdx]);
+          ++oldDimIdx;
+        }
+      }
+
+      rewriter.setInsertionPoint(op);
+      auto reshapeOp = rewriter.create<mlir::stablehlo::ReshapeOp>(
+          op.getLoc(),
+          operandTy.cloneWith(newShape, operandTy.getElementType()), operand);
+      rewriter.replaceOpWithNewOp<mlir::stablehlo::BroadcastInDimOp>(
+          op, type, reshapeOp, newDims);
+      return success();
+    }
+
     return failure();
   }
 };

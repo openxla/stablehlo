@@ -367,9 +367,10 @@ func.func @broadcast_in_dim_nested(%arg0: tensor<3x3xi32>)
   -> (tensor<3x2x3x3xi32>) {
   %6 = stablehlo.broadcast_in_dim %arg0, dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3x2xi32>
   %7 = stablehlo.broadcast_in_dim %6, dims = [0, 2, 1] : (tensor<3x3x2xi32>) -> tensor<3x2x3x3xi32>
-  // CHECK-DAG:  [[R6:%.+]] = stablehlo.broadcast_in_dim [[ARG0]], dims = [2, 0] : (tensor<3x3xi32>) -> tensor<3x2x3x3xi32>
+  // CHECK:  [[R0:%.+]] = stablehlo.reshape [[ARG0]] : (tensor<3x3xi32>) -> tensor<3x1x3x1xi32>
+  // CHECK:  [[R1:%.+]] = stablehlo.broadcast_in_dim [[R0]], dims = [2, 1, 0, 3] : (tensor<3x1x3x1xi32>) -> tensor<3x2x3x3xi32>
 
-  // CHECK-NEXT: return [[R6]]
+  // CHECK-NEXT: return [[R1]]
   return %7 : tensor<3x2x3x3xi32>
 }
 
@@ -387,6 +388,37 @@ func.func @broadcast_in_dim_reshape(%arg0: tensor<3x6xi32>)
 
   // CHECK-NEXT: return [[R0]], [[R5]]
   return %0, %5 : tensor<1x3x6xi32>, tensor<3x6x1xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @broadcast_in_dim_expand_dims
+// CHECK-SAME:   ([[ARG1:%.+]]: tensor<128xf32>, [[ARG2:%.+]]: tensor<32x64xf32>, [[ARG3:%.+]]: tensor<32x64x16xf32>)
+func.func @broadcast_in_dim_expand_dims(
+  %arg1 : tensor<128xf32>,
+  %arg2 : tensor<32x64xf32>,
+  %arg3 : tensor<32x64x16xf32>
+) -> (tensor<1x128x128xf32>, tensor<4x64x32x2xf32>, tensor<4x64x32x2x16xf32>, tensor<4x16x32x2x8x64xf32>) {
+
+  %1 = stablehlo.broadcast_in_dim %arg1, dims = [2] : (tensor<128xf32>) -> tensor<1x128x128xf32>
+  %2 = stablehlo.broadcast_in_dim %arg2, dims = [2, 1] : (tensor<32x64xf32>) -> tensor<4x64x32x2xf32>
+  %3 = stablehlo.broadcast_in_dim %arg3, dims = [2, 1, 4] : (tensor<32x64x16xf32>) -> tensor<4x64x32x2x16xf32>
+  %4 = stablehlo.broadcast_in_dim %arg3, dims = [2, 5, 1] : (tensor<32x64x16xf32>) -> tensor<4x16x32x2x8x64xf32>
+
+  // CHECK: [[R10:%.*]] = stablehlo.reshape [[ARG1]] : (tensor<128xf32>) -> tensor<1x1x128xf32>
+  // CHECK: [[R1:%.*]] = stablehlo.broadcast_in_dim [[R10]], dims = [0, 1, 2] : (tensor<1x1x128xf32>) -> tensor<1x128x128xf32>
+
+  // CHECK: [[R20:%.*]] = stablehlo.reshape [[ARG2]] : (tensor<32x64xf32>) -> tensor<1x32x64x1xf32>
+  // CHECK: [[R2:%.*]] = stablehlo.broadcast_in_dim [[R20]], dims = [0, 2, 1, 3] : (tensor<1x32x64x1xf32>) -> tensor<4x64x32x2xf32>
+
+  // CHECK: [[R30:%.*]] = stablehlo.reshape [[ARG3]] : (tensor<32x64x16xf32>) -> tensor<1x32x64x1x16xf32>
+  // CHECK: [[R3:%.*]] = stablehlo.broadcast_in_dim [[R30]], dims = [0, 2, 1, 3, 4] : (tensor<1x32x64x1x16xf32>) -> tensor<4x64x32x2x16xf32>
+
+  // CHECK: [[R40:%.*]] = stablehlo.reshape [[ARG3]] : (tensor<32x64x16xf32>) -> tensor<1x32x64x1x1x16xf32>
+  // CHECK: [[R4:%.*]] = stablehlo.broadcast_in_dim [[R40]], dims = [0, 2, 5, 3, 4, 1] : (tensor<1x32x64x1x1x16xf32>) -> tensor<4x16x32x2x8x64xf32>
+
+  // CHECK: return [[R1]], [[R2]], [[R3]], [[R4]]
+  return %1, %2, %3, %4 : tensor<1x128x128xf32>, tensor<4x64x32x2xf32>, tensor<4x64x32x2x16xf32>, tensor<4x16x32x2x8x64xf32>
 }
 
 // -----
@@ -430,9 +462,10 @@ func.func @convert(%arg0: tensor<2xf32>) -> tensor<2xf32> {
 
 // CHECK-LABEL: func @dynamic_broadcast_in_dim_op_not_actually_dynamic
 func.func @dynamic_broadcast_in_dim_op_not_actually_dynamic(%arg0: tensor<4xf32>, %arg1: tensor<2xi64>) -> tensor<5x4xf32> {
-  // CHECK: %[[RESULT:.+]] = stablehlo.broadcast_in_dim %arg0, dims = [1] : (tensor<4xf32>) -> tensor<5x4xf32>
+  // CHECK: [[R0:%.+]] = stablehlo.reshape %arg0 : (tensor<4xf32>) -> tensor<1x4xf32>
+  // CHECK: [[R1:%.+]] = stablehlo.broadcast_in_dim [[R0]], dims = [0, 1] : (tensor<1x4xf32>) -> tensor<5x4xf32>
   %0 = stablehlo.dynamic_broadcast_in_dim %arg0, %arg1, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<5x4xf32>
-  // CHECK: return %[[RESULT]] : tensor<5x4xf32>
+  // CHECK: return [[R1]] : tensor<5x4xf32>
   func.return %0 : tensor<5x4xf32>
 }
 
@@ -441,10 +474,11 @@ func.func @dynamic_broadcast_in_dim_op_not_actually_dynamic(%arg0: tensor<4xf32>
 // CHECK-LABEL: func @dynamic_broadcast_in_dim_op_not_actually_dynamic_constant_shape
 func.func @dynamic_broadcast_in_dim_op_not_actually_dynamic_constant_shape(%arg0: tensor<i32>) -> tensor<4x32xi32> {
   %0 = stablehlo.constant dense<[4, 32]> : tensor<2xi32>
-  // CHECK: %[[RESULT:.+]] = stablehlo.broadcast_in_dim %arg0, dims = [] : (tensor<i32>) -> tensor<4x32xi32>
+  // CHECK: [[R0:%.+]] = stablehlo.reshape %arg0 : (tensor<i32>) -> tensor<1x1xi32>
+  // CHECK: [[R1:%.+]] = stablehlo.broadcast_in_dim [[R0]], dims = [0, 1] : (tensor<1x1xi32>) -> tensor<4x32xi32>
   %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [] : (tensor<i32>, tensor<2xi32>) -> tensor<?x32xi32>
   %2 = stablehlo.dynamic_reshape %1, %0 : (tensor<?x32xi32>, tensor<2xi32>) -> tensor<4x32xi32>
-  // CHECK: return %[[RESULT]] : tensor<4x32xi32>
+  // CHECK: return [[R1]] : tensor<4x32xi32>
   func.return %2 : tensor<4x32xi32>
 }
 
@@ -453,10 +487,11 @@ func.func @dynamic_broadcast_in_dim_op_not_actually_dynamic_constant_shape(%arg0
 // CHECK-LABEL: func @dynamic_broadcast_in_dim_op_not_actually_dynamic_constant_index_shape
 func.func @dynamic_broadcast_in_dim_op_not_actually_dynamic_constant_index_shape(%arg0: tensor<f32>) -> tensor<4x32xf32> {
   %0 = shape.const_shape [4, 32] : tensor<2xindex>
-  // CHECK: %[[RESULT:.+]] = stablehlo.broadcast_in_dim %arg0, dims = [] : (tensor<f32>) -> tensor<4x32xf32>
+  // CHECK: [[R0:%.+]] = stablehlo.reshape %arg0 : (tensor<f32>) -> tensor<1x1xf32>
+  // CHECK: [[R1:%.+]] = stablehlo.broadcast_in_dim [[R0]], dims = [0, 1] : (tensor<1x1xf32>) -> tensor<4x32xf32>
   %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [] : (tensor<f32>, tensor<2xindex>) -> tensor<?x32xf32>
   %2 = stablehlo.dynamic_reshape %1, %0 : (tensor<?x32xf32>, tensor<2xindex>) -> tensor<4x32xf32>
-  // CHECK: return %[[RESULT]] : tensor<4x32xf32>
+  // CHECK: return [[R1]] : tensor<4x32xf32>
   func.return %2 : tensor<4x32xf32>
 }
 
@@ -465,10 +500,11 @@ func.func @dynamic_broadcast_in_dim_op_not_actually_dynamic_constant_index_shape
 // CHECK-LABEL: func @dynamic_broadcast_in_dim_op_not_actually_dynamic_constant_requires_cast
 func.func @dynamic_broadcast_in_dim_op_not_actually_dynamic_constant_requires_cast(%arg0: tensor<f32>) -> tensor<?x?xf32> {
   %0 = shape.const_shape [4, 32] : tensor<2xindex>
-  // CHECK: %[[BCAST:.+]] = stablehlo.broadcast_in_dim %arg0, dims = [] : (tensor<f32>) -> tensor<4x32xf32>
+  // CHECK: [[R0:%.+]] = stablehlo.reshape %arg0 : (tensor<f32>) -> tensor<1x1xf32>
+  // CHECK: [[BCAST:%.+]] = stablehlo.broadcast_in_dim [[R0]], dims = [0, 1] : (tensor<1x1xf32>) -> tensor<4x32xf32>
   %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [] : (tensor<f32>, tensor<2xindex>) -> tensor<?x?xf32>
-  // CHECK: %[[RESULT:.*]] = tensor.cast %[[BCAST]] : tensor<4x32xf32> to tensor<?x?xf32>
-  // CHECK: return %[[RESULT]] : tensor<?x?xf32>
+  // CHECK: [[R1:%.*]] = tensor.cast [[BCAST]] : tensor<4x32xf32> to tensor<?x?xf32>
+  // CHECK: return [[R1]] : tensor<?x?xf32>
   func.return %1 : tensor<?x?xf32>
 }
 
