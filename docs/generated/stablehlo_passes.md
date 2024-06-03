@@ -16,6 +16,11 @@ compilation pipelines that use StableHLO operations to model dynamism.
 
 _Folds StableHLO operations_
 
+
+#### Options
+```
+-fold-float : Allow for potentially lossy computations using float type.
+```
 ### `-stablehlo-aggressive-simplification`
 
 _Canonicalizes StableHLO operations_
