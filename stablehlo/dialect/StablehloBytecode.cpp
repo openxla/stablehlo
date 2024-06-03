@@ -491,21 +491,19 @@ GatherDimensionNumbersAttr
 StablehloBytecodeInterface::readGatherDimensionNumbersAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  llvm::SmallVector<int64_t> offsetDims, collapsedSliceDims,
-      operandBatchingDims, startIndicesBatchingDims, startIndexMap;
+  llvm::SmallVector<int64_t> offsetDims, collapsedSliceDims, startIndexMap;
   int64_t indexVectorDim;
 
   if (failed(reader.readSignedVarInts(offsetDims)) ||
       failed(reader.readSignedVarInts(collapsedSliceDims)) ||
-      failed(reader.readSignedVarInts(operandBatchingDims)) ||
-      failed(reader.readSignedVarInts(startIndicesBatchingDims)) ||
       failed(reader.readSignedVarInts(startIndexMap)) ||
       failed(reader.readSignedVarInt(indexVectorDim)))
     return GatherDimensionNumbersAttr();
 
   return GatherDimensionNumbersAttr::get(
-      getContext(), offsetDims, collapsedSliceDims, operandBatchingDims,
-      startIndicesBatchingDims, startIndexMap, indexVectorDim);
+      getContext(), offsetDims, collapsedSliceDims,
+      /*operandBatchingDims=*/{}, /*startIndicesBatchingDims=*/{},
+      startIndexMap, indexVectorDim);
 }
 
 void StablehloBytecodeInterface::write(GatherDimensionNumbersAttr attr,
@@ -513,8 +511,6 @@ void StablehloBytecodeInterface::write(GatherDimensionNumbersAttr attr,
   writer.writeVarInt(stablehlo_encoding::kGatherDimensionNumbers);
   writer.writeSignedVarInts(attr.getOffsetDims());
   writer.writeSignedVarInts(attr.getCollapsedSliceDims());
-  writer.writeSignedVarInts(attr.getOperandBatchingDims());
-  writer.writeSignedVarInts(attr.getStartIndicesBatchingDims());
   writer.writeSignedVarInts(attr.getStartIndexMap());
   writer.writeSignedVarInt(attr.getIndexVectorDim());
 }
@@ -604,20 +600,19 @@ StablehloBytecodeInterface::readScatterDimensionNumbersAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> updateWindowDims, insertedWindowDims,
-      inputBatchingDims, scatterIndicesBatchingDims, scatterDimsToOperandDims;
+      scatterDimsToOperandDims;
   int64_t indexVectorDim;
 
   if (failed(reader.readSignedVarInts(updateWindowDims)) ||
       failed(reader.readSignedVarInts(insertedWindowDims)) ||
-      failed(reader.readSignedVarInts(inputBatchingDims)) ||
-      failed(reader.readSignedVarInts(scatterIndicesBatchingDims)) ||
       failed(reader.readSignedVarInts(scatterDimsToOperandDims)) ||
       failed(reader.readSignedVarInt(indexVectorDim)))
     return ScatterDimensionNumbersAttr();
 
   return ScatterDimensionNumbersAttr::get(
-      getContext(), updateWindowDims, insertedWindowDims, inputBatchingDims,
-      scatterIndicesBatchingDims, scatterDimsToOperandDims, indexVectorDim);
+      getContext(), updateWindowDims, insertedWindowDims,
+      /*inputBatchingDims=*/{}, /*scatterIndicesBatchingDims=*/{},
+      scatterDimsToOperandDims, indexVectorDim);
 }
 
 void StablehloBytecodeInterface::write(ScatterDimensionNumbersAttr attr,
@@ -625,8 +620,6 @@ void StablehloBytecodeInterface::write(ScatterDimensionNumbersAttr attr,
   writer.writeVarInt(stablehlo_encoding::kScatterDimensionNumbersAttr);
   writer.writeSignedVarInts(attr.getUpdateWindowDims());
   writer.writeSignedVarInts(attr.getInsertedWindowDims());
-  writer.writeSignedVarInts(attr.getInputBatchingDims());
-  writer.writeSignedVarInts(attr.getScatterIndicesBatchingDims());
   writer.writeSignedVarInts(attr.getScatterDimsToOperandDims());
   writer.writeSignedVarInt(attr.getIndexVectorDim());
 }
