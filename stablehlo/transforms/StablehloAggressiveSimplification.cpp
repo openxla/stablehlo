@@ -457,8 +457,7 @@ struct BroadcastInDimOpCanon final
 
     // Fold when broadcast is a noop.
     auto dims = op.getBroadcastDimensions();
-    bool isDimsIota = isIotaRange(dims);
-    if (type == operandTy && isDimsIota) {
+    if (type == operandTy && isIotaRange(dims)) {
       rewriter.replaceOp(op, operand);
       return success();
     }
@@ -475,7 +474,7 @@ struct BroadcastInDimOpCanon final
     if (operandTy.hasStaticShape() && type.hasStaticShape() &&
         type.getNumElements() == operandTy.getNumElements()) {
       // BroadcastInDim equivalent to reshape.
-      if (isDimsIota) {
+      if (llvm::is_sorted(dims)) {
         rewriter.replaceOpWithNewOp<mlir::stablehlo::ReshapeOp>(op, type,
                                                                 operand);
         return success();
