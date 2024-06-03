@@ -646,8 +646,11 @@ DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value lhs) {
 }
 
 bool DotGeneralOp::isSimpleDot() {
-  return getDotDimensionNumbersAttr() ==
-         getDefaultDotDimensionNumbers(getLhs());
+  auto lhsRank = cast<ShapedType>(getLhs().getType()).getRank();
+  auto rhsRank = cast<ShapedType>(getRhs().getType()).getRank();
+  return lhsRank <= 2 && rhsRank <= 2 &&
+         getDotDimensionNumbersAttr() ==
+             getDefaultDotDimensionNumbers(getLhs());
 }
 
 //===----------------------------------------------------------------------===//
