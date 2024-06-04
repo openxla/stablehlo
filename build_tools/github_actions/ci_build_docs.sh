@@ -52,7 +52,8 @@ DOC_DIFF="$(git diff)"
 [[ "$CHECK" ]] && [[ "$DOC_DIFF" ]] && {
   echo "$DOC_DIFF"
   echo
-  echo "Generated pass documentation is out of date. Please re-generate the documentation before pushing:"
+  echo "Generated pass documentation is out of date (see diff above)."
+  echo "Re-generate the documentation before pushing using:"
   echo "  ./build_tools/github_actions/ci_build_docs.sh"
   exit 1
 } || exit 0
