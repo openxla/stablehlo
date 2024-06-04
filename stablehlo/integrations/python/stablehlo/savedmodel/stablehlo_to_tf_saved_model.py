@@ -19,7 +19,7 @@ import enum
 import itertools
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterator, List
 import mlir.dialects.stablehlo as stablehlo
 import mlir.ir as ir
 
@@ -141,7 +141,7 @@ class StableHLOToTFSavedModel:
   def _make_tf_function(self):
     return self._wrap_as_tf_func()
 
-  def _make_input_signatures(self) -> List[tf.TensorSpec]:
+  def _make_input_signatures(self) -> Iterator[tf.TensorSpec]:
     input_pos_to_spec = {
         loc.position: spec
         for loc, spec in itertools.chain(
