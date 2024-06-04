@@ -1283,6 +1283,31 @@ func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
   func.return %0 : tensor<f32>
 }
 
+// CHECK-LABEL: "op_custom_call_empty_result_layout"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func public @op_custom_call_empty_result_layout(%arg0: tensor<i64>) -> tensor<i64> {
+  // %0 = "vhlo.custom_call_v1"(%arg0) <{>}> : (!vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tuple_v1<>
+  //      CHECK: "vhlo.custom_call_v1"(%[[ARG0]]) <{
+  // CHECK-SAME:   api_version = #vhlo<api_version_v1 API_VERSION_STATUS_RETURNING>,
+  // CHECK-SAME:   backend_config = #vhlo.string_v1<"">,
+  // CHECK-SAME:   call_target_name = #vhlo.string_v1<"empty_output">,
+  // CHECK-SAME:   called_computations = #vhlo.array_v1<[]>,
+  // CHECK-SAME:   has_side_effect = #vhlo.bool_v1<true>,
+  // CHECK-SAME:   operand_layouts = #vhlo.array_v1<[#vhlo.tensor_v1<dense<> : tensor<0xindex>>]>,
+  // CHECK-SAME:   output_operand_aliases = #vhlo.array_v1<[]>,
+  // CHECK-SAME:   result_layouts = #vhlo.array_v1<[]>
+  // CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tuple_v1<>
+  %0 = "stablehlo.custom_call"(%arg0) <{
+    api_version = 2 : i32,
+    backend_config = "",
+    call_target_name = "empty_output",
+    has_side_effect = true,
+    operand_layouts = [dense<> : tensor<0xindex>],
+    result_layouts = []
+  }> : (tensor<i64>) -> tuple<>
+  return %arg0 : tensor<i64>
+}
+
 // CHECK-LABEL: "op_divide"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
 func.func @op_divide(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
