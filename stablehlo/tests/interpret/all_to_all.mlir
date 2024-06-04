@@ -62,3 +62,31 @@ module @cross_partition {
     func.return
   }
 }
+
+// -----
+
+module @same_split_concat_dim {
+  func.func @all_to_all(%operand : tensor<2x4xi64>) -> tensor<2x4xi64> {
+    %result = "stablehlo.all_to_all"(%operand) {
+      split_dimension = 0 : i64,
+      concat_dimension = 0 : i64,
+      split_count = 2 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<2x4xi64>) -> tensor<2x4xi64>
+    return %result : tensor<2x4xi64>
+  }
+  func.func @main() {
+    %inputs0 = stablehlo.constant dense<[[1, 2, 3, 4],
+                                         [5, 6, 7, 8]]> : tensor<2x4xi64>
+    %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
+                                         [13, 14, 15, 16]]> : tensor<2x4xi64>
+    %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
+      programs=[[@all_to_all], [@all_to_all]]
+    } : (tensor<2x4xi64>, tensor<2x4xi64>) -> (tensor<2x4xi64>, tensor<2x4xi64>)
+    check.expect_eq_const %results#0, dense<[[1, 2, 3, 4],
+                                             [9, 10, 11, 12]]> : tensor<2x4xi64>
+    check.expect_eq_const %results#1, dense<[[5, 6, 7, 8],
+                                             [13, 14, 15, 16]]> : tensor<2x4xi64>
+    func.return
+  }
+}
