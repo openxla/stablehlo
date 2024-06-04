@@ -49,7 +49,7 @@ bazel build "${!targets[@]}"
 cp "${targets[@]}" docs/generated
 
 DOC_DIFF="$(git diff)"
-[[ "$CHECK" ]] && [[ $DOC_DIFF ]] && {
+[[ "$CHECK" ]] && [[ "$DOC_DIFF" ]] && {
   echo "$DOC_DIFF"
   echo
   echo "Generated pass documentation is out of date. Please re-generate the documentation before pushing:"
