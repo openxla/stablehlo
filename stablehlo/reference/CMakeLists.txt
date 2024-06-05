@@ -104,6 +104,26 @@ add_mlir_dialect_library(InterpreterOps
   MLIRSupport
 )
 
+set(LLVM_TARGET_DEFINITIONS InterpreterPasses.td)
+mlir_tablegen(InterpreterPasses.h.inc -gen-pass-decls -name InterpreterTransforms)
+add_public_tablegen_target(InterpreterTransformsPassIncGen)
+
+add_mlir_library(InterpreterPasses
+  PARTIAL_SOURCES_INTENDED
+  InterpreterInstrumentWithProbe.cpp
+
+  DEPENDS
+  InterpreterTransformsPassIncGen
+
+  LINK_LIBS PUBLIC
+  InterpreterOps
+  MLIRIR
+  MLIRPass
+  MLIRSupport
+  MLIRTransforms
+  MLIRTransformUtils
+)
+
 add_mlir_dialect_library(StablehloReferenceNumPy
   PARTIAL_SOURCES_INTENDED
   NumPy.cpp
