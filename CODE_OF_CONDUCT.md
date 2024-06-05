@@ -66,10 +66,9 @@ If you are unable to resolve the matter for any reason, or if the behavior is
 threatening or harassing, report it. We are dedicated to providing an environment
 where participants feel welcome and safe.
 
-Reports should be directed to StableHLO's Project Stewards,
-Kevin Gleason (gleasonk@google.com) and Farid Zakaria (fmzakari@google.com).
-It is the Project Steward’s duty to receive and address reported violations of
-the code of conduct.
+Reports should be directed to Kevin Gleason (gleasonk@google.com),
+StableHLO Project Steward. It is the Project Steward’s duty to receive and
+address reported violations of the code of conduct.
 
 We will investigate every complaint, but you may not receive a direct response.
 We will use our discretion in determining when and how to follow up on reported
