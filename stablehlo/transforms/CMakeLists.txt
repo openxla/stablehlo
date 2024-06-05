@@ -37,7 +37,6 @@ add_mlir_dialect_library(StablehloPasses
   StablehloAggressiveSimplification.cpp
   StablehloCanonicalizeDynamism.cpp
   StablehloConvertToSignless.cpp
-  StablehloInstrumentWithProbe.cpp
   StablehloLegalizeCompositeToCall.cpp
   StablehloLegalizeDeprecatedOps.cpp
   StablehloLegalizeToVhlo.cpp
@@ -54,7 +53,6 @@ add_mlir_dialect_library(StablehloPasses
 
   LINK_LIBS PUBLIC
   ChloOps
-  InterpreterOps
   MLIRArithDialect
   MLIRAsmParser
   MLIRComplexDialect

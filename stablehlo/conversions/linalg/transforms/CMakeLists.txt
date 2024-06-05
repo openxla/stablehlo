@@ -45,13 +45,11 @@ add_mlir_library(StablehloLinalgTransforms
   MLIRMathDialect
   MLIRMemRefDialect
   MLIRPass
-  MLIRPass
   MLIRSCFDialect
   MLIRShapeDialect
   MLIRSparseTensorDialect
   MLIRSupport
   MLIRTensorDialect
-  MLIRTransforms
   MLIRTransforms
   MLIRVectorDialect
 )

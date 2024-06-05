@@ -34,6 +34,7 @@ set(LIBS
         StablehloPasses
         CheckOps
         InterpreterOps
+        InterpreterPasses
         StablehloLinalgTransforms
         StablehloTOSATransforms
         )
