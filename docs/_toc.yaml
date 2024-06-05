@@ -53,6 +53,8 @@ toc:
     path: /stablehlo/vhlo
   - title: StableHLO Passes
     path: /stablehlo/generated/stablehlo_passes
+  - title: StableHLO Interpreter Passes
+    path: /stablehlo/generated/interpreter_passes
   - title: StableHLO Linalg Passes
     path: /stablehlo/generated/stablehlo_linalg_passes
   - title: StableHLO TOSA Passes

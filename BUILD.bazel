@@ -396,6 +396,12 @@ gentbl_cc_library(
             ],
             "stablehlo/reference/InterpreterPasses.h.inc",
         ),
+        (
+            [
+                "-gen-pass-doc",
+            ],
+            "stablehlo/reference/interpreter_passes.md",
+        ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/reference/InterpreterPasses.td",
