@@ -39,6 +39,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloConvertToSignless.cpp
   StablehloLegalizeCompositeToCall.cpp
   StablehloLegalizeDeprecatedOps.cpp
+  StablehloLegalizeQuantToInt.cpp
   StablehloLegalizeToVhlo.cpp
   StablehloRefineArguments.cpp
   StablehloRefineShapes.cpp
@@ -59,6 +60,7 @@ add_mlir_dialect_library(StablehloPasses
   MLIRDialectUtils
   MLIRFuncDialect
   MLIRFunctionInterfaces
+  MLIRFuncTransforms
   MLIRIR
   MLIRInferTypeOpInterface
   MLIRQuantDialect
