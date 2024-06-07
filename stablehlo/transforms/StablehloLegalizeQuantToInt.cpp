@@ -48,36 +48,28 @@ limitations under the License.
 namespace mlir::stablehlo {
 namespace {
 
-// TODO: b/311218165 - consider extract this to common utils and better ways to
-// handle polymorphism.
-using QuantType = std::variant<quant::UniformQuantizedType,
-                               quant::UniformQuantizedPerAxisType>;
+using QuantType = quant::QuantizedType;
 FailureOr<QuantType> getQuantType(Type type) {
   if (auto quantType =
-          dyn_cast<quant::UniformQuantizedType>(getElementTypeOrSelf(type))) {
-    return QuantType(quantType);
-  }
-  if (auto quantType = dyn_cast<quant::UniformQuantizedPerAxisType>(
-          getElementTypeOrSelf(type))) {
-    return QuantType(quantType);
-  }
+          dyn_cast<quant::QuantizedType>(getElementTypeOrSelf(type)))
+    return quantType;
   return failure();
 }
 
-bool isPerTensorType(QuantType quantType) {
-  return std::holds_alternative<quant::UniformQuantizedType>(quantType);
+bool isPerTensorType(Type type) {
+  return isa<quant::UniformQuantizedType>(getElementTypeOrSelf(type));
 }
 
-bool isPerChannelType(QuantType quantType) {
-  return std::holds_alternative<quant::UniformQuantizedPerAxisType>(quantType);
+bool isPerChannelType(Type type) {
+  return isa<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(type));
 }
 
-quant::UniformQuantizedType getPerTensorType(QuantType quantType) {
-  return std::get<quant::UniformQuantizedType>(quantType);
+quant::UniformQuantizedType getPerTensorType(Type type) {
+  return cast<quant::UniformQuantizedType>(getElementTypeOrSelf(type));
 }
 
-quant::UniformQuantizedPerAxisType getPerChannelType(QuantType quantType) {
-  return std::get<quant::UniformQuantizedPerAxisType>(quantType);
+quant::UniformQuantizedPerAxisType getPerChannelType(Type type) {
+  return cast<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(type));
 }
 
 // Extracts scale and zero point info from input quant type info.
@@ -86,22 +78,21 @@ void getQuantizationParams(OpBuilder &builder, Location loc,
                            Value &zeroPoints, bool outputZeroPointInFp,
                            DenseI64ArrayAttr &broadcastDims) {
   // Get scales/zero points for per-tensor and per-axis quantization cases.
-  if (auto *quantPerTensorType =
-          std::get_if<quant::UniformQuantizedType>(&quantType)) {
+  if (auto quantPerTensorType =
+          dyn_cast<quant::UniformQuantizedType>(quantType)) {
     scales = builder.create<stablehlo::ConstantOp>(
-        loc, builder.getF32FloatAttr(quantPerTensorType->getScale()));
+        loc, builder.getF32FloatAttr(quantPerTensorType.getScale()));
     if (outputZeroPointInFp) {
       zeroPoints = builder.create<stablehlo::ConstantOp>(
           loc, builder.getF32FloatAttr(
-                   static_cast<float>(quantPerTensorType->getZeroPoint())));
+                   static_cast<float>(quantPerTensorType.getZeroPoint())));
     } else {
       zeroPoints = builder.create<stablehlo::ConstantOp>(
           loc, builder.getI32IntegerAttr(
-                   static_cast<int32_t>(quantPerTensorType->getZeroPoint())));
+                   static_cast<int32_t>(quantPerTensorType.getZeroPoint())));
     }
   } else {
-    auto &quantPerChannelType =
-        std::get<quant::UniformQuantizedPerAxisType>(quantType);
+    auto quantPerChannelType = getPerChannelType(quantType);
     SmallVector<float> scalesVec;
     for (auto scale : quantPerChannelType.getScales())
       scalesVec.push_back(scale);
@@ -145,25 +136,15 @@ void getQuantizationParams(OpBuilder &builder, Location loc,
 void getQuantizationStorageInfo(OpBuilder &builder, Location loc,
                                 QuantType quantType, Value &storageMin,
                                 Value &storageMax) {
-  if (auto *quantPerTensorType =
-          std::get_if<quant::UniformQuantizedType>(&quantType)) {
-    storageMin = builder.create<stablehlo::ConstantOp>(
-        loc, builder.getF32FloatAttr(
-                 static_cast<float>(quantPerTensorType->getStorageTypeMin())));
-    storageMax = builder.create<stablehlo::ConstantOp>(
-        loc, builder.getF32FloatAttr(
-                 static_cast<float>(quantPerTensorType->getStorageTypeMax())));
-  } else {
-    auto &quantPerChannelType =
-        std::get<quant::UniformQuantizedPerAxisType>(quantType);
-    storageMin = builder.create<stablehlo::ConstantOp>(
-        loc, builder.getF32FloatAttr(
-                 static_cast<float>(quantPerChannelType.getStorageTypeMin())));
-    storageMax = builder.create<stablehlo::ConstantOp>(
-        loc, builder.getF32FloatAttr(
-                 static_cast<float>(quantPerChannelType.getStorageTypeMax())));
-  }
+  storageMin = builder.create<stablehlo::ConstantOp>(
+      loc, builder.getF32FloatAttr(
+               static_cast<float>(quantType.getStorageTypeMin())));
+  storageMax = builder.create<stablehlo::ConstantOp>(
+      loc, builder.getF32FloatAttr(
+               static_cast<float>(quantType.getStorageTypeMax())));
 }
+
+Type getQuantStorageType(QuantType type) { return type.getStorageType(); }
 
 // Extracts storage type of a UQ type. Return original type if it is no UQ type.
 Type getQuantStorageType(Type type) {
@@ -171,22 +152,11 @@ Type getQuantStorageType(Type type) {
     return shaped.clone(getQuantStorageType(shaped.getElementType()));
   }
 
-  if (auto elementType =
-          dyn_cast<quant::UniformQuantizedType>(getElementTypeOrSelf(type))) {
-    return elementType.getStorageType();
-  }
-  if (auto elementType = dyn_cast<quant::UniformQuantizedPerAxisType>(
-          getElementTypeOrSelf(type))) {
-    return elementType.getStorageType();
+  auto quantizeType = getQuantType(type);
+  if (succeeded(quantizeType)) {
+    return getQuantStorageType(*quantizeType);
   }
   return type;
-}
-
-Type getQuantStorageType(QuantType type) {
-  if (isPerTensorType(type)) {
-    return getPerTensorType(type).getStorageType();
-  }
-  return getPerChannelType(type).getStorageType();
 }
 
 Value applyMergedScalesAndZps(OpBuilder &builder, Location loc,
@@ -894,9 +864,7 @@ Value createDotLikeKernel<stablehlo::ConvolutionOp>(
         loc, DenseIntElementsAttr::get(
                  RankedTensorType::get({}, builder.getI8Type()),
                  {static_cast<int8_t>(
-                     cast<quant::UniformQuantizedType>(
-                         getElementTypeOrSelf(op.getLhs().getType()))
-                         .getZeroPoint())}));
+                     getPerTensorType(op.getLhs().getType()).getZeroPoint())}));
     // Convert Padding attributes from stablehlo::Convolution to stablehlo::Pad.
     // Note that Padding is applied for spatial dimensions [1...rank-1) only for
     // stablehlo::Convolution. But stablehlo::Pad require those for all
@@ -950,8 +918,7 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
   Value resI32 = createDotLikeKernel(rewriter, op->getLoc(), op,
                                      resInt32TensorType, lhs, rhs, attrs);
 
-  auto lhsElementQuantType = cast<quant::UniformQuantizedType>(
-      getElementTypeOrSelf(op.getLhs().getType()));
+  auto lhsElementQuantType = getPerTensorType(op.getLhs().getType());
   auto rhsElementQuantType = dyn_cast<quant::UniformQuantizedType>(
       getElementTypeOrSelf(op.getRhs().getType()));
   auto rhsElementQuantPerChannelType =
@@ -1171,27 +1138,21 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
     return failure();
   }
   QuantType rhsElementQuantType = *failedOr;
-  bool isRhsQuantPerTensor =
-      std::get_if<quant::UniformQuantizedType>(&rhsElementQuantType);
+  bool isRhsQuantPerTensor = isPerTensorType(rhsElementQuantType);
 
   if (isRhsQuantPerTensor
-          ? (std::get<quant::UniformQuantizedType>(rhsElementQuantType)
-                 .getZeroPoint() != 0)
-          : llvm::any_of(llvm::concat<const int64_t>(
-                             std::get<quant::UniformQuantizedPerAxisType>(
-                                 rhsElementQuantType)
-                                 .getZeroPoints(),
-                             cast<quant::UniformQuantizedPerAxisType>(
-                                 getElementTypeOrSelf(op.getResult()))
-                                 .getZeroPoints()),
-                         [](int64_t zp) { return zp != 0; })) {
+          ? getPerTensorType(rhsElementQuantType).getZeroPoint() != 0
+          : llvm::any_of(
+                llvm::concat<const int64_t>(
+                    getPerChannelType(rhsElementQuantType).getZeroPoints(),
+                    getPerChannelType(op.getType()).getZeroPoints()),
+                [](int64_t zp) { return zp != 0; })) {
     op->emitError("RHS/result UQ type must have zero zp.");
     return failure();
   }
   // For per-channel quantization, RHS quantized axis must be out channel axis.
   if (!isRhsQuantPerTensor &&
-      (std::get<quant::UniformQuantizedPerAxisType>(rhsElementQuantType)
-           .getQuantizedDimension() !=
+      (getPerChannelType(rhsElementQuantType).getQuantizedDimension() !=
        cast<TensorType>(op.getRhs().getType()).getRank() - 1)) {
     op->emitError("Conv quantized axis must be out channel axis");
     return failure();
@@ -1199,16 +1160,12 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
   // For per-channel quantization, ratio between RHS and Result scales must be
   // the same for each channel.
   if (!isRhsQuantPerTensor) {
-    auto resElementQuantPerChannelType =
-        cast<quant::UniformQuantizedPerAxisType>(
-            getElementTypeOrSelf(op.getResult()));
+    auto resElementQuantPerChannelType = getPerChannelType(op.getType());
     SmallVector<double> scaleRatios(
         resElementQuantPerChannelType.getScales().size());
     for (size_t i = 0; i < scaleRatios.size(); ++i) {
-      scaleRatios[i] =
-          resElementQuantPerChannelType.getScales()[i] /
-          std::get<quant::UniformQuantizedPerAxisType>(rhsElementQuantType)
-              .getScales()[i];
+      scaleRatios[i] = resElementQuantPerChannelType.getScales()[i] /
+                       getPerChannelType(rhsElementQuantType).getScales()[i];
       auto diff = (scaleRatios[i] - scaleRatios[0]) / scaleRatios[0];
       // Check all ratios within a threshold.
       if (std::abs(diff) > 0.001) {
