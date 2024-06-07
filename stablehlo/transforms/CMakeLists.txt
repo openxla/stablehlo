@@ -69,6 +69,7 @@ add_mlir_dialect_library(StablehloPasses
   MLIRTransformUtils
   StablehloBase
   StablehloBroadcastUtils
+  StablehloLinalgTransforms
   StablehloOps
   StablehloTypeInference
   VhloOps
