@@ -506,8 +506,8 @@ struct ConvertCstrBroadcastableOp
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(shape::CstrBroadcastableOp op,
                                 PatternRewriter& rewriter) const override {
-    // As defined, op inputs must be 1D tensor or !shape.shape.
-    // We only support inputs of two 1D tensors.
+    // The way CstrBroadcastableOp is defined, its inputs inputs must be 1D
+    // tensor or !shape.shape. We only support inputs of two 1D tensors.
     if (op.getShapes().size() != 2) return failure();
     auto shape1 = castToI32(rewriter, op.getLoc(), op.getShapes().front());
     auto shape2 = castToI32(rewriter, op.getLoc(), op.getShapes().back());
@@ -518,8 +518,6 @@ struct ConvertCstrBroadcastableOp
 
     // If the two operand shapes are of different sizes, the smaller one is
     // padded with 1's from the left.
-    int32_t rank =
-        std::max(tensorType1.getDimSize(0), tensorType2.getDimSize(0));
     if (tensorType1.getDimSize(0) < tensorType2.getDimSize(0)) {
       shape1 =
           padFromLeft(rewriter, op.getLoc(), shape1,
@@ -532,6 +530,8 @@ struct ConvertCstrBroadcastableOp
 
     // Compute if each dim is broadcastable. A dim is broadcastable iff
     // dimSize1 == dimSize2 or dimSize1 == 1 or dimSize2 == 1
+    int32_t rank =
+        std::max(tensorType1.getDimSize(0), tensorType2.getDimSize(0));
     auto allOne = rewriter.create<stablehlo::ConstantOp>(
         op.getLoc(), DenseIntElementsAttr::get<int32_t>(
                          RankedTensorType::get({rank}, rewriter.getI32Type()),
