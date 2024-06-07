@@ -90,12 +90,6 @@ long-term supported counterparts.
 ```
 -fail-on-unused : Fail on (mostly) unused ops that are deprecated without any fallback.
 ```
-### `-stablehlo-legalize-quant-to-int`
-
-_Convert from StableHLO quantized ops to StableHLO primitive ops._
-
-Convert from StableHLO quantized ops with StableHLO quant types to StableHLO primitive ops
-like int ops.
 ### `-stablehlo-legalize-to-vhlo`
 
 _Legalize StableHLO to VHLO._
