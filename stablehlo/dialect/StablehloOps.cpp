@@ -2563,6 +2563,10 @@ ParseResult WhileOp::parse(OpAsmParser& parser, OperationState& result) {
   return hlo::parseWhileOp(parser, result);
 }
 
+//===----------------------------------------------------------------------===//
+// UniformDequantizeOp
+//===----------------------------------------------------------------------===//
+
 LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
     MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
@@ -2571,6 +2575,14 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
                                        regions);
   return hlo::inferUniformDequantizeOp(location, adaptor.getOperand(),
                                        inferredReturnShapes);
+}
+
+//===----------------------------------------------------------------------===//
+// UniformQuantizeOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult UniformQuantizeOp::verify() {
+  return hlo::verifyUniformQuantizeOp(getLoc(), getOperand(), getResult());
 }
 
 }  // namespace stablehlo
