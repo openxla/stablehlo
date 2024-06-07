@@ -62,6 +62,7 @@ add_mlir_dialect_library(StablehloPasses
   MLIRFuncTransforms
   MLIRFunctionInterfaces
   MLIRFuncTransforms
+  MLIRFunctionInterfaces
   MLIRIR
   MLIRInferTypeOpInterface
   MLIRQuantDialect
