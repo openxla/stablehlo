@@ -1307,3 +1307,19 @@ func.func @quantized_element_type_c14(%arg0: tensor<1x5x2x!quant.uniform<i8<-128
   %0 = stablehlo.add %arg0,  %arg0 : tensor<1x5x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30,0.1:-30 }>>
   func.return
 }
+
+// -----
+
+func.func @uniform_quantized_c1(%arg0: tensor<2xf32>) {
+  // expected-error@+1 {{Expressed type of result expected to be 'f32', but got 'f64'}}
+  %0 = "stablehlo.uniform_quantize"(%arg0) : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f64, 0.1>>
+  func.return
+}
+
+// -----
+
+func.func @uniform_quantized_c1(%arg0: tensor<2x!quant.uniform<i8:f32, 0.1>>) {
+  // expected-error@+1 {{Expressed type of result expected to be 'f32', but got 'f64'}}
+  %0 = "stablehlo.uniform_quantize"(%arg0) : (tensor<2x!quant.uniform<i8:f32, 0.1>>) -> tensor<2x!quant.uniform<i8:f64, 0.1>>
+  func.return
+}

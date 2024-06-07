@@ -3525,6 +3525,27 @@ LogicalResult inferUniformQuantizeOp(
   return success();
 }
 
+LogicalResult verifyUniformQuantizeOp(std::optional<Location> location,
+                                      Value operand, Value result) {
+  auto resultExpressedType =
+      cast<quant::QuantizedType>(getElementTypeOrSelf(result))
+          .getExpressedType();
+  auto operandElementType = getElementTypeOrSelf(operand);
+  auto exprectedResultExpressedType =
+      isa<FloatType>(operandElementType)
+          ? operandElementType
+          : cast<quant::QuantizedType>(operandElementType).getExpressedType();
+
+  // uniform_quantize_c2
+  if (resultExpressedType != exprectedResultExpressedType) {
+    return emitOptionalError(
+        location, "Expressed type of result expected to be ",
+        exprectedResultExpressedType, ", but got ", resultExpressedType);
+  }
+
+  return success();
+}
+
 LogicalResult inferWhileOp(std::optional<Location>, ValueRange operand,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
   // while_c3
