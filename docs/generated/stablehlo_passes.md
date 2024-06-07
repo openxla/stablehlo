@@ -89,8 +89,8 @@ long-term supported counterparts.
 
 _Convert from StableHLO quantized ops to StableHLO primitive ops._
 
-Convert from StableHLO quantized ops with StableHLO quant types to StableHLO primitive ops
-like int ops.
+Convert StableHLO programs using UniformQuantized types to semantically
+equivalent integer math.
 ### `-stablehlo-legalize-to-vhlo`
 
 _Legalize StableHLO to VHLO._

@@ -183,10 +183,11 @@ def StablehloLegalizeQuantToIntPass : Pass<"stablehlo-legalize-quant-to-int", "m
   let summary = "Convert from StableHLO quantized ops to StableHLO primitive ops.";
 
   let description = [{
-    Convert from StableHLO quantized ops with StableHLO quant types to StableHLO primitive ops
-    like int ops.
+    Convert StableHLO programs using UniformQuantized types to semantically
+    equivalent integer math.
   }];
-  let dependentDialects = ["mlir::chlo::ChloDialect", "mlir::stablehlo::StablehloDialect",
-                           "mlir::quant::QuantizationDialect",
-                           "mlir::func::FuncDialect"];
+  let dependentDialects = [
+    "mlir::chlo::ChloDialect",
+    "mlir::stablehlo::StablehloDialect",
+  ];
 }
