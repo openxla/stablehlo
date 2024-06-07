@@ -12,6 +12,11 @@ An experimental pass that legalizes shape-related ops to StableHLO ops.
 Bringing shape and data computations together via an optional pass will
 make it possible for the StableHLO ecosystem to potentially leverage the
 compilation pipelines that use StableHLO operations to model dynamism.
+
+#### Options
+```
+-legalize-constraints : Whether to legalize Cstr Ops to shape_assertion custom_call
+```
 ### `-stablehlo-aggressive-folder`
 
 _Folds StableHLO operations_
@@ -85,6 +90,12 @@ long-term supported counterparts.
 ```
 -fail-on-unused : Fail on (mostly) unused ops that are deprecated without any fallback.
 ```
+### `-stablehlo-legalize-quant-to-int`
+
+_Convert from StableHLO quantized ops to StableHLO primitive ops._
+
+Convert from StableHLO quantized ops with StableHLO quant types to StableHLO primitive ops
+like int ops.
 ### `-stablehlo-legalize-to-vhlo`
 
 _Legalize StableHLO to VHLO._
