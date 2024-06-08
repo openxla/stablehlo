@@ -88,9 +88,14 @@ void populateStablehloLegalizeDeprecatedOpsPatterns(
 
 /// Collection of shape dialect to StableHLO patterns.
 void populateShapeToStablehloPatterns(MLIRContext *context,
-                                      RewritePatternSet *patterns);
+                                      RewritePatternSet *patterns,
+                                      bool legalizeConstraints);
 
 //// Additional pass constructors ////
+
+// Legalizes from the Shape dialect to the StableHLO dialect.
+std::unique_ptr<mlir::OperationPass<func::FuncOp>>
+createShapeLegalizeToStablehloPass(bool legalizeConstraints);
 
 std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
     TypeRange refinedTypes);
@@ -120,6 +125,11 @@ void createStablehloDeserializePipeline(OpPassManager &pm);
 //   counterparts if applicable.
 void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
                                            TypeRange refinedTypes);
+
+// Decomposes quantized operations within a StableHLO module by
+// applying a series of MLIR passes essentially breaking down the quantized
+// operations into a primitive math operations.
+void createStablehloLowerQuantPipeline(OpPassManager &pm);
 
 // Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
 // for opt tools.

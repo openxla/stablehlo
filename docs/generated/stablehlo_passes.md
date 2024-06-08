@@ -12,6 +12,11 @@ An experimental pass that legalizes shape-related ops to StableHLO ops.
 Bringing shape and data computations together via an optional pass will
 make it possible for the StableHLO ecosystem to potentially leverage the
 compilation pipelines that use StableHLO operations to model dynamism.
+
+#### Options
+```
+-legalize-constraints : Whether to legalize Cstr Ops to shape_assertion custom_call
+```
 ### `-stablehlo-aggressive-folder`
 
 _Folds StableHLO operations_
