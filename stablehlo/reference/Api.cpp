@@ -68,7 +68,7 @@ FailureOr<func::FuncOp> getMainFunction(ModuleOp module, StringRef mainName) {
 class DefaultInterpreterFallback : public InterpreterFallback {
  public:
   DefaultInterpreterFallback(const InterpreterConfiguration &config)
-      : config(config){};
+      : config(config) {};
 
   virtual llvm::Error operator()(Operation &op, Scope &scope,
                                  Process *process) final {
@@ -229,6 +229,7 @@ LogicalResult lowerQuantization(ModuleOp module, func::FuncOp func) {
     return func.emitError("Failed to lower quantized types/ops in function: ")
            << func.getName();
   }
+  module.dump();
   return success();
 }
 

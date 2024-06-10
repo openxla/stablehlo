@@ -42,8 +42,9 @@ void createStablehloLowerQuantPipeline(OpPassManager &pm) {
       stablehlo::createStablehloLegalizeQuantToIntPass());
   pm.addNestedPass<mlir::func::FuncOp>(
       stablehlo::createChloLegalizeToStablehloPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<mlir::func::FuncOp>(
-      stablehlo::createShapeLegalizeToStablehloPass(true));
+      stablehlo::createShapeLegalizeToStablehloPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }
 

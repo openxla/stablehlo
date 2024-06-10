@@ -88,14 +88,9 @@ void populateStablehloLegalizeDeprecatedOpsPatterns(
 
 /// Collection of shape dialect to StableHLO patterns.
 void populateShapeToStablehloPatterns(MLIRContext *context,
-                                      RewritePatternSet *patterns,
-                                      bool legalizeConstraints);
+                                      RewritePatternSet *patterns);
 
 //// Additional pass constructors ////
-
-// Legalizes from the Shape dialect to the StableHLO dialect.
-std::unique_ptr<mlir::OperationPass<func::FuncOp>>
-createShapeLegalizeToStablehloPass(bool legalizeConstraints);
 
 std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
     TypeRange refinedTypes);

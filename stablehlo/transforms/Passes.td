@@ -125,10 +125,6 @@ def ShapeLegalizeToStablehloPass : Pass<"shape-legalize-to-stablehlo", "func::Fu
     compilation pipelines that use StableHLO operations to model dynamism.
   }];
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
-  let options = [
-    Option<"legalize_constraints_", "legalize-constraints", "bool",
-      /*default=*/"false", "Whether to legalize Cstr Ops to shape_assertion custom_call">
-  ];
 }
 
 def StablehloLegalizeDeprecatedOpsPass : Pass<"stablehlo-legalize-deprecated-ops", "func::FuncOp"> {
