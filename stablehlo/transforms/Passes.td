@@ -178,3 +178,16 @@ def StablehloLegalizeCompositeToCallPass :
     ListOption<"exceptListOption", "except", "std::string", "Names of composites that should not be replaced with calls.">
   ];
 }
+
+def StablehloLegalizeQuantToIntPass : Pass<"stablehlo-legalize-quant-to-int", "mlir::func::FuncOp"> {
+  let summary = "Convert from StableHLO quantized ops to StableHLO primitive ops.";
+
+  let description = [{
+    Convert StableHLO programs using UniformQuantized types to semantically
+    equivalent integer math.
+  }];
+  let dependentDialects = [
+    "mlir::chlo::ChloDialect",
+    "mlir::stablehlo::StablehloDialect",
+  ];
+}
