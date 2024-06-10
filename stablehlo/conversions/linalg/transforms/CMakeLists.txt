@@ -35,6 +35,7 @@ add_mlir_library(StablehloLinalgTransforms
 
   LINK_LIBS PUBLIC
   ChloOps
+  StablehloBase
   StablehloOps
   MLIRArithDialect
   MLIRBufferizationDialect
