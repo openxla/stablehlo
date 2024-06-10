@@ -338,7 +338,7 @@ func.func @add_per_channel_i8(
     %arg0: tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
     %arg1: tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
   ) -> tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>> {
-  // expected-error@+2 {{Per-channel quantized AddOp requires i32 storage type}}
+  // expected-error@+2 {{Per-axis quantized AddOp requires i32 storage type}}
   // expected-error@+1 {{failed to legalize operation 'stablehlo.add' that was explicitly marked illegal}}
   %11 = stablehlo.add %arg0, %arg1 : tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
   return %11 : tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
@@ -350,7 +350,7 @@ func.func @add_per_channel_different_quant_types(
     %arg0: tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
     %arg1: tensor<?x3x4x2x!quant.uniform<i32:f32:3, {1.1:2,0.4:-3}>>
   ) -> tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>> {
-  // expected-error@+2 {{Per-channel quantized AddOp requires the same quantized element type for all operands and results}}
+  // expected-error@+2 {{Per-axis quantized AddOp requires the same quantized element type for all operands and results}}
   // expected-error@+1 {{failed to legalize operation 'stablehlo.add' that was explicitly marked illegal}}
   %11 = stablehlo.add %arg0, %arg1 : (
       tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
@@ -365,7 +365,7 @@ func.func @add_per_channel_per_tensor_mix(
     %arg0: tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
     %arg1: tensor<?x3x4x2x!quant.uniform<i32:f32, 1.1:2>>
   ) -> tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>> {
-  // expected-error@+2 {{Per-channel quantized AddOp requires the same quantized element type for all operands and results}}
+  // expected-error@+2 {{Per-axis quantized AddOp requires the same quantized element type for all operands and results}}
   // expected-error@+1 {{failed to legalize operation 'stablehlo.add' that was explicitly marked illegal}}
   %11 = stablehlo.add %arg0, %arg1 : (
       tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
@@ -1624,7 +1624,7 @@ func.func @conv2d_per_channel_rhs_result_scale_ratio_different(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.200000e+00:0}>> {
-  // expected-error@+2 {{Per-channel quantizated Conv must have same RHS/Result scale ratio for each channel}}
+  // expected-error@+2 {{Per-axis quantizated Conv must have same RHS/Result scale ratio for each channel}}
   // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
