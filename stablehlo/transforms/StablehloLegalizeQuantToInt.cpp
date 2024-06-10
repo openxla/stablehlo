@@ -60,7 +60,7 @@ bool isPerTensorType(Type type) {
   return isa<quant::UniformQuantizedType>(getElementTypeOrSelf(type));
 }
 
-bool isPerChannelType(Type type) {
+bool isPerAxisType(Type type) {
   return isa<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(type));
 }
 
@@ -68,7 +68,7 @@ quant::UniformQuantizedType getPerTensorType(Type type) {
   return cast<quant::UniformQuantizedType>(getElementTypeOrSelf(type));
 }
 
-quant::UniformQuantizedPerAxisType getPerChannelType(Type type) {
+quant::UniformQuantizedPerAxisType getPerAxisType(Type type) {
   return cast<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(type));
 }
 
@@ -92,43 +92,42 @@ void getQuantizationParams(OpBuilder &builder, Location loc,
                    static_cast<int32_t>(quantPerTensorType.getZeroPoint())));
     }
   } else {
-    auto quantPerChannelType = getPerChannelType(quantType);
+    auto quantPerAxisType = getPerAxisType(quantType);
     SmallVector<float> scalesVec;
-    for (auto scale : quantPerChannelType.getScales())
-      scalesVec.push_back(scale);
+    for (auto scale : quantPerAxisType.getScales()) scalesVec.push_back(scale);
     scales = builder.create<stablehlo::ConstantOp>(
         loc,
         DenseFPElementsAttr::get(
             RankedTensorType::get(
-                {static_cast<int64_t>(quantPerChannelType.getScales().size())},
+                {static_cast<int64_t>(quantPerAxisType.getScales().size())},
                 builder.getF32Type()),
             scalesVec));
     if (outputZeroPointInFp) {
       SmallVector<float> zeroPointsVec;
-      for (auto zeroPoint : quantPerChannelType.getZeroPoints())
+      for (auto zeroPoint : quantPerAxisType.getZeroPoints())
         zeroPointsVec.push_back(zeroPoint);
       zeroPoints = builder.create<stablehlo::ConstantOp>(
           loc, DenseFPElementsAttr::get(
                    RankedTensorType::get(
                        {static_cast<int64_t>(
-                           quantPerChannelType.getZeroPoints().size())},
+                           quantPerAxisType.getZeroPoints().size())},
                        builder.getF32Type()),
                    zeroPointsVec));
     } else {
       SmallVector<int32_t> zeroPointsVec;
-      for (auto zeroPoint : quantPerChannelType.getZeroPoints())
+      for (auto zeroPoint : quantPerAxisType.getZeroPoints())
         zeroPointsVec.push_back(zeroPoint);
       zeroPoints = builder.create<stablehlo::ConstantOp>(
           loc, DenseIntElementsAttr::get(
                    RankedTensorType::get(
                        {static_cast<int64_t>(
-                           quantPerChannelType.getZeroPoints().size())},
+                           quantPerAxisType.getZeroPoints().size())},
                        builder.getI32Type()),
                    zeroPointsVec));
     }
     broadcastDims = DenseI64ArrayAttr::get(
         builder.getContext(),
-        {static_cast<int64_t>(quantPerChannelType.getQuantizedDimension())});
+        {static_cast<int64_t>(quantPerAxisType.getQuantizedDimension())});
   }
 }
 
@@ -152,9 +151,9 @@ Type getQuantStorageType(Type type) {
     return shaped.clone(getQuantStorageType(shaped.getElementType()));
   }
 
-  auto quantizeType = getQuantType(type);
-  if (succeeded(quantizeType)) {
-    return getQuantStorageType(*quantizeType);
+  auto quantizedType = getQuantType(type);
+  if (succeeded(quantizedType)) {
+    return getQuantStorageType(*quantizedType);
   }
   return type;
 }
@@ -188,30 +187,30 @@ Value applyMergedScalesAndZps(OpBuilder &builder, Location loc,
     }
   } else {
     int64_t channelSize =
-        isPerChannelType(outputQuantType)
-            ? getPerChannelType(outputQuantType).getScales().size()
-            : getPerChannelType(inputQuantType).getScales().size();
+        isPerAxisType(outputQuantType)
+            ? getPerAxisType(outputQuantType).getScales().size()
+            : getPerAxisType(inputQuantType).getScales().size();
     int64_t quantizedDimension =
-        isPerChannelType(outputQuantType)
-            ? getPerChannelType(outputQuantType).getQuantizedDimension()
-            : getPerChannelType(inputQuantType).getQuantizedDimension();
+        isPerAxisType(outputQuantType)
+            ? getPerAxisType(outputQuantType).getQuantizedDimension()
+            : getPerAxisType(inputQuantType).getQuantizedDimension();
     SmallVector<double> mergedScaleDouble, mergedZpDouble;
     mergedScaleDouble.resize(channelSize);
     mergedZpDouble.resize(channelSize);
     for (int i = 0; i < channelSize; ++i) {
       mergedScaleDouble[i] =
-          (isPerChannelType(inputQuantType)
-               ? getPerChannelType(inputQuantType).getScales()[i]
+          (isPerAxisType(inputQuantType)
+               ? getPerAxisType(inputQuantType).getScales()[i]
                : getPerTensorType(inputQuantType).getScale()) /
-          (isPerChannelType(outputQuantType)
-               ? getPerChannelType(outputQuantType).getScales()[i]
+          (isPerAxisType(outputQuantType)
+               ? getPerAxisType(outputQuantType).getScales()[i]
                : getPerTensorType(outputQuantType).getScale());
       mergedZpDouble[i] =
-          (isPerChannelType(outputQuantType)
-               ? getPerChannelType(outputQuantType).getZeroPoints()[i]
+          (isPerAxisType(outputQuantType)
+               ? getPerAxisType(outputQuantType).getZeroPoints()[i]
                : getPerTensorType(outputQuantType).getZeroPoint()) -
-          (isPerChannelType(inputQuantType)
-               ? getPerChannelType(inputQuantType).getZeroPoints()[i]
+          (isPerAxisType(inputQuantType)
+               ? getPerAxisType(inputQuantType).getZeroPoints()[i]
                : getPerTensorType(inputQuantType).getZeroPoint()) *
               mergedScaleDouble[i];
     }
@@ -241,7 +240,7 @@ Value applyMergedScalesAndZps(OpBuilder &builder, Location loc,
 
 // This helper function create ops to requantize `input` tensor and returns the
 // output tensor. Clamping is done if output integer bit-width < i32. It assumes
-// that if both input and output tensor are per-channel quantized, they have the
+// that if both input and output tensor are per-axis quantized, they have the
 // same quantization axis.
 //
 // Requantization is essentially dequantize --> quantize.
@@ -309,10 +308,9 @@ class ConvertUniformQuantizeOp
       auto inputQuantType = getQuantType(inputElementType);
       auto outputQuantType = getQuantType(op.getResult().getType());
       if (succeeded(inputQuantType) && succeeded(outputQuantType)) {
-        if (isPerChannelType(*inputQuantType) &&
-            isPerChannelType(*outputQuantType) &&
-            getPerChannelType(*inputQuantType).getQuantizedDimension() !=
-                getPerChannelType(*outputQuantType).getQuantizedDimension()) {
+        if (isPerAxisType(*inputQuantType) && isPerAxisType(*outputQuantType) &&
+            getPerAxisType(*inputQuantType).getQuantizedDimension() !=
+                getPerAxisType(*outputQuantType).getQuantizedDimension()) {
           op->emitError("Cannot requantize while changing quantization_axis");
           return failure();
         }
@@ -434,30 +432,27 @@ class ConvertUniformQuantizedAddOp
       return failure();
     }
 
-    if (isPerChannelType(*lhsQuantType) || isPerChannelType(*rhsQuantType) ||
-        isPerChannelType(*resQuantType)) {
-      // Handle Per-Channel Quantized Types. We only support lhs/rhs/result with
-      // exact same per-channel quantized types with I32 storage type.
-      if (!isPerChannelType(*lhsQuantType) ||
-          !isPerChannelType(*rhsQuantType) ||
-          !isPerChannelType(*resQuantType) ||
-          getPerChannelType(*lhsQuantType) !=
-              getPerChannelType(*rhsQuantType) ||
-          getPerChannelType(*lhsQuantType) !=
-              getPerChannelType(*resQuantType)) {
+    if (isPerAxisType(*lhsQuantType) || isPerAxisType(*rhsQuantType) ||
+        isPerAxisType(*resQuantType)) {
+      // Handle Per-Axis Quantized Types. We only support lhs/rhs/result with
+      // exact same per-axis quantized types with I32 storage type.
+      if (!isPerAxisType(*lhsQuantType) || !isPerAxisType(*rhsQuantType) ||
+          !isPerAxisType(*resQuantType) ||
+          getPerAxisType(*lhsQuantType) != getPerAxisType(*rhsQuantType) ||
+          getPerAxisType(*lhsQuantType) != getPerAxisType(*resQuantType)) {
         op->emitError(
-            "Per-channel quantized AddOp requires the same quantized element "
+            "Per-axis quantized AddOp requires the same quantized element "
             "type for all operands and results");
         return failure();
       }
-      if (!getPerChannelType(*lhsQuantType).getStorageType().isInteger(32)) {
+      if (!getPerAxisType(*lhsQuantType).getStorageType().isInteger(32)) {
         // For server-side StableHLO Quantization, add is quantized only when
         // fused with conv/dot ops, whose output must be i32.
-        op->emitError("Per-channel quantized AddOp requires i32 storage type");
+        op->emitError("Per-axis quantized AddOp requires i32 storage type");
         return failure();
       }
-      return matchAndRewritePerChannel(op, adaptor, rewriter,
-                                       getPerChannelType(*lhsQuantType));
+      return matchAndRewritePerAxis(op, adaptor, rewriter,
+                                    getPerAxisType(*lhsQuantType));
     }
 
     // TODO: b/260280919 - Consider avoiding conversion to int32.
@@ -521,14 +516,14 @@ class ConvertUniformQuantizedAddOp
     return success();
   }
 
-  LogicalResult matchAndRewritePerChannel(
+  LogicalResult matchAndRewritePerAxis(
       stablehlo::AddOp op, stablehlo::AddOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter,
       quant::UniformQuantizedPerAxisType quantType) const {
     // We assume lhs/rhs/result have the same quantized type with i32 storage.
     Value addResult = rewriter.create<stablehlo::AddOp>(
         op->getLoc(), adaptor.getLhs(), adaptor.getRhs());
-    // Add zp contribution if it is non-zero for any channel.
+    // Add zp contribution if it is non-zero for any axis.
     if (llvm::any_of(quantType.getZeroPoints(),
                      [](int64_t zp) { return zp != 0; })) {
       SmallVector<int32_t> zpsVec(quantType.getZeroPoints().begin(),
@@ -570,8 +565,8 @@ bool isZeroPointZero(QuantType type) {
   if (isPerTensorType(type)) {
     return getPerTensorType(type).getZeroPoint() == 0;
   }
-  if (isPerChannelType(type)) {
-    ArrayRef<int64_t> zeroPoints = getPerChannelType(type).getZeroPoints();
+  if (isPerAxisType(type)) {
+    ArrayRef<int64_t> zeroPoints = getPerAxisType(type).getZeroPoints();
     return llvm::all_of(zeroPoints, [](int64_t zp) { return zp == 0; });
   }
   return false;
@@ -921,32 +916,32 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
   auto lhsElementQuantType = getPerTensorType(op.getLhs().getType());
   auto rhsElementQuantType = dyn_cast<quant::UniformQuantizedType>(
       getElementTypeOrSelf(op.getRhs().getType()));
-  auto rhsElementQuantPerChannelType =
+  auto rhsElementQuantPerAxisType =
       dyn_cast<quant::UniformQuantizedPerAxisType>(
           getElementTypeOrSelf(op.getRhs().getType()));
   auto resElementQuantType = dyn_cast<quant::UniformQuantizedType>(
       getElementTypeOrSelf(op.getResult()));
-  auto resElementQuantPerChannelType =
+  auto resElementQuantPerAxisType =
       dyn_cast<quant::UniformQuantizedPerAxisType>(
           getElementTypeOrSelf(op.getResult()));
 
   // Here we assume LHS must be per-tensor quantized.
-  // If RHS is per-channel quantized, it must has 0 zp.
+  // If RHS is per-axis quantized, it must has 0 zp.
   Value zpOffset = calculateZeroPointOffset(
       rewriter, op->getLoc(), lhs, rhs, resI32,
       lhsElementQuantType.getZeroPoint(),
       (rhsElementQuantType ? rhsElementQuantType.getZeroPoint() : 0),
       resInt32TensorType, dims);
 
-  // For per-channel quantization, we assume that result scales are proportional
-  // to rhs scales for each channels.
-  double combinedScaleFp =
-      rhsElementQuantType
-          ? lhsElementQuantType.getScale() * rhsElementQuantType.getScale() /
-                resElementQuantType.getScale()
-          : lhsElementQuantType.getScale() *
-                rhsElementQuantPerChannelType.getScales()[0] /
-                resElementQuantPerChannelType.getScales()[0];
+  // For per-axis quantization, we assume that result scales are proportional
+  // to rhs scales for each channel axis.
+  double combinedScaleFp = rhsElementQuantType
+                               ? lhsElementQuantType.getScale() *
+                                     rhsElementQuantType.getScale() /
+                                     resElementQuantType.getScale()
+                               : lhsElementQuantType.getScale() *
+                                     rhsElementQuantPerAxisType.getScales()[0] /
+                                     resElementQuantPerAxisType.getScales()[0];
 
   // Multiply dot result and zp_offset by combined_scale only if it is not 1.0.
   if (std::abs(combinedScaleFp - 1.0) > 0.001) {
@@ -977,7 +972,7 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
     }
   }
 
-  // If result is per-channel quantized, it must has 0 zp.
+  // If result is per-axis quantized, it must has 0 zp.
   Value combinedZp = rewriter.create<stablehlo::ConstantOp>(
       op->getLoc(),
       rewriter.getI32IntegerAttr(
@@ -997,26 +992,25 @@ FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op) {
   // Returns failure() when the type is not supported.
   bool isLhsQuant = isa<quant::UniformQuantizedType>(
       getElementTypeOrSelf(op.getLhs().getType()));
-  bool isLhsQuantPerChannel = isa<quant::UniformQuantizedPerAxisType>(
+  bool isLhsQuantPerAxis = isa<quant::UniformQuantizedPerAxisType>(
       getElementTypeOrSelf(op.getLhs().getType()));
   bool isRhsQuant = isa<quant::UniformQuantizedType>(
       getElementTypeOrSelf(op.getRhs().getType()));
-  bool isRhsQuantPerChannel = isa<quant::UniformQuantizedPerAxisType>(
+  bool isRhsQuantPerAxis = isa<quant::UniformQuantizedPerAxisType>(
       getElementTypeOrSelf(op.getRhs().getType()));
   bool isResQuant =
       isa<quant::UniformQuantizedType>(getElementTypeOrSelf(op.getResult()));
-  bool isResQuantPerChannel = isa<quant::UniformQuantizedPerAxisType>(
+  bool isResQuantPerAxis = isa<quant::UniformQuantizedPerAxisType>(
       getElementTypeOrSelf(op.getResult()));
 
   if (isLhsQuant && ((isRhsQuant && isResQuant) ||
-                     (isRhsQuantPerChannel && isResQuantPerChannel))) {
-    // For quantized ops, RHS and result must be both per-channel quantized or
+                     (isRhsQuantPerAxis && isResQuantPerAxis))) {
+    // For quantized ops, RHS and result must be both per-axis quantized or
     // both per-tensor quantized.
     return false;
   }
-  if (!isLhsQuant && !isLhsQuantPerChannel &&
-      (isRhsQuant || isRhsQuantPerChannel) && !isResQuant &&
-      !isResQuantPerChannel) {
+  if (!isLhsQuant && !isLhsQuantPerAxis && (isRhsQuant || isRhsQuantPerAxis) &&
+      !isResQuant && !isResQuantPerAxis) {
     return true;
   }
   op->emitError("Invalid input/output type for Dot/Convolution op");
@@ -1131,7 +1125,7 @@ bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr &dims) {
 FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
     stablehlo::ConvolutionOp op) {
   // RHS (weight) must have zero zp.
-  // Here assumes RHS/result must be both per-tensor or both per-channel
+  // Here assumes RHS/result must be both per-tensor or both per-axis
   // quantized.
   auto failedOr = getQuantType(op.getRhs().getType());
   if (failed(failedOr)) {
@@ -1144,33 +1138,33 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
           ? getPerTensorType(rhsElementQuantType).getZeroPoint() != 0
           : llvm::any_of(
                 llvm::concat<const int64_t>(
-                    getPerChannelType(rhsElementQuantType).getZeroPoints(),
-                    getPerChannelType(op.getType()).getZeroPoints()),
+                    getPerAxisType(rhsElementQuantType).getZeroPoints(),
+                    getPerAxisType(op.getType()).getZeroPoints()),
                 [](int64_t zp) { return zp != 0; })) {
     op->emitError("RHS/result UQ type must have zero zp.");
     return failure();
   }
-  // For per-channel quantization, RHS quantized axis must be out channel axis.
+  // For per-axis quantization, RHS quantized axis must be out channel axis.
   if (!isRhsQuantPerTensor &&
-      (getPerChannelType(rhsElementQuantType).getQuantizedDimension() !=
+      (getPerAxisType(rhsElementQuantType).getQuantizedDimension() !=
        cast<TensorType>(op.getRhs().getType()).getRank() - 1)) {
     op->emitError("Conv quantized axis must be out channel axis");
     return failure();
   }
-  // For per-channel quantization, ratio between RHS and Result scales must be
+  // For per-axis quantization, ratio between RHS and Result scales must be
   // the same for each channel.
   if (!isRhsQuantPerTensor) {
-    auto resElementQuantPerChannelType = getPerChannelType(op.getType());
+    auto resElementQuantPerAxisType = getPerAxisType(op.getType());
     SmallVector<double> scaleRatios(
-        resElementQuantPerChannelType.getScales().size());
+        resElementQuantPerAxisType.getScales().size());
     for (size_t i = 0; i < scaleRatios.size(); ++i) {
-      scaleRatios[i] = resElementQuantPerChannelType.getScales()[i] /
-                       getPerChannelType(rhsElementQuantType).getScales()[i];
+      scaleRatios[i] = resElementQuantPerAxisType.getScales()[i] /
+                       getPerAxisType(rhsElementQuantType).getScales()[i];
       auto diff = (scaleRatios[i] - scaleRatios[0]) / scaleRatios[0];
       // Check all ratios within a threshold.
       if (std::abs(diff) > 0.001) {
         op->emitError(
-            "Per-channel quantizated Conv must have same RHS/Result scale "
+            "Per-axis quantizated Conv must have same RHS/Result scale "
             "ratio for each channel");
         return failure();
       }
