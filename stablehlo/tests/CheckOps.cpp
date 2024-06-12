@@ -163,10 +163,13 @@ static uint64_t ULPDifference(APFloat f, APFloat g) {
                    .bitcastToAPInt()
                    .getLimitedValue() -
                1;
+  auto af = (f.isNegative() ? -f : f).bitcastToAPInt();
+  auto ag = (g.isNegative() ? -g : g).bitcastToAPInt();
+  assert(af.getBitWidth() <= 64 && ag.getBitWidth() <= 64);
   // a is ULP-distance between exact 0 and abs(f):
-  uint64_t a = (f.isNegative() ? -f : f).bitcastToAPInt().getLimitedValue();
+  uint64_t a = af.getLimitedValue();
   // b is ULP-distance between exact 0 and abs(g):
-  uint64_t b = (g.isNegative() ? -g : g).bitcastToAPInt().getLimitedValue();
+  uint64_t b = ag.getLimitedValue();
   if (f.isFinite() && g.isFinite()) {
     // subtract subnormals contribution, round subnormals to closest normal or
     // zero:
@@ -179,13 +182,15 @@ static uint64_t ULPDifference(APFloat f, APFloat g) {
     else
       b = (2 * b < z ? 0 : 1);
     if (f.isNegative() != g.isNegative()) {
-      // in case of overflow, return uint64 maximal value
-      if (a > std::numeric_limits<uint64_t>::max() - b)
-        return std::numeric_limits<uint64_t>::max();
       return a + b;
     }
+    return (a > b ? a - b : b - a);
   }
-  return (a > b ? a - b : b - a);
+  // In the case of non-finite values, we'll define the ULP-distance
+  // as 0 when (int-casted) values are equal, otherwise, as a maximal
+  // possible value. Notice that NaN values with different payloads
+  // are also considered different.
+  return (a == b ? 0 : std::numeric_limits<uint64_t>::max());
 }
 
 static uint64_t ULPDifference(const Element &e1, const Element &e2) {
@@ -196,42 +201,35 @@ static uint64_t ULPDifference(const Element &e1, const Element &e2) {
     auto complexRhs = e2.getComplexValue();
     return std::max(ULPDifference(complexLhs.real(), complexRhs.real()),
                     ULPDifference(complexLhs.imag(), complexRhs.imag()));
-  } else {
-    return ULPDifference(e1.getFloatValue(), e2.getFloatValue());
   }
+  return ULPDifference(e1.getFloatValue(), e2.getFloatValue());
 }
 
-llvm::Error evalExpectIsCloseToReferenceOp(const Tensor &actual,
-                                           const Tensor &reference,
-                                           const Tensor &input,
-                                           uint64_t max_ulp_difference) {
+llvm::Error evalExpectCloseOp(const Tensor &actual, const Tensor &expected,
+                              uint64_t max_ulp_difference) {
   auto type = actual.getElementType();
-  if (!(isSupportedFloatType(type) || isSupportedComplexType(type)))
+  if (!isSupportedFloatType(type) && !isSupportedComplexType(type))
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
   std::string mismatches;
   llvm::raw_string_ostream output(mismatches);
-  constexpr int ulp_diff_counter_size = 5;
+  constexpr size_t ulp_diff_counter_size = 5;
   int ulp_diff_counter[ulp_diff_counter_size] = {};
-  for (auto lhsIt = actual.index_begin(), rhsIt = reference.index_begin(),
-            inputIt = input.index_begin();
-       lhsIt != actual.index_end(); ++lhsIt, ++rhsIt, ++inputIt) {
+  for (auto lhsIt = actual.index_begin(), rhsIt = expected.index_begin();
+       lhsIt != actual.index_end(); ++lhsIt, ++rhsIt) {
     auto e1 = actual.get(*lhsIt);
-    auto e2 = reference.get(*rhsIt);
+    auto e2 = expected.get(*rhsIt);
     uint64_t ulp_diff = ULPDifference(e1, e2);
-    if (!(ulp_diff <= max_ulp_difference)) {
-      output << "\n  index=" << (*lhsIt) << ", input=" << input.get(*inputIt)
-             << ", actual=" << e1 << ", reference=" << e2
-             << ", ULP difference=" << ulp_diff;
+    if (ulp_diff > max_ulp_difference) {
+      output << "\n  index=" << (*lhsIt) << ", actual=" << e1
+             << ", expected=" << e2 << ", ULP difference=" << ulp_diff;
     }
     // Gather ULP difference statistics:
-    ulp_diff_counter[(ulp_diff >= ulp_diff_counter_size
-                          ? ulp_diff_counter_size - 1
-                          : ulp_diff)] += 1;
+    ulp_diff_counter[std::min(ulp_diff, ulp_diff_counter_size - 1)] += 1;
   }
   if (mismatches.size() != 0) {
     // Append ULP difference statistics in exception message:
-    for (int i = 0; i < ulp_diff_counter_size; i++) {
+    for (size_t i = 0; i < ulp_diff_counter_size; i++) {
       output << "\nULP difference";
       if (i + 1 == ulp_diff_counter_size)
         output << " >= ";

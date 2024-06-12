@@ -12,7 +12,7 @@ module @asin_complex64 {
     %0 = call @samples() : () -> tensor<169xcomplex<f32>>
     %1 = "chlo.asin"(%0) : (tensor<169xcomplex<f32>>) -> tensor<169xcomplex<f32>>
     %2 = call @expected() : () -> tensor<169xcomplex<f32>>
-    check.expect_is_close_to_reference %1, %2, %0, max_ulp_difference = 3 : tensor<169xcomplex<f32>>, tensor<169xcomplex<f32>>, tensor<169xcomplex<f32>>
+    check.expect_close %1, %2, max_ulp_difference = 3 : tensor<169xcomplex<f32>>, tensor<169xcomplex<f32>>
     func.return
   }
 }

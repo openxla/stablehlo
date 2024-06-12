@@ -118,42 +118,38 @@ def CHECK_ExpectEqOp : Op<CHECK_Dialect, "expect_eq", [SameTypeOperands]> {
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
 }
 
-def CHECK_ExpectIsCloseToReferenceOp :
-    Op<CHECK_Dialect, "expect_is_close_to_reference", [
-      AllTypesMatch<["actual", "reference"]>,
-      AllShapesMatch<["actual", "reference"]>]> {
-  let summary = [{Checks that the tensor operand ULP-distance to reference tensor operand is within specified limits}];
+def CHECK_ExpectCloseOp :
+    Op<CHECK_Dialect, "expect_close", [
+      AllTypesMatch<["actual", "expected"]>,
+      AllShapesMatch<["actual", "expected"]>]> {
+  let summary = [{Checks that the tensor operand ULP-distance to expected tensor operand is within specified limits}];
   let description = [{
 
     Verifies that the floating-point tensor operands, actual and
-    reference, are close within an user-defined limit:
+    expected, are close within an user-defined limit:
 
       ulp_difference(actual, reference) < max_ulp_difference
 
     where ulp_difference returns the number of all possible floating
-    point values that are greater than or equal to actual and smaller
-    than reference.
+    point values that are greater than or equal to min(actual,
+    expected) and smaller than max(actual, expected).
 
-    When reference operand is non-finite, expect_is_close_to_reference
-    is equivalent to expect_eq with respect to that operand.
-
-    Input is the argument to a function that produces an actual value.
-    Input is included in the report of mismatches between actual and
-    reference values.
+    When either of operands is non-finite, expect_close returns true
+    when actual and expected are bitwise equal, otherwise
+    false. NaN values are equal iff their payloads are equal.
 
     ```mlir
-    check.expect_is_close %arg0, %arg1, %arg2, max_ulp_difference = 3 : tensor<2xf32>, tensor<2xf32>, tensor<2xf32>
+    check.expect_close %arg0, %arg1, max_ulp_difference = 3 : tensor<2xf32>, tensor<2xf32>
     ```
   }];
 
   let arguments = (ins
       TensorOf<[AnyFloat, AnyComplex]>:$actual,
-      TensorOf<[AnyFloat, AnyComplex]>:$reference,
-      TensorOf<[AnyFloat, AnyComplex]>:$input,
+      TensorOf<[AnyFloat, AnyComplex]>:$expected,
       DefaultValuedOptionalAttr<UI64Attr, "1">:$max_ulp_difference
   );
 
-  let assemblyFormat = "$actual `,` $reference `,` $input (`,` `max_ulp_difference` `=` $max_ulp_difference^)? `:` attr-dict type($actual) `,` type($reference) `,` type($input)";
+  let assemblyFormat = "$actual `,` $expected (`,` `max_ulp_difference` `=` $max_ulp_difference^)? `:` attr-dict type($actual) `,` type($expected)";
 }
 
 def CHECK_ExpectSerializedEqOp : Op<CHECK_Dialect, "expect_serialized_eq", []> {

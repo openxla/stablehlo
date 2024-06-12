@@ -65,12 +65,13 @@ def main():
         opname = op["name"]
         mpmath_opname = op.get("mpmath_name", opname)
         size_re = size_im = op.get("size", default_size)
-        extra_prec_multiplier = op.get(
-            "extra_prec_multiplier", default_extra_prec_multiplier
-        )
-        max_ulp_difference = op.get("max_ulp_difference", default_max_ulp_difference)
+        extra_prec_multiplier = op.get("extra_prec_multiplier",
+                                       default_extra_prec_multiplier)
+        max_ulp_difference = op.get("max_ulp_difference",
+                                    default_max_ulp_difference)
 
-        nmp = fa.utils.numpy_with_mpmath(extra_prec_multiplier=extra_prec_multiplier)
+        nmp = fa.utils.numpy_with_mpmath(
+            extra_prec_multiplier=extra_prec_multiplier)
         for dtype in [np.complex64, np.complex128, np.float32, np.float64]:
             fi = np.finfo(dtype)
 
@@ -78,14 +79,12 @@ def main():
             finfo = np.finfo(float_dtype)
 
             if dtype in [np.complex64, np.complex128]:
-                samples = fa.utils.complex_samples(
-                    size=(size_re, size_im), dtype=dtype
-                ).flatten()
+                samples = fa.utils.complex_samples(size=(size_re, size_im),
+                                                   dtype=dtype).flatten()
                 expected = getattr(nmp, mpmath_opname)(samples)
             else:
-                samples = fa.utils.real_samples(
-                    size=size_re * size_im, dtype=dtype
-                ).flatten()
+                samples = fa.utils.real_samples(size=size_re * size_im,
+                                                dtype=dtype).flatten()
                 expected = getattr(nmp, mpmath_opname)(samples)
                 if opname == "asin" and expected.dtype != samples.dtype:
                     # mpmath.asin(x) returns complex value when abs(x) > 1, here
@@ -93,7 +92,8 @@ def main():
                     expected = expected.real
                     expected[np.where(abs(samples) > 1)] = np.nan
                     expected = np.ascontiguousarray(expected)
-                assert expected.dtype == samples.dtype, (expected.dtype, samples.dtype)
+                assert expected.dtype == samples.dtype, (expected.dtype,
+                                                         samples.dtype)
 
             module_name = f"{opname}_{dtype.__name__}"
             m = SSA.make_module(module_name)
@@ -110,17 +110,15 @@ def main():
 
             ref_samples = main_func.call("samples")
             actual = main_func.composite(f"chlo.{opname}", ref_samples)
-            reference = main_func.call("expected")
+            expected = main_func.call("expected")
 
             main_func.void_call(
-                "check.expect_is_close_to_reference",
+                "check.expect_close",
                 actual,
-                reference,
-                ref_samples,
+                expected,
                 f"max_ulp_difference = {max_ulp_difference}",
-                atypes=", ".join(
-                    map(main_func.get_ref_type, [actual, reference, ref_samples])
-                ),
+                atypes=", ".join(map(main_func.get_ref_type,
+                                     [actual, expected])),
             )
             main_func.void_call("func.return")
             fname = os.path.join(target_dir, f"{module_name}.mlir")
@@ -175,7 +173,8 @@ class Block:
     def call(self, name, *args):
         # call function created with make_function
         sargs = ", ".join(args)
-        return self.assign(f"call @{name}({sargs})", typ=self.get_function_type(name))
+        return self.assign(f"call @{name}({sargs})",
+                           typ=self.get_function_type(name))
 
     def composite(self, name, *args, **options):
         sargs = ", ".join(args)
@@ -225,7 +224,7 @@ class Block:
             i = self.prefix.find("@")
             j = self.prefix.find("(", i)
             assert -1 not in {i, j}, self.prefix
-            return self.prefix[i + 1 : j]
+            return self.prefix[i + 1:j]
 
     @property
     def function_type(self):
@@ -261,7 +260,8 @@ class SSA:
 
     def make_function(self, name, args, rtype, attrs="private"):
         if rtype:
-            b = Block(self, f"func.func {attrs} @{name}({args}) -> {rtype} {{", "}")
+            b = Block(self, f"func.func {attrs} @{name}({args}) -> {rtype} {{",
+                      "}")
         else:
             b = Block(self, f"func.func {attrs} @{name}({args}) {{", "}")
         self.blocks.append(b)

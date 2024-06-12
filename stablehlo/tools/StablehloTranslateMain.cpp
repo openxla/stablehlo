@@ -143,16 +143,13 @@ class StablehloTranslateInterpreterFallback
                                            "check.expect_eq_const");
     }
 
-    if (auto expectIsCloseToRefOp =
-            dyn_cast<stablehlo::check::ExpectIsCloseToReferenceOp>(op)) {
-      auto runtimeActual = scope.findTensor(expectIsCloseToRefOp.getActual());
-      auto runtimeRef = scope.findTensor(expectIsCloseToRefOp.getReference());
-      auto runtimeInput = scope.findTensor(expectIsCloseToRefOp.getInput());
-      auto status = stablehlo::check::evalExpectIsCloseToReferenceOp(
-          runtimeActual, runtimeRef, runtimeInput,
-          expectIsCloseToRefOp.getMaxUlpDifference());
-      return stablehlo::wrapFallbackStatus(
-          std::move(status), funcName, "check.expect_is_close_to_reference");
+    if (auto expectCloseOp = dyn_cast<stablehlo::check::ExpectCloseOp>(op)) {
+      auto runtimeActual = scope.findTensor(expectCloseOp.getActual());
+      auto runtimeExpected = scope.findTensor(expectCloseOp.getExpected());
+      auto status = stablehlo::check::evalExpectCloseOp(
+          runtimeActual, runtimeExpected, expectCloseOp.getMaxUlpDifference());
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_close");
     }
 
     if (auto expectSerializedEqOp =
