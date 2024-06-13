@@ -1,4 +1,5 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck %s
+// RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect --stablehlo-legalize-quantized-op-using-qdq | FileCheck %s --check-prefixes=CHECK-QDQ
 
 
 // -----
@@ -9,7 +10,7 @@ func.func @ops_per_axis_quantization(
   %arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>,
   %arg1: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>,
   %shape: tensor<3xi64>,
-  %token0: !stablehlo.token) {
+  %token0: !stablehlo.token) -> (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>, tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.5:-20}>>, tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.1:-30}>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>, tensor<i32>, !stablehlo.token, tensor<2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>, !stablehlo.token, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>, tuple<tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>>, tensor<1x2x2xf32>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) {
   %bitcast_convert = "stablehlo.bitcast_convert"(%arg0) : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>
   %broadcast_in_dim_1 = "stablehlo.broadcast_in_dim" (%arg0) {broadcast_dimensions = array<i64: 0, 1, 3>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.5:-20}>>
   %broadcast_in_dim_2 = "stablehlo.broadcast_in_dim"(%arg1) {broadcast_dimensions = array<i64: 0, 1, 2>} : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) -> tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.1:-30}>>
@@ -23,10 +24,50 @@ func.func @ops_per_axis_quantization(
   %tuple = "stablehlo.tuple"(%arg1, %arg1) : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) -> tuple<tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>>
   %uniform_dequantize = "stablehlo.uniform_dequantize" (%arg0) : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2xf32>
   %uniform_quantize = "stablehlo.uniform_quantize" (%arg0) : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>
-  func.return
+  func.return %bitcast_convert, %broadcast_in_dim_1, %broadcast_in_dim_2, %custom_call, %dynamic_broadcast_in_dim, %get_dimension_size, %outfeed, %reshape, %send, %transpose, %tuple, %uniform_dequantize, %uniform_quantize : tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>, tensor<1x2x3x2x!quant.uniform<i8<-128:127>:f32:3, {0.1:-30, 0.5:-20}>>, tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.1:-30}>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>, tensor<i32>, !stablehlo.token, tensor<2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>, !stablehlo.token, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>, tuple<tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>>, tensor<1x2x2xf32>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:2, {0.1:-30, 0.5:-20}>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.bitcast_convert %arg0 : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>) -> tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.broadcast_in_dim %arg0, dims = [0, 1, 3] : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>) -> tensor<1x2x3x2x!quant.uniform<i8:f32:3, {1.000000e-01:-30,5.000000e-01:-20}>>
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.broadcast_in_dim %arg1, dims = [0, 1, 2] : (tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>) -> tensor<2x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30,1.000000e-01:-30}>>
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.custom_call @foo(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>) -> tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.dynamic_broadcast_in_dim %arg0, %arg2, dims = [0, 1, 2] : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>, tensor<3xi64>) -> tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.get_dimension_size %arg0, dim = 1 : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>) -> tensor<i32>
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.outfeed"(%arg0, %arg3) <{outfeed_config = ""}> : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>, !stablehlo.token) -> !stablehlo.token
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.reshape %arg0 : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>) -> tensor<2x2x!quant.uniform<i8:f32:1, {1.000000e-01:-30,5.000000e-01:-20}>>
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.send"(%arg0, %arg3) <{channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>, is_host_transfer = true}> : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>, !stablehlo.token) -> !stablehlo.token
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.transpose %arg0, dims = [0, 2, 1] : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>) -> tensor<1x2x2x!quant.uniform<i8:f32:1, {1.000000e-01:-30,5.000000e-01:-20}>>
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.tuple %arg1, %arg1 : tuple<tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>, tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>>
+// CHECK-QDQ: stablehlo.uniform_dequantize %arg0 : (tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>) -> tensor<1x2x2xf32>
+// CHECK-QDQ: stablehlo.uniform_quantize %arg0 : tensor<1x2x2x!quant.uniform<i8:f32:2, {1.000000e-01:-30,5.000000e-01:-20}>>
+
+// -----
 // %arg1 can be a per-axis Quantized
+
+// CHECK-QDQ-LABEL: @dot_general_per_axis_quantization
 func.func @dot_general_per_axis_quantization(
   %arg0: tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>,
   %arg1: tensor<2x3x5x!quant.uniform<i8:f32:0, {0.1:0, 0.1:0}>>) -> tensor<2x4x5x!quant.uniform<i8:f32:0, {0.1:-30, 0.1:-30}>> {
@@ -42,16 +83,21 @@ func.func @dot_general_per_axis_quantization(
   func.return %0 : tensor<2x4x5x!quant.uniform<i8:f32:0, {0.1:-30, 0.1:-30}>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.dot_general
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+
 // -----
 // Tests for StableHLO OPs supporting per-tensor quantization. These OPs may or may not support per-axis quantization
 
+// CHECK-QDQ-LABEL: @ops_per_tensor_quantization
 func.func @ops_per_tensor_quantization(
   %arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>,
   %arg1: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>,
   %arg2: tensor<!quant.uniform<i8:f32, 1.0:17>>,
   %arg3: tensor<2x4x!quant.uniform<i8:f32, 1.0:17>>,
-  %shape: tensor<3xi64>,
-  %token0: !stablehlo.token) {
+  %shape: tensor<3xi64>, %token0: !stablehlo.token) -> (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2xi1>, tensor<2x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<i32>, tensor<1x2x2xi1>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, !stablehlo.token, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, !stablehlo.token, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32, 1.0:17>>, tuple<tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>>, tensor<1x2x2xf32>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) {
+
   %abs = "stablehlo.abs"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
   %add = "stablehlo.add"(%arg0, %arg1) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
   %all_gather = "stablehlo.all_gather"(%arg3) { all_gather_dim = 1 : i64, replica_groups = dense<[[0, 1]]> : tensor<1x2xi64> } : (tensor<2x4x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x4x!quant.uniform<i8:f32, 1.0:17>>
@@ -97,9 +143,136 @@ func.func @ops_per_tensor_quantization(
   %tuple = "stablehlo.tuple"(%arg0, %arg1) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tuple<tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>>
   %uniform_dequantize = "stablehlo.uniform_dequantize" (%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2xf32>
   %uniform_quantize = "stablehlo.uniform_quantize" (%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
-  func.return
+
+ func.return %abs, %add, %all_gather, %all_to_all, %atan2, %bitcast_convert, %broadcast_in_dim, %cbrt, %ceil, %cholesky, %collective_permute, %compare, %concatenate, %cosine, %custom_call, %divide, %dynamic_broadcast_in_dim, %exponential, %exponential_minus_one, %floor, %get_dimension_size, %is_finite, %log, %log_plus_one, %logistic, %maximum, %minimum, %multiply, %negate, %outfeed, %power, %remainder, %reshape, %rsqrt, %send, %sign, %sine, %sqrt, %subtract, %tanh, %transpose, %tuple, %uniform_dequantize, %uniform_quantize : tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2xi1>, tensor<2x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<i32>, tensor<1x2x2xi1>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, !stablehlo.token, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, !stablehlo.token, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8<-128:127>:f32, 1.0:17>>, tuple<tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>>, tensor<1x2x2xf32>, tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.abs
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.add
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.all_gather
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.all_to_all
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.atan2
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.bitcast_convert
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.broadcast_in_dim
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.cbrt
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.ceil
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.cholesky
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.collective_permute
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.compare
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.concatenate
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.cosine
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.custom_call
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.divide
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.dynamic_broadcast_in_dim
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.exponential
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.exponential_minus_one
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.floor
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.get_dimension_size
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.is_finite
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.log
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.log_plus_one
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.logistic
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.maximum
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.minimum
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.multiply
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.negate
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.outfeed
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.power
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.remainder
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.reshape
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.rsqrt
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.send
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.sign
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.sine
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.sqrt
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.subtract
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.tanh
+// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.transpose
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.tuple
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @batch_norm_grad_per_tensor_quantization
+// CHECK-LABEL: @batch_norm_grad_per_tensor_quantization
 func.func @batch_norm_grad_per_tensor_quantization(%input: tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>>, %scale: tensor<2x!quant.uniform<i8:f32, 1.0:17>>, %mean: tensor<2x!quant.uniform<i8:f32, 1.0:17>>, %variance: tensor<2x!quant.uniform<i8:f32, 1.0:17>>, %grad_output: tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>> {
   %0:3 = "stablehlo.batch_norm_grad" (%input, %scale, %mean, %variance, %grad_output)
    {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>>)
@@ -107,7 +280,13 @@ func.func @batch_norm_grad_per_tensor_quantization(%input: tensor<2x2x2x2x!quant
   func.return %0#0 : tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.batch_norm_grad
+// CHECK-QDQ: stablehlo.uniform_quantize
 
+// -----
+
+// CHECK-QDQ-LABEL: @batch_norm_inference_per_tensor_quantization
 func.func @batch_norm_inference_per_tensor_quantization(%input: tensor<4x256x!quant.uniform<i8:f32, 1.0:17>>, %scale: tensor<256x!quant.uniform<i8:f32, 1.0:17>>, %offset: tensor<256x!quant.uniform<i8:f32, 1.0:17>>, %mean: tensor<256x!quant.uniform<i8:f32, 1.0:17>>, %variance: tensor<256x!quant.uniform<i8:f32, 1.0:17>>) -> (tensor<4x256x!quant.uniform<i8:f32, 1.0:17>>) {
   %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {
     epsilon = 1.001000e-05 : f32,
@@ -116,6 +295,13 @@ func.func @batch_norm_inference_per_tensor_quantization(%input: tensor<4x256x!qu
   func.return %0 : tensor<4x256x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.batch_norm_inference
+// CHECK-QDQ: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @batch_norm_training_per_tensor_quantization
 func.func @batch_norm_training_per_tensor_quantization(%input: tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>>, %scale: tensor<2x!quant.uniform<i8:f32, 1.0:17>>, %offset: tensor<2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>> {
   %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
     epsilon = 0.001 : f32,
@@ -125,6 +311,13 @@ func.func @batch_norm_training_per_tensor_quantization(%input: tensor<2x2x2x2x!q
   func.return %0#0 : tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.batch_norm_training
+// CHECK-QDQ: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @dot_general_per_tensor_quantization
 func.func @dot_general_per_tensor_quantization(%arg0: tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<2x3x5x!quant.uniform<i8:f32, 1.0:0>>) -> tensor<2x4x5x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -137,16 +330,37 @@ func.func @dot_general_per_tensor_quantization(%arg0: tensor<2x3x4x!quant.unifor
   func.return %0 : tensor<2x4x5x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.dot_general
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @dynamic_slice_per_tensor_quantization
 func.func @dynamic_slice_per_tensor_quantization(%arg0: tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<1x4x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: 1, 4>} : (tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<i64>, tensor<i64>) -> tensor<1x4x!quant.uniform<i8:f32, 1.0:17>>
   func.return %0 : tensor<1x4x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.dynamic_slice
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @dynamic_update_slice_per_tensor_quantization
 func.func @dynamic_update_slice_per_tensor_quantization(%operand: tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>, %update: tensor<1x4x!quant.uniform<i8:f32, 1.0:17>>, %start_indices0: tensor<i64>, %start_indices1: tensor<i64>) -> tensor<3x4x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.dynamic_update_slice"(%operand, %update, %start_indices0, %start_indices1) : (tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<i64>, tensor<i64>) -> tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>
   func.return %0 : tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.dynamic_update_slice
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @gather_per_tensor_quantization
 func.func @gather_per_tensor_quantization(%operand : tensor<?x?x?x?x?x?x?x?x!quant.uniform<i8:f32, 1.0:17>>, %start_indices : tensor<1x5x2xi32>) -> tensor<8x?x7x1x6x1x?x!quant.uniform<i8:f32, 1.0:17>> {
   %res = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
@@ -161,6 +375,13 @@ func.func @gather_per_tensor_quantization(%operand : tensor<?x?x?x?x?x?x?x?x!qua
   func.return %res : tensor<8x?x7x1x6x1x?x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.gather
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @map_per_tensor_quantization
 func.func @map_per_tensor_quantization(%arg0: tensor<4x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<4x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<4x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.map"(%arg0, %arg1) ({
     ^bb0(%arg2: tensor<!quant.uniform<i8:f32, 1.0:17>>, %arg3: tensor<!quant.uniform<i8:f32, 1.0:17>>):
@@ -169,6 +390,13 @@ func.func @map_per_tensor_quantization(%arg0: tensor<4x!quant.uniform<i8:f32, 1.
   func.return %0 : tensor<4x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.map
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @pad_per_tensor_quantization
 func.func @pad_per_tensor_quantization(%arg0: tensor<1x2x3x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x4x7x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.pad"(%arg0, %arg1) {
     edge_padding_low = array<i64: 0, 1, 2>,
@@ -178,6 +406,13 @@ func.func @pad_per_tensor_quantization(%arg0: tensor<1x2x3x!quant.uniform<i8:f32
   func.return %0 : tensor<2x4x7x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.pad
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @reduce_per_tensor_quantization
 func.func @reduce_per_tensor_quantization(%arg0: tensor<16x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<!quant.uniform<i8:f32, 1.0:17>>) -> tensor<!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
     ^bb0(%arg2: tensor<!quant.uniform<i8:f32, 1.0:17>>, %arg3: tensor<!quant.uniform<i8:f32, 1.0:17>>):
@@ -189,6 +424,16 @@ func.func @reduce_per_tensor_quantization(%arg0: tensor<16x!quant.uniform<i8:f32
   func.return %0 : tensor<!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.reduce
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.add
+// CHECK-QDQ: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @reduce_per_tensor_precision_quantization
 func.func @reduce_per_tensor_precision_quantization(%arg0: tensor<6x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<6x!quant.uniform<i8:f32, 1.0:17>> {
   %output = "stablehlo.reduce_precision"(%arg0) {
     exponent_bits = 5 : i32,
@@ -197,7 +442,13 @@ func.func @reduce_per_tensor_precision_quantization(%arg0: tensor<6x!quant.unifo
   func.return %output : tensor<6x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.reduce_precision
+// CHECK-QDQ: stablehlo.uniform_quantize
 
+// -----
+
+// CHECK-QDQ-LABEL: @reduce_scatter_per_tensor_quantization
 func.func @reduce_scatter_per_tensor_quantization(%data: tensor<4x16x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<4x4x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.reduce_scatter"(%data) ({
     ^bb0(%arg2: tensor<!quant.uniform<i8:f32, 1.0:17>>, %arg3: tensor<!quant.uniform<i8:f32, 1.0:17>>):
@@ -210,7 +461,16 @@ func.func @reduce_scatter_per_tensor_quantization(%data: tensor<4x16x!quant.unif
   func.return %0 : tensor<4x4x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.reduce_scatter
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.add
+// CHECK-QDQ: stablehlo.uniform_quantize
 
+// -----
+
+// CHECK-QDQ-LABEL: @op_reduce_window_per_tensor_quantization
 func.func @op_reduce_window_per_tensor_quantization(%arg0: tensor<2x17x31x7x!quant.uniform<i8:f32, 0.1:-30>>, %arg1: tensor<!quant.uniform<i8:f32, 0.1:-30>>) -> tensor<2x9x16x7x!quant.uniform<i8:f32, 0.1:-30>> {
   %0 = "stablehlo.reduce_window"(%arg0, %arg1) ({
     ^bb0(%arg2: tensor<!quant.uniform<i8:f32, 0.1:-30>>, %arg3: tensor<!quant.uniform<i8:f32, 0.1:-30>>):
@@ -226,6 +486,16 @@ func.func @op_reduce_window_per_tensor_quantization(%arg0: tensor<2x17x31x7x!qua
   func.return %0 : tensor<2x9x16x7x!quant.uniform<i8:f32, 0.1:-30>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.reduce_window
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.max
+// CHECK-QDQ: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @reverse_per_tensor_quantization
 func.func @reverse_per_tensor_quantization(%operand: tensor<3x2x!quant.uniform<i8:f32, 0.1:-30>>) -> tensor<3x2x!quant.uniform<i8:f32, 0.1:-30>> {
   %result = "stablehlo.reverse"(%operand) {
     dimensions = array<i64: 1>
@@ -233,17 +503,37 @@ func.func @reverse_per_tensor_quantization(%operand: tensor<3x2x!quant.uniform<i
   func.return %result : tensor<3x2x!quant.uniform<i8:f32, 0.1:-30>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.reverse
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @round_afz_per_tensor_quantization
 func.func @round_afz_per_tensor_quantization(%arg0: tensor<2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.round_nearest_afz"(%arg0) {} : (tensor<2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x!quant.uniform<i8:f32, 1.0:17>>
   func.return %0 : tensor<2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.round_nearest_afz
+// CHECK-QDQ: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @round_even_per_tensor_quantization
 func.func @round_even_per_tensor_quantization(%arg0: tensor<2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.round_nearest_even"(%arg0) {} : (tensor<2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x!quant.uniform<i8:f32, 1.0:17>>
   func.return %0 : tensor<2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.round_nearest_even
+// CHECK-QDQ: stablehlo.uniform_quantize
 
+// -----
+
+// CHECK-QDQ-LABEL: @scatter_per_tensor_quantization
 func.func @scatter_per_tensor_quantization(%arg0: tensor<200x100x300x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<10x2xi32>, %arg2: tensor<10x300x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<200x100x300x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.scatter"(%arg0, %arg1, %arg2) ({
     ^bb0(%arg3: tensor<!quant.uniform<i8:f32, 1.0:17>>, %arg4: tensor<!quant.uniform<i8:f32, 1.0:17>>):
@@ -260,11 +550,28 @@ func.func @scatter_per_tensor_quantization(%arg0: tensor<200x100x300x!quant.unif
   func.return %0 : tensor<200x100x300x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.scatter
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.add
+// CHECK-QDQ: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @select_per_tensor_quantization
 func.func @select_per_tensor_quantization(%arg0: tensor<2x3xi1>, %arg1: tensor<2x3x!quant.uniform<i8:f32, 1.0:17>>, %arg2: tensor<2x3x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x3x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.select"(%arg0, %arg1, %arg2) : (tensor<2x3xi1>, tensor<2x3x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x3x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<2x3x!quant.uniform<i8:f32, 1.0:17>>
   func.return %0 : tensor<2x3x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.select
+// CHECK-QDQ: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @select_and_scatter_per_tensor_quantization
 func.func @select_and_scatter_per_tensor_quantization(%arg0: tensor<10x24x24x64x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<10x23x23x64x!quant.uniform<i8:f32, 1.0:17>>, %arg2: tensor<!quant.uniform<i8:f32, 1.0:17>>) -> tensor<10x24x24x64x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.select_and_scatter"(%arg0, %arg1, %arg2) ({
     ^bb0(%arg3: tensor<!quant.uniform<i8:f32, 1.0:17>>, %arg4: tensor<!quant.uniform<i8:f32, 1.0:17>>):
@@ -280,20 +587,49 @@ func.func @select_and_scatter_per_tensor_quantization(%arg0: tensor<10x24x24x64x
   func.return %0 : tensor<10x24x24x64x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.select_and_scatter
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.compare
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.add
+// CHECK-QDQ: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @slice_per_tensor_qunatization
 func.func @slice_per_tensor_qunatization(%arg0: tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0>, limit_indices = array<i64: 2, 4>, strides = array<i64: 1, 2>} : (tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x!quant.uniform<i8:f32, 1.0:17>>
   func.return %0 : tensor<1x2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
-func.func @sort_per_tensor_quantization(%input0: tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>, %input1: tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>) {
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.slice
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
+
+// -----
+
+// CHECK-QDQ-LABEL: @sort_per_tensor_quantization
+func.func @sort_per_tensor_quantization(%input0: tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>, %input1: tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>) -> (tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>, tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>) {
   %0:2 = "stablehlo.sort"(%input0, %input1) ({
   ^bb0(%arg0: tensor<!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<!quant.uniform<i8:f32, 1.0:17>>, %arg2: tensor<!quant.uniform<i8:f32, 1.0:17>>, %arg3: tensor<!quant.uniform<i8:f32, 1.0:17>>):
     %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<!quant.uniform<i8:f32, 1.0:17>>, tensor<!quant.uniform<i8:f32, 1.0:17>>) -> tensor<i1>
     "stablehlo.return"(%7) : (tensor<i1>) -> ()
   }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>, tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>) -> (tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>, tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>)
-  func.return
+  func.return %0#0, %0#1: tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>, tensor<16x16x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.sort
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.compare
+
+// -----
+
+// CHECK-QDQ-LABEL: @while_per_tensor_quantization
 func.func @while_per_tensor_quantization(%arg0: tensor<4x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<?x!quant.uniform<i8:f32, 1.0:17>> {
   %while = "stablehlo.while"(%arg0) ({
   ^bb0(%arg1: tensor<?x!quant.uniform<i8:f32, 1.0:17>>):
@@ -306,6 +642,9 @@ func.func @while_per_tensor_quantization(%arg0: tensor<4x!quant.uniform<i8:f32, 
   func.return %while : tensor<?x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
+// CHECK-QDQ: stablehlo.while
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
 
 // -----
 // Negative Tests for StableHLO OPs supporting only per-tensor quantization and not per-axis quantization
