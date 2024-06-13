@@ -135,8 +135,9 @@ def CHECK_ExpectCloseOp :
     expected) and smaller than max(actual, expected).
 
     When either of operands is non-finite, expect_close returns true
-    when actual and expected are bitwise equal, otherwise
-    false. NaN values are equal iff their payloads are equal.
+    when actual and expected are bitwise equal, or when both values
+    are NaNs, otherwise false. Note that quite NaN and signaling NaN
+    values with different payloads are all considered equivalent.
 
     ```mlir
     check.expect_close %arg0, %arg1, max_ulp_difference = 3 : tensor<2xf32>, tensor<2xf32>
