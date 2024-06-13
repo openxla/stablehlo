@@ -1,19 +1,7 @@
-"""
-A script to generate test files for math functions with complex and float inputs.
+"""A script to generate test files for math functions with complex
+and float inputs.
 
-Prerequisites:
-  python 3.11 or newer
-  functional_algorithms 0.2 or newer
-  mpmath 1.3
-  numpy
-
-Usage:
-  Running
-    python /path/to/generate_tests.py
-  will create
-    /path/to/<math function name>_<input dtype>.mlir
-  containing test functions that can be run as follows:
-    stablehlo-opt --chlo-legalize-to-stablehlo /path/to/<math function name>_<input dtype>.mlir | stablehlo-translate --interpret
+See build_tools/math/README.md for more information.
 """
 
 import os
@@ -59,7 +47,16 @@ def main():
         print(f"Skipping: {msg}")
         return
 
-    target_dir = os.path.dirname(__file__)
+    fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
+    if fa_version < (0, 4, 0):
+        warnings.warn("functional_algorithm version 0.4.0 or newer is required,"
+                      f" got {fa.__version__}")
+        return
+
+    target_dir = os.path.relpath(
+        os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "stablehlo",
+                         "tests", "math")), os.getcwd())
 
     for op in operations:
         opname = op["name"]
@@ -121,12 +118,24 @@ def main():
                                      [actual, expected])),
             )
             main_func.void_call("func.return")
+            source = str(m).rstrip() + "\n"
             fname = os.path.join(target_dir, f"{module_name}.mlir")
+            if os.path.isfile(fname):
+                f = open(fname, "r")
+                content = f.read()
+                f.close()
+                if content.endswith(source):
+                    print(f"{fname} is up-to-date.")
+                    continue
+
             f = open(fname, "w")
             f.write(
                 "// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s | stablehlo-translate --interpret\n"
             )
-            f.write(str(m).rstrip() + "\n")
+            f.write(
+                "// This file is generated, see build_tools/math/README.md for more information.\n"
+            )
+            f.write(source)
             f.close()
             print(f"Created {fname}")
 

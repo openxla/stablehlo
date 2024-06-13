@@ -1,8 +1,25 @@
-// This file is generated using functional_algorithms tool (0.2.0), see
+/* Copyright 2024 The StableHLO Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+
+// This file is generated using functional_algorithms tool (0.4.0), see
 //   https://github.com/pearu/functional_algorithms
 // for more information.
 
 // Arcus sine on complex input.
+//
+//     arcsin(z) = 2 * arctan2(z, (1 + sqrt(1 - z * z)))
 //
 //     Here we well use a modified version of the [Hull et
 //     al]((https://dl.acm.org/doi/10.1145/275323.275324) algorithm with
@@ -352,14 +369,18 @@ def : Pat<(CHLO_AsinOp ComplexElementType:$z),
 //
 //     arcsin(x) = 2 * arctan2(x, (1 + sqrt(1 - x * x)))
 //
+//     To avoid cancellation errors at abs(x) close to 1, we'll use
+//
+//       1 - x * x == (1 - x) * (1 + x)
+//
 def : Pat<(CHLO_AsinOp NonComplexElementType:$x),
   (StableHLO_MulOp
     (StableHLO_ConstantLike<"2"> $x),
     (StableHLO_Atan2Op
       $x,
       (StableHLO_AddOp
-        (StableHLO_ConstantLike<"1">:$constant_1 $x),
+        (StableHLO_ConstantLike<"1">:$one $x),
         (StableHLO_SqrtOp
           (StableHLO_MulOp
-            (StableHLO_SubtractOp $constant_1, $x),
-            (StableHLO_AddOp $constant_1, $x))))))>;
+            (StableHLO_SubtractOp $one, $x),
+            (StableHLO_AddOp $one, $x))))))>;

@@ -190,7 +190,8 @@ static uint64_t ULPDifference(APFloat f, APFloat g) {
   // as 0 when (int-casted) values are equal, otherwise, as a maximal
   // possible value. Notice that NaN values with different payloads
   // are also considered different.
-  return (a == b ? 0 : std::numeric_limits<uint64_t>::max());
+  if (a == b && f.isNegative() == g.isNegative()) return 0;
+  return std::numeric_limits<uint64_t>::max();
 }
 
 static uint64_t ULPDifference(const Element &e1, const Element &e2) {

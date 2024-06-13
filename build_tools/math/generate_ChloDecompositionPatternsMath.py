@@ -1,14 +1,6 @@
 """A script to generate ChloDecompositionPatternsMath.td.
 
-Prerequisites:
-  python 3.11 or newer
-  functional_algorithms 0.2 or newer
-
-Usage:
-  Running
-    python /path/to/generate_ChloDecompositionPatternsMath.py
-  will create
-    /path/to/ChloDecompositionPatternsMath.td
+See build_tools/math/README.md for usage information.
 """
 
 import os
@@ -22,8 +14,17 @@ def main():
         print(f"Skipping: {msg}")
         return
 
-    output_file = os.path.join(os.path.dirname(__file__),
-                               "ChloDecompositionPatternsMath.td")
+    fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
+    if fa_version < (0, 4, 0):
+        warnings.warn("functional_algorithm version 0.4.0 or newer is required,"
+                      f" got {fa.__version__}")
+        return
+
+    output_file = os.path.relpath(
+        os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "stablehlo",
+                         "transforms", "ChloDecompositionPatternsMath.td")),
+        os.getcwd())
 
     sources = []
     target = fa.targets.stablehlo
@@ -69,12 +70,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+
 """)
     f.write(
         target.make_comment(f"""\
-This file is generated using functional_algorithms tool ({fa.__version__}), see
-  https://github.com/pearu/functional_algorithms
-for more information.""") + "\n")
+
+This file is generated using functional_algorithms tool ({fa.__version__}).
+See build_tools/math/README.md for more information.""") + "\n")
     f.write(source)
     f.close()
     print(f"Created {output_file}")
