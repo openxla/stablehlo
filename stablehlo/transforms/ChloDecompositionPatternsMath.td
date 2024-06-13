@@ -13,9 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-// This file is generated using functional_algorithms tool (0.4.0), see
-//   https://github.com/pearu/functional_algorithms
-// for more information.
+//
+// This file is generated using functional_algorithms tool (0.4.0).
+// See build_tools/math/README.md for more information.
 
 // Arcus sine on complex input.
 //

@@ -158,39 +158,31 @@ llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
 }
 
 static uint64_t ULPDifference(APFloat f, APFloat g) {
-  // z is ULP-distance between exact 0 and largest subnormal:
-  uint64_t z = APFloat::getSmallestNormalized(f.getSemantics())
-                   .bitcastToAPInt()
-                   .getLimitedValue() -
-               1;
-  auto af = (f.isNegative() ? -f : f).bitcastToAPInt();
-  auto ag = (g.isNegative() ? -g : g).bitcastToAPInt();
-  assert(af.getBitWidth() <= 64 && ag.getBitWidth() <= 64);
-  // a is ULP-distance between exact 0 and abs(f):
-  uint64_t a = af.getLimitedValue();
-  // b is ULP-distance between exact 0 and abs(g):
-  uint64_t b = ag.getLimitedValue();
+  if (f.bitwiseIsEqual(g))
+    return 0;  // f, g are identical finite or non-finite floats
   if (f.isFinite() && g.isFinite()) {
-    // subtract subnormals contribution, round subnormals to closest normal or
-    // zero:
-    if (z < a)
-      a -= z;
-    else
-      a = (2 * a < z ? 0 : 1);
-    if (z < b)
-      b -= z;
-    else
-      b = (2 * b < z ? 0 : 1);
+    auto af = (f.isNegative() ? -f : f).bitcastToAPInt();
+    auto ag = (g.isNegative() ? -g : g).bitcastToAPInt();
+    assert(af.getBitWidth() <= 64 && ag.getBitWidth() <= 64);
+    // a is ULP-distance between exact 0 and abs(f):
+    uint64_t a = af.getLimitedValue();
+    // b is ULP-distance between exact 0 and abs(g):
+    uint64_t b = ag.getLimitedValue();
     if (f.isNegative() != g.isNegative()) {
       return a + b;
     }
     return (a > b ? a - b : b - a);
   }
-  // In the case of non-finite values, we'll define the ULP-distance
-  // as 0 when (int-casted) values are equal, otherwise, as a maximal
-  // possible value. Notice that NaN values with different payloads
-  // are also considered different.
-  if (a == b && f.isNegative() == g.isNegative()) return 0;
+  // We do not distinguish signaling NaN and quiet NaN values because
+  // expected NaN values are typically quiet while functions NaN
+  // values depend on implementations and these can be signaling NaN
+  // values:
+  if (f.isNaN() && g.isNaN()) return 0;
+  // Here, one or both operands are non-finite values that are not
+  // bitwise-equal. For such cases, we defined the ULP-difference as a
+  // maximal possible value because ULP-distance between finite and
+  // non-finite values is meaningless in the context of closeness
+  // tests.
   return std::numeric_limits<uint64_t>::max();
 }
 

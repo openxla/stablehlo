@@ -58,6 +58,7 @@ def main():
             os.path.join(os.path.dirname(__file__), "..", "..", "stablehlo",
                          "tests", "math")), os.getcwd())
 
+    flush_subnormals = False
     for op in operations:
         opname = op["name"]
         mpmath_opname = op.get("mpmath_name", opname)
@@ -68,7 +69,8 @@ def main():
                                     default_max_ulp_difference)
 
         nmp = fa.utils.numpy_with_mpmath(
-            extra_prec_multiplier=extra_prec_multiplier)
+            extra_prec_multiplier=extra_prec_multiplier,
+            flush_subnormals=flush_subnormals)
         for dtype in [np.complex64, np.complex128, np.float32, np.float64]:
             fi = np.finfo(dtype)
 
@@ -76,21 +78,17 @@ def main():
             finfo = np.finfo(float_dtype)
 
             if dtype in [np.complex64, np.complex128]:
-                samples = fa.utils.complex_samples(size=(size_re, size_im),
-                                                   dtype=dtype).flatten()
-                expected = getattr(nmp, mpmath_opname)(samples)
+                samples = fa.utils.complex_samples(
+                    size=(size_re, size_im),
+                    dtype=dtype,
+                    include_subnormal=not flush_subnormals).flatten()
             else:
-                samples = fa.utils.real_samples(size=size_re * size_im,
-                                                dtype=dtype).flatten()
-                expected = getattr(nmp, mpmath_opname)(samples)
-                if opname == "asin" and expected.dtype != samples.dtype:
-                    # mpmath.asin(x) returns complex value when abs(x) > 1, here
-                    # we map this to nan:
-                    expected = expected.real
-                    expected[np.where(abs(samples) > 1)] = np.nan
-                    expected = np.ascontiguousarray(expected)
-                assert expected.dtype == samples.dtype, (expected.dtype,
-                                                         samples.dtype)
+                samples = fa.utils.real_samples(
+                    size=size_re * size_im,
+                    dtype=dtype,
+                    include_subnormal=not flush_subnormals).flatten()
+
+            expected = getattr(nmp, mpmath_opname)(samples)
 
             module_name = f"{opname}_{dtype.__name__}"
             m = SSA.make_module(module_name)
