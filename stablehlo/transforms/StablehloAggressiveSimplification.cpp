@@ -110,8 +110,9 @@ struct AddOpCanon final : OpRewritePattern<mlir::stablehlo::AddOp> {
 
     // The canonical form has the constant operand as the RHS.
     if (isa<IntegerType>(elemType) && lhsAttr && !rhsAttr) {
-      rewriter.modifyOpInPlace(
-          op, [op, lhs, rhs] { op->setOperands(ValueRange{rhs, lhs}); });
+      rewriter.modifyOpInPlace(op, [op, lhs, rhs] {
+        op->setOperands(ValueRange{rhs, lhs});
+      });
       return success();
     }
 
@@ -198,8 +199,9 @@ struct MulOpCanon final : OpRewritePattern<mlir::stablehlo::MulOp> {
 
     // The canonical form has the constant operand as the RHS.
     if (isa<IntegerType>(elemType) && lhsAttr && !rhsAttr) {
-      rewriter.modifyOpInPlace(
-          op, [op, lhs, rhs] { op->setOperands(ValueRange{rhs, lhs}); });
+      rewriter.modifyOpInPlace(op, [op, lhs, rhs] {
+        op->setOperands(ValueRange{rhs, lhs});
+      });
       return success();
     }
 
