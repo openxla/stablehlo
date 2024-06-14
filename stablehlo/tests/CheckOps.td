@@ -126,31 +126,38 @@ def CHECK_ExpectCloseOp :
   let description = [{
 
     Verifies that the floating-point tensor operands, actual and
-    expected, are close within an user-defined limit:
+    expected, are close within user-defined limits:
 
-      ulp_difference(actual, reference) < max_ulp_difference
+      min_ulp_difference <= ulp_difference(actual, reference) <= max_ulp_difference
 
     where ulp_difference returns the number of all possible floating
     point values that are greater than or equal to min(actual,
-    expected) and smaller than max(actual, expected).
+    expected) and smaller than max(actual, expected) provided that
+    both operands are finite.
 
     When either of operands is non-finite, expect_close returns true
     when actual and expected are bitwise equal, or when both values
-    are NaNs, otherwise false. Note that quite NaN and signaling NaN
+    are NaNs, otherwise false. Note that quiet NaN and signaling NaN
     values with different payloads are all considered equivalent.
 
     ```mlir
-    check.expect_close %arg0, %arg1, max_ulp_difference = 3 : tensor<2xf32>, tensor<2xf32>
+    check.expect_close %arg0, %arg1, max_ulp_difference = 3, min_ulp_difference = 0 : tensor<2xf32>, tensor<2xf32>
     ```
   }];
 
   let arguments = (ins
       TensorOf<[AnyFloat, AnyComplex]>:$actual,
       TensorOf<[AnyFloat, AnyComplex]>:$expected,
-      DefaultValuedOptionalAttr<UI64Attr, "1">:$max_ulp_difference
+      DefaultValuedOptionalAttr<UI64Attr, "1">:$max_ulp_difference,
+      DefaultValuedOptionalAttr<UI64Attr, "0">:$min_ulp_difference
   );
 
-  let assemblyFormat = "$actual `,` $expected (`,` `max_ulp_difference` `=` $max_ulp_difference^)? `:` attr-dict type($actual) `,` type($expected)";
+  let assemblyFormat = [{
+      $actual `,` $expected
+      (`,` `max_ulp_difference` `=` $max_ulp_difference^)?
+      (`,` `min_ulp_difference` `=` $min_ulp_difference^)?
+      `:` attr-dict type($actual) `,` type($expected)
+    }];
 }
 
 def CHECK_ExpectSerializedEqOp : Op<CHECK_Dialect, "expect_serialized_eq", []> {

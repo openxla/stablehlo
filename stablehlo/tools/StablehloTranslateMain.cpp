@@ -147,7 +147,8 @@ class StablehloTranslateInterpreterFallback
       auto runtimeActual = scope.findTensor(expectCloseOp.getActual());
       auto runtimeExpected = scope.findTensor(expectCloseOp.getExpected());
       auto status = stablehlo::check::evalExpectCloseOp(
-          runtimeActual, runtimeExpected, expectCloseOp.getMaxUlpDifference());
+          runtimeActual, runtimeExpected, expectCloseOp.getMinUlpDifference(),
+          expectCloseOp.getMaxUlpDifference());
       return stablehlo::wrapFallbackStatus(std::move(status), funcName,
                                            "check.expect_close");
     }

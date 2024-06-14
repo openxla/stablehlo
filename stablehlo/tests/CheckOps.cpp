@@ -199,6 +199,7 @@ static uint64_t ULPDifference(const Element &e1, const Element &e2) {
 }
 
 llvm::Error evalExpectCloseOp(const Tensor &actual, const Tensor &expected,
+                              uint64_t min_ulp_difference,
                               uint64_t max_ulp_difference) {
   auto type = actual.getElementType();
   if (!isSupportedFloatType(type) && !isSupportedComplexType(type))
@@ -213,7 +214,7 @@ llvm::Error evalExpectCloseOp(const Tensor &actual, const Tensor &expected,
     auto e1 = actual.get(*lhsIt);
     auto e2 = expected.get(*rhsIt);
     uint64_t ulp_diff = ULPDifference(e1, e2);
-    if (ulp_diff > max_ulp_difference) {
+    if (ulp_diff > max_ulp_difference || ulp_diff < min_ulp_difference) {
       output << "\n  index=" << (*lhsIt) << ", actual=" << e1
              << ", expected=" << e2 << ", ULP difference=" << ulp_diff;
     }
