@@ -221,7 +221,7 @@ func.func @asin_complex_f32(%arg : tensor<complex<f32>>) -> tensor<complex<f32>>
 // -----
 
 // CHECK-LABEL:  func.func @asin_complex_f64_dynamic(
-// CHECK-SAME:   %[[TMP_arg0:.*]]: tensor<?xcomplex<f64>>) -> tensor<?xcomplex<f64>> 
+// CHECK-SAME:   %[[TMP_arg0:.*]]: tensor<?xcomplex<f64>>) -> tensor<?xcomplex<f64>>
 // CHECK:   %[[TMP_0:.*]] = stablehlo.real %[[TMP_arg0]] : (tensor<?xcomplex<f64>>) -> tensor<?xf64>
 // CHECK:   %[[TMP_1:.*]] = stablehlo.abs %[[TMP_0]] : tensor<?xf64>
 // CHECK:   %[[TMP_2:.*]] = stablehlo.imag %[[TMP_arg0]] : (tensor<?xcomplex<f64>>) -> tensor<?xf64>
