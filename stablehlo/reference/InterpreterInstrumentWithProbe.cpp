@@ -39,7 +39,7 @@ class InterpreterInstrumentWithProbePass
   InterpreterInstrumentWithProbePass(
       const InterpreterInstrumentWithProbePassOptions& opts)
       : InterpreterInstrumentWithProbePassBase<
-            InterpreterInstrumentWithProbePass>(opts){};
+            InterpreterInstrumentWithProbePass>(opts) {};
   void runOnOperation() override;
 
  private:
