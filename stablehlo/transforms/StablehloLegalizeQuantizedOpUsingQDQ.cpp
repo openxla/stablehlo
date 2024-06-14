@@ -91,11 +91,10 @@ bool isAnyQuantizedTypes(TypeRange types) {
 // The following list covers most of the operations which, according to the
 // stablehlo spoecification document, interprets the quantized
 // operation using dequant-op-quant strategy. The ones excluded are
-// ConvolutionOp, DotGeneralOp, and DynamicConvOp, which are current using
-// `stablehlo-legalize-quant-to-int` pass for decomposituion to primitive math
-// operations.
+// AddOP, ConvolutionOp, DotGeneralOp, and DynamicConvOp, which are current
+// using `stablehlo-legalize-quant-to-int` pass for decomposituion to primitive
+// math operations.
 DEFINE_QUANT_REWRITE_PATTERN_FOR_ELEMENTWISE_OP(AbsOp)
-DEFINE_QUANT_REWRITE_PATTERN_FOR_ELEMENTWISE_OP(AddOp)
 DEFINE_QUANT_REWRITE_PATTERN_FOR_ELEMENTWISE_OP(Atan2Op)
 DEFINE_QUANT_REWRITE_PATTERN_FOR_ELEMENTWISE_OP(BatchNormGradOp)
 DEFINE_QUANT_REWRITE_PATTERN_FOR_ELEMENTWISE_OP(BatchNormInferenceOp)
@@ -160,7 +159,6 @@ class StablehloLegalizeQuantizedOpUsingQDQPass
 void populateStablehloLegalizeQuantizedOpUsingQDQPatterns(
     RewritePatternSet* patterns, MLIRContext* context) {
   patterns->add<QuantizedAbsOpConversion>(context);
-  patterns->add<QuantizedAddOpConversion>(context);
   patterns->add<QuantizedAtan2OpConversion>(context);
   patterns->add<QuantizedBatchNormGradOpConversion>(context);
   patterns->add<QuantizedBatchNormInferenceOpConversion>(context);

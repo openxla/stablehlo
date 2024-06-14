@@ -150,10 +150,9 @@ func.func @ops_per_tensor_quantization(
 // CHECK-QDQ: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.abs
 // CHECK-QDQ: stablehlo.uniform_quantize
-// CHECK-QDQ: stablehlo.uniform_dequantize
-// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.add
-// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
 // CHECK-QDQ-NOT: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.all_gather
 // CHECK-QDQ-NOT: stablehlo.uniform_dequantize
@@ -426,10 +425,9 @@ func.func @reduce_per_tensor_quantization(%arg0: tensor<16x!quant.uniform<i8:f32
 
 // CHECK-QDQ-NOT: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.reduce
-// CHECK-QDQ: stablehlo.uniform_dequantize
-// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.add
-// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
 
 // -----
 
@@ -463,10 +461,9 @@ func.func @reduce_scatter_per_tensor_quantization(%data: tensor<4x16x!quant.unif
 
 // CHECK-QDQ-NOT: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.reduce_scatter
-// CHECK-QDQ: stablehlo.uniform_dequantize
-// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.add
-// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
 
 // -----
 
@@ -552,9 +549,9 @@ func.func @scatter_per_tensor_quantization(%arg0: tensor<200x100x300x!quant.unif
 
 // CHECK-QDQ-NOT: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.scatter
-// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.add
-// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
 
 // -----
 
@@ -592,10 +589,9 @@ func.func @select_and_scatter_per_tensor_quantization(%arg0: tensor<10x24x24x64x
 // CHECK-QDQ: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.compare
-// CHECK-QDQ: stablehlo.uniform_dequantize
-// CHECK-QDQ: stablehlo.uniform_dequantize
+// CHECK-QDQ-NOT: stablehlo.uniform_dequantize
 // CHECK-QDQ: stablehlo.add
-// CHECK-QDQ: stablehlo.uniform_quantize
+// CHECK-QDQ-NOT: stablehlo.uniform_quantize
 
 // -----
 
