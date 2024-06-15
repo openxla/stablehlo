@@ -37,6 +37,7 @@ cc_library(
         "//:reference_numpy",
         "//:reference_tensor",
         "//:reference_token",
+        "//:reference_types",
         "//:reference_value",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:BytecodeOpInterface",
