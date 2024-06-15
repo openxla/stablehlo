@@ -985,6 +985,7 @@ td_library(
         "stablehlo/dialect/StablehloEnums.td",
         "stablehlo/dialect/StablehloOps.td",
         "stablehlo/dialect/StablehloTypes.td",
+        "stablehlo/transforms/ChloDecompositionPatternsMath.td",
     ],
     includes = ["."],
     deps = [
