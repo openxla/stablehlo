@@ -1248,14 +1248,15 @@ class ConvertGenericOp : public ConversionPattern {
     }
 
     if (isa<stablehlo::MinOp, stablehlo::MaxOp>(op)) {
+      // Min/max only support per-tensor quantization.
       auto lhsType = getPerTensorType(op->getOperandTypes()[0]);
       auto rhsType = getPerTensorType(op->getOperandTypes()[1]);
       auto resultType = getPerTensorType(op->getResultTypes()[0]);
       if (lhsType != rhsType || lhsType != resultType) {
-        op->emitError(op->getName().getStringRef() +
-                      " with different quantization parameters for operands and"
-                      " results is not supported.");
-        return failure();
+        return op->emitError(
+            op->getName().getStringRef() +
+            " with different quantization parameters for operands and"
+            " results is not supported.");
       }
     }
 
