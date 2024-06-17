@@ -37,6 +37,20 @@ void loadSerializationDialects(MLIRContext& context) {
 }
 }  // namespace
 
+LogicalResult getSmallerVersion(const std::string& version1,
+                                const std::string& version2,
+                                std::string& result) {
+  auto v1 = mlir::vhlo::Version::fromString(version1);
+  auto v2 = mlir::vhlo::Version::fromString(version2);
+  if (failed(v1) || failed(v2)) return failure();
+
+  if (*v1 < *v2)
+    result = (*v1).toString();
+  else
+    result = (*v2).toString();
+  return success();
+}
+
 std::string getCurrentVersion() {
   return mlir::vhlo::Version::getCurrentVersion().toString();
 }
