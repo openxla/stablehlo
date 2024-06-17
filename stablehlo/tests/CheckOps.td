@@ -118,6 +118,48 @@ def CHECK_ExpectEqOp : Op<CHECK_Dialect, "expect_eq", [SameTypeOperands]> {
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
 }
 
+def CHECK_ExpectCloseOp :
+    Op<CHECK_Dialect, "expect_close", [
+      AllTypesMatch<["actual", "expected"]>,
+      AllShapesMatch<["actual", "expected"]>]> {
+  let summary = [{Checks that the tensor operand ULP-distance to expected tensor operand is within specified limits}];
+  let description = [{
+
+    Verifies that the floating-point tensor operands, actual and
+    expected, are close within user-defined limits:
+
+      min_ulp_difference <= ulp_difference(actual, reference) <= max_ulp_difference
+
+    where ulp_difference returns the number of all possible floating
+    point values that are greater than or equal to min(actual,
+    expected) and smaller than max(actual, expected) provided that
+    both operands are finite.
+
+    When either of operands is non-finite, expect_close returns true
+    when actual and expected are bitwise equal, or when both values
+    are NaNs, otherwise false. Note that quiet NaN and signaling NaN
+    values with different payloads are all considered equivalent.
+
+    ```mlir
+    check.expect_close %arg0, %arg1, max_ulp_difference = 3, min_ulp_difference = 0 : tensor<2xf32>, tensor<2xf32>
+    ```
+  }];
+
+  let arguments = (ins
+      TensorOf<[AnyFloat, AnyComplex]>:$actual,
+      TensorOf<[AnyFloat, AnyComplex]>:$expected,
+      DefaultValuedOptionalAttr<UI64Attr, "1">:$max_ulp_difference,
+      DefaultValuedOptionalAttr<UI64Attr, "0">:$min_ulp_difference
+  );
+
+  let assemblyFormat = [{
+      $actual `,` $expected
+      (`,` `max_ulp_difference` `=` $max_ulp_difference^)?
+      (`,` `min_ulp_difference` `=` $min_ulp_difference^)?
+      `:` attr-dict type($actual) `,` type($expected)
+    }];
+}
+
 def CHECK_ExpectSerializedEqOp : Op<CHECK_Dialect, "expect_serialized_eq", []> {
   let summary = [{Checks value of serialized tensor value.}];
   let description = [{

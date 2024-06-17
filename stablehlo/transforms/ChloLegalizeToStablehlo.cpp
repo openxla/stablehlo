@@ -183,6 +183,14 @@ static Value getConstantLikeInfValue(OpBuilder &b, Location loc, Value val,
       b, loc, llvm::APFloat::getInf(ty.getFloatSemantics(), negative), val);
 }
 
+static Value getConstantLikeSmallestNormalizedValue(OpBuilder &b, Location loc,
+                                                    Value val) {
+  auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
+  return getConstantLike(
+      b, loc, llvm::APFloat::getSmallestNormalized(ty.getFloatSemantics()),
+      val);
+}
+
 //===----------------------------------------------------------------------===//
 // Broadcasting Patterns.
 //===----------------------------------------------------------------------===//
