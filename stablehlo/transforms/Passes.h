@@ -68,7 +68,7 @@ void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
 
 /// Collection of rewrite patterns for lowering quantized StableHLO operations
 /// using uniform dequantize/quantize operations.
-void populateStablehloLegalizeQuantizedOpUsingQDQPatterns(
+void populateStablehloLegalizeQuantizedOpToQDQPatterns(
     RewritePatternSet *patterns, MLIRContext *context);
 
 /// A subset of folding patterns for StableHLO that is necessary for shape

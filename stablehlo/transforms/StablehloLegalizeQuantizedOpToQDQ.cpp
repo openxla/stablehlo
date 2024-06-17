@@ -26,7 +26,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-#define GEN_PASS_DEF_STABLEHLOLEGALIZEQUANTIZEDOPUSINGQDQPASS
+#define GEN_PASS_DEF_STABLEHLOLEGALIZEQUANTIZEDOPTOQDQPASS
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
@@ -123,13 +123,13 @@ DEFINE_QUANT_REWRITE_TO_QDQ_PATTERN(SubtractOp)
 DEFINE_QUANT_REWRITE_TO_QDQ_PATTERN(TanhOp)
 DEFINE_QUANT_REWRITE_TO_QDQ_PATTERN(TriangularSolveOp)
 
-class StablehloLegalizeQuantizedOpUsingQDQPass
-    : public impl::StablehloLegalizeQuantizedOpUsingQDQPassBase<
-          StablehloLegalizeQuantizedOpUsingQDQPass> {
+class StablehloLegalizeQuantizedOpToQDQPass
+    : public impl::StablehloLegalizeQuantizedOpToQDQPassBase<
+          StablehloLegalizeQuantizedOpToQDQPass> {
  public:
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    populateStablehloLegalizeQuantizedOpUsingQDQPatterns(&patterns_, context);
+    populateStablehloLegalizeQuantizedOpToQDQPatterns(&patterns_, context);
     patterns = std::move(patterns_);
     return success();
   }
@@ -149,7 +149,7 @@ class StablehloLegalizeQuantizedOpUsingQDQPass
 
 }  // namespace
 
-void populateStablehloLegalizeQuantizedOpUsingQDQPatterns(
+void populateStablehloLegalizeQuantizedOpToQDQPatterns(
     RewritePatternSet* patterns, MLIRContext* context) {
   patterns->add<QuantizedAbsOpConversion>(context);
   patterns->add<QuantizedAtan2OpConversion>(context);

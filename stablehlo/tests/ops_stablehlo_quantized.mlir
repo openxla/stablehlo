@@ -1,5 +1,5 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck %s
-// RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect --stablehlo-legalize-quantized-op-using-qdq | FileCheck %s --check-prefixes=CHECK-QDQ
+// RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect --stablehlo-legalize-quantized-op-to-qdq | FileCheck %s --check-prefixes=CHECK-QDQ
 
 
 // -----

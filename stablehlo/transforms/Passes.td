@@ -192,8 +192,8 @@ def StablehloLegalizeQuantToIntPass : Pass<"stablehlo-legalize-quant-to-int", "m
   ];
 }
 
-def StablehloLegalizeQuantizedOpUsingQDQPass : Pass<"stablehlo-legalize-quantized-op-using-qdq", "mlir::func::FuncOp"> {
-  let summary = "Decompose from StableHLO quantized ops using uniform quantize/dequantize ops.";
+def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-op-to-qdq", "mlir::func::FuncOp"> {
+  let summary = "Decompose StableHLO quantized ops using uniform quantize/dequantize ops.";
 
   let description = [{
     Decompose StableHLO quantized programs using uniform quantize/dequantize

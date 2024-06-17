@@ -91,9 +91,9 @@ _Convert from StableHLO quantized ops to StableHLO primitive ops._
 
 Convert StableHLO programs using UniformQuantized types to semantically
 equivalent integer math.
-### `-stablehlo-legalize-quantized-op-using-qdq`
+### `-stablehlo-legalize-quantized-op-to-qdq`
 
-_Decompose from StableHLO quantized ops using uniform quantize/dequantize ops._
+_Decompose StableHLO quantized ops using uniform quantize/dequantize ops._
 
 Decompose StableHLO quantized programs using uniform quantize/dequantize
 operations. For example, the following program
