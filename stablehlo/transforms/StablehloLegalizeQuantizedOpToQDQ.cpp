@@ -96,8 +96,9 @@ class StablehloLegalizeQuantizedOpToQDQPass
   void runOnOperation() override {
     auto func = getOperation();
     if (failed(applyPatternsAndFoldGreedily(func, patterns, config))) {
-      func.emitError("Failed to converge StablehloCanonicalizeDynamism in ")
+      func.emitError("Failed to converge StablehloLegalizeQuantizedOpToQDQ in ")
           << config.maxIterations << " iterations";
+      signalPassFailure();
     }
   }
 
