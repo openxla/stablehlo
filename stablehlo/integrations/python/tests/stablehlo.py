@@ -283,11 +283,13 @@ def test_reference_api():
     expected = arg + arg
     assert (actual == expected).all()
 
+
 @run
 def test_get_smaller_version():
   curr_version = stablehlo.get_current_version()
   min_version = stablehlo.get_minimum_version()
   assert stablehlo.get_smaller_version(curr_version, min_version) == min_version
+
 
 @run
 def test_serialization_apis():
