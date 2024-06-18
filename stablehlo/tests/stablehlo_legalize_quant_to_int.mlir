@@ -1966,8 +1966,8 @@ func.func @dynamic_broadcast(
 
 // -----
 
-// CHECK-LABEL: func @max
-func.func @max(
+// CHECK-LABEL: func @max_per_tensor_same_quant_parameters
+func.func @max_per_tensor_same_quant_parameters(
     %arg0: tensor<1x2x!quant.uniform<i8:f32, 2.000000e+00:3>>
   ) -> tensor<1x2x!quant.uniform<i8:f32, 2.000000e+00:3>> {
   // CHECK: stablehlo.maximum
@@ -1981,8 +1981,8 @@ func.func @max(
 
 // -----
 
-// CHECK-LABEL: func @max_per_channel
-func.func @max_per_channel(
+// CHECK-LABEL: func @max_per_channel_same_quant_parameters
+func.func @max_per_channel_same_quant_parameters(
     %arg0: tensor<1x2x!quant.uniform<i8:f32, 2.000000e+00:3>>
   ) -> tensor<1x2x!quant.uniform<i8:f32, 2.000000e+00:3>> {
   // CHECK: stablehlo.maximum
@@ -1996,8 +1996,26 @@ func.func @max_per_channel(
 
 // -----
 
-// CHECK-LABEL: func @min
-func.func @min(
+func.func @max_per_tensor_diff_quant_parameters(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
+  // expected-error@+2 {{stablehlo.maximum with different quantization parameters for operands and results is not supported.}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.maximum' that was explicitly marked illegal}}
+  %0 = "stablehlo.maximum"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32,1.0:0>>, tensor<!quant.uniform<i8:f32,2.0:1>>) -> tensor<!quant.uniform<i8:f32,3.0:2>>
+  func.return %0 : tensor<!quant.uniform<i8:f32,3.0:2>>
+}
+
+// -----
+
+func.func @min_per_tensor_diff_quant_parameters(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
+  // expected-error@+2 {{stablehlo.minimum with different quantization parameters for operands and results is not supported.}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.minimum' that was explicitly marked illegal}}
+  %0 = "stablehlo.minimum"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32,1.0:0>>, tensor<!quant.uniform<i8:f32,2.0:1>>) -> tensor<!quant.uniform<i8:f32,3.0:2>>
+  func.return %0 : tensor<!quant.uniform<i8:f32,3.0:2>>
+}
+
+// -----
+
+// CHECK-LABEL: func @min_per_tensor_same_quant_parameters
+func.func @min_per_tensor_same_quant_parameters(
     %arg0: tensor<1x2x!quant.uniform<i8:f32, 2.000000e+00:3>>
   ) -> tensor<1x2x!quant.uniform<i8:f32, 2.000000e+00:3>> {
   // CHECK: stablehlo.minimum
@@ -2011,8 +2029,8 @@ func.func @min(
 
 // -----
 
-// CHECK-LABEL: func @min_per_channel
-func.func @min_per_channel(
+// CHECK-LABEL: func @min_per_channel_same_quant_parameters
+func.func @min_per_channel_same_quant_parameters(
     %arg0: tensor<1x2x!quant.uniform<i8:f32, 2.000000e+00:3>>
   ) -> tensor<1x2x!quant.uniform<i8:f32, 2.000000e+00:3>> {
   // CHECK: stablehlo.minimum
