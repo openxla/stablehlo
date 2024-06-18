@@ -39,6 +39,8 @@ void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
 
 void createStablehloLowerQuantPipeline(OpPassManager &pm) {
   pm.addNestedPass<mlir::func::FuncOp>(
+      stablehlo::createStablehloLegalizeQuantizedOpToQDQPass());
+  pm.addNestedPass<mlir::func::FuncOp>(
       stablehlo::createStablehloLegalizeQuantToIntPass());
   pm.addNestedPass<mlir::func::FuncOp>(
       stablehlo::createChloLegalizeToStablehloPass());
