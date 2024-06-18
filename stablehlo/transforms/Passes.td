@@ -191,3 +191,34 @@ def StablehloLegalizeQuantToIntPass : Pass<"stablehlo-legalize-quant-to-int", "m
     "mlir::stablehlo::StablehloDialect",
   ];
 }
+
+def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-op-to-qdq", "mlir::func::FuncOp"> {
+  let summary = "Decompose StableHLO quantized ops using uniform quantize/dequantize ops.";
+
+  let description = [{
+    Decompose StableHLO quantized programs using uniform quantize/dequantize
+    operations. For example, the following program
+
+    ```mlir
+    func.func @add(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
+      %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32,1.0:0>>, tensor<!quant.uniform<i8:f32,2.0:1>>) -> tensor<!quant.uniform<i8:f32,3.0:2>>
+      func.return %0 : tensor<!quant.uniform<i8:f32,3.0:2>>
+    }
+    ```
+
+    Will become:
+
+    ```mlir
+    func.func @add(%arg0: tensor<!quant.uniform<i8:f32, 1.000000e+00>>, %arg1: tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>> {
+      %0 = stablehlo.uniform_dequantize %arg0 : (tensor<!quant.uniform<i8:f32, 1.000000e+00>>) -> tensor<f32>
+      %1 = stablehlo.uniform_dequantize %arg1 : (tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<f32>
+      %2 = stablehlo.add %0, %1 : tensor<f32>
+      %3 = stablehlo.uniform_quantize %2 : (tensor<f32>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
+      return %3 : tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
+    }
+    ```
+  }];
+  let dependentDialects = [
+    "mlir::stablehlo::StablehloDialect",
+  ];
+}
