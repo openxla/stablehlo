@@ -728,7 +728,7 @@ struct StablehloRefineShapesPass
     // There have been recent refactors to applyPatternsAndFoldGreedily
     // upstream, and that might be the reason.
     config.useTopDownTraversal = true;
-    config.enableRegionSimplification = true;
+    config.enableRegionSimplification = GreedySimplifyRegionLevel::Aggressive;
     config.maxIterations = 2;
     config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
     config.strictMode = GreedyRewriteStrictness::AnyOp;
