@@ -23,6 +23,7 @@ limitations under the License.
 #include "stablehlo/integrations/c/StablehloTypes.h"
 #include "stablehlo/integrations/python/PortableApi.h"
 #include "stablehlo/reference/Api.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace py = pybind11;
 
@@ -64,6 +65,12 @@ PYBIND11_MODULE(_stablehlo, m) {
         }
       },
       py::arg("context"), py::arg("load") = true);
+
+  //
+  // Passes.
+  //
+
+  m.def("register_passes", []() { mlir::stablehlo::registerPasses(); });
 
   //
   // Types.
