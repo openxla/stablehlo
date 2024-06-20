@@ -228,7 +228,6 @@ LogicalResult lowerQuantization(ModuleOp module, func::FuncOp func) {
     return func.emitError("Failed to lower quantized types/ops in function: ")
            << func.getName();
   }
-  module.dump();
   return success();
 }
 
