@@ -430,23 +430,22 @@ func.func @asinh_f64(%arg : tensor<f64>) -> tensor<f64> {
   // CHECK:   %[[TMP_1:.*]] = stablehlo.abs %[[TMP_arg0]] : tensor<f64>
   // CHECK:   %[[TMP_2:.*]] = stablehlo.constant dense<1.7976931348623157E+308> : tensor<f64>
   // CHECK:   %[[TMP_3:.*]] = stablehlo.sqrt %[[TMP_2]] : tensor<f64>
-  // CHECK:   %[[TMP_4:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f64>
-  // CHECK:   %[[TMP_5:.*]] = stablehlo.multiply %[[TMP_3]], %[[TMP_4]] : tensor<f64>
-  // CHECK:   %[[TMP_6:.*]] = stablehlo.compare  GE, %[[TMP_1]], %[[TMP_5]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
-  // CHECK:   %[[TMP_7:.*]] = stablehlo.constant dense<2.000000e+00> : tensor<f64>
-  // CHECK:   %[[TMP_8:.*]] = stablehlo.log %[[TMP_7]] : tensor<f64>
-  // CHECK:   %[[TMP_9:.*]] = stablehlo.log %[[TMP_1]] : tensor<f64>
-  // CHECK:   %[[TMP_10:.*]] = stablehlo.add %[[TMP_8]], %[[TMP_9]] : tensor<f64>
-  // CHECK:   %[[TMP_11:.*]] = stablehlo.multiply %[[TMP_1]], %[[TMP_1]] : tensor<f64>
-  // CHECK:   %[[TMP_12:.*]] = stablehlo.add %[[TMP_4]], %[[TMP_11]] : tensor<f64>
-  // CHECK:   %[[TMP_13:.*]] = stablehlo.sqrt %[[TMP_12]] : tensor<f64>
-  // CHECK:   %[[TMP_14:.*]] = stablehlo.add %[[TMP_4]], %[[TMP_13]] : tensor<f64>
-  // CHECK:   %[[TMP_15:.*]] = stablehlo.divide %[[TMP_11]], %[[TMP_14]] : tensor<f64>
-  // CHECK:   %[[TMP_16:.*]] = stablehlo.add %[[TMP_1]], %[[TMP_15]] : tensor<f64>
-  // CHECK:   %[[TMP_17:.*]] = stablehlo.log_plus_one %[[TMP_16]] : tensor<f64>
-  // CHECK:   %[[TMP_18:.*]] = stablehlo.select %[[TMP_6]], %[[TMP_10]], %[[TMP_17]] : tensor<i1>, tensor<f64>
-  // CHECK:   %[[TMP_19:.*]] = stablehlo.multiply %[[TMP_0]], %[[TMP_18]] : tensor<f64>
-  // CHECK:   return %[[TMP_19]] : tensor<f64>
+  // CHECK:   %[[TMP_4:.*]] = stablehlo.compare  GE, %[[TMP_1]], %[[TMP_3]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
+  // CHECK:   %[[TMP_5:.*]] = stablehlo.constant dense<2.000000e+00> : tensor<f64>
+  // CHECK:   %[[TMP_6:.*]] = stablehlo.log %[[TMP_5]] : tensor<f64>
+  // CHECK:   %[[TMP_7:.*]] = stablehlo.log %[[TMP_1]] : tensor<f64>
+  // CHECK:   %[[TMP_8:.*]] = stablehlo.add %[[TMP_6]], %[[TMP_7]] : tensor<f64>
+  // CHECK:   %[[TMP_9:.*]] = stablehlo.multiply %[[TMP_1]], %[[TMP_1]] : tensor<f64>
+  // CHECK:   %[[TMP_10:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f64>
+  // CHECK:   %[[TMP_11:.*]] = stablehlo.add %[[TMP_10]], %[[TMP_9]] : tensor<f64>
+  // CHECK:   %[[TMP_12:.*]] = stablehlo.sqrt %[[TMP_11]] : tensor<f64>
+  // CHECK:   %[[TMP_13:.*]] = stablehlo.add %[[TMP_10]], %[[TMP_12]] : tensor<f64>
+  // CHECK:   %[[TMP_14:.*]] = stablehlo.divide %[[TMP_9]], %[[TMP_13]] : tensor<f64>
+  // CHECK:   %[[TMP_15:.*]] = stablehlo.add %[[TMP_1]], %[[TMP_14]] : tensor<f64>
+  // CHECK:   %[[TMP_16:.*]] = stablehlo.log_plus_one %[[TMP_15]] : tensor<f64>
+  // CHECK:   %[[TMP_17:.*]] = stablehlo.select %[[TMP_4]], %[[TMP_8]], %[[TMP_16]] : tensor<i1>, tensor<f64>
+  // CHECK:   %[[TMP_18:.*]] = stablehlo.multiply %[[TMP_0]], %[[TMP_17]] : tensor<f64>
+  // CHECK:   return %[[TMP_18]] : tensor<f64>
   %result = "chlo.asinh"(%arg) : (tensor<f64>) -> tensor<f64>
   func.return %result : tensor<f64>
 }

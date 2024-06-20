@@ -29,8 +29,8 @@ def main():
     return
 
   fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
-  if fa_version < (0, 5, 0):
-    warnings.warn("functional_algorithm version 0.5.0 or newer is required,"
+  if fa_version < (0, 5, 1):
+    warnings.warn("functional_algorithm version 0.5.1 or newer is required,"
                   f" got {fa.__version__}")
     return
 
