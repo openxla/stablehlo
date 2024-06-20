@@ -385,6 +385,7 @@ def : Pat<(CHLO_AsinOp NonComplexElementType:$x),
             (StableHLO_SubtractOp $one, $x),
             (StableHLO_AddOp $one, $x))))))>;
 
+
 // Arcus cosine on complex input:
 //
 //     Here we well use a modified version of the [Hull et
@@ -925,3 +926,78 @@ def : Pat<(CHLO_AcoshOp NonComplexElementType:$x),
           (StableHLO_SqrtOp
             (StableHLO_AddOp $x, $constant_1)),
           $sqrt_subtract_x_constant_1))))>;
+
+// Inverse hyperbolic sine on complex input:
+//
+//     asinh(z) = -I * asin(I * z)
+//
+def : Pat<(CHLO_AsinhOp ComplexElementType:$z),
+  (StableHLO_ComplexOp
+    (StableHLO_ImagOp
+      (CHLO_AsinOp:$w
+        (StableHLO_ComplexOp
+          (StableHLO_NegOp
+            (StableHLO_ImagOp $z)),
+          (StableHLO_RealOp $z)))),
+    (StableHLO_NegOp
+      (StableHLO_RealOp $w)))>;
+
+// Inverse hyperbolic sine on real input:
+//
+//       asinh(x) = log(x + hypot(1, x))
+//
+//     This algorithm is based on the StableHLO v1.0 function CHLO_AsinhOp.
+//
+//     To avoid overflow in x * x, we use
+//
+//       asinh(x) = log(2) + log(x)
+//
+//     when abs(x) > sqrt(max),
+//
+//     To avoid underflow in 1 + x * x, we'll define z = hypot(1, x) and
+//     write
+//
+//       log(x + z)
+//       = log(((x + z) * (1 + z)) / (1 + z))
+//       [ z ** 2 = 1 + x ** 2]
+//       = log((x + x * z + z + 1 + x**2) / (1 + z))
+//       = log(1 + x + x ** 2 / (1 + z))
+//       = log1p(x + x ** 2 / (1 + hypot(1, x)))
+//
+//     that is, for non-negative x, we have
+//
+//       asinh(x) = log1p(x + x ** 2 / (1 + hypot(1, x)))
+//
+//     It turns out, this is accurate for all abs(x) < sqrt(max).
+//
+//     For x < 0, we'll use
+//
+//       asinh(x) = -asinh(-x)
+//
+//
+def : Pat<(CHLO_AsinhOp NonComplexElementType:$x),
+  (StableHLO_MulOp
+    (StableHLO_SignOp $x),
+    (StableHLO_SelectOp
+      (StableHLO_CompareOp
+       (StableHLO_AbsOp:$ax $x),
+       (StableHLO_MulOp
+         (StableHLO_SqrtOp
+           (StableHLO_ConstantLikeMaxFiniteValue $x)),
+         (StableHLO_ConstantLike<"1">:$one $x)),
+        StableHLO_ComparisonDirectionValue<"GE">,
+        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+      (StableHLO_AddOp
+        (StableHLO_LogOp
+          (StableHLO_ConstantLike<"2"> $x)),
+        (StableHLO_LogOp $ax)),
+      (StableHLO_Log1pOp
+        (StableHLO_AddOp
+          $ax,
+          (StableHLO_DivOp
+            (StableHLO_MulOp:$ax2 $ax, $ax),
+            (StableHLO_AddOp
+              $one,
+              (StableHLO_SqrtOp
+                (StableHLO_AddOp $one, $ax2))))))))>;
+

@@ -29,8 +29,8 @@ def main():
     return
 
   fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
-  if fa_version < (0, 7, 0):
-    warnings.warn("functional_algorithm version 0.7.0 or newer is required,"
+  if fa_version < (0, 5, 0):
+    warnings.warn("functional_algorithm version 0.5.0 or newer is required,"
                   f" got {fa.__version__}")
     return
 
@@ -52,6 +52,8 @@ def main():
   for chloname, fname, args in [
       ("CHLO_AsinOp", "complex_asin", ("z:complex",)),
       ("CHLO_AsinOp", "real_asin", ("x:float",)),
+      ("CHLO_AsinhOp", "complex_asinh", ("z:complex",)),
+      ("CHLO_AsinhOp", "real_asinh", ("x:float",)),
       ("CHLO_AcosOp", "complex_acos", ("z:complex",)),
       ("CHLO_AcosOp", "real_acos", ("x:float",)),
       ("CHLO_AcoshOp", "complex_acosh", ("z:complex",)),
