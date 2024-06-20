@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 //
-// This file is generated using functional_algorithms tool (0.5.0).
+// This file is generated using functional_algorithms tool (0.5.1).
 // See build_tools/math/README.md for more information.
 
 // Arcus sine on complex input.
@@ -404,7 +404,7 @@ def : Pat<(CHLO_AsinhOp ComplexElementType:$z),
 //
 //       asinh(x) = log(x + hypot(1, x))
 //
-//     This algorithm is based on the StableHLO v1.0 function CHLO_AsinhOp.
+//     This algorithm is based on the StableHLO v1.1.4 function CHLO_AsinhOp.
 //
 //     To avoid overflow in x * x, we use
 //
@@ -439,10 +439,8 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$x),
     (StableHLO_SelectOp
       (StableHLO_CompareOp
        (StableHLO_AbsOp:$ax $x),
-       (StableHLO_MulOp
-         (StableHLO_SqrtOp
-           (StableHLO_ConstantLikeMaxFiniteValue $x)),
-         (StableHLO_ConstantLike<"1">:$one $x)),
+       (StableHLO_SqrtOp
+         (StableHLO_ConstantLikeMaxFiniteValue $x)),
         StableHLO_ComparisonDirectionValue<"GE">,
         (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
       (StableHLO_AddOp
@@ -455,6 +453,6 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$x),
           (StableHLO_DivOp
             (StableHLO_MulOp:$ax2 $ax, $ax),
             (StableHLO_AddOp
-              $one,
+              (StableHLO_ConstantLike<"1">:$one $x),
               (StableHLO_SqrtOp
                 (StableHLO_AddOp $one, $ax2))))))))>;
