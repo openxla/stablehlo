@@ -68,7 +68,7 @@ for orig_line in sys.stdin:
       args_line = args_line[n:]
     args = ', '.join(args)
     print(f'// CHECK-LABEL:  {line[:i + 1]}')
-    print(f'// CHECK-SAME:   {args}{line[j:k]}')
+    print(f'// CHECK-SAME:   {args}{line[j:k].rstrip()}')
   elif stage == 2:
     if '=' in line:
       left, right = line.split('=', 1)
