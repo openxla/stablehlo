@@ -121,6 +121,11 @@ void createStablehloDeserializePipeline(OpPassManager &pm);
 void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
                                            TypeRange refinedTypes);
 
+// Decomposes quantized operations within a StableHLO module by
+// applying a series of MLIR passes essentially breaking down the quantized
+// operations into a primitive math operations.
+void createStablehloLowerQuantPipeline(OpPassManager &pm);
+
 // Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
 // for opt tools.
 void registerPassPipelines();

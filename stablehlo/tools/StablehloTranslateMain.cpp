@@ -194,6 +194,7 @@ TranslateFromMLIRRegistration interpretRegistration(
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
+      registry.insert<quant::QuantizationDialect>();
       registry.insert<stablehlo::check::CheckDialect>();
       registry.insert<stablehlo::interpreter::InterpreterDialect>();
       registry.insert<stablehlo::StablehloDialect>();
