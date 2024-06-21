@@ -221,7 +221,7 @@ llvm::Error evalExpectCloseOp(const Tensor &actual, const Tensor &expected,
     // Gather ULP difference statistics:
     ulp_diff_counter[std::min(ulp_diff, ulp_diff_counter_size - 1)] += 1;
   }
-  if (mismatches.size() != 0) {
+  if (!mismatches.empty()) {
     // Append ULP difference statistics in exception message:
     for (size_t i = 0; i < ulp_diff_counter_size; i++) {
       output << "\nULP difference";
