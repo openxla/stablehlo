@@ -59,6 +59,14 @@ operations = [
         extra_prec_multiplier=20,
         max_ulp_difference=3,
     ),
+    dict(
+        name="acosh",
+        mpmath_name="arccosh",
+        size=13,
+        # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
+        extra_prec_multiplier=20,
+        max_ulp_difference=3,
+    ),
 ]
 
 

@@ -29,8 +29,8 @@ def main():
     return
 
   fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
-  if fa_version < (0, 4, 0):
-    warnings.warn("functional_algorithm version 0.4.0 or newer is required,"
+  if fa_version < (0, 7, 0):
+    warnings.warn("functional_algorithm version 0.7.0 or newer is required,"
                   f" got {fa.__version__}")
     return
 
@@ -54,6 +54,8 @@ def main():
       ("CHLO_AsinOp", "real_asin", ("x:float",)),
       ("CHLO_AcosOp", "complex_acos", ("z:complex",)),
       ("CHLO_AcosOp", "real_acos", ("x:float",)),
+      ("CHLO_AcoshOp", "complex_acosh", ("z:complex",)),
+      ("CHLO_AcoshOp", "real_acosh", ("x:float",)),
   ]:
     func = getattr(fa.algorithms, fname, None)
     if func is None:
