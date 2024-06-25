@@ -367,7 +367,7 @@ func.func @broadcast_in_dim_nested(%arg0: tensor<3x3xi32>)
   -> (tensor<3x2x3x3xi32>) {
   %6 = stablehlo.broadcast_in_dim %arg0, dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3x2xi32>
   %7 = stablehlo.broadcast_in_dim %6, dims = [0, 2, 1] : (tensor<3x3x2xi32>) -> tensor<3x2x3x3xi32>
-  // CHECK-DAG:  [[R6:%.+]] = stablehlo.broadcast_in_dim [[ARG0]], dims = [2, 0] : (tensor<3x3xi32>) -> tensor<3x2x3x3xi32>
+  // CHECK: [[R6:%.+]] = stablehlo.broadcast_in_dim [[ARG0]], dims = [2, 0] : (tensor<3x3xi32>) -> tensor<3x2x3x3xi32>
 
   // CHECK-NEXT: return [[R6]]
   return %7 : tensor<3x2x3x3xi32>
