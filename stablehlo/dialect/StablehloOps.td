@@ -2339,13 +2339,35 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
     Encapsulates an implementation-defined operation `call_target_name` that
     takes `inputs` and `called_computations` and produces `results`.
 
+    If XLA runtime is enabled for a backend, then custom calls use the runtime
+    custom call calling convention to call into the external functions. This
+    calling convention defines an ABI for encoding arguments, attributes and
+    results.
+
+    Depending on the API version there are two ways to pass extra bits of static
+    information to the external function:
+
+    1. For `API_VERSION_TYPED_FFI` custom calls `backend_config` must be a
+       dictionary attribute, that will be encoded according to the custom call
+       calling convention and passed to the external function as the attributes
+       argument. External code is expected to use declarative bindings (see
+       `xla/runtime/custom_call.h`) to decode them at run time.
+
+    2. For previous API versions it is the user responsibility to encode extra
+       bits of static information as a string `backend_config` attribute, and
+       decode it at run time.
+
+    `API_VERSION_TYPED_FFI` custom calls only supported if XLA uses XLA runtime.
+
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#custom_call
 
     Example:
     ```mlir
     %results = stablehlo.custom_call @foo(%input0) {
-      backend_config = "bar",
+      backend_config = {bar = 42 : i32},
+      // api_version 4 is to express backend_config as a dictionary attribute
+      api_version = 4 : i32,
       called_computations = [@foo]
     } : (tensor<f64>) -> tensor<f64>
     ```
@@ -2355,7 +2377,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
     Variadic<HLO_CustomCallValue>:$inputs,
     StrAttr:$call_target_name,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$has_side_effect,
-    DefaultValuedStrAttr<StrAttr, "">:$backend_config,
+    OptionalAttr<AnyAttrOf<[StrAttr, DictionaryAttr]>>:$backend_config,
     // TODO(b/189822916): Remove this field when all clients are migrated to
     // the status-returning API.
     DefaultValuedOptionalAttr<
@@ -2378,6 +2400,21 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   let assemblyFormat = [{
     custom<CustomCallTarget>($call_target_name) `(` $inputs `)`
       attr-dict `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    mlir::Attribute buildDefaultValue() {
+      auto apiVersion = getApiVersion();
+      if (apiVersion == mlir::stablehlo::CustomCallApiVersion::API_VERSION_TYPED_FFI) {
+        return DictionaryAttr::get(getContext());
+      } else {
+        return StringAttr::get(getContext(), "");
+      }
+    }
+
+    mlir::Attribute getResolvedBackendConfig() {
+      return getBackendConfig().value_or(buildDefaultValue());
+    }
   }];
 }
 
