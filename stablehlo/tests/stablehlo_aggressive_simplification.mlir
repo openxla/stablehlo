@@ -353,7 +353,7 @@ func.func @broadcast_in_dim_transpose(%arg0: tensor<3x3xi32>)
   %3 = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<3x3xi32>) -> tensor<3x3xi32>
   %4 = stablehlo.broadcast_in_dim %arg0, dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3xi32>
 
-  // CHECK-DAG:  [[R4:%.+]] = stablehlo.transpose [[ARG0]], dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3xi32>
+  // CHECK: [[R4:%.+]] = stablehlo.transpose [[ARG0]], dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3xi32>
 
   // CHECK-NEXT: return [[ARG0]], [[R4]]
   return %3, %4 : tensor<3x3xi32>, tensor<3x3xi32>
