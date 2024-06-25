@@ -349,19 +349,6 @@ func.func @reduce_scatter_with_promotable_quantized_types(
 // -----
 
 func.func @reduce_scatter_c2(%data: tensor<4x16xf32>) -> tensor<4x4xf32> {
-  // expected-error@+1 {{expects scatter_dimension >= 0}}
-  %0 = "stablehlo.reduce_scatter"(%data) ({
-    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
-    %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
-    "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
-      scatter_dimension = -1 : i64} : (tensor<4x16xf32>) -> tensor<4x4xf32>
-  func.return %0 : tensor<4x4xf32>
-}
-
-// -----
-
-func.func @reduce_scatter_c2(%data: tensor<4x16xf32>) -> tensor<4x4xf32> {
   // expected-error@+1 {{scatter dim should be less than operand/result rank}}
   %0 = "stablehlo.reduce_scatter"(%data) ({
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
@@ -703,20 +690,6 @@ func.func @all_to_all_dynamic_concat_dim(%data: tensor<?x16xf32>) -> tensor<?x4x
 
 func.func @all_to_all_c1(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{AllToAll split_dimension cannot be negative}}
-  %0 = "stablehlo.all_to_all"(%data) {
-    split_dimension = -1 : i64,
-    concat_dimension = 0 : i64,
-    split_count = 4 : i64,
-    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
-  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
-  func.return %0 : tensor<16x4xf32>
-}
-
-// -----
-
-func.func @all_to_all_c1(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{AllToAll split_dimension 2 is out-of-bounds for input rank 2}}
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 2 : i64,
@@ -745,39 +718,11 @@ func.func @all_to_all_c2(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
 
 func.func @all_to_all_c3(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{AllToAll concat_dimension cannot be negative}}
-  %0 = "stablehlo.all_to_all"(%data) {
-    split_dimension = 1 : i64,
-    concat_dimension = -1 : i64,
-    split_count = 4 : i64,
-    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
-  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
-  func.return %0 : tensor<16x4xf32>
-}
-
-// -----
-
-func.func @all_to_all_c3(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{AllToAll concat_dimension 2 is out-of-bounds for input rank 2}}
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = 2 : i64,
     split_count = 4 : i64,
-    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
-  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
-  func.return %0 : tensor<16x4xf32>
-}
-
-// -----
-
-func.func @all_to_all_c4(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{AllToAll split_count must be > 0}}
-  %0 = "stablehlo.all_to_all"(%data) {
-    split_dimension = 1 : i64,
-    concat_dimension = 0 : i64,
-    split_count = 0 : i64,
     replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   func.return %0 : tensor<16x4xf32>
@@ -849,18 +794,6 @@ func.func @allgather_gather_along_zero_dimension(%arg0: tensor<128x0xf32>) -> te
     replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>
   } : (tensor<128x0xf32>) -> tensor<128x100xf32>
   func.return %0 : tensor<128x100xf32>
-}
-
-// -----
-
-func.func @all_gather_c1(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
-  // expected-error@+1 {{all_gather_dim cannot be negative}}
-  %0 = "stablehlo.all_gather"(%arg0) {
-    all_gather_dim = -1 : i64,
-    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
-    replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>
-  } : (tensor<8x2xf32>) -> tensor<8x8xf32>
-  func.return %0 : tensor<8x8xf32>
 }
 
 // -----
@@ -1557,24 +1490,6 @@ func.func @concatenate_c3()  -> tensor<2xi32> {
 
 // -----
 
-func.func @concatenate_c4(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>)  -> tensor<3xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{dimension -1 is negative}}
-  %0 = "stablehlo.concatenate"(%arg0, %arg1) { dimension = -1 : i64 } : (tensor<1xi32>, tensor<2xi32>) -> tensor<3xi32>
-  func.return %0 : tensor<3xi32>
-}
-
-// -----
-
-func.func @concatenate_c4(%arg0: tensor<?xi32>, %arg1: tensor<?xi32>)  -> tensor<?xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{dimension -1 is negative}}
-  %0 = "stablehlo.concatenate"(%arg0, %arg1) { dimension = -1 : i64 } : (tensor<?xi32>, tensor<?xi32>) -> tensor<?xi32>
-  func.return %0 : tensor<?xi32>
-}
-
-// -----
-
 func.func @concatenate_c4(%arg0: tensor<i32>, %arg1: tensor<i32>)  -> tensor<2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{rank-0 values cannot be concatenated}}
@@ -1838,7 +1753,7 @@ func.func @iota_scalar() -> tensor<i32> {
 // -----
 
 func.func @iota_invalid_iota_dimension() -> tensor<4xi32> {
-  // expected-error@+1 {{iota dimension cannot go beyond the output rank or be negative}}
+  // expected-error@+1 {{iota dimension cannot go beyond the output rank}}
   %0 = "stablehlo.iota"() {iota_dimension = 1 : i64} : () -> tensor<4xi32>
   func.return %0 : tensor<4xi32>
 }
@@ -2734,15 +2649,6 @@ func.func @get_tuple_element(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<f
 
 func.func @get_tuple_element_c1(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<f32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{index -1 is out of bounds of operand with size 2}}
-  %0 = "stablehlo.get_tuple_element"(%arg0) {index = -1 : i32} : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
-  func.return %0 : tensor<f32>
-}
-
-// -----
-
-func.func @get_tuple_element_c1(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<f32> {
-  // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{index 2 is out of bounds of operand with size 2}}
   %0 = "stablehlo.get_tuple_element"(%arg0) {index = 2 : i32} : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
   func.return %0 : tensor<f32>
@@ -3451,22 +3357,6 @@ func.func @bitcast_convert_c2(%arg: tensor<2x4xcomplex<f32>>) -> tensor<2x2xf64>
 
 func.func @reduce_precision(%arg: tensor<2x4xf32>) -> tensor<2x4xf32> {
   %0 = "stablehlo.reduce_precision"(%arg) {exponent_bits=2 : i32, mantissa_bits=3 : i32} : (tensor<2x4xf32>) -> tensor<2x4xf32>
-  func.return %0 : tensor<2x4xf32>
-}
-
-// -----
-
-func.func @reduce_precision_c2(%arg: tensor<2x4xf32>) -> tensor<2x4xf32> {
-  // expected-error @+1 {{exponent_bits must be at least 1.}}
-  %0 = "stablehlo.reduce_precision"(%arg) {exponent_bits=0 : i32, mantissa_bits=3 : i32} : (tensor<2x4xf32>) -> tensor<2x4xf32>
-  func.return %0 : tensor<2x4xf32>
-}
-
-// -----
-
-func.func @reduce_precision_c3(%arg: tensor<2x4xf32>) -> tensor<2x4xf32> {
-  // expected-error @+1 {{mantissa_bits must be at least 0.}}
-  %0 = "stablehlo.reduce_precision"(%arg) {exponent_bits=1 : i32, mantissa_bits=-1 : i32} : (tensor<2x4xf32>) -> tensor<2x4xf32>
   func.return %0 : tensor<2x4xf32>
 }
 
@@ -4681,15 +4571,6 @@ func.func @get_dimension_size(%I: tensor<1x128x512xf32>) -> tensor<i32> {
 
 func.func @get_dimension_size_c1(%I: tensor<1x128x512xf32>) -> tensor<i32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{requires non-negative dimension attribute; found (-1)}}
-  %size = "stablehlo.get_dimension_size"(%I) {dimension = -1 : i64} : (tensor<1x128x512xf32>) -> tensor<i32>
-  func.return %size : tensor<i32>
-}
-
-// -----
-
-func.func @get_dimension_size_c1(%I: tensor<1x128x512xf32>) -> tensor<i32> {
-  // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{requires dimension attribute in range [0, 3); found (3)}}
   %size = "stablehlo.get_dimension_size"(%I) {dimension = 3 : i64} : (tensor<1x128x512xf32>) -> tensor<i32>
   func.return %size : tensor<i32>
@@ -4703,16 +4584,6 @@ func.func @set_dimension_size(%I: tensor<1x128x512xf32>) -> tensor<1x128x512xf32
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{size operand should be of rank-0}}
   %result = "stablehlo.set_dimension_size"(%I, %dim) {dimension = 2 : i64} : (tensor<1x128x512xf32>, tensor<1xi32>) -> tensor<1x128x512xf32>
-  func.return %result : tensor<1x128x512xf32>
-}
-
-// -----
-
-func.func @set_dimension_size_negative_dimension(%I: tensor<1x128x512xf32>) -> tensor<1x128x512xf32> {
-  %dim = stablehlo.constant dense<512> : tensor<i32>
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{requires non-negative dimension attribute; found (-1)}}
-  %result = "stablehlo.set_dimension_size"(%I, %dim) {dimension =-1 : i64} : (tensor<1x128x512xf32>, tensor<i32>) -> tensor<1x128x512xf32>
   func.return %result : tensor<1x128x512xf32>
 }
 
@@ -5134,19 +5005,6 @@ func.func @batch_norm_training_dynamic(%input: tensor<?x?x2x2xf32>, %scale: tens
 
 func.func @batch_norm_training_c1(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{expects featureIndex to be a non-negative number, got -1.}}
-  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
-    epsilon = 0.001 : f32,
-    feature_index = -1 : i64
-  } : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) ->
-      (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
-  func.return %0#0 : tensor<2x2x2x2xf32>
-}
-
-// -----
-
-func.func @batch_norm_training_c1(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{expects featureIndex to be smaller than the rank of multi-dimensional operands; got featureIndex 4, and rank 4.}}
   %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
     epsilon = 0.001 : f32,
@@ -5197,18 +5055,6 @@ func.func @batch_norm_inference_dynamic(%input: tensor<4x?xf32>, %scale: tensor<
 
 func.func @batch_norm_inference_c1(%input: tensor<4x256xf32>, %scale: tensor<256xf32>, %offset: tensor<256xf32>, %mean: tensor<256xf32>, %variance: tensor<256xf32>) -> (tensor<4x256xf32>) {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{expects featureIndex to be a non-negative number, got -1.}}
-  %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {
-    epsilon = 1.001000e-05 : f32,
-    feature_index = -1 : i64
-  } : (tensor<4x256xf32>, tensor<256xf32>, tensor<256xf32>, tensor<256xf32>, tensor<256xf32>) -> tensor<4x256xf32>
-  func.return %0 : tensor<4x256xf32>
-}
-
-// -----
-
-func.func @batch_norm_inference_c1(%input: tensor<4x256xf32>, %scale: tensor<256xf32>, %offset: tensor<256xf32>, %mean: tensor<256xf32>, %variance: tensor<256xf32>) -> (tensor<4x256xf32>) {
-  // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{expects featureIndex to be smaller than the rank of multi-dimensional operands; got featureIndex 2, and rank 2.}}
   %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {
     epsilon = 1.001000e-05 : f32,
@@ -5244,15 +5090,6 @@ func.func @batch_norm_grad_dynamic(%input: tensor<?x2x2x2xf32>, %scale: tensor<?
     epsilon = 0.001 : f32, feature_index = 0 : i64
   } : (tensor<?x2x2x2xf32>, tensor<?xf32>, tensor<?xf32>, tensor<?xf32>, tensor<?x2x2x2xf32>) -> (tensor<?x2x2x2xf32>, tensor<?xf32>, tensor<?xf32>)
   func.return %0#0 : tensor<?x2x2x2xf32>
-}
-
-// -----
-
-func.func @error_batch_norm_grad_c1(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %mean: tensor<2xf32>, %variance: tensor<2xf32>, %grad_output: tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{expects featureIndex to be a non-negative number, got -1.}}
-  %0:3 = "stablehlo.batch_norm_grad" (%input, %scale, %mean, %variance, %grad_output) {epsilon = 0.001 : f32, feature_index = -1 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2x2x2x2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
-  func.return %0#0 : tensor<2x2x2x2xf32>
 }
 
 // -----
@@ -6005,24 +5842,6 @@ func.func @is_finite_mismatch_return_shape(%arg0: tensor<3xf32>) -> tensor<4xi1>
 
 // -----
 
-func.func @negative_dimension_attr(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, %arg1: tensor<i32>) -> tensor<?x?xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{requires non-negative dimension attribute; found (-1)}}
-  %result = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = -1 : i64} : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, tensor<i32>) -> tensor<?x?xf32>
-  func.return %result : tensor<?x?xf32>
-}
-
-// -----
-
-func.func @invalid_dimension_attr(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, %arg1: tensor<i32>) -> tensor<?x?xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{requires dimension attribute in range [0, 2); found (2)}}
-  %result = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = 2 : i64} : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, tensor<i32>) -> tensor<?x?xf32>
-  func.return %result : tensor<?x?xf32>
-}
-
-// -----
-
 // CHECK-LABEL: func @convert
 func.func @convert(%arg0: tensor<f64>) -> tensor<bf16> {
   %0 = "stablehlo.convert"(%arg0) : (tensor<f64>) -> tensor<bf16>
@@ -6079,18 +5898,9 @@ func.func @dynamic_iota_dynamic() -> tensor<?xf32> {
 
 // -----
 
-func.func @dynamic_iota_invalid_iota_dimension_negative() -> tensor<?xf32> {
-  // expected-error@+2 {{iota dimension cannot go beyond the output rank or be negative}}
-  %0 = stablehlo.constant dense<[4]> : tensor<1xi64>
-  %1 = stablehlo.dynamic_iota %0, dim = -1 : (tensor<1xi64>) -> tensor<?xf32>
-  func.return %1 : tensor<?xf32>
-}
-
-// -----
-
 func.func @dynamic_iota_invalid_iota_dimension_too_big() -> tensor<?xf32> {
   %0 = stablehlo.constant dense<[4]> : tensor<1xi64>
-  // expected-error@+1 {{iota dimension cannot go beyond the output rank or be negative}}
+  // expected-error@+1 {{iota dimension cannot go beyond the output rank}}
   %1 = stablehlo.dynamic_iota %0, dim = 2 : (tensor<1xi64>) -> tensor<?xf32>
   func.return %1 : tensor<?xf32>
 }
