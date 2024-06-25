@@ -2414,14 +2414,14 @@ the XLA compiler. In the future, we are planning to unify this metadata
 
 #### Inputs
 
-| Label | Name                  | Type                                          |
-|-------|-----------------------|-----------------------------------------------|
-| (I1)  | `inputs`              | variadic number of values                     |
-| (I2)  | `call_target_name`    | constant of type `string`                     |
-| (I3)  | `has_side_effect`     | constant of type `i1`                         |
-| (I4)  | `backend_config`      | constant of type `string`                     |
-| (I5)  | `api_version`         | constant of type `si32`                       |
-| (I6)  | `called_computations` | variadic number of constants of type `string` |
+| Label | Name                  | Type                                              |
+|-------|-----------------------|---------------------------------------------------|
+| (I1)  | `inputs`              | variadic number of values                         |
+| (I2)  | `call_target_name`    | constant of type `string`                         |
+| (I3)  | `has_side_effect`     | constant of type `i1`                             |
+| (I4)  | `backend_config`      | constant of type `string` or attribute dictionary |
+| (I5)  | `api_version`         | constant of type `si32`                           |
+| (I6)  | `called_computations` | variadic number of constants of type `string`     |
 
 #### Outputs
 
@@ -2435,8 +2435,9 @@ the XLA compiler. In the future, we are planning to unify this metadata
 %results = "stablehlo.custom_call"(%input0) {
   call_target_name = "foo",
   has_side_effect = false,
-  backend_config = "bar",
-  api_version = 1 : i32,
+  backend_config = {bar = 42 : i32},
+  // api_version 4 is to express backend_config as a dictionary attribute
+  api_version = 4 : i32,
   called_computations = [@foo]
 } : (tensor<f64>) -> tensor<f64>
 ```
