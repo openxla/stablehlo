@@ -335,10 +335,10 @@ def test_register_passes():
     module = ir.Module.parse(ASM_FORMAT.format("2xf32"))
     assert module is not None
 
-    stablehlo.register_passes()
+    stablehlo.register_stablehlo_passes()
     pipeline = [
-        'stablehlo-legalize-to-vhlo',
-        'vhlo-legalize-to-stablehlo',
+        "stablehlo-legalize-to-vhlo",
+        "vhlo-legalize-to-stablehlo",
     ]
     pipeline = pm.PassManager.parse(f"builtin.module({','.join(pipeline)})")
 
