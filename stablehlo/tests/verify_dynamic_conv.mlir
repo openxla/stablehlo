@@ -573,6 +573,36 @@ func.func @dynamic_conv_c20(%arg0 : tensor<100x26x26x32xf32>,
 
 // -----
 
+func.func @dynamic_conv_c21(%arg0: tensor<1x8x8x207xf32>,
+    %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32> {
+  // expected-error@+2 {{op attribute 'feature_group_count' failed to satisfy constraint: 64-bit signless integer attribute whose value is positive}}
+  %padding = stablehlo.constant dense<0> : tensor<2x2xi64>
+  %result = "stablehlo.dynamic_conv"(%arg0, %arg1, %padding) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
+    feature_group_count = 0 : i64,
+    batch_group_count = 1 : i64
+  } : (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>, tensor<2x2xi64>) ->
+       tensor<1x8x8x16xf32>
+  func.return %result : tensor<1x8x8x16xf32>
+}
+
+// -----
+
+func.func @dynamic_conv_c22(%arg0: tensor<1x8x8x207xf32>,
+    %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32> {
+  // expected-error@+2 {{op attribute 'batch_group_count' failed to satisfy constraint: 64-bit signless integer attribute whose value is positive}}
+  %padding = stablehlo.constant dense<0> : tensor<2x2xi64>
+  %result = "stablehlo.dynamic_conv"(%arg0, %arg1, %padding) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
+    feature_group_count = 1 : i64,
+    batch_group_count = 0 : i64
+  } : (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>, tensor<2x2xi64>) ->
+       tensor<1x8x8x16xf32>
+  func.return %result : tensor<1x8x8x16xf32>
+}
+
+// -----
+
 func.func @dynamic_conv_c23(%arg0: tensor<1x8x8x207xf32>,
     %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32> {
   // expected-error@+2 {{expects batch_group_count and feature_group_count not to be both greater than 1. Got 2 and 2 resp.}}
