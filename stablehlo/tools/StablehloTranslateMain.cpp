@@ -143,6 +143,16 @@ class StablehloTranslateInterpreterFallback
                                            "check.expect_eq_const");
     }
 
+    if (auto expectCloseOp = dyn_cast<stablehlo::check::ExpectCloseOp>(op)) {
+      auto runtimeActual = scope.findTensor(expectCloseOp.getActual());
+      auto runtimeExpected = scope.findTensor(expectCloseOp.getExpected());
+      auto status = stablehlo::check::evalExpectCloseOp(
+          runtimeActual, runtimeExpected, expectCloseOp.getMinUlpDifference(),
+          expectCloseOp.getMaxUlpDifference());
+      return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                           "check.expect_close");
+    }
+
     if (auto expectSerializedEqOp =
             dyn_cast<stablehlo::check::ExpectSerializedEqOp>(op)) {
       auto runtimeOperand =
@@ -184,6 +194,7 @@ TranslateFromMLIRRegistration interpretRegistration(
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
+      registry.insert<quant::QuantizationDialect>();
       registry.insert<stablehlo::check::CheckDialect>();
       registry.insert<stablehlo::interpreter::InterpreterDialect>();
       registry.insert<stablehlo::StablehloDialect>();

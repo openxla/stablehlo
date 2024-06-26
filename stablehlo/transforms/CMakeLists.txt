@@ -36,9 +36,11 @@ add_mlir_dialect_library(StablehloPasses
   StablehloAggressiveFolder.cpp
   StablehloAggressiveSimplification.cpp
   StablehloCanonicalizeDynamism.cpp
-  StablehloInstrumentWithProbe.cpp
+  StablehloConvertToSignless.cpp
   StablehloLegalizeCompositeToCall.cpp
   StablehloLegalizeDeprecatedOps.cpp
+  StablehloLegalizeQuantToInt.cpp
+  StablehloLegalizeQuantizedOpToQDQ.cpp
   StablehloLegalizeToVhlo.cpp
   StablehloRefineArguments.cpp
   StablehloRefineShapes.cpp
@@ -53,12 +55,12 @@ add_mlir_dialect_library(StablehloPasses
 
   LINK_LIBS PUBLIC
   ChloOps
-  InterpreterOps
   MLIRArithDialect
   MLIRAsmParser
   MLIRComplexDialect
   MLIRDialectUtils
   MLIRFuncDialect
+  MLIRFuncTransforms
   MLIRFunctionInterfaces
   MLIRIR
   MLIRInferTypeOpInterface
@@ -68,6 +70,7 @@ add_mlir_dialect_library(StablehloPasses
   MLIRTransformUtils
   StablehloBase
   StablehloBroadcastUtils
+  StablehloLinalgTransforms
   StablehloOps
   StablehloTypeInference
   VhloOps

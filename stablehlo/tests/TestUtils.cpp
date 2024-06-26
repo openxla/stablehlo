@@ -176,7 +176,7 @@ struct HloTestSpeculatabilityPass
     GreedyRewriteConfig config;
     config.maxIterations = 1;
     config.useTopDownTraversal = true;
-    config.enableRegionSimplification = false;
+    config.enableRegionSimplification = GreedySimplifyRegionLevel::Disabled;
     (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
   }
 

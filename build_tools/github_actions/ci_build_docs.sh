@@ -41,6 +41,7 @@ fi
 
 declare -A targets
 targets[":stablehlo_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/transforms/stablehlo_passes.md"
+targets[":interpreter_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/reference/interpreter_passes.md"
 targets[":linalg_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/linalg/transforms/stablehlo_linalg_passes.md"
 targets[":tosa_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/tosa/transforms/stablehlo_tosa_passes.md"
 
@@ -48,8 +49,12 @@ bazel build "${!targets[@]}"
 
 cp "${targets[@]}" docs/generated
 
-[[ "$CHECK" ]] && [[ "$(git diff)" ]] && {
-  echo "Generated pass documentation is out of date. Please re-generate the documentation before pushing:"
+DOC_DIFF="$(git diff)"
+[[ "$CHECK" ]] && [[ "$DOC_DIFF" ]] && {
+  echo "$DOC_DIFF"
+  echo
+  echo "Generated pass documentation is out of date (see diff above)."
+  echo "Re-generate the documentation before pushing using:"
   echo "  ./build_tools/github_actions/ci_build_docs.sh"
   exit 1
 } || exit 0

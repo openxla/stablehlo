@@ -27,40 +27,6 @@ def StablehloCanonicalizeDynamismPass : Pass<"stablehlo-canonicalize-dynamism", 
   }];
 }
 
-def StablehloInstrumentWithProbePass : Pass<"stablehlo-instrument-with-probe", "ModuleOp"> {
-  let summary = "Inserts probe instrumentation instructions in a StableHLO "
-    "program.";
-  let options = [
-    Option<"useDebugInfoOption", "useDebugInfo", "bool", /*default=*/"false",
-           "Whether or not to use location debug data as `probe_id` values.">,
-  ];
-
-  let dependentDialects = ["mlir::stablehlo::interpreter::InterpreterDialect"];
-  let description = [{
-    Walks through a StableHLO program and inserts a probe instrumentation
-    operation after each suitable operation (see below for how a suitable
-    operation is defined). Instrumentation is used to extract intermediate
-    tensor values from the StableHLO reference interpreter for later comparison
-    with other runtimes.
-
-    All operations are considered suitable for instrumentation, except constant
-    ops, ops which do not have any tensor return values (i.e. an op that
-    produces a tuple or a token or no return values will not be instrumented).
-    Suitable operations will be instrumented regardless of their level of
-    nesting. That is, operations inside loop/branch regions will also be
-    instrumented.
-
-    Instrumented operations will have their return values written to disk using
-    the NumPy data format as they are executed. If the `useDebugInfo` pass
-    option is enabled, location debug information will be used when available to
-    uniquely identify instrumented tensor values (i.e. the pass will extract
-    `probe_id` from `NamedLoc(probe_id@<...>)` and use the format `probe_id`.#).
-    Otherwise, instrumented values will be referred to in the increasing
-    sequence: `probe1`, `probe2`, ... See `interpreter.probe` for additional
-    information on how data is serialized.
-  }];
-}
-
 def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp"> {
   let summary = "Legalize StableHLO to VHLO.";
   let dependentDialects = ["mlir::vhlo::VhloDialect"];
@@ -131,6 +97,10 @@ def StablehloAggressiveFolderPass
   let dependentDialects = [
     "mlir::tensor::TensorDialect",
   ];
+  let options = [
+    Option<"foldFloat", "fold-float", "bool", /*default=*/"true",
+           "Allow for potentially lossy computations using float type.">,
+  ];
 }
 
 def StablehloAggressiveSimplificationPass
@@ -139,6 +109,10 @@ def StablehloAggressiveSimplificationPass
   let dependentDialects = [
     "mlir::tensor::TensorDialect",
   ];
+}
+
+def StablehloConvertToSignlessPass : Pass<"stablehlo-convert-to-signless", "ModuleOp"> {
+  let summary = "Pass to transform the IR to be on signless integers.";
 }
 
 def ShapeLegalizeToStablehloPass : Pass<"shape-legalize-to-stablehlo", "func::FuncOp"> {
@@ -202,5 +176,49 @@ def StablehloLegalizeCompositeToCallPass :
   ];
   let options = [
     ListOption<"exceptListOption", "except", "std::string", "Names of composites that should not be replaced with calls.">
+  ];
+}
+
+def StablehloLegalizeQuantToIntPass : Pass<"stablehlo-legalize-quant-to-int", "mlir::func::FuncOp"> {
+  let summary = "Convert from StableHLO quantized ops to StableHLO primitive ops.";
+
+  let description = [{
+    Convert StableHLO programs using UniformQuantized types to semantically
+    equivalent integer math.
+  }];
+  let dependentDialects = [
+    "mlir::chlo::ChloDialect",
+    "mlir::stablehlo::StablehloDialect",
+  ];
+}
+
+def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-op-to-qdq", "mlir::func::FuncOp"> {
+  let summary = "Decompose StableHLO quantized ops using uniform quantize/dequantize ops.";
+
+  let description = [{
+    Decompose StableHLO quantized programs using uniform quantize/dequantize
+    operations. For example, the following program
+
+    ```mlir
+    func.func @add(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
+      %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32,1.0:0>>, tensor<!quant.uniform<i8:f32,2.0:1>>) -> tensor<!quant.uniform<i8:f32,3.0:2>>
+      func.return %0 : tensor<!quant.uniform<i8:f32,3.0:2>>
+    }
+    ```
+
+    Will become:
+
+    ```mlir
+    func.func @add(%arg0: tensor<!quant.uniform<i8:f32, 1.000000e+00>>, %arg1: tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>> {
+      %0 = stablehlo.uniform_dequantize %arg0 : (tensor<!quant.uniform<i8:f32, 1.000000e+00>>) -> tensor<f32>
+      %1 = stablehlo.uniform_dequantize %arg1 : (tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<f32>
+      %2 = stablehlo.add %0, %1 : tensor<f32>
+      %3 = stablehlo.uniform_quantize %2 : (tensor<f32>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
+      return %3 : tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
+    }
+    ```
+  }];
+  let dependentDialects = [
+    "mlir::stablehlo::StablehloDialect",
   ];
 }

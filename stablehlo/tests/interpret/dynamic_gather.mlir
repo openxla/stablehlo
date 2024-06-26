@@ -13,7 +13,6 @@ func.func @dynamic_gather_op_test() {
       collapsed_slice_dims = [0],
       start_index_map = [1, 0],
       index_vector_dim = 2>,
-    slice_sizes = array<i64: 1, 2, 2>,
     indices_are_sorted = false
   } : (tensor<3x4x2xi64>, tensor<2x3x2xi64>, tensor<3xi64>) -> tensor<2x3x2x2xi64>
   check.expect_eq_const %result, dense<[[[[1, 2], [3, 4]],

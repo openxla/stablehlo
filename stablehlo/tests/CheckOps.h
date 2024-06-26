@@ -43,6 +43,9 @@ llvm::Error evalExpectEqConstOp(const Tensor &lhs, ElementsAttr value);
 llvm::Error evalExpectEqOp(const Tensor &lhs, const Tensor &rhs);
 llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
                                      StringRef probeDir, uint32_t iteration);
+llvm::Error evalExpectCloseOp(const Tensor &actual, const Tensor &expected,
+                              uint64_t min_ulp_difference,
+                              uint64_t max_ulp_difference);
 
 }  // namespace check
 }  // namespace stablehlo
