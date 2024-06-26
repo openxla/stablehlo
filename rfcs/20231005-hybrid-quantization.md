@@ -1,6 +1,6 @@
 # RFC: Hybrid quantized ops for weight-only quantization
 
-Status: Review<br/>
+Status: Approved<br/>
 Initial version: 10/05/2023<br/>
 Last updated: 10/31/2023<br/>
 

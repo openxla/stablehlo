@@ -1,6 +1,6 @@
 # [RFC] Add batching dims to `stablehlo.gather` and `stable.scatter` specification
 
-Status: Review<br/>
+Status: Approved<br/>
 Initial version: 03/11/2024<br/>
 Last updated: 03/11/2024<br/>
 Discussion thread: TBD
