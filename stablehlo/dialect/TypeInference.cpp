@@ -682,11 +682,6 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
         "multi-dimensional operands; got featureIndex ",
         featureIndex, ", and rank ", multiDimType.getRank(), ".");
 
-  // batch_norm_grad_c1, batch_norm_inference_c1, batch_norm_training_c1
-  if (featureIndex < 0)
-    return emitOptionalError(location, "expects featureIndex to be a ",
-                             "non-negative number, got ", featureIndex, ".");
-
   const int64_t featureCount = multiDimType.getDimSize(featureIndex);
   const int64_t singleDimSize =
       cast<RankedTensorType>(singleDimOperands[0].getType()).getDimSize(0);
@@ -1258,18 +1253,6 @@ LogicalResult verifyConvolutionAttributes(
           location)))
     return failure();
 
-  // convolution_c21, dynamic_conv_c21
-  if (featureGroupCount <= 0)
-    return emitOptionalError(
-        location, "expects feature_group_count to be a positive number, got ",
-        featureGroupCount, ".");
-
-  // convolution_c22, dynamic_conv_c22
-  if (batchGroupCount <= 0)
-    return emitOptionalError(
-        location, "expects batch_group_count to be a positive number, got ",
-        batchGroupCount, ".");
-
   // convolution_c23, dynamic_conv_c23
   if (batchGroupCount > 1 && featureGroupCount > 1)
     return emitOptionalError(
@@ -1839,25 +1822,11 @@ LogicalResult inferAllToAllOp(
     int64_t concatDimension, int64_t splitCount,
     DenseIntElementsAttr replicaGroups,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // all_to_all_c4
-  if (splitCount <= 0)
-    return emitOptionalError(location, "AllToAll split_count must be > 0");
-
   // all_to_all_c5, all_to_all_c7, all_to_all_i5
   if (failed(verifyReplicaGroups(location, replicaGroups,
                                  /*allGroupsMustHaveSameSize=*/true,
                                  /*useGlobalDeviceIds=*/false, splitCount)))
     return failure();
-
-  // all_to_all_c1
-  if (splitDimension < 0)
-    return emitOptionalError(location,
-                             "AllToAll split_dimension cannot be negative");
-
-  // all_to_all_c3
-  if (concatDimension < 0)
-    return emitOptionalError(location,
-                             "AllToAll concat_dimension cannot be negative");
 
   Type operandType = operand.getType();
   auto operandRankedType = cast<RankedTensorType>(operandType);
@@ -2051,10 +2020,6 @@ LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,
 LogicalResult inferConcatenateOp(std::optional<Location> location,
                                  TypeRange inputTypes, int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
-  // concatenate_c4
-  if (dimension < 0)
-    return emitOptionalError(location, "dimension ", dimension, " is negative");
-
   auto witnessType = cast<RankedTensorType>(inputTypes[0]);
   int64_t rank = witnessType.getRank();
 
@@ -2876,7 +2841,7 @@ LogicalResult inferGetTupleElementOp(
   auto operandType = dyn_cast<TupleType>(operand.getType());
   if (!operandType) return failure();
   // get_tuple_element_c1
-  if (index < 0 || index >= static_cast<int64_t>(operandType.size()))
+  if (index >= static_cast<int64_t>(operandType.size()))
     return emitOptionalError(location, "index ", index,
                              " is out of bounds of operand with size ",
                              operandType.size());
@@ -3567,10 +3532,6 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
   auto resultType = cast<RankedTensorType>(result.getType());
 
   // all_gather_c1
-  if (allGatherDim < 0)
-    return emitOptionalError(location, "all_gather_dim cannot be negative");
-
-  // all_gather_c1
   if (allGatherDim >= operandType.getRank())
     return emitOptionalError(location,
                              "all_gather_dim must be a valid index of operand");
@@ -4222,10 +4183,9 @@ LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
   auto resultType = cast<ShapedType>(result.getType());
 
   // dynamic_iota_c1
-  if (iotaDimension >= resultType.getRank() || iotaDimension < 0)
+  if (iotaDimension >= resultType.getRank())
     return emitOptionalError(
-        location,
-        "iota dimension cannot go beyond the output rank or be negative.");
+        location, "iota dimension cannot go beyond the output rank.");
   // dynamic_iota_c2
   if (failed(verifyShapeOperandIsCompatibleWithResultType(location, outputShape,
                                                           resultType)))
@@ -4410,10 +4370,9 @@ LogicalResult verifyIotaOp(std::optional<Location> location,
   if (shape.getRank() == 0)
     return emitOptionalError(location, "does not support scalars.");
 
-  if (iotaDimension >= shape.getRank() || iotaDimension < 0)
+  if (iotaDimension >= shape.getRank())
     return emitOptionalError(
-        location,
-        "iota dimension cannot go beyond the output rank or be negative.");
+        location, "iota dimension cannot go beyond the output rank.");
   return success();
 }
 
@@ -4508,18 +4467,6 @@ LogicalResult verifyReduceOp(std::optional<Location> location,
   return success();
 }
 
-LogicalResult verifyReducePrecisionOp(std::optional<Location> location,
-                                      int32_t exponentBits,
-                                      int32_t mantissaBits) {
-  // reduce_precision_c2
-  if (exponentBits < 1)
-    return emitOptionalError(location, "exponent_bits must be at least 1.");
-  // reduce_precision_c3
-  if (mantissaBits < 0)
-    return emitOptionalError(location, "mantissa_bits must be at least 0.");
-  return success();
-}
-
 LogicalResult verifyReduceScatterOp(std::optional<Location> location,
                                     Value operand, int64_t scatterDimension,
                                     DenseIntElementsAttr replicaGroups,
@@ -4543,10 +4490,6 @@ LogicalResult verifyReduceScatterOp(std::optional<Location> location,
   if (operandType.getRank() != resultType.getRank())
     return emitOptionalError(location,
                              "operand and result should have same rank");
-
-  // reduce_scatter_c2
-  if (scatterDimension < 0)
-    return emitOptionalError(location, "expects scatter_dimension >= 0");
 
   // reduce_scatter_c2
   if (scatterDimension >= operandType.getRank())
