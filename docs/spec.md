@@ -905,24 +905,24 @@ Afterwards, within each `process_group`:
 ```mlir
 // num_replicas: 2
 // num_partitions: 1
-// %operand@(0, 0): [[1, 2, 3, 4],
-//                   [5, 6, 7, 8]]
-// %operand@(1, 0): [[9, 10, 11, 12],
-//                   [13, 14, 15, 16]]
-%result = "stablehlo.all_to_all"(%operand) {
+// %operand1@(0, 0): [[1, 2, 3, 4],
+//                    [5, 6, 7, 8]]
+// %operand1@(1, 0): [[9, 10, 11, 12],
+//                    [13, 14, 15, 16]]
+// %operand2@(0, 0): [[17, 18, 19, 20],
+//                    [21, 22, 23, 24]]
+// %operand2@(1, 0): [[25, 26, 27, 28],
+//                    [29, 30, 31, 32]]
+%result:2 = "stablehlo.all_to_all"(%operand1, %operand2) {
   split_dimension = 1 : i64,
   concat_dimension = 0 : i64,
   split_count = 2 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
-} : (tensor<2x4xi64>) -> tensor<4x2xi64>
-// %result@(0, 0): [[1, 2],
-//                  [5, 6],
-//                  [9, 10],
-//                  [13, 14]]
-// %result@(1, 0): [[3, 4],
-//                  [7, 8],
-//                  [11, 12],
-//                  [15, 16]]
+} : (tensor<2x4xi64>, tensor<2x4xi64>) -> (tensor<4x2xi64>, tensor<4x2xi64>)
+// %result#0@(0, 0): [[1, 2], [5, 6], [9, 10], [13, 14]]
+// %result#0@(1, 0): [[3, 4], [7, 8], [11, 12], [15, 16]]
+// %result#1@(0, 0): [[17, 18], [21, 22], [25, 26], [29, 30]]
+// %result#1@(1, 0): [[19, 20], [23, 24], [27, 28], [31, 32]]
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/all_to_all.mlir)
