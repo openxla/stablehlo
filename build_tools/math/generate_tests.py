@@ -50,8 +50,39 @@ operations = [
         # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
         extra_prec_multiplier=20,
         max_ulp_difference=3,
+    ),
+    dict(
+        name="asinh",
+        mpmath_name="arcsinh",
+        size=13,
+        # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
+        extra_prec_multiplier=20,
+        max_ulp_difference=3,
     )
 ]
+
+
+def get_functional_algorithms_required_version():
+  readme_md = os.path.join(os.path.dirname(__file__), "README.md")
+  f = open(readme_md, "r")
+  version_string = None
+  for line in f.readlines():
+    if line.startswith("- functional_algorithms "):
+      version_string = line.split()[2]
+      break
+  f.close()
+
+  if version_string is not None:
+    try:
+      return tuple(map(int, version_string.split(".", 4)[:3]))
+    except Exception as msg:
+      print(
+          f"Failed to extract functiona_algorithms required version from `{version_string}`: {msg}"
+      )
+  else:
+    print(
+        f"Failed to extract functiona_algorithms required version from {readme_md}"
+    )
 
 
 def main():
@@ -62,11 +93,16 @@ def main():
     return
 
   fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
-  if fa_version < (0, 4, 0):
-    warnings.warn(
-        "functional_algorithm version 0.4.0 or newer is required,"
-        f" got {fa.__version__}"
-    )
+  required_fa_version = get_functional_algorithms_required_version()
+  if required_fa_version is None:
+    print(f'Skipping.')
+    return
+
+  if fa_version < required_fa_version:
+    msg = (
+        f"functional_algorithm version {'.'.join(map(str, required_fa_version))}"
+        f" or newer is required, got {fa.__version__}")
+    warnings.warn(msg)
     return
 
   target_dir = os.path.relpath(
@@ -78,8 +114,7 @@ def main():
               "stablehlo",
               "tests",
               "math",
-          )
-      ),
+          )),
       os.getcwd(),
   )
 
@@ -88,12 +123,10 @@ def main():
     opname = op["name"]
     mpmath_opname = op.get("mpmath_name", opname)
     size_re = size_im = op.get("size", default_size)
-    extra_prec_multiplier = op.get(
-        "extra_prec_multiplier", default_extra_prec_multiplier
-    )
-    max_ulp_difference = op.get(
-        "max_ulp_difference", default_max_ulp_difference
-    )
+    extra_prec_multiplier = op.get("extra_prec_multiplier",
+                                   default_extra_prec_multiplier)
+    max_ulp_difference = op.get("max_ulp_difference",
+                                default_max_ulp_difference)
 
     nmp = fa.utils.numpy_with_mpmath(
         extra_prec_multiplier=extra_prec_multiplier,
@@ -156,14 +189,11 @@ def main():
           continue
 
       f = open(fname, "w")
-      f.write(
-          "// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s |"
-          " stablehlo-translate --interpret\n"
-      )
+      f.write("// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s |"
+              " stablehlo-translate --interpret\n")
       f.write(
           "// This file is generated, see build_tools/math/README.md for more"
-          " information.\n"
-      )
+          " information.\n")
       f.write(source)
       f.close()
       print(f"Created {fname}")
@@ -230,8 +260,7 @@ def main():
           f"max_ulp_difference = {expected_ulp_difference}",
           f"min_ulp_difference = {expected_ulp_difference}",
           atypes=", ".join(
-              map(main_func.get_ref_type, [actual_values, shifted_values])
-          ),
+              map(main_func.get_ref_type, [actual_values, shifted_values])),
       )
 
     main_func.void_call("func.return")
@@ -246,14 +275,10 @@ def main():
         continue
 
     f = open(fname, "w")
-    f.write(
-        "// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s |"
-        " stablehlo-translate --interpret\n"
-    )
-    f.write(
-        "// This file is generated, see build_tools/math/README.md for more"
-        " information.\n"
-    )
+    f.write("// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s |"
+            " stablehlo-translate --interpret\n")
+    f.write("// This file is generated, see build_tools/math/README.md for more"
+            " information.\n")
     f.write(source)
     f.close()
     print(f"Created {fname}")
@@ -308,9 +333,8 @@ class Block:
   def call(self, name, *args):
     # call function created with make_function
     sargs = ", ".join(args)
-    return self.assign(
-        f"call @{name}({sargs})", typ=self.get_function_type(name)
-    )
+    return self.assign(f"call @{name}({sargs})",
+                       typ=self.get_function_type(name))
 
   def composite(self, name, *args, **options):
     sargs = ", ".join(args)
@@ -360,7 +384,7 @@ class Block:
       i = self.prefix.find("@")
       j = self.prefix.find("(", i)
       assert -1 not in {i, j}, self.prefix
-      return self.prefix[i + 1 : j]
+      return self.prefix[i + 1:j]
 
   @property
   def function_type(self):

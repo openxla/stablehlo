@@ -21,6 +21,29 @@ import os
 import warnings
 
 
+def get_functional_algorithms_required_version():
+  readme_md = os.path.join(os.path.dirname(__file__), "README.md")
+  f = open(readme_md, "r")
+  version_string = None
+  for line in f.readlines():
+    if line.startswith("- functional_algorithms "):
+      version_string = line.split()[2]
+      break
+  f.close()
+
+  if version_string is not None:
+    try:
+      return tuple(map(int, version_string.split(".", 4)[:3]))
+    except Exception as msg:
+      print(
+          f"Failed to extract functiona_algorithms required version from `{version_string}`: {msg}"
+      )
+  else:
+    print(
+        f"Failed to extract functiona_algorithms required version from {readme_md}"
+    )
+
+
 def main():
   try:
     import functional_algorithms as fa
@@ -29,11 +52,16 @@ def main():
     return
 
   fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
-  if fa_version < (0, 4, 0):
-    warnings.warn(
-        "functional_algorithm version 0.4.0 or newer is required,"
-        f" got {fa.__version__}"
-    )
+  required_fa_version = get_functional_algorithms_required_version()
+  if required_fa_version is None:
+    print(f'Skipping.')
+    return
+
+  if fa_version < required_fa_version:
+    msg = (
+        f"functional_algorithm version {'.'.join(map(str, required_fa_version))}"
+        f" or newer is required, got {fa.__version__}")
+    warnings.warn(msg)
     return
 
   output_file = os.path.relpath(
@@ -45,8 +73,7 @@ def main():
               "stablehlo",
               "transforms",
               "ChloDecompositionPatternsMath.td",
-          )
-      ),
+          )),
       os.getcwd(),
   )
 
@@ -55,12 +82,13 @@ def main():
   for chloname, fname, args in [
       ("CHLO_AsinOp", "complex_asin", ("z:complex",)),
       ("CHLO_AsinOp", "real_asin", ("x:float",)),
+      ("CHLO_AsinhOp", "complex_asinh", ("z:complex",)),
+      ("CHLO_AsinhOp", "real_asinh", ("x:float",)),
   ]:
     func = getattr(fa.algorithms, fname, None)
     if func is None:
       warnings.warn(
-          "{fa.algorithms.__name__} does not define {fname}. Skipping."
-      )
+          "{fa.algorithms.__name__} does not define {fname}. Skipping.")
       continue
     ctx = fa.Context(paths=[fa.algorithms])
     graph = ctx.trace(func, *args).implement_missing(target).simplify()
@@ -96,7 +124,8 @@ limitations under the License.
 ==============================================================================*/
 
 """)
-  f.write(target.make_comment(f"""\
+  f.write(
+      target.make_comment(f"""\
 
 This file is generated using functional_algorithms tool ({fa.__version__}).
 See build_tools/math/README.md for more information.""") + "\n")
