@@ -219,13 +219,16 @@ ParseResult parseWhileOp(OpAsmParser& parser, OperationState& result);
 // Attribute Printers and Parsers
 //===----------------------------------------------------------------------===//
 
-// TODO(#2216) Cleanup Attribute -> DenseArrayAttr for print/parse.
 // SliceRanges - Used to print multi-dimensional ranges for slice.
-void printSliceRanges(OpAsmPrinter& p, Operation* op, Attribute startIndices,
-                      Attribute limitIndices, Attribute strides);
+void printSliceRanges(OpAsmPrinter& p, Operation* op,
+                      ArrayRef<int64_t> startIndices,
+                      ArrayRef<int64_t> limitIndices,
+                      ArrayRef<int64_t> strides);
 
-ParseResult parseSliceRanges(OpAsmParser& parser, Attribute& startIndices,
-                             Attribute& limitIndices, Attribute& strides);
+ParseResult parseSliceRanges(OpAsmParser& parser,
+                             DenseI64ArrayAttr& startIndices,
+                             DenseI64ArrayAttr& limitIndices,
+                             DenseI64ArrayAttr& strides);
 
 // GenericI64DenseArray - Used to print an attr that can be either
 //
