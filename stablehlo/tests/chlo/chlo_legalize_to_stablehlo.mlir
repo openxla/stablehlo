@@ -424,7 +424,7 @@ func.func @asinh_f32(%arg : tensor<f32>) -> tensor<f32> {
 // -----
 
 
-/ CHECK-LABEL:   func.func @asinh_f64(
+// CHECK-LABEL:   func.func @asinh_f64(
 // CHECK-SAME:                         %[[VAL_0:.*]]: tensor<f64>) -> tensor<f64> {
 // CHECK:           %[[VAL_1:.*]] = stablehlo.sign %[[VAL_0]] : tensor<f64>
 // CHECK:           %[[VAL_2:.*]] = stablehlo.abs %[[VAL_0]] : tensor<f64>
