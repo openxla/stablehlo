@@ -1,6 +1,6 @@
 # [RFC] Standardize CustomCallOp to extend backend_config to take a DictionaryAttr
 
-Status: Review<br/>
+Status: Approved<br/>
 Initial version: 03/12/2024<br/>
 Last updated: 03/15/2024<br/>
 Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/2097)
