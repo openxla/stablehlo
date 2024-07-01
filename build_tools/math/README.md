@@ -69,8 +69,10 @@ do bin/stablehlo-opt --chlo-legalize-to-stablehlo $t \
 When new implementations are generated, one likely needs to update
 `stablehlo/tests/chlo/chlo_legalize_to_stablehlo.mlir`. To generate
 the filecheck tests, run
+
 ```sh
 build/bin/stablehlo-opt --chlo-legalize-to-stablehlo --split-input-file --verify-diagnostics \
    stablehlo/tests/chlo/chlo_legalize_to_stablehlo.mlir | python llvm-project/mlir/utils/generate-test-checks.py | less
 ```
+
 and copy relevant checks to `chlo_legalize_to_stablehlo.mlir`.
