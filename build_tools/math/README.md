@@ -31,7 +31,7 @@ following requirements:
 
 - Python 3.11 or newer
 - mpmath 1.3 or newer
-- functional_algorithms 0.4 or newer
+- functional_algorithms 0.7.0 or newer
 
 that can be installed via pypi:
 

@@ -948,12 +948,6 @@ def : Pat<(CHLO_AsinhOp ComplexElementType:$z),
 //
 //     This algorithm is based on the StableHLO v1.1.4 function CHLO_AsinhOp.
 //
-//     To avoid overflow in x * x, we use
-//
-//       asinh(x) = log(2) + log(x)
-//
-//     when abs(x) > sqrt(max),
-//
 //     To avoid underflow in 1 + x * x, we'll define z = hypot(1, x) and
 //     write
 //
@@ -969,6 +963,12 @@ def : Pat<(CHLO_AsinhOp ComplexElementType:$z),
 //       asinh(x) = log1p(x + x ** 2 / (1 + hypot(1, x)))
 //
 //     It turns out, this is accurate for all abs(x) < sqrt(max).
+//
+//     To avoid overflow in x ** 2, we'll use
+//
+//       asinh(x) = log(2) + log(x)
+//
+//     when abs(x) > sqrt(max),
 //
 //     For x < 0, we'll use
 //
