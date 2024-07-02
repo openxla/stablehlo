@@ -378,7 +378,7 @@ LogicalResult SelectAndScatterOpV1::validateConstraint(mlir::Operation* op,
 }
 
 LogicalResult CustomCallOpV1::validateConstraint(mlir::Operation* op,
-                                                    Version targetVersion) {
+                                                 Version targetVersion) {
   return verifyConstraint_1_1_0(op, targetVersion);
 }
 
