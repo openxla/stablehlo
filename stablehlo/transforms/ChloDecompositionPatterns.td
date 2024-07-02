@@ -46,40 +46,6 @@ def StableHLO_ConstantLikeSmallestNormalizedValue : NativeCodeCall<
 // Unary op patterns.
 //===----------------------------------------------------------------------===//
 
-
-// Expand acos for non-complex arguments to MHLO dialect as follows:
-//   acos(x) = 2 * atan2(sqrt(1 - x^2), (1 + x))  if x != -1
-//           = pi                                 if x == -1
-//
-// TODO(b/237376133): Support operands with complex element types separately
-// using the following formula.
-//   acos(x) = -(i * log(x + i * sqrt((1 + x) * (1 - x))))
-def : Pat<(CHLO_AcosOp NonComplexElementType:$input),
-  (StableHLO_SelectOp
-    (StableHLO_CompareOp
-      $input,
-      (StableHLO_ConstantLike<"-1"> $input),
-      StableHLO_ComparisonDirectionValue<"NE">,
-      (STABLEHLO_DEFAULT_COMPARISON_TYPE)
-    ),
-    (StableHLO_MulOp
-      (StableHLO_ConstantLike<"2"> $input),
-      (StableHLO_Atan2Op
-        (StableHLO_SqrtOp
-          (StableHLO_SubtractOp
-            (StableHLO_ConstantLike<"1"> $input),
-            (StableHLO_MulOp $input, $input)
-          )
-        ),
-        (StableHLO_AddOp
-          (StableHLO_ConstantLike<"1"> $input),
-          $input
-        )
-      )
-    ),
-    (StableHLO_ConstantLike<"M_PI"> $input)
-  )>;
-
 // Expand acosh to MHLO dialect as follows:
 //   acosh(x) = log(x + sqrt(x^2 - 1))      if x >= -1
 //            = log(x + sqrt((x+1)*(x-1)))
