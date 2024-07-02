@@ -13,6 +13,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/transforms/Passes.h"
 
@@ -34,6 +35,21 @@ void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
   pm.addPass(stablehlo::createStablehloRefineShapesPass());
   pm.addNestedPass<mlir::func::FuncOp>(
       stablehlo::createStablehloCanonicalizeDynamismPass());
+}
+
+void createStablehloLowerQuantPipeline(OpPassManager &pm) {
+  pm.addNestedPass<mlir::func::FuncOp>(
+      stablehlo::createStablehloLegalizeQuantizedOpToQDQPass());
+  pm.addNestedPass<mlir::func::FuncOp>(
+      stablehlo::createStablehloLegalizeQuantToIntPass());
+  pm.addNestedPass<mlir::func::FuncOp>(
+      stablehlo::createChloLegalizeToStablehloPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<mlir::func::FuncOp>(
+      stablehlo::createShapeLegalizeToStablehloPass());
+  pm.addNestedPass<mlir::func::FuncOp>(
+      stablehlo::createStablehloCanonicalizeDynamismPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }
 
 void registerPassPipelines() {

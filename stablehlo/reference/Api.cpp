@@ -170,19 +170,81 @@ LogicalResult removeDynamism(ModuleOp module, func::FuncOp func,
   return success();
 }
 
+bool isAnyQuantizedTypes(TypeRange types) {
+  return llvm::any_of(types, [](Type type) {
+    return isa<quant::QuantizedType>(getElementTypeOrSelf(type));
+  });
+}
+
+// Recursively checks if an operation or any of its nested operations use
+// quantized types.
+//
+// Args:
+//   op: The operation to check for quantized type usage.
+//
+// Returns:
+//   True if the operation or any nested operation uses quantized types,
+//   false otherwise.
+bool funcUsesQuantType(func::FuncOp func_op) {
+  bool usesQuantizedType = false;
+
+  func_op.walk([&](Operation *op) {
+    if (isAnyQuantizedTypes(op->getOperandTypes()) ||
+        isAnyQuantizedTypes(op->getResultTypes())) {
+      usesQuantizedType = true;
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+
+  return usesQuantizedType;
+}
+
+// Lowers quantization-related operations and types within a function to
+// primitive math operations.
+//
+// This function checks if a function uses quantized types in its inputs,
+// outputs, or internal operations. If so, it creates and runs a StableHLO
+// quantization lowering pipeline to transform those quantized constructs into
+// primitive math operations. If the lowering process fails, an error is
+// emitted.
+//
+// Args:
+//   module: The module containing the function `func`.
+//   func The function to lower quantized types/operations in.
+//
+// Returns:
+//   A `LogicalResult` indicating success or failure of the lowering process.
+LogicalResult lowerQuantization(ModuleOp module, func::FuncOp func) {
+  if (!(isAnyQuantizedTypes(func.getFunctionType().getInputs()) ||
+        funcUsesQuantType(func) ||
+        isAnyQuantizedTypes(func.getFunctionType().getResults()))) {
+    return success();
+  }
+
+  PassManager pm(func.getContext());
+  stablehlo::createStablehloLowerQuantPipeline(pm);
+  if (failed(pm.run(module))) {
+    return func.emitError("Failed to lower quantized types/ops in function: ")
+           << func.getName();
+  }
+  return success();
+}
+
 }  // namespace
 
 FailureOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
     const InterpreterConfiguration &config) {
   // Additional error checking at main function boundary.
-  // This is most likely user error, where future errors during interpreting are
-  // more likely invalid IR or interpreter bugs.
+  // This is most likely user error, where future errors during interpreting
+  // are more likely invalid IR or interpreter bugs.
   if (module.getOps<func::FuncOp>().empty())
     return SmallVector<InterpreterValue>();
 
   auto mainFunc = getMainFunction(module, config.mainFunction);
   if (failed(mainFunc) || failed(removeDynamism(module, *mainFunc, inputs)) ||
+      failed(lowerQuantization(module, *mainFunc)) ||
       failed(validateEntrySignature(*mainFunc, inputs))) {
     return failure();
   }

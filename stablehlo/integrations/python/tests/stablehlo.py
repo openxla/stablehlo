@@ -17,9 +17,10 @@
 
 # pylint: disable=wildcard-import,undefined-variable
 
-import re
 import io
+import re
 from mlir import ir
+from mlir import passmanager as pm
 from mlir.dialects import stablehlo
 import numpy as np
 
@@ -304,6 +305,7 @@ def test_serialization_apis():
     deserialized = stablehlo.deserialize_portable_artifact(context, serialized)
     assert module_str == str(deserialized)
 
+
 @run
 def test_str_serialization_apis():
   curr_version = stablehlo.get_current_version()
@@ -323,3 +325,23 @@ def test_str_serialization_apis():
     deserialized = stablehlo.deserialize_portable_artifact(serialized)
     deserialized_module = ir.Module.parse(deserialized)
     assert module_str == str(deserialized_module)
+
+
+@run
+def test_register_passes():
+  """Tests pass registration."""
+  with ir.Context() as context:
+    stablehlo.register_dialect(context)
+    module = ir.Module.parse(ASM_FORMAT.format("2xf32"))
+    assert module is not None
+
+    stablehlo.register_stablehlo_passes()
+    pipeline = [
+        "stablehlo-legalize-to-vhlo",
+        "vhlo-legalize-to-stablehlo",
+    ]
+    pipeline = pm.PassManager.parse(f"builtin.module({','.join(pipeline)})")
+
+    cloned_module = module.operation.clone()
+    pipeline.run(cloned_module.operation)
+    assert str(module) == str(cloned_module)

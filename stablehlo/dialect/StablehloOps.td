@@ -112,7 +112,9 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
     %output = stablehlo.iota dim = 0 : tensor<4x5xi32>
     ```
   }];
-  let arguments = (ins I64Attr:$iota_dimension);
+  let arguments = (ins
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$iota_dimension /*iota_c1*/
+  );
 
   let results = (outs HLO_StaticShapeIntFpComplexOrQuantizedTensor:$output);
 
@@ -140,7 +142,7 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Condit
 
   let arguments = (ins
     HLO_StaticDimensionTensor:$output_shape /*dynamic_iota_i1*/,
-    I64Attr:$iota_dimension /*dynamic_iota_i2*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$iota_dimension /*dynamic_iota_c1, dynamic_iota_i2*/
   );
   let results = (outs HLO_Tensor:$result);
   let hasVerifier = 1;
@@ -1345,7 +1347,7 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
 
   let arguments = (ins
     HLO_Tensor:$operand, /*all_gather_i1*/
-    I64Attr:$all_gather_dim, /*all_gather_i2*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$all_gather_dim, /*all_gather_c1, all_gather_i2*/
     I64ElementsAttr:$replica_groups, /*all_gather_i3*/
     OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*all_gather_i4*/
     UnitAttr:$use_global_device_ids /*all_gather_i5*/
@@ -1423,7 +1425,7 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter", [ConditionallySpe
 
   let arguments = (ins
     HLO_Tensor:$operand, /*reduce_scatter_i1*/
-    I64Attr:$scatter_dimension, /*reduce_scatter_i2*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$scatter_dimension, /*reduce_scatter_c2, reduce_scatter_i2*/
     I64ElementsAttr:$replica_groups, /*reduce_scatter_i3*/
     OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*reduce_scatter_i4*/
     UnitAttr:$use_global_device_ids /*reduce_scatter_i5*/
@@ -1465,9 +1467,9 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 
   let arguments = (ins
     HLO_Tensor:$operand, /*all_to_all_i1*/
-    I64Attr:$split_dimension, /*all_to_all_i2*/
-    I64Attr:$concat_dimension, /*all_to_all_i3*/
-    I64Attr:$split_count, /*all_to_all_i4*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$split_dimension, /*all_to_all_c1, all_to_all_i2*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$concat_dimension, /*all_to_all_c3, all_to_all_i3*/
+    ConfinedAttr<I64Attr, [IntPositive]>:$split_count, /*all_to_all_c4, all_to_all_i4*/
     I64ElementsAttr:$replica_groups, /*all_to_all_i5*/
     OptionalAttr<StableHLO_ChannelHandle>:$channel_handle /*all_to_all_i6*/
   );
@@ -1518,7 +1520,7 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs, /*reduce_i1*/
     Variadic<HLO_Tensor>:$init_values, /*reduce_i2*/
-    GenericDenseI64ArrayAttr:$dimensions /*reduce_i3*/
+    DenseI64ArrayAttr:$dimensions /*reduce_i3*/
   );
   let regions = (region SizedRegion<1>:$body /*reduce_i4*/);
 
@@ -1558,7 +1560,7 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,
   }];
   let arguments = (ins
     HLO_Tuple:$operand, /*get_tuple_element_i1*/
-    I32Attr:$index /*get_tuple_element_i2*/
+    ConfinedAttr<I32Attr, [IntNonNegative]>:$index /*get_tuple_element_c1, get_tuple_element_i2*/
   );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple);
@@ -1669,9 +1671,9 @@ def StableHLO_SliceOp: StableHLO_Op<
 
   let arguments = (ins
     HLO_Tensor:$operand,
-    GenericDenseI64ArrayAttr:$start_indices,
-    GenericDenseI64ArrayAttr:$limit_indices,
-    GenericDenseI64ArrayAttr:$strides
+    DenseI64ArrayAttr:$start_indices,
+    DenseI64ArrayAttr:$limit_indices,
+    DenseI64ArrayAttr:$strides
   );
 
   let assemblyFormat = [{
@@ -1702,15 +1704,14 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
   let arguments = (ins
     HLO_Tensor:$operand /*dynamic_slice_i1*/,
     Variadic<HLO_ScalarIntTensor>:$start_indices /*dynamic_slice_i2*/,
-    GenericDenseI64ArrayAttr:$slice_sizes /*dynamic_slice_i3*/
+    DenseI64ArrayAttr:$slice_sizes /*dynamic_slice_i3*/
   );
 
   let results = (outs HLO_Tensor:$result);
 
   let assemblyFormat = [{
     $operand `,` custom<VariadicOperandWithAttribute>($start_indices)
-      `sizes` `=` custom<DenseI64Array>($slice_sizes)
-      attr-dict `:` functional-type(operands, results)
+      `sizes` `=` $slice_sizes attr-dict `:` functional-type(operands, results)
   }];
 }
 
@@ -1778,7 +1779,7 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad",
     1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$variance, /*batch_norm_grad_i4*/
     RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>:$grad_output, /*batch_norm_grad_i5*/
     F32Attr:$epsilon, /*batch_norm_grad_i6*/
-    I64Attr:$feature_index /*batch_norm_grad_i7*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$feature_index /*batch_norm_grad_c1, batch_norm_grad_i7*/
   );
 
   let results = (outs
@@ -1815,7 +1816,7 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
     1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$mean /*batch_norm_inference_i4*/,
     1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$variance /*batch_norm_inference_i5*/,
     F32Attr:$epsilon /*batch_norm_inference_i6*/,
-    I64Attr:$feature_index /*batch_norm_inference_i7*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$feature_index /*batch_norm_inference_c1, batch_norm_inference_i7*/
   );
 
   let results = (outs RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>:$result);
@@ -1849,7 +1850,7 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
     1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$scale /*batch_norm_training_i2*/,
     1DTensorOf<[HLO_Float, HLO_QuantizedInt]>:$offset /*batch_norm_training_i3*/,
     F32Attr:$epsilon /*batch_norm_training_i4*/,
-    I64Attr:$feature_index /*batch_norm_training_i5*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$feature_index /*batch_norm_training_c1, batch_norm_training_i5*/
   );
 
   let results = (outs
@@ -1904,13 +1905,13 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    GenericDenseI64ArrayAttr:$broadcast_sizes
+    DenseI64ArrayAttr:$broadcast_sizes
   );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
 
   let assemblyFormat = [{
-    $operand `,` `sizes` `=` custom<DenseI64Array>($broadcast_sizes)
+    $operand `,` `sizes` `=` $broadcast_sizes
       attr-dict `:` functional-type(operands, results)
   }];
 }
@@ -1933,7 +1934,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
   }];
   let arguments = (ins
     HLO_TensorOrPerAxisQuantizedTensor:$operand /*broadcast_in_dim_i1*/,
-    GenericDenseI64ArrayAttr:$broadcast_dimensions /*broadcast_in_dim_i2*/
+    DenseI64ArrayAttr:$broadcast_dimensions /*broadcast_in_dim_i2*/
   );
 
   let results = (outs HLO_StaticShapeTensorOrPerAxisQuantizedTensor);
@@ -1941,7 +1942,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
+    $operand `,` `dims` `=` $broadcast_dimensions
       attr-dict `:` functional-type(operands, results)
   }];
 
@@ -1984,9 +1985,9 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
   let arguments = (ins
     HLO_TensorOrPerAxisQuantizedTensor:$operand /*dynamic_broadcast_in_dim_i1*/,
     HLO_StaticDimensionTensor:$output_dimensions /*dynamic_broadcast_in_dim_i2*/,
-    GenericDenseI64ArrayAttr:$broadcast_dimensions /*dynamic_broadcast_in_dim_i3*/,
-    OptionalAttr<GenericDenseI64ArrayAttr>:$known_expanding_dimensions /*dynamic_broadcast_in_dim_i4*/,
-    OptionalAttr<GenericDenseI64ArrayAttr>:$known_nonexpanding_dimensions /*dynamic_broadcast_in_dim_i5*/
+    DenseI64ArrayAttr:$broadcast_dimensions /*dynamic_broadcast_in_dim_i3*/,
+    OptionalAttr<DenseI64ArrayAttr>:$known_expanding_dimensions /*dynamic_broadcast_in_dim_i4*/,
+    OptionalAttr<DenseI64ArrayAttr>:$known_nonexpanding_dimensions /*dynamic_broadcast_in_dim_i5*/
   );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
@@ -2004,7 +2005,7 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` $output_dimensions `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
+    $operand `,` $output_dimensions `,` `dims` `=` $broadcast_dimensions
       attr-dict `:` functional-type(operands, results)
   }];
 
@@ -2098,7 +2099,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs /*concatenate_i1*/,
-    I64Attr:$dimension /*concatenate_i2*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$dimension /*concatenate_c4, concatenate_i2*/
   );
 
   let results = (outs HLO_Tensor);
@@ -2264,18 +2265,18 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution",
     HLO_Tensor:$lhs, /*convolution_i1*/
     HLO_TensorOrPerAxisQuantizedTensor:$rhs, /*convolution_i2*/
     // Default value: one for each of the spatial dimension.
-    OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*convolution_i3*/
+    OptionalAttr<DenseI64ArrayAttr>:$window_strides, /*convolution_i3*/
     // Default value: two zeros for each of the spatial dimension.
     OptionalAttr<I64ElementsAttr>:$padding, /*convolution_i4*/
     // Default value: one for each of the spatial dimension.
-    OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*convolution_i5*/
+    OptionalAttr<DenseI64ArrayAttr>:$lhs_dilation, /*convolution_i5*/
     // Default value: one for each of the spatial dimension.
-    OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*convolution_i6*/
+    OptionalAttr<DenseI64ArrayAttr>:$rhs_dilation, /*convolution_i6*/
     // Default value: false for each of the spatial dimension.
-    OptionalAttr<GenericDenseBoolArrayAttr>:$window_reversal, /*convolution_i7*/
+    OptionalAttr<DenseBoolArrayAttr>:$window_reversal, /*convolution_i7*/
     StableHLO_ConvDimensionNumbers:$dimension_numbers, /*convolution_i8...convolution_i16*/
-    I64Attr:$feature_group_count, /*convolution_i17*/
-    I64Attr:$batch_group_count, /*convolution_i18*/
+    ConfinedAttr<I64Attr, [IntPositive]>:$feature_group_count, /*convolution_c21, convolution_i17*/
+    ConfinedAttr<I64Attr, [IntPositive]>:$batch_group_count, /*convolution_c22, convolution_i18*/
     StableHLO_PrecisionConfigAttr:$precision_config /*convolution_i19*/
   );
 
@@ -2546,13 +2547,13 @@ def StableHLO_FftOp: StableHLO_Op<"fft",
   let arguments = (ins
     HLO_FpOrComplexTensor:$operand,
     StableHLO_FftTypeAttr:$fft_type,
-    GenericDenseI64ArrayAttr:$fft_length
+    DenseI64ArrayAttr:$fft_length
   );
 
   let results = (outs HLO_FpOrComplexTensor);
 
   let assemblyFormat = [{
-    $operand `,` `type` `=` $fft_type `,` `length` `=` custom<DenseI64Array>($fft_length)
+    $operand `,` `type` `=` $fft_type `,` `length` `=` $fft_length
       attr-dict `:` functional-type(operands, results)
   }];
 
@@ -2594,7 +2595,7 @@ def StableHLO_GatherOp: StableHLO_Op<"gather",
     HLO_Tensor:$operand /*gather_i1*/,
     HLO_IntTensor:$start_indices /*gather_i2*/,
     StableHLO_GatherDimensionNumbers:$dimension_numbers /*gather_i3...gather_i8*/,
-    GenericDenseI64ArrayAttr:$slice_sizes /*gather_i9*/,
+    DenseI64ArrayAttr:$slice_sizes /*gather_i9*/,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*gather_i10*/
   );
 
@@ -2622,7 +2623,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
   }];
   let arguments = (ins
     HLO_TensorOrPerAxisQuantizedTensor:$operand, /*get_dimension_size_i1*/
-    I64Attr:$dimension /*get_dimension_size_i2*/
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$dimension /*get_dimension_size_c1, get_dimension_size_i2*/
   );
   // TODO(hinsu): Allow 64-bit result types once XLA HLO dialect based on the
   // XLA semantics is available. This limitation is because of the current XLA
@@ -2659,7 +2660,7 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs /*map_i1*/,
-    GenericDenseI64ArrayAttr:$dimensions /*map_i2*/
+    DenseI64ArrayAttr:$dimensions /*map_i2*/
   );
   let regions = (region SizedRegion<1>:$computation /*map_i3*/);
   let results = (outs HLO_Tensor);
@@ -2847,8 +2848,8 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
     HLO_Tensor:$operand, /*select_and_scatter_i1*/
     HLO_Tensor:$source, /*select_and_scatter_i2*/
     HLO_Tensor:$init_value, /*select_and_scatter_i3*/
-    OptionalAttr<GenericDenseI64ArrayAttr>:$window_dimensions, /*select_and_scatter_i4*/
-    OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*select_and_scatter_i5*/
+    OptionalAttr<DenseI64ArrayAttr>:$window_dimensions, /*select_and_scatter_i4*/
+    OptionalAttr<DenseI64ArrayAttr>:$window_strides, /*select_and_scatter_i5*/
     OptionalAttr<I64ElementsAttr>:$padding /*select_and_scatter_i6*/
   );
 
@@ -2881,7 +2882,7 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size",
   let arguments = (ins
     HLO_Tensor:$operand,
     I32RankedTensor:$size,
-    I64Attr:$dimension
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$dimension
   );
   let results = (outs HLO_Tensor);
 
@@ -2956,7 +2957,7 @@ def StableHLO_ReverseOp: StableHLO_ShapedInterfaceOp<"reverse",
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    GenericDenseI64ArrayAttr:$dimensions
+    DenseI64ArrayAttr:$dimensions
   );
 
   let hasVerifier = 1;
@@ -2964,7 +2965,7 @@ def StableHLO_ReverseOp: StableHLO_ShapedInterfaceOp<"reverse",
   let results = (outs HLO_Tensor:$result);
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($dimensions)
+    $operand `,` `dims` `=` $dimensions
       attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
   }];
 }
@@ -2993,18 +2994,18 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   let arguments = (ins
     HLO_Tensor:$operand /*pad_i1*/,
     HLO_ScalarTensor:$padding_value /*pad_i2*/,
-    GenericDenseI64ArrayAttr:$edge_padding_low /*pad_i3*/,
-    GenericDenseI64ArrayAttr:$edge_padding_high /*pad_i4*/,
-    GenericDenseI64ArrayAttr:$interior_padding /*pad_i5*/
+    DenseI64ArrayAttr:$edge_padding_low /*pad_i3*/,
+    DenseI64ArrayAttr:$edge_padding_high /*pad_i4*/,
+    DenseI64ArrayAttr:$interior_padding /*pad_i5*/
   );
 
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
     $operand `,` $padding_value `,`
-      `low` `=` custom<DenseI64Array>($edge_padding_low) `,`
-      `high` `=` custom<DenseI64Array>($edge_padding_high) `,`
-      `interior` `=` custom<DenseI64Array>($interior_padding)
+      `low` `=` $edge_padding_low `,`
+      `high` `=` $edge_padding_high `,`
+      `interior` `=` $interior_padding
       attr-dict `:` functional-type(operands, results)
   }];
 }
@@ -3028,14 +3029,14 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
   }];
   let arguments = (ins
     HLO_TensorOrPerAxisQuantizedTensor:$operand,
-    GenericDenseI64ArrayAttr:$permutation
+    DenseI64ArrayAttr:$permutation
   );
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor:$result);
 
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($permutation)
+    $operand `,` `dims` `=` $permutation
       attr-dict `:` functional-type(operands, results)
   }];
 
@@ -3115,13 +3116,13 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs /*reduce_window_i1*/,
     Variadic<HLO_Tensor>:$init_values /*reduce_window_i2*/,
-    GenericDenseI64ArrayAttr:$window_dimensions /*reduce_window_i3*/,
+    DenseI64ArrayAttr:$window_dimensions /*reduce_window_i3*/,
     // If strides or dilations attributes are missing then the default value is
     // one for each of the operand dimensions. Similarly, padding values are zero
     // for both low and high in each of the dimensions, if not specified.
-    OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides /*reduce_window_i4*/,
-    OptionalAttr<GenericDenseI64ArrayAttr>:$base_dilations /*reduce_window_i5*/,
-    OptionalAttr<GenericDenseI64ArrayAttr>:$window_dilations /*reduce_window_i6*/,
+    OptionalAttr<DenseI64ArrayAttr>:$window_strides /*reduce_window_i4*/,
+    OptionalAttr<DenseI64ArrayAttr>:$base_dilations /*reduce_window_i5*/,
+    OptionalAttr<DenseI64ArrayAttr>:$window_dilations /*reduce_window_i6*/,
     OptionalAttr<I64ElementsAttr>:$padding /*reduce_window_i7*/
   );
 
@@ -3389,10 +3390,9 @@ def StableHLO_ReducePrecisionOp : StableHLO_Op<"reduce_precision",
   }];
   let arguments = (ins
     HLO_FpOrQuantizedIntTensor:$operand, /*reduce_precision_i1*/
-    I32Attr:$exponent_bits, /*reduce_precision_i2*/
-    I32Attr:$mantissa_bits /*reduce_precision_i3*/
+    ConfinedAttr<I32Attr, [IntPositive]>:$exponent_bits, /*reduce_precision_c2, reduce_precision_i2*/
+    ConfinedAttr<I32Attr, [IntNonNegative]>:$mantissa_bits /*reduce_precision_c3, reduce_precision_i3*/
   );
-  let hasVerifier = 1;
   let results = (outs HLO_FpOrQuantizedIntTensor:$output);
 
   let assemblyFormat = [{
@@ -3543,13 +3543,13 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv",
        HLO_Tensor:$lhs, /*dynamic_conv_i1*/
        HLO_Tensor:$rhs, /*dynamic_conv_i2*/
        HLO_Static2DIntTensor:$padding, /*dynamic_conv_i3*/
-       OptionalAttr<GenericDenseI64ArrayAttr>:$window_strides, /*dynamic_conv_i4*/
-       OptionalAttr<GenericDenseI64ArrayAttr>:$lhs_dilation, /*dynamic_conv_i5*/
-       OptionalAttr<GenericDenseI64ArrayAttr>:$rhs_dilation, /*dynamic_conv_i6*/
-       OptionalAttr<GenericDenseBoolArrayAttr>:$window_reversal, /*dynamic_conv_i7*/
+       OptionalAttr<DenseI64ArrayAttr>:$window_strides, /*dynamic_conv_i4*/
+       OptionalAttr<DenseI64ArrayAttr>:$lhs_dilation, /*dynamic_conv_i5*/
+       OptionalAttr<DenseI64ArrayAttr>:$rhs_dilation, /*dynamic_conv_i6*/
+       OptionalAttr<DenseBoolArrayAttr>:$window_reversal, /*dynamic_conv_i7*/
        StableHLO_ConvDimensionNumbers:$dimension_numbers, /*dynamic_conv_i8...dynamic_conv_i16*/
-       I64Attr:$feature_group_count, /*dynamic_conv_i17*/
-       I64Attr:$batch_group_count, /*dynamic_conv_i18*/
+       ConfinedAttr<I64Attr, [IntPositive]>:$feature_group_count, /*dynamic_conv_c21, dynamic_conv_i17*/
+       ConfinedAttr<I64Attr, [IntPositive]>:$batch_group_count, /*dynamic_conv_c22, dynamic_conv_i18*/
        StableHLO_PrecisionConfigAttr:$precision_config /*dynamic_conv_i19*/
     );
   let results = (outs HLO_Tensor);
