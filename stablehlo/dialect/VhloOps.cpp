@@ -334,7 +334,8 @@ LogicalResult verifyConstraint_0_17_0(mlir::Operation* op,
   return success();
 }
 
-// Allow DictionaryAttr at custom_call backend_config for versions >= v1.1.0
+// Allow Dictionary attribute at custom_call backend_config,
+// for versions >= "1.1.0"
 LogicalResult verifyConstraint_1_1_0(mlir::Operation* op,
                                      Version targetVersion) {
   auto customCallOp = dyn_cast<mlir::vhlo::CustomCallOpV1>(op);

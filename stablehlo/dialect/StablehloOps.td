@@ -2342,9 +2342,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
 
     Depending on the API version there are two ways to pass extra bits of static
     information to the external function:
-
     1. Use `API_VERSION_TYPED_FFI` which allows passing a dictionary attribute.
-
     2. Use a previous API version with a StringAttr to encode backend config.
 
     See:
@@ -2391,7 +2389,6 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
 
   let extraClassDeclaration = commonClassDeclaration # [{
     mlir::Attribute getBackendConfigOrDefault();
-
   }];
 }
 
