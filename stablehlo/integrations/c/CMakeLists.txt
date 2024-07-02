@@ -26,10 +26,12 @@ add_mlir_public_c_api_library(StablehloCAPI
   PARTIAL_SOURCES_INTENDED
   StablehloAttributes.cpp
   StablehloDialect.cpp
+  StablehloPasses.cpp
   StablehloTypes.cpp
 
   LINK_LIBS PUBLIC
   StablehloOps
+  StablehloPasses
 )
 
 add_mlir_public_c_api_library(VhloCAPI
