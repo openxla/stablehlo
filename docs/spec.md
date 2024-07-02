@@ -243,8 +243,8 @@ which may allow us to remove tuple types from StableHLO
 TensorElementType ::= BooleanType | IntegerType | FloatType | ComplexType
 BooleanType ::= 'i1'
 IntegerType ::= SignedIntegerType | UnsignedIntegerType
-SignedIntegerType ::= 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
-UnsignedIntegerType ::= 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
+SignedIntegerType ::= 'si2' | 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
+UnsignedIntegerType ::= 'ui2' | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
 FloatType ::= 'f8E4M3FN' | 'f8E5M2' | 'f8E4M3FNUZ' | 'f8E5M2FNUZ'
             | 'f8E4M3B11FNUZ' | 'bf16' | 'f16' | 'f32' | 'f64'
 ComplexType ::= 'complex' '<' ComplexElementType '>'
@@ -259,7 +259,7 @@ values of type `tensor<T>`).
 
 * **Boolean type** represents boolean values `true` and `false`.
 * **Integer types** can be either signed (`si`) or unsigned (`ui`) and have
-  one of the supported bit widths (`4`, `8`, `16`, `32` or `64`).
+  one of the supported bit widths (`2`, `4`, `8`, `16`, `32` or `64`).
   Signed `siN` types represent integer values from `-2^(N-1)` to `2^(N-1)-1`
   inclusive, and unsigned `uiN` types represent integer values from `0` to
   `2^N-1` inclusive.

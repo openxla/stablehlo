@@ -230,6 +230,10 @@ enum TypeCode {
   ///   }
   kIndexV1Type = 9,
 
+  ///   IntegerSI2V1Type {
+  ///   }
+  kIntegerSI2V1Type = 31,
+
   ///   IntegerSI4V1Type {
   ///   }
   kIntegerSI4V1Type = 10,
@@ -249,6 +253,10 @@ enum TypeCode {
   ///   IntegerSI64V1Type {
   ///   }
   kIntegerSI64V1Type = 14,
+
+  ///   IntegerUI2V1Type {
+  ///   }
+  kIntegerUI2V1Type = 32,
 
   ///   IntegerUI4V1Type {
   ///   }
@@ -959,6 +967,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return readFunctionV1Type(reader);
     case vhlo_encoding::kIndexV1Type:
       return IndexV1Type::get(getContext());
+    case vhlo_encoding::kIntegerSI2V1Type:
+      return IntegerSI2V1Type::get(getContext());
     case vhlo_encoding::kIntegerSI4V1Type:
       return IntegerSI4V1Type::get(getContext());
     case vhlo_encoding::kIntegerSI8V1Type:
@@ -969,6 +979,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return IntegerSI32V1Type::get(getContext());
     case vhlo_encoding::kIntegerSI64V1Type:
       return IntegerSI64V1Type::get(getContext());
+    case vhlo_encoding::kIntegerUI2V1Type:
+      return IntegerUI2V1Type::get(getContext());
     case vhlo_encoding::kIntegerUI4V1Type:
       return IntegerUI4V1Type::get(getContext());
     case vhlo_encoding::kIntegerUI8V1Type:
@@ -1059,6 +1071,10 @@ LogicalResult VhloBytecodeInterface::writeType(
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kIndexV1Type), success();
       })
+      .Case([&](IntegerSI2V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerSI2V1Type), success();
+      })
       .Case([&](IntegerSI4V1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kIntegerSI4V1Type), success();
@@ -1078,6 +1094,10 @@ LogicalResult VhloBytecodeInterface::writeType(
       .Case([&](IntegerSI64V1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kIntegerSI64V1Type), success();
+      })
+      .Case([&](IntegerUI2V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI2V1Type), success();
       })
       .Case([&](IntegerUI4V1Type) {
         LOG_WRITE_CALL;
