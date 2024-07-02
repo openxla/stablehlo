@@ -333,6 +333,18 @@ LogicalResult verifyConstraint_0_17_0(mlir::Operation* op,
     return failure();
   return success();
 }
+
+// Allow DictionaryAttr at custom_call backend_config for versions >= v1.1.0
+LogicalResult verifyConstraint_1_1_0(mlir::Operation* op,
+                                     Version targetVersion) {
+  auto customCallOp = dyn_cast<mlir::vhlo::CustomCallOpV1>(op);
+  if (customCallOp &&
+      isa<mlir::DictionaryAttr>(customCallOp.getBackendConfig()) &&
+      targetVersion < Version(1, 1, 0))
+    return failure();
+  return success();
+}
+
 }  // namespace
 
 LogicalResult AllReduceOpV1::validateConstraint(mlir::Operation* op,
@@ -363,6 +375,11 @@ LogicalResult ScatterOpV1::validateConstraint(mlir::Operation* op,
 LogicalResult SelectAndScatterOpV1::validateConstraint(mlir::Operation* op,
                                                        Version targetVersion) {
   return verifyConstraint_0_17_0(op, targetVersion);
+}
+
+LogicalResult CustomCallOpV1::validateConstraint(mlir::Operation* op,
+                                                    Version targetVersion) {
+  return verifyConstraint_1_1_0(op, targetVersion);
 }
 
 }  // namespace vhlo

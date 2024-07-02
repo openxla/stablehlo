@@ -4951,7 +4951,7 @@ func.func @custom_call_with_dictionary_backend_config() {
 // -----
 
 func.func @custom_call_with_incompatible_backend_config() {
-  // expected-error@+1 {{unsupported user-encoded backend config, backend config must be a dictionary attribute}}
+  // expected-error@+1 {{backend_config for api_version API_VERSION_TYPED_FFI must be a dictionary attribute}}
   "stablehlo.custom_call"() {api_version = 4 : i32, backend_config="bar=42", call_target_name = "foo"} : () -> ()
   func.return
 }
@@ -4959,7 +4959,7 @@ func.func @custom_call_with_incompatible_backend_config() {
 // -----
 
 func.func @custom_call_with_incompatible_backend_config() {
-  // expected-error@+1 {{unsupported dictionary attribute backend config, backend config must be a user-encoded string attribute}}
+  // expected-error@+1 {{backend_config for api_version API_VERSION_STATUS_RETURNING_UNIFIED must be a string attribute}}
   "stablehlo.custom_call"() {api_version = 3 : i32, backend_config={bar = 42 : i32}, call_target_name = "foo"} : () -> ()
   func.return
 }

@@ -477,21 +477,17 @@ LogicalResult CustomCallOp::verify() {
              << "operand part has type " << operandPart
              << " and output part has type " << outputPart;
   }
-
-  // Check backend_config attribute.
   if (auto backendConfig = getBackendConfig()) {
     if (getApiVersion() == CustomCallApiVersion::API_VERSION_TYPED_FFI) {
-      // Typed FFI custom calls require `backend_config` to be a DictionaryAttr.
-      if (isa<mlir::StringAttr>(*backendConfig))
-        return emitOpError()
-               << "unsupported user-encoded backend config,"
-                  " backend config must be a dictionary attribute.";
+      if (!isa<mlir::DictionaryAttr>(*backendConfig))
+        return emitOpError() << "backend_config for api_version "
+                             << stringifyCustomCallApiVersion(getApiVersion())
+                             << " must be a dictionary attribute.";
     } else {
-      // Older API versions require user-encoded `backend_config` string.
-      if (isa<mlir::DictionaryAttr>(*backendConfig))
-        return emitOpError()
-               << "unsupported dictionary attribute backend config, backend"
-                  " config must be a user-encoded string attribute.";
+      if (!isa<mlir::StringAttr>(*backendConfig))
+        return emitOpError() << "backend_config for api_version "
+                             << stringifyCustomCallApiVersion(getApiVersion())
+                             << " must be a string attribute.";
     }
   }
 
@@ -509,6 +505,16 @@ void CustomCallOp::getEffects(
   effects.emplace_back(MemoryEffects::Free::get());
   effects.emplace_back(MemoryEffects::Write::get());
   effects.emplace_back(MemoryEffects::Read::get());
+}
+
+mlir::Attribute CustomCallOp::getBackendConfigOrDefault() {
+  if (getBackendConfig().has_value()) return getBackendConfig().value();
+
+  if (getApiVersion() ==
+      mlir::stablehlo::CustomCallApiVersion::API_VERSION_TYPED_FFI)
+    return DictionaryAttr::get(getContext());
+
+  return StringAttr::get(getContext(), "");
 }
 
 //===----------------------------------------------------------------------===//
