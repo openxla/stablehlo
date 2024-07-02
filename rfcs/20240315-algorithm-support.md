@@ -1,6 +1,6 @@
 # [RFC] Add algorithm to dot_general's attributes in the StableHLO specification
 
-Status: Review<br/>
+Status: Approved<br/>
 Initial version: 03/15/2024<br/>
 Last updated: 06/18/2024<br/>
 Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/2096)
@@ -118,9 +118,9 @@ Label | Name                                 | Type                    | Constra
 
 *Add these constraints:*
 
-*   (C20) `DotAlgorithm.lhs_component_count >= 1`.
-*   (C21) `DotAlgorithm.rhs_component_count >= 1`.
-*   (C22) `DotAlgorithm.num_primitive_ops >= 1`.
+* (C20) `DotAlgorithm.lhs_component_count >= 1`.
+* (C21) `DotAlgorithm.rhs_component_count >= 1`.
+* (C22) `DotAlgorithm.num_primitive_ops >= 1`.
 
 #### Examples
 
