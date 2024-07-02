@@ -4926,6 +4926,30 @@ func.func @custom_call_unranked_types(%arg0: tensor<*xf32>) -> tensor<*xf32> {
 
 // -----
 
+func.func @custom_call_with_dictionary_backend_config() {
+  // CHECK: stablehlo.custom_call @foo() {api_version = 4 : i32, backend_config = {foo = 42 : i32}}
+  "stablehlo.custom_call"() {api_version = 4 : i32, backend_config={foo = 42 : i32}, call_target_name = "foo"} : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @custom_call_with_incompatible_backend_config() {
+  // expected-error@+1 {{backend_config for api_version API_VERSION_TYPED_FFI must be a dictionary attribute}}
+  "stablehlo.custom_call"() {api_version = 4 : i32, backend_config="bar=42", call_target_name = "foo"} : () -> ()
+  func.return
+}
+
+// -----
+
+func.func @custom_call_with_incompatible_backend_config() {
+  // expected-error@+1 {{backend_config for api_version API_VERSION_STATUS_RETURNING_UNIFIED must be a string attribute}}
+  "stablehlo.custom_call"() {api_version = 3 : i32, backend_config={bar = 42 : i32}, call_target_name = "foo"} : () -> ()
+  func.return
+}
+
+// -----
+
 // Test custom attribute printing/parsing.
 // We really just need one op as holder, use module: this is the simplest top-level.
 
