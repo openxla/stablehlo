@@ -119,34 +119,40 @@ def VHLO_FunctionV1 : VHLO_TypeDef<"FunctionV1", "func_v1", "0.9.0", "current"> 
 // dynamism RFC.
 def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index_v1", "0.9.0", "current">;
 
-// Corresponds to the 'si4' FloatType from the StableHLO spec.
+// Corresponds to the 'si2' IntegerType from the StableHLO spec.
+def VHLO_IntegerSI2V1 : VHLO_TypeDef<"IntegerSI2V1", "i2_v1", "1.2.0", "current">;
+
+// Corresponds to the 'si4' IntegerType from the StableHLO spec.
 def VHLO_IntegerSI4V1 : VHLO_TypeDef<"IntegerSI4V1", "i4_v1", "0.9.0", "current">;
 
-// Corresponds to the 'si8' FloatType from the StableHLO spec.
+// Corresponds to the 'si8' IntegerType from the StableHLO spec.
 def VHLO_IntegerSI8V1 : VHLO_TypeDef<"IntegerSI8V1", "i8_v1", "0.9.0", "current">;
 
-// Corresponds to the 'si16' FloatType from the StableHLO spec.
+// Corresponds to the 'si16' IntegerType from the StableHLO spec.
 def VHLO_IntegerSI16V1 : VHLO_TypeDef<"IntegerSI16V1", "i16_v1", "0.9.0", "current">;
 
-// Corresponds to the 'si32' FloatType from the StableHLO spec.
+// Corresponds to the 'si32' IntegerType from the StableHLO spec.
 def VHLO_IntegerSI32V1 : VHLO_TypeDef<"IntegerSI32V1", "i32_v1", "0.9.0", "current">;
 
-// Corresponds to the 'si64' FloatType from the StableHLO spec.
+// Corresponds to the 'si64' IntegerType from the StableHLO spec.
 def VHLO_IntegerSI64V1 : VHLO_TypeDef<"IntegerSI64V1", "i64_v1", "0.9.0", "current">;
 
-// Corresponds to the 'ui4' FloatType from the StableHLO spec.
+// Corresponds to the 'ui2' IntegerType from the StableHLO spec.
+def VHLO_IntegerUI2V1 : VHLO_TypeDef<"IntegerUI2V1", "ui2_v1", "1.2.0", "current">;
+
+// Corresponds to the 'ui4' IntegerType from the StableHLO spec.
 def VHLO_IntegerUI4V1 : VHLO_TypeDef<"IntegerUI4V1", "ui4_v1", "0.9.0", "current">;
 
-// Corresponds to the 'ui8' FloatType from the StableHLO spec.
+// Corresponds to the 'ui8' IntegerType from the StableHLO spec.
 def VHLO_IntegerUI8V1 : VHLO_TypeDef<"IntegerUI8V1", "ui8_v1", "0.9.0", "current">;
 
-// Corresponds to the 'ui16' FloatType from the StableHLO spec.
+// Corresponds to the 'ui16' IntegerType from the StableHLO spec.
 def VHLO_IntegerUI16V1 : VHLO_TypeDef<"IntegerUI16V1", "ui16_v1", "0.9.0", "current">;
 
-// Corresponds to the 'ui32' FloatType from the StableHLO spec.
+// Corresponds to the 'ui32' IntegerType from the StableHLO spec.
 def VHLO_IntegerUI32V1 : VHLO_TypeDef<"IntegerUI32V1", "ui32_v1", "0.9.0", "current">;
 
-// Corresponds to the 'ui64' FloatType from the StableHLO spec.
+// Corresponds to the 'ui64' IntegerType from the StableHLO spec.
 def VHLO_IntegerUI64V1 : VHLO_TypeDef<"IntegerUI64V1", "ui64_v1", "0.9.0", "current">;
 
 // Corresponds to TensorType from the StableHLO spec.

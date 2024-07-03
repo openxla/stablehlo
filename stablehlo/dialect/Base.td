@@ -38,8 +38,8 @@ def HLO_Pred : TypeAlias<I1, "pred (AKA boolean or 1-bit integer)">;
 
 // TODO(hinsu): Use signed integers instead of signless integer which is being
 // used for legacy reasons.
-def HLO_SInt : SignlessIntOfWidths<[4, 8, 16, 32, 64]>;
-def HLO_UInt : UnsignedIntOfWidths<[4, 8, 16, 32, 64]>;
+def HLO_SInt : SignlessIntOfWidths<[2, 4, 8, 16, 32, 64]>;
+def HLO_UInt : UnsignedIntOfWidths<[2, 4, 8, 16, 32, 64]>;
 def HLO_Int : AnyTypeOf<[HLO_SInt, HLO_UInt]>;
 
 def HLO_Float : AnyTypeOf<[F8E4M3B11FNUZ, F8E4M3FN, F8E4M3FNUZ, F8E5M2,
@@ -124,15 +124,15 @@ class StableHLO_UniformQuantizedPerAxisUnsignedIntOfWidths<list<int> widths> :
 
 // Integer-based uniform per-tensor quantized types. The definitions can be used to specify
 // operand's tensor types.
-def HLO_QuantizedSignedInt : StableHLO_UniformQuantizedSignedIntOfWidths<[4, 8, 16, 32]>;
-def HLO_QuantizedUnsignedInt : StableHLO_UniformQuantizedUnsignedIntOfWidths<[4, 8, 16, 32]>;
+def HLO_QuantizedSignedInt : StableHLO_UniformQuantizedSignedIntOfWidths<[2, 4, 8, 16, 32]>;
+def HLO_QuantizedUnsignedInt : StableHLO_UniformQuantizedUnsignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_QuantizedInt :
     AnyTypeOf<[HLO_QuantizedSignedInt, HLO_QuantizedUnsignedInt]>;
 
 // Integer-based uniform per-axis quantized types. The definitions can be used to specify
 // operand's tensor types.
-def HLO_PerAxisQuantizedSignedInt : StableHLO_UniformQuantizedPerAxisSignedIntOfWidths<[4, 8, 16, 32]>;
-def HLO_PerAxisQuantizedUnsignedInt : StableHLO_UniformQuantizedPerAxisUnsignedIntOfWidths<[4, 8, 16, 32]>;
+def HLO_PerAxisQuantizedSignedInt : StableHLO_UniformQuantizedPerAxisSignedIntOfWidths<[2, 4, 8, 16, 32]>;
+def HLO_PerAxisQuantizedUnsignedInt : StableHLO_UniformQuantizedPerAxisUnsignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_PerAxisQuantizedInt :
     AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt]>;
 

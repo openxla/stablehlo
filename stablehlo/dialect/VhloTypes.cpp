@@ -37,6 +37,9 @@ Type convertBuiltinIntegerType(IntegerType type) {
   bool isSignless = type.isSignless();
   auto ctx = type.getContext();
   switch (type.getWidth()) {
+    case 2:
+      return isSignless ? cast<Type>(IntegerSI2V1Type::get(ctx))
+                        : cast<Type>(IntegerUI2V1Type::get(ctx));
     case 4:
       return isSignless ? cast<Type>(IntegerSI4V1Type::get(ctx))
                         : cast<Type>(IntegerUI4V1Type::get(ctx));
@@ -183,6 +186,9 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
   });
   addConversion(
       [&](IndexV1Type type) { return IndexType::get(type.getContext()); });
+  addConversion([&](IntegerSI2V1Type type) {
+    return IntegerType::get(type.getContext(), 2);
+  });
   addConversion([&](IntegerSI4V1Type type) {
     return IntegerType::get(type.getContext(), 4);
   });
@@ -197,6 +203,9 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
   });
   addConversion([&](IntegerSI64V1Type type) {
     return IntegerType::get(type.getContext(), 64);
+  });
+  addConversion([&](IntegerUI2V1Type type) {
+    return IntegerType::get(type.getContext(), 2, IntegerType::Unsigned);
   });
   addConversion([&](IntegerUI4V1Type type) {
     return IntegerType::get(type.getContext(), 4, IntegerType::Unsigned);

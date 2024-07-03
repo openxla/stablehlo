@@ -158,7 +158,8 @@ Element Tensor::get(const Index &index) const {
   if (isSupportedIntegerType(elementType)) {
     IntegerType intTy = cast<IntegerType>(elementType);
 
-    if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
+    if (elementType.isSignlessInteger(2) || elementType.isSignlessInteger(4) ||
+        elementType.isSignlessInteger(8)) {
       auto elementData = reinterpret_cast<const int8_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
@@ -174,7 +175,8 @@ Element Tensor::get(const Index &index) const {
       auto elementData = reinterpret_cast<const int64_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
-    } else if (elementType.isUnsignedInteger(4) ||
+    } else if (elementType.isUnsignedInteger(2) ||
+               elementType.isUnsignedInteger(4) ||
                elementType.isUnsignedInteger(8)) {
       auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
@@ -270,7 +272,8 @@ void Tensor::set(const Index &index, const Element &element) {
   // integers which was added in MHLO for legacy reasons. Going forward,
   // StableHLO will adopt signfull integer semantics with signed and unsigned
   // integer variants.
-  if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
+  if (elementType.isSignlessInteger(2) || elementType.isSignlessInteger(4) ||
+      elementType.isSignlessInteger(8)) {
     auto elementData = reinterpret_cast<int8_t *>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (int8_t)value.getSExtValue();
@@ -299,7 +302,8 @@ void Tensor::set(const Index &index, const Element &element) {
   }
 
   // Handle unsigned integer types.
-  if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
+  if (elementType.isUnsignedInteger(2) || elementType.isUnsignedInteger(4) ||
+      elementType.isUnsignedInteger(8)) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (uint8_t)value.getZExtValue();
@@ -428,7 +432,8 @@ Tensor makeTensor(DenseElementsAttr attr) {
   }
 
   // Handle signed integer types.
-  if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
+  if (elementType.isSignlessInteger(2) || elementType.isSignlessInteger(4) ||
+      elementType.isSignlessInteger(8)) {
     auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
         [&](APInt value) -> int8_t { return value.getSExtValue(); });
@@ -461,7 +466,8 @@ Tensor makeTensor(DenseElementsAttr attr) {
   }
 
   // Handle unsigned integer types.
-  if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
+  if (elementType.isUnsignedInteger(2) || elementType.isUnsignedInteger(4) ||
+      elementType.isUnsignedInteger(8)) {
     auto intValues = llvm::map_to_vector(
         attr.getValues<APInt>(),
         [&](APInt value) -> uint8_t { return value.getZExtValue(); });

@@ -29,11 +29,9 @@ def main():
     return
 
   fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
-  if fa_version < (0, 4, 0):
-    warnings.warn(
-        "functional_algorithm version 0.4.0 or newer is required,"
-        f" got {fa.__version__}"
-    )
+  if fa_version < (0, 7, 0):
+    warnings.warn("functional_algorithm version 0.7.0 or newer is required,"
+                  f" got {fa.__version__}")
     return
 
   output_file = os.path.relpath(
@@ -45,8 +43,7 @@ def main():
               "stablehlo",
               "transforms",
               "ChloDecompositionPatternsMath.td",
-          )
-      ),
+          )),
       os.getcwd(),
   )
 
@@ -55,12 +52,15 @@ def main():
   for chloname, fname, args in [
       ("CHLO_AsinOp", "complex_asin", ("z:complex",)),
       ("CHLO_AsinOp", "real_asin", ("x:float",)),
+      ("CHLO_AcosOp", "complex_acos", ("z:complex",)),
+      ("CHLO_AcosOp", "real_acos", ("x:float",)),
+      ("CHLO_AcoshOp", "complex_acosh", ("z:complex",)),
+      ("CHLO_AcoshOp", "real_acosh", ("x:float",)),
   ]:
     func = getattr(fa.algorithms, fname, None)
     if func is None:
       warnings.warn(
-          "{fa.algorithms.__name__} does not define {fname}. Skipping."
-      )
+          "{fa.algorithms.__name__} does not define {fname}. Skipping.")
       continue
     ctx = fa.Context(paths=[fa.algorithms])
     graph = ctx.trace(func, *args).implement_missing(target).simplify()
@@ -96,7 +96,8 @@ limitations under the License.
 ==============================================================================*/
 
 """)
-  f.write(target.make_comment(f"""\
+  f.write(
+      target.make_comment(f"""\
 
 This file is generated using functional_algorithms tool ({fa.__version__}).
 See build_tools/math/README.md for more information.""") + "\n")

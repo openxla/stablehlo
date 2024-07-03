@@ -50,7 +50,23 @@ operations = [
         # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
         extra_prec_multiplier=20,
         max_ulp_difference=3,
-    )
+    ),
+    dict(
+        name="acos",
+        mpmath_name="arccos",
+        size=13,
+        # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
+        extra_prec_multiplier=20,
+        max_ulp_difference=3,
+    ),
+    dict(
+        name="acosh",
+        mpmath_name="arccosh",
+        size=13,
+        # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
+        extra_prec_multiplier=20,
+        max_ulp_difference=3,
+    ),
 ]
 
 
@@ -62,11 +78,9 @@ def main():
     return
 
   fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
-  if fa_version < (0, 4, 0):
-    warnings.warn(
-        "functional_algorithm version 0.4.0 or newer is required,"
-        f" got {fa.__version__}"
-    )
+  if fa_version < (0, 6, 1):
+    warnings.warn("functional_algorithm version 0.6.1 or newer is required,"
+                  f" got {fa.__version__}")
     return
 
   target_dir = os.path.relpath(
@@ -78,8 +92,7 @@ def main():
               "stablehlo",
               "tests",
               "math",
-          )
-      ),
+          )),
       os.getcwd(),
   )
 
@@ -88,12 +101,10 @@ def main():
     opname = op["name"]
     mpmath_opname = op.get("mpmath_name", opname)
     size_re = size_im = op.get("size", default_size)
-    extra_prec_multiplier = op.get(
-        "extra_prec_multiplier", default_extra_prec_multiplier
-    )
-    max_ulp_difference = op.get(
-        "max_ulp_difference", default_max_ulp_difference
-    )
+    extra_prec_multiplier = op.get("extra_prec_multiplier",
+                                   default_extra_prec_multiplier)
+    max_ulp_difference = op.get("max_ulp_difference",
+                                default_max_ulp_difference)
 
     nmp = fa.utils.numpy_with_mpmath(
         extra_prec_multiplier=extra_prec_multiplier,
@@ -118,7 +129,9 @@ def main():
             include_subnormal=not flush_subnormals,
         ).flatten()
 
-      expected = getattr(nmp, mpmath_opname)(samples)
+      expected = getattr(nmp, mpmath_opname).call(samples,
+                                                  enable_progressbar=True)
+      expected = np.array(expected, dtype)
 
       module_name = f"{opname}_{dtype.__name__}"
       m = SSA.make_module(module_name)
@@ -156,14 +169,11 @@ def main():
           continue
 
       f = open(fname, "w")
-      f.write(
-          "// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s |"
-          " stablehlo-translate --interpret\n"
-      )
+      f.write("// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s |"
+              " stablehlo-translate --interpret\n")
       f.write(
           "// This file is generated, see build_tools/math/README.md for more"
-          " information.\n"
-      )
+          " information.\n")
       f.write(source)
       f.close()
       print(f"Created {fname}")
@@ -230,8 +240,7 @@ def main():
           f"max_ulp_difference = {expected_ulp_difference}",
           f"min_ulp_difference = {expected_ulp_difference}",
           atypes=", ".join(
-              map(main_func.get_ref_type, [actual_values, shifted_values])
-          ),
+              map(main_func.get_ref_type, [actual_values, shifted_values])),
       )
 
     main_func.void_call("func.return")
@@ -246,14 +255,10 @@ def main():
         continue
 
     f = open(fname, "w")
-    f.write(
-        "// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s |"
-        " stablehlo-translate --interpret\n"
-    )
-    f.write(
-        "// This file is generated, see build_tools/math/README.md for more"
-        " information.\n"
-    )
+    f.write("// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s |"
+            " stablehlo-translate --interpret\n")
+    f.write("// This file is generated, see build_tools/math/README.md for more"
+            " information.\n")
     f.write(source)
     f.close()
     print(f"Created {fname}")
@@ -308,9 +313,8 @@ class Block:
   def call(self, name, *args):
     # call function created with make_function
     sargs = ", ".join(args)
-    return self.assign(
-        f"call @{name}({sargs})", typ=self.get_function_type(name)
-    )
+    return self.assign(f"call @{name}({sargs})",
+                       typ=self.get_function_type(name))
 
   def composite(self, name, *args, **options):
     sargs = ", ".join(args)
@@ -360,7 +364,7 @@ class Block:
       i = self.prefix.find("@")
       j = self.prefix.find("(", i)
       assert -1 not in {i, j}, self.prefix
-      return self.prefix[i + 1 : j]
+      return self.prefix[i + 1:j]
 
   @property
   def function_type(self):
