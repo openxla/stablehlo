@@ -59,8 +59,8 @@ std::string getMinimumVersion() {
   return mlir::vhlo::Version::getMinimumVersion().toString();
 }
 
-LogicalResult serializePortableArtifact(StringRef moduleStr,
-                                        StringRef targetVersion,
+LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
+                                        llvm::StringRef targetVersion,
                                         raw_ostream& os) {
   MLIRContext context;
   loadSerializationDialects(context);
@@ -70,7 +70,7 @@ LogicalResult serializePortableArtifact(StringRef moduleStr,
   return serializePortableArtifact(*module, targetVersion, os);
 }
 
-LogicalResult deserializePortableArtifact(StringRef artifactStr,
+LogicalResult deserializePortableArtifact(llvm::StringRef artifactStr,
                                           raw_ostream& os) {
   MLIRContext context;
   loadSerializationDialects(context);
