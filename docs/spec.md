@@ -2443,7 +2443,6 @@ the XLA compiler. In the future, we are planning to unify this metadata
   call_target_name = "foo",
   has_side_effect = false,
   backend_config = {bar = 42 : i32},
-  // api_version 4 is to express backend_config as a dictionary attribute
   api_version = 4 : i32,
   called_computations = [@foo]
 } : (tensor<f64>) -> tensor<f64>
