@@ -63,9 +63,9 @@ std::string getMinimumVersion();
 // Can fail if `moduleStr` cannot be parsed, or if it cannot be expressed in the
 // `targetVersion` version of StableHLO, e.g. if it's using new or removed
 // features, or if it involves unsupported dialects.
-LogicalResult serializePortableArtifact(StringRef moduleStr,
-                                        StringRef targetVersion,
-                                        raw_ostream& os);
+LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
+                                        llvm::StringRef targetVersion,
+                                        llvm::raw_ostream& os);
 
 // Read a StableHLO program from a portable artifact, returning the module as
 // MLIR bytecode. Note, this bytecode returned is not a portable artifact,
@@ -74,8 +74,8 @@ LogicalResult serializePortableArtifact(StringRef moduleStr,
 // Can fail if `artifactStr` cannot be expressed in the current version of
 // StableHLO, e.g. if it's using incompatible features. Returns failure if
 // `artifactStr` is invalid or fails to deserialize.
-LogicalResult deserializePortableArtifact(StringRef artifactStr,
-                                          raw_ostream& os);
+LogicalResult deserializePortableArtifact(llvm::StringRef artifactStr,
+                                          llvm::raw_ostream& os);
 
 }  // namespace stablehlo
 }  // namespace mlir
