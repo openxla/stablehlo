@@ -213,7 +213,7 @@ llvm::Error evalExpectCloseOp(const Tensor &actual, const Tensor &expected,
        lhsIt != actual.index_end(); ++lhsIt, ++rhsIt) {
     auto e1 = actual.get(*lhsIt);
     auto e2 = expected.get(*rhsIt);
-    uint64_t ulp_diff = ULPDifference(e1, e2);
+    size_t ulp_diff = ULPDifference(e1, e2);
     if (ulp_diff > max_ulp_difference || ulp_diff < min_ulp_difference) {
       output << "\n  index=" << (*lhsIt) << ", actual=" << e1
              << ", expected=" << e2 << ", ULP difference=" << ulp_diff;
