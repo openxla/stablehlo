@@ -75,7 +75,6 @@ operations = [
         extra_prec_multiplier=20,
         max_ulp_difference=3,
     ),
-    )
 ]
 
 

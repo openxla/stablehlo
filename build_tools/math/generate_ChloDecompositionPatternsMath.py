@@ -82,12 +82,12 @@ def main():
   for chloname, fname, args in [
       ("CHLO_AsinOp", "complex_asin", ("z:complex",)),
       ("CHLO_AsinOp", "real_asin", ("x:float",)),
-      ("CHLO_AsinhOp", "complex_asinh", ("z:complex",)),
-      ("CHLO_AsinhOp", "real_asinh", ("x:float",)),
       ("CHLO_AcosOp", "complex_acos", ("z:complex",)),
       ("CHLO_AcosOp", "real_acos", ("x:float",)),
       ("CHLO_AcoshOp", "complex_acosh", ("z:complex",)),
       ("CHLO_AcoshOp", "real_acosh", ("x:float",)),
+      ("CHLO_AsinhOp", "complex_asinh", ("z:complex",)),
+      ("CHLO_AsinhOp", "real_asinh", ("x:float",)),
   ]:
     func = getattr(fa.algorithms, fname, None)
     if func is None:

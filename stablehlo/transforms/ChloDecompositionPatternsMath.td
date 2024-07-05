@@ -385,7 +385,6 @@ def : Pat<(CHLO_AsinOp NonComplexElementType:$x),
             (StableHLO_SubtractOp $one, $x),
             (StableHLO_AddOp $one, $x))))))>;
 
-
 // Arcus cosine on complex input:
 //
 //     Here we well use a modified version of the [Hull et
@@ -998,4 +997,3 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$x),
               (StableHLO_ConstantLike<"1">:$one $x),
               (StableHLO_SqrtOp
                 (StableHLO_AddOp $one, $ax2))))))))>;
-
