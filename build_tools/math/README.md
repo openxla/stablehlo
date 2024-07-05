@@ -31,7 +31,7 @@ following requirements:
 
 - Python 3.11 or newer
 - mpmath 1.3 or newer
-- functional_algorithms 0.4 or newer
+- functional_algorithms 0.7.0 or newer
 
 that can be installed via pypi:
 
@@ -65,3 +65,14 @@ for t in $(ls ../stablehlo/tests/math/*.mlir); \
 do bin/stablehlo-opt --chlo-legalize-to-stablehlo $t \
  | bin/stablehlo-translate --interpret ; done
 ```
+
+When new implementations are generated, one likely needs to update
+`stablehlo/tests/chlo/chlo_legalize_to_stablehlo.mlir`. To generate
+the filecheck tests, run
+
+```sh
+build/bin/stablehlo-opt --chlo-legalize-to-stablehlo --split-input-file --verify-diagnostics \
+   stablehlo/tests/chlo/chlo_legalize_to_stablehlo.mlir | python llvm-project/mlir/utils/generate-test-checks.py | less
+```
+
+and copy relevant checks to `chlo_legalize_to_stablehlo.mlir`.

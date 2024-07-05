@@ -60,6 +60,14 @@ operations = [
         max_ulp_difference=3,
     ),
     dict(
+        name="asinh",
+        mpmath_name="arcsinh",
+        size=13,
+        # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
+        extra_prec_multiplier=20,
+        max_ulp_difference=3,
+    ),
+    dict(
         name="acosh",
         mpmath_name="arccosh",
         size=13,
@@ -70,6 +78,29 @@ operations = [
 ]
 
 
+def get_functional_algorithms_required_version():
+  readme_md = os.path.join(os.path.dirname(__file__), "README.md")
+  f = open(readme_md, "r")
+  version_string = None
+  for line in f.readlines():
+    if line.startswith("- functional_algorithms "):
+      version_string = line.split()[2]
+      break
+  f.close()
+
+  if version_string is not None:
+    try:
+      return tuple(map(int, version_string.split(".", 4)[:3]))
+    except Exception as msg:
+      print(
+          f"Failed to extract functiona_algorithms required version from `{version_string}`: {msg}"
+      )
+  else:
+    print(
+        f"Failed to extract functiona_algorithms required version from {readme_md}"
+    )
+
+
 def main():
   try:
     import functional_algorithms as fa
@@ -78,9 +109,16 @@ def main():
     return
 
   fa_version = tuple(map(int, fa.__version__.split(".", 4)[:3]))
-  if fa_version < (0, 6, 1):
-    warnings.warn("functional_algorithm version 0.6.1 or newer is required,"
-                  f" got {fa.__version__}")
+  required_fa_version = get_functional_algorithms_required_version()
+  if required_fa_version is None:
+    print(f'Skipping.')
+    return
+
+  if fa_version < required_fa_version:
+    msg = (
+        f"functional_algorithm version {'.'.join(map(str, required_fa_version))}"
+        f" or newer is required, got {fa.__version__}")
+    warnings.warn(msg)
     return
 
   target_dir = os.path.relpath(
