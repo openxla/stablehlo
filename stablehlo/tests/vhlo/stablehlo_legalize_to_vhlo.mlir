@@ -183,6 +183,7 @@ func.func @attr_dict() attributes {stablehlo.attr = {attr1 = 1 : i32, attr2 = 2 
 func.func @attr_custom_call_api_version_typed_ffi(%arg0: tensor<f32>) -> tensor<f32> {
   %0 = "stablehlo.custom_call"(%arg0) {
     call_target_name = "foo",
+    backend_config= {bar = 42 : i32},
     // CHECK: api_version = #vhlo<api_version_v1 API_VERSION_TYPED_FFI>
     api_version = 4 : i32
   } : (tensor<f32>) -> tensor<f32>
