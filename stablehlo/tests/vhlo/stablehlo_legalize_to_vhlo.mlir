@@ -178,6 +178,17 @@ func.func @attr_dict() attributes {stablehlo.attr = {attr1 = 1 : i32, attr2 = 2 
   return
 }
 
+// CHECK-LABEL: "attr_custom_call_api_version_typed_ffi"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func @attr_custom_call_api_version_typed_ffi(%arg0: tensor<f32>) -> tensor<f32> {
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "foo",
+    // CHECK: api_version = #vhlo<api_version_v1 API_VERSION_TYPED_FFI>
+    api_version = 4 : i32
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
 // DotDimensionNumbers aka #stablehlo.dot is covered below.
 
 // CHECK-LABEL: "attr_fft_type_fft"
