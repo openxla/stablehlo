@@ -736,7 +736,8 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
   if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV1>::value) {
     if (isBoolean(vhloOp.getHasSideEffectAttr(), false))
       eraseAttrs(vhloAttrs, "has_side_effect");
-    if (isEmptyString(vhloOp.getBackendConfigAttr()))
+    if (isEmptyString(vhloOp.getBackendConfigAttr()) ||
+        isEmptyDictionary(vhloOp.getBackendConfigAttr()))
       eraseAttrs(vhloAttrs, "backend_config");
     if (isEnum(vhloOp.getApiVersionAttr(),
                vhlo::CustomCallApiVersionV1Attr::get(

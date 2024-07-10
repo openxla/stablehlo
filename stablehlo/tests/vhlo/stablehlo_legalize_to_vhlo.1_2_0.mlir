@@ -1289,7 +1289,6 @@ func.func public @op_custom_call_empty_result_layout(%arg0: tensor<i64>) -> tens
   // %0 = "vhlo.custom_call_v1"(%arg0) <{>}> : (!vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tuple_v1<>
   //      CHECK: "vhlo.custom_call_v1"(%[[ARG0]]) <{
   // CHECK-SAME:   api_version = #vhlo<api_version_v1 API_VERSION_STATUS_RETURNING>,
-  // CHECK-SAME:   backend_config = #vhlo.string_v1<"">,
   // CHECK-SAME:   call_target_name = #vhlo.string_v1<"empty_output">,
   // CHECK-SAME:   called_computations = #vhlo.array_v1<[]>,
   // CHECK-SAME:   has_side_effect = #vhlo.bool_v1<true>,
@@ -1299,7 +1298,6 @@ func.func public @op_custom_call_empty_result_layout(%arg0: tensor<i64>) -> tens
   // CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tuple_v1<>
   %0 = "stablehlo.custom_call"(%arg0) <{
     api_version = 2 : i32,
-    backend_config = "",
     call_target_name = "empty_output",
     has_side_effect = true,
     operand_layouts = [dense<> : tensor<0xindex>],

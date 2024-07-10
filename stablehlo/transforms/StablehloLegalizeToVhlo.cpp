@@ -695,7 +695,7 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
     if (!stablehloOp.getHasSideEffectAttr())
       addDefaultAttr("has_side_effect", builder.getBoolAttr(false));
     if (!stablehloOp.getBackendConfigAttr())
-      addDefaultAttr("backend_config", builder.getStringAttr(""));
+      addDefaultAttr("backend_config", stablehloOp.getBackendConfigOrDefault());
     if (!stablehloOp.getApiVersionAttr())
       vhloAttrs.emplace_back(
           StringAttr::get(pattern.getContext(), "api_version"),

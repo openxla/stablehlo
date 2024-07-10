@@ -477,6 +477,20 @@ LogicalResult CustomCallOp::verify() {
              << "operand part has type " << operandPart
              << " and output part has type " << outputPart;
   }
+  if (auto backendConfig = getBackendConfig()) {
+    if (getApiVersion() == CustomCallApiVersion::API_VERSION_TYPED_FFI) {
+      if (!isa<mlir::DictionaryAttr>(*backendConfig))
+        return emitOpError() << "backend_config for api_version "
+                             << stringifyCustomCallApiVersion(getApiVersion())
+                             << " must be a dictionary attribute.";
+    } else {
+      if (!isa<mlir::StringAttr>(*backendConfig))
+        return emitOpError() << "backend_config for api_version "
+                             << stringifyCustomCallApiVersion(getApiVersion())
+                             << " must be a string attribute.";
+    }
+  }
+
   return success();
 }
 
@@ -491,6 +505,17 @@ void CustomCallOp::getEffects(
   effects.emplace_back(MemoryEffects::Free::get());
   effects.emplace_back(MemoryEffects::Write::get());
   effects.emplace_back(MemoryEffects::Read::get());
+}
+
+mlir::Attribute CustomCallOp::getBackendConfigOrDefault() {
+  auto backendConfig = getBackendConfig();
+  if (backendConfig.has_value()) return backendConfig.value();
+
+  if (getApiVersion() ==
+      mlir::stablehlo::CustomCallApiVersion::API_VERSION_TYPED_FFI)
+    return DictionaryAttr::get(getContext());
+
+  return StringAttr::get(getContext(), "");
 }
 
 //===----------------------------------------------------------------------===//
