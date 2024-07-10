@@ -508,7 +508,8 @@ void CustomCallOp::getEffects(
 }
 
 mlir::Attribute CustomCallOp::getBackendConfigOrDefault() {
-  if (getBackendConfig().has_value()) return getBackendConfig().value();
+  auto backendConfig = getBackendConfig();
+  if (backendConfig.has_value()) return backendConfig.value();
 
   if (getApiVersion() ==
       mlir::stablehlo::CustomCallApiVersion::API_VERSION_TYPED_FFI)
