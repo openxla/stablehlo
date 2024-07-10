@@ -24,13 +24,13 @@ LLVM_SHA256 = "4ae1cbc3bff94c1dfba201b5399cf83ac8c9d1d75091505e0f37eab67f11bd98"
 http_archive(
     name = "llvm-raw",
     build_file_content = "# empty",
+    patch_args = ["-p1"],
+    patches = [
+        "//:build_tools/mlir.patch",
+    ],
     sha256 = LLVM_SHA256,
     strip_prefix = "llvm-project-" + LLVM_COMMIT,
     urls = ["https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT)],
-    patches = [
-        "//:build_tools/mlir.patch"
-    ],
-    patch_args = ["-p1"],
 )
 
 # This is needed since https://reviews.llvm.org/D143344.
