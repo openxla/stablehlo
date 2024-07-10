@@ -61,7 +61,7 @@ std::string getMinimumVersion() {
 
 LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
                                         llvm::StringRef targetVersion,
-                                        raw_ostream& os) {
+                                        llvm::raw_ostream& os) {
   MLIRContext context;
   loadSerializationDialects(context);
   auto module = mlir::parseSourceString<mlir::ModuleOp>(moduleStr, &context);
@@ -71,7 +71,7 @@ LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
 }
 
 LogicalResult deserializePortableArtifact(llvm::StringRef artifactStr,
-                                          raw_ostream& os) {
+                                          llvm::raw_ostream& os) {
   MLIRContext context;
   loadSerializationDialects(context);
   auto module = deserializePortableArtifact(artifactStr, &context);

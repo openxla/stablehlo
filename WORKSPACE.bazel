@@ -17,13 +17,17 @@ workspace(name = "stablehlo")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-LLVM_COMMIT = "6461b921fd06b1c812f1172685b8b7edc0608af7"
+LLVM_COMMIT = "0a95f2f7fe3a01fb94720dbb43679ef197b65f6a"
 
-LLVM_SHA256 = "4956f1481d3560495643d3317e2542460aae16bdf75e95d649f9a521fbb87107"
+LLVM_SHA256 = "4ae1cbc3bff94c1dfba201b5399cf83ac8c9d1d75091505e0f37eab67f11bd98"
 
 http_archive(
     name = "llvm-raw",
     build_file_content = "# empty",
+    patch_args = ["-p1"],
+    patches = [
+        "//:build_tools/mlir.patch",
+    ],
     sha256 = LLVM_SHA256,
     strip_prefix = "llvm-project-" + LLVM_COMMIT,
     urls = ["https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT)],
