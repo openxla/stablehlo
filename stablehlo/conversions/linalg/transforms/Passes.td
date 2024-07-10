@@ -20,7 +20,7 @@ limitations under the License.
 include "mlir/Pass/PassBase.td"
 
 def StablehloLegalizeToLinalgPass
-    : Pass<"stablehlo-legalize-to-linalg", "mlir::ModuleOp"> {
+    : Pass<"stablehlo-legalize-to-linalg"> {
   let summary = "Legalize StableHLO to LinAlg";
   let dependentDialects = [
     "mlir::bufferization::BufferizationDialect",
