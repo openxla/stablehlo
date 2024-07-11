@@ -518,6 +518,16 @@ mlir::Attribute CustomCallOp::getBackendConfigOrDefault() {
   return StringAttr::get(getContext(), "");
 }
 
+// Returns if the backend config is unset, or if empty dict / string attribute.
+bool CustomCallOp::hasEmptyBackendConfig() {
+  if (!getBackendConfig().has_value()) return true;
+  Attribute backendConfig = getBackendConfigOrDefault();
+  if (auto strAttr = dyn_cast<StringAttr>(backendConfig)) {
+    return strAttr.empty();
+  }
+  return cast<DictionaryAttr>(backendConfig).empty();
+}
+
 //===----------------------------------------------------------------------===//
 // CholeskyOp
 //===----------------------------------------------------------------------===//
