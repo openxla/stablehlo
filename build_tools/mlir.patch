@@ -1,0 +1,11 @@
+diff -ruN --strip-trailing-cr a/mlir/BUILD.bazel b/mlir/BUILD.bazel
+--- a/utils/bazel/llvm-project-overlay/mlir/BUILD.bazel
++++ b/utils/bazel/llvm-project-overlay/mlir/BUILD.bazel
+@@ -8542,6 +8542,7 @@
+         ":ArithDialect",
+         ":ConversionPassIncGen",
+         ":EmitCDialect",
++        ":EmitCTransforms",
+         ":IR",
+         ":Pass",
+         ":Support",

@@ -27,6 +27,7 @@ limitations under the License.
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Tensor.h"
+#include "stablehlo/reference/Types.h"
 #include "stablehlo/tests/CheckOps.cpp.inc"
 
 namespace mlir {
@@ -154,6 +155,88 @@ llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
                                    probeId.str().c_str());
 
   return evalExpectEqOp(expected, *tensor);
+}
+
+static uint64_t ULPDifference(APFloat f, APFloat g) {
+  if (f.bitwiseIsEqual(g))
+    return 0;  // f, g are identical finite or non-finite floats
+  if (f.isFinite() && g.isFinite()) {
+    auto af = (f.isNegative() ? -f : f).bitcastToAPInt();
+    auto ag = (g.isNegative() ? -g : g).bitcastToAPInt();
+    assert(af.getBitWidth() <= 64 && ag.getBitWidth() <= 64);
+    // a is ULP-distance between exact 0 and abs(f):
+    uint64_t a = af.getLimitedValue();
+    // b is ULP-distance between exact 0 and abs(g):
+    uint64_t b = ag.getLimitedValue();
+    if (f.isNegative() != g.isNegative()) {
+      return a + b;
+    }
+    return (a > b ? a - b : b - a);
+  }
+  // We do not distinguish signaling NaN and quiet NaN values because
+  // expected NaN values are typically quiet while functions NaN
+  // values depend on implementations and these can be signaling NaN
+  // values:
+  if (f.isNaN() && g.isNaN()) return 0;
+  // Here, one or both operands are non-finite values that are not
+  // bitwise-equal. For such cases, we defined the ULP-difference as a
+  // maximal possible value because ULP-distance between finite and
+  // non-finite values is meaningless in the context of closeness
+  // tests.
+  return std::numeric_limits<uint64_t>::max();
+}
+
+static uint64_t ULPDifference(const Element &e1, const Element &e2) {
+  // caller is responsible for ensuring that e1, e2 have both the same
+  // float or complex types
+  if (isSupportedComplexType(e1.getType())) {
+    auto complexLhs = e1.getComplexValue();
+    auto complexRhs = e2.getComplexValue();
+    return std::max(ULPDifference(complexLhs.real(), complexRhs.real()),
+                    ULPDifference(complexLhs.imag(), complexRhs.imag()));
+  }
+  return ULPDifference(e1.getFloatValue(), e2.getFloatValue());
+}
+
+llvm::Error evalExpectCloseOp(const Tensor &actual, const Tensor &expected,
+                              uint64_t min_ulp_difference,
+                              uint64_t max_ulp_difference) {
+  auto type = actual.getElementType();
+  if (!isSupportedFloatType(type) && !isSupportedComplexType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  std::string mismatches;
+  llvm::raw_string_ostream output(mismatches);
+  constexpr size_t ulp_diff_counter_size = 5;
+  int ulp_diff_counter[ulp_diff_counter_size] = {};
+  for (auto lhsIt = actual.index_begin(), rhsIt = expected.index_begin();
+       lhsIt != actual.index_end(); ++lhsIt, ++rhsIt) {
+    auto e1 = actual.get(*lhsIt);
+    auto e2 = expected.get(*rhsIt);
+    size_t ulp_diff = ULPDifference(e1, e2);
+    if (ulp_diff > max_ulp_difference || ulp_diff < min_ulp_difference) {
+      output << "\n  index=" << (*lhsIt) << ", actual=" << e1
+             << ", expected=" << e2 << ", ULP difference=" << ulp_diff;
+    }
+    // Gather ULP difference statistics:
+    ulp_diff_counter[std::min(ulp_diff, ulp_diff_counter_size - 1)] += 1;
+  }
+  if (!mismatches.empty()) {
+    // Append ULP difference statistics in exception message:
+    for (size_t i = 0; i < ulp_diff_counter_size; i++) {
+      output << "\nULP difference";
+      if (i + 1 == ulp_diff_counter_size)
+        output << " >= ";
+      else
+        output << " == ";
+      output << i << " count is " << ulp_diff_counter[i];
+    }
+    return invalidArgument(
+        "Elements values don't match with respect to maximal ULP "
+        "difference=%" PRIu64 " limit:%s",
+        max_ulp_difference, mismatches.c_str());
+  }
+  return llvm::Error::success();
 }
 
 }  // namespace check

@@ -25,24 +25,6 @@ def StableHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
   let printer = "printDimSizes($_printer, $_self)";
 }
 
-def GenericDenseI64ArrayAttr : Attr<DenseI64ArrayAttr.predicate, "DenseI64ArrayAttr with generic Attribute storage"> {
-  let storageType = "Attribute";
-  let valueType = DenseI64ArrayAttr.valueType;
-  let returnType = "::llvm::ArrayRef<int64_t>";
-  let baseAttr = DenseI64ArrayAttr;
-  let convertFromStorage = "cast<DenseI64ArrayAttr>($_self).asArrayRef()";
-  let constBuilderCall = "$_builder.getDenseI64ArrayAttr($0)";
-}
-
-def GenericDenseBoolArrayAttr : Attr<DenseBoolArrayAttr.predicate, "DenseBoolArrayAttr with generic Attribute storage"> {
-  let storageType = "Attribute";
-  let valueType = DenseBoolArrayAttr.valueType;
-  let returnType = "::llvm::ArrayRef<bool>";
-  let convertFromStorage = "cast<DenseBoolArrayAttr>($_self).asArrayRef()";
-  let constBuilderCall = "$_builder.getDenseBoolArrayAttr($0)";
-}
-
-
 def StableHLO_ScatterDimensionNumbers : AttrDef<StableHLO_Dialect, "ScatterDimensionNumbers"> {
   let mnemonic = "scatter";
   let summary = "Attribute that models the dimension information for scatter";

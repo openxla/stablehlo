@@ -361,7 +361,7 @@ func.func @test_fft(%arg0: tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>> {
   func.return %0 : tensor<3x5xcomplex<f32>>
 }
 
-func.func @test_gather(%arg0: tensor<5x200x100x300xf32>, %arg1: tensor<5x10x2xi32>) -> tensor<5x10x300xf32> {
+func.func @test_gather_batch(%arg0: tensor<5x200x100x300xf32>, %arg1: tensor<5x10x2xi32>) -> tensor<5x10x300xf32> {
   %0 = "stablehlo.gather"(%arg0, %arg1) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2],
@@ -601,7 +601,7 @@ func.func @test_rng_bit_generator(%arg: tensor<3xui64>) -> tuple<tensor<3xui64>,
   func.return %1 : tuple<tensor<3xui64>, tensor<2x2xui32>>
 }
 
-func.func @test_scatter(%input_tensor: tensor<5x200x100x300xf32>, %scatter_indices: tensor<5x10x2xi32>, %updates: tensor<5x10x300xf32>) -> tensor<5x200x100x300xf32> {
+func.func @test_scatter_batch(%input_tensor: tensor<5x200x100x300xf32>, %scatter_indices: tensor<5x10x2xi32>, %updates: tensor<5x10x300xf32>) -> tensor<5x200x100x300xf32> {
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
   ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
     %add = stablehlo.add %lhs, %rhs : tensor<f32>
@@ -621,7 +621,7 @@ func.func @test_scatter(%input_tensor: tensor<5x200x100x300xf32>, %scatter_indic
   func.return %0 : tensor<5x200x100x300xf32>
 }
 
-func.func @test_scatter2(%arg0: tensor<200x100x300xf32>, %arg1: tensor<10x2xi64>, %arg2: tensor<10x300xf32>) -> (tensor<200x100x300xf32>, tensor<200x100x300xf32>) {
+func.func @test_scatter_no_batch(%arg0: tensor<200x100x300xf32>, %arg1: tensor<10x2xi64>, %arg2: tensor<10x300xf32>) -> (tensor<200x100x300xf32>, tensor<200x100x300xf32>) {
     %0:2 = "stablehlo.scatter"(%arg0, %arg0, %arg1, %arg2, %arg2) ({
     ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>, %arg5: tensor<f32>, %arg6: tensor<f32>):
       %2 = stablehlo.add %arg3, %arg4 : tensor<f32>

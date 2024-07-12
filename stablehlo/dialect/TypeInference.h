@@ -515,10 +515,6 @@ LogicalResult verifyReduceOpInputsAndInferShape(
     ArrayRef<int64_t> dimensions, SmallVector<int64_t>& newDimensions,
     Attribute& encoding);
 
-LogicalResult verifyReducePrecisionOp(std::optional<Location> location,
-                                      int32_t exponentBits,
-                                      int32_t mantissaBits);
-
 LogicalResult verifyReduceScatterOp(std::optional<Location> location,
                                     Value operand, int64_t scatterDimension,
                                     DenseIntElementsAttr replicaGroups,
@@ -563,6 +559,9 @@ LogicalResult verifySortOp(std::optional<Location> location, ValueRange inputs,
 LogicalResult verifyTransposeOp(std::optional<Location> location,
                                 Type operandType, ArrayRef<int64_t> permutation,
                                 Type resultType);
+
+LogicalResult verifyUniformQuantizeOp(std::optional<Location> location,
+                                      Value operand, Value result);
 
 LogicalResult verifyWhileOp(std::optional<Location> location,
                             ValueRange operand, Region& cond, Region& body);

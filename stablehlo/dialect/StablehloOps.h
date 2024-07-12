@@ -120,33 +120,19 @@ void printConvolutionDimensions(AsmPrinter &p, Operation *,
 ParseResult parseConvolutionDimensions(AsmParser &parser,
                                        ConvDimensionNumbersAttr &dimNums);
 
-// TODO(#2216) Cleanup Attribute -> DenseArrayAttr for print/parse.
-// Custom formatting for convolution window attributes.
 void printWindowAttributes(OpAsmPrinter &p, Operation *op,
-                           std::optional<Attribute> windowStrides,
+                           std::optional<DenseI64ArrayAttr> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
-                           std::optional<Attribute> lhsDilation,
-                           std::optional<Attribute> rhsDilation,
-                           std::optional<Attribute> windowReversal);
+                           std::optional<DenseI64ArrayAttr> lhsDilation,
+                           std::optional<DenseI64ArrayAttr> rhsDilation,
+                           std::optional<DenseBoolArrayAttr> windowReversal);
 
-// TODO(#2216) Cleanup Attribute -> DenseArrayAttr for print/parse.
-// Custom formatting for convolution window attributes.
-void printWindowAttributes(OpAsmPrinter &p, Operation *op,
-                           std::optional<Attribute> windowStrides,
-                           std::optional<Attribute> lhsDilation,
-                           std::optional<Attribute> rhsDilation,
-                           std::optional<Attribute> windowReversal);
-
-ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
+ParseResult parseWindowAttributes(OpAsmParser &parser,
+                                  DenseI64ArrayAttr &windowStrides,
                                   DenseIntElementsAttr &padding,
-                                  Attribute &lhsDilation,
-                                  Attribute &rhsDilation,
-                                  Attribute &windowReversal);
-
-ParseResult parseWindowAttributes(OpAsmParser &parser, Attribute &windowStrides,
-                                  Attribute &lhsDilation,
-                                  Attribute &rhsDilation,
-                                  Attribute &windowReversal);
+                                  DenseI64ArrayAttr &lhsDilation,
+                                  DenseI64ArrayAttr &rhsDilation,
+                                  DenseBoolArrayAttr &windowReversal);
 
 }  // end namespace stablehlo
 }  // end namespace mlir

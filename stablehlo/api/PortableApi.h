@@ -27,7 +27,12 @@ namespace stablehlo {
 
 /// Return the current version for portable API.
 /// Increments on all meaningful changes to this file.
-inline int64_t getApiVersion() { return 6; }
+inline int64_t getApiVersion() { return 7; }
+
+// Get the smaller version between version1 and version2.
+LogicalResult getSmallerVersion(const std::string& version1,
+                                const std::string& version2,
+                                std::string& result);
 
 // Get the current StableHLO version.
 //
@@ -58,9 +63,9 @@ std::string getMinimumVersion();
 // Can fail if `moduleStr` cannot be parsed, or if it cannot be expressed in the
 // `targetVersion` version of StableHLO, e.g. if it's using new or removed
 // features, or if it involves unsupported dialects.
-LogicalResult serializePortableArtifact(StringRef moduleStr,
-                                        StringRef targetVersion,
-                                        raw_ostream& os);
+LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
+                                        llvm::StringRef targetVersion,
+                                        llvm::raw_ostream& os);
 
 // Read a StableHLO program from a portable artifact, returning the module as
 // MLIR bytecode. Note, this bytecode returned is not a portable artifact,
@@ -69,8 +74,8 @@ LogicalResult serializePortableArtifact(StringRef moduleStr,
 // Can fail if `artifactStr` cannot be expressed in the current version of
 // StableHLO, e.g. if it's using incompatible features. Returns failure if
 // `artifactStr` is invalid or fails to deserialize.
-LogicalResult deserializePortableArtifact(StringRef artifactStr,
-                                          raw_ostream& os);
+LogicalResult deserializePortableArtifact(llvm::StringRef artifactStr,
+                                          llvm::raw_ostream& os);
 
 }  // namespace stablehlo
 }  // namespace mlir

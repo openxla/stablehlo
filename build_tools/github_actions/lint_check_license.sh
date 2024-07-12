@@ -56,6 +56,7 @@ SKIPPED_SUFFIXES=(
   .mlir
   .mlir.bc
   .png
+  .patch
   .svg
   LICENSE
   MODULE.bazel.lock

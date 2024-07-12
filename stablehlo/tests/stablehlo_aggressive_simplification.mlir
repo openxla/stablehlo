@@ -324,10 +324,10 @@ func.func @select_into_minmax2(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: te
 
 // -----
 
-// CHECK-LABEL: func.func @broadcast_in_dim
+// CHECK-LABEL: func.func @broadcast_in_dim_splat
 // CHECK-SAME:   ([[ARG0:%.+]]: tensor<3x3xi32>)
-func.func @broadcast_in_dim(%arg0: tensor<3x3xi32>)
-  -> (tensor<6xi32>, tensor<3xf32>, tensor<3x3xi32>, tensor<3x3xi32>, tensor<3x3xi32>, tensor<3x3x1xi32>, tensor<3x2x3x3xi32>) {
+func.func @broadcast_in_dim_splat(%arg0: tensor<3x3xi32>)
+  -> (tensor<6xi32>, tensor<3xf32>, tensor<3x3xi32>) {
   %c0 = stablehlo.constant dense<5> : tensor<i32>
   %c1 = stablehlo.constant dense<3.0> : tensor<f32>
   %c2 = stablehlo.constant dense<1> : tensor<1x3xi32>
@@ -336,23 +336,57 @@ func.func @broadcast_in_dim(%arg0: tensor<3x3xi32>)
   %1 = stablehlo.broadcast_in_dim %c1, dims = [] : (tensor<f32>) -> tensor<3xf32>
   %2 = stablehlo.broadcast_in_dim %c2, dims = [1, 0] : (tensor<1x3xi32>) -> tensor<3x3xi32>
 
-  %3 = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<3x3xi32>) -> tensor<3x3xi32>
-  %4 = stablehlo.broadcast_in_dim %arg0, dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3xi32>
-  %5 = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<3x3xi32>) -> tensor<3x3x1xi32>
-
-  %6 = stablehlo.broadcast_in_dim %arg0, dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3x2xi32>
-  %7 = stablehlo.broadcast_in_dim %6, dims = [0, 2, 1] : (tensor<3x3x2xi32>) -> tensor<3x2x3x3xi32>
-
   // CHECK-DAG:  [[R0:%.+]] = stablehlo.constant dense<5> : tensor<6xi32>
   // CHECK-DAG:  [[R1:%.+]] = stablehlo.constant dense<3.000000e+00> : tensor<3xf32>
   // CHECK-DAG:  [[R2:%.+]] = stablehlo.constant dense<1> : tensor<3x3xi32>
 
-  // CHECK-DAG:  [[R4:%.+]] = stablehlo.transpose [[ARG0]], dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3xi32>
-  // CHECK-DAG:  [[R5:%.+]] = stablehlo.reshape [[ARG0]] : (tensor<3x3xi32>) -> tensor<3x3x1xi32>
-  // CHECK-DAG:  [[R6:%.+]] = stablehlo.broadcast_in_dim [[ARG0]], dims = [2, 0] : (tensor<3x3xi32>) -> tensor<3x2x3x3xi32>
+  // CHECK-NEXT: return [[R0]], [[R1]], [[R2]]
+  return %0, %1, %2 : tensor<6xi32>, tensor<3xf32>, tensor<3x3xi32>
+}
 
-  // CHECK-NEXT: return [[R0]], [[R1]], [[R2]], [[ARG0]], [[R4]], [[R5]], [[R6]]
-  return %0, %1, %2, %3, %4, %5, %7 : tensor<6xi32>, tensor<3xf32>, tensor<3x3xi32>, tensor<3x3xi32>, tensor<3x3xi32>, tensor<3x3x1xi32>, tensor<3x2x3x3xi32>
+// -----
+
+// CHECK-LABEL: func.func @broadcast_in_dim_transpose
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<3x3xi32>)
+func.func @broadcast_in_dim_transpose(%arg0: tensor<3x3xi32>)
+  -> (tensor<3x3xi32>, tensor<3x3xi32>) {
+  %3 = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<3x3xi32>) -> tensor<3x3xi32>
+  %4 = stablehlo.broadcast_in_dim %arg0, dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3xi32>
+
+  // CHECK: [[R4:%.+]] = stablehlo.transpose [[ARG0]], dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3xi32>
+
+  // CHECK-NEXT: return [[ARG0]], [[R4]]
+  return %3, %4 : tensor<3x3xi32>, tensor<3x3xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @broadcast_in_dim_nested
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<3x3xi32>)
+func.func @broadcast_in_dim_nested(%arg0: tensor<3x3xi32>)
+  -> (tensor<3x2x3x3xi32>) {
+  %6 = stablehlo.broadcast_in_dim %arg0, dims = [1, 0] : (tensor<3x3xi32>) -> tensor<3x3x2xi32>
+  %7 = stablehlo.broadcast_in_dim %6, dims = [0, 2, 1] : (tensor<3x3x2xi32>) -> tensor<3x2x3x3xi32>
+  // CHECK: [[R6:%.+]] = stablehlo.broadcast_in_dim [[ARG0]], dims = [2, 0] : (tensor<3x3xi32>) -> tensor<3x2x3x3xi32>
+
+  // CHECK-NEXT: return [[R6]]
+  return %7 : tensor<3x2x3x3xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @broadcast_in_dim_reshape
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<3x6xi32>)
+func.func @broadcast_in_dim_reshape(%arg0: tensor<3x6xi32>)
+  -> (tensor<1x3x6xi32>, tensor<3x6x1xi32>) {
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [1, 2] : (tensor<3x6xi32>) -> tensor<1x3x6xi32>
+  %5 = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<3x6xi32>) -> tensor<3x6x1xi32>
+
+  // CHECK-DAG:  [[R0:%.+]] = stablehlo.reshape [[ARG0]] : (tensor<3x6xi32>) -> tensor<1x3x6xi32>
+  // CHECK-DAG:  [[R5:%.+]] = stablehlo.reshape [[ARG0]] : (tensor<3x6xi32>) -> tensor<3x6x1xi32>
+
+  // CHECK-NEXT: return [[R0]], [[R5]]
+  return %0, %5 : tensor<1x3x6xi32>, tensor<3x6x1xi32>
 }
 
 // -----

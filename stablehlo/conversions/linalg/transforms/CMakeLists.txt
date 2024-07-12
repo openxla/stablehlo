@@ -34,6 +34,9 @@ add_mlir_library(StablehloLinalgTransforms
   Core
 
   LINK_LIBS PUBLIC
+  ChloOps
+  StablehloBase
+  StablehloOps
   MLIRArithDialect
   MLIRBufferizationDialect
   MLIRComplexDialect
@@ -45,13 +48,11 @@ add_mlir_library(StablehloLinalgTransforms
   MLIRMathDialect
   MLIRMemRefDialect
   MLIRPass
-  MLIRPass
   MLIRSCFDialect
   MLIRShapeDialect
   MLIRSparseTensorDialect
   MLIRSupport
   MLIRTensorDialect
-  MLIRTransforms
   MLIRTransforms
   MLIRVectorDialect
 )

@@ -300,7 +300,7 @@ struct StablehloCanonicalizeDynamismPass
 
   LogicalResult initialize(MLIRContext* context) override {
     config.useTopDownTraversal = true;
-    config.enableRegionSimplification = true;
+    config.enableRegionSimplification = GreedySimplifyRegionLevel::Aggressive;
     config.maxIterations = 2;
     config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
     config.strictMode = GreedyRewriteStrictness::AnyOp;

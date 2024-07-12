@@ -12,6 +12,15 @@ An experimental pass that legalizes shape-related ops to StableHLO ops.
 Bringing shape and data computations together via an optional pass will
 make it possible for the StableHLO ecosystem to potentially leverage the
 compilation pipelines that use StableHLO operations to model dynamism.
+### `-stablehlo-aggressive-folder`
+
+_Folds StableHLO operations_
+
+
+#### Options
+```
+-fold-float : Allow for potentially lossy computations using float type.
+```
 ### `-stablehlo-aggressive-simplification`
 
 _Canonicalizes StableHLO operations_
@@ -26,36 +35,10 @@ are actually constant.
 
 For example, if the output_shape operand of DynamicReshapeOp is a constant
 value, then the operation can be transformed to ReshapeOp.
-### `-stablehlo-instrument-with-probe`
+### `-stablehlo-convert-to-signless`
 
-_Inserts probe instrumentation instructions in a StableHLO program._
+_Pass to transform the IR to be on signless integers._
 
-Walks through a StableHLO program and inserts a probe instrumentation
-operation after each suitable operation (see below for how a suitable
-operation is defined). Instrumentation is used to extract intermediate
-tensor values from the StableHLO reference interpreter for later comparison
-with other runtimes.
-
-All operations are considered suitable for instrumentation, except constant
-ops, ops which do not have any tensor return values (i.e. an op that
-produces a tuple or a token or no return values will not be instrumented).
-Suitable operations will be instrumented regardless of their level of
-nesting. That is, operations inside loop/branch regions will also be
-instrumented.
-
-Instrumented operations will have their return values written to disk using
-the NumPy data format as they are executed. If the `useDebugInfo` pass
-option is enabled, location debug information will be used when available to
-uniquely identify instrumented tensor values (i.e. the pass will extract
-`probe_id` from `NamedLoc(probe_id@<...>)` and use the format `probe_id`.#).
-Otherwise, instrumented values will be referred to in the increasing
-sequence: `probe1`, `probe2`, ... See `interpreter.probe` for additional
-information on how data is serialized.
-
-#### Options
-```
--useDebugInfo : Whether or not to use location debug data as `probe_id` values.
-```
 ### `-stablehlo-legalize-composite-to-call`
 
 _Replaces composite ops with a call to their decomposition_
@@ -101,6 +84,37 @@ long-term supported counterparts.
 #### Options
 ```
 -fail-on-unused : Fail on (mostly) unused ops that are deprecated without any fallback.
+```
+### `-stablehlo-legalize-quant-to-int`
+
+_Convert from StableHLO quantized ops to StableHLO primitive ops._
+
+Convert StableHLO programs using UniformQuantized types to semantically
+equivalent integer math.
+### `-stablehlo-legalize-quantized-op-to-qdq`
+
+_Decompose StableHLO quantized ops using uniform quantize/dequantize ops._
+
+Decompose StableHLO quantized programs using uniform quantize/dequantize
+operations. For example, the following program
+
+```mlir
+func.func @add(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32,1.0:0>>, tensor<!quant.uniform<i8:f32,2.0:1>>) -> tensor<!quant.uniform<i8:f32,3.0:2>>
+  func.return %0 : tensor<!quant.uniform<i8:f32,3.0:2>>
+}
+```
+
+Will become:
+
+```mlir
+func.func @add(%arg0: tensor<!quant.uniform<i8:f32, 1.000000e+00>>, %arg1: tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>> {
+  %0 = stablehlo.uniform_dequantize %arg0 : (tensor<!quant.uniform<i8:f32, 1.000000e+00>>) -> tensor<f32>
+  %1 = stablehlo.uniform_dequantize %arg1 : (tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<f32>
+  %2 = stablehlo.add %0, %1 : tensor<f32>
+  %3 = stablehlo.uniform_quantize %2 : (tensor<f32>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
+  return %3 : tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
+}
 ```
 ### `-stablehlo-legalize-to-vhlo`
 

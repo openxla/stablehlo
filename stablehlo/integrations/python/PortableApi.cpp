@@ -31,6 +31,19 @@ void AddPortableApi(py::module& m) {
 
   m.def("get_api_version", []() { return getApiVersion(); });
 
+  m.def(
+      "get_smaller_version",
+      [](std::string version1, std::string version2) -> py::str {
+        std::string result;
+        if (failed(getSmallerVersion(version1, version2, result))) {
+          PyErr_SetString(PyExc_ValueError,
+                          "failed to convert version to stablehlo version");
+          return "";
+        }
+        return result;
+      },
+      py::arg("version1"), py::arg("version2"));
+
   //
   // Serialization APIs.
   //

@@ -346,7 +346,7 @@ struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
 
     // Clean up operand buffers after refinement
     // Must do in this pattern to avoid needing multiple refinement iterations
-    if (op.getCallTargetName().equals(kCustomCallOperandBarrierTarget)) {
+    if (op.getCallTargetName() == kCustomCallOperandBarrierTarget) {
       Value operand = op.getOperand(0);
       if (operand.getType() == op.getResult(0).getType()) {
         op.replaceAllUsesWith(ValueRange(operand));
@@ -728,7 +728,7 @@ struct StablehloRefineShapesPass
     // There have been recent refactors to applyPatternsAndFoldGreedily
     // upstream, and that might be the reason.
     config.useTopDownTraversal = true;
-    config.enableRegionSimplification = true;
+    config.enableRegionSimplification = GreedySimplifyRegionLevel::Aggressive;
     config.maxIterations = 2;
     config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
     config.strictMode = GreedyRewriteStrictness::AnyOp;

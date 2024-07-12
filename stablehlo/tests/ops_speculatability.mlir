@@ -1892,7 +1892,6 @@ func.func @dynamic_gather(
             collapsed_slice_dims = [0],
             start_index_map = [1, 0],
             index_vector_dim = 2>,
-          slice_sizes = array<i64: 1, 2, 2>,
           indices_are_sorted = false
   } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
   "hlo_test_speculatability.is_speculatable"(%0) : (tensor<?x?x?x?xi32>) -> ()
@@ -1902,7 +1901,6 @@ func.func @dynamic_gather(
             collapsed_slice_dims = [0],
             start_index_map = [1, 0],
             index_vector_dim = 2>,
-          slice_sizes = array<i64: 1, 2, 2>,
           indices_are_sorted = true
   } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
   "hlo_test_speculatability.is_speculatable"(%1) : (tensor<?x?x?x?xi32>) -> ()
@@ -1914,7 +1912,6 @@ func.func @dynamic_gather(
             collapsed_slice_dims = [0],
             start_index_map = [1, 0],
             index_vector_dim = 2>,
-          slice_sizes = array<i64: 1, 2, 2>,
           indices_are_sorted = false
   } : (tensor<?x?x?xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
   "hlo_test_speculatability.is_not_speculatable"(%2) : (tensor<?x?x?x?xi32>) -> ()
@@ -1926,7 +1923,6 @@ func.func @dynamic_gather(
             collapsed_slice_dims = [0],
             start_index_map = [1, 0],
             index_vector_dim = 2>,
-          slice_sizes = array<i64: 1, 2, 2>,
           indices_are_sorted = false
   } : (tensor<3x4x2xi32>, tensor<?x?x?xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
   "hlo_test_speculatability.is_not_speculatable"(%3) : (tensor<?x?x?x?xi32>) -> ()
@@ -1938,7 +1934,6 @@ func.func @dynamic_gather(
             collapsed_slice_dims = [0],
             start_index_map = [1, 0],
             index_vector_dim = 2>,
-          slice_sizes = array<i64: 1, 2, 2>,
           indices_are_sorted = false
   } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi32>) -> tensor<?x?x?x?xi32>
   "hlo_test_speculatability.is_not_speculatable"(%4) : (tensor<?x?x?x?xi32>) -> ()

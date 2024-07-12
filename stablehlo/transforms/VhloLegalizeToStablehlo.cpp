@@ -736,7 +736,8 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
   if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV1>::value) {
     if (isBoolean(vhloOp.getHasSideEffectAttr(), false))
       eraseAttrs(vhloAttrs, "has_side_effect");
-    if (isEmptyString(vhloOp.getBackendConfigAttr()))
+    if (isEmptyString(vhloOp.getBackendConfigAttr()) ||
+        isEmptyDictionary(vhloOp.getBackendConfigAttr()))
       eraseAttrs(vhloAttrs, "backend_config");
     if (isEnum(vhloOp.getApiVersionAttr(),
                vhlo::CustomCallApiVersionV1Attr::get(
@@ -745,10 +746,11 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       eraseAttrs(vhloAttrs, "api_version");
     if (isEmptyArray(vhloOp.getCalledComputations()))
       eraseAttrs(vhloAttrs, "called_computations");
-    if (isEmptyArray(vhloOp.getOperandLayouts()))
+    if (isEmptyArray(vhloOp.getOperandLayouts()) &&
+        isEmptyArray(vhloOp.getResultLayouts())) {
       eraseAttrs(vhloAttrs, "operand_layouts");
-    if (isEmptyArray(vhloOp.getResultLayouts()))
       eraseAttrs(vhloAttrs, "result_layouts");
+    }
     if (isEmptyArray(vhloOp.getOutputOperandAliases()))
       eraseAttrs(vhloAttrs, "output_operand_aliases");
   }

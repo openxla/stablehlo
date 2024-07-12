@@ -39,6 +39,8 @@ def VHLO_Dialect : Dialect {
       0.19.0: Introduce `composite` operation.
       0.20.0: Remove `padding` attribute from `dynamic_conv`.
       1.0.0: Increase compatibility guarantees to 5 years backward, 2 years forward (no functional changes relative to 0.20.0).
+      1.2.0: Introduce `si2` and `ui2` types.
+      1.3.0: Extend `custom_call` op `backend_config` to support `DictionaryAttr`
   }];
 
   let useDefaultAttributePrinterParser = 0;

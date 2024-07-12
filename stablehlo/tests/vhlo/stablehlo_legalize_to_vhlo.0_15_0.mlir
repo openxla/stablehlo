@@ -612,9 +612,9 @@ func.func @default_func(%arg0: tensor<f32>) -> tensor<f32> {
   func.return %arg0 : tensor<f32>
 }
 
-// CHECK-LABEL: "dynamic_gather"
+// CHECK-LABEL: "default_gather"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
-func.func @dynamic_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32>) -> tensor<1x5x1xf32> {
+func.func @default_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32>) -> tensor<1x5x1xf32> {
   //      CHECK: "vhlo.gather_v1"(%[[ARG0]], %[[ARG1]]) <{
   // CHECK-SAME:   collapsed_slice_dims = #vhlo.tensor_v1<dense<[0, 1]> : tensor<2xi64>>,
   // CHECK-SAME:   index_vector_dim = #vhlo.integer_v1<2 : i64>,

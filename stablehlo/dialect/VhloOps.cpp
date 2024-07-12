@@ -333,6 +333,19 @@ LogicalResult verifyConstraint_0_17_0(mlir::Operation* op,
     return failure();
   return success();
 }
+
+LogicalResult verifyConstraint_1_3_0(mlir::Operation* op,
+                                     Version targetVersion) {
+  auto customCallOp = cast<mlir::vhlo::CustomCallOpV1>(op);
+  if (targetVersion < Version(1, 3, 0) &&
+      (isa<vhlo::DictionaryV1Attr>(customCallOp.getBackendConfig()) ||
+       mlir::cast<CustomCallApiVersionV1Attr>(customCallOp.getApiVersion())
+               .getValue() == CustomCallApiVersionV1::API_VERSION_TYPED_FFI)) {
+    return failure();
+  }
+  return success();
+}
+
 }  // namespace
 
 LogicalResult AllReduceOpV1::validateConstraint(mlir::Operation* op,
@@ -363,6 +376,11 @@ LogicalResult ScatterOpV1::validateConstraint(mlir::Operation* op,
 LogicalResult SelectAndScatterOpV1::validateConstraint(mlir::Operation* op,
                                                        Version targetVersion) {
   return verifyConstraint_0_17_0(op, targetVersion);
+}
+
+LogicalResult CustomCallOpV1::validateConstraint(mlir::Operation* op,
+                                                 Version targetVersion) {
+  return verifyConstraint_1_3_0(op, targetVersion);
 }
 
 }  // namespace vhlo

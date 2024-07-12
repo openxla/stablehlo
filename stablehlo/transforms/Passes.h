@@ -63,12 +63,19 @@ void populateChloToStablehloPatterns(MLIRContext *context,
 
 /// Collection of folding patterns for StableHLO.
 void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
-                                               MLIRContext *context);
+                                               MLIRContext *context,
+                                               bool foldFloat);
+
+/// Collection of rewrite patterns for lowering quantized StableHLO operations
+/// using uniform dequantize/quantize operations.
+void populateStablehloLegalizeQuantizedOpToQDQPatterns(
+    RewritePatternSet *patterns, MLIRContext *context);
 
 /// A subset of folding patterns for StableHLO that is necessary for shape
 /// refinement.
 void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
-                                          MLIRContext *context);
+                                          MLIRContext *context,
+                                          bool foldFloat = false);
 
 /// Collection of canonicalization patterns for StableHLO.
 void populateStablehloCanonicalizationPatterns(MLIRContext *context,
@@ -113,6 +120,11 @@ void createStablehloDeserializePipeline(OpPassManager &pm);
 //   counterparts if applicable.
 void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
                                            TypeRange refinedTypes);
+
+// Decomposes quantized operations within a StableHLO module by
+// applying a series of MLIR passes essentially breaking down the quantized
+// operations into a primitive math operations.
+void createStablehloLowerQuantPipeline(OpPassManager &pm);
 
 // Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
 // for opt tools.

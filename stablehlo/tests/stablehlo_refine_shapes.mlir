@@ -293,6 +293,18 @@ func.func @eval_convert_infer_before_fold() -> tensor<?xi32> {
 
 // -----
 
+// shape refinement do not perform potentially lossy computations
+// CHECK-LABEL: func @eval_convert_f32_to_i64
+func.func @eval_convert_f32_to_i64() -> tensor<2xi64> {
+  // CHECK: [[RESULT:%.*]] = stablehlo.convert
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<[1.0, 2.0]> : tensor<2xf32>
+  %1 = stablehlo.convert %0 : (tensor<2xf32>) -> tensor<2xi64>
+  return %1 : tensor<2xi64>
+}
+
+// -----
+
 // CHECK-LABEL: func @eval_divide
 func.func @eval_divide() -> tensor<i64> {
   // CHECK-NOT: stablehlo.divide

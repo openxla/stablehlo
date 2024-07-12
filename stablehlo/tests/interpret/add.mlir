@@ -1,5 +1,25 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
+func.func @add_op_test_si2() {
+  %0 = stablehlo.constant dense<[1, 0, -1, -2]> : tensor<4xi2>
+  %1 = stablehlo.constant dense<[-1, 1, 1, 1]> : tensor<4xi2>
+  %2 = stablehlo.add %0, %1 : tensor<4xi2>
+  check.expect_eq_const %2, dense<[0, 1, 0, -1]> : tensor<4xi2>
+  func.return
+}
+
+// -----
+
+func.func @add_op_test_ui2() {
+  %0 = stablehlo.constant dense<[0, 2]> : tensor<2xui2>
+  %1 = stablehlo.constant dense<[1, 1]> : tensor<2xui2>
+  %2 = stablehlo.add %0, %1 : tensor<2xui2>
+  check.expect_eq_const %2, dense<[1, 3]> : tensor<2xui2>
+  func.return
+}
+
+// -----
+
 func.func @add_op_test_si4() {
   %0 = stablehlo.constant dense<[0, 1, 2, -3, 0]> : tensor<5xi4>
   %1 = stablehlo.constant dense<[-8, -1, 2, -3, 7]> : tensor<5xi4>

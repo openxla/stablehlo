@@ -20,6 +20,7 @@ limitations under the License.
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/integrations/c/StablehloAttributes.h"
 #include "stablehlo/integrations/c/StablehloDialect.h"
+#include "stablehlo/integrations/c/StablehloPasses.h"
 #include "stablehlo/integrations/c/StablehloTypes.h"
 #include "stablehlo/integrations/python/PortableApi.h"
 #include "stablehlo/reference/Api.h"
@@ -64,6 +65,13 @@ PYBIND11_MODULE(_stablehlo, m) {
         }
       },
       py::arg("context"), py::arg("load") = true);
+
+  //
+  // Passes.
+  //
+
+  m.def("register_stablehlo_passes",
+        []() { mlirRegisterAllStablehloPasses(); });
 
   //
   // Types.

@@ -37,6 +37,20 @@ void loadSerializationDialects(MLIRContext& context) {
 }
 }  // namespace
 
+LogicalResult getSmallerVersion(const std::string& version1,
+                                const std::string& version2,
+                                std::string& result) {
+  auto v1 = mlir::vhlo::Version::fromString(version1);
+  auto v2 = mlir::vhlo::Version::fromString(version2);
+  if (failed(v1) || failed(v2)) return failure();
+
+  if (*v1 < *v2)
+    result = (*v1).toString();
+  else
+    result = (*v2).toString();
+  return success();
+}
+
 std::string getCurrentVersion() {
   return mlir::vhlo::Version::getCurrentVersion().toString();
 }
@@ -45,9 +59,9 @@ std::string getMinimumVersion() {
   return mlir::vhlo::Version::getMinimumVersion().toString();
 }
 
-LogicalResult serializePortableArtifact(StringRef moduleStr,
-                                        StringRef targetVersion,
-                                        raw_ostream& os) {
+LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
+                                        llvm::StringRef targetVersion,
+                                        llvm::raw_ostream& os) {
   MLIRContext context;
   loadSerializationDialects(context);
   auto module = mlir::parseSourceString<mlir::ModuleOp>(moduleStr, &context);
@@ -56,8 +70,8 @@ LogicalResult serializePortableArtifact(StringRef moduleStr,
   return serializePortableArtifact(*module, targetVersion, os);
 }
 
-LogicalResult deserializePortableArtifact(StringRef artifactStr,
-                                          raw_ostream& os) {
+LogicalResult deserializePortableArtifact(llvm::StringRef artifactStr,
+                                          llvm::raw_ostream& os) {
   MLIRContext context;
   loadSerializationDialects(context);
   auto module = deserializePortableArtifact(artifactStr, &context);
