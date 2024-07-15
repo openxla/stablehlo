@@ -6223,8 +6223,8 @@ Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 
 #### Semantics
 
-Performs element-wise tangent operation on the `operand` tensor and
-produces a `result` tensor. Depending on the element type, does the following:
+Performs element-wise tangent operation on the `operand` tensor and produces a
+`result` tensor. Depending on the element type, does the following:
 
 * For floats: `tan` from IEEE-754.
 * For complex numbers: complex tangent.
