@@ -112,6 +112,13 @@ func.func @slice_rank_seven(%arg : tensor<2x3x4x5x6x7x8xf32>) -> tensor<1x2x3x4x
   return %0 : tensor<1x2x3x4x5x6x7xf32>
 }
 
+// CHECK-LABEL: @tan
+func.func @tan(%arg : tensor<10xf32>) -> tensor<10xf32> {
+  // CHECK: tosa.tan
+  %0 = "stablehlo.tan"(%arg) : (tensor<10xf32>) -> tensor<10xf32>
+  return %0 : tensor<10xf32>
+}
+
 // CHECK-LABEL: @tanh
 func.func @tanh(%arg : tensor<10xf32>) -> tensor<10xf32> {
   // CHECK: tosa.tanh

@@ -97,7 +97,8 @@ func.func @unary_ops(%arg0 : tensor<2xi32>, %arg1 : tensor<2xf32>) -> () {
   // CHECK-NEXT: %19 = stablehlo.sign %arg1 : tensor<2xf32>
   // CHECK-NEXT: %20 = stablehlo.sine %arg1 : tensor<2xf32>
   // CHECK-NEXT: %21 = stablehlo.sqrt %arg1 : tensor<2xf32>
-  // CHECK-NEXT: %22 = stablehlo.tanh %arg1 : tensor<2xf32>
+  // CHECK-NEXT: %22 = stablehlo.tan %arg1 : tensor<2xf32>
+  // CHECK-NEXT: %23 = stablehlo.tanh %arg1 : tensor<2xf32>
   %0 = "stablehlo.abs"(%arg0) : (tensor<2xi32>) -> tensor<2xi32>
   %1 = "stablehlo.ceil"(%arg1) : (tensor<2xf32>) -> tensor<2xf32>
   %2 = "stablehlo.count_leading_zeros"(%arg0) : (tensor<2xi32>) -> tensor<2xi32>
@@ -120,7 +121,8 @@ func.func @unary_ops(%arg0 : tensor<2xi32>, %arg1 : tensor<2xf32>) -> () {
   %19 = "stablehlo.sign"(%arg1) : (tensor<2xf32>) -> tensor<2xf32>
   %20 = "stablehlo.sine"(%arg1) : (tensor<2xf32>) -> tensor<2xf32>
   %21 = "stablehlo.sqrt"(%arg1) : (tensor<2xf32>) -> tensor<2xf32>
-  %22 = "stablehlo.tanh"(%arg1) : (tensor<2xf32>) -> tensor<2xf32>
+  %22 = "stablehlo.tan"(%arg1) : (tensor<2xf32>) -> tensor<2xf32>
+  %23 = "stablehlo.tanh"(%arg1) : (tensor<2xf32>) -> tensor<2xf32>
   "stablehlo.return"(%0) : (tensor<2xi32>) -> ()
 }
 

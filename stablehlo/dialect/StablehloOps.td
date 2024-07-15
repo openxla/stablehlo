@@ -640,9 +640,27 @@ def StableHLO_SqrtOp: StableHLO_UnaryElementwiseOp<"sqrt",
   }];
 }
 
+def StableHLO_TanOp: StableHLO_UnaryElementwiseOp<"tan",
+    [HLO_CompatibleOperandsAndResultType /* tan_c1 */],
+    HLO_FpComplexOrQuantizedIntTensor /* tan_i1 */> {
+  let summary = "Tan operation";
+  let description = [{
+    Performs element-wise tangent operation on `operand` tensor and
+    produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#tan
+
+    Example:
+    ```mlir
+    %result = "stablehlo.tan"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
+    ```
+  }];
+}
+
 def StableHLO_TanhOp: StableHLO_UnaryElementwiseOp<"tanh",
-    [HLO_CompatibleOperandsAndResultType],
-    HLO_FpComplexOrQuantizedIntTensor> {
+    [HLO_CompatibleOperandsAndResultType /* tanh_c1 */],
+    HLO_FpComplexOrQuantizedIntTensor /* tanh_i1 */> {
   let summary = "Tanh operation";
   let description = [{
     Performs element-wise hyperbolic tangent operation on `operand` tensor and

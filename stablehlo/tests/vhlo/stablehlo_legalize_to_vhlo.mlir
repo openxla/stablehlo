@@ -2424,6 +2424,14 @@ func.func @op_subtract(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
   func.return %0 : tensor<f32>
 }
 
+// CHECK-LABEL: "op_tan"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func @op_tan(%arg0: tensor<f32>) -> tensor<f32> {
+  // CHECK: "vhlo.tan_v1"(%[[ARG0]]) : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+  %0 = "stablehlo.tan"(%arg0) : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
 // CHECK-LABEL: "op_tanh"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @op_tanh(%arg0: tensor<f32>) -> tensor<f32> {
