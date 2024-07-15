@@ -1,9 +1,9 @@
 // RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
-// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=1.3.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=1.4.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
 // RUN: stablehlo-translate --deserialize %s.bc | stablehlo-opt > %t.0
 // RUN: stablehlo-opt --strip-debuginfo %s > %t.1
 // RUN: diff %t.0 %t.1
-// RUN: stablehlo-translate --serialize --target=1.3.0 --strip-debuginfo %s > %t.2
+// RUN: stablehlo-translate --serialize --target=1.4.0 --strip-debuginfo %s > %t.2
 // RUN: diff %s.bc %t.2
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
@@ -172,6 +172,12 @@ func.func @attr_custom_call_api_version_status_returning_unified(%arg0: tensor<f
   func.return %0 : tensor<f32>
 }
 
+// CHECK-LABEL: "attr_dict"
+// CHECK: #vhlo.dict_v1<{#vhlo.string_v1<"attr1"> = #vhlo.integer_v1<1 : i32>, #vhlo.string_v1<"attr2"> = #vhlo.integer_v1<2 : i32>}
+func.func @attr_dict() attributes {stablehlo.attr = {attr1 = 1 : i32, attr2 = 2 : i32}} {
+  return
+}
+
 // CHECK-LABEL: "attr_custom_call_api_version_typed_ffi"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 // CHECK: api_version = #vhlo<api_version_v1 API_VERSION_TYPED_FFI>
@@ -185,6 +191,7 @@ func.func @attr_custom_call_api_version_typed_ffi(%arg0: tensor<f32>) -> tensor<
   func.return %0 : tensor<f32>
 }
 
+
 // CHECK-LABEL: "attr_custom_call_api_version_typed_ffi_no_backend_config"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 // CHECK: api_version = #vhlo<api_version_v1 API_VERSION_TYPED_FFI>
@@ -195,12 +202,6 @@ func.func @attr_custom_call_api_version_typed_ffi_no_backend_config(%arg0: tenso
     api_version = 4 : i32
   } : (tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
-}
-
-// CHECK-LABEL: "attr_dict"
-// CHECK: #vhlo.dict_v1<{#vhlo.string_v1<"attr1"> = #vhlo.integer_v1<1 : i32>, #vhlo.string_v1<"attr2"> = #vhlo.integer_v1<2 : i32>}
-func.func @attr_dict() attributes {stablehlo.attr = {attr1 = 1 : i32, attr2 = 2 : i32}} {
-  return
 }
 
 // DotDimensionNumbers aka #stablehlo.dot is covered below.
@@ -1314,6 +1315,7 @@ func.func public @op_custom_call_empty_result_layout(%arg0: tensor<i64>) -> tens
   // %0 = "vhlo.custom_call_v1"(%arg0) <{>}> : (!vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tuple_v1<>
   //      CHECK: "vhlo.custom_call_v1"(%[[ARG0]]) <{
   // CHECK-SAME:   api_version = #vhlo<api_version_v1 API_VERSION_STATUS_RETURNING>,
+  // CHECK-SAME:   backend_config = #vhlo.string_v1<"">,
   // CHECK-SAME:   call_target_name = #vhlo.string_v1<"empty_output">,
   // CHECK-SAME:   called_computations = #vhlo.array_v1<[]>,
   // CHECK-SAME:   has_side_effect = #vhlo.bool_v1<true>,
@@ -2419,6 +2421,14 @@ func.func @op_sqrt(%arg0: tensor<f32>) -> tensor<f32> {
 func.func @op_subtract(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
   // CHECK: "vhlo.subtract_v1"(%[[ARG0]], %[[ARG1]]) : (!vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
   %0 = "stablehlo.subtract"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
+// CHECK-LABEL: "op_tan"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func @op_tan(%arg0: tensor<f32>) -> tensor<f32> {
+  // CHECK: "vhlo.tan_v1"(%[[ARG0]]) : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+  %0 = "stablehlo.tan"(%arg0) : (tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
 
