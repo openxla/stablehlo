@@ -110,9 +110,6 @@ Pattern =>
   replace op<stablehlo.negate>(input : Value<_: Tosa_Tensor>)
      with op<tosa.negate>(input);
 Pattern =>
-  replace op<stablehlo.tan>(input : Value<_: Tosa_Tensor>)
-     with op<tosa.tan>(input);
-Pattern =>
   replace op<stablehlo.tanh>(input : Value<_: Tosa_Tensor>)
      with op<tosa.tanh>(input);
 
