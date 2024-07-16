@@ -52,14 +52,3 @@ func.func @main() -> (tensor<4xi8>, tensor<4xf16>, tensor<2xi1>, tensor<0xui8>, 
   %tensor = stablehlo.constant dense<[[[0, 1], [2, 3]], [[4, 0], [1, 2]]]> : tensor<2x2x2xi64>
   func.return %ints, %floats, %bool, %empty, %scalar, %array, %matrix, %tensor : tensor<4xi8>, tensor<4xf16>, tensor<2xi1>, tensor<0xui8>, tensor<ui8>, tensor<1xi8>, tensor<2x2xi8>, tensor<2x2x2xi64>
 }
-
-
-
-
-
-
-
-
-
-
-

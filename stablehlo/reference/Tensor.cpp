@@ -389,17 +389,14 @@ bool isLast(const Index &idx, const Sizes &shape) {
 
 void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
                  const Sizes &shape, Index &currIdx, int64_t indent) {
-  // Iter1: {},  size=0
-  // Iter2: {0}, size=1
-  // Iter3: {0, 1}, size=2
-  // IterN: {0, N}, size=2
+  // Base case: We have a full index, print the item
   if (currIdx.size() == shape.size()) {
     os << tensor.get(currIdx);
     if (!isLast(currIdx, shape)) os << ", ";
     return;
   }
 
-  // Printing a new dim
+  // Recursive step: Add a dimension to currIdx and recurse.
   printNewline(os, indent);
   os << "[";
   auto currAxes = shape[currIdx.size()];
@@ -410,7 +407,7 @@ void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
   }
   os << "]";
 
-  // Print separator
+  // Print separator between tensors, and print newline at end.
   if (!isLast(currIdx, shape))
     os << ",";
   else
