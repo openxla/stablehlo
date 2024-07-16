@@ -73,8 +73,8 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
   bool isInt = isa<IntegerType>(expectedResult.getElementType());
   auto status =
       isInt ? stablehlo::check::evalExpectEqOp(actualResult, expectedResult)
-            : stablehlo::check::evalExpectAlmostEqOp(actualResult,
-                                                     expectedResult);
+            : stablehlo::check::evalExpectAlmostEqOp(
+                  actualResult, expectedResult, APFloat(0.0001));
   if (status)
     scope.add(op.getResults(), stablehlo::InterpreterValue(
                                    makeBooleanTensor(op->getContext(), false)));
@@ -111,8 +111,9 @@ class StablehloTranslateInterpreterFallback
             dyn_cast<stablehlo::check::ExpectAlmostEqOp>(op)) {
       auto runtimeLhs = scope.findTensor(expectAlmostEqOp.getLhs());
       auto runtimeRhs = scope.findTensor(expectAlmostEqOp.getRhs());
-      auto status =
-          stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
+      auto tolerance = expectAlmostEqOp.getTolerance();
+      auto status = stablehlo::check::evalExpectAlmostEqOp(
+          runtimeLhs, runtimeRhs, tolerance);
       return stablehlo::wrapFallbackStatus(std::move(status), funcName,
                                            "check.expect_almost_eq");
     }
@@ -120,8 +121,9 @@ class StablehloTranslateInterpreterFallback
     if (auto expectAlmostEqConstOp =
             dyn_cast<stablehlo::check::ExpectAlmostEqConstOp>(op)) {
       auto runtimeOperand = scope.findTensor(expectAlmostEqConstOp.getLhs());
+      auto tolerance = expectAlmostEqConstOp.getTolerance();
       auto status = stablehlo::check::evalExpectAlmostEqConstOp(
-          runtimeOperand, expectAlmostEqConstOp.getValue());
+          runtimeOperand, expectAlmostEqConstOp.getValue(), tolerance);
       return stablehlo::wrapFallbackStatus(std::move(status), funcName,
                                            "check.expect_almost_eq_const");
     }
@@ -188,7 +190,10 @@ TranslateFromMLIRRegistration interpretRegistration(
       auto results = evalModule(module, inputs, config);
       if (failed(results)) return failure();
 
-      for (auto &result : *results) result.print(os);
+      for (auto &result : *results) {
+        result.print(os);
+        os << '\n';
+      }
 
       return success();
     },

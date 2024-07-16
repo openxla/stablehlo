@@ -62,20 +62,22 @@ CheckDialect::CheckDialect(MLIRContext *context)
       >();
 }
 
-llvm::Error evalExpectAlmostEqConstOp(const Tensor &lhs, ElementsAttr value) {
+llvm::Error evalExpectAlmostEqConstOp(const Tensor &lhs, ElementsAttr value,
+                                      APFloat tolerance) {
   auto rhs = makeTensor(cast<DenseElementsAttr>(value));
-  return evalExpectAlmostEqOp(lhs, rhs);
+  return evalExpectAlmostEqOp(lhs, rhs, tolerance);
 }
 
-llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs) {
+llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs,
+                                 APFloat tolerance) {
   for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin();
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt)
-    if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt))
+    if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt), tolerance)
              .getBooleanValue())
       return invalidArgument(
-          "Element values don't match: %s (actual) vs %s (expected) at index "
-          "%s\n",
-          debugString(lhs.get(*lhsIt)).c_str(),
+          "Element values don't match with tolerance %f: %s (actual) vs %s "
+          "(expected) at index %s\n",
+          tolerance.convertToDouble(), debugString(lhs.get(*lhsIt)).c_str(),
           debugString(rhs.get(*rhsIt)).c_str(), debugString((*lhsIt)).c_str());
 
   return llvm::Error::success();

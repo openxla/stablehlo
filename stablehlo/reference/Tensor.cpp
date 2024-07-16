@@ -16,13 +16,16 @@ limitations under the License.
 #include "stablehlo/reference/Tensor.h"
 
 #include <complex>
+#include <cstdint>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Types.h"
@@ -370,13 +373,57 @@ IndexSpaceIterator Tensor::index_begin() const {
 
 IndexSpaceIterator Tensor::index_end() const { return getShape().index_end(); }
 
+namespace {
+
+void printNewlineIndent(llvm::raw_ostream &os, int64_t n) {
+  os << '\n';
+  for (int64_t i = 0; i < n; ++i) os << "  ";
+}
+
+bool isEndOfIterationSpace(const Index &idx, const Sizes &shape) {
+  // Check if this is the last index of the right-most dimension
+  // I.e.
+  //   Index{0, 3} vs Shape{0, 4, 9} ==> true
+  // Since [3] is the final valid index of the second dim of shape.
+  if (idx.empty()) return true;
+  auto dimSize = shape[idx.size() - 1];
+  return idx.back() == dimSize - 1;
+}
+
+void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
+                 const Sizes &shape, Index &currIdx, int64_t indent) {
+  // Base case: We have a full index, print the item
+  if (currIdx.size() == shape.size()) {
+    os << tensor.get(currIdx);
+    if (!isEndOfIterationSpace(currIdx, shape)) os << ", ";
+    return;
+  }
+
+  // Recursive step: Add a dimension to currIdx and recurse.
+  printNewlineIndent(os, indent);
+  os << "[";
+  auto currAxes = shape[currIdx.size()];
+  for (int64_t idx = 0; idx < currAxes; ++idx) {
+    currIdx.push_back(idx);
+    printHelper(os, tensor, shape, currIdx, indent + 1);
+    currIdx.pop_back();
+  }
+  os << "]";
+
+  // Print separator between tensors, and print newline at end.
+  if (!isEndOfIterationSpace(currIdx, shape))
+    os << ",";
+  else
+    printNewlineIndent(os, indent - 1);
+}
+
+}  // namespace
+
 void Tensor::print(raw_ostream &os) const {
   getType().print(os);
-  os << " {\n";
-
-  for (auto it = this->index_begin(); it != this->index_end(); ++it)
-    os << "  " << get(*it) << "\n";
-
+  os << " {";
+  Index idx{};
+  printHelper(os, *this, getShape(), idx, /*index=*/1);
   os << "}";
 }
 

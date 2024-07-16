@@ -49,16 +49,17 @@ def CHECK_ExpectAlmostEqConstOp :
     implementation-defined tolerance.
 
     ```mlir
-    check.expect_almost_eq_const %arg0, dense<[0.999999, 2.0]> : tensor<2xf32>
+    check.expect_almost_eq_const %arg0, dense<[0.999999, 2.0]> : tensor<2xf32>, tolerance = 0.0001
     ```
   }];
 
   let arguments = (ins
     TensorOf<[AnyFloat, AnyComplex]>:$lhs,
-    ElementsAttr:$value
+    ElementsAttr:$value,
+    DefaultValuedOptionalAttr<F64Attr, "1e-4">:$tolerance
   );
 
-  let assemblyFormat = "$lhs `,` $value attr-dict";
+  let assemblyFormat = "$lhs `,` $value (`,` `tolerance` `=` $tolerance^)? attr-dict";
 }
 
 def CHECK_ExpectAlmostEqOp :
@@ -69,16 +70,17 @@ def CHECK_ExpectAlmostEqOp :
     types are almost equal within an implementation-defined tolerance.
 
     ```mlir
-    check.expect_almost_eq %arg0, %arg1 : tensor<2xf32>
+    check.expect_almost_eq %arg0, %arg1, tolerance = 0.001 : f64 : tensor<2xf32>
     ```
   }];
 
   let arguments = (ins
       TensorOf<[AnyFloat, AnyComplex]>:$lhs,
-      TensorOf<[AnyFloat, AnyComplex]>:$rhs
+      TensorOf<[AnyFloat, AnyComplex]>:$rhs,
+      DefaultValuedOptionalAttr<F64Attr, "1e-4">:$tolerance
   );
 
-  let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
+  let assemblyFormat = "$lhs `,` $rhs (`,` `tolerance` `=` $tolerance^)? attr-dict `:` type($lhs)";
 }
 
 def CHECK_ExpectEqConstOp :
