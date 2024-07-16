@@ -777,19 +777,19 @@ func.func @erf_f64(%arg : tensor<f64>) -> tensor<f64> {
   // CHECK: %[[TMP_142:.*]] = stablehlo.add %[[TMP_140]], %[[TMP_141]]
   // CHECK: %[[TMP_143:.*]] = stablehlo.divide %[[TMP_120]], %[[TMP_142]]
   // CHECK: %[[TMP_144:.*]] = stablehlo.constant dense<8.000000e+00>
-  // CHECK: %[[TMP_145:.*]] = stablehlo.compare LT, %[[TMP_42]], %[[TMP_144]], NOTYPE
+  // CHECK: %[[TMP_145:.*]] = stablehlo.compare LT, %[[TMP_42]], %[[TMP_144]]
   // CHECK: %[[TMP_146:.*]] = stablehlo.select %[[TMP_145]], %[[TMP_100]], %[[TMP_143]]
   // CHECK: %[[TMP_147:.*]] = stablehlo.constant dense<-709.78271289338397>
-  // CHECK: %[[TMP_148:.*]] = stablehlo.compare LT, %[[TMP_40]], %[[TMP_147]], NOTYPE
+  // CHECK: %[[TMP_148:.*]] = stablehlo.compare LT, %[[TMP_40]], %[[TMP_147]]
   // CHECK: %[[TMP_149:.*]] = stablehlo.constant dense<0.000000e+00>
   // CHECK: %[[TMP_150:.*]] = stablehlo.select %[[TMP_148]], %[[TMP_149]], %[[TMP_146]]
-  // CHECK: %[[TMP_152:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_149]], NOTYPE
+  // CHECK: %[[TMP_152:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_149]]
   // CHECK: %[[TMP_153:.*]] = stablehlo.constant dense<2.000000e+00>
   // CHECK: %[[TMP_154:.*]] = stablehlo.subtract %[[TMP_153]], %[[TMP_150]]
   // CHECK: %[[TMP_155:.*]] = stablehlo.select %[[TMP_152]], %[[TMP_154]], %[[TMP_150]]
   // CHECK: %[[TMP_156:.*]] = stablehlo.subtract %[[TMP_38]], %[[TMP_155]]
   // CHECK: %[[TMP_157:.*]] = stablehlo.abs %[[ARG]]
-  // CHECK: %[[TMP_159:.*]] = stablehlo.compare LT, %[[TMP_157]], %[[TMP_38]], NOTYPE
+  // CHECK: %[[TMP_159:.*]] = stablehlo.compare LT, %[[TMP_157]], %[[TMP_38]]
   // CHECK: %[[RESULT:.*]] = stablehlo.select %[[TMP_159]], %[[TMP_37]], %[[TMP_156]]
   // CHECK: return %[[RESULT]]
   %1 = "chlo.erf"(%arg) : (tensor<f64>) -> tensor<f64>
@@ -1142,13 +1142,13 @@ func.func @erfc_f64(%arg : tensor<f64>) -> tensor<f64> {
   // CHECK-NEXT: %[[TMP_103:.*]] = stablehlo.add %[[TMP_101]], %[[TMP_102]]
   // CHECK-NEXT: %[[TMP_104:.*]] = stablehlo.divide %[[TMP_81]], %[[TMP_103]]
   // CHECK-NEXT: %[[TMP_105:.*]] = stablehlo.constant dense<8.000000e+00>
-  // CHECK-NEXT: %[[TMP_106:.*]] = stablehlo.compare LT, %[[TMP_3]], %[[TMP_105]], NOTYPE
+  // CHECK-NEXT: %[[TMP_106:.*]] = stablehlo.compare LT, %[[TMP_3]], %[[TMP_105]]
   // CHECK-NEXT: %[[TMP_107:.*]] = stablehlo.select %[[TMP_106]], %[[TMP_61]], %[[TMP_104]]
   // CHECK-NEXT: %[[TMP_108:.*]] = stablehlo.constant dense<-709.78271289338397>
-  // CHECK-NEXT: %[[TMP_109:.*]] = stablehlo.compare LT, %[[TMP_1]], %[[TMP_108]], NOTYPE
+  // CHECK-NEXT: %[[TMP_109:.*]] = stablehlo.compare LT, %[[TMP_1]], %[[TMP_108]]
   // CHECK-NEXT: %[[TMP_110:.*]] = stablehlo.constant dense<0.000000e+00>
   // CHECK-NEXT: %[[TMP_111:.*]] = stablehlo.select %[[TMP_109]], %[[TMP_110]], %[[TMP_107]]
-  // CHECK-NEXT: %[[TMP_113:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_110]], NOTYPE
+  // CHECK-NEXT: %[[TMP_113:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_110]]
   // CHECK-NEXT: %[[TMP_114:.*]] = stablehlo.constant dense<2.000000e+00>
   // CHECK-NEXT: %[[TMP_115:.*]] = stablehlo.subtract %[[TMP_114]], %[[TMP_111]]
   // CHECK-NEXT: %[[TMP_116:.*]] = stablehlo.select %[[TMP_113]], %[[TMP_115]], %[[TMP_111]]
@@ -1187,7 +1187,7 @@ func.func @erfc_f64(%arg : tensor<f64>) -> tensor<f64> {
   // CHECK-NEXT: %[[TMP_155:.*]] = stablehlo.divide %[[TMP_135]], %[[TMP_154]]
   // CHECK-NEXT: %[[TMP_156:.*]] = stablehlo.subtract %[[TMP_117]], %[[TMP_155]]
   // CHECK-NEXT: %[[TMP_157:.*]] = stablehlo.abs %[[ARG]]
-  // CHECK-NEXT: %[[TMP_159:.*]] = stablehlo.compare LT, %[[TMP_157]], %[[TMP_117]], NOTYPE
+  // CHECK-NEXT: %[[TMP_159:.*]] = stablehlo.compare LT, %[[TMP_157]], %[[TMP_117]]
   // CHECK-NEXT: %[[RESULT:.*]] = stablehlo.select %[[TMP_159]], %[[TMP_156]], %[[TMP_116]]
   // CHECK-NEXT: return %[[RESULT]]
   %1 = "chlo.erfc"(%arg) : (tensor<f64>) -> tensor<f64>
@@ -1208,7 +1208,7 @@ func.func @erfc_f32(%arg : tensor<f32>) -> tensor<f32> {
   // CHECK: %[[TMP_7:.*]] = stablehlo.divide %[[TMP_3]], %[[TMP_2]]
   // CHECK: %[[TMP_8:.*]] = stablehlo.multiply %[[TMP_5]], %[[TMP_7]]
   // CHECK: %[[TMP_9:.*]] = stablehlo.constant dense<2.000000e+00>
-  // CHECK: %[[TMP_10:.*]] = stablehlo.compare LT, %[[TMP_2]], %[[TMP_9]], NOTYPE
+  // CHECK: %[[TMP_10:.*]] = stablehlo.compare LT, %[[TMP_2]], %[[TMP_9]]
   // CHECK: %[[TMP_13:.*]] = stablehlo.constant dense<2.326820e-02>
   // CHECK: %[[TMP_15:.*]] = stablehlo.multiply %[[TMP_13]], %[[TMP_4]]
   // CHECK: %[[TMP_16:.*]] = stablehlo.constant dense<-0.138703942>
@@ -1259,10 +1259,10 @@ func.func @erfc_f32(%arg : tensor<f32>) -> tensor<f32> {
   // CHECK: %[[TMP_64:.*]] = stablehlo.select %[[TMP_10]], %[[TMP_38]], %[[TMP_63]]
   // CHECK: %[[TMP_65:.*]] = stablehlo.multiply %[[TMP_8]], %[[TMP_64]]
   // CHECK: %[[TMP_66:.*]] = stablehlo.constant dense<-88.7228394>
-  // CHECK: %[[TMP_67:.*]] = stablehlo.compare LT, %[[TMP_1]], %[[TMP_66]], NOTYPE
+  // CHECK: %[[TMP_67:.*]] = stablehlo.compare LT, %[[TMP_1]], %[[TMP_66]]
   // CHECK: %[[TMP_68:.*]] = stablehlo.constant dense<0.000000e+00>
   // CHECK: %[[TMP_69:.*]] = stablehlo.select %[[TMP_67]], %[[TMP_68]], %[[TMP_65]]
-  // CHECK: %[[TMP_71:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_68]], NOTYPE
+  // CHECK: %[[TMP_71:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_68]]
   // CHECK: %[[TMP_73:.*]] = stablehlo.subtract %[[TMP_9]], %[[TMP_69]]
   // CHECK: %[[TMP_74:.*]] = stablehlo.select %[[TMP_71]], %[[TMP_73]], %[[TMP_69]]
   // CHECK: %[[TMP_75:.*]] = stablehlo.constant dense<1.000000e+00>
@@ -1289,7 +1289,7 @@ func.func @erfc_f32(%arg : tensor<f32>) -> tensor<f32> {
   // CHECK: %[[TMP_99:.*]] = stablehlo.multiply %[[ARG]], %[[TMP_98]]
   // CHECK: %[[TMP_100:.*]] = stablehlo.subtract %[[TMP_75]], %[[TMP_99]]
   // CHECK: %[[TMP_101:.*]] = stablehlo.abs %[[ARG]]
-  // CHECK: %[[TMP_103:.*]] = stablehlo.compare LT, %[[TMP_101]], %[[TMP_75]], NOTYPE
+  // CHECK: %[[TMP_103:.*]] = stablehlo.compare LT, %[[TMP_101]], %[[TMP_75]]
   // CHECK: %[[RESULT:.*]] = stablehlo.select %[[TMP_103]], %[[TMP_100]], %[[TMP_74]]
   // CHECK: return %[[RESULT]]
   %1 = "chlo.erfc"(%arg) : (tensor<f32>) -> tensor<f32>
@@ -1363,7 +1363,7 @@ func.func @is_neg_inf_f32(%arg : tensor<f32>) -> tensor<i1> {
 // CHECK-SAME: (%[[ARG:.*]]: tensor<f64>)
 func.func @lgamma_f64(%arg : tensor<f64>) -> tensor<f64> {
   // CHECK: %[[TMP_1:.*]] = stablehlo.constant dense<5.000000e-01>
-  // CHECK: %[[TMP_9:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_1]], NOTYPE
+  // CHECK: %[[TMP_9:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_1]]
   // CHECK: %[[TMP_10:.*]] = stablehlo.negate %[[ARG]]
   // CHECK: %[[TMP_2:.*]] = stablehlo.constant dense<1.000000e+00>
   // CHECK: %[[TMP_11:.*]] = stablehlo.subtract %[[ARG]], %[[TMP_2]]
@@ -1426,7 +1426,7 @@ func.func @lgamma_f64(%arg : tensor<f64>) -> tensor<f64> {
   // CHECK: %[[TMP_64:.*]] = stablehlo.abs %[[ARG]]
   // CHECK: %[[TMP_65:.*]] = stablehlo.floor %[[TMP_64]]
   // CHECK: %[[TMP_66:.*]] = stablehlo.subtract %[[TMP_64]], %[[TMP_65]]
-  // CHECK: %[[TMP_67:.*]] = stablehlo.compare LT, %[[TMP_1]], %[[TMP_66]], NOTYPE
+  // CHECK: %[[TMP_67:.*]] = stablehlo.compare LT, %[[TMP_1]], %[[TMP_66]]
   // CHECK: %[[TMP_68:.*]] = stablehlo.subtract %[[TMP_2]], %[[TMP_66]]
   // CHECK: %[[TMP_69:.*]] = stablehlo.select %[[TMP_67]], %[[TMP_68]], %[[TMP_66]]
   // CHECK: %[[TMP_3:.*]] = stablehlo.constant dense<3.1415926535897931>
@@ -1456,7 +1456,7 @@ func.func @lgamma_f64(%arg : tensor<f64>) -> tensor<f64> {
 // CHECK-SAME: (%[[ARG:.*]]: tensor<f32>)
 func.func @lgamma_f32(%arg : tensor<f32>) -> tensor<f32> {
   // CHECK: %[[TMP_1:.*]] = stablehlo.constant dense<5.000000e-01>
-  // CHECK: %[[TMP_9:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_1]], NOTYPE
+  // CHECK: %[[TMP_9:.*]] = stablehlo.compare LT, %[[ARG]], %[[TMP_1]]
   // CHECK: %[[TMP_10:.*]] = stablehlo.negate %[[ARG]]
   // CHECK: %[[TMP_2:.*]] = stablehlo.constant dense<1.000000e+00>
   // CHECK: %[[TMP_11:.*]] = stablehlo.subtract %[[ARG]], %[[TMP_2]]
@@ -1519,7 +1519,7 @@ func.func @lgamma_f32(%arg : tensor<f32>) -> tensor<f32> {
   // CHECK: %[[TMP_64:.*]] = stablehlo.abs %[[ARG]]
   // CHECK: %[[TMP_65:.*]] = stablehlo.floor %[[TMP_64]]
   // CHECK: %[[TMP_66:.*]] = stablehlo.subtract %[[TMP_64]], %[[TMP_65]]
-  // CHECK: %[[TMP_67:.*]] = stablehlo.compare LT, %[[TMP_1]], %[[TMP_66]], NOTYPE
+  // CHECK: %[[TMP_67:.*]] = stablehlo.compare LT, %[[TMP_1]], %[[TMP_66]]
   // CHECK: %[[TMP_68:.*]] = stablehlo.subtract %[[TMP_2]], %[[TMP_66]]
   // CHECK: %[[TMP_69:.*]] = stablehlo.select %[[TMP_67]], %[[TMP_68]], %[[TMP_66]]
   // CHECK: %[[TMP_3:.*]] = stablehlo.constant dense<3.14159274>
@@ -1561,7 +1561,7 @@ func.func @lgamma_f16(%arg : tensor<f16>) -> tensor<f16> {
 // CHECK-SAME: (%[[ARG:.*]]: tensor<f64>)
 func.func @digamma_f64(%arg : tensor<f64>) -> tensor<f64> {
   // CHECK: %[[TMP_0:.*]] = stablehlo.constant dense<5.000000e-01>
-  // CHECK: %[[TMP_1:.*]] = stablehlo.compare LT, %arg0, %[[TMP_0]], NOTYPE
+  // CHECK: %[[TMP_1:.*]] = stablehlo.compare LT, %arg0, %[[TMP_0]]
   // CHECK: %[[TMP_2:.*]] = stablehlo.negate %arg0
   // CHECK: %[[TMP_3:.*]] = stablehlo.constant dense<1.000000e+00>
   // CHECK: %[[TMP_4:.*]] = stablehlo.subtract %arg0, %[[TMP_3]]
@@ -1656,9 +1656,9 @@ func.func @digamma_f64(%arg : tensor<f64>) -> tensor<f64> {
   // CHECK: %[[TMP_93:.*]] = stablehlo.divide %[[TMP_91]], %[[TMP_92]]
   // CHECK: %[[TMP_94:.*]] = stablehlo.subtract %[[TMP_82]], %[[TMP_93]]
   // CHECK: %[[TMP_95:.*]] = stablehlo.select %[[TMP_1]], %[[TMP_94]], %[[TMP_82]]
-  // CHECK: %[[TMP_96:.*]] = stablehlo.compare LE, %arg0, %[[TMP_6]], NOTYPE
+  // CHECK: %[[TMP_96:.*]] = stablehlo.compare LE, %arg0, %[[TMP_6]]
   // CHECK: %[[TMP_97:.*]] = stablehlo.floor %arg0
-  // CHECK: %[[TMP_98:.*]] = stablehlo.compare EQ, %arg0, %[[TMP_97]], NOTYPE
+  // CHECK: %[[TMP_98:.*]] = stablehlo.compare EQ, %arg0, %[[TMP_97]]
   // CHECK: %[[TMP_99:.*]] = stablehlo.and %[[TMP_96]], %[[TMP_98]]
   // CHECK: %[[TMP_100:.*]] = stablehlo.constant dense<0x7FF8000000000000>
   // CHECK: %[[RES:.*]] = stablehlo.select %[[TMP_99]], %[[TMP_100]], %[[TMP_95]]
@@ -1673,7 +1673,7 @@ func.func @digamma_f64(%arg : tensor<f64>) -> tensor<f64> {
 // CHECK-SAME: (%[[ARG:.*]]: tensor<f32>)
 func.func @digamma_f32(%arg : tensor<f32>) -> tensor<f32> {
   // CHECK: %[[TMP_0:.*]] = stablehlo.constant dense<5.000000e-01>
-  // CHECK: %[[TMP_1:.*]] = stablehlo.compare LT, %arg0, %[[TMP_0]], NOTYPE
+  // CHECK: %[[TMP_1:.*]] = stablehlo.compare LT, %arg0, %[[TMP_0]]
   // CHECK: %[[TMP_2:.*]] = stablehlo.negate %arg0
   // CHECK: %[[TMP_3:.*]] = stablehlo.constant dense<1.000000e+00>
   // CHECK: %[[TMP_4:.*]] = stablehlo.subtract %arg0, %[[TMP_3]]
@@ -1768,9 +1768,9 @@ func.func @digamma_f32(%arg : tensor<f32>) -> tensor<f32> {
   // CHECK: %[[TMP_93:.*]] = stablehlo.divide %[[TMP_91]], %[[TMP_92]]
   // CHECK: %[[TMP_94:.*]] = stablehlo.subtract %[[TMP_82]], %[[TMP_93]]
   // CHECK: %[[TMP_95:.*]] = stablehlo.select %[[TMP_1]], %[[TMP_94]], %[[TMP_82]]
-  // CHECK: %[[TMP_96:.*]] = stablehlo.compare LE, %arg0, %[[TMP_6]], NOTYPE
+  // CHECK: %[[TMP_96:.*]] = stablehlo.compare LE, %arg0, %[[TMP_6]]
   // CHECK: %[[TMP_97:.*]] = stablehlo.floor %arg0
-  // CHECK: %[[TMP_98:.*]] = stablehlo.compare EQ, %arg0, %[[TMP_97]], NOTYPE
+  // CHECK: %[[TMP_98:.*]] = stablehlo.compare EQ, %arg0, %[[TMP_97]]
   // CHECK: %[[TMP_99:.*]] = stablehlo.and %[[TMP_96]], %[[TMP_98]]
   // CHECK: %[[TMP_100:.*]] = stablehlo.constant dense<0x7FC00000>
   // CHECK: %[[RES:.*]] = stablehlo.select %[[TMP_99]], %[[TMP_100]], %[[TMP_95]]
@@ -1949,29 +1949,29 @@ func.func @zeta_f16(%arg0: tensor<f16>, %arg1: tensor<f16>) -> tensor<f16> {
   // CHECK: %[[TMP_150:.*]] = stablehlo.abs %[[TMP_32]]
   // CHECK: %[[TMP_151:.*]] = stablehlo.constant dense<1.401300e-45>
   // CHECK: %[[TMP_152:.*]] = stablehlo.multiply %[[TMP_150]], %[[TMP_151]]
-  // CHECK: %[[TMP_153:.*]] = stablehlo.compare LT, %[[TMP_149]], %[[TMP_152]], NOTYPE
+  // CHECK: %[[TMP_153:.*]] = stablehlo.compare LT, %[[TMP_149]], %[[TMP_152]]
   // CHECK: %[[TMP_154:.*]] = stablehlo.select %[[TMP_153]], %[[TMP_32]], %[[TMP_148]]
   // CHECK: %[[TMP_155:.*]] = stablehlo.constant dense<0x7FC00000>
-  // CHECK: %[[TMP_156:.*]] = stablehlo.compare LT, %[[TMP_0]], %[[TMP_35]], NOTYPE
+  // CHECK: %[[TMP_156:.*]] = stablehlo.compare LT, %[[TMP_0]], %[[TMP_35]]
   // CHECK: %[[TMP_157:.*]] = stablehlo.select %[[TMP_156]], %[[TMP_155]], %[[TMP_154]]
-  // CHECK: %[[TMP_158:.*]] = stablehlo.compare LE, %[[TMP_1]], %[[TMP_2]], NOTYPE
+  // CHECK: %[[TMP_158:.*]] = stablehlo.compare LE, %[[TMP_1]], %[[TMP_2]]
   // CHECK: %[[TMP_159:.*]] = stablehlo.floor %[[TMP_0]]
-  // CHECK: %[[TMP_160:.*]] = stablehlo.compare NE, %[[TMP_0]], %[[TMP_159]], NOTYPE
+  // CHECK: %[[TMP_160:.*]] = stablehlo.compare NE, %[[TMP_0]], %[[TMP_159]]
   // CHECK: %[[TMP_161:.*]] = stablehlo.and %[[TMP_158]], %[[TMP_160]] : tensor<i1>
   // CHECK: %[[TMP_162:.*]] = stablehlo.select %[[TMP_161]], %[[TMP_155]], %[[TMP_157]]
   // CHECK: %[[TMP_163:.*]] = stablehlo.constant dense<0x7F800000>
   // CHECK: %[[TMP_164:.*]] = stablehlo.floor %[[TMP_1]]
-  // CHECK: %[[TMP_165:.*]] = stablehlo.compare EQ, %[[TMP_1]], %[[TMP_164]], NOTYPE
+  // CHECK: %[[TMP_165:.*]] = stablehlo.compare EQ, %[[TMP_1]], %[[TMP_164]]
   // CHECK: %[[TMP_166:.*]] = stablehlo.and %[[TMP_158]], %[[TMP_165]] : tensor<i1>
   // CHECK: %[[TMP_167:.*]] = stablehlo.constant dense<2.000000e+00>
   // CHECK: %[[TMP_168:.*]] = stablehlo.floor %[[TMP_0]]
-  // CHECK: %[[TMP_169:.*]] = stablehlo.compare EQ, %[[TMP_0]], %[[TMP_168]], NOTYPE
+  // CHECK: %[[TMP_169:.*]] = stablehlo.compare EQ, %[[TMP_0]], %[[TMP_168]]
   // CHECK: %[[TMP_170:.*]] = stablehlo.remainder %[[TMP_0]], %[[TMP_167]]
-  // CHECK: %[[TMP_171:.*]] = stablehlo.compare EQ, %[[TMP_170]], %[[TMP_2]], NOTYPE
+  // CHECK: %[[TMP_171:.*]] = stablehlo.compare EQ, %[[TMP_170]], %[[TMP_2]]
   // CHECK: %[[TMP_172:.*]] = stablehlo.and %[[TMP_169]], %[[TMP_171]] : tensor<i1>
   // CHECK: %[[TMP_173:.*]] = stablehlo.select %[[TMP_172]], %[[TMP_163]], %[[TMP_155]]
   // CHECK: %[[TMP_174:.*]] = stablehlo.select %[[TMP_166]], %[[TMP_173]], %[[TMP_162]]
-  // CHECK: %[[TMP_175:.*]] = stablehlo.compare EQ, %[[TMP_0]], %[[TMP_3]], NOTYPE
+  // CHECK: %[[TMP_175:.*]] = stablehlo.compare EQ, %[[TMP_0]], %[[TMP_3]]
   // CHECK: %[[TMP_176:.*]] = stablehlo.select %[[TMP_175]], %[[TMP_163]], %[[TMP_174]]
   // CHECK: %[[TMP_177:.*]] = stablehlo.convert %[[TMP_176]] : (tensor<f32>) -> tensor<f16>
   %0 = chlo.zeta %arg0, %arg1 : tensor<f16>, tensor<f16> -> tensor<f16>
@@ -1990,7 +1990,7 @@ func.func @polygamma_f32(%lhs : tensor<f32>, %rhs : tensor<f32>) -> tensor<f32> 
   // CHECK: %[[TMP_4:.*]] = stablehlo.subtract %[[TMP_3]], %[[TMP_0]]
   // CHECK: %[[TMP_5:.*]] = stablehlo.add %[[ARG0]], %[[TMP_0]]
   // CHECK: %[[TMP_6:.*]] = stablehlo.constant dense<5.000000e-01>
-  // CHECK: %[[TMP_7:.*]] = stablehlo.compare LT, %[[TMP_5]], %[[TMP_6]], NOTYPE
+  // CHECK: %[[TMP_7:.*]] = stablehlo.compare LT, %[[TMP_5]], %[[TMP_6]]
   // CHECK: %[[TMP_8:.*]] = stablehlo.negate %[[TMP_5]]
   // CHECK: %[[TMP_9:.*]] = stablehlo.constant dense<1.000000e+00>
   // CHECK: %[[TMP_10:.*]] = stablehlo.subtract %[[TMP_5]], %[[TMP_9]]
@@ -2053,7 +2053,7 @@ func.func @polygamma_f32(%lhs : tensor<f32>, %rhs : tensor<f32>) -> tensor<f32> 
   // CHECK: %[[TMP_67:.*]] = stablehlo.abs %[[TMP_5]]
   // CHECK: %[[TMP_68:.*]] = stablehlo.floor %[[TMP_67]]
   // CHECK: %[[TMP_69:.*]] = stablehlo.subtract %[[TMP_67]], %[[TMP_68]]
-  // CHECK: %[[TMP_70:.*]] = stablehlo.compare LT, %[[TMP_6]], %[[TMP_69]], NOTYPE
+  // CHECK: %[[TMP_70:.*]] = stablehlo.compare LT, %[[TMP_6]], %[[TMP_69]]
   // CHECK: %[[TMP_71:.*]] = stablehlo.subtract %[[TMP_9]], %[[TMP_69]]
   // CHECK: %[[TMP_72:.*]] = stablehlo.select %[[TMP_70]], %[[TMP_71]], %[[TMP_69]]
   // CHECK: %[[TMP_73:.*]] = stablehlo.constant dense<3.14159274>
@@ -2224,36 +2224,36 @@ func.func @polygamma_f32(%lhs : tensor<f32>, %rhs : tensor<f32>) -> tensor<f32> 
   // CHECK: %[[TMP_238:.*]] = stablehlo.abs %[[TMP_120]]
   // CHECK: %[[TMP_239:.*]] = stablehlo.constant
   // CHECK: %[[TMP_240:.*]] = stablehlo.multiply %[[TMP_238]], %[[TMP_239]]
-  // CHECK: %[[TMP_241:.*]] = stablehlo.compare LT, %[[TMP_237]], %[[TMP_240]], NOTYPE
+  // CHECK: %[[TMP_241:.*]] = stablehlo.compare LT, %[[TMP_237]], %[[TMP_240]]
   // CHECK: %[[TMP_242:.*]] = stablehlo.select %[[TMP_241]], %[[TMP_120]], %[[TMP_236]]
   // CHECK: %[[TMP_243:.*]] = stablehlo.constant
-  // CHECK: %[[TMP_244:.*]] = stablehlo.compare LT, %[[TMP_5]], %[[TMP_123]], NOTYPE
+  // CHECK: %[[TMP_244:.*]] = stablehlo.compare LT, %[[TMP_5]], %[[TMP_123]]
   // CHECK: %[[TMP_245:.*]] = stablehlo.select %[[TMP_244]], %[[TMP_243]], %[[TMP_242]]
-  // CHECK: %[[TMP_246:.*]] = stablehlo.compare LE, %[[ARG1]], %[[TMP_90]], NOTYPE
+  // CHECK: %[[TMP_246:.*]] = stablehlo.compare LE, %[[ARG1]], %[[TMP_90]]
   // CHECK: %[[TMP_247:.*]] = stablehlo.floor %[[TMP_5]]
-  // CHECK: %[[TMP_248:.*]] = stablehlo.compare NE, %[[TMP_5]], %[[TMP_247]], NOTYPE
+  // CHECK: %[[TMP_248:.*]] = stablehlo.compare NE, %[[TMP_5]], %[[TMP_247]]
   // CHECK: %[[TMP_249:.*]] = stablehlo.and %[[TMP_246]], %[[TMP_248]]
   // CHECK: %[[TMP_250:.*]] = stablehlo.select %[[TMP_249]], %[[TMP_243]], %[[TMP_245]]
   // CHECK: %[[TMP_251:.*]] = stablehlo.constant
   // CHECK: %[[TMP_252:.*]] = stablehlo.floor %[[ARG1]]
-  // CHECK: %[[TMP_253:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[TMP_252]], NOTYPE
+  // CHECK: %[[TMP_253:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[TMP_252]]
   // CHECK: %[[TMP_254:.*]] = stablehlo.and %[[TMP_246]], %[[TMP_253]]
   // CHECK: %[[TMP_255:.*]] = stablehlo.constant dense<2.000000e+00>
   // CHECK: %[[TMP_256:.*]] = stablehlo.floor %[[TMP_5]]
-  // CHECK: %[[TMP_257:.*]] = stablehlo.compare EQ, %[[TMP_5]], %[[TMP_256]], NOTYPE
+  // CHECK: %[[TMP_257:.*]] = stablehlo.compare EQ, %[[TMP_5]], %[[TMP_256]]
   // CHECK: %[[TMP_258:.*]] = stablehlo.remainder %[[TMP_5]], %[[TMP_255]]
-  // CHECK: %[[TMP_259:.*]] = stablehlo.compare EQ, %[[TMP_258]], %[[TMP_90]], NOTYPE
+  // CHECK: %[[TMP_259:.*]] = stablehlo.compare EQ, %[[TMP_258]], %[[TMP_90]]
   // CHECK: %[[TMP_260:.*]] = stablehlo.and %[[TMP_257]], %[[TMP_259]]
   // CHECK: %[[TMP_261:.*]] = stablehlo.select %[[TMP_260]], %[[TMP_251]], %[[TMP_243]]
   // CHECK: %[[TMP_262:.*]] = stablehlo.select %[[TMP_254]], %[[TMP_261]], %[[TMP_250]]
-  // CHECK: %[[TMP_263:.*]] = stablehlo.compare EQ, %[[TMP_5]], %[[TMP_91]], NOTYPE
+  // CHECK: %[[TMP_263:.*]] = stablehlo.compare EQ, %[[TMP_5]], %[[TMP_91]]
   // CHECK: %[[TMP_264:.*]] = stablehlo.select %[[TMP_263]], %[[TMP_251]], %[[TMP_262]]
   // CHECK: %[[TMP_265:.*]] = stablehlo.multiply %[[TMP_4]], %[[TMP_89]]
   // CHECK: %[[TMP_266:.*]] = stablehlo.multiply %[[TMP_265]], %[[TMP_264]]
   // CHECK: %[[TMP_267:.*]] = stablehlo.constant dense<0.000000e+00>
-  // CHECK: %[[TMP_268:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[TMP_267]], NOTYPE
+  // CHECK: %[[TMP_268:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[TMP_267]]
   // CHECK: %[[TMP_269:.*]] = stablehlo.constant dense<5.000000e-01>
-  // CHECK: %[[TMP_270:.*]] = stablehlo.compare LT, %[[ARG1]], %[[TMP_269]], NOTYPE
+  // CHECK: %[[TMP_270:.*]] = stablehlo.compare LT, %[[ARG1]], %[[TMP_269]]
   // CHECK: %[[TMP_271:.*]] = stablehlo.negate %[[ARG1]]
   // CHECK: %[[TMP_272:.*]] = stablehlo.constant dense<1.000000e+00>
   // CHECK: %[[TMP_273:.*]] = stablehlo.subtract %[[ARG1]], %[[TMP_272]]
@@ -2348,16 +2348,16 @@ func.func @polygamma_f32(%lhs : tensor<f32>, %rhs : tensor<f32>) -> tensor<f32> 
   // CHECK: %[[TMP_362:.*]] = stablehlo.divide %[[TMP_361]], %[[TMP_360]]
   // CHECK: %[[TMP_363:.*]] = stablehlo.subtract %[[TMP_351]], %[[TMP_362]]
   // CHECK: %[[TMP_364:.*]] = stablehlo.select %[[TMP_270]], %[[TMP_363]], %[[TMP_351]]
-  // CHECK: %[[TMP_365:.*]] = stablehlo.compare LE, %[[ARG1]], %[[TMP_275]], NOTYPE
+  // CHECK: %[[TMP_365:.*]] = stablehlo.compare LE, %[[ARG1]], %[[TMP_275]]
   // CHECK: %[[TMP_366:.*]] = stablehlo.floor %[[ARG1]]
-  // CHECK: %[[TMP_367:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[TMP_366]], NOTYPE
+  // CHECK: %[[TMP_367:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[TMP_366]]
   // CHECK: %[[TMP_368:.*]] = stablehlo.and %[[TMP_365]], %[[TMP_367]]
   // CHECK: %[[TMP_369:.*]] = stablehlo.constant
   // CHECK: %[[TMP_370:.*]] = stablehlo.select %[[TMP_368]], %[[TMP_369]], %[[TMP_364]]
   // CHECK: %[[TMP_371:.*]] = stablehlo.select %[[TMP_268]], %[[TMP_370]], %[[TMP_266]]
   // CHECK: %[[TMP_372:.*]] = stablehlo.floor %[[ARG0]]
-  // CHECK: %[[TMP_373:.*]] = stablehlo.compare NE, %[[ARG0]], %[[TMP_372]], NOTYPE
-  // CHECK: %[[TMP_374:.*]] = stablehlo.compare LT, %[[ARG0]], %[[TMP_267]], NOTYPE
+  // CHECK: %[[TMP_373:.*]] = stablehlo.compare NE, %[[ARG0]], %[[TMP_372]]
+  // CHECK: %[[TMP_374:.*]] = stablehlo.compare LT, %[[ARG0]], %[[TMP_267]]
   // CHECK: %[[TMP_375:.*]] = stablehlo.or %[[TMP_373]], %[[TMP_374]]
   // CHECK: %[[TMP_376:.*]] = stablehlo.constant
   // CHECK: %[[TMP_377:.*]] = stablehlo.select %[[TMP_375]], %[[TMP_376]], %[[TMP_371]]
@@ -2377,7 +2377,7 @@ func.func @polygamma_f64(%lhs : tensor<f64>, %rhs : tensor<f64>) -> tensor<f64> 
   // CHECK: %[[TMP_4:.*]] = stablehlo.subtract %[[TMP_3]], %[[TMP_0]]
   // CHECK: %[[TMP_5:.*]] = stablehlo.add %[[ARG0]], %[[TMP_0]]
   // CHECK: %[[TMP_6:.*]] = stablehlo.constant dense<5.000000e-01>
-  // CHECK: %[[TMP_7:.*]] = stablehlo.compare LT, %[[TMP_5]], %[[TMP_6]], NOTYPE
+  // CHECK: %[[TMP_7:.*]] = stablehlo.compare LT, %[[TMP_5]], %[[TMP_6]]
   // CHECK: %[[TMP_8:.*]] = stablehlo.negate %[[TMP_5]]
   // CHECK: %[[TMP_9:.*]] = stablehlo.constant dense<1.000000e+00>
   // CHECK: %[[TMP_10:.*]] = stablehlo.subtract %[[TMP_5]], %[[TMP_9]]
@@ -2440,7 +2440,7 @@ func.func @polygamma_f64(%lhs : tensor<f64>, %rhs : tensor<f64>) -> tensor<f64> 
   // CHECK: %[[TMP_67:.*]] = stablehlo.abs %[[TMP_5]]
   // CHECK: %[[TMP_68:.*]] = stablehlo.floor %[[TMP_67]]
   // CHECK: %[[TMP_69:.*]] = stablehlo.subtract %[[TMP_67]], %[[TMP_68]]
-  // CHECK: %[[TMP_70:.*]] = stablehlo.compare LT, %[[TMP_6]], %[[TMP_69]], NOTYPE
+  // CHECK: %[[TMP_70:.*]] = stablehlo.compare LT, %[[TMP_6]], %[[TMP_69]]
   // CHECK: %[[TMP_71:.*]] = stablehlo.subtract %[[TMP_9]], %[[TMP_69]]
   // CHECK: %[[TMP_72:.*]] = stablehlo.select %[[TMP_70]], %[[TMP_71]], %[[TMP_69]]
   // CHECK: %[[TMP_73:.*]] = stablehlo.constant dense<3.1415926535897931>
@@ -2611,36 +2611,36 @@ func.func @polygamma_f64(%lhs : tensor<f64>, %rhs : tensor<f64>) -> tensor<f64> 
   // CHECK: %[[TMP_238:.*]] = stablehlo.abs %[[TMP_120]]
   // CHECK: %[[TMP_239:.*]] = stablehlo.constant dense<4.940660e-324>
   // CHECK: %[[TMP_240:.*]] = stablehlo.multiply %[[TMP_238]], %[[TMP_239]]
-  // CHECK: %[[TMP_241:.*]] = stablehlo.compare LT, %[[TMP_237]], %[[TMP_240]], NOTYPE
+  // CHECK: %[[TMP_241:.*]] = stablehlo.compare LT, %[[TMP_237]], %[[TMP_240]]
   // CHECK: %[[TMP_242:.*]] = stablehlo.select %[[TMP_241]], %[[TMP_120]], %[[TMP_236]]
   // CHECK: %[[TMP_243:.*]] = stablehlo.constant dense<0x7FF8000000000000>
-  // CHECK: %[[TMP_244:.*]] = stablehlo.compare LT, %[[TMP_5]], %[[TMP_123]], NOTYPE
+  // CHECK: %[[TMP_244:.*]] = stablehlo.compare LT, %[[TMP_5]], %[[TMP_123]]
   // CHECK: %[[TMP_245:.*]] = stablehlo.select %[[TMP_244]], %[[TMP_243]], %[[TMP_242]]
-  // CHECK: %[[TMP_246:.*]] = stablehlo.compare LE, %[[ARG1]], %[[TMP_90]], NOTYPE
+  // CHECK: %[[TMP_246:.*]] = stablehlo.compare LE, %[[ARG1]], %[[TMP_90]]
   // CHECK: %[[TMP_247:.*]] = stablehlo.floor %[[TMP_5]]
-  // CHECK: %[[TMP_248:.*]] = stablehlo.compare NE, %[[TMP_5]], %[[TMP_247]], NOTYPE
+  // CHECK: %[[TMP_248:.*]] = stablehlo.compare NE, %[[TMP_5]], %[[TMP_247]]
   // CHECK: %[[TMP_249:.*]] = stablehlo.and %[[TMP_246]], %[[TMP_248]]
   // CHECK: %[[TMP_250:.*]] = stablehlo.select %[[TMP_249]], %[[TMP_243]], %[[TMP_245]]
   // CHECK: %[[TMP_251:.*]] = stablehlo.constant dense<0x7FF0000000000000>
   // CHECK: %[[TMP_252:.*]] = stablehlo.floor %[[ARG1]]
-  // CHECK: %[[TMP_253:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[TMP_252]], NOTYPE
+  // CHECK: %[[TMP_253:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[TMP_252]]
   // CHECK: %[[TMP_254:.*]] = stablehlo.and %[[TMP_246]], %[[TMP_253]]
   // CHECK: %[[TMP_255:.*]] = stablehlo.constant dense<2.000000e+00>
   // CHECK: %[[TMP_256:.*]] = stablehlo.floor %[[TMP_5]]
-  // CHECK: %[[TMP_257:.*]] = stablehlo.compare EQ, %[[TMP_5]], %[[TMP_256]], NOTYPE
+  // CHECK: %[[TMP_257:.*]] = stablehlo.compare EQ, %[[TMP_5]], %[[TMP_256]]
   // CHECK: %[[TMP_258:.*]] = stablehlo.remainder %[[TMP_5]], %[[TMP_255]]
-  // CHECK: %[[TMP_259:.*]] = stablehlo.compare EQ, %[[TMP_258]], %[[TMP_90]], NOTYPE
+  // CHECK: %[[TMP_259:.*]] = stablehlo.compare EQ, %[[TMP_258]], %[[TMP_90]]
   // CHECK: %[[TMP_260:.*]] = stablehlo.and %[[TMP_257]], %[[TMP_259]]
   // CHECK: %[[TMP_261:.*]] = stablehlo.select %[[TMP_260]], %[[TMP_251]], %[[TMP_243]]
   // CHECK: %[[TMP_262:.*]] = stablehlo.select %[[TMP_254]], %[[TMP_261]], %[[TMP_250]]
-  // CHECK: %[[TMP_263:.*]] = stablehlo.compare EQ, %[[TMP_5]], %[[TMP_91]], NOTYPE
+  // CHECK: %[[TMP_263:.*]] = stablehlo.compare EQ, %[[TMP_5]], %[[TMP_91]]
   // CHECK: %[[TMP_264:.*]] = stablehlo.select %[[TMP_263]], %[[TMP_251]], %[[TMP_262]]
   // CHECK: %[[TMP_265:.*]] = stablehlo.multiply %[[TMP_4]], %[[TMP_89]]
   // CHECK: %[[TMP_266:.*]] = stablehlo.multiply %[[TMP_265]], %[[TMP_264]]
   // CHECK: %[[TMP_267:.*]] = stablehlo.constant dense<0.000000e+00>
-  // CHECK: %[[TMP_268:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[TMP_267]], NOTYPE
+  // CHECK: %[[TMP_268:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[TMP_267]]
   // CHECK: %[[TMP_269:.*]] = stablehlo.constant dense<5.000000e-01>
-  // CHECK: %[[TMP_270:.*]] = stablehlo.compare LT, %[[ARG1]], %[[TMP_269]], NOTYPE
+  // CHECK: %[[TMP_270:.*]] = stablehlo.compare LT, %[[ARG1]], %[[TMP_269]]
   // CHECK: %[[TMP_271:.*]] = stablehlo.negate %[[ARG1]]
   // CHECK: %[[TMP_272:.*]] = stablehlo.constant dense<1.000000e+00>
   // CHECK: %[[TMP_273:.*]] = stablehlo.subtract %[[ARG1]], %[[TMP_272]]
@@ -2735,16 +2735,16 @@ func.func @polygamma_f64(%lhs : tensor<f64>, %rhs : tensor<f64>) -> tensor<f64> 
   // CHECK: %[[TMP_362:.*]] = stablehlo.divide %[[TMP_361]], %[[TMP_360]]
   // CHECK: %[[TMP_363:.*]] = stablehlo.subtract %[[TMP_351]], %[[TMP_362]]
   // CHECK: %[[TMP_364:.*]] = stablehlo.select %[[TMP_270]], %[[TMP_363]], %[[TMP_351]]
-  // CHECK: %[[TMP_365:.*]] = stablehlo.compare LE, %[[ARG1]], %[[TMP_275]], NOTYPE
+  // CHECK: %[[TMP_365:.*]] = stablehlo.compare LE, %[[ARG1]], %[[TMP_275]]
   // CHECK: %[[TMP_366:.*]] = stablehlo.floor %[[ARG1]]
-  // CHECK: %[[TMP_367:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[TMP_366]], NOTYPE
+  // CHECK: %[[TMP_367:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[TMP_366]]
   // CHECK: %[[TMP_368:.*]] = stablehlo.and %[[TMP_365]], %[[TMP_367]]
   // CHECK: %[[TMP_369:.*]] = stablehlo.constant dense<0x7FF8000000000000>
   // CHECK: %[[TMP_370:.*]] = stablehlo.select %[[TMP_368]], %[[TMP_369]], %[[TMP_364]]
   // CHECK: %[[TMP_371:.*]] = stablehlo.select %[[TMP_268]], %[[TMP_370]], %[[TMP_266]]
   // CHECK: %[[TMP_372:.*]] = stablehlo.floor %[[ARG0]]
-  // CHECK: %[[TMP_373:.*]] = stablehlo.compare NE, %[[ARG0]], %[[TMP_372]], NOTYPE
-  // CHECK: %[[TMP_374:.*]] = stablehlo.compare LT, %[[ARG0]], %[[TMP_267]], NOTYPE
+  // CHECK: %[[TMP_373:.*]] = stablehlo.compare NE, %[[ARG0]], %[[TMP_372]]
+  // CHECK: %[[TMP_374:.*]] = stablehlo.compare LT, %[[ARG0]], %[[TMP_267]]
   // CHECK: %[[TMP_375:.*]] = stablehlo.or %[[TMP_373]], %[[TMP_374]]
   // CHECK: %[[TMP_376:.*]] = stablehlo.constant dense<0x7FF8000000000000>
   // CHECK: %[[TMP_377:.*]] = stablehlo.select %[[TMP_375]], %[[TMP_376]], %[[TMP_371]]
@@ -2786,7 +2786,7 @@ func.func @sinh_f32(%x : tensor<f32>) -> tensor<f32> {
   // CHECK: %[[SUM:.*]] = stablehlo.add %[[EXPM1]], %[[RATIO]] : tensor<f32>
   // CHECK: %[[SMALL_SINH_RESULT:.*]] = stablehlo.multiply %[[HALF]], %[[SUM]] : tensor<f32>
   // CHECK: %[[ABS_X:.*]] = stablehlo.abs %[[X]] : tensor<f32>
-  // CHECK: %[[ABS_X_LT_ONE:.*]] = stablehlo.compare LT, %[[ABS_X]], %[[ONE]], NOTYPE : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  // CHECK: %[[ABS_X_LT_ONE:.*]] = stablehlo.compare LT, %[[ABS_X]], %[[ONE]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
   // CHECK: %[[RESULT:.*]] = stablehlo.select %[[ABS_X_LT_ONE]], %[[SMALL_SINH_RESULT]], %[[LARGE_SINH_RESULT]] : tensor<i1>, tensor<f32>
   // CHECK: return %[[RESULT]] : tensor<f32>
   %1 = chlo.sinh %x : tensor<f32> -> tensor<f32>
@@ -2912,8 +2912,8 @@ func.func @atanh_complex_f32(%arg : tensor<complex<f32>>) -> tensor<complex<f32>
 func.func @next_after_f32(%x: tensor<2xf32>, %y: tensor<2xf32>) -> tensor<2xf32> {
   // CHECK: %[[X_AS_INT:.*]] = stablehlo.bitcast_convert %[[ARG0]] : (tensor<2xf32>) -> tensor<2xi32>
   // CHECK: %[[Y_AS_INT:.*]] = stablehlo.bitcast_convert %[[ARG1]] : (tensor<2xf32>) -> tensor<2xi32>
-  // CHECK: %[[X_IS_NAN:.*]] = stablehlo.compare NE, %[[ARG0]], %[[ARG0]], NOTYPE : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
-  // CHECK: %[[Y_IS_NAN:.*]] = stablehlo.compare NE, %[[ARG1]], %[[ARG1]], NOTYPE : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
+  // CHECK: %[[X_IS_NAN:.*]] = stablehlo.compare NE, %[[ARG0]], %[[ARG0]] : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
+  // CHECK: %[[Y_IS_NAN:.*]] = stablehlo.compare NE, %[[ARG1]], %[[ARG1]] : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
   // CHECK: %[[INPUT_IS_NAN:.*]] = stablehlo.or %[[X_IS_NAN]], %[[Y_IS_NAN]] : tensor<2xi1>
   // CHECK: %[[NAN:.*]] = stablehlo.constant dense<0x7FC00000> : tensor<2xf32>
   // CHECK: %[[NAN_AS_INT:.*]] = stablehlo.bitcast_convert %[[NAN]] : (tensor<2xf32>) -> tensor<2xi32>
@@ -2921,16 +2921,16 @@ func.func @next_after_f32(%x: tensor<2xf32>, %y: tensor<2xf32>) -> tensor<2xf32>
   // CHECK-DAG: %[[NEGATED_SIGN_MASK:.*]] = stablehlo.constant dense<2147483647> : tensor<2xi32>
   // CHECK: %[[X_ABS:.*]] = stablehlo.and %[[X_AS_INT]], %[[NEGATED_SIGN_MASK]] : tensor<2xi32>
   // CHECK: %[[Y_ABS:.*]] = stablehlo.and %[[Y_AS_INT]], %[[NEGATED_SIGN_MASK]] : tensor<2xi32>
-  // CHECK: %[[X_AND_Y_ARE_EQUAL:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[ARG1]], NOTYPE : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
+  // CHECK: %[[X_AND_Y_ARE_EQUAL:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[ARG1]] : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
   // CHECK: %[[ZERO:.*]] = stablehlo.constant dense<0> : tensor<2xi32>
-  // CHECK: %[[X_ABS_IS_ZERO:.*]] = stablehlo.compare EQ, %[[X_ABS]], %[[ZERO]], NOTYPE : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
-  // CHECK: %[[Y_ABS_IS_ZERO:.*]] = stablehlo.compare EQ, %[[Y_ABS]], %[[ZERO]], NOTYPE : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+  // CHECK: %[[X_ABS_IS_ZERO:.*]] = stablehlo.compare EQ, %[[X_ABS]], %[[ZERO]] : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+  // CHECK: %[[Y_ABS_IS_ZERO:.*]] = stablehlo.compare EQ, %[[Y_ABS]], %[[ZERO]] : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
   // CHECK: %[[X_SIGN:.*]] = stablehlo.and %[[X_AS_INT]], %[[SIGN_MASK]] : tensor<2xi32>
   // CHECK: %[[Y_SIGN:.*]] = stablehlo.and %[[Y_AS_INT]], %[[SIGN_MASK]] : tensor<2xi32>
   // CHECK: %[[ONE:.*]] = stablehlo.constant dense<1> : tensor<2xi32>
   // CHECK: %[[RESULT_FOR_X_ZERO_Y_NON_ZERO:.*]] = stablehlo.or %[[Y_SIGN]], %[[ONE]] : tensor<2xi32>
-  // CHECK: %[[SIGNS_DISAGREE:.*]] = stablehlo.compare NE, %[[X_SIGN]], %[[Y_SIGN]], NOTYPE : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
-  // CHECK: %[[X_MAGNITUDE_LARGER_THAN_Y:.*]] = stablehlo.compare GT, %[[X_ABS]], %[[Y_ABS]], NOTYPE : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+  // CHECK: %[[SIGNS_DISAGREE:.*]] = stablehlo.compare NE, %[[X_SIGN]], %[[Y_SIGN]] : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+  // CHECK: %[[X_MAGNITUDE_LARGER_THAN_Y:.*]] = stablehlo.compare GT, %[[X_ABS]], %[[Y_ABS]] : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
   // CHECK: %[[RESULT_HAS_SMALLER_MAGNITUDE:.*]] = stablehlo.or %[[X_MAGNITUDE_LARGER_THAN_Y]], %[[SIGNS_DISAGREE]] : tensor<2xi1>
   // CHECK: %[[MINUS_ONE:.*]] = stablehlo.constant dense<-1> : tensor<2xi32>
   // CHECK: %[[MAGNITUDE_ADJUSTMENT:.*]] = stablehlo.select %[[RESULT_HAS_SMALLER_MAGNITUDE]], %[[MINUS_ONE]], %[[ONE]] : tensor<2xi1>, tensor<2xi32>
@@ -3038,7 +3038,7 @@ func.func @dyn_top_k(%arg0: tensor<?x5x?xi1>) -> (tensor<?x5x2xi1>, tensor<?x5x2
   // CHECK-NEXT: [[IOTA:%.*]] = stablehlo.dynamic_iota [[IOTA_SHAPE]], dim = 2 : (tensor<3xi32>) -> tensor<?x5x?xi32>
   // CHECK-NEXT: [[SORT:%.*]]:2 = "stablehlo.sort"([[ARG]], [[IOTA]]) <{dimension = 2 : i64, is_stable = true}> ({
   // CHECK-NEXT: ^bb0([[ARG_1:%.*]]: tensor<i1>, [[ARG_2:%.*]]: tensor<i1>, [[ARG_3:%.*]]: tensor<i32>, [[ARG_4:%.*]]: tensor<i32>):
-  // CHECK-NEXT:   [[CMP:%.*]] = stablehlo.compare  GT, [[ARG_1]], [[ARG_2]],  NOTYPE : (tensor<i1>, tensor<i1>) -> tensor<i1>
+  // CHECK-NEXT:   [[CMP:%.*]] = stablehlo.compare  GT, [[ARG_1]], [[ARG_2]] : (tensor<i1>, tensor<i1>) -> tensor<i1>
   // CHECK-NEXT:   stablehlo.return [[CMP]] : tensor<i1>
   // CHECK-NEXT: }) : (tensor<?x5x?xi1>, tensor<?x5x?xi32>) -> (tensor<?x5x?xi1>, tensor<?x5x?xi32>)
   // CHECK-NEXT: [[STARTS:%.*]] = stablehlo.constant dense<0> : tensor<3xi64>
@@ -3188,7 +3188,7 @@ func.func @bessel_i1e_f16(%arg: tensor<16x16xf16>) -> tensor<16x16xf16> {
   // CHECK-NEXT:  %[[TMP_118:.*]] = stablehlo.multiply %[[TMP_116]], %[[TMP_117]] : tensor<16x16xf32>
   // CHECK-NEXT:  %[[TMP_119:.*]] = stablehlo.sqrt %[[TMP_1]] : tensor<16x16xf32>
   // CHECK-NEXT:  %[[TMP_120:.*]] = stablehlo.divide %[[TMP_118]], %[[TMP_119]] : tensor<16x16xf32>
-  // CHECK-NEXT:  %[[TMP_121:.*]] = stablehlo.compare LE, %[[TMP_1]], %[[TMP_5]], NOTYPE : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xi1>
+  // CHECK-NEXT:  %[[TMP_121:.*]] = stablehlo.compare LE, %[[TMP_1]], %[[TMP_5]] : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xi1>
   // CHECK-NEXT:  %[[TMP_122:.*]] = stablehlo.select %[[TMP_121]], %[[TMP_82]], %[[TMP_120]] : tensor<16x16xi1>, tensor<16x16xf32>
   // CHECK-NEXT:  %[[TMP_123:.*]] = stablehlo.sign %[[TMP_0]] : tensor<16x16xf32>
   // CHECK-NEXT:  %[[TMP_124:.*]] = stablehlo.multiply %[[TMP_123]], %[[TMP_122]] : tensor<16x16xf32>
@@ -3323,7 +3323,7 @@ func.func @bessel_i1e_f32(%arg : tensor<16x16xf32>) -> tensor<16x16xf32> {
   // CHECK-NEXT:  %[[TMP_117:.*]] = stablehlo.multiply %[[TMP_115]], %[[TMP_116]] : tensor<16x16xf32>
   // CHECK-NEXT:  %[[TMP_118:.*]] = stablehlo.sqrt %[[TMP_0]] : tensor<16x16xf32>
   // CHECK-NEXT:  %[[TMP_119:.*]] = stablehlo.divide %[[TMP_117]], %[[TMP_118]] : tensor<16x16xf32>
-  // CHECK-NEXT:  %[[TMP_120:.*]] = stablehlo.compare LE, %[[TMP_0]], %[[TMP_4]], NOTYPE : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xi1>
+  // CHECK-NEXT:  %[[TMP_120:.*]] = stablehlo.compare LE, %[[TMP_0]], %[[TMP_4]] : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xi1>
   // CHECK-NEXT:  %[[TMP_121:.*]] = stablehlo.select %[[TMP_120]], %[[TMP_81]], %[[TMP_119]] : tensor<16x16xi1>, tensor<16x16xf32>
   // CHECK-NEXT:  %[[TMP_122:.*]] = stablehlo.sign %[[ARG0]] : tensor<16x16xf32>
   // CHECK-NEXT:  %[[TMP_123:.*]] = stablehlo.multiply %[[TMP_122]], %[[TMP_121]] : tensor<16x16xf32>
@@ -3577,7 +3577,7 @@ func.func @bessel_i1e_f64(%arg : tensor<16x16xf64>) -> tensor<16x16xf64> {
   // CHECK-NEXT: %[[TMP_237:.*]] = stablehlo.multiply %[[TMP_235]], %[[TMP_236]] : tensor<16x16xf64>
   // CHECK-NEXT: %[[TMP_238:.*]] = stablehlo.sqrt %[[TMP_0]] : tensor<16x16xf64>
   // CHECK-NEXT: %[[TMP_239:.*]] = stablehlo.divide %[[TMP_237]], %[[TMP_238]] : tensor<16x16xf64>
-  // CHECK-NEXT: %[[TMP_240:.*]] = stablehlo.compare LE, %[[TMP_0]], %[[TMP_4]], NOTYPE : (tensor<16x16xf64>, tensor<16x16xf64>) -> tensor<16x16xi1>
+  // CHECK-NEXT: %[[TMP_240:.*]] = stablehlo.compare LE, %[[TMP_0]], %[[TMP_4]] : (tensor<16x16xf64>, tensor<16x16xf64>) -> tensor<16x16xi1>
   // CHECK-NEXT: %[[TMP_241:.*]] = stablehlo.select %[[TMP_240]], %[[TMP_129]], %[[TMP_239]] : tensor<16x16xi1>, tensor<16x16xf64>
   // CHECK-NEXT: %[[TMP_242:.*]] = stablehlo.sign %[[ARG0]] : tensor<16x16xf64>
   // CHECK-NEXT: %[[TMP_243:.*]] = stablehlo.multiply %[[TMP_242]], %[[TMP_241]] : tensor<16x16xf64>
@@ -3595,7 +3595,7 @@ func.func @bessel_i1e_f64(%arg : tensor<16x16xf64>) -> tensor<16x16xf64> {
 // CHECK-DAG:     [[VAL_2:%.*]] = stablehlo.log_plus_one [[VAL_1]] : tensor<16x16xf32>
 // CHECK-DAG:     [[VAL_3:%.*]] = stablehlo.negate [[VAL_2]] : tensor<16x16xf32>
 // CHECK-DAG:     [[VAL_4:%.*]] = stablehlo.constant dense<5.000000e+00> : tensor<16x16xf32>
-// CHECK-DAG:     [[VAL_5:%.*]] = stablehlo.compare  LT, [[VAL_3]], [[VAL_4]],  NOTYPE : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xi1>
+// CHECK-DAG:     [[VAL_5:%.*]] = stablehlo.compare  LT, [[VAL_3]], [[VAL_4]] : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xi1>
 // CHECK-DAG:     [[VAL_6:%.*]] = stablehlo.constant dense<2.500000e+00> : tensor<16x16xf32>
 // CHECK-DAG:     [[VAL_7:%.*]] = stablehlo.subtract [[VAL_3]], [[VAL_6]] : tensor<16x16xf32>
 // CHECK-DAG:     [[VAL_8:%.*]] = stablehlo.sqrt [[VAL_3]] : tensor<16x16xf32>
@@ -3648,7 +3648,7 @@ func.func @bessel_i1e_f64(%arg : tensor<16x16xf64>) -> tensor<16x16xf64> {
 // CHECK-DAG:     [[VAL_55:%.*]] = stablehlo.multiply [[VAL_54]], [[ARG_0]] : tensor<16x16xf32>
 // CHECK-DAG:     [[VAL_56:%.*]] = stablehlo.abs [[ARG_0]] : tensor<16x16xf32>
 // CHECK-DAG:     [[VAL_57:%.*]] = stablehlo.constant dense<1.000000e+00> : tensor<16x16xf32>
-// CHECK-DAG:     [[VAL_58:%.*]] = stablehlo.compare  EQ, [[VAL_56]], [[VAL_57]],  NOTYPE : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xi1>
+// CHECK-DAG:     [[VAL_58:%.*]] = stablehlo.compare  EQ, [[VAL_56]], [[VAL_57]] : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xi1>
 // CHECK-DAG:     [[VAL_59:%.*]] = stablehlo.constant dense<0x7F800000> : tensor<16x16xf32>
 // CHECK-DAG:     [[VAL_60:%.*]] = stablehlo.multiply [[ARG_0]], [[VAL_59]] : tensor<16x16xf32>
 // CHECK-DAG:     [[VAL_61:%.*]] = stablehlo.select [[VAL_58]], [[VAL_60]], [[VAL_55]] : tensor<16x16xi1>, tensor<16x16xf32>
@@ -3666,9 +3666,9 @@ func.func @erf_inv(%arg0 : tensor<16x16xf32>) {
 // CHECK-DAG:     [[VAL_2:%.*]] = stablehlo.log_plus_one [[VAL_1]] : tensor<16x16xf64>
 // CHECK-DAG:     [[VAL_3:%.*]] = stablehlo.negate [[VAL_2]] : tensor<16x16xf64>
 // CHECK-DAG:     [[VAL_4:%.*]] = stablehlo.constant dense<6.250000e+00> : tensor<16x16xf64>
-// CHECK-DAG:     [[VAL_5:%.*]] = stablehlo.compare  LT, [[VAL_3]], [[VAL_4]],  NOTYPE : (tensor<16x16xf64>, tensor<16x16xf64>) -> tensor<16x16xi1>
+// CHECK-DAG:     [[VAL_5:%.*]] = stablehlo.compare  LT, [[VAL_3]], [[VAL_4]] : (tensor<16x16xf64>, tensor<16x16xf64>) -> tensor<16x16xi1>
 // CHECK-DAG:     [[VAL_6:%.*]] = stablehlo.constant dense<1.600000e+01> : tensor<16x16xf64>
-// CHECK-DAG:     [[VAL_7:%.*]] = stablehlo.compare  LT, [[VAL_3]], [[VAL_6]],  NOTYPE : (tensor<16x16xf64>, tensor<16x16xf64>) -> tensor<16x16xi1>
+// CHECK-DAG:     [[VAL_7:%.*]] = stablehlo.compare  LT, [[VAL_3]], [[VAL_6]] : (tensor<16x16xf64>, tensor<16x16xf64>) -> tensor<16x16xi1>
 // CHECK-DAG:     [[VAL_8:%.*]] = stablehlo.sqrt [[VAL_3]] : tensor<16x16xf64>
 // CHECK-DAG:     [[VAL_9:%.*]] = stablehlo.constant dense<3.125000e+00> : tensor<16x16xf64>
 // CHECK-DAG:     [[VAL_10:%.*]] = stablehlo.subtract [[VAL_3]], [[VAL_9]] : tensor<16x16xf64>
@@ -3825,7 +3825,7 @@ func.func @erf_inv(%arg0 : tensor<16x16xf32>) {
 // CHECK-DAG:     [[VAL_161:%.*]] = stablehlo.multiply [[VAL_160]], [[ARG_0]] : tensor<16x16xf64>
 // CHECK-DAG:     [[VAL_162:%.*]] = stablehlo.abs [[ARG_0]] : tensor<16x16xf64>
 // CHECK-DAG:     [[VAL_163:%.*]] = stablehlo.constant dense<1.000000e+00> : tensor<16x16xf64>
-// CHECK-DAG:     [[VAL_164:%.*]] = stablehlo.compare  EQ, [[VAL_162]], [[VAL_163]],  NOTYPE : (tensor<16x16xf64>, tensor<16x16xf64>) -> tensor<16x16xi1>
+// CHECK-DAG:     [[VAL_164:%.*]] = stablehlo.compare  EQ, [[VAL_162]], [[VAL_163]] : (tensor<16x16xf64>, tensor<16x16xf64>) -> tensor<16x16xi1>
 // CHECK-DAG:     [[VAL_165:%.*]] = stablehlo.constant dense<0x7FF0000000000000> : tensor<16x16xf64>
 // CHECK-DAG:     [[VAL_166:%.*]] = stablehlo.multiply [[ARG_0]], [[VAL_165]] : tensor<16x16xf64>
 // CHECK-DAG:     [[VAL_167:%.*]] = stablehlo.select [[VAL_164]], [[VAL_166]], [[VAL_161]] : tensor<16x16xi1>, tensor<16x16xf64>
