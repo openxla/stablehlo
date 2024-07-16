@@ -998,6 +998,20 @@ func.func @while_c3(%arg0: tensor<4xf32>, %arg1: tensor<f32>, %arg2: tensor<f32>
   map = (d0, d1) -> (d0 : dense, d1 : compressed)
 }>
 
+// CHECK-LABEL: @tan_sparsity
+func.func @tan_sparsity(%arg0: tensor<10x10xf32, #CSR>) -> tensor<10x10xindex> {
+  %0 = "stablehlo.tan"(%arg0) : (tensor<10x10xf32, #CSR>) -> tensor<10x10xf32>
+  // CHECK: types0 = tensor<10x10xf32, {{.*}}>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<10x10xf32>) -> tensor<10x10xindex>
+  func.return %1 : tensor<10x10xindex>
+}
+
+// -----
+
+#CSR = #sparse_tensor.encoding<{
+  map = (d0, d1) -> (d0 : dense, d1 : compressed)
+}>
+
 // CHECK-LABEL: @tanh_sparsity
 func.func @tanh_sparsity(%arg0: tensor<10x10xf32, #CSR>) -> tensor<10x10xindex> {
   %0 = "stablehlo.tanh"(%arg0) : (tensor<10x10xf32, #CSR>) -> tensor<10x10xf32>

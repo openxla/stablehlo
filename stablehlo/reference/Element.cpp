@@ -1117,6 +1117,12 @@ Element sqrt(const Element &el) {
       [](std::complex<double> e) { return std::sqrt(e); });
 }
 
+Element tan(const Element &el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::tan(e); },
+      [](std::complex<double> e) { return std::tan(e); });
+}
+
 Element tanh(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::tanh(e); },

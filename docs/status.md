@@ -146,6 +146,7 @@ one of the following tracking labels.
 | sort                     | yes           | yes          | yes            | no              | yes         |
 | sqrt                     | yes           | yes          | yes            | yes             | yes         |
 | subtract                 | yes           | yes          | yes            | yes             | yes         |
+| tan                      | yes           | yes          | yes            | yes             | yes         |
 | tanh                     | yes           | yes          | yes            | yes             | yes         |
 | torch_index_select       | no            | revisit      | no             | no              | revisit     |
 | transpose                | yes           | yes          | yes            | yes             | yes         |

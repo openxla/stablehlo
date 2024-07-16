@@ -6219,6 +6219,49 @@ Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/subtract.mlir)
 
+### tan
+
+#### Semantics
+
+Performs element-wise tangent operation on the `operand` tensor and produces a
+`result` tensor. Depending on the element type, does the following:
+
+* For floats: `tan` from IEEE-754.
+* For complex numbers: complex tangent.
+* For quantized types: `dequantize_op_quantize(tan, operand, type(result))`.
+
+#### Inputs
+
+| Label | Name      | Type                                                                    | Constraints |
+|-------|-----------|-------------------------------------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
+
+#### Outputs
+
+| Name     | Type                                                                    | Constraints |
+|----------|-------------------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
+
+#### Constraints
+
+* (C1) `baseline_type(operand) = baseline_type(result)`.
+
+#### Examples
+
+```mlir
+// %operand: [
+//            [0.0, 1.57079632],       // [0, pi/2]
+//            [3.14159265, 4.71238898] // [pi, 3pi/2]
+//           ]
+%result = "stablehlo.tan"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
+// %result: [
+//           [0.0, 1.63312e+16],
+//           [0.0, 5.44375e+15]
+//          ]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/tan.mlir)
+
 ### tanh
 
 #### Semantics
