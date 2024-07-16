@@ -97,10 +97,34 @@ class StablehloTranslateInterpreterFallback
                                  stablehlo::Process *process) final {
     llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
     if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
-      if (customCall.getCallTargetName() == "check.eq") {
+      auto callTarget = customCall.getCallTargetName();
+      if (callTarget == "check.eq") {
         auto status = evalCustomCallCheckEq(customCall, scope);
         return stablehlo::wrapFallbackStatus(
             std::move(status), funcName, "stablehlo.custom_call(@check.eq)");
+      }
+      if (customCall->getNumOperands() == 2) {
+        // TODO: Replace with custom_call --> check dialect pass
+        auto runtimeLhs = scope.findTensor(customCall->getOperand(0));
+        auto runtimeRhs = scope.findTensor(customCall->getOperand(1));
+        if (callTarget == "check.expect_close") {
+          auto status =
+              stablehlo::check::evalExpectCloseOp(runtimeLhs, runtimeRhs, 0, 3);
+          return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                               "check.expect_close");
+        }
+        if (customCall.getCallTargetName() == "check.expect_eq") {
+          auto status =
+              stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
+          return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                               "check.expect_eq");
+        }
+        if (customCall.getCallTargetName() == "check.expect_almost_eq") {
+          auto status = stablehlo::check::evalExpectAlmostEqOp(
+              runtimeLhs, runtimeRhs, APFloat(0.001));
+          return stablehlo::wrapFallbackStatus(std::move(status), funcName,
+                                               "check.expect_almost_eq");
+        }
       }
 
       return stablehlo::invalidArgument("Unsupported custom call: %s",

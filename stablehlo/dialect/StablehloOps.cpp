@@ -2481,9 +2481,13 @@ LogicalResult TupleOp::inferReturnTypes(
 void CompareOp::build(OpBuilder& builder, OperationState& result, Value lhs,
                       Value rhs, ComparisonDirection comparisonDirection,
                       ComparisonType compareType) {
+  ComparisonTypeAttr comparisonTypeAttr;
+  if (compareType != ComparisonType::NOTYPE)
+    comparisonTypeAttr =
+        ComparisonTypeAttr::get(builder.getContext(), compareType);
   build(builder, result, lhs, rhs,
         ComparisonDirectionAttr::get(builder.getContext(), comparisonDirection),
-        ComparisonTypeAttr::get(builder.getContext(), compareType));
+        comparisonTypeAttr);
 }
 
 LogicalResult CompareOp::inferReturnTypeComponents(
