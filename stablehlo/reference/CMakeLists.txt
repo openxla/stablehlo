@@ -190,6 +190,7 @@ add_mlir_library(StablehloReferenceTensor
   MLIRIR
   StablehloReferenceAxes
   StablehloReferenceElement
+  StablehloReferenceErrors
   StablehloReferenceIndex
   StablehloReferenceTypes
 )
