@@ -49,7 +49,7 @@ def CHECK_ExpectAlmostEqConstOp :
     implementation-defined tolerance.
 
     ```mlir
-    check.expect_almost_eq_const %arg0, dense<[0.999999, 2.0]> : tensor<2xf32>
+    check.expect_almost_eq_const %arg0, dense<[0.999999, 2.0]> : tensor<2xf32>, tolerance = 0.0001
     ```
   }];
 

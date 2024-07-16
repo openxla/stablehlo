@@ -416,6 +416,7 @@ void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
   else
     printNewlineIndent(os, indent - 1);
 }
+
 }  // namespace
 
 void Tensor::print(raw_ostream &os) const {
