@@ -594,7 +594,8 @@ Element abs(const Element &el) {
                                      debugString(type).c_str()));
 }
 
-Element areApproximatelyEqual(const Element &e1, const Element &e2, double tolerance) {
+Element areApproximatelyEqual(const Element &e1, const Element &e2,
+                              double tolerance) {
   auto type = e1.getType();
   auto i1Type = IntegerType::get(e1.getType().getContext(), 1);
   if (type != e2.getType())

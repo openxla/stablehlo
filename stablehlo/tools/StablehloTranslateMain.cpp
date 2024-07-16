@@ -188,7 +188,10 @@ TranslateFromMLIRRegistration interpretRegistration(
       auto results = evalModule(module, inputs, config);
       if (failed(results)) return failure();
 
-      for (auto &result : *results) result.print(os);
+      for (auto &result : *results) {
+        result.print(os);
+        os << '\n';
+      }
 
       return success();
     },

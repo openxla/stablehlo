@@ -20,7 +20,6 @@ limitations under the License.
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -54,12 +53,9 @@ int64_t getSizeInBytes(Type type) {
 // Flattens multi-dimensional index 'index' of a tensor to a linearized index
 // into the underlying storage where elements are laid out in canonical order.
 int64_t flattenIndex(const Sizes &shape, const Index &index) {
-  if (!index.inBounds(shape)) {
-    std::string errMsg;
-    llvm::raw_string_ostream os(errMsg);
-    os << "Index " << index << " is out of bounds for shape " << shape;
-    llvm::report_fatal_error(errMsg.c_str());
-  }
+  if (!index.inBounds(shape))
+    llvm::report_fatal_error(
+        "Incompatible index and shape found while flattening index");
 
   int64_t idx = 0;
   if (shape.empty()) return idx;
@@ -379,7 +375,7 @@ IndexSpaceIterator Tensor::index_end() const { return getShape().index_end(); }
 
 namespace {
 
-void printNewline(llvm::raw_ostream & os, int64_t n) {
+void printNewline(llvm::raw_ostream &os, int64_t n) {
   os << '\n';
   for (int64_t i = 0; i < n; ++i) os << "  ";
 }
@@ -413,13 +409,13 @@ void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
     currIdx.pop_back();
   }
   os << "]";
-  
+
   // Print separator
   if (!isLast(currIdx, shape))
     os << ",";
   else
     printNewline(os, indent - 1);
-  }
+}
 }  // namespace
 
 void Tensor::print(raw_ostream &os) const {
