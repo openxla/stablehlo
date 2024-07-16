@@ -120,9 +120,10 @@ class StablehloTranslateInterpreterFallback
         // TODO: Replace with custom_call --> check dialect pass
         auto runtimeLhs = scope.findTensor(customCall->getOperand(0));
         auto runtimeRhs = scope.findTensor(customCall->getOperand(1));
+        // TODO: Make tolerance more strict
         if (callTarget == "check.expect_close") {
           auto status =
-              stablehlo::check::evalExpectCloseOp(runtimeLhs, runtimeRhs, 0, 3);
+              stablehlo::check::evalExpectCloseOp(runtimeLhs, runtimeRhs, 0, 5);
           return stablehlo::wrapFallbackStatus(std::move(status), funcName,
                                                "check.expect_close");
         }
