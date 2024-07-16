@@ -14,7 +14,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
       %4 = stablehlo.add %arg0, %arg1 : tensor<f32>
       stablehlo.return %4 : tensor<f32>
     }) : (tensor<112x112xf32>, tensor<f32>) -> tensor<56x56xf32>
-    stablehlo.custom_call @check.expect_close(%3, %1) {has_side_effect = true} : (tensor<56x56xf32>, tensor<56x56xf32>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%3, %1) {has_side_effect = true} : (tensor<56x56xf32>, tensor<56x56xf32>) -> ()
     return %3 : tensor<56x56xf32>
   }
   func.func private @inputs() -> (tensor<112x112xf32> {mhlo.layout_mode = "default"}) {

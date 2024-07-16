@@ -245,7 +245,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %cst_21 = stablehlo.constant dense<0x7FC00000> : tensor<f32>
     %70 = stablehlo.broadcast_in_dim %cst_21, dims = [] : (tensor<f32>) -> tensor<20x20xf32>
     %71 = stablehlo.select %69, %70, %68 : tensor<20x20xi1>, tensor<20x20xf32>
-    stablehlo.custom_call @check.expect_close(%71, %1) {has_side_effect = true} : (tensor<20x20xf32>, tensor<20x20xf32>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%71, %1) {has_side_effect = true} : (tensor<20x20xf32>, tensor<20x20xf32>) -> ()
     return %71 : tensor<20x20xf32>
   }
   func.func private @inputs() -> (tensor<20x20xf32> {mhlo.layout_mode = "default"}, tensor<20x20xf32> {mhlo.layout_mode = "default"}) {

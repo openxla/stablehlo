@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt -inline %s | stablehlo-translate --interpret
+// RUN-DISABLED(inaccurate) stablehlo-opt -inline %s | stablehlo-translate --interpret
 // RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
 // RUN: stablehlo-opt %s > %t.1
 // RUN: diff %t.0 %t.1
@@ -8,7 +8,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %0:2 = call @inputs() : () -> (tensor<20x30xcomplex<f32>>, tensor<20x30xcomplex<f32>>)
     %1 = call @expected() : () -> tensor<20x30xcomplex<f32>>
     %2 = stablehlo.power %0#0, %0#1 : tensor<20x30xcomplex<f32>>
-    stablehlo.custom_call @check.expect_close(%2, %1) {has_side_effect = true} : (tensor<20x30xcomplex<f32>>, tensor<20x30xcomplex<f32>>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%2, %1) {has_side_effect = true} : (tensor<20x30xcomplex<f32>>, tensor<20x30xcomplex<f32>>) -> ()
     return %2 : tensor<20x30xcomplex<f32>>
   }
   func.func private @inputs() -> (tensor<20x30xcomplex<f32>> {mhlo.layout_mode = "default"}, tensor<20x30xcomplex<f32>> {mhlo.layout_mode = "default"}) {

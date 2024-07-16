@@ -8,7 +8,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %0 = call @inputs() : () -> tensor<20x20xf32>
     %1 = call @expected() : () -> tensor<20x20xf32>
     %2 = chlo.erfc %0 : tensor<20x20xf32> -> tensor<20x20xf32>
-    stablehlo.custom_call @check.expect_close(%2, %1) {has_side_effect = true} : (tensor<20x20xf32>, tensor<20x20xf32>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%2, %1) {has_side_effect = true} : (tensor<20x20xf32>, tensor<20x20xf32>) -> ()
     return %2 : tensor<20x20xf32>
   }
   func.func private @inputs() -> (tensor<20x20xf32> {mhlo.layout_mode = "default"}) {

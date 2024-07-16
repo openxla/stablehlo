@@ -15,7 +15,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %cst_0 = stablehlo.constant dense<(1.000000e+00,0.000000e+00)> : tensor<complex<f32>>
     %6 = stablehlo.broadcast_in_dim %cst_0, dims = [] : (tensor<complex<f32>>) -> tensor<20x20xcomplex<f32>>
     %7 = stablehlo.divide %6, %5 : tensor<20x20xcomplex<f32>>
-    stablehlo.custom_call @check.expect_close(%7, %1) {has_side_effect = true} : (tensor<20x20xcomplex<f32>>, tensor<20x20xcomplex<f32>>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%7, %1) {has_side_effect = true} : (tensor<20x20xcomplex<f32>>, tensor<20x20xcomplex<f32>>) -> ()
     return %7 : tensor<20x20xcomplex<f32>>
   }
   func.func private @inputs() -> (tensor<20x20xcomplex<f32>> {mhlo.layout_mode = "default"}) {

@@ -319,7 +319,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %244 = stablehlo.broadcast_in_dim %cst_65, dims = [] : (tensor<f64>) -> tensor<20x20xf64>
     %245 = stablehlo.compare  LE, %2, %244,  FLOAT : (tensor<20x20xf64>, tensor<20x20xf64>) -> tensor<20x20xi1>
     %246 = stablehlo.select %245, %133, %243 : tensor<20x20xi1>, tensor<20x20xf64>
-    stablehlo.custom_call @check.expect_close(%246, %1) {has_side_effect = true} : (tensor<20x20xf64>, tensor<20x20xf64>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%246, %1) {has_side_effect = true} : (tensor<20x20xf64>, tensor<20x20xf64>) -> ()
     return %246 : tensor<20x20xf64>
   }
   func.func private @inputs() -> (tensor<20x20xf64> {mhlo.layout_mode = "default"}) {

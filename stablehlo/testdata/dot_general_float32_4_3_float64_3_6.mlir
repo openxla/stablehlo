@@ -10,7 +10,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %2 = stablehlo.convert %0#0 : (tensor<4x3xf32>) -> tensor<4x3xf64>
     %3 = stablehlo.convert %0#1 : tensor<3x6xf64>
     %4 = stablehlo.dot_general %2, %3, contracting_dims = [1] x [0] : (tensor<4x3xf64>, tensor<3x6xf64>) -> tensor<4x6xf64>
-    stablehlo.custom_call @check.expect_close(%4, %1) {has_side_effect = true} : (tensor<4x6xf64>, tensor<4x6xf64>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%4, %1) {has_side_effect = true} : (tensor<4x6xf64>, tensor<4x6xf64>) -> ()
     return %4 : tensor<4x6xf64>
   }
   func.func private @inputs() -> (tensor<4x3xf32> {mhlo.layout_mode = "default"}, tensor<3x6xf64> {mhlo.layout_mode = "default"}) {

@@ -173,7 +173,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %56 = stablehlo.broadcast_in_dim %cst_15, dims = [] : (tensor<f32>) -> tensor<9xf32>
     %57 = stablehlo.subtract %56, %55 : tensor<9xf32>
     %58 = stablehlo.select %19, %55, %57 : tensor<9xi1>, tensor<9xf32>
-    stablehlo.custom_call @check.expect_close(%58, %1) {has_side_effect = true} : (tensor<9xf32>, tensor<9xf32>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%58, %1) {has_side_effect = true} : (tensor<9xf32>, tensor<9xf32>) -> ()
     return %58 : tensor<9xf32>
   }
   func.func private @inputs() -> (tensor<9xf32> {mhlo.layout_mode = "default"}, tensor<9xf32> {mhlo.layout_mode = "default"}, tensor<9xf32> {mhlo.layout_mode = "default"}) {

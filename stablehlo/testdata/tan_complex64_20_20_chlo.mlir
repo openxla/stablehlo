@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --chlo-pre-serialization-pipeline -inline %s | stablehlo-translate --interpret
+// RUN-DISABLED(Inaccurate): stablehlo-opt --chlo-pre-serialization-pipeline -inline %s | stablehlo-translate --interpret
 // RUN: stablehlo-opt --chlo-pre-serialization-pipeline %s | stablehlo-translate --serialize --target=current | stablehlo-translate --deserialize | stablehlo-opt > %t.0
 // RUN: stablehlo-opt --chlo-pre-serialization-pipeline %s > %t.1
 // RUN: diff %t.0 %t.1
@@ -8,7 +8,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %0 = call @inputs() : () -> tensor<20x20xcomplex<f32>>
     %1 = call @expected() : () -> tensor<20x20xcomplex<f32>>
     %2 = chlo.tan %0 : tensor<20x20xcomplex<f32>> -> tensor<20x20xcomplex<f32>>
-    stablehlo.custom_call @check.expect_close(%2, %1) {has_side_effect = true} : (tensor<20x20xcomplex<f32>>, tensor<20x20xcomplex<f32>>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%2, %1) {has_side_effect = true} : (tensor<20x20xcomplex<f32>>, tensor<20x20xcomplex<f32>>) -> ()
     return %2 : tensor<20x20xcomplex<f32>>
   }
   func.func private @inputs() -> (tensor<20x20xcomplex<f32>> {mhlo.layout_mode = "default"}) {

@@ -123,7 +123,7 @@ class StablehloTranslateInterpreterFallback
         // TODO: Make tolerance more strict
         if (callTarget == "check.expect_close") {
           auto status =
-              stablehlo::check::evalExpectCloseOp(runtimeLhs, runtimeRhs, 0, 5);
+              stablehlo::check::evalExpectCloseOp(runtimeLhs, runtimeRhs, 0, 3);
           return stablehlo::wrapFallbackStatus(std::move(status), funcName,
                                                "check.expect_close");
         }

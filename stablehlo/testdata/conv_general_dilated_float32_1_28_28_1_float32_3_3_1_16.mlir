@@ -8,7 +8,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %0:2 = call @inputs() : () -> (tensor<1x28x28x1xf32>, tensor<3x3x1x16xf32>)
     %1 = call @expected() : () -> tensor<1x26x24x16xf32>
     %2 = stablehlo.convolution(%0#0, %0#1) dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f], window = {rhs_dilate = [1, 2]} {batch_group_count = 1 : i64, feature_group_count = 1 : i64} : (tensor<1x28x28x1xf32>, tensor<3x3x1x16xf32>) -> tensor<1x26x24x16xf32>
-    stablehlo.custom_call @check.expect_close(%2, %1) {has_side_effect = true} : (tensor<1x26x24x16xf32>, tensor<1x26x24x16xf32>) -> ()
+    stablehlo.custom_call @check.expect_almost_eq(%2, %1) {has_side_effect = true} : (tensor<1x26x24x16xf32>, tensor<1x26x24x16xf32>) -> ()
     return %2 : tensor<1x26x24x16xf32>
   }
   func.func private @inputs() -> (tensor<1x28x28x1xf32> {mhlo.layout_mode = "default"}, tensor<3x3x1x16xf32> {mhlo.layout_mode = "default"}) {
