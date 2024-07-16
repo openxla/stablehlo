@@ -146,7 +146,7 @@ Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
 }
 
 // Checks if two APFloat values, f and g, are almost equal.
-bool areApproximatelyEqual(APFloat f, APFloat g) {
+bool areApproximatelyEqual(APFloat f, APFloat g, double tolerance) {
   if (&f.getSemantics() != &g.getSemantics()) return false;
 
   llvm::APFloatBase::cmpResult cmpResult = f.compare(g);
@@ -171,7 +171,7 @@ bool areApproximatelyEqual(APFloat f, APFloat g) {
 
   // Both f and g are finite (zero, subnormal, or normal) values.
   if (f.isNegative() != g.isNegative()) return false;
-  return std::fabs(f.convertToDouble() - g.convertToDouble()) <= 0.0001;
+  return std::fabs(f.convertToDouble() - g.convertToDouble()) <= tolerance;
 }
 
 }  // namespace
@@ -594,7 +594,7 @@ Element abs(const Element &el) {
                                      debugString(type).c_str()));
 }
 
-Element areApproximatelyEqual(const Element &e1, const Element &e2) {
+Element areApproximatelyEqual(const Element &e1, const Element &e2, double tolerance) {
   auto type = e1.getType();
   auto i1Type = IntegerType::get(e1.getType().getContext(), 1);
   if (type != e2.getType())
@@ -603,16 +603,18 @@ Element areApproximatelyEqual(const Element &e1, const Element &e2) {
                                        debugString(e2.getType()).c_str()));
 
   if (isSupportedFloatType(type))
-    return Element(
-        i1Type, areApproximatelyEqual(e1.getFloatValue(), e2.getFloatValue()));
+    return Element(i1Type,
+                   areApproximatelyEqual(e1.getFloatValue(), e2.getFloatValue(),
+                                         tolerance));
 
   if (isSupportedComplexType(type)) {
     auto complexLhs = e1.getComplexValue();
     auto complexRhs = e2.getComplexValue();
     return Element(
-        i1Type,
-        areApproximatelyEqual(complexLhs.real(), complexRhs.real()) &&
-            areApproximatelyEqual(complexLhs.imag(), complexRhs.imag()));
+        i1Type, areApproximatelyEqual(complexLhs.real(), complexRhs.real(),
+                                      tolerance) &&
+                    areApproximatelyEqual(complexLhs.imag(), complexRhs.imag(),
+                                          tolerance));
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
@@ -1123,19 +1125,19 @@ Element tanh(const Element &el) {
       [](std::complex<double> e) { return std::tanh(e); });
 }
 
-void Element::print(raw_ostream &os) const {
+void Element::print(raw_ostream &os, bool elideType) const {
   if (isSupportedIntegerType(type_)) {
-    IntegerAttr::get(type_, getIntegerValue()).print(os);
+    IntegerAttr::get(type_, getIntegerValue()).print(os, elideType);
     return;
   }
 
   if (isSupportedBooleanType(type_)) {
-    IntegerAttr::get(type_, getBooleanValue()).print(os);
+    IntegerAttr::get(type_, getBooleanValue()).print(os, elideType);
     return;
   }
 
   if (isSupportedFloatType(type_)) {
-    FloatAttr::get(type_, getFloatValue()).print(os);
+    FloatAttr::get(type_, getFloatValue()).print(os, elideType);
     return;
   }
 
@@ -1144,9 +1146,9 @@ void Element::print(raw_ostream &os) const {
     auto complexVal = getComplexValue();
 
     os << "[";
-    FloatAttr::get(complexElemTy, complexVal.real()).print(os);
+    FloatAttr::get(complexElemTy, complexVal.real()).print(os, elideType);
     os << ", ";
-    FloatAttr::get(complexElemTy, complexVal.imag()).print(os);
+    FloatAttr::get(complexElemTy, complexVal.imag()).print(os, elideType);
     os << "]";
 
     return;

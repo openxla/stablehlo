@@ -16,13 +16,17 @@ limitations under the License.
 #include "stablehlo/reference/Tensor.h"
 
 #include <complex>
+#include <cstdint>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Types.h"
@@ -50,9 +54,12 @@ int64_t getSizeInBytes(Type type) {
 // Flattens multi-dimensional index 'index' of a tensor to a linearized index
 // into the underlying storage where elements are laid out in canonical order.
 int64_t flattenIndex(const Sizes &shape, const Index &index) {
-  if (!index.inBounds(shape))
-    llvm::report_fatal_error(
-        "Incompatible index and shape found while flattening index");
+  if (!index.inBounds(shape)) {
+    std::string errMsg;
+    llvm::raw_string_ostream os(errMsg);
+    os << "Index " << index << " is out of bounds for shape " << shape;
+    llvm::report_fatal_error(errMsg.c_str());
+  }
 
   int64_t idx = 0;
   if (shape.empty()) return idx;
@@ -370,13 +377,56 @@ IndexSpaceIterator Tensor::index_begin() const {
 
 IndexSpaceIterator Tensor::index_end() const { return getShape().index_end(); }
 
+namespace {
+
+void printNewline(llvm::raw_ostream & os, int64_t n) {
+  os << '\n';
+  for (int64_t i = 0; i < n; ++i) os << "  ";
+}
+
+bool isLast(const Index &idx, const Sizes &shape) {
+  // {0, 3} vs {0, 4, 9} ==> true
+  if (idx.empty()) return true;
+  auto dimSize = shape[idx.size() - 1];
+  return idx.back() == dimSize - 1;
+}
+
+void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
+                 const Sizes &shape, Index &currIdx, int64_t indent) {
+  // Iter1: {},  size=0
+  // Iter2: {0}, size=1
+  // Iter3: {0, 1}, size=2
+  // IterN: {0, N}, size=2
+  if (currIdx.size() == shape.size()) {
+    os << tensor.get(currIdx);
+    if (!isLast(currIdx, shape)) os << ", ";
+    return;
+  }
+
+  // Printing a new dim
+  printNewline(os, indent);
+  os << "[";
+  auto currAxes = shape[currIdx.size()];
+  for (int64_t idx = 0; idx < currAxes; ++idx) {
+    currIdx.push_back(idx);
+    printHelper(os, tensor, shape, currIdx, indent + 1);
+    currIdx.pop_back();
+  }
+  os << "]";
+  
+  // Print separator
+  if (!isLast(currIdx, shape))
+    os << ",";
+  else
+    printNewline(os, indent - 1);
+  }
+}  // namespace
+
 void Tensor::print(raw_ostream &os) const {
   getType().print(os);
-  os << " {\n";
-
-  for (auto it = this->index_begin(); it != this->index_end(); ++it)
-    os << "  " << get(*it) << "\n";
-
+  os << " {";
+  Index idx{};
+  printHelper(os, *this, getShape(), idx, /*index=*/1);
   os << "}";
 }
 

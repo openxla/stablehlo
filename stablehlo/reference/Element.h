@@ -133,7 +133,7 @@ class Element {
   Element operator~() const;
 
   /// Print utilities for Element objects.
-  void print(raw_ostream &os) const;
+  void print(raw_ostream &os, bool elideType = true) const;
 
   /// Print utilities for Element objects.
   void dump() const;
@@ -150,10 +150,11 @@ Element abs(const Element &e);
 Element atan2(const Element &e1, const Element &e2);
 
 /// For floating point type T, checks if two normal values f1 and f2 are equal
-/// within a tolerance given by 0.0001.
+/// within a set tolerance (default 0.0001).
 /// For complex element type, checks if both real and imaginary parts are
 /// individually equal modulo the tolerance.
-Element areApproximatelyEqual(const Element &e1, const Element &e2);
+Element areApproximatelyEqual(const Element &e1, const Element &e2,
+                              double tolerance = 0.0001);
 
 /// Various flavors of bitcast conversion as defined in the specification.
 Element bitcastConvertOneToOne(Type type, const Element &e);
@@ -308,7 +309,7 @@ Element tanh(const Element &e);
 
 /// Print utilities for Element objects.
 inline raw_ostream &operator<<(raw_ostream &os, Element element) {
-  element.print(os);
+  element.print(os, /*elideType=*/true);
   return os;
 }
 
