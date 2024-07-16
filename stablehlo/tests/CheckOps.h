@@ -37,8 +37,10 @@ class CheckDialect : public Dialect {
 };
 
 // The eval functions for the following ops are used only for test harness.
-llvm::Error evalExpectAlmostEqConstOp(const Tensor &lhs, ElementsAttr value);
-llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs);
+llvm::Error evalExpectAlmostEqConstOp(const Tensor &lhs, ElementsAttr value,
+                                      APFloat tolerance);
+llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs,
+                                 APFloat tolerance);
 llvm::Error evalExpectEqConstOp(const Tensor &lhs, ElementsAttr value);
 llvm::Error evalExpectEqOp(const Tensor &lhs, const Tensor &rhs);
 llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,

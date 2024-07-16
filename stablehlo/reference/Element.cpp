@@ -146,7 +146,7 @@ Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
 }
 
 // Checks if two APFloat values, f and g, are almost equal.
-bool areApproximatelyEqual(APFloat f, APFloat g, double tolerance) {
+bool areApproximatelyEqual(APFloat f, APFloat g, APFloat tolerance) {
   if (&f.getSemantics() != &g.getSemantics()) return false;
 
   llvm::APFloatBase::cmpResult cmpResult = f.compare(g);
@@ -171,7 +171,8 @@ bool areApproximatelyEqual(APFloat f, APFloat g, double tolerance) {
 
   // Both f and g are finite (zero, subnormal, or normal) values.
   if (f.isNegative() != g.isNegative()) return false;
-  return std::fabs(f.convertToDouble() - g.convertToDouble()) <= tolerance;
+  return std::fabs(f.convertToDouble() - g.convertToDouble()) <=
+         tolerance.convertToDouble();
 }
 
 }  // namespace
@@ -595,7 +596,7 @@ Element abs(const Element &el) {
 }
 
 Element areApproximatelyEqual(const Element &e1, const Element &e2,
-                              double tolerance) {
+                              APFloat tolerance) {
   auto type = e1.getType();
   auto i1Type = IntegerType::get(e1.getType().getContext(), 1);
   if (type != e2.getType())

@@ -154,7 +154,7 @@ Element atan2(const Element &e1, const Element &e2);
 /// For complex element type, checks if both real and imaginary parts are
 /// individually equal modulo the tolerance.
 Element areApproximatelyEqual(const Element &e1, const Element &e2,
-                              double tolerance = 0.0001);
+                              APFloat tolerance = APFloat(0.0001));
 
 /// Various flavors of bitcast conversion as defined in the specification.
 Element bitcastConvertOneToOne(Type type, const Element &e);
