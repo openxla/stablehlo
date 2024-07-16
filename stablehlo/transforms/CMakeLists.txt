@@ -65,6 +65,7 @@ add_mlir_dialect_library(StablehloPasses
   MLIRIR
   MLIRInferTypeOpInterface
   MLIRQuantDialect
+  MLIRReconcileUnrealizedCasts
   MLIRSupport
   MLIRTensorDialect
   MLIRTransformUtils
