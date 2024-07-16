@@ -21,7 +21,7 @@ func.func @check_eq_const() {
 func.func @check_almost_eq() {
   %operand = stablehlo.constant dense<5.0000> : tensor<f64>
   %result = stablehlo.constant dense<5.0001> : tensor<f64>
-  check.expect_almost_eq%operand, %result : tensor<f64>
+  check.expect_almost_eq %operand, %result : tensor<f64>
   func.return
 }
 

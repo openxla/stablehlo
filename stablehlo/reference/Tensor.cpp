@@ -375,13 +375,16 @@ IndexSpaceIterator Tensor::index_end() const { return getShape().index_end(); }
 
 namespace {
 
-void printNewline(llvm::raw_ostream &os, int64_t n) {
+void printNewlineIndent(llvm::raw_ostream &os, int64_t n) {
   os << '\n';
   for (int64_t i = 0; i < n; ++i) os << "  ";
 }
 
-bool isLast(const Index &idx, const Sizes &shape) {
-  // {0, 3} vs {0, 4, 9} ==> true
+bool isEndOfIterationSpace(const Index &idx, const Sizes &shape) {
+  // Check if this is the last index of the right-most dimension
+  // I.e.
+  //   Index{0, 3} vs Shape{0, 4, 9} ==> true
+  // Since [3] is the final valid index of the second dim of shape.
   if (idx.empty()) return true;
   auto dimSize = shape[idx.size() - 1];
   return idx.back() == dimSize - 1;
@@ -392,12 +395,12 @@ void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
   // Base case: We have a full index, print the item
   if (currIdx.size() == shape.size()) {
     os << tensor.get(currIdx);
-    if (!isLast(currIdx, shape)) os << ", ";
+    if (!isEndOfIterationSpace(currIdx, shape)) os << ", ";
     return;
   }
 
   // Recursive step: Add a dimension to currIdx and recurse.
-  printNewline(os, indent);
+  printNewlineIndent(os, indent);
   os << "[";
   auto currAxes = shape[currIdx.size()];
   for (int64_t idx = 0; idx < currAxes; ++idx) {
@@ -408,10 +411,10 @@ void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
   os << "]";
 
   // Print separator between tensors, and print newline at end.
-  if (!isLast(currIdx, shape))
+  if (!isEndOfIterationSpace(currIdx, shape))
     os << ",";
   else
-    printNewline(os, indent - 1);
+    printNewlineIndent(os, indent - 1);
 }
 }  // namespace
 
