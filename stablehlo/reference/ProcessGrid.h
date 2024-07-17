@@ -35,8 +35,8 @@ namespace stablehlo {
 struct ProcessId;
 
 /// Represents a result of a `ProcessGrid::rendezvous` where multiple processes
-/// synchronize at a barrier and contribute a Tensor each.
-/// This class is pretty much a map from ProcessId to Tensor, with the
+/// synchronize at a barrier and contribute any number of Tensors each.
+/// This class is pretty much a map from ProcessId to Tensors, with the
 /// map-like API.
 class RendezvousResult {
  public:
@@ -245,10 +245,10 @@ class ProcessGrid {
   /// underlying StableHLO programs or bugs in the StableHLO interpreter don't
   /// deadlock the interpreter.
   ///
-  /// At the barrier, each StableHLO process contributes a tensor, and these
-  /// tensors are accumulated in `RendezvousResult` whose shared pointer is
-  /// returned to all callers once the barrier has been reached by all StableHLO
-  /// processes.
+  /// At the barrier, each StableHLO process contribute any number of tensors,
+  /// and these tensors are accumulated in `RendezvousResult` whose shared
+  /// pointer is returned to all callers once the barrier has been reached by
+  /// all StableHLO processes.
   RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
                               ProcessId processId, const SmallVector<Tensor> &operand);
 
