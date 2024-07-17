@@ -1166,8 +1166,7 @@ Tensor allReduceOp(const Tensor &operand,
   SmallVector<Tensor> operands{operand};
   auto groupOperands = process->rendezvous(*processGroup, channelId, operands)
                            .getSortedTensors();
-  llvm::errs() << "received groupOperands size:" << groupOperands.size()
-               << "yes\n";
+
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
