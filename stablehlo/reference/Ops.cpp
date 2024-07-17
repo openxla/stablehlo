@@ -21,6 +21,7 @@ limitations under the License.
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -1130,12 +1131,12 @@ Tensor allGatherOp(const Tensor &operand, int64_t allGatherDim,
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-
+  SmallVector<Tensor> operands {operand};
   auto rendezvousResult =
-      process->rendezvous(*processGroup, channelId, operand);
+      process->rendezvous(*processGroup, channelId, operands);
   auto groupOperands = llvm::map_to_vector(
       *processGroup,
-      [&](const ProcessId &id) { return rendezvousResult.lookup(id); });
+      [&](const ProcessId &id) { return rendezvousResult.lookup(id).front(); });
 
   return concatenateOp(groupOperands, allGatherDim, resultType);
 }
@@ -1162,16 +1163,16 @@ Tensor allReduceOp(const Tensor &operand,
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-
+  SmallVector<Tensor> operands {operand};
   auto groupOperands =
-      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
-
+      process->rendezvous(*processGroup, channelId, operands).getSortedTensors();
+  llvm::errs() << "received groupOperands size:" << groupOperands.size() << "yes\n";
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
     Tensor resultElement;
     for (const auto &groupOperand : groupOperands) {
-      auto groupOperandElement = constant(groupOperand.get(*resultIt));
+      auto groupOperandElement = constant(groupOperand.front().get(*resultIt));
       if (resultElement)
         resultElement = eval(computation, {resultElement, groupOperandElement},
                              /*fallback=*/nullptr, process, &scope)[0]
@@ -1203,13 +1204,13 @@ Tensor allToAllOp(const Tensor &operand, Axis splitDimension,
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-
+  SmallVector<Tensor> operands {operand};
   auto groupOperands =
-      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
+      process->rendezvous(*processGroup, channelId, operands).getSortedTensors();
 
   SmallVector<Tensor> scatteredParts;
   for (const auto &groupOperand : groupOperands) {
-    auto splitParts = split(groupOperand, splitCount, splitDimension,
+    auto splitParts = split(groupOperand.front(), splitCount, splitDimension,
                             operand.getType().getContext());
     for (auto [i, processId] : llvm::enumerate(*processGroup))
       if (processId == process->getId())
@@ -1346,10 +1347,11 @@ Tensor collectiveBroadcastOp(const Tensor &operand,
   if (channelId > 0) processGroups = process->crossPartition(replicaGroups);
 
   auto processGroup = processGroups.findGroup(process->getId());
-  if (processGroup)
-    return process->rendezvous(*processGroup, channelId, operand)
-        .lookup((*processGroup)[0]);
-
+  if (processGroup) {
+    SmallVector<Tensor> operands {operand};
+    return process->rendezvous(*processGroup, channelId, operands)
+        .lookup((*processGroup)[0]).front();
+  }
   return broadcastInDimOp(constant(0.0, operand.getElementType()), {},
                           operand.getType());
 }
@@ -1371,11 +1373,11 @@ Tensor collectivePermuteOp(const Tensor &operand,
     auto from = processGroup[0];
     auto to = processGroup[1];
     if (from != process->getId() && to != process->getId()) continue;
-
+    SmallVector<Tensor> operands {operand};
     auto rendezvousResult =
-        process->rendezvous(processGroup, channelId, operand);
+        process->rendezvous(processGroup, channelId, operands);
     if (to != process->getId()) continue;
-    result = rendezvousResult.lookup(from);
+    result = rendezvousResult.lookup(from).front();
   }
 
   if (result) return result;

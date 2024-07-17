@@ -61,7 +61,7 @@ class Process {
 
   /// See `ProcessGrid::rendezvous`.
   RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
-                              const Tensor &operand);
+                              const SmallVector<Tensor> &operand);
 
   /// See `ProcessGrid::send`.
   void send(ArrayRef<Tensor> inputs, ChannelId channelId);
