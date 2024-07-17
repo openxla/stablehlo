@@ -43,16 +43,16 @@ class RendezvousResult {
   RendezvousResult() = default;
   RendezvousResult(std::map<ProcessId, SmallVector<Tensor>> const &results);
 
-  /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
-  /// of Tensors sorted by ProcessId--(replicaId, partitionId) pair--in
-  /// lexicographical order.
+  /// Iterates through the (ProcessId, SmallVector<Tensor>) map entires and
+  /// returns a vector of Tensors sorted by ProcessId--(replicaId, partitionId)
+  /// pair--in lexicographical order.
   SmallVector<SmallVector<Tensor>> getSortedTensors() const;
 
-  /// Inserts `tensor` into the map using the key `processId`.
+  /// Inserts `SmallVector<tensor>` into the map using the key `processId`.
   void insert(ProcessId processId, SmallVector<Tensor> tensor);
 
   /// Iterates through the map and returns the value associated with the key
-  /// `processId`. If key is not found, return an empty `Tensor`.
+  /// `processId`. If key is not found, return an empty `SmallVector<Tensor>`.
   SmallVector<Tensor> lookup(ProcessId processId) const;
 
  private:
