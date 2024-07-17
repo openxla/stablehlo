@@ -52,7 +52,7 @@ SmallVector<Tensor> Process::recv(ChannelId channelId) {
 
 RendezvousResult Process::rendezvous(ProcessGroup processGroup,
                                      ChannelId channelId,
-                                     const SmallVector<Tensor> &operands) {
+                                     ArrayRef<Tensor> operands) {
   return grid_->rendezvous(processGroup, channelId, getId(), operands);
 }
 

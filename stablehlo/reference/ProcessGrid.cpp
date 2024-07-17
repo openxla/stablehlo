@@ -225,11 +225,11 @@ SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
 RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
                                          ChannelId channelId,
                                          ProcessId processId,
-                                         const SmallVector<Tensor> &operands) {
+                                         const ArrayRef<Tensor> operands) {
   // Process wait/notify logic below doesn't work for single process.
   if (processGroup.size() == 1) {
     std::map<ProcessId, SmallVector<Tensor>> results;
-    results[processId] = operands;
+    results[processId] = SmallVector<Tensor>(operands);
     return RendezvousResult(results);
   }
 
@@ -237,7 +237,7 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
   auto &state = channels_[channelKey];
 
   std::unique_lock<std::mutex> lock(state.mutex);
-  state.values[processId] = operands;
+  state.values[processId] = SmallVector<Tensor>(operands);
   state.useCount++;
 
   // After each process contributes, wait for the last process to notify.

@@ -1131,9 +1131,8 @@ Tensor allGatherOp(const Tensor &operand, int64_t allGatherDim,
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-  SmallVector<Tensor> operands{operand};
   auto rendezvousResult =
-      process->rendezvous(*processGroup, channelId, operands);
+      process->rendezvous(*processGroup, channelId, {operand});
   auto groupOperands = llvm::map_to_vector(
       *processGroup,
       [&](const ProcessId &id) { return rendezvousResult.lookup(id).front(); });
@@ -1163,8 +1162,7 @@ Tensor allReduceOp(const Tensor &operand,
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-  SmallVector<Tensor> operands{operand};
-  auto groupOperands = process->rendezvous(*processGroup, channelId, operands)
+  auto groupOperands = process->rendezvous(*processGroup, channelId, {operand})
                            .getSortedTensors();
 
   Tensor result(resultType);
@@ -1204,8 +1202,7 @@ Tensor allToAllOp(const Tensor &operand, Axis splitDimension,
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-  SmallVector<Tensor> operands{operand};
-  auto groupOperands = process->rendezvous(*processGroup, channelId, operands)
+  auto groupOperands = process->rendezvous(*processGroup, channelId, {operand})
                            .getSortedTensors();
 
   SmallVector<Tensor> scatteredParts;
@@ -1348,8 +1345,7 @@ Tensor collectiveBroadcastOp(const Tensor &operand,
 
   auto processGroup = processGroups.findGroup(process->getId());
   if (processGroup) {
-    SmallVector<Tensor> operands{operand};
-    return process->rendezvous(*processGroup, channelId, operands)
+    return process->rendezvous(*processGroup, channelId, {operand})
         .lookup((*processGroup)[0])
         .front();
   }
@@ -1374,9 +1370,8 @@ Tensor collectivePermuteOp(const Tensor &operand,
     auto from = processGroup[0];
     auto to = processGroup[1];
     if (from != process->getId() && to != process->getId()) continue;
-    SmallVector<Tensor> operands{operand};
     auto rendezvousResult =
-        process->rendezvous(processGroup, channelId, operands);
+        process->rendezvous(processGroup, channelId, {operand});
     if (to != process->getId()) continue;
     result = rendezvousResult.lookup(from).front();
   }
