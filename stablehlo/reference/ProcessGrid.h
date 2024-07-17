@@ -250,7 +250,8 @@ class ProcessGrid {
   /// pointer is returned to all callers once the barrier has been reached by
   /// all StableHLO processes.
   RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
-                              ProcessId processId, const SmallVector<Tensor> &operand);
+                              ProcessId processId,
+                              const SmallVector<Tensor> &operand);
 
   /// Sends `inputs` to a channel with `channelId`.
   /// The channel with `channelId` is emptied before the receiving process can

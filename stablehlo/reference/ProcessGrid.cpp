@@ -59,10 +59,12 @@ std::optional<ProcessGroup> ProcessGroups::findGroup(ProcessId processId) {
 // RendezvousResult.
 //===----------------------------------------------------------------------===//
 
-RendezvousResult::RendezvousResult(std::map<ProcessId, SmallVector<Tensor>> const &results)
+RendezvousResult::RendezvousResult(
+    std::map<ProcessId, SmallVector<Tensor>> const &results)
     : results_(results) {}
 
-void RendezvousResult::insert(ProcessId processId, SmallVector<Tensor> tensors) {
+void RendezvousResult::insert(ProcessId processId,
+                              SmallVector<Tensor> tensors) {
   results_[processId] = tensors;
 }
 
