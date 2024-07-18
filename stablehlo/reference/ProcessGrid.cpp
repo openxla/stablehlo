@@ -81,7 +81,7 @@ SmallVector<SmallVector<Tensor>> RendezvousResult::getSortedTensors() const {
 
 bool RendezvousResult::hasMatchingOperandsCount() const {
   auto count = results_.begin()->second.size();
-  for (auto const &it : results_)
+  for (const auto &it : results_)
     if (count != it.second.size()) return false;
   return true;
 }
