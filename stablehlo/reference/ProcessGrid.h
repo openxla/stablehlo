@@ -35,8 +35,8 @@ namespace stablehlo {
 struct ProcessId;
 
 /// Represents a result of a `ProcessGrid::rendezvous` where multiple processes
-/// synchronize at a barrier and contribute any number of Tensors each.
-/// This class is pretty much a map from ProcessId to Tensors, with the
+/// synchronize at a barrier and contribute same number of Tensors.
+/// This class is pretty much a map from ProcessId to set of Tensors, with the
 /// map-like API.
 class RendezvousResult {
  public:
@@ -54,6 +54,10 @@ class RendezvousResult {
   /// Iterates through the map and returns the value associated with the key
   /// `processId`. If key is not found, return an empty `SmallVector<Tensor>`.
   SmallVector<Tensor> lookup(ProcessId processId) const;
+
+  /// Iterates through the (ProcessId, SmallVector<Tensor>) map entires and
+  /// return true if all processes contributed same number of operand Tensors
+  bool hasMatchingOperandsCount() const;
 
  private:
   /// Internal map representation of the result of `ProcessGrid::rendezvous`.

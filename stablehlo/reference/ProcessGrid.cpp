@@ -79,6 +79,13 @@ SmallVector<SmallVector<Tensor>> RendezvousResult::getSortedTensors() const {
                              [](const auto &pair) { return pair.second; });
 }
 
+bool RendezvousResult::hasMatchingOperandsCount() const {
+  auto count = results_.begin()->second.size();
+  for (auto const &it : results_)
+    if (count != it.second.size()) return false;
+  return true;
+}
+
 //===----------------------------------------------------------------------===//
 // ThreadSafeMap.
 //===----------------------------------------------------------------------===//
@@ -252,6 +259,9 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
   }
 
   state.useCount--;
+
+  if (!state.result.hasMatchingOperandsCount())
+    llvm::report_fatal_error("Mismatched number of operands per process");
 
   return state.useCount > 0 ? state.result : std::move(state.result);
 }
