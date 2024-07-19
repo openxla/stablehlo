@@ -256,9 +256,11 @@ def VHLO_QuantizationScalesV1 : ArrayRefParameter<"::llvm::APFloat", "array of d
     }()
   }];
   let printer = [{
+    $_printer << '[';
     llvm::interleaveComma($_self, $_printer, [&](APFloat scale) {
       $_printer << scale;
     });
+    $_printer << ']';
   }];
 }
 def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "quant_per_axis_v1", "0.18.0", "current"> {
@@ -283,7 +285,7 @@ def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "
       return success();
     }
   }];
-  let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $quantizedDimension `,` $scales `,` $zeroPoints `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
+  let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $quantizedDimension `,` $scales `,` `[` $zeroPoints `]` `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
 }
 
 // TODO(#8): UnrankedTensor is not part of the StableHLO spec.
