@@ -15,4 +15,5 @@ limitations under the License.
 #include "mlir/CAPI/Registration.h"
 #include "stablehlo/tests/CheckOps.h"
 
-MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Check, check, mlir::stablehlo::check::CheckDialect)
+MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Check, check,
+                                      mlir::stablehlo::check::CheckDialect)
