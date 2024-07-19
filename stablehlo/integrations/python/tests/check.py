@@ -23,8 +23,8 @@ from mlir.dialects import stablehlo as stablehlo_dialect
 
 def run(f):
   with ir.Context() as context:
-    check.register_dialect(context)
-    stablehlo_dialect.register_dialect(ctx)
+    check_dialect.register_dialect(context)
+    stablehlo_dialect.register_dialect(context)
     f()
   return f
 
