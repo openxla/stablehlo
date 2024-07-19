@@ -423,7 +423,7 @@ void Tensor::print(raw_ostream &os) const {
   getType().print(os);
   os << " {";
   Index idx{};
-  printHelper(os, *this, getShape(), idx, /*index=*/1);
+  printHelper(os, *this, getShape(), idx, /*indent=*/1);
   os << "}";
 }
 
