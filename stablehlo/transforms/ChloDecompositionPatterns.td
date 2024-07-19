@@ -46,6 +46,39 @@ def StableHLO_ConstantLikeSmallestNormalizedValue : NativeCodeCall<
 // Unary op patterns.
 //===----------------------------------------------------------------------===//
 
+// Expand acos for non-complex arguments to MHLO dialect as follows:
+//   acos(x) = 2 * atan2(sqrt(1 - x^2), (1 + x))  if x != -1
+//           = pi                                 if x == -1
+//
+//   acos(x) = -(i * log(x + i * sqrt((1 + x) * (1 - x))))
+//
+// Note: Complex decomposition is in ChloDecompositionPatternsMath.td
+def : Pat<(CHLO_AcosOp NonComplexElementType:$input),
+  (StableHLO_SelectOp
+    (StableHLO_CompareOp
+      $input,
+      (StableHLO_ConstantLike<"-1"> $input),
+      StableHLO_ComparisonDirectionValue<"NE">,
+      (STABLEHLO_DEFAULT_COMPARISON_TYPE)
+    ),
+    (StableHLO_MulOp
+      (StableHLO_ConstantLike<"2"> $input),
+      (StableHLO_Atan2Op
+        (StableHLO_SqrtOp
+          (StableHLO_SubtractOp
+            (StableHLO_ConstantLike<"1"> $input),
+            (StableHLO_MulOp $input, $input)
+          )
+        ),
+        (StableHLO_AddOp
+          (StableHLO_ConstantLike<"1"> $input),
+          $input
+        )
+      )
+    ),
+    (StableHLO_ConstantLike<"M_PI"> $input)
+  )>;
+
 // Express `atan` as
 //   atan(x) = atan2(x, 1)
 def : Pat<(CHLO_AtanOp $input),

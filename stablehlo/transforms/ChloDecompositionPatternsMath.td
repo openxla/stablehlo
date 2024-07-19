@@ -643,17 +643,6 @@ def : Pat<(CHLO_AcosOp ComplexElementType:$z),
 //
 //       1 - x * x == (1 - x) * (1 + x)
 //
-def : Pat<(CHLO_AcosOp NonComplexElementType:$x),
-  (StableHLO_MulOp
-    (StableHLO_ConstantLike<"2"> $x),
-    (StableHLO_Atan2Op
-      (StableHLO_SqrtOp
-        (StableHLO_MulOp
-          (StableHLO_SubtractOp
-            (StableHLO_ConstantLike<"1">:$one $x),
-            $x),
-          (StableHLO_AddOp:$add_one_x $one, $x))),
-      $add_one_x))>;
 
 // Inverse hyperbolic cosine on complex input:
 //
