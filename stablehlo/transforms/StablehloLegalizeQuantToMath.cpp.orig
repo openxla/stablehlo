@@ -419,6 +419,7 @@ class ConvertUniformQuantizedAddOp
     auto resQuantType =
         getQuantType(getElementTypeOrSelf(op.getResult().getType()));
 
+<<<<<<< HEAD:stablehlo/transforms/StablehloLegalizeQuantToMath.cpp
     // We only handle cases where lhs, rhs and results all have quantized
     // element type.
     if (failed(lhsQuantType) || failed(rhsQuantType) || failed(resQuantType)) {
@@ -447,6 +448,10 @@ class ConvertUniformQuantizedAddOp
         return rewriter.notifyMatchFailure(
             op, "Per-axis quantized AddOp requires i32 storage type");
       }
+=======
+    if (isPerAxisType(*lhsQuantType) || isPerAxisType(*rhsQuantType) ||
+        isPerAxisType(*resQuantType)) {
+>>>>>>> 3a2e51e2 (composing-quant-decompistion-passes):stablehlo/transforms/StablehloLegalizeQuantToInt.cpp
       return matchAndRewritePerAxis(op, adaptor, rewriter,
                                     getPerAxisType(*lhsQuantType));
     }
@@ -1120,6 +1125,7 @@ bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr &dims) {
 }
 
 FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
+<<<<<<< HEAD:stablehlo/transforms/StablehloLegalizeQuantToMath.cpp
     stablehlo::ConvolutionOp op, ConversionPatternRewriter &rewriter) {
   // RHS (weight) must have zero zp.
   // Here assumes RHS/result must be both per-tensor or both per-axis
@@ -1174,6 +1180,9 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
     return rewriter.notifyMatchFailure(op, "lhs_dilation must be 1.");
   }
 
+=======
+    stablehlo::ConvolutionOp op) {
+>>>>>>> 3a2e51e2 (composing-quant-decompistion-passes):stablehlo/transforms/StablehloLegalizeQuantToInt.cpp
   // We only support NHWC Conv2D and NDHWC Conv3D.
   auto dims = op.getDimensionNumbers();
   if (isConvNhwc(dims)) {
@@ -1194,8 +1203,12 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
                                    /*rhs_spatial_dims=*/{0, 1, 2},
                                    /*rhs_contracting_dims=*/{3}};
   }
+<<<<<<< HEAD:stablehlo/transforms/StablehloLegalizeQuantToMath.cpp
   return rewriter.notifyMatchFailure(op,
                                      "Convolution data format must be NHWC.");
+=======
+  return success();
+>>>>>>> 3a2e51e2 (composing-quant-decompistion-passes):stablehlo/transforms/StablehloLegalizeQuantToInt.cpp
 }
 
 class ConvertUniformQuantizedConvolutionOp
@@ -1245,6 +1258,7 @@ class ConvertGenericOp : public ConversionPattern {
           op, "Unsupported op for performing type change");
     }
 
+<<<<<<< HEAD:stablehlo/transforms/StablehloLegalizeQuantToMath.cpp
     if (isa<stablehlo::MinOp, stablehlo::MaxOp>(op)) {
       // Min/max only support per-tensor quantization.
       auto lhsType = getPerTensorType(op->getOperandTypes()[0]);
@@ -1258,6 +1272,8 @@ class ConvertGenericOp : public ConversionPattern {
       }
     }
 
+=======
+>>>>>>> 3a2e51e2 (composing-quant-decompistion-passes):stablehlo/transforms/StablehloLegalizeQuantToInt.cpp
     // Determine new result type: use storage type for uq types; use original
     // type otherwise.
     SmallVector<Type, 4> newResultTypes;
