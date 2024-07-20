@@ -426,10 +426,10 @@ class ConvertUniformQuantizedAddOp
     // We only handle cases where lhs, rhs and results all have quantized
     // element type.
     if (failed(lhsQuantType) || failed(rhsQuantType) || failed(resQuantType)) {
-      op->emitError(
+      return rewriter.notifyMatchFailure(
+          op,
           "AddOp requires the quantized element type for all operands and "
           "results");
-      return failure();
     }
 
     if (isPerAxisType(*lhsQuantType) || isPerAxisType(*rhsQuantType) ||
@@ -440,16 +440,16 @@ class ConvertUniformQuantizedAddOp
           !isPerAxisType(*resQuantType) ||
           getPerAxisType(*lhsQuantType) != getPerAxisType(*rhsQuantType) ||
           getPerAxisType(*lhsQuantType) != getPerAxisType(*resQuantType)) {
-        op->emitError(
+        return rewriter.notifyMatchFailure(
+            op,
             "Per-axis quantized AddOp requires the same quantized element "
             "type for all operands and results");
-        return failure();
       }
       if (!getPerAxisType(*lhsQuantType).getStorageType().isInteger(32)) {
         // For server-side StableHLO Quantization, add is quantized only when
         // fused with conv/dot ops, whose output must be i32.
-        op->emitError("Per-axis quantized AddOp requires i32 storage type");
-        return failure();
+        return rewriter.notifyMatchFailure(
+            op, "Per-axis quantized AddOp requires i32 storage type");
       }
       return matchAndRewritePerAxis(op, adaptor, rewriter,
                                     getPerAxisType(*lhsQuantType));
