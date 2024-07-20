@@ -491,8 +491,10 @@ func.func @requantize_per_tensor_to_per_channel(
 func.func @requantize_per_channel_change_axis(
     %arg0: tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3, 5.000000e+00:2}>>
   ) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1, 1.000000e+01:-1}>> {
-  // expected-error@+2 {{Cannot requantize while changing quantization_axis}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.uniform_quantize' that was explicitly marked illegal}}
+  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert %arg0 : (tensor<2x2xi8>) -> tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3,5.000000e+00:2}>>
+  // CHECK: %[[UQ:.*]] = stablehlo.uniform_quantize %[[BCAST_CONVERT_0]] : (tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3,5.000000e+00:2}>>) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1,1.000000e+01:-1}>>
+  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert %[[UQ]] : (tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1,1.000000e+01:-1}>>) -> tensor<2x2xi8>
+  // CHECK: return %[[BCAST_CONVERT_1]] : tensor<2x2xi8>
   %0 = stablehlo.uniform_quantize %arg0 : (
       tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3, 5.000000e+00:2}>>
     ) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1, 1.000000e+01:-1}>>
@@ -1414,8 +1416,10 @@ func.func @conv3d_static(
 func.func @conv3d_rhs_zp_not_zero(
     %arg0: tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:-2>>) {
-  // expected-error@+2 {{RHS/result UQ type must have zero zp}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<3x3x3x1x128xi8>) -> tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:-2>>
+  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<128x28x28x28x1xi8>) -> tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>
+  // CHECK: %[[CONV:.*]] = stablehlo.convolution(%[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]])
+  // CHECK: return
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, 2, f]x[0, 1, 2, i, o]->[b, 0, 1, 2, f],
     window = {
@@ -1436,8 +1440,11 @@ func.func @conv3d_rhs_zp_not_zero(
 func.func @conv3d_rhs_invalid_dilate(
     %arg0: tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
-  // expected-error@+2 {{lhs_dilation must be 1}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<3x3x3x1x128xi8>) -> tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00>>
+  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<128x28x28x28x1xi8>) -> tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>
+  // CHECK: %[[CONV:.*]] = stablehlo.convolution(%[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]])
+  // CHECK: return
+  }
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, 2, f]x[0, 1, 2, i, o]->[b, 0, 1, 2, f],
     window = {
@@ -1458,8 +1465,10 @@ func.func @conv3d_rhs_invalid_dilate(
 func.func @conv3d_non_nhwc(
     %arg0: tensor<128x1x28x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
-  // expected-error@+2 {{Convolution data format must be NHWC}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<3x3x3x1x128xi8>) -> tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00>>
+  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<128x1x28x28x28xi8>) -> tensor<128x1x28x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>
+  // CHECK: %[[CONV:.*]] = stablehlo.convolution(%[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]])
+  // CHECK: return
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, f, 0, 1, 2]x[0, 1, 2, i, o]->[b, f, 0, 1, 2],
     window = {
@@ -1480,8 +1489,10 @@ func.func @conv3d_non_nhwc(
 func.func @conv2d_non_nhwc(
     %arg0: tensor<128x1x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
-  // expected-error@+2 {{Convolution data format must be NHWC}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<3x3x1x128xi8>) -> tensor<3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00>>
+  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<128x1x28x28xi8>) -> tensor<128x1x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>
+  // CHECK: %[[CONV:.*]] = stablehlo.convolution(%[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]])
+  // CHECK: return
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, f, 0, 1]x[0, 1, i, o]->[b, f, 0, 1],
     window = {
@@ -1503,8 +1514,7 @@ func.func @conv2d_per_channel_rhs_zp_not_zero(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:10}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:0}>> {
-  // expected-error@+2 {{RHS/result UQ type must have zero zp.}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution {{.*}} : (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00,1.000000e+00:10}>>) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00,2.000000e+00}>>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1528,8 +1538,8 @@ func.func @conv2d_per_channel_res_zp_not_zero(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:3}>> {
-  // expected-error@+2 {{RHS/result UQ type must have zero zp.}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution {{.*}} : (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00,1.000000e+00}>>) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00,2.000000e+00:3}>>
+    return %0 : tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00,2.000000e+00:3}>>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1553,8 +1563,8 @@ func.func @conv2d_per_channel_rhs_only(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32, 4.000000e+00:0>> {
-  // expected-error@+2 {{Invalid input/output type for Dot/Convolution op}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution {{.*}}: (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00,1.000000e+00}>>) -> tensor<128x26x26x2x!quant.uniform<i32:f32, 4.000000e+00>>
+    return %0 : tensor<128x26x26x2x!quant.uniform<i32:f32, 4.000000e+00>>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1624,8 +1634,7 @@ func.func @conv2d_per_channel_rhs_result_scale_ratio_different(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.200000e+00:0}>> {
-  // expected-error@+2 {{Per-axis quantizated Conv must have same RHS/Result scale ratio for each channel}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution {{.*}}: (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00,1.000000e+00}>>) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00,2.200000e+00}>>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
