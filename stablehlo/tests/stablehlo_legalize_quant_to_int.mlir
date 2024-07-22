@@ -338,8 +338,11 @@ func.func @add_per_channel_i8(
     %arg0: tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
     %arg1: tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
   ) -> tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>> {
-  // expected-error@+2 {{Per-axis quantized AddOp requires i32 storage type}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.add' that was explicitly marked illegal}}
+  // CHECK-DAG: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<?x3x4x2xi8>) -> tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
+  // CHECK-DAG: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<?x3x4x2xi8>) -> tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
+  // CHECK: %[[ADD:.*]] = stablehlo.add %[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]] : tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
+  // CHECK: %[[BCAST_CONVERT_2:.*]] = stablehlo.bitcast_convert %[[ADD]] : (tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>) -> tensor<?x3x4x2xi8>
+  // CHECK: return %[[BCAST_CONVERT_2]] : tensor<?x3x4x2xi8>
   %11 = stablehlo.add %arg0, %arg1 : tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
   return %11 : tensor<?x3x4x2x!quant.uniform<i8:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
 }
@@ -350,8 +353,11 @@ func.func @add_per_channel_different_quant_types(
     %arg0: tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
     %arg1: tensor<?x3x4x2x!quant.uniform<i32:f32:3, {1.1:2,0.4:-3}>>
   ) -> tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>> {
-  // expected-error@+2 {{Per-axis quantized AddOp requires the same quantized element type for all operands and results}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.add' that was explicitly marked illegal}}
+  // CHECK-DAG: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<?x3x4x2xi32>) -> tensor<?x3x4x2x!quant.uniform<i32:f32:3, {1.100000e+00:2,4.000000e-01:-3}>>
+  // CHECK-DAG: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<?x3x4x2xi32>) -> tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
+  // CHECK: %[[ADD:.*]] = stablehlo.add %[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]] : (tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>, tensor<?x3x4x2x!quant.uniform<i32:f32:3, {1.100000e+00:2,4.000000e-01:-3}>>) -> tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
+  // CHECK: %[[BCAST_CONVERT_2:.*]] = stablehlo.bitcast_convert %[[ADD]] : (tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>) -> tensor<?x3x4x2xi32>
+  // CHECK: return %[[BCAST_CONVERT_2]] : tensor<?x3x4x2xi32>
   %11 = stablehlo.add %arg0, %arg1 : (
       tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
       tensor<?x3x4x2x!quant.uniform<i32:f32:3, {1.1:2,0.4:-3}>>
@@ -365,8 +371,11 @@ func.func @add_per_channel_per_tensor_mix(
     %arg0: tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
     %arg1: tensor<?x3x4x2x!quant.uniform<i32:f32, 1.1:2>>
   ) -> tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>> {
-  // expected-error@+2 {{Per-axis quantized AddOp requires the same quantized element type for all operands and results}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.add' that was explicitly marked illegal}}
+  // CHECK-DAG: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<?x3x4x2xi32>) -> tensor<?x3x4x2x!quant.uniform<i32:f32, 1.100000e+00:2>>
+  // CHECK-DAG: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<?x3x4x2xi32>) -> tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
+  // CHECK: %[[ADD:.*]] = stablehlo.add %1, %0 : (tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>, tensor<?x3x4x2x!quant.uniform<i32:f32, 1.100000e+00:2>>) -> tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>
+  // CHECK: %[[BCAST_CONVERT_2:.*]] = stablehlo.bitcast_convert %2 : (tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>) -> tensor<?x3x4x2xi32>
+  // CHECK: return %[[BCAST_CONVERT_2]] : tensor<?x3x4x2xi32>
   %11 = stablehlo.add %arg0, %arg1 : (
       tensor<?x3x4x2x!quant.uniform<i32:f32:3, {2.9455460163317514E-5,5.8952903030815205E-5}>>,
       tensor<?x3x4x2x!quant.uniform<i32:f32, 1.1:2>>
@@ -491,8 +500,10 @@ func.func @requantize_per_tensor_to_per_channel(
 func.func @requantize_per_channel_change_axis(
     %arg0: tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3, 5.000000e+00:2}>>
   ) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1, 1.000000e+01:-1}>> {
-  // expected-error@+2 {{Cannot requantize while changing quantization_axis}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.uniform_quantize' that was explicitly marked illegal}}
+  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert %arg0 : (tensor<2x2xi8>) -> tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3,5.000000e+00:2}>>
+  // CHECK: %[[UQ:.*]] = stablehlo.uniform_quantize %[[BCAST_CONVERT_0]] : (tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3,5.000000e+00:2}>>) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1,1.000000e+01:-1}>>
+  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert %[[UQ]] : (tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1,1.000000e+01:-1}>>) -> tensor<2x2xi8>
+  // CHECK: return %[[BCAST_CONVERT_1]] : tensor<2x2xi8>
   %0 = stablehlo.uniform_quantize %arg0 : (
       tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3, 5.000000e+00:2}>>
     ) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1, 1.000000e+01:-1}>>
@@ -1997,8 +2008,11 @@ func.func @max_per_channel_same_quant_parameters(
 // -----
 
 func.func @max_per_tensor_diff_quant_parameters(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
-  // expected-error@+2 {{stablehlo.maximum with different quantization parameters for operands and results is not supported.}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.maximum' that was explicitly marked illegal}}
+  // CHECK-DAG: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<i8>) -> tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>
+  // CHECK-DAG: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<i8>) -> tensor<!quant.uniform<i8:f32, 1.000000e+00>>
+  // CHECK: %[[MAX:.*]] = stablehlo.maximum %[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]] : (tensor<!quant.uniform<i8:f32, 1.000000e+00>>, tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
+  // CHECK: %[[BCAST_CONVERT_2:.*]] = stablehlo.bitcast_convert %[[MAX]] : (tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>) -> tensor<i8>
+  // CHECK: return %[[BCAST_CONVERT_2]] : tensor<i8>
   %0 = "stablehlo.maximum"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32,1.0:0>>, tensor<!quant.uniform<i8:f32,2.0:1>>) -> tensor<!quant.uniform<i8:f32,3.0:2>>
   func.return %0 : tensor<!quant.uniform<i8:f32,3.0:2>>
 }
@@ -2006,8 +2020,11 @@ func.func @max_per_tensor_diff_quant_parameters(%arg0: tensor<!quant.uniform<i8:
 // -----
 
 func.func @min_per_tensor_diff_quant_parameters(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
-  // expected-error@+2 {{stablehlo.minimum with different quantization parameters for operands and results is not supported.}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.minimum' that was explicitly marked illegal}}
+  // CHECK-DAG: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<i8>) -> tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>
+  // CHECK-DAG: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<i8>) -> tensor<!quant.uniform<i8:f32, 1.000000e+00>>
+  // CHECK: %[[MIN:.*]] = stablehlo.minimum %[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]] : (tensor<!quant.uniform<i8:f32, 1.000000e+00>>, tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
+  // CHECK: %[[BCAST_CONVERT_2:.*]] = stablehlo.bitcast_convert %[[MIN]] : (tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>) -> tensor<i8>
+  // CHECK: return %[[BCAST_CONVERT_2]] : tensor<i8>
   %0 = "stablehlo.minimum"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32,1.0:0>>, tensor<!quant.uniform<i8:f32,2.0:1>>) -> tensor<!quant.uniform<i8:f32,3.0:2>>
   func.return %0 : tensor<!quant.uniform<i8:f32,3.0:2>>
 }

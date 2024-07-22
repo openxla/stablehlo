@@ -64,6 +64,10 @@ bool isPerAxisType(Type type) {
   return isa<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(type));
 }
 
+bool isQuantType(Type type) {
+  return isPerTensorType(type) || isPerAxisType(type);
+}
+
 quant::UniformQuantizedType getPerTensorType(Type type) {
   return cast<quant::UniformQuantizedType>(getElementTypeOrSelf(type));
 }
@@ -308,18 +312,11 @@ class ConvertUniformQuantizeOp
       auto inputQuantType = getQuantType(inputElementType);
       auto outputQuantType = getQuantType(op.getResult().getType());
       if (succeeded(inputQuantType) && succeeded(outputQuantType)) {
-        if (isPerAxisType(*inputQuantType) && isPerAxisType(*outputQuantType) &&
-            getPerAxisType(*inputQuantType).getQuantizedDimension() !=
-                getPerAxisType(*outputQuantType).getQuantizedDimension()) {
-          op->emitError("Cannot requantize while changing quantization_axis");
-          return failure();
-        }
         return matchAndRewriteRequantize(op, adaptor, rewriter, *inputQuantType,
                                          *outputQuantType);
       }
     }
-    op->emitError("Unsupported input element type.");
-    return failure();
+    return success();
   }
 
   LogicalResult matchAndRewriteQuantize(
@@ -423,34 +420,8 @@ class ConvertUniformQuantizedAddOp
     auto resQuantType =
         getQuantType(getElementTypeOrSelf(op.getResult().getType()));
 
-    // We only handle cases where lhs, rhs and results all have quantized
-    // element type.
-    if (failed(lhsQuantType) || failed(rhsQuantType) || failed(resQuantType)) {
-      return rewriter.notifyMatchFailure(
-          op,
-          "AddOp requires the quantized element type for all operands and "
-          "results");
-    }
-
     if (isPerAxisType(*lhsQuantType) || isPerAxisType(*rhsQuantType) ||
         isPerAxisType(*resQuantType)) {
-      // Handle Per-Axis Quantized Types. We only support lhs/rhs/result with
-      // exact same per-axis quantized types with I32 storage type.
-      if (!isPerAxisType(*lhsQuantType) || !isPerAxisType(*rhsQuantType) ||
-          !isPerAxisType(*resQuantType) ||
-          getPerAxisType(*lhsQuantType) != getPerAxisType(*rhsQuantType) ||
-          getPerAxisType(*lhsQuantType) != getPerAxisType(*resQuantType)) {
-        return rewriter.notifyMatchFailure(
-            op,
-            "Per-axis quantized AddOp requires the same quantized element "
-            "type for all operands and results");
-      }
-      if (!getPerAxisType(*lhsQuantType).getStorageType().isInteger(32)) {
-        // For server-side StableHLO Quantization, add is quantized only when
-        // fused with conv/dot ops, whose output must be i32.
-        return rewriter.notifyMatchFailure(
-            op, "Per-axis quantized AddOp requires i32 storage type");
-      }
       return matchAndRewritePerAxis(op, adaptor, rewriter,
                                     getPerAxisType(*lhsQuantType));
     }
@@ -1247,19 +1218,6 @@ class ConvertGenericOp : public ConversionPattern {
       return failure();
     }
 
-    if (isa<stablehlo::MinOp, stablehlo::MaxOp>(op)) {
-      // Min/max only support per-tensor quantization.
-      auto lhsType = getPerTensorType(op->getOperandTypes()[0]);
-      auto rhsType = getPerTensorType(op->getOperandTypes()[1]);
-      auto resultType = getPerTensorType(op->getResultTypes()[0]);
-      if (lhsType != rhsType || lhsType != resultType) {
-        return op->emitError(
-            op->getName().getStringRef() +
-            " with different quantization parameters for operands and"
-            " results is not supported.");
-      }
-    }
-
     // Determine new result type: use storage type for uq types; use original
     // type otherwise.
     SmallVector<Type, 4> newResultTypes;
@@ -1283,13 +1241,107 @@ class ConvertGenericOp : public ConversionPattern {
   }
 };
 
+std::optional<Value> MaterializeIllegalCast(OpBuilder &builder, Type type,
+                                            ValueRange inputs, Location loc) {
+  if (inputs.size() != 1) return std::nullopt;
+  return builder
+      .create<mlir::stablehlo::BitcastConvertOp>(loc, type, inputs[0])
+      ->getResult(0);
+}
+
 // TypeConverter for converting UQ type to int type.
 class UniformQuantizedToIntTypeConverter : public TypeConverter {
  public:
   UniformQuantizedToIntTypeConverter() {
     addConversion([](Type type) -> Type { return getQuantStorageType(type); });
+    addArgumentMaterialization(MaterializeIllegalCast);
+    addSourceMaterialization(MaterializeIllegalCast);
+    addTargetMaterialization(MaterializeIllegalCast);
   }
 };
+
+bool isAddOpLegal(AddOp addOp) {
+  auto lhsQuantType =
+      getQuantType(getElementTypeOrSelf(addOp.getLhs().getType()));
+  auto rhsQuantType =
+      getQuantType(getElementTypeOrSelf(addOp.getRhs().getType()));
+  auto resQuantType =
+      getQuantType(getElementTypeOrSelf(addOp.getResult().getType()));
+
+  // We only handle cases where lhs, rhs and results all have quantized
+  // element type.
+  if (failed(lhsQuantType) || failed(rhsQuantType) || failed(resQuantType)) {
+    return true;
+  }
+
+  if (isPerAxisType(*lhsQuantType) || isPerAxisType(*rhsQuantType) ||
+      isPerAxisType(*resQuantType)) {
+    // Handle Per-Axis Quantized Types. We only support lhs/rhs/result with
+    // exact same per-axis quantized types with I32 storage type.
+    if (!isPerAxisType(*lhsQuantType) || !isPerAxisType(*rhsQuantType) ||
+        !isPerAxisType(*resQuantType) ||
+        getPerAxisType(*lhsQuantType) != getPerAxisType(*rhsQuantType) ||
+        getPerAxisType(*lhsQuantType) != getPerAxisType(*resQuantType)) {
+      return true;
+    }
+    if (!getPerAxisType(*lhsQuantType).getStorageType().isInteger(32)) {
+      // For server-side StableHLO Quantization, add is quantized only when
+      // fused with conv/dot ops, whose output must be i32.
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool isUniformQuantizeOpOpLegal(UniformQuantizeOp op) {
+  auto inputElementType = getElementTypeOrSelf(op.getOperand().getType());
+  if (!inputElementType.isF32() &&
+      !isa<quant::UniformQuantizedType, quant::UniformQuantizedPerAxisType>(
+          inputElementType)) {
+    return true;
+  }
+
+  if (isa<quant::UniformQuantizedType, quant::UniformQuantizedPerAxisType>(
+          inputElementType)) {
+    auto inputQuantType = getQuantType(inputElementType);
+    auto outputQuantType = getQuantType(op.getResult().getType());
+    if (succeeded(inputQuantType) && succeeded(outputQuantType)) {
+      if (isPerAxisType(*inputQuantType) && isPerAxisType(*outputQuantType) &&
+          getPerAxisType(*inputQuantType).getQuantizedDimension() !=
+              getPerAxisType(*outputQuantType).getQuantizedDimension()) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool isMinOpOpLegal(MinOp op) {
+  if(!isQuantType(op.getLhs().getType())) return true;
+
+  // Min/max only support per-tensor quantization.
+  auto lhsType = getPerTensorType(op.getLhs().getType());
+  auto rhsType = getPerTensorType(op.getRhs().getType());
+  auto resultType = getPerTensorType(op.getResult().getType());
+  if (lhsType != rhsType || lhsType != resultType) {
+    return true;
+  }
+  return false;
+}
+
+bool isMaxOpOpLegal(MaxOp op) {
+  if(!isQuantType(op.getLhs().getType())) return true;
+
+  // Min/max only support per-tensor quantization.
+  auto lhsType = getPerTensorType(op.getLhs().getType());
+  auto rhsType = getPerTensorType(op.getRhs().getType());
+  auto resultType = getPerTensorType(op.getResult().getType());
+  if (lhsType != rhsType || lhsType != resultType) {
+    return true;
+  }
+  return false;
+}
 
 }  // namespace
 
@@ -1307,6 +1359,7 @@ class StablehloLegalizeQuantToIntPass
     RewritePatternSet patterns(context);
 
     // Populate stablehlo quant ops conversion patterns.
+
     patterns.add<ConvertUniformQuantizeOp, ConvertUniformDequantizeOp,
                  ConvertUniformQuantizedAddOp, ConvertUniformQuantizedDotOp,
                  ConvertUniformQuantizedDotGeneralOp,
@@ -1320,11 +1373,16 @@ class StablehloLegalizeQuantToIntPass
     populateReturnOpTypeConversionPattern(patterns, converter);
 
     ConversionTarget target(*op->getContext());
-    target.addIllegalDialect<quant::QuantizationDialect>();
+    target.addLegalDialect<quant::QuantizationDialect>();
     auto isLegal = [&converter](Operation *op) {
       return converter.isLegal(op);
     };
-    target.addDynamicallyLegalDialect<stablehlo::StablehloDialect>(isLegal);
+    target.addDynamicallyLegalDialect<stablehlo::StablehloDialect>(
+        [&converter](Operation *op) { return converter.isLegal(op); });
+    target.addDynamicallyLegalOp<AddOp>(isAddOpLegal);
+    target.addDynamicallyLegalOp<UniformQuantizeOp>(isUniformQuantizeOpOpLegal);
+    target.addDynamicallyLegalOp<MinOp>(isMinOpOpLegal);
+    target.addDynamicallyLegalOp<MaxOp>(isMaxOpOpLegal);
     target.addDynamicallyLegalDialect<chlo::ChloDialect>(isLegal);
     target.addDynamicallyLegalDialect<func::FuncDialect>(
         [&converter](Operation *op) {
