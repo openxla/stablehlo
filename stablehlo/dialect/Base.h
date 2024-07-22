@@ -321,10 +321,11 @@ class PairwiseSameOperandAndResultElementType
     }
 
     for (int idx : llvm::seq<int>(0, numOperands)) {
-      if (getElementTypeOrSelf(op->getOperand(idx)) != getElementTypeOrSelf(op->getResult(idx))) {
-        return op->emitOpError()
-               << "requires the same element type for operand and result at index "
-               << idx;
+      if (getElementTypeOrSelf(op->getOperand(idx)) !=
+          getElementTypeOrSelf(op->getResult(idx))) {
+        return op->emitOpError() << "requires the same element type for "
+                                    "operand and result at index "
+                                 << idx;
       }
     }
     return success();

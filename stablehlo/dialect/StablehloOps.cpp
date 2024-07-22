@@ -1164,17 +1164,18 @@ void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
 }
 
 mlir::Speculation::Speculatability AllToAllOp::getSpeculatability() {
-
-  for(auto [operand, result] : llvm::zip(getOperands(), getResults())) {
+  for (auto [operand, result] : llvm::zip(getOperands(), getResults())) {
     auto inputType = cast<RankedTensorType>(operand.getType());
     auto resultType = cast<RankedTensorType>(result.getType());
     auto splitDim = getSplitDimension();
     auto concatDim = getConcatDimension();
     // The actual size of the `splitDim` and `concatDim` depends on the number
     // of processes, which is only known at runtime. If it is dynamic, there is
-    // no expectation, so there cannot be a mismatch. If it is static, the actual
-    // number may differ at runtime, leading to UB. See all_to_all_c9 in the spec.
-    if (!resultType.isDynamicDim(splitDim) || !resultType.isDynamicDim(concatDim))
+    // no expectation, so there cannot be a mismatch. If it is static, the
+    // actual number may differ at runtime, leading to UB. See all_to_all_c9 in
+    // the spec.
+    if (!resultType.isDynamicDim(splitDim) ||
+        !resultType.isDynamicDim(concatDim))
       return mlir::Speculation::NotSpeculatable;
     for (size_t i : llvm::seq(resultType.getRank())) {
       if (i == splitDim || i == concatDim) continue;
@@ -1200,14 +1201,15 @@ LogicalResult AllGatherOp::verify() {
 }
 
 mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
-  for(auto [operand, result] : llvm::zip(getOperands(), getResults())) {
+  for (auto [operand, result] : llvm::zip(getOperands(), getResults())) {
     auto inputType = cast<RankedTensorType>(operand.getType());
     auto resultType = cast<RankedTensorType>(result.getType());
     auto allGatherDim = getAllGatherDim();
     // The actual size of the `allGatherDim` depends on the number of processes,
-    // which is only known at runtime. If it is dynamic, there is no expectation,
-    // so there cannot be a mismatch. If it is static, the actual number may
-    // differ at runtime, leading to UB. See all_gather_c6 in the spec.
+    // which is only known at runtime. If it is dynamic, there is no
+    // expectation, so there cannot be a mismatch. If it is static, the actual
+    // number may differ at runtime, leading to UB. See all_gather_c6 in the
+    // spec.
     if (!resultType.isDynamicDim(allGatherDim))
       return mlir::Speculation::NotSpeculatable;
     for (size_t i : llvm::seq(resultType.getRank())) {
@@ -1228,8 +1230,8 @@ void AllReduceOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                         DenseIntElementsAttr replicaGroups,
                         ChannelHandleAttr channelHandle,
                         bool useGlobalDeviceIds) {
-  build(odsBuilder, odsState, resultType, ValueRange(operand),
-                     replicaGroups, channelHandle, useGlobalDeviceIds);
+  build(odsBuilder, odsState, resultType, ValueRange(operand), replicaGroups,
+        channelHandle, useGlobalDeviceIds);
 }
 
 LogicalResult AllReduceOp::verify() {

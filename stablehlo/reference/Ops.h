@@ -34,19 +34,19 @@ namespace stablehlo {
 Tensor absOp(const Tensor &operand, ShapedType resultType);
 Tensor addOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Token afterAllOp(ArrayRef<Token> inputs, MLIRContext *context);
-SmallVector<InterpreterValue> allGatherOp(ArrayRef<Tensor> operands, int64_t allGatherDim,
-                   SmallVector<SmallVector<uint32_t>> replicaGroups,
-                   ChannelId channelId, bool useGlobalDeviceIds,
-                   Process *process, ArrayRef<ShapedType> resultTypes);
-SmallVector<InterpreterValue> allReduceOp(ArrayRef<Tensor> operands,
-                   SmallVector<SmallVector<uint32_t>> replicaGroups,
-                   ChannelId channelId, bool useGlobalDeviceIds,
-                   Region &computation, Process *process, Scope &scope,
-                   ArrayRef<ShapedType> resultTypes);
-SmallVector<InterpreterValue> allToAllOp(ArrayRef<Tensor> operands, Axis splitDimension,
-                  Axis concatDimension, int64_t splitCount,
-                  SmallVector<SmallVector<uint32_t>> replicaGroups,
-                  ChannelId channelId, Process *process, ArrayRef<ShapedType> resultTypes);
+SmallVector<InterpreterValue> allGatherOp(
+    ArrayRef<Tensor> operands, int64_t allGatherDim,
+    SmallVector<SmallVector<uint32_t>> replicaGroups, ChannelId channelId,
+    bool useGlobalDeviceIds, Process *process,
+    ArrayRef<ShapedType> resultTypes);
+SmallVector<InterpreterValue> allReduceOp(
+    ArrayRef<Tensor> operands, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, bool useGlobalDeviceIds, Region &computation,
+    Process *process, Scope &scope, ArrayRef<ShapedType> resultTypes);
+SmallVector<InterpreterValue> allToAllOp(
+    ArrayRef<Tensor> operands, Axis splitDimension, Axis concatDimension,
+    int64_t splitCount, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, Process *process, ArrayRef<ShapedType> resultTypes);
 Tensor andOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor atan2Op(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor bitcastConvertOp(const Tensor &operand, ShapedType resultType);

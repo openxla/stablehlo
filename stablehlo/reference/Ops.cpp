@@ -1147,7 +1147,8 @@ SmallVector<InterpreterValue> allGatherOp(
         *processGroup, [&rendezvousResult, &operandIndex](const ProcessId &id) {
           return (rendezvousResult.lookup(id))[operandIndex];
         });
-    results[resultIndex] = concatenateOp(operandsAtIndex, allGatherDim, resultType);
+    results[resultIndex] =
+        concatenateOp(operandsAtIndex, allGatherDim, resultType);
   }
   return results;
 }

@@ -1818,8 +1818,8 @@ LogicalResult inferAfterAllOp(HloDialectInterface* dialect,
 }
 
 LogicalResult inferAllToAllOp(
-    std::optional<Location> location, ValueRange operands, int64_t splitDimension,
-    int64_t concatDimension, int64_t splitCount,
+    std::optional<Location> location, ValueRange operands,
+    int64_t splitDimension, int64_t concatDimension, int64_t splitCount,
     DenseIntElementsAttr replicaGroups,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // all_to_all_c5, all_to_all_c7, all_to_all_i5
@@ -1827,7 +1827,7 @@ LogicalResult inferAllToAllOp(
                                  /*allGroupsMustHaveSameSize=*/true,
                                  /*useGlobalDeviceIds=*/false, splitCount)))
     return failure();
-  for(auto operand : operands) {
+  for (auto operand : operands) {
     Type operandType = operand.getType();
     auto operandRankedType = cast<RankedTensorType>(operandType);
 
@@ -1835,16 +1835,16 @@ LogicalResult inferAllToAllOp(
     // all_to_all_c1
     if (splitDimension >= inputRank)
       return emitOptionalError(location, "AllToAll split_dimension ",
-                              splitDimension,
-                              " is out-of-bounds for input rank ", inputRank);
+                               splitDimension,
+                               " is out-of-bounds for input rank ", inputRank);
     // all_to_all_c3
     if (concatDimension >= inputRank)
       return emitOptionalError(location, "AllToAll concat_dimension ",
-                              concatDimension,
-                              " is out-of-bounds for input rank ", inputRank);
+                               concatDimension,
+                               " is out-of-bounds for input rank ", inputRank);
 
     SmallVector<int64_t> resultShape(operandRankedType.getShape().begin(),
-                                    operandRankedType.getShape().end());
+                                     operandRankedType.getShape().end());
     // all_to_all_c2
     if (isStaticDimSize(resultShape[splitDimension]) &&
         resultShape[splitDimension] % splitCount != 0)
@@ -1869,8 +1869,8 @@ LogicalResult inferAllToAllOp(
         resultShape, operandRankedType.getElementType(),
         boundsToEncoding(operandRankedType.getEncoding(), resultBounds));
   }
-    return success();
-  }
+  return success();
+}
 
 LogicalResult inferAllReduceOp(
     std::optional<Location> location, ValueRange operands, Region& computation,
@@ -3524,19 +3524,19 @@ LogicalResult inferWhileOp(std::optional<Location>, ValueRange operand,
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
 
-LogicalResult verifyAllGatherOp(std::optional<Location> location, ValueRange operands,
-                                int64_t allGatherDim,
+LogicalResult verifyAllGatherOp(std::optional<Location> location,
+                                ValueRange operands, int64_t allGatherDim,
                                 DenseIntElementsAttr replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
                                 ValueRange results) {
-  for(auto [operand, result] : llvm::zip(operands, results)){
+  for (auto [operand, result] : llvm::zip(operands, results)) {
     auto operandType = cast<RankedTensorType>(operand.getType());
     auto resultType = cast<RankedTensorType>(result.getType());
 
     // all_gather_c1
     if (allGatherDim >= operandType.getRank())
-      return emitOptionalError(location,
-                              "all_gather_dim must be a valid index of operand");
+      return emitOptionalError(
+          location, "all_gather_dim must be a valid index of operand");
 
     // TODO(#1745): Sync verification of AllGather with HLO.
     if (operandType.getDimSize(allGatherDim) == 0)
@@ -3546,9 +3546,9 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, ValueRange ope
 
     // all_gather_i3, all_gather_c2, all_gather_c4
     if (failed(verifyReplicaGroups(location, replicaGroups,
-                                  /*allGroupsMustHaveSameSize=*/true,
-                                  useGlobalDeviceIds,
-                                  /*expectedGroupSize=*/std::nullopt)))
+                                   /*allGroupsMustHaveSameSize=*/true,
+                                   useGlobalDeviceIds,
+                                   /*expectedGroupSize=*/std::nullopt)))
       return failure();
 
     // all_gather_c5
@@ -3560,7 +3560,7 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, ValueRange ope
     // all_gather_c6
     if (resultType.getRank() != operandType.getRank())
       return emitOptionalError(location,
-                              "operand and result must have the same rank");
+                               "operand and result must have the same rank");
 
     for (int64_t i = 0; i < operandType.getRank(); i++) {
       if (i == allGatherDim) continue;
@@ -3579,7 +3579,7 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, ValueRange ope
 
     // all_gather_c6
     if ((resultType.getDimSize(allGatherDim) %
-        operandType.getDimSize(allGatherDim)) != 0)
+         operandType.getDimSize(allGatherDim)) != 0)
       return emitOptionalError(
           location, "result gather dimension has size ",
           resultType.getDimSize(allGatherDim),
@@ -3589,7 +3589,8 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, ValueRange ope
   return success();
 }
 
-LogicalResult verifyAllReduceOp(std::optional<Location> location, ValueRange operands,
+LogicalResult verifyAllReduceOp(std::optional<Location> location,
+                                ValueRange operands,
                                 DenseIntElementsAttr replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
                                 Region& computation) {
@@ -3608,7 +3609,7 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location, ValueRange ope
         "channel_id must be positive when useGlobalDeviceIds is set but got: ",
         channelId);
 
-  for (auto operand : operands){
+  for (auto operand : operands) {
     auto operandType = cast<ShapedType>(operand.getType());
     // all_reduce_c5
     if (failed(verifyReducerShape(
