@@ -1,10 +1,10 @@
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
-// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
-// RUN: stablehlo-opt %s > %t.1
+// RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=1.5.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-opt > %t.0
+// RUN: stablehlo-opt --strip-debuginfo %s > %t.1
 // RUN: diff %t.0 %t.1
-// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-opt --pass-pipeline='builtin.module(stablehlo-deserialize)' > %t.0
-// RUN: stablehlo-opt %s > %t.1
-// RUN: diff %t.0 %t.1
+// RUN: stablehlo-translate --serialize --target=1.5.0 --strip-debuginfo %s > %t.2
+// RUN: diff %s.bc %t.2
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 
@@ -398,16 +398,6 @@ func.func @default_all_gather(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {
     replica_groups = dense<[[0], [1]]> : tensor<2x1xi64>
   } : (tensor<16x8xf32>) -> tensor<16x16xf32>
   func.return %0 : tensor<16x16xf32>
-}
-
-// CHECK-LABEL: "default_all_gather_variadic"
-// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
-func.func @default_all_gather_variadic(%arg0: tensor<16x8xf32>, %arg1: tensor<16x8xf32>) -> (tensor<16x16xf32>, tensor<16x16xf32>) {
-  %0:2 = "stablehlo.all_gather"(%arg0, %arg1) {
-    all_gather_dim = 1 : i64,
-    replica_groups = dense<[[0], [1]]> : tensor<2x1xi64>
-  } : (tensor<16x8xf32>, tensor<16x8xf32>) -> (tensor<16x16xf32>, tensor<16x16xf32>)
-  func.return %0#0, %0#1 : tensor<16x16xf32>, tensor<16x16xf32>
 }
 
 // CHECK-LABEL: "default_all_reduce"
@@ -966,18 +956,6 @@ func.func @op_all_reduce_with_promotable_types(%operand: tensor<f32>) -> tensor<
   } : (tensor<f32>) -> tensor<f64>
 
   func.return %result : tensor<f64>
-}
-
-// CHECK-LABEL: "default_all_reduce_variadic"
-func.func @default_all_reduce_variadic(%arg0: tensor<f32>, %arg1: tensor<f32>) -> (tensor<f32>, tensor<f32>) {
-  %0:2 = "stablehlo.all_reduce"(%arg0, %arg1) ({
-    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
-      %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> (tensor<f32>)
-      "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {
-    replica_groups = dense<[[0], [1]]> : tensor<2x1xi64>
-  } : (tensor<f32>, tensor<f32>) -> (tensor<f32>, tensor<f32>)
-  func.return %0#0, %0#1 : tensor<f32>, tensor<f32>
 }
 
 // CHECK-LABEL: "op_all_to_all"

@@ -116,7 +116,7 @@ LogicalResult inferAfterAllOp(HloDialectInterface* dialect,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferAllToAllOp(
-    std::optional<Location> location, Value operand, int64_t splitDimension,
+    std::optional<Location> location, ValueRange operands, int64_t splitDimension,
     int64_t concatDimension, int64_t splitCount,
     DenseIntElementsAttr replicaGroups,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
@@ -400,13 +400,13 @@ LogicalResult inferWhileOp(std::optional<Location> location, ValueRange operand,
 LogicalResult verifyAddOp(std::optional<Location> location, Operation* op,
                           Type lhsType, Type rhsType, Type resultType);
 
-LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
+LogicalResult verifyAllGatherOp(std::optional<Location> location, ValueRange operands,
                                 int64_t allGatherDim,
                                 DenseIntElementsAttr replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
-                                Value result);
+                                ValueRange results);
 
-LogicalResult verifyAllReduceOp(std::optional<Location> location, Value operand,
+LogicalResult verifyAllReduceOp(std::optional<Location> location, ValueRange operands,
                                 DenseIntElementsAttr replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
                                 Region& computation);

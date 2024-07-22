@@ -19,7 +19,7 @@ func.func @reduce_with_promotable_types(%arg0: tensor<4x4xf32>, %arg1 : tensor<f
 
 func.func @all_reduce_with_promotable_types(%operand: tensor<f32>) -> tensor<f64> {
 
-  // expected-error @+1 {{failed to legalize operation 'vhlo.all_reduce_v1' that was explicitly marked illegal}}
+  // expected-error @+1 {{failed to legalize operation 'vhlo.all_reduce_v2' that was explicitly marked illegal}}
   %result = "stablehlo.all_reduce"(%operand) ({
     ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
       %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f64>, tensor<f64>) -> tensor<f64>

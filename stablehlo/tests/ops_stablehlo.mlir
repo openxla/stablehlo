@@ -824,6 +824,34 @@ func.func @all_to_all_c8(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
 
 // -----
 
+func.func @all_to_all_c9(%data: tensor<4x16xf32>) -> tensor<16x4xf64> {
+  // expected-error@+1 {{op requires the same element type for operand and result at index 0}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf64>
+  func.return %0 : tensor<16x4xf64>
+}
+
+// -----
+
+func.func @all_to_all_c9_mismatch_count(%data0: tensor<4x16xf32>, %data1: tensor<4x16xf32>) -> tensor<16x4xf64> {
+  // expected-error@+1 {{op requires the same number of operands and results}}
+  %0 = "stablehlo.all_to_all"(%data0, %data1) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<4x16xf32>, tensor<4x16xf32>) -> tensor<16x4xf64>
+  func.return %0 : tensor<16x4xf64>
+}
+
+// -----
+
 func.func @all_to_all_i5(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{replica groups should be a rank 2 tensor}}

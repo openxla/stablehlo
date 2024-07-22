@@ -20,10 +20,12 @@ limitations under the License.
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
@@ -351,7 +353,7 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto result = afterAllOp(inputs, op->getContext());
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<AllGatherOp>(operation)) {
-      auto operand = scope.findTensor(op.getOperand());
+      auto operands = scope.findTensors(op.getOperands());
 
       auto replicaGroupsAttr = op.getReplicaGroups();
       auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
@@ -364,25 +366,27 @@ SmallVector<InterpreterValue> eval(Region &region,
       ChannelId channelId = 0;
       if (auto channelHandle = op.getChannelHandle())
         channelId = channelHandle->getHandle();
+      SmallVector<ShapedType> resultTypes(op->getResultTypes());
 
-      auto result =
-          allGatherOp(operand, op.getAllGatherDim(), replicaGroups, channelId,
-                      op.getUseGlobalDeviceIds(), process, op.getType());
-      scope.add(op.getResult(), result);
+      auto results =
+          allGatherOp(operands, op.getAllGatherDim(), replicaGroups, channelId,
+                      op.getUseGlobalDeviceIds(), process, resultTypes);
+      scope.add(op.getResults(), results);
     } else if (auto op = dyn_cast<AllReduceOp>(operation)) {
-      auto operand = scope.findTensor(op.getOperand());
+      auto operands = scope.findTensors(op.getOperands());
       auto replicaGroups = getReplicaGroups(op.getReplicaGroups());
 
       ChannelId channelId = 0;
       if (auto channelHandle = op.getChannelHandle())
         channelId = channelHandle->getHandle();
+      SmallVector<ShapedType> resultTypes(op->getResultTypes());
 
-      auto result = allReduceOp(operand, replicaGroups, channelId,
-                                op.getUseGlobalDeviceIds(), op.getComputation(),
-                                process, scope, op.getType());
-      scope.add(op.getResult(), result);
+      auto results = allReduceOp(
+          operands, replicaGroups, channelId, op.getUseGlobalDeviceIds(),
+          op.getComputation(), process, scope, resultTypes);
+      scope.add(op.getResults(), results);
     } else if (auto op = dyn_cast<AllToAllOp>(operation)) {
-      auto operand = scope.findTensor(op.getOperand());
+      auto operands = scope.findTensors(op.getOperands());
       auto replicaGroupsAttr = op.getReplicaGroups();
       auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
       SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
@@ -394,11 +398,12 @@ SmallVector<InterpreterValue> eval(Region &region,
       ChannelId channelId = 0;
       if (auto channelHandle = op.getChannelHandle())
         channelId = channelHandle->getHandle();
+      SmallVector<ShapedType> resultTypes(op->getResultTypes());
 
-      auto result = allToAllOp(operand, op.getSplitDimension(),
-                               op.getConcatDimension(), op.getSplitCount(),
-                               replicaGroups, channelId, process, op.getType());
-      scope.add(op.getResult(), result);
+      auto results = allToAllOp(operands, op.getSplitDimension(),
+                                op.getConcatDimension(), op.getSplitCount(),
+                                replicaGroups, channelId, process, resultTypes);
+      scope.add(op.getResults(), results);
     } else if (auto op = dyn_cast<AndOp>(operation)) {
       auto lhs = scope.findTensor(op.getLhs());
       auto rhs = scope.findTensor(op.getRhs());
@@ -1110,10 +1115,11 @@ Token afterAllOp(ArrayRef<Token> inputs, MLIRContext *context) {
   return Token(context);
 }
 
-Tensor allGatherOp(const Tensor &operand, int64_t allGatherDim,
-                   SmallVector<SmallVector<uint32_t>> replicaGroups,
-                   ChannelId channelId, bool useGlobalDeviceIds,
-                   Process *process, ShapedType resultType) {
+SmallVector<InterpreterValue> allGatherOp(
+    ArrayRef<Tensor> operands, int64_t allGatherDim,
+    SmallVector<SmallVector<uint32_t>> replicaGroups, ChannelId channelId,
+    bool useGlobalDeviceIds, Process *process,
+    ArrayRef<ShapedType> resultTypes) {
   if (!process)
     llvm::report_fatal_error(
         "all_gather is only supported when run via interpreter.run_parallel");
@@ -1132,19 +1138,24 @@ Tensor allGatherOp(const Tensor &operand, int64_t allGatherDim,
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
   auto rendezvousResult =
-      process->rendezvous(*processGroup, channelId, {operand});
-  auto groupOperands = llvm::map_to_vector(
-      *processGroup,
-      [&](const ProcessId &id) { return rendezvousResult.lookup(id).front(); });
+      process->rendezvous(*processGroup, channelId, operands);
 
-  return concatenateOp(groupOperands, allGatherDim, resultType);
+  SmallVector<InterpreterValue> results(resultTypes.size());
+  for (auto [resultIndex, resultType] : llvm::enumerate(resultTypes)) {
+    auto operandIndex = resultIndex;
+    auto operandsAtIndex = llvm::map_to_vector(
+        *processGroup, [&rendezvousResult, &operandIndex](const ProcessId &id) {
+          return (rendezvousResult.lookup(id))[operandIndex];
+        });
+    results[resultIndex] = concatenateOp(operandsAtIndex, allGatherDim, resultType);
+  }
+  return results;
 }
 
-Tensor allReduceOp(const Tensor &operand,
-                   SmallVector<SmallVector<uint32_t>> replicaGroups,
-                   ChannelId channelId, bool useGlobalDeviceIds,
-                   Region &computation, Process *process, Scope &scope,
-                   ShapedType resultType) {
+SmallVector<InterpreterValue> allReduceOp(
+    ArrayRef<Tensor> operands, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, bool useGlobalDeviceIds, Region &computation,
+    Process *process, Scope &scope, ArrayRef<ShapedType> resultTypes) {
   if (!process)
     llvm::report_fatal_error(
         "all_reduce is only supported when run via interpreter.run_parallel");
@@ -1162,33 +1173,36 @@ Tensor allReduceOp(const Tensor &operand,
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-  auto groupOperands = process->rendezvous(*processGroup, channelId, {operand})
+  auto groupOperands = process->rendezvous(*processGroup, channelId, operands)
                            .getSortedTensors();
 
-  Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt) {
-    Tensor resultElement;
-    for (const auto &groupOperand : groupOperands) {
-      auto groupOperandElement = constant(groupOperand.front().get(*resultIt));
-      if (resultElement)
-        resultElement = eval(computation, {resultElement, groupOperandElement},
-                             /*fallback=*/nullptr, process, &scope)[0]
-                            .getTensor();
-      else
-        resultElement = groupOperandElement;
+  SmallVector<InterpreterValue> results(resultTypes.size());
+  for (auto [resultIndex, resultType] : llvm::enumerate(resultTypes)) {
+    Tensor result(resultType);
+    for (auto elementIndex = result.index_begin();
+         elementIndex != result.index_end(); ++elementIndex) {
+      Tensor resultElement;
+      for (const auto &processOperands : groupOperands) {
+        auto OperandElement =
+            constant(processOperands[resultIndex].get(*elementIndex));
+        if (resultElement)
+          resultElement = eval(computation, {resultElement, OperandElement},
+                               /*fallback=*/nullptr, process, &scope)[0]
+                              .getTensor();
+        else
+          resultElement = OperandElement;
+      }
+      result.set(*elementIndex, resultElement.get({}));
     }
-    result.set(*resultIt, resultElement.get({}));
+    results[resultIndex] = result;
   }
-
-  return result;
+  return results;
 }
 
-Tensor allToAllOp(const Tensor &operand, Axis splitDimension,
-                  Axis concatDimension, int64_t splitCount,
-                  SmallVector<SmallVector<uint32_t>> replicaGroups,
-                  ChannelId channelId, Process *process,
-                  ShapedType resultType) {
+SmallVector<InterpreterValue> allToAllOp(
+    ArrayRef<Tensor> operands, Axis splitDimension, Axis concatDimension,
+    int64_t splitCount, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, Process *process, ArrayRef<ShapedType> resultTypes) {
   if (!process)
     llvm::report_fatal_error(
         "all_to_all is only supported when run via interpreter.run_parallel");
@@ -1202,18 +1216,23 @@ Tensor allToAllOp(const Tensor &operand, Axis splitDimension,
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-  auto groupOperands = process->rendezvous(*processGroup, channelId, {operand})
+  auto groupOperands = process->rendezvous(*processGroup, channelId, operands)
                            .getSortedTensors();
-
-  SmallVector<Tensor> scatteredParts;
-  for (const auto &groupOperand : groupOperands) {
-    auto splitParts = split(groupOperand.front(), splitCount, splitDimension,
-                            operand.getType().getContext());
-    for (auto [i, processId] : llvm::enumerate(*processGroup))
-      if (processId == process->getId())
-        scatteredParts.push_back(splitParts[i]);
+  SmallVector<InterpreterValue> results(resultTypes.size());
+  for (auto [resultIndex, operand, resultType] :
+       llvm::enumerate(operands, resultTypes)) {
+    SmallVector<Tensor> scatteredParts;
+    for (const auto &processOperands : groupOperands) {
+      auto splitParts = split(processOperands[resultIndex], splitCount,
+                              splitDimension, operand.getType().getContext());
+      for (auto [i, processId] : llvm::enumerate(*processGroup))
+        if (processId == process->getId())
+          scatteredParts.push_back(splitParts[i]);
+    }
+    results[resultIndex] =
+        concatenateOp(scatteredParts, concatDimension, resultType);
   }
-  return concatenateOp(scatteredParts, concatDimension, resultType);
+  return results;
 }
 
 Tensor andOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
@@ -2065,8 +2084,8 @@ Tensor reduceScatterOp(const Tensor &operand, int64_t scatterDimension,
       allReduceOp(operand, replicaGroups, channelId, useGlobalDeviceIds, region,
                   process, scope, operand.getType());
 
-  auto parts = split(reducedValue, processGroups[0].size(), scatterDimension,
-                     operand.getType().getContext());
+  auto parts = split(reducedValue.front().getTensor(), processGroups[0].size(),
+                     scatterDimension, operand.getType().getContext());
 
   Tensor result(returnType);
   for (auto [receiverIndex, sender] : llvm::enumerate(*processGroup)) {
