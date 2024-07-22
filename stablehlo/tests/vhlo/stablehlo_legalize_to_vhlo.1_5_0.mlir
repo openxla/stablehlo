@@ -400,6 +400,16 @@ func.func @default_all_gather(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {
   func.return %0 : tensor<16x16xf32>
 }
 
+// CHECK-LABEL: "default_all_gather_variadic"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func @default_all_gather_variadic(%arg0: tensor<16x8xf32>, %arg1: tensor<16x8xf32>) -> (tensor<16x16xf32>, tensor<16x16xf32>) {
+  %0:2 = "stablehlo.all_gather"(%arg0, %arg1) {
+    all_gather_dim = 1 : i64,
+    replica_groups = dense<[[0], [1]]> : tensor<2x1xi64>
+  } : (tensor<16x8xf32>, tensor<16x8xf32>) -> (tensor<16x16xf32>, tensor<16x16xf32>)
+  func.return %0#0, %0#1 : tensor<16x16xf32>, tensor<16x16xf32>
+}
+
 // CHECK-LABEL: "default_all_reduce"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @default_all_reduce(%arg0: tensor<f32>) -> tensor<f32> {
@@ -956,6 +966,18 @@ func.func @op_all_reduce_with_promotable_types(%operand: tensor<f32>) -> tensor<
   } : (tensor<f32>) -> tensor<f64>
 
   func.return %result : tensor<f64>
+}
+
+// CHECK-LABEL: "default_all_reduce_variadic"
+func.func @default_all_reduce_variadic(%arg0: tensor<f32>, %arg1: tensor<f32>) -> (tensor<f32>, tensor<f32>) {
+  %0:2 = "stablehlo.all_reduce"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+      %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> (tensor<f32>)
+      "stablehlo.return"(%1) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0], [1]]> : tensor<2x1xi64>
+  } : (tensor<f32>, tensor<f32>) -> (tensor<f32>, tensor<f32>)
+  func.return %0#0, %0#1 : tensor<f32>, tensor<f32>
 }
 
 // CHECK-LABEL: "op_all_to_all"
