@@ -50,8 +50,6 @@ def StableHLO_ConstantLikeSmallestNormalizedValue : NativeCodeCall<
 //   acos(x) = 2 * atan2(sqrt(1 - x^2), (1 + x))  if x != -1
 //           = pi                                 if x == -1
 //
-//   acos(x) = -(i * log(x + i * sqrt((1 + x) * (1 - x))))
-//
 // Note: Complex decomposition is in ChloDecompositionPatternsMath.td
 def : Pat<(CHLO_AcosOp NonComplexElementType:$input),
   (StableHLO_SelectOp

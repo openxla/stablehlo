@@ -635,15 +635,6 @@ def : Pat<(CHLO_AcosOp ComplexElementType:$z),
             (StableHLO_AddOp $am1, $sq)))),
       (StableHLO_NegOp $imag)))>;
 
-// Arcus cosine on real input:
-//
-//     arccos(x) = 2 * arctan2(sqrt(1 - x * x), 1 + x)
-//
-//     To avoid cancellation errors at abs(x) close to 1, we'll use
-//
-//       1 - x * x == (1 - x) * (1 + x)
-//
-
 // Inverse hyperbolic cosine on complex input:
 //
 //     acosh(z) = sqrt(z - 1) / sqrt(1 - z) * acos(z)
