@@ -35,29 +35,33 @@ namespace stablehlo {
 struct ProcessId;
 
 /// Represents a result of a `ProcessGrid::rendezvous` where multiple processes
-/// synchronize at a barrier and contribute a Tensor each.
-/// This class is pretty much a map from ProcessId to Tensor, with the
+/// synchronize at a barrier and contribute same number of Tensors.
+/// This class is pretty much a map from ProcessId to set of Tensors, with the
 /// map-like API.
 class RendezvousResult {
  public:
   RendezvousResult() = default;
-  RendezvousResult(std::map<ProcessId, Tensor> const &result);
+  RendezvousResult(std::map<ProcessId, SmallVector<Tensor>> const &results);
 
-  /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
-  /// of Tensors sorted by ProcessId--(replicaId, partitionId) pair--in
-  /// lexicographical order.
-  SmallVector<Tensor> getSortedTensors() const;
+  /// Iterates through the (ProcessId, SmallVector<Tensor>) map entires and
+  /// returns a vector of Tensors sorted by ProcessId--(replicaId, partitionId)
+  /// pair--in lexicographical order.
+  SmallVector<SmallVector<Tensor>> getSortedTensors() const;
 
-  /// Inserts `tensor` into the map using the key `processId`.
-  void insert(ProcessId processId, Tensor tensor);
+  /// Inserts `SmallVector<tensor>` into the map using the key `processId`.
+  void insert(ProcessId processId, SmallVector<Tensor> tensor);
 
   /// Iterates through the map and returns the value associated with the key
-  /// `processId`. If key is not found, return an empty `Tensor`.
-  Tensor lookup(ProcessId processId) const;
+  /// `processId`. If key is not found, return an empty `SmallVector<Tensor>`.
+  SmallVector<Tensor> lookup(ProcessId processId) const;
+
+  /// Iterates through the (ProcessId, SmallVector<Tensor>) map entires and
+  /// return true if all processes contributed same number of operand Tensors
+  bool hasMatchingOperandsCount() const;
 
  private:
   /// Internal map representation of the result of `ProcessGrid::rendezvous`.
-  std::map<ProcessId, Tensor> result_;
+  std::map<ProcessId, SmallVector<Tensor>> results_;
 };
 
 namespace detail {
@@ -72,7 +76,7 @@ struct RendezvousState {
   std::mutex mutex;
 
   /// Internal storage used to store data contributed by the processes.
-  std::map<ProcessId, Tensor> values;
+  std::map<ProcessId, SmallVector<Tensor>> values;
 
   /// Internal state management counter which counts the number of processes
   /// that contributed already.
@@ -245,12 +249,12 @@ class ProcessGrid {
   /// underlying StableHLO programs or bugs in the StableHLO interpreter don't
   /// deadlock the interpreter.
   ///
-  /// At the barrier, each StableHLO process contributes a tensor, and these
-  /// tensors are accumulated in `RendezvousResult` whose shared pointer is
-  /// returned to all callers once the barrier has been reached by all StableHLO
-  /// processes.
+  /// At the barrier, each StableHLO process contribute any number of tensors,
+  /// and these tensors are accumulated in `RendezvousResult` whose shared
+  /// pointer is returned to all callers once the barrier has been reached by
+  /// all StableHLO processes.
   RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
-                              ProcessId processId, const Tensor &operand);
+                              ProcessId processId, ArrayRef<Tensor> operands);
 
   /// Sends `inputs` to a channel with `channelId`.
   /// The channel with `channelId` is emptied before the receiving process can

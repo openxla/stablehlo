@@ -59,22 +59,31 @@ std::optional<ProcessGroup> ProcessGroups::findGroup(ProcessId processId) {
 // RendezvousResult.
 //===----------------------------------------------------------------------===//
 
-RendezvousResult::RendezvousResult(std::map<ProcessId, Tensor> const &result)
-    : result_(result) {}
+RendezvousResult::RendezvousResult(
+    std::map<ProcessId, SmallVector<Tensor>> const &results)
+    : results_(results) {}
 
-void RendezvousResult::insert(ProcessId processId, Tensor tensor) {
-  result_[processId] = tensor;
+void RendezvousResult::insert(ProcessId processId,
+                              SmallVector<Tensor> tensors) {
+  results_[processId] = tensors;
 }
 
-Tensor RendezvousResult::lookup(ProcessId processId) const {
-  auto it = result_.find(processId);
-  if (it != result_.end()) return it->second;
+SmallVector<Tensor> RendezvousResult::lookup(ProcessId processId) const {
+  auto it = results_.find(processId);
+  if (it != results_.end()) return it->second;
   return {};
 }
 
-SmallVector<Tensor> RendezvousResult::getSortedTensors() const {
-  return llvm::map_to_vector(result_,
+SmallVector<SmallVector<Tensor>> RendezvousResult::getSortedTensors() const {
+  return llvm::map_to_vector(results_,
                              [](const auto &pair) { return pair.second; });
+}
+
+bool RendezvousResult::hasMatchingOperandsCount() const {
+  auto count = results_.begin()->second.size();
+  for (const auto &it : results_)
+    if (count != it.second.size()) return false;
+  return true;
 }
 
 //===----------------------------------------------------------------------===//
@@ -223,16 +232,19 @@ SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
 RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
                                          ChannelId channelId,
                                          ProcessId processId,
-                                         const Tensor &operand) {
+                                         ArrayRef<Tensor> operands) {
   // Process wait/notify logic below doesn't work for single process.
-  if (processGroup.size() == 1)
-    return RendezvousResult({std::pair{processId, operand}});
+  if (processGroup.size() == 1) {
+    std::map<ProcessId, SmallVector<Tensor>> results;
+    results[processId] = SmallVector<Tensor>(operands);
+    return RendezvousResult(results);
+  }
 
   std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   auto &state = channels_[channelKey];
 
   std::unique_lock<std::mutex> lock(state.mutex);
-  state.values[processId] = operand;
+  state.values[processId] = SmallVector<Tensor>(operands);
   state.useCount++;
 
   // After each process contributes, wait for the last process to notify.
@@ -247,6 +259,9 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
   }
 
   state.useCount--;
+
+  if (!state.result.hasMatchingOperandsCount())
+    llvm::report_fatal_error("Mismatched number of operands per process");
 
   return state.useCount > 0 ? state.result : std::move(state.result);
 }
