@@ -65,9 +65,9 @@ bool isPerAxisType(Type type) {
   return isa<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(type));
 }
 
-bool isQuantType(Type type) {
-  return isPerTensorType(type) || isPerAxisType(type);
-}
+// bool isQuantType(Type type) {
+//   return isPerTensorType(type) || isPerAxisType(type);
+// }
 
 quant::UniformQuantizedType getPerTensorType(Type type) {
   return cast<quant::UniformQuantizedType>(getElementTypeOrSelf(type));
@@ -311,11 +311,18 @@ class ConvertUniformQuantizeOp
       auto inputQuantType = getQuantType(inputElementType);
       auto outputQuantType = getQuantType(op.getResult().getType());
       if (succeeded(inputQuantType) && succeeded(outputQuantType)) {
+        if (isPerAxisType(*inputQuantType) && isPerAxisType(*outputQuantType) &&
+            getPerAxisType(*inputQuantType).getQuantizedDimension() !=
+                getPerAxisType(*outputQuantType).getQuantizedDimension()) {
+          op->emitError("Cannot requantize while changing quantization_axis");
+          return failure();
+        }
         return matchAndRewriteRequantize(op, adaptor, rewriter, *inputQuantType,
                                          *outputQuantType);
       }
     }
-    return success();
+    op->emitError("Unsupported input element type.");
+    return failure();
   }
 
   LogicalResult matchAndRewriteQuantize(
@@ -1012,6 +1019,8 @@ FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op,
   }
   return rewriter.notifyMatchFailure(
       op, "Invalid input/output type for Dot/Convolution op");
+  // return rewriter.notifyMatchFailure(op, "Invalid input/output type for
+  // Dot/Convolution op");
 }
 
 class ConvertUniformQuantizedDotOp
@@ -1174,6 +1183,60 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
     return rewriter.notifyMatchFailure(op, "lhs_dilation must be 1.");
   }
 
+  // RHS (weight) must have zero zp.
+  // Here assumes RHS/result must be both per-tensor or both per-axis
+  // quantized.
+  auto failedOr = getQuantType(op.getRhs().getType());
+  if (failed(failedOr)) {
+    return failure();
+  }
+  QuantType rhsElementQuantType = *failedOr;
+  bool isRhsQuantPerTensor = isPerTensorType(rhsElementQuantType);
+
+  if (isRhsQuantPerTensor
+          ? getPerTensorType(rhsElementQuantType).getZeroPoint() != 0
+          : llvm::any_of(
+                llvm::concat<const int64_t>(
+                    getPerAxisType(rhsElementQuantType).getZeroPoints(),
+                    getPerAxisType(op.getType()).getZeroPoints()),
+                [](int64_t zp) { return zp != 0; })) {
+    op->emitError("RHS/result UQ type must have zero zp.");
+    return failure();
+  }
+  // For per-axis quantization, RHS quantized axis must be out channel axis.
+  if (!isRhsQuantPerTensor &&
+      (getPerAxisType(rhsElementQuantType).getQuantizedDimension() !=
+       cast<TensorType>(op.getRhs().getType()).getRank() - 1)) {
+    op->emitError("Conv quantized axis must be out channel axis");
+    return failure();
+  }
+  // For per-axis quantization, ratio between RHS and Result scales must be
+  // the same for each channel.
+  if (!isRhsQuantPerTensor) {
+    auto resElementQuantPerAxisType = getPerAxisType(op.getType());
+    SmallVector<double> scaleRatios(
+        resElementQuantPerAxisType.getScales().size());
+    for (size_t i = 0; i < scaleRatios.size(); ++i) {
+      scaleRatios[i] = resElementQuantPerAxisType.getScales()[i] /
+                       getPerAxisType(rhsElementQuantType).getScales()[i];
+      auto diff = (scaleRatios[i] - scaleRatios[0]) / scaleRatios[0];
+      // Check all ratios within a threshold.
+      if (std::abs(diff) > 0.001) {
+        op->emitError(
+            "Per-axis quantizated Conv must have same RHS/Result scale "
+            "ratio for each channel");
+        return failure();
+      }
+    }
+  }
+  // lhs_dilation must not exist.
+  if (op.getLhsDilation().has_value() &&
+      llvm::any_of(*op.getLhsDilation(),
+                   [](int64_t dilate) { return dilate != 1; })) {
+    op->emitError("lhs_dilation must be 1.");
+    return failure();
+  }
+
   // We only support NHWC Conv2D and NDHWC Conv3D.
   auto dims = op.getDimensionNumbers();
   if (isConvNhwc(dims)) {
@@ -1282,165 +1345,79 @@ class ConvertGenericOp : public ConversionPattern {
   }
 };
 
-std::optional<Value> MaterializeIllegalCast(OpBuilder &builder, Type type,
-                                            ValueRange inputs, Location loc) {
-  if (inputs.size() != 1) return std::nullopt;
-  return builder
-      .create<mlir::stablehlo::BitcastConvertOp>(loc, type, inputs[0])
-      ->getResult(0);
-}
-
 // TypeConverter for converting UQ type to int type.
 class UniformQuantizedToIntTypeConverter : public TypeConverter {
  public:
   UniformQuantizedToIntTypeConverter() {
     addConversion([](Type type) -> Type { return getQuantStorageType(type); });
-    addArgumentMaterialization(MaterializeIllegalCast);
-    addSourceMaterialization(MaterializeIllegalCast);
-    addTargetMaterialization(MaterializeIllegalCast);
   }
 };
 
-bool isAddOpLegal(AddOp addOp) {
-  auto lhsQuantType =
-      getQuantType(getElementTypeOrSelf(addOp.getLhs().getType()));
-  auto rhsQuantType =
-      getQuantType(getElementTypeOrSelf(addOp.getRhs().getType()));
-  auto resQuantType =
-      getQuantType(getElementTypeOrSelf(addOp.getResult().getType()));
-
-  // We only handle cases where lhs, rhs and results all have quantized
-  // element type.
-  if (failed(lhsQuantType) || failed(rhsQuantType) || failed(resQuantType)) {
-    return true;
-  }
-
-  if (isPerAxisType(*lhsQuantType) || isPerAxisType(*rhsQuantType) ||
-      isPerAxisType(*resQuantType)) {
-    // Handle Per-Axis Quantized Types. We only support lhs/rhs/result with
-    // exact same per-axis quantized types with I32 storage type.
-    if (!isPerAxisType(*lhsQuantType) || !isPerAxisType(*rhsQuantType) ||
-        !isPerAxisType(*resQuantType) ||
-        getPerAxisType(*lhsQuantType) != getPerAxisType(*rhsQuantType) ||
-        getPerAxisType(*lhsQuantType) != getPerAxisType(*resQuantType)) {
-      return true;
-    }
-    if (!getPerAxisType(*lhsQuantType).getStorageType().isInteger(32)) {
-      // For server-side StableHLO Quantization, add is quantized only when
-      // fused with conv/dot ops, whose output must be i32.
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool isUniformQuantizeOpOpLegal(UniformQuantizeOp op) {
-  auto inputElementType = getElementTypeOrSelf(op.getOperand().getType());
-  if (!inputElementType.isF32() &&
-      !isa<quant::UniformQuantizedType, quant::UniformQuantizedPerAxisType>(
-          inputElementType)) {
-    return true;
-  }
-
-  if (isa<quant::UniformQuantizedType, quant::UniformQuantizedPerAxisType>(
-          inputElementType)) {
-    auto inputQuantType = getQuantType(inputElementType);
-    auto outputQuantType = getQuantType(op.getResult().getType());
-    if (succeeded(inputQuantType) && succeeded(outputQuantType)) {
-      if (isPerAxisType(*inputQuantType) && isPerAxisType(*outputQuantType) &&
-          getPerAxisType(*inputQuantType).getQuantizedDimension() !=
-              getPerAxisType(*outputQuantType).getQuantizedDimension()) {
-        return true;
+template <typename StablehloOpType>
+struct QuantizedStablehloOpConversion
+    : public OpConversionPattern<StablehloOpType> {
+  using OpConversionPattern<StablehloOpType>::OpConversionPattern;
+  LogicalResult matchAndRewrite(
+      StablehloOpType op, typename StablehloOpType::Adaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override {
+    SmallVector<Value> dequantizedOperands;
+    for (auto operand : op->getOperands()) {
+      if (isa<quant::QuantizedType>(getElementTypeOrSelf(operand.getType()))) {
+        dequantizedOperands.push_back(
+            rewriter.create<UniformDequantizeOp>(op->getLoc(), operand));
+      } else {
+        dequantizedOperands.push_back(operand);
       }
     }
-  }
-  return false;
-}
 
-bool isMinOpOpLegal(MinOp op) {
-  if (!isQuantType(op.getLhs().getType())) return true;
+    auto origOp = op.getOperation();
+    auto origAttrs = origOp->getAttrs();
+    auto newOp = rewriter
+                     .create<StablehloOpType>(op.getLoc(), dequantizedOperands,
+                                              origAttrs)
+                     .getOperation();
 
-  // Min/max only support per-tensor quantization.
-  auto lhsType = getPerTensorType(op.getLhs().getType());
-  auto rhsType = getPerTensorType(op.getRhs().getType());
-  auto resultType = getPerTensorType(op.getResult().getType());
-  if (lhsType != rhsType || lhsType != resultType) {
-    return true;
-  }
-  return false;
-}
-
-bool isMaxOpOpLegal(MaxOp op) {
-  if (!isQuantType(op.getLhs().getType())) return true;
-
-  // Min/max only support per-tensor quantization.
-  auto lhsType = getPerTensorType(op.getLhs().getType());
-  auto rhsType = getPerTensorType(op.getRhs().getType());
-  auto resultType = getPerTensorType(op.getResult().getType());
-  if (lhsType != rhsType || lhsType != resultType) {
-    return true;
-  }
-  return false;
-}
-
-bool isConvolutionOpLegal(ConvolutionOp op) {
-  // RHS (weight) must have zero zp.
-  // Here assumes RHS/result must be both per-tensor or both per-axis
-  // quantized.
-  auto failedOr = getQuantType(op.getRhs().getType());
-  if (failed(failedOr)) {
-    return true;
-  }
-  QuantType rhsElementQuantType = *failedOr;
-  bool isRhsQuantPerTensor = isPerTensorType(rhsElementQuantType);
-
-  if (isRhsQuantPerTensor
-          ? getPerTensorType(rhsElementQuantType).getZeroPoint() != 0
-          : llvm::any_of(
-                llvm::concat<const int64_t>(
-                    getPerAxisType(rhsElementQuantType).getZeroPoints(),
-                    getPerAxisType(op.getType()).getZeroPoints()),
-                [](int64_t zp) { return zp != 0; })) {
-    return true;
-  }
-  // For per-axis quantization, RHS quantized axis must be out channel axis.
-  if (!isRhsQuantPerTensor &&
-      (getPerAxisType(rhsElementQuantType).getQuantizedDimension() !=
-       cast<TensorType>(op.getRhs().getType()).getRank() - 1)) {
-    return true;
-  }
-  // For per-axis quantization, ratio between RHS and Result scales must be
-  // the same for each channel.
-  if (!isRhsQuantPerTensor) {
-    auto resElementQuantPerAxisType = getPerAxisType(op.getType());
-    SmallVector<double> scaleRatios(
-        resElementQuantPerAxisType.getScales().size());
-    for (size_t i = 0; i < scaleRatios.size(); ++i) {
-      scaleRatios[i] = resElementQuantPerAxisType.getScales()[i] /
-                       getPerAxisType(rhsElementQuantType).getScales()[i];
-      auto diff = (scaleRatios[i] - scaleRatios[0]) / scaleRatios[0];
-      // Check all ratios within a threshold.
-      if (std::abs(diff) > 0.001) {
-        return true;
+    SmallVector<Value> quantizedResults;
+    for (auto [oldResult, newResult] :
+         llvm::zip(origOp->getResults(), newOp->getResults())) {
+      if (isa<quant::QuantizedType>(
+              getElementTypeOrSelf(oldResult.getType()))) {
+        quantizedResults.push_back(
+            rewriter.create<stablehlo::UniformQuantizeOp>(
+                op->getLoc(), oldResult.getType(), newResult));
+      } else {
+        quantizedResults.push_back(newResult);
       }
     }
+    rewriter.replaceOp(op, quantizedResults);
+    return success();
   }
-  // lhs_dilation must not exist.
-  if (op.getLhsDilation().has_value() &&
-      llvm::any_of(*op.getLhsDilation(),
-                   [](int64_t dilate) { return dilate != 1; })) {
-    return true;
-  }
+};
 
-  // We only support NHWC Conv2D and NDHWC Conv3D.
-  auto dims = op.getDimensionNumbers();
-  if (!isConvNhwc(dims) && !isConvNDHWC(dims)) {
-    return true;
-  }
-
-  return false;
+template <typename... StablehloOpTypes>
+void populateStablehloLegalizeQuantizedOpToQDQPatterns(
+    RewritePatternSet &patterns, MLIRContext *context, PatternBenefit benefit) {
+  patterns.add<QuantizedStablehloOpConversion<StablehloOpTypes>...>(context,
+                                                                    benefit);
 }
+
+void populateStablehloLegalizeQuantizedOpToQDQPatterns(
+    RewritePatternSet &patterns, MLIRContext *context, PatternBenefit benefit) {
+  // The following list covers most of the operations which, according to the
+  // stablehlo spoecification document, interprets the quantized
+  // operation using dequant-op-quant strategy. The ones excluded are
+  // ConvolutionOp, DotGeneralOp, and DynamicConvOp, which are current
+  // using `stablehlo-legalize-quant-to-int` pass for decomposituion to
+  // primitive math operations.
+  populateStablehloLegalizeQuantizedOpToQDQPatterns<
+      AbsOp, AddOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
+      BatchNormTrainingOp, CbrtOp, CeilOp, CholeskyOp, ClampOp, CompareOp,
+      CosineOp, DivOp, Expm1Op, ExpOp, FloorOp, Log1pOp, LogisticOp, LogOp,
+      MaxOp, MinOp, MulOp, NegOp, PowOp, ReducePrecisionOp, RemOp, RoundOp,
+      RoundNearestEvenOp, RsqrtOp, SelectOp, SignOp, SineOp, SqrtOp, SubtractOp,
+      TanhOp, TriangularSolveOp>(patterns, context, benefit);
+}
+
 }  // namespace
 
 #define GEN_PASS_DEF_STABLEHLOLEGALIZEQUANTTOMATHPASS
@@ -1481,11 +1458,6 @@ class StablehloLegalizeQuantToMathPass
     };
     target.addDynamicallyLegalDialect<stablehlo::StablehloDialect>(
         [&converter](Operation *op) { return converter.isLegal(op); });
-    target.addDynamicallyLegalOp<AddOp>(isAddOpLegal);
-    target.addDynamicallyLegalOp<UniformQuantizeOp>(isUniformQuantizeOpOpLegal);
-    target.addDynamicallyLegalOp<MinOp>(isMinOpOpLegal);
-    target.addDynamicallyLegalOp<MaxOp>(isMaxOpOpLegal);
-    target.addDynamicallyLegalOp<ConvolutionOp>(isConvolutionOpLegal);
     target.addDynamicallyLegalDialect<chlo::ChloDialect>(isLegal);
     target.addDynamicallyLegalDialect<func::FuncDialect>(
         [&converter](Operation *op) {

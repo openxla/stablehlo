@@ -491,10 +491,8 @@ func.func @requantize_per_tensor_to_per_channel(
 func.func @requantize_per_channel_change_axis(
     %arg0: tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3, 5.000000e+00:2}>>
   ) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1, 1.000000e+01:-1}>> {
-  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert %arg0 : (tensor<2x2xi8>) -> tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3,5.000000e+00:2}>>
-  // CHECK: %[[UQ:.*]] = stablehlo.uniform_quantize %[[BCAST_CONVERT_0]] : (tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3,5.000000e+00:2}>>) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1,1.000000e+01:-1}>>
-  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert %[[UQ]] : (tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1,1.000000e+01:-1}>>) -> tensor<2x2xi8>
-  // CHECK: return %[[BCAST_CONVERT_1]] : tensor<2x2xi8>
+  // expected-error@+2 {{Cannot requantize while changing quantization_axis}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.uniform_quantize' that was explicitly marked illegal}}
   %0 = stablehlo.uniform_quantize %arg0 : (
       tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3, 5.000000e+00:2}>>
     ) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1, 1.000000e+01:-1}>>

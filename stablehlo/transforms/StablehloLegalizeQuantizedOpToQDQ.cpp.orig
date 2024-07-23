@@ -148,8 +148,8 @@ void populateStablehloLegalizeQuantizedOpToQDQPatterns(
 <<<<<<< HEAD
       AbsOp, AddOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
 =======
-      AbsOp, AddOp,Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
->>>>>>> 3a2e51e2 (composing-quant-decompistion-passes)
+      AbsOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
       BatchNormTrainingOp, CbrtOp, CeilOp, CholeskyOp, ClampOp, CompareOp,
       ConvolutionOp, CosineOp, DivOp, DotGeneralOp, DotOp, Expm1Op, ExpOp,
       FloorOp, Log1pOp, LogisticOp, LogOp, MaxOp, MinOp, MulOp, NegOp, PowOp,
