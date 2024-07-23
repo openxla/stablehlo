@@ -1,6 +1,6 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=1.4.0' --verify-diagnostics --split-input-file %s
 
-func.func @default_all_reduce_variadic(%arg0: tensor<f32>, %arg1: tensor<f32>) -> (tensor<f32>, tensor<f32>) {
+func.func @all_reduce_variadic(%arg0: tensor<f32>, %arg1: tensor<f32>) -> (tensor<f32>, tensor<f32>) {
   // expected-error @+1 {{failed to legalize operation 'vhlo.all_reduce_v2' that was explicitly marked illegal}}
   %0:2 = "stablehlo.all_reduce"(%arg0, %arg1) ({
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
@@ -15,7 +15,7 @@ func.func @default_all_reduce_variadic(%arg0: tensor<f32>, %arg1: tensor<f32>) -
 // -----
 
 
-func.func @default_all_gather_variadic(%arg0: tensor<16x8xf32>, %arg1: tensor<16x8xf32>) -> (tensor<16x16xf32>, tensor<16x16xf32>) {
+func.func @all_gather_variadic(%arg0: tensor<16x8xf32>, %arg1: tensor<16x8xf32>) -> (tensor<16x16xf32>, tensor<16x16xf32>) {
   // expected-error @+1 {{failed to legalize operation 'vhlo.all_gather_v2' that was explicitly marked illegal}}
   %0:2 = "stablehlo.all_gather"(%arg0, %arg1) {
     all_gather_dim = 1 : i64,
@@ -26,7 +26,7 @@ func.func @default_all_gather_variadic(%arg0: tensor<16x8xf32>, %arg1: tensor<16
 
 // -----
 
-func.func @op_all_to_all_variadic(%arg0: tensor<4x16xf32>, %arg1: tensor<5x16xf32>) -> (tensor<16x4xf32>, tensor<20x4xf32>) {
+func.func @all_to_all_variadic(%arg0: tensor<4x16xf32>, %arg1: tensor<5x16xf32>) -> (tensor<16x4xf32>, tensor<20x4xf32>) {
   // expected-error @+1 {{failed to legalize operation 'vhlo.all_to_all_v2' that was explicitly marked illegal}}
   %0:2 = "stablehlo.all_to_all"(%arg0, %arg1) {
     split_dimension = 1 : i64,
