@@ -85,12 +85,12 @@ long-term supported counterparts.
 ```
 -fail-on-unused : Fail on (mostly) unused ops that are deprecated without any fallback.
 ```
-### `-stablehlo-legalize-quant-to-int`
+### `-stablehlo-legalize-quant-to-math`
 
-_Convert from StableHLO quantized ops to StableHLO primitive ops._
+_Convert from StableHLO quantized ops to StableHLO primitive math ops._
 
 Convert StableHLO programs using UniformQuantized types to semantically
-equivalent integer math.
+equivalent integer math operations.
 ### `-stablehlo-legalize-quantized-op-to-qdq`
 
 _Decompose StableHLO quantized ops using uniform quantize/dequantize ops._

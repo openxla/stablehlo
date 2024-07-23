@@ -124,7 +124,7 @@ void populateStablehloLegalizeQuantizedOpToQDQPatterns(
   // using `stablehlo-legalize-quant-to-int` pass for decomposituion to
   // primitive math operations.
   populateStablehloLegalizeQuantizedOpToQDQPatterns<
-      AbsOp, AddOp,Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
+      AbsOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
       BatchNormTrainingOp, CbrtOp, CeilOp, CholeskyOp, ClampOp, CompareOp,
       CosineOp, DivOp, Expm1Op, ExpOp, FloorOp, Log1pOp, LogisticOp, LogOp,
       MaxOp, MinOp, MulOp, NegOp, PowOp, ReducePrecisionOp, RemOp, RoundOp,

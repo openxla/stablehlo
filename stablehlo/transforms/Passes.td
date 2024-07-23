@@ -179,12 +179,12 @@ def StablehloLegalizeCompositeToCallPass :
   ];
 }
 
-def StablehloLegalizeQuantToIntPass : Pass<"stablehlo-legalize-quant-to-int", "mlir::func::FuncOp"> {
-  let summary = "Convert from StableHLO quantized ops to StableHLO primitive ops.";
+def StablehloLegalizeQuantToMathPass : Pass<"stablehlo-legalize-quant-to-math", "mlir::func::FuncOp"> {
+  let summary = "Convert from StableHLO quantized ops to StableHLO primitive math ops.";
 
   let description = [{
     Convert StableHLO programs using UniformQuantized types to semantically
-    equivalent integer math.
+    equivalent integer math operations.
   }];
   let dependentDialects = [
     "mlir::chlo::ChloDialect",
