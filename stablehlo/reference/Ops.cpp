@@ -1140,7 +1140,7 @@ SmallVector<InterpreterValue> allGatherOp(
       process->rendezvous(*processGroup, channelId, operands);
 
   SmallVector<InterpreterValue> results(resultTypes.size());
-  for (auto [resultIndex, resultType] : llvm::enumerate(resultTypes)) {
+  for (const auto &[resultIndex, resultType] : llvm::enumerate(resultTypes)) {
     auto operandIndex = resultIndex;
     auto operandsAtIndex =
         llvm::map_to_vector(*processGroup, [&](const ProcessId &id) {
@@ -1177,7 +1177,7 @@ SmallVector<InterpreterValue> allReduceOp(
                            .getSortedTensors();
 
   SmallVector<InterpreterValue> results(resultTypes.size());
-  for (auto [resultIndex, resultType] : llvm::enumerate(resultTypes)) {
+  for (const auto &[resultIndex, resultType] : llvm::enumerate(resultTypes)) {
     Tensor result(resultType);
     for (auto elementIndex = result.index_begin();
          elementIndex != result.index_end(); ++elementIndex) {
