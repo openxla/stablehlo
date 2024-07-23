@@ -22,6 +22,18 @@ include(AddMLIRPython)
 # putting .td and .py files under . instead of mlir/python will break things,
 # even if the build rules below are adjusted accordingly.
 
+declare_mlir_python_sources(CheckPythonSources)
+declare_mlir_python_sources(CheckPythonSources.Dialects
+  ADD_TO_PARENT CheckPythonSources
+)
+
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT CheckPythonSources.Dialects
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  TD_FILE dialects/CheckOps.td
+  SOURCES dialects/check.py
+  DIALECT_NAME check)
+
 declare_mlir_python_sources(ChloPythonSources)
 declare_mlir_python_sources(ChloPythonSources.Dialects
   ADD_TO_PARENT ChloPythonSources
@@ -68,6 +80,18 @@ declare_mlir_dialect_python_bindings(
 ################################################################################
 # Extensions
 ################################################################################
+
+declare_mlir_python_sources(CheckPythonExtensions)
+declare_mlir_python_extension(CheckPythonExtensions.Main
+  MODULE_NAME _check
+  ADD_TO_PARENT CheckPythonExtensions
+  SOURCES
+  CheckModule.cpp
+  EMBED_CAPI_LINK_LIBS
+  CheckCAPI
+  PRIVATE_LINK_LIBS
+    LLVMSupport
+)
 
 declare_mlir_python_sources(ChloPythonExtensions)
 declare_mlir_python_extension(ChloPythonExtensions.Main
@@ -127,6 +151,8 @@ add_mlir_python_common_capi_library(StablehloUnifiedPythonCAPI
   DECLARED_SOURCES
     MLIRPythonSources
     MLIRPythonExtension.RegisterEverything
+    CheckPythonSources
+    CheckPythonExtensions
     ChloPythonSources
     ChloPythonExtensions
     StablehloPythonSources
@@ -141,6 +167,8 @@ add_mlir_python_modules(StablehloUnifiedPythonModules
   DECLARED_SOURCES
     MLIRPythonSources
     MLIRPythonExtension.RegisterEverything
+    CheckPythonSources
+    CheckPythonExtensions
     ChloPythonSources
     ChloPythonExtensions
     StablehloPythonSources
