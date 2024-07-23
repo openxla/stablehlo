@@ -64,10 +64,6 @@ bool isPerAxisType(Type type) {
   return isa<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(type));
 }
 
-// bool isQuantType(Type type) {
-//   return isPerTensorType(type) || isPerAxisType(type);
-// }
-
 quant::UniformQuantizedType getPerTensorType(Type type) {
   return cast<quant::UniformQuantizedType>(getElementTypeOrSelf(type));
 }
@@ -991,8 +987,7 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
 }
 
 template <typename DotLikeOp>
-FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op,
-                                  ConversionPatternRewriter &rewriter) {
+FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op) {
   // Checks whether a dot-like op is hybrid by looking at input/output types.
   // Returns failure() when the type is not supported.
   bool isLhsQuant = isa<quant::UniformQuantizedType>(
@@ -1020,8 +1015,6 @@ FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op,
   }
   op->emitError("Invalid input/output type for Dot/Convolution op");
   return failure();
-  // return rewriter.notifyMatchFailure(op, "Invalid input/output type for
-  // Dot/Convolution op");
 }
 
 class ConvertUniformQuantizedDotOp
@@ -1032,7 +1025,7 @@ class ConvertUniformQuantizedDotOp
   LogicalResult matchAndRewrite(
       stablehlo::DotOp op, stablehlo::DotOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto isHybrid = isDotLikeOpHybrid(op, rewriter);
+    auto isHybrid = isDotLikeOpHybrid(op);
     if (failed(isHybrid)) {
       return failure();
     }
@@ -1068,7 +1061,7 @@ class ConvertUniformQuantizedDotGeneralOp
   LogicalResult matchAndRewrite(
       stablehlo::DotGeneralOp op, stablehlo::DotGeneralOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto isHybrid = isDotLikeOpHybrid(op, rewriter);
+    auto isHybrid = isDotLikeOpHybrid(op);
     if (failed(isHybrid)) {
       return failure();
     }
@@ -1217,7 +1210,7 @@ class ConvertUniformQuantizedConvolutionOp
   LogicalResult matchAndRewrite(
       stablehlo::ConvolutionOp op, stablehlo::ConvolutionOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto isHybrid = isDotLikeOpHybrid(op, rewriter);
+    auto isHybrid = isDotLikeOpHybrid(op);
     if (failed(isHybrid)) {
       return failure();
     }
