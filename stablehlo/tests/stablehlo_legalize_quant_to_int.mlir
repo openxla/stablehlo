@@ -491,10 +491,8 @@ func.func @requantize_per_tensor_to_per_channel(
 func.func @requantize_per_channel_change_axis(
     %arg0: tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3, 5.000000e+00:2}>>
   ) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1, 1.000000e+01:-1}>> {
-  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert %arg0 : (tensor<2x2xi8>) -> tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3,5.000000e+00:2}>>
-  // CHECK: %[[UQ:.*]] = stablehlo.uniform_quantize %[[BCAST_CONVERT_0]] : (tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3,5.000000e+00:2}>>) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1,1.000000e+01:-1}>>
-  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert %[[UQ]] : (tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1,1.000000e+01:-1}>>) -> tensor<2x2xi8>
-  // CHECK: return %[[BCAST_CONVERT_1]] : tensor<2x2xi8>
+  // expected-error@+2 {{Cannot requantize while changing quantization_axis}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.uniform_quantize' that was explicitly marked illegal}}
   %0 = stablehlo.uniform_quantize %arg0 : (
       tensor<2x2x!quant.uniform<i8:f32:0, {1.000000e+01:3, 5.000000e+00:2}>>
     ) -> tensor<2x2x!quant.uniform<i8:f32:1, {5.000000e+00:1, 1.000000e+01:-1}>>
@@ -1416,10 +1414,8 @@ func.func @conv3d_static(
 func.func @conv3d_rhs_zp_not_zero(
     %arg0: tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:-2>>) {
-  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<3x3x3x1x128xi8>) -> tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:-2>>
-  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<128x28x28x28x1xi8>) -> tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>
-  // CHECK: %[[CONV:.*]] = stablehlo.convolution(%[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]])
-  // CHECK: return
+  // expected-error@+2 {{RHS/result UQ type must have zero zp}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, 2, f]x[0, 1, 2, i, o]->[b, 0, 1, 2, f],
     window = {
@@ -1440,11 +1436,8 @@ func.func @conv3d_rhs_zp_not_zero(
 func.func @conv3d_rhs_invalid_dilate(
     %arg0: tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
-  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<3x3x3x1x128xi8>) -> tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00>>
-  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<128x28x28x28x1xi8>) -> tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>
-  // CHECK: %[[CONV:.*]] = stablehlo.convolution(%[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]])
-  // CHECK: return
-  }
+  // expected-error@+2 {{lhs_dilation must be 1}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, 2, f]x[0, 1, 2, i, o]->[b, 0, 1, 2, f],
     window = {
@@ -1465,10 +1458,8 @@ func.func @conv3d_rhs_invalid_dilate(
 func.func @conv3d_non_nhwc(
     %arg0: tensor<128x1x28x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
-  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<3x3x3x1x128xi8>) -> tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00>>
-  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<128x1x28x28x28xi8>) -> tensor<128x1x28x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>
-  // CHECK: %[[CONV:.*]] = stablehlo.convolution(%[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]])
-  // CHECK: return
+  // expected-error@+2 {{Convolution data format must be NHWC}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, f, 0, 1, 2]x[0, 1, 2, i, o]->[b, f, 0, 1, 2],
     window = {
@@ -1489,10 +1480,8 @@ func.func @conv3d_non_nhwc(
 func.func @conv2d_non_nhwc(
     %arg0: tensor<128x1x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
-  // CHECK: %[[BCAST_CONVERT_0:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<3x3x1x128xi8>) -> tensor<3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00>>
-  // CHECK: %[[BCAST_CONVERT_1:.*]] = stablehlo.bitcast_convert {{.*}} : (tensor<128x1x28x28xi8>) -> tensor<128x1x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>
-  // CHECK: %[[CONV:.*]] = stablehlo.convolution(%[[BCAST_CONVERT_1]], %[[BCAST_CONVERT_0]])
-  // CHECK: return
+  // expected-error@+2 {{Convolution data format must be NHWC}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, f, 0, 1]x[0, 1, i, o]->[b, f, 0, 1],
     window = {
@@ -1514,7 +1503,8 @@ func.func @conv2d_per_channel_rhs_zp_not_zero(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:10}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:0}>> {
-  // CHECK: stablehlo.convolution {{.*}} : (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00,1.000000e+00:10}>>) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00,2.000000e+00}>>
+  // expected-error@+2 {{RHS/result UQ type must have zero zp.}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1538,8 +1528,8 @@ func.func @conv2d_per_channel_res_zp_not_zero(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:3}>> {
-  // CHECK: stablehlo.convolution {{.*}} : (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00,1.000000e+00}>>) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00,2.000000e+00:3}>>
-    return %0 : tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00,2.000000e+00:3}>>
+  // expected-error@+2 {{RHS/result UQ type must have zero zp.}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1563,8 +1553,8 @@ func.func @conv2d_per_channel_rhs_only(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32, 4.000000e+00:0>> {
-  // CHECK: stablehlo.convolution {{.*}}: (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00,1.000000e+00}>>) -> tensor<128x26x26x2x!quant.uniform<i32:f32, 4.000000e+00>>
-    return %0 : tensor<128x26x26x2x!quant.uniform<i32:f32, 4.000000e+00>>
+  // expected-error@+2 {{Invalid input/output type for Dot/Convolution op}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1634,7 +1624,8 @@ func.func @conv2d_per_channel_rhs_result_scale_ratio_different(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.200000e+00:0}>> {
-  // CHECK: stablehlo.convolution {{.*}}: (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00,1.000000e+00}>>) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00,2.200000e+00}>>
+  // expected-error@+2 {{Per-axis quantizated Conv must have same RHS/Result scale ratio for each channel}}
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -2397,16 +2388,24 @@ func.func @send(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, %token0: !s
 }
 
 // -----
+<<<<<<< HEAD
 
 // CHECK-LABEL:  func.func @tan
 func.func @tan(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>> {
+=======
+func.func @tan(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>> {
+  // expected-error@+1 {{failed to legalize operation 'stablehlo.tan' that was explicitly marked illegal}}
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
   %0 = "stablehlo.tan"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
   func.return %0 : tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+<<<<<<< HEAD
 // CHECK: stablehlo.tan {{.*}} : tensor<1x2x2xf32>
 
 
+=======
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 // -----
 func.func @tuple(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>,
                  %arg1: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) {
@@ -2425,7 +2424,69 @@ func.func @batch_norm_grad_per_tensor_quantization(%input: tensor<2x2x2x2x!quant
   func.return %0#0 : tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+<<<<<<< HEAD
 // CHECK: "stablehlo.batch_norm_grad"{{.*}} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2x2x2x2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+=======
+// CHECK: %[[CONSTANT_0:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_1:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_2:.*]] = stablehlo.convert %arg0 : (tensor<2x2x2x2xi8>) -> tensor<2x2x2x2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_3:.*]] = chlo.broadcast_subtract %[[CONVERT_2]], %[[CONSTANT_1]] : (tensor<2x2x2x2xi32>, tensor<i32>) -> tensor<2x2x2x2xi32>
+// CHECK: %[[CONVERT_4:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_3]] : (tensor<2x2x2x2xi32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_5:.*]] = chlo.broadcast_multiply %[[CONVERT_4]], %[[CONSTANT_0]] : (tensor<2x2x2x2xf32>, tensor<f32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[CONSTANT_6:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_7:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_8:.*]] = stablehlo.convert %arg1 : (tensor<2xi8>) -> tensor<2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_9:.*]] = chlo.broadcast_subtract %[[CONVERT_8]], %[[CONSTANT_7]] : (tensor<2xi32>, tensor<i32>) -> tensor<2xi32>
+// CHECK: %[[CONVERT_10:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_9]] : (tensor<2xi32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_11:.*]] = chlo.broadcast_multiply %[[CONVERT_10]], %[[CONSTANT_6]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CONSTANT_12:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_13:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_14:.*]] = stablehlo.convert %arg2 : (tensor<2xi8>) -> tensor<2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_15:.*]] = chlo.broadcast_subtract %[[CONVERT_14]], %[[CONSTANT_13]] : (tensor<2xi32>, tensor<i32>) -> tensor<2xi32>
+// CHECK: %[[CONVERT_16:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_15]] : (tensor<2xi32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_17:.*]] = chlo.broadcast_multiply %[[CONVERT_16]], %[[CONSTANT_12]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CONSTANT_18:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_19:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_20:.*]] = stablehlo.convert %arg3 : (tensor<2xi8>) -> tensor<2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_21:.*]] = chlo.broadcast_subtract %[[CONVERT_20]], %[[CONSTANT_19]] : (tensor<2xi32>, tensor<i32>) -> tensor<2xi32>
+// CHECK: %[[CONVERT_22:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_21]] : (tensor<2xi32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_23:.*]] = chlo.broadcast_multiply %[[CONVERT_22]], %[[CONSTANT_18]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CONSTANT_24:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_25:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_26:.*]] = stablehlo.convert %arg4 : (tensor<2x2x2x2xi8>) -> tensor<2x2x2x2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_27:.*]] = chlo.broadcast_subtract %[[CONVERT_26]], %[[CONSTANT_25]] : (tensor<2x2x2x2xi32>, tensor<i32>) -> tensor<2x2x2x2xi32>
+// CHECK: %[[CONVERT_28:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_27]] : (tensor<2x2x2x2xi32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_29:.*]] = chlo.broadcast_multiply %[[CONVERT_28]], %[[CONSTANT_24]] : (tensor<2x2x2x2xf32>, tensor<f32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[GRAD_OPERAND:.*]], %[[GRAD_SCALE:.*]], %[[GRAD_OFFSET:.*]] = "stablehlo.batch_norm_grad"(%[[BROADCAST_MULTIPLY_5]], %[[BROADCAST_MULTIPLY_11]], %[[BROADCAST_MULTIPLY_17]], %[[BROADCAST_MULTIPLY_23]], %[[BROADCAST_MULTIPLY_29]])
+// CHECK: %[[CONSTANT_30:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_31:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_32:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_33:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_34:.*]] = chlo.broadcast_divide %[[GRAD_OPERAND]], %[[CONSTANT_30]] : (tensor<2x2x2x2xf32>, tensor<f32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[BROADCAST_ADD_35:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_34]], %[[CONSTANT_31]] : (tensor<2x2x2x2xf32>, tensor<f32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[CLAMP_36:.*]] = stablehlo.clamp %[[CONSTANT_32]], %[[BROADCAST_ADD_35]], %[[CONSTANT_33]] : (tensor<f32>, tensor<2x2x2x2xf32>, tensor<f32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_37:.*]] = stablehlo.round_nearest_even %[[CLAMP_36]] : tensor<2x2x2x2xf32>
+// CHECK: %[[CONVERT_38:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_37]] : (tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xi8>
+// CHECK: %[[CONSTANT_39:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_40:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_41:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_42:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_43:.*]] = chlo.broadcast_divide %[[GRAD_SCALE]], %[[CONSTANT_39]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_ADD_44:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_43]], %[[CONSTANT_40]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CLAMP_45:.*]] = stablehlo.clamp %[[CONSTANT_41]], %[[BROADCAST_ADD_44]], %[[CONSTANT_42]] : (tensor<f32>, tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_46:.*]] = stablehlo.round_nearest_even %[[CLAMP_45]] : tensor<2xf32>
+// CHECK: %[[CONVERT_47:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_46]] : (tensor<2xf32>) -> tensor<2xi8>
+// CHECK: %[[CONSTANT_48:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_49:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_50:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_51:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_52:.*]] = chlo.broadcast_divide %[[GRAD_OFFSET]], %[[CONSTANT_48]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_ADD_53:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_52]], %[[CONSTANT_49]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CLAMP_54:.*]] = stablehlo.clamp %[[CONSTANT_50]], %[[BROADCAST_ADD_53]], %[[CONSTANT_51]] : (tensor<f32>, tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_55:.*]] = stablehlo.round_nearest_even %[[CLAMP_54]] : tensor<2xf32>
+// CHECK: %[[CONVERT_56:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_55]] : (tensor<2xf32>) -> tensor<2xi8>
+// CHECK: return %[[CONVERT_38]] : tensor<2x2x2x2xi8>
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 
 // -----
 
@@ -2438,8 +2499,52 @@ func.func @batch_norm_inference_per_tensor_quantization(%input: tensor<4x256x!qu
   func.return %0 : tensor<4x256x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+<<<<<<< HEAD
 // CHECK: "stablehlo.batch_norm_inference"{{.*}} : (tensor<4x256xf32>, tensor<256xf32>, tensor<256xf32>, tensor<256xf32>, tensor<256xf32>) -> tensor<4x256xf32>
 
+=======
+// CHECK: %[[CONSTANT_0:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_1:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_2:.*]] = stablehlo.convert %arg0 : (tensor<4x256xi8>) -> tensor<4x256xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_3:.*]] = chlo.broadcast_subtract %[[CONVERT_2]], %[[CONSTANT_1]] : (tensor<4x256xi32>, tensor<i32>) -> tensor<4x256xi32>
+// CHECK: %[[CONVERT_4:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_3]] : (tensor<4x256xi32>) -> tensor<4x256xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_5:.*]] = chlo.broadcast_multiply %[[CONVERT_4]], %[[CONSTANT_0]] : (tensor<4x256xf32>, tensor<f32>) -> tensor<4x256xf32>
+// CHECK: %[[CONSTANT_6:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_7:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_8:.*]] = stablehlo.convert %arg1 : (tensor<256xi8>) -> tensor<256xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_9:.*]] = chlo.broadcast_subtract %[[CONVERT_8]], %[[CONSTANT_7]] : (tensor<256xi32>, tensor<i32>) -> tensor<256xi32>
+// CHECK: %[[CONVERT_10:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_9]] : (tensor<256xi32>) -> tensor<256xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_11:.*]] = chlo.broadcast_multiply %[[CONVERT_10]], %[[CONSTANT_6]] : (tensor<256xf32>, tensor<f32>) -> tensor<256xf32>
+// CHECK: %[[CONSTANT_12:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_13:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_14:.*]] = stablehlo.convert %arg2 : (tensor<256xi8>) -> tensor<256xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_15:.*]] = chlo.broadcast_subtract %[[CONVERT_14]], %[[CONSTANT_13]] : (tensor<256xi32>, tensor<i32>) -> tensor<256xi32>
+// CHECK: %[[CONVERT_16:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_15]] : (tensor<256xi32>) -> tensor<256xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_17:.*]] = chlo.broadcast_multiply %[[CONVERT_16]], %[[CONSTANT_12]] : (tensor<256xf32>, tensor<f32>) -> tensor<256xf32>
+// CHECK: %[[CONSTANT_18:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_19:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_20:.*]] = stablehlo.convert %arg3 : (tensor<256xi8>) -> tensor<256xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_21:.*]] = chlo.broadcast_subtract %[[CONVERT_20]], %[[CONSTANT_19]] : (tensor<256xi32>, tensor<i32>) -> tensor<256xi32>
+// CHECK: %[[CONVERT_22:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_21]] : (tensor<256xi32>) -> tensor<256xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_23:.*]] = chlo.broadcast_multiply %[[CONVERT_22]], %[[CONSTANT_18]] : (tensor<256xf32>, tensor<f32>) -> tensor<256xf32>
+// CHECK: %[[CONSTANT_24:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_25:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_26:.*]] = stablehlo.convert %arg4 : (tensor<256xi8>) -> tensor<256xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_27:.*]] = chlo.broadcast_subtract %[[CONVERT_26]], %[[CONSTANT_25]] : (tensor<256xi32>, tensor<i32>) -> tensor<256xi32>
+// CHECK: %[[CONVERT_28:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_27]] : (tensor<256xi32>) -> tensor<256xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_29:.*]] = chlo.broadcast_multiply %[[CONVERT_28]], %[[CONSTANT_24]] : (tensor<256xf32>, tensor<f32>) -> tensor<256xf32>
+// CHECK: %[[BATCH_NORM_INFERENCE_0:.*]] = "stablehlo.batch_norm_inference"(%[[BROADCAST_MULTIPLY_5]], %[[BROADCAST_MULTIPLY_11]], %[[BROADCAST_MULTIPLY_17]], %[[BROADCAST_MULTIPLY_23]], %[[BROADCAST_MULTIPLY_29]])
+// CHECK: %[[CONSTANT_30:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_31:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_32:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_33:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_34:.*]] = chlo.broadcast_divide %[[BATCH_NORM_INFERENCE_0]], %[[CONSTANT_30]] : (tensor<4x256xf32>, tensor<f32>) -> tensor<4x256xf32>
+// CHECK: %[[BROADCAST_ADD_35:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_34]], %[[CONSTANT_31]] : (tensor<4x256xf32>, tensor<f32>) -> tensor<4x256xf32>
+// CHECK: %[[CLAMP_36:.*]] = stablehlo.clamp %[[CONSTANT_32]], %[[BROADCAST_ADD_35]], %[[CONSTANT_33]] : (tensor<f32>, tensor<4x256xf32>, tensor<f32>) -> tensor<4x256xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_37:.*]] = stablehlo.round_nearest_even %[[CLAMP_36]] : tensor<4x256xf32>
+// CHECK: %[[CONVERT_38:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_37]] : (tensor<4x256xf32>) -> tensor<4x256xi8>
+// CHECK: return %[[CONVERT_38]] : tensor<4x256xi8>
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 
 // -----
 
@@ -2453,7 +2558,57 @@ func.func @batch_norm_training_per_tensor_quantization(%input: tensor<2x2x2x2x!q
   func.return %0#0 : tensor<2x2x2x2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+<<<<<<< HEAD
 // CHECK: "stablehlo.batch_norm_training"{{.*}} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+=======
+// CHECK: %[[CONSTANT_0:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_1:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_2:.*]] = stablehlo.convert %arg0 : (tensor<2x2x2x2xi8>) -> tensor<2x2x2x2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_3:.*]] = chlo.broadcast_subtract %[[CONVERT_2]], %[[CONSTANT_1]] : (tensor<2x2x2x2xi32>, tensor<i32>) -> tensor<2x2x2x2xi32>
+// CHECK: %[[CONVERT_4:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_3]] : (tensor<2x2x2x2xi32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_5:.*]] = chlo.broadcast_multiply %[[CONVERT_4]], %[[CONSTANT_0]] : (tensor<2x2x2x2xf32>, tensor<f32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[CONSTANT_6:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_7:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_8:.*]] = stablehlo.convert %arg1 : (tensor<2xi8>) -> tensor<2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_9:.*]] = chlo.broadcast_subtract %[[CONVERT_8]], %[[CONSTANT_7]] : (tensor<2xi32>, tensor<i32>) -> tensor<2xi32>
+// CHECK: %[[CONVERT_10:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_9]] : (tensor<2xi32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_11:.*]] = chlo.broadcast_multiply %[[CONVERT_10]], %[[CONSTANT_6]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CONSTANT_12:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_13:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_14:.*]] = stablehlo.convert %arg2 : (tensor<2xi8>) -> tensor<2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_15:.*]] = chlo.broadcast_subtract %[[CONVERT_14]], %[[CONSTANT_13]] : (tensor<2xi32>, tensor<i32>) -> tensor<2xi32>
+// CHECK: %[[CONVERT_16:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_15]] : (tensor<2xi32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_17:.*]] = chlo.broadcast_multiply %[[CONVERT_16]], %[[CONSTANT_12]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[OUTPUT:.*]], %[[BATCH_MEAN:.*]], %[[BATCH_VAR:.*]] = "stablehlo.batch_norm_training"(%[[BROADCAST_MULTIPLY_5]], %[[BROADCAST_MULTIPLY_11]], %[[BROADCAST_MULTIPLY_17]])
+// CHECK: %[[CONSTANT_18:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_19:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_20:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_21:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_22:.*]] = chlo.broadcast_divide %[[OUTPUT]], %[[CONSTANT_18]] : (tensor<2x2x2x2xf32>, tensor<f32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[BROADCAST_ADD_23:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_22]], %[[CONSTANT_19]] : (tensor<2x2x2x2xf32>, tensor<f32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[CLAMP_24:.*]] = stablehlo.clamp %[[CONSTANT_20]], %[[BROADCAST_ADD_23]], %[[CONSTANT_21]] : (tensor<f32>, tensor<2x2x2x2xf32>, tensor<f32>) -> tensor<2x2x2x2xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_25:.*]] = stablehlo.round_nearest_even %[[CLAMP_24]] : tensor<2x2x2x2xf32>
+// CHECK: %[[CONVERT_26:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_25]] : (tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xi8>
+// CHECK: %[[CONSTANT_27:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_28:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_29:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_30:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_31:.*]] = chlo.broadcast_divide %[[BATCH_MEAN]], %[[CONSTANT_27]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_ADD_32:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_31]], %[[CONSTANT_28]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CLAMP_33:.*]] = stablehlo.clamp %[[CONSTANT_29]], %[[BROADCAST_ADD_32]], %[[CONSTANT_30]] : (tensor<f32>, tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_34:.*]] = stablehlo.round_nearest_even %[[CLAMP_33]] : tensor<2xf32>
+// CHECK: %[[CONVERT_35:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_34]] : (tensor<2xf32>) -> tensor<2xi8>
+// CHECK: %[[CONSTANT_36:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_37:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_38:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_39:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_40:.*]] = chlo.broadcast_divide %[[BATCH_VAR]], %[[CONSTANT_36]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_ADD_41:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_40]], %[[CONSTANT_37]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CLAMP_42:.*]] = stablehlo.clamp %[[CONSTANT_38]], %[[BROADCAST_ADD_41]], %[[CONSTANT_39]] : (tensor<f32>, tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_43:.*]] = stablehlo.round_nearest_even %[[CLAMP_42]] : tensor<2xf32>
+// CHECK: %[[CONVERT_44:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_43]] : (tensor<2xf32>) -> tensor<2xi8>
+// CHECK: return %[[CONVERT_26]] : tensor<2x2x2x2xi8>
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 
 // -----
 
@@ -2463,7 +2618,12 @@ func.func @dynamic_slice_per_tensor_quantization(%arg0: tensor<3x4x!quant.unifor
   func.return %0 : tensor<1x4x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+<<<<<<< HEAD
 // CHECK: stablehlo.dynamic_slice {{.*}} : (tensor<3x4xi8>, tensor<i64>, tensor<i64>) -> tensor<1x4xi8>
+=======
+// CHECK: %[[DYNAMIC_SLICE_0:.*]] = stablehlo.dynamic_slice %arg0, %arg1, %arg2
+// CHECK: return %[[DYNAMIC_SLICE_0]] : tensor<1x4xi8>
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 
 
 // -----
@@ -2491,7 +2651,12 @@ func.func @gather_per_tensor_quantization(%operand : tensor<?x?x?x?x?x?x?x?x!qua
   func.return %res : tensor<8x?x7x1x6x1x?x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+<<<<<<< HEAD
 // CHECK: "stablehlo.gather"{{.*}} :  (tensor<?x?x?x?x?x?x?x?xi8>, tensor<1x5x2xi32>) -> tensor<8x?x7x1x6x1x?xi8>
+=======
+// CHECK: %[[GATHER_0:.*]] = "stablehlo.gather"(%arg0, %arg1)
+// CHECK: return %[[GATHER_0]] : tensor<8x?x7x1x6x1x?xi8>
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 
 
 // -----
@@ -2545,7 +2710,27 @@ func.func @reduce_per_tensor_precision_quantization(%arg0: tensor<6x!quant.unifo
   func.return %output : tensor<6x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+<<<<<<< HEAD
 // CHECK: stablehlo.reduce_precision {{.*}} : tensor<6xf32>
+=======
+// CHECK: %[[CONSTANT_0:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_1:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_2:.*]] = stablehlo.convert %arg0 : (tensor<6xi8>) -> tensor<6xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_3:.*]] = chlo.broadcast_subtract %[[CONVERT_2]], %[[CONSTANT_1]] : (tensor<6xi32>, tensor<i32>) -> tensor<6xi32>
+// CHECK: %[[CONVERT_4:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_3]] : (tensor<6xi32>) -> tensor<6xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_5:.*]] = chlo.broadcast_multiply %[[CONVERT_4]], %[[CONSTANT_0]] : (tensor<6xf32>, tensor<f32>) -> tensor<6xf32>
+// CHECK: %[[REDUCE_PRECISION_6:.*]] = stablehlo.reduce_precision %[[BROADCAST_MULTIPLY_5]], format = e5m10 : tensor<6xf32>
+// CHECK: %[[CONSTANT_7:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_8:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_9:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_10:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_11:.*]] = chlo.broadcast_divide %[[REDUCE_PRECISION_6]], %[[CONSTANT_7]] : (tensor<6xf32>, tensor<f32>) -> tensor<6xf32>
+// CHECK: %[[BROADCAST_ADD_12:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_11]], %[[CONSTANT_8]] : (tensor<6xf32>, tensor<f32>) -> tensor<6xf32>
+// CHECK: %[[CLAMP_13:.*]] = stablehlo.clamp %[[CONSTANT_9]], %[[BROADCAST_ADD_12]], %[[CONSTANT_10]] : (tensor<f32>, tensor<6xf32>, tensor<f32>) -> tensor<6xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_14:.*]] = stablehlo.round_nearest_even %[[CLAMP_13]] : tensor<6xf32>
+// CHECK: %[[CONVERT_15:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_14]] : (tensor<6xf32>) -> tensor<6xi8>
+// CHECK: return %[[CONVERT_15]] : tensor<6xi8>
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 
 
 // -----
@@ -2581,8 +2766,17 @@ func.func @op_reduce_window_per_tensor_quantization(%arg0: tensor<2x17x31x7x!qua
   func.return %0 : tensor<2x9x16x7x!quant.uniform<i8:f32, 0.1:-30>>
 }
 
+<<<<<<< HEAD
 // CHECK: %[[REDUCE_WINDOW_0:.*]] = "stablehlo.reduce_window"{{.*}}
 // CHECK:   (tensor<2x17x31x7xi8>, tensor<i8>) -> tensor<2x9x16x7xi8>
+=======
+// CHECK: %[[REDUCE_WINDOW_0:.*]] = "stablehlo.reduce_window"(%arg0, %arg1)
+// CHECK:   ^bb0(%arg2: tensor<i8>, %arg3: tensor<i8>):
+// CHECK:   %[[MAXIMUM_0:.*]] = stablehlo.maximum %arg2, %arg3 : tensor<i8>
+// CHECK:   stablehlo.return %[[MAXIMUM_0]] : tensor<i8>
+// CHECK: (tensor<2x17x31x7xi8>, tensor<i8>) -> tensor<2x9x16x7xi8>
+// CHECK: return %[[REDUCE_WINDOW_0]] : tensor<2x9x16x7xi8>
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 
 // -----
 
@@ -2602,7 +2796,27 @@ func.func @round_afz_per_tensor_quantization(%arg0: tensor<2x!quant.uniform<i8:f
   func.return %0 : tensor<2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+<<<<<<< HEAD
 // CHECK: stablehlo.round_nearest_afz {{.*}} : tensor<2xf32>
+=======
+// CHECK: %[[CONSTANT_0:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_1:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_2:.*]] = stablehlo.convert %arg0 : (tensor<2xi8>) -> tensor<2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_3:.*]] = chlo.broadcast_subtract %[[CONVERT_2]], %[[CONSTANT_1]] : (tensor<2xi32>, tensor<i32>) -> tensor<2xi32>
+// CHECK: %[[CONVERT_4:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_3]] : (tensor<2xi32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_5:.*]] = chlo.broadcast_multiply %[[CONVERT_4]], %[[CONSTANT_0]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[ROUND_NEAREST_AFZ_6:.*]] = stablehlo.round_nearest_afz %[[BROADCAST_MULTIPLY_5]] : tensor<2xf32>
+// CHECK: %[[CONSTANT_7:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_8:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_9:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_10:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_11:.*]] = chlo.broadcast_divide %[[ROUND_NEAREST_AFZ_6]], %[[CONSTANT_7]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_ADD_12:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_11]], %[[CONSTANT_8]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CLAMP_13:.*]] = stablehlo.clamp %[[CONSTANT_9]], %[[BROADCAST_ADD_12]], %[[CONSTANT_10]] : (tensor<f32>, tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_14:.*]] = stablehlo.round_nearest_even %[[CLAMP_13]] : tensor<2xf32>
+// CHECK: %[[CONVERT_15:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_14]] : (tensor<2xf32>) -> tensor<2xi8>
+// CHECK: return %[[CONVERT_15]] : tensor<2xi8>
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 
 // -----
 
@@ -2612,7 +2826,27 @@ func.func @round_even_per_tensor_quantization(%arg0: tensor<2x!quant.uniform<i8:
   func.return %0 : tensor<2x!quant.uniform<i8:f32, 1.0:17>>
 }
 
+<<<<<<< HEAD
 // CHECK: stablehlo.round_nearest_even {{.*}} : tensor<2xf32>
+=======
+// CHECK: %[[CONSTANT_0:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_1:.*]] = stablehlo.constant dense<17> : tensor<i32>
+// CHECK: %[[CONVERT_2:.*]] = stablehlo.convert %arg0 : (tensor<2xi8>) -> tensor<2xi32>
+// CHECK: %[[BROADCAST_SUBTRACT_3:.*]] = chlo.broadcast_subtract %[[CONVERT_2]], %[[CONSTANT_1]] : (tensor<2xi32>, tensor<i32>) -> tensor<2xi32>
+// CHECK: %[[CONVERT_4:.*]] = stablehlo.convert %[[BROADCAST_SUBTRACT_3]] : (tensor<2xi32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_MULTIPLY_5:.*]] = chlo.broadcast_multiply %[[CONVERT_4]], %[[CONSTANT_0]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[ROUND_NEAREST_AFZ_6:.*]] = stablehlo.round_nearest_even %[[BROADCAST_MULTIPLY_5]] : tensor<2xf32>
+// CHECK: %[[CONSTANT_7:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f32>
+// CHECK: %[[CONSTANT_8:.*]] = stablehlo.constant dense<1.700000e+01> : tensor<f32>
+// CHECK: %[[CONSTANT_9:.*]] = stablehlo.constant dense<-1.280000e+02> : tensor<f32>
+// CHECK: %[[CONSTANT_10:.*]] = stablehlo.constant dense<1.270000e+02> : tensor<f32>
+// CHECK: %[[BROADCAST_DIVIDE_11:.*]] = chlo.broadcast_divide %[[ROUND_NEAREST_AFZ_6]], %[[CONSTANT_7]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[BROADCAST_ADD_12:.*]] = chlo.broadcast_add %[[BROADCAST_DIVIDE_11]], %[[CONSTANT_8]] : (tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[CLAMP_13:.*]] = stablehlo.clamp %[[CONSTANT_9]], %[[BROADCAST_ADD_12]], %[[CONSTANT_10]] : (tensor<f32>, tensor<2xf32>, tensor<f32>) -> tensor<2xf32>
+// CHECK: %[[ROUND_NEAREST_EVEN_14:.*]] = stablehlo.round_nearest_even %[[CLAMP_13]] : tensor<2xf32>
+// CHECK: %[[CONVERT_15:.*]] = stablehlo.convert %[[ROUND_NEAREST_EVEN_14]] : (tensor<2xf32>) -> tensor<2xi8>
+// CHECK: return %[[CONVERT_15]] : tensor<2xi8>
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
 
 // -----
 

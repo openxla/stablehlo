@@ -185,6 +185,7 @@ def StablehloLegalizeQuantToMathPass : Pass<"stablehlo-legalize-quant-to-math", 
   let description = [{
     Convert StableHLO programs using UniformQuantized types to semantically
     equivalent integer math operations.
+<<<<<<< HEAD
 
     ```mlir
     func.func @add(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
@@ -221,6 +222,8 @@ def StablehloLegalizeQuantToMathPass : Pass<"stablehlo-legalize-quant-to-math", 
       return %13 : tensor<i8>
     }
     ```
+=======
+>>>>>>> a52cb9b6 (Using benefits as opposed to source/target materialization)
   }];
   let dependentDialects = [
     "mlir::chlo::ChloDialect",
