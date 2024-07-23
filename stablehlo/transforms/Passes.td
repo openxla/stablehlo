@@ -186,6 +186,7 @@ def StablehloLegalizeQuantToMathPass : Pass<"stablehlo-legalize-quant-to-math", 
     Convert StableHLO programs using UniformQuantized types to semantically
     equivalent integer math operations.
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     ```mlir
     func.func @add(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
@@ -237,6 +238,8 @@ def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-o
   let description = [{
     Decompose StableHLO quantized programs using uniform quantize/dequantize
     operations. For example, the following program
+=======
+>>>>>>> e4fee2a3 (fix tests)
 
     ```mlir
     func.func @add(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
@@ -248,16 +251,34 @@ def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-o
     Will become:
 
     ```mlir
-    func.func @add(%arg0: tensor<!quant.uniform<i8:f32, 1.000000e+00>>, %arg1: tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>> {
-      %0 = stablehlo.uniform_dequantize %arg0 : (tensor<!quant.uniform<i8:f32, 1.000000e+00>>) -> tensor<f32>
-      %1 = stablehlo.uniform_dequantize %arg1 : (tensor<!quant.uniform<i8:f32, 2.000000e+00:1>>) -> tensor<f32>
-      %2 = stablehlo.add %0, %1 : tensor<f32>
-      %3 = stablehlo.uniform_quantize %2 : (tensor<f32>) -> tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
-      return %3 : tensor<!quant.uniform<i8:f32, 3.000000e+00:2>>
+    func.func @add(%arg0: tensor<i8>, %arg1: tensor<i8>) -> tensor<i8> {
+      %0 = stablehlo.convert %arg0 : (tensor<i8>) -> tensor<f32>
+      %cst = stablehlo.constant dense<0.333333343> : tensor<f32>
+      %1 = chlo.broadcast_multiply %0, %cst : (tensor<f32>, tensor<f32>) -> tensor<f32>
+      %cst_0 = stablehlo.constant dense<2.000000e+00> : tensor<f32>
+      %2 = chlo.broadcast_add %1, %cst_0 : (tensor<f32>, tensor<f32>) -> tensor<f32>
+      %3 = stablehlo.round_nearest_even %2 : tensor<f32>
+      %4 = stablehlo.convert %3 : (tensor<f32>) -> tensor<i32>
+      %5 = stablehlo.convert %arg1 : (tensor<i8>) -> tensor<f32>
+      %cst_1 = stablehlo.constant dense<0.666666686> : tensor<f32>
+      %6 = chlo.broadcast_multiply %5, %cst_1 : (tensor<f32>, tensor<f32>) -> tensor<f32>
+      %cst_2 = stablehlo.constant dense<1.33333337> : tensor<f32>
+      %7 = chlo.broadcast_add %6, %cst_2 : (tensor<f32>, tensor<f32>) -> tensor<f32>
+      %8 = stablehlo.round_nearest_even %7 : tensor<f32>
+      %9 = stablehlo.convert %8 : (tensor<f32>) -> tensor<i32>
+      %c = stablehlo.constant dense<2> : tensor<i32>
+      %10 = chlo.broadcast_add %4, %9 : (tensor<i32>, tensor<i32>) -> tensor<i32>
+      %11 = chlo.broadcast_subtract %10, %c : (tensor<i32>, tensor<i32>) -> tensor<i32>
+      %c_3 = stablehlo.constant dense<-128> : tensor<i32>
+      %c_4 = stablehlo.constant dense<127> : tensor<i32>
+      %12 = stablehlo.clamp %c_3, %11, %c_4 : tensor<i32>
+      %13 = stablehlo.convert %12 : (tensor<i32>) -> tensor<i8>
+      return %13 : tensor<i8>
     }
     ```
   }];
   let dependentDialects = [
+    "mlir::chlo::ChloDialect",
     "mlir::stablehlo::StablehloDialect",
   ];
 }
