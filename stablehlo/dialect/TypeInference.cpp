@@ -1827,11 +1827,10 @@ LogicalResult inferAllToAllOp(
                                  /*allGroupsMustHaveSameSize=*/true,
                                  /*useGlobalDeviceIds=*/false, splitCount)))
     return failure();
-  for (auto operand : operands) {
-    Type operandType = operand.getType();
-    auto operandRankedType = cast<RankedTensorType>(operandType);
+  for (Value operand : operands) {
+    auto operandType = cast<RankedTensorType>(operand.getType());
 
-    int64_t inputRank = operandRankedType.getRank();
+    int64_t inputRank = operandType.getRank();
     // all_to_all_c1
     if (splitDimension >= inputRank)
       return emitOptionalError(location, "AllToAll split_dimension ",
@@ -1843,8 +1842,8 @@ LogicalResult inferAllToAllOp(
                                concatDimension,
                                " is out-of-bounds for input rank ", inputRank);
 
-    SmallVector<int64_t> resultShape(operandRankedType.getShape().begin(),
-                                     operandRankedType.getShape().end());
+    SmallVector<int64_t> resultShape(operandType.getShape().begin(),
+                                     operandType.getShape().end());
     // all_to_all_c2
     if (isStaticDimSize(resultShape[splitDimension]) &&
         resultShape[splitDimension] % splitCount != 0)
@@ -1857,7 +1856,7 @@ LogicalResult inferAllToAllOp(
       resultShape[concatDimension] *= splitCount;
 
     SmallVector<int64_t> resultBounds =
-        to_vector(encodingToBounds(operandRankedType.getEncoding()));
+        to_vector(encodingToBounds(operandType.getEncoding()));
     if (!resultBounds.empty()) {
       if (isStaticDimSize(resultBounds[splitDimension]))
         resultBounds[splitDimension] /= splitCount;
@@ -1866,8 +1865,8 @@ LogicalResult inferAllToAllOp(
     }
 
     inferredReturnShapes.emplace_back(
-        resultShape, operandRankedType.getElementType(),
-        boundsToEncoding(operandRankedType.getEncoding(), resultBounds));
+        resultShape, operandType.getElementType(),
+        boundsToEncoding(operandType.getEncoding(), resultBounds));
   }
   return success();
 }
@@ -3609,7 +3608,7 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location,
         "channel_id must be positive when useGlobalDeviceIds is set but got: ",
         channelId);
 
-  for (auto operand : operands) {
+  for (Value operand : operands) {
     auto operandType = cast<ShapedType>(operand.getType());
     // all_reduce_c5
     if (failed(verifyReducerShape(

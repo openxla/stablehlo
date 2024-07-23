@@ -1343,8 +1343,8 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
 }
 
 def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
-    [ConditionallySpeculatable, HLO_PairwiseSameOperandAndResultElementType, /*all_gather_c6*/
-     SingleBlockImplicitTerminator<"ReturnOp">]> {
+    [ConditionallySpeculatable,
+     HLO_PairwiseSameOperandAndResultElementType, /*all_gather_c6*/]> {
   string summary = "AllGather operation";
   string description = [{
     Within each process group in the process grid, concatenates the values of the
@@ -1365,7 +1365,7 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operand, /*all_gather_i1*/
+    Variadic<HLO_Tensor>:$operands, /*all_gather_i1*/
     ConfinedAttr<I64Attr, [IntNonNegative]>:$all_gather_dim, /*all_gather_c1, all_gather_i2*/
     I64ElementsAttr:$replica_groups, /*all_gather_i3*/
     OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*all_gather_i4*/
@@ -1408,7 +1408,7 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operand, /*all_reduce_i1*/
+    Variadic<HLO_Tensor>:$operands, /*all_reduce_i1*/
     I64ElementsAttr:$replica_groups, /*all_reduce_i2*/
     OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*all_reduce_i3*/
     UnitAttr:$use_global_device_ids /*all_reduce_i4*/
@@ -1470,8 +1470,7 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter", [ConditionallySpe
 def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
     [ConditionallySpeculatable,
      HLO_PairwiseSameOperandAndResultElementType /*all_to_all_c9*/,
-     InferTensorType /*all_to_all_c9*/,
-     SingleBlockImplicitTerminator<"ReturnOp">]> {
+     InferTensorType /*all_to_all_c9*/]> {
   let summary = "AllToAll operation";
   let description = [{
     Within each process group in the process grid, splits the values of the
@@ -1494,7 +1493,7 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operand, /*all_to_all_i1*/
+    Variadic<HLO_Tensor>:$operands, /*all_to_all_i1*/
     ConfinedAttr<I64Attr, [IntNonNegative]>:$split_dimension, /*all_to_all_c1, all_to_all_i2*/
     ConfinedAttr<I64Attr, [IntNonNegative]>:$concat_dimension, /*all_to_all_c3, all_to_all_i3*/
     ConfinedAttr<I64Attr, [IntPositive]>:$split_count, /*all_to_all_c4, all_to_all_i4*/

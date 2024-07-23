@@ -25,7 +25,6 @@ limitations under the License.
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
-#include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
@@ -1143,8 +1142,8 @@ SmallVector<InterpreterValue> allGatherOp(
   SmallVector<InterpreterValue> results(resultTypes.size());
   for (auto [resultIndex, resultType] : llvm::enumerate(resultTypes)) {
     auto operandIndex = resultIndex;
-    auto operandsAtIndex = llvm::map_to_vector(
-        *processGroup, [&rendezvousResult, &operandIndex](const ProcessId &id) {
+    auto operandsAtIndex =
+        llvm::map_to_vector(*processGroup, [&](const ProcessId &id) {
           return (rendezvousResult.lookup(id))[operandIndex];
         });
     results[resultIndex] =

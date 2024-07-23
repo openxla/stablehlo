@@ -105,7 +105,7 @@ def VHLO_AllGatherOpV1 : VHLO_Op<"all_gather_v1", "0.9.0", "1.4.0"> {
 
 def VHLO_AllGatherOpV2 : VHLO_Op<"all_gather_v2", "1.5.0", "current"> {
   let arguments = (ins
-    Variadic<VHLO_AnyType>:$operand,
+    Variadic<VHLO_AnyType>:$operands,
     VHLO_AnyAttr:$all_gather_dim,
     VHLO_AnyAttr:$replica_groups,
     VHLO_AnyAttr:$channel_id,
@@ -128,7 +128,7 @@ def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce_v1", "0.9.0", "1.4.0",
 
 def VHLO_AllReduceOpV2 : VHLO_Op<"all_reduce_v2", "1.5.0", "current"> {
   let arguments = (ins
-    Variadic<VHLO_AnyType>:$operand,
+    Variadic<VHLO_AnyType>:$operands,
     VHLO_AnyAttr:$replica_groups,
     VHLO_AnyAttr:$channel_id,
     VHLO_AnyAttr:$use_global_device_ids
@@ -151,7 +151,7 @@ def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all_v1", "0.9.0", "1.4.0"> {
 
 def VHLO_AllToAllOpV2 : VHLO_Op<"all_to_all_v2", "1.5.0", "current"> {
   let arguments = (ins
-    Variadic<VHLO_AnyType>:$operand,
+    Variadic<VHLO_AnyType>:$operands,
     VHLO_AnyAttr:$split_dimension,
     VHLO_AnyAttr:$concat_dimension,
     VHLO_AnyAttr:$split_count,
