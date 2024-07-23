@@ -980,8 +980,16 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
     combinedZp = rewriter.create<chlo::BroadcastSubOp>(
         op->getLoc(), resInt32TensorType, combinedZp, zpOffset, nullptr);
   }
-  rewriter.replaceOpWithNewOp<chlo::BroadcastAddOp>(
-      op, resInt32TensorType, resI32, combinedZp, nullptr);
+  Value zpAdded = rewriter.create<chlo::BroadcastAddOp>(
+      op->getLoc(), resInt32TensorType, resI32, combinedZp, nullptr);
+
+  // Convert results back to result storage type.
+  auto resQuantType =
+      getQuantType(getElementTypeOrSelf(op.getResult().getType()));
+  auto resFinalTensorType =
+      resInt32TensorType.clone(getQuantStorageType(*resQuantType));
+  rewriter.replaceOpWithNewOp<stablehlo::ConvertOp>(op, resFinalTensorType,
+                                                    zpAdded);
   return success();
 }
 
