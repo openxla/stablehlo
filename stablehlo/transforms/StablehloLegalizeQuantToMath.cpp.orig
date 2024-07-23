@@ -144,11 +144,7 @@ void getQuantizationStorageInfo(OpBuilder &builder, Location loc,
                static_cast<float>(quantType.getStorageTypeMax())));
 }
 
-<<<<<<< HEAD
 // Extracts storage type of a UQ type, preserving its shape.
-=======
-// Extracts storage type of a UQ type. Return original type if it is no UQ type.
->>>>>>> 338207d2 (Remove dependence on typeInference while creating decomposed ops)
 Type getQuantStorageType(Type type) {
   if (auto shaped = dyn_cast<ShapedType>(type)) {
     return shaped.clone(getQuantStorageType(shaped.getElementType()));
@@ -157,23 +153,6 @@ Type getQuantStorageType(Type type) {
   auto quantizedType = getQuantType(type);
   if (succeeded(quantizedType)) {
     return quantizedType->getStorageType();
-<<<<<<< HEAD
-=======
-  }
-  return type;
-}
-
-// Extracts expressed type of a UQ type. Return original type if it is no UQ
-// type.
-Type getQuantExpressedType(Type type) {
-  if (auto shaped = dyn_cast<ShapedType>(type)) {
-    return shaped.clone(getQuantExpressedType(shaped.getElementType()));
-  }
-
-  auto quantizedType = getQuantType(type);
-  if (succeeded(quantizedType)) {
-    return quantizedType->getExpressedType();
->>>>>>> 338207d2 (Remove dependence on typeInference while creating decomposed ops)
   }
   return type;
 }
@@ -1007,7 +986,8 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
 }
 
 template <typename DotLikeOp>
-FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op) {
+FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op,
+                                  ConversionPatternRewriter &rewriter) {
   // Checks whether a dot-like op is hybrid by looking at input/output types.
   // Returns failure() when the type is not supported.
   bool isLhsQuant = isa<quant::UniformQuantizedType>(
@@ -1045,7 +1025,7 @@ class ConvertUniformQuantizedDotOp
   LogicalResult matchAndRewrite(
       stablehlo::DotOp op, stablehlo::DotOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto isHybrid = isDotLikeOpHybrid(op);
+    auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
     }
@@ -1081,7 +1061,7 @@ class ConvertUniformQuantizedDotGeneralOp
   LogicalResult matchAndRewrite(
       stablehlo::DotGeneralOp op, stablehlo::DotGeneralOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto isHybrid = isDotLikeOpHybrid(op);
+    auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
     }
@@ -1144,6 +1124,7 @@ bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr &dims) {
 
 FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
     stablehlo::ConvolutionOp op, ConversionPatternRewriter &rewriter) {
+<<<<<<< HEAD
   // RHS (weight) must have zero zp.
   // Here assumes RHS/result must be both per-tensor or both per-axis
   // quantized.
@@ -1197,6 +1178,8 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
     return rewriter.notifyMatchFailure(op, "lhs_dilation must be 1.");
   }
 
+=======
+>>>>>>> 4fd750aa (Support DotOp and ConvolutionOp)
   // RHS (weight) must have zero zp.
   // Here assumes RHS/result must be both per-tensor or both per-axis
   // quantized.
@@ -1214,15 +1197,15 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
                     getPerAxisType(rhsElementQuantType).getZeroPoints(),
                     getPerAxisType(op.getType()).getZeroPoints()),
                 [](int64_t zp) { return zp != 0; })) {
-    op->emitError("RHS/result UQ type must have zero zp.");
-    return failure();
+    return rewriter.notifyMatchFailure(op,
+                                       "RHS/result UQ type must have zero zp.");
   }
   // For per-axis quantization, RHS quantized axis must be out channel axis.
   if (!isRhsQuantPerTensor &&
       (getPerAxisType(rhsElementQuantType).getQuantizedDimension() !=
        cast<TensorType>(op.getRhs().getType()).getRank() - 1)) {
-    op->emitError("Conv quantized axis must be out channel axis");
-    return failure();
+    return rewriter.notifyMatchFailure(
+        op, "Conv quantized axis must be out channel axis");
   }
   // For per-axis quantization, ratio between RHS and Result scales must be
   // the same for each channel.
@@ -1236,10 +1219,10 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
       auto diff = (scaleRatios[i] - scaleRatios[0]) / scaleRatios[0];
       // Check all ratios within a threshold.
       if (std::abs(diff) > 0.001) {
-        op->emitError(
+        return rewriter.notifyMatchFailure(
+            op,
             "Per-axis quantizated Conv must have same RHS/Result scale "
             "ratio for each channel");
-        return failure();
       }
     }
   }
@@ -1247,8 +1230,7 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
   if (op.getLhsDilation().has_value() &&
       llvm::any_of(*op.getLhsDilation(),
                    [](int64_t dilate) { return dilate != 1; })) {
-    op->emitError("lhs_dilation must be 1.");
-    return failure();
+    return rewriter.notifyMatchFailure(op, "lhs_dilation must be 1.");
   }
 
   // We only support NHWC Conv2D and NDHWC Conv3D.
@@ -1283,7 +1265,7 @@ class ConvertUniformQuantizedConvolutionOp
   LogicalResult matchAndRewrite(
       stablehlo::ConvolutionOp op, stablehlo::ConvolutionOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto isHybrid = isDotLikeOpHybrid(op);
+    auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
     }
