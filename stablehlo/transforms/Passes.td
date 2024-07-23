@@ -221,19 +221,6 @@ def StablehloLegalizeQuantToMathPass : Pass<"stablehlo-legalize-quant-to-math", 
       return %13 : tensor<i8>
     }
     ```
-  }];
-  let dependentDialects = [
-    "mlir::chlo::ChloDialect",
-    "mlir::stablehlo::StablehloDialect",
-  ];
-}
-
-def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-op-to-qdq", "mlir::func::FuncOp"> {
-  let summary = "Decompose StableHLO quantized ops using uniform quantize/dequantize ops.";
-
-  let description = [{
-    Decompose StableHLO quantized programs using uniform quantize/dequantize
-    operations. For example, the following program
 
     ```mlir
     func.func @add(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {
@@ -255,6 +242,7 @@ def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-o
     ```
   }];
   let dependentDialects = [
+    "mlir::chlo::ChloDialect",
     "mlir::stablehlo::StablehloDialect",
   ];
 }
