@@ -1198,20 +1198,27 @@ Tensor allToAllOp(const Tensor &operand, Axis splitDimension,
   if (channelId > 0) processGroups = process->crossPartition(replicaGroups);
 
   auto processGroup = processGroups.findGroup(process->getId());
-  if (!processGroup)
+  if (!processGroup.has_value())
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-  auto groupOperands = process->rendezvous(*processGroup, channelId, {operand})
-                           .getSortedTensors();
+  auto rendezvousResult =
+      process->rendezvous(*processGroup, channelId, {operand});
+
+  auto processIndex = 0;
+  for (auto [i, processId] : llvm::enumerate(*processGroup)) {
+    if (processId == process->getId()) {
+      processIndex = i;
+      break;
+    }
+  }
 
   SmallVector<Tensor> scatteredParts;
-  for (const auto &groupOperand : groupOperands) {
-    auto splitParts = split(groupOperand.front(), splitCount, splitDimension,
-                            operand.getType().getContext());
-    for (auto [i, processId] : llvm::enumerate(*processGroup))
-      if (processId == process->getId())
-        scatteredParts.push_back(splitParts[i]);
+  for (const auto processId : processGroup.value()) {
+    auto splitParts =
+        split(rendezvousResult.lookup(processId).front(), splitCount,
+              splitDimension, operand.getType().getContext());
+    scatteredParts.push_back(splitParts[processIndex]);
   }
   return concatenateOp(scatteredParts, concatDimension, resultType);
 }
