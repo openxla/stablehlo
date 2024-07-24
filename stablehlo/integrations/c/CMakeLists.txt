@@ -13,6 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+add_mlir_public_c_api_library(CheckCAPI
+  PARTIAL_SOURCES_INTENDED
+  CheckDialect.cpp
+
+  LINK_LIBS PUBLIC
+  CheckOps
+)
+
 add_mlir_public_c_api_library(ChloCAPI
   PARTIAL_SOURCES_INTENDED
   ChloAttributes.cpp
