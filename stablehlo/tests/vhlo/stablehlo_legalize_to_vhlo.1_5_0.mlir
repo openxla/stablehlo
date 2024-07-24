@@ -453,6 +453,18 @@ func.func @default_all_to_all(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
   func.return %0 : tensor<16x4xf32>
 }
 
+// CHECK-LABEL: "default_all_to_all_variadic"
+func.func @default_all_to_all_variadic(%arg0: tensor<4x16xf32>, %arg1: tensor<5x16xf32>) -> (tensor<16x4xf32>, tensor<20x4xf32>) {
+  %0:2 = "stablehlo.all_to_all"(%arg0, %arg1) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<4x16xf32>, tensor<5x16xf32>) -> (tensor<16x4xf32>, tensor<20x4xf32>)
+  func.return %0#0, %0#1 : tensor<16x4xf32>, tensor<20x4xf32>
+}
+
 // CHECK-LABEL: "default_cholesky"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @default_cholesky(%arg0: tensor<1x16x16xf32>) -> tensor<1x16x16xf32> {
@@ -998,18 +1010,6 @@ func.func @op_all_to_all(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
     channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   func.return %0 : tensor<16x4xf32>
-}
-
-// CHECK-LABEL: "op_all_to_all_variadic"
-func.func @op_all_to_all_variadic(%arg0: tensor<4x16xf32>, %arg1: tensor<5x16xf32>) -> (tensor<16x4xf32>, tensor<20x4xf32>) {
-  %0:2 = "stablehlo.all_to_all"(%arg0, %arg1) {
-    split_dimension = 1 : i64,
-    concat_dimension = 0 : i64,
-    split_count = 4 : i64,
-    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
-    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
-  } : (tensor<4x16xf32>, tensor<5x16xf32>) -> (tensor<16x4xf32>, tensor<20x4xf32>)
-  func.return %0#0, %0#1 : tensor<16x4xf32>, tensor<20x4xf32>
 }
 
 // CHECK-LABEL: "op_and"

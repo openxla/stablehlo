@@ -49,6 +49,21 @@ func.func @all_reduce_with_promotable_types(%operand: tensor<f32>) -> tensor<f64
 
 // -----
 
+// CHECK-LABEL: func @all_reduce_variadic
+func.func @all_reduce_variadic(%operand0: tensor<f32>, %operand1: tensor<f32>) -> (tensor<f64>, tensor<f64>) {
+  %results:2 = "stablehlo.all_reduce"(%operand0, %operand1) ({
+    ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+      %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f64>, tensor<f64>) -> tensor<f64>
+      "stablehlo.return"(%0) : (tensor<f64>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<f32>, tensor<f32>) -> (tensor<f64>, tensor<f64>)
+  func.return %results#0, %results#1 : tensor<f64>, tensor<f64>
+}
+
+// -----
+
 // CHECK-LABEL: func @all_reduce_with_promotable_quantized_types
 func.func @all_reduce_with_promotable_quantized_types(%operand: tensor<!quant.uniform<i8:f32, 2.000000e+00:15>>)
     -> tensor<!quant.uniform<i16:f32, 2.000000e+00:15>> {
@@ -661,6 +676,20 @@ func.func @all_to_all(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
 
 // -----
 
+// CHECK-LABEL: func @all_to_all_variadic
+func.func @all_to_all_variadic(%data0: tensor<4x16xf32>, %data1: tensor<5x16xf64>) -> (tensor<16x4xf32>, tensor<20x4xf64>) {
+  %0:2 = "stablehlo.all_to_all"(%data0, %data1) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<4x16xf32>, tensor<5x16xf64>) -> (tensor<16x4xf32>, tensor<20x4xf64>)
+  func.return %0#0, %0#1 : tensor<16x4xf32>, tensor<20x4xf64>
+}
+
+// -----
+
 // CHECK-LABEL: func @all_to_all_same_split_concat_dim
 func.func @all_to_all_same_split_concat_dim(%data: tensor<4x16xf32>) -> tensor<4x16xf32> {
   %0 = "stablehlo.all_to_all"(%data) {
@@ -862,6 +891,17 @@ func.func @all_to_all_i5(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
     replica_groups = dense<[[[0], [1], [2], [3]]]> : tensor<1x4x1xi64>
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
+func.func @all_gather_variadic(%arg0: tensor<8x2xf32>, %arg1: tensor<2x2xf32>) -> (tensor<8x8xf32>, tensor<2x4xf32>) {
+  %0:2 = "stablehlo.all_gather"(%arg0, %arg1) {
+    all_gather_dim = 1 : i64,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
+    replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>
+  } : (tensor<8x2xf32>, tensor<2x2xf32>) -> (tensor<8x8xf32>, tensor<2x4xf32>)
+  func.return %0#0, %0#1 : tensor<8x8xf32>, tensor<2x4xf32>
 }
 
 // -----
