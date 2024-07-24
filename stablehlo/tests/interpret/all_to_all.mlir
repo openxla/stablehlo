@@ -32,7 +32,7 @@ module @cross_replica {
 
 // -----
 
-module @cross_replica_reverse_replica_groups {
+module @cross_replica_issue_2433 {
   func.func @all_to_all(%operand : tensor<2x4xi64>) -> tensor<4x2xi64> {
     %result = "stablehlo.all_to_all"(%operand) {
       split_dimension = 1 : i64,
@@ -97,7 +97,7 @@ module @cross_partition {
 
 // -----
 
-module @cross_replica_issue_2433 {
+module @same_split_concat_dim {
   func.func @all_to_all(%operand : tensor<2x4xi64>) -> tensor<2x4xi64> {
     %result = "stablehlo.all_to_all"(%operand) {
       split_dimension = 0 : i64,
