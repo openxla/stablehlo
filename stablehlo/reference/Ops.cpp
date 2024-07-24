@@ -1219,13 +1219,13 @@ SmallVector<InterpreterValue> allToAllOp(
   auto groupOperands = process->rendezvous(*processGroup, channelId, operands)
                            .getSortedTensors();
   SmallVector<InterpreterValue> results(resultTypes.size());
-  for (auto [resultIndex, operand, resultType] :
+  for (const auto &[resultIndex, operand, resultType] :
        llvm::enumerate(operands, resultTypes)) {
     SmallVector<Tensor> scatteredParts;
     for (const auto &processOperands : groupOperands) {
       auto splitParts = split(processOperands[resultIndex], splitCount,
                               splitDimension, operand.getType().getContext());
-      for (auto [i, processId] : llvm::enumerate(*processGroup))
+      for (const auto &[i, processId] : llvm::enumerate(*processGroup))
         if (processId == process->getId())
           scatteredParts.push_back(splitParts[i]);
     }

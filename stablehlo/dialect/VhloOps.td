@@ -111,7 +111,7 @@ def VHLO_AllGatherOpV2 : VHLO_Op<"all_gather_v2", "1.5.0", "current"> {
     VHLO_AnyAttr:$channel_id,
     VHLO_AnyAttr:$use_global_device_ids
   );
-  let results = (outs Variadic<VHLO_AnyType>:$result);
+  let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
 def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce_v1", "0.9.0", "1.4.0",
@@ -134,7 +134,7 @@ def VHLO_AllReduceOpV2 : VHLO_Op<"all_reduce_v2", "1.5.0", "current"> {
     VHLO_AnyAttr:$use_global_device_ids
   );
   let regions = (region VHLO_AnyRegion:$computation);
-  let results = (outs Variadic<VHLO_AnyType>:$result);
+  let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
 def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all_v1", "0.9.0", "1.4.0"> {
@@ -158,7 +158,7 @@ def VHLO_AllToAllOpV2 : VHLO_Op<"all_to_all_v2", "1.5.0", "current"> {
     VHLO_AnyAttr:$replica_groups,
     VHLO_AnyAttr:$channel_id
   );
-  let results = (outs Variadic<VHLO_AnyType>:$result);
+  let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
 def VHLO_AndOpV1 : VHLO_Op<"and_v1", "0.9.0", "current"> {

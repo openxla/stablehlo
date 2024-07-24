@@ -1827,7 +1827,7 @@ LogicalResult inferAllToAllOp(
                                  /*allGroupsMustHaveSameSize=*/true,
                                  /*useGlobalDeviceIds=*/false, splitCount)))
     return failure();
-  for (Value operand : operands) {
+  for (const Value& operand : operands) {
     auto operandType = cast<RankedTensorType>(operand.getType());
 
     int64_t inputRank = operandType.getRank();
@@ -3528,7 +3528,7 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location,
                                 DenseIntElementsAttr replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
                                 ValueRange results) {
-  for (auto [operand, result] : llvm::zip(operands, results)) {
+  for (const auto& [operand, result] : llvm::zip(operands, results)) {
     auto operandType = cast<RankedTensorType>(operand.getType());
     auto resultType = cast<RankedTensorType>(result.getType());
 
@@ -3608,7 +3608,7 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location,
         "channel_id must be positive when useGlobalDeviceIds is set but got: ",
         channelId);
 
-  for (Value operand : operands) {
+  for (const Value& operand : operands) {
     auto operandType = cast<ShapedType>(operand.getType());
     // all_reduce_c5
     if (failed(verifyReducerShape(
