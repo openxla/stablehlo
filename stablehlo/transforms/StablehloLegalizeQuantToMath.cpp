@@ -44,6 +44,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace mlir::stablehlo {
 namespace {
@@ -1294,71 +1295,6 @@ class UniformQuantizedToIntTypeConverter : public TypeConverter {
   }
 };
 
-template <typename StablehloOpType>
-struct QuantizedStablehloOpConversion
-    : public OpConversionPattern<StablehloOpType> {
-  using OpConversionPattern<StablehloOpType>::OpConversionPattern;
-  LogicalResult matchAndRewrite(
-      StablehloOpType op, typename StablehloOpType::Adaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
-    SmallVector<Value> dequantizedOperands;
-    for (auto operand : op->getOperands()) {
-      if (isa<quant::QuantizedType>(getElementTypeOrSelf(operand.getType()))) {
-        dequantizedOperands.push_back(
-            rewriter.create<UniformDequantizeOp>(op->getLoc(), operand));
-      } else {
-        dequantizedOperands.push_back(operand);
-      }
-    }
-
-    auto origOp = op.getOperation();
-    auto origAttrs = origOp->getAttrs();
-    auto newOp = rewriter
-                     .create<StablehloOpType>(op.getLoc(), dequantizedOperands,
-                                              origAttrs)
-                     .getOperation();
-
-    SmallVector<Value> quantizedResults;
-    for (auto [oldResult, newResult] :
-         llvm::zip(origOp->getResults(), newOp->getResults())) {
-      if (isa<quant::QuantizedType>(
-              getElementTypeOrSelf(oldResult.getType()))) {
-        quantizedResults.push_back(
-            rewriter.create<stablehlo::UniformQuantizeOp>(
-                op->getLoc(), oldResult.getType(), newResult));
-      } else {
-        quantizedResults.push_back(newResult);
-      }
-    }
-    rewriter.replaceOp(op, quantizedResults);
-    return success();
-  }
-};
-
-template <typename... StablehloOpTypes>
-void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    RewritePatternSet &patterns, MLIRContext *context, PatternBenefit benefit) {
-  patterns.add<QuantizedStablehloOpConversion<StablehloOpTypes>...>(context,
-                                                                    benefit);
-}
-
-void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    RewritePatternSet &patterns, MLIRContext *context, PatternBenefit benefit) {
-  // The following list covers most of the operations which, according to the
-  // stablehlo spoecification document, interprets the quantized
-  // operation using dequant-op-quant strategy. The ones excluded are
-  // ConvolutionOp, DotGeneralOp, and DynamicConvOp, which are current
-  // using `stablehlo-legalize-quant-to-int` pass for decomposituion to
-  // primitive math operations.
-  populateStablehloLegalizeQuantizedOpToQDQPatterns<
-      AbsOp, AddOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
-      BatchNormTrainingOp, CbrtOp, CeilOp, CholeskyOp, ClampOp, CompareOp,
-      CosineOp, DivOp, Expm1Op, ExpOp, FloorOp, Log1pOp, LogisticOp, LogOp,
-      MaxOp, MinOp, MulOp, NegOp, PowOp, ReducePrecisionOp, RemOp, RoundOp,
-      RoundNearestEvenOp, RsqrtOp, SelectOp, SignOp, SineOp, SqrtOp, SubtractOp,
-      TanhOp, TriangularSolveOp>(patterns, context, benefit);
-}
-
 }  // namespace
 
 #define GEN_PASS_DEF_STABLEHLOLEGALIZEQUANTTOMATHPASS
@@ -1375,13 +1311,14 @@ class StablehloLegalizeQuantToMathPass
     RewritePatternSet patterns(context);
 
     // Populate stablehlo quant ops conversion patterns.
-    patterns.add<ConvertUniformQuantizedAddOp, ConvertUniformQuantizedDotOp,
+    patterns.add<ConvertUniformQuantizeOp, ConvertUniformDequantizeOp,
+                 ConvertUniformQuantizedAddOp, ConvertUniformQuantizedDotOp,
                  ConvertUniformQuantizedDotGeneralOp,
                  ConvertUniformQuantizedConvolutionOp>(context, /*benefit=*/10);
-    populateStablehloLegalizeQuantizedOpToQDQPatterns(patterns, context,
-                                                      /*benefit=*/0);
-    patterns.add<ConvertUniformQuantizeOp, ConvertUniformDequantizeOp>(
-        context, /*benefit=*/0);
+
+    // Populate stablehlo quant-op to dq-op-q patterns as fallback.
+    populateStablehloLegalizeQuantizedOpToQDQPatterns(&patterns, context,
+                                                      /*benefit=*/1);
 
     // uq->int convert patterns for func.func, func.return and generic ops.
     UniformQuantizedToIntTypeConverter converter;
@@ -1391,12 +1328,11 @@ class StablehloLegalizeQuantToMathPass
     populateReturnOpTypeConversionPattern(patterns, converter);
 
     ConversionTarget target(*op->getContext());
-    target.addLegalDialect<quant::QuantizationDialect>();
+    target.addIllegalDialect<quant::QuantizationDialect>();
     auto isLegal = [&converter](Operation *op) {
       return converter.isLegal(op);
     };
-    target.addDynamicallyLegalDialect<stablehlo::StablehloDialect>(
-        [&converter](Operation *op) { return converter.isLegal(op); });
+    target.addDynamicallyLegalDialect<stablehlo::StablehloDialect>(isLegal);
     target.addDynamicallyLegalDialect<chlo::ChloDialect>(isLegal);
     target.addDynamicallyLegalDialect<func::FuncDialect>(
         [&converter](Operation *op) {
