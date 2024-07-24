@@ -97,7 +97,7 @@ module @cross_partition {
 
 // -----
 
-module @same_split_concat_dim {
+module @cross_replica_issue_2433 {
   func.func @all_to_all(%operand : tensor<2x4xi64>) -> tensor<2x4xi64> {
     %result = "stablehlo.all_to_all"(%operand) {
       split_dimension = 0 : i64,

@@ -1202,23 +1202,17 @@ Tensor allToAllOp(const Tensor &operand, Axis splitDimension,
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-  auto rendezvousResult =
-      process->rendezvous(*processGroup, channelId, {operand});
+  auto groupOperands =
+      process->rendezvous(processGroup.value(), channelId, {operand});
 
-  auto processIndex = 0;
-  for (auto [i, processId] : llvm::enumerate(*processGroup)) {
-    if (processId == process->getId()) {
-      processIndex = i;
-      break;
-    }
-  }
+  auto receiverIndex = llvm::find(processGroup.value(), process->getId()) -
+                       processGroup->begin();
 
   SmallVector<Tensor> scatteredParts;
-  for (const auto processId : processGroup.value()) {
-    auto splitParts =
-        split(rendezvousResult.lookup(processId).front(), splitCount,
-              splitDimension, operand.getType().getContext());
-    scatteredParts.push_back(splitParts[processIndex]);
+  for (const auto &sender : processGroup.value()) {
+    auto splitParts = split(groupOperands.lookup(sender).front(), splitCount,
+                            splitDimension, operand.getType().getContext());
+    scatteredParts.push_back(splitParts[receiverIndex]);
   }
   return concatenateOp(scatteredParts, concatDimension, resultType);
 }
