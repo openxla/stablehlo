@@ -37,6 +37,7 @@ bool isAnyQuantizedTypes(TypeRange types) {
   });
 }
 
+<<<<<<< HEAD
 // Gets the QuantizedType associated with the given type, or returns failure if
 // not quantized.
 FailureOr<quant::QuantizedType> getQuantType(Type type) {
@@ -59,6 +60,8 @@ Type getQuantExpressedType(Type type) {
   return type;
 }
 
+=======
+>>>>>>> 277b3469 (Keep the qdq pass)
 template <typename StablehloOpType>
 struct QuantizedStablehloOpConversion
     : public OpRewritePattern<StablehloOpType> {
@@ -81,6 +84,7 @@ struct QuantizedStablehloOpConversion
     }
 
     auto origOp = op.getOperation();
+<<<<<<< HEAD
     SmallVector<Type> newResultTypes =
         llvm::map_to_vector(origOp->getResultTypes(),
                             [](Type t) { return getQuantExpressedType(t); });
@@ -88,6 +92,12 @@ struct QuantizedStablehloOpConversion
     auto newOp = rewriter
                      .create<StablehloOpType>(op.getLoc(), newResultTypes,
                                               dequantizedOperands, origAttrs)
+=======
+    auto origAttrs = origOp->getAttrs();
+    auto newOp = rewriter
+                     .create<StablehloOpType>(op.getLoc(), dequantizedOperands,
+                                              origAttrs)
+>>>>>>> 277b3469 (Keep the qdq pass)
                      .getOperation();
 
     SmallVector<Value> quantizedResults;
@@ -102,7 +112,10 @@ struct QuantizedStablehloOpConversion
         quantizedResults.push_back(newResult);
       }
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 277b3469 (Keep the qdq pass)
     rewriter.replaceOp(op, quantizedResults);
     return success();
   }
