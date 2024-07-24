@@ -127,6 +127,12 @@ func.func @add(%arg0: tensor<i8>, %arg1: tensor<i8>) -> tensor<i8> {
   return %13 : tensor<i8>
 }
 ```
+### `-stablehlo-legalize-quantized-op-to-qdq`
+
+_Decompose StableHLO quantized ops using uniform quantize/dequantize ops._
+
+Decompose StableHLO quantized programs using uniform quantize/dequantize
+operations. For example, the following program
 
 ```mlir
 func.func @add(%arg0: tensor<!quant.uniform<i8:f32,1.0:0>>, %arg1: tensor<!quant.uniform<i8:f32,2.0:1>>) ->  tensor<!quant.uniform<i8:f32,3.0:2>> {

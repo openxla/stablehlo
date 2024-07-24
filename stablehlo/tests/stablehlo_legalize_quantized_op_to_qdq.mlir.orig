@@ -41,6 +41,8 @@ func.func @ops_per_axis_quantization(
 // CHECK-NEXT: stablehlo.uniform_quantize %arg0
 
 // -----
+<<<<<<< HEAD
+=======
 // %arg1 can be a per-axis Quantized
 
 // CHECK-LABEL: @dot_general_per_axis_quantization
@@ -62,6 +64,7 @@ func.func @dot_general_per_axis_quantization(
 // CHECK: stablehlo.dot_general %arg0, %arg1
 
 // -----
+>>>>>>> 277b3469 (Keep the qdq pass)
 // Tests for StableHLO OPs supporting per-tensor quantization. These OPs may or may not support per-axis quantization
 
 // CHECK-LABEL: @ops_per_tensor_quantization
@@ -288,6 +291,8 @@ func.func @batch_norm_training_per_tensor_quantization(%input: tensor<2x2x2x2x!q
 
 // -----
 
+<<<<<<< HEAD
+=======
 // CHECK-LABEL: @dot_general_per_tensor_quantization
 func.func @dot_general_per_tensor_quantization(%arg0: tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<2x3x5x!quant.uniform<i8:f32, 1.0:0>>) -> tensor<2x4x5x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
@@ -305,6 +310,7 @@ func.func @dot_general_per_tensor_quantization(%arg0: tensor<2x3x4x!quant.unifor
 
 // -----
 
+>>>>>>> 277b3469 (Keep the qdq pass)
 // CHECK-LABEL: @dynamic_slice_per_tensor_quantization
 func.func @dynamic_slice_per_tensor_quantization(%arg0: tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<1x4x!quant.uniform<i8:f32, 1.0:17>> {
   %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: 1, 4>} : (tensor<3x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<i64>, tensor<i64>) -> tensor<1x4x!quant.uniform<i8:f32, 1.0:17>>
