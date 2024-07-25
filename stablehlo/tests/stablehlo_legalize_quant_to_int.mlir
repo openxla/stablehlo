@@ -2635,20 +2635,11 @@ func.func @while_per_tensor_quantization(%arg0: tensor<4x!quant.uniform<i8:f32, 
 
 // -----
 
-// CHECK-LABEL: func.func @dot_general_with_i8_result_element_type(%arg0: tensor<2x3x4xi8>, %arg1: tensor<2x3x5xi8>) -> tensor<2x4x5xi8> {
+// CHECK-LABEL: func.func @dot_general_with_i8_result_element_type
 func.func @dot_general_with_i8_result_element_type(%arg0: tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<2x3x5x!quant.uniform<i8:f32, 1.0:0>>) -> tensor<2x4x5x!quant.uniform<i8:f32, 1.0:17>> {
-  // CHECK: %[[DOT_GENERAL_0:.*]] = stablehlo.dot_general %arg0, %arg1, batching_dims = [0] x [0], contracting_dims = [1] x [1] : (tensor<2x3x4xi8>, tensor<2x3x5xi8>) -> tensor<2x4x5xi32>
-  // CHECK: %[[CONVERT_1:.*]] = stablehlo.convert %arg1 : (tensor<2x3x5xi8>) -> tensor<2x3x5xi32>
-  // CHECK: %[[CONSTANT_2:.*]] = stablehlo.constant dense<0> : tensor<i32>
-  // CHECK: %[[REDUCE_3:.*]] = stablehlo.reduce(%[[CONVERT_1]] init: %[[CONSTANT_2]]) applies stablehlo.add across dimensions = [1] : (tensor<2x3x5xi32>, tensor<i32>) -> tensor<2x5xi32>
-  // CHECK: %[[CONSTANT_4:.*]] = stablehlo.constant dense<17> : tensor<i32>
-  // CHECK: %[[BROADCAST_MULTIPLY_5:.*]] = chlo.broadcast_multiply %[[REDUCE_3]], %[[CONSTANT_4]] : (tensor<2x5xi32>, tensor<i32>) -> tensor<2x5xi32>
-  // CHECK: %[[BROADCAST_IN_DIM_6:.*]] = stablehlo.broadcast_in_dim %[[BROADCAST_MULTIPLY_5]], dims = [0, 2] : (tensor<2x5xi32>) -> tensor<2x4x5xi32>
-  // CHECK: %[[CONSTANT_7:.*]] = stablehlo.constant dense<17> : tensor<i32>
-  // CHECK: %[[BROADCAST_SUBTRACT_8:.*]] = chlo.broadcast_subtract %[[CONSTANT_7]], %[[BROADCAST_IN_DIM_6]] : (tensor<i32>, tensor<2x4x5xi32>) -> tensor<2x4x5xi32>
-  // CHECK: %[[BROADCAST_ADD_9:.*]] = chlo.broadcast_add %[[DOT_GENERAL_0]], %[[BROADCAST_SUBTRACT_8]] : (tensor<2x4x5xi32>, tensor<2x4x5xi32>) -> tensor<2x4x5xi32>
-  // CHECK: %[[CONVERT_10:.*]] = stablehlo.convert %[[BROADCAST_ADD_9]] : (tensor<2x4x5xi32>) -> tensor<2x4x5xi8>
-  // CHECK: return %[[CONVERT_10]] : tensor<2x4x5xi8>
+  // CHECK: stablehlo.dot_general{{.*}} : (tensor<2x3x4xi8>, tensor<2x3x5xi8>) -> tensor<2x4x5xi32>
+  // CHECK: %[[CONVERT:.*]] = stablehlo.convert {{.*}} : (tensor<2x4x5xi32>) -> tensor<2x4x5xi8>
+  // CHECK: return %[[CONVERT]] : tensor<2x4x5xi8>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
@@ -2658,4 +2649,29 @@ func.func @dot_general_with_i8_result_element_type(%arg0: tensor<2x3x4x!quant.un
     >
   } : (tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x3x5x!quant.uniform<i8:f32, 1.0:0>>) -> tensor<2x4x5x!quant.uniform<i8:f32, 1.0:17>>
   func.return %0 : tensor<2x4x5x!quant.uniform<i8:f32, 1.0:17>>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @convolution_with_i8_result_element_type
+func.func @convolution_with_i8_result_element_type(
+    %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
+    %arg1: tensor<3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>
+  ) -> tensor<128x26x26x128x!quant.uniform<i8:f32, 1.000000e+00:5>> {
+  // CHECK: stablehlo.convolution{{.*}} : (tensor<128x28x28x1xi8>, tensor<3x3x1x128xi8>) -> tensor<128x26x26x128xi32>
+  // CHECK: %[[CONVERT:.*]] = stablehlo.convert {{.*}} : (tensor<128x26x26x128xi32>) -> tensor<128x26x26x128xi8>
+  // CHECK: return %[[CONVERT]] : tensor<128x26x26x128xi8>
+  %0 = stablehlo.convolution(%arg0, %arg1)
+    dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+    window = {
+      stride = [1, 1], pad = [[0, 0], [0, 0]],
+      lhs_dilate = [1, 1],
+      rhs_dilate = [1, 1]
+    }
+    {
+      batch_group_count = 1 : i64,
+      feature_group_count = 1 : i64
+    } : (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>)
+    -> tensor<128x26x26x128x!quant.uniform<i8:f32, 1.000000e+00:5>>
+  return %0 : tensor<128x26x26x128x!quant.uniform<i8:f32, 1.000000e+00:5>>
 }

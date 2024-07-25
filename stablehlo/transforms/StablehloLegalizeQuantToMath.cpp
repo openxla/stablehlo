@@ -1132,7 +1132,6 @@ bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr &dims) {
 
 FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
     stablehlo::ConvolutionOp op, ConversionPatternRewriter &rewriter) {
-(??)
   // RHS (weight) must have zero zp.
   // Here assumes RHS/result must be both per-tensor or both per-axis
   // quantized.
@@ -1318,7 +1317,6 @@ class StablehloLegalizeQuantToMathPass
     RewritePatternSet patterns(context);
 
     // Populate stablehlo quant ops conversion patterns.
-
     patterns.add<ConvertUniformQuantizeOp, ConvertUniformDequantizeOp,
                  ConvertUniformQuantizedAddOp, ConvertUniformQuantizedDotOp,
                  ConvertUniformQuantizedDotGeneralOp,
