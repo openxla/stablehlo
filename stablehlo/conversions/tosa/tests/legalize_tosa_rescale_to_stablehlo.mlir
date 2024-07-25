@@ -1,8 +1,8 @@
 // RUN: stablehlo-opt %s --tosa-rescale-legalize-to-stablehlo --split-input-file -verify-each | FileCheck %s
 
 // -----
-// CHECK-LABEL: @rescale1
-func.func @rescale1(%arg0 : tensor<2x2x!quant.uniform<i8:f32, 0.025:-1>>) -> tensor<2x2xi32> {
+// CHECK-LABEL: @rescale
+func.func @rescale(%arg0 : tensor<2x2x!quant.uniform<i8:f32, 0.025:-1>>) -> tensor<2x2xi32> {
   %0 = tosa.rescale %arg0 {double_round = false, input_zp = -1 : i32, multiplier = array<i32: 1431655765>, output_zp = 0 : i32, per_channel = false, scale32 = true, shift = array<i8: 13>} :
             (tensor<2x2x!quant.uniform<i8:f32, 0.025:-1>>) -> tensor<2x2xi32>
 
