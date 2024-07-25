@@ -37,23 +37,20 @@ def StablehloQuantLegalizeToTosaRescalePass : Pass<"stablehlo-quant-legalize-to-
   let summary = "Legalize StableHLO Quantized operations to TOSA rescale operations";
   let description = [{
     This pass rewrites StableHLO quantized operations to integer operations
-    by inserting TOSA Rescale operations at the inputs and outputs of the
+    by inserting TOSA rescale operations at the inputs and outputs of the
     integer operations.
   }];
   let dependentDialects = [
-    "::mlir::quant::QuantizationDialect",
     "::mlir::tosa::TosaDialect",
   ];
 }
 
 def TosaRescaleLegalizeToStablehloPass : Pass<"tosa-rescale-legalize-to-stablehlo", "mlir::func::FuncOp"> {
-  let summary = "Legalize TOSA Rescales to StableHlo";
+  let summary = "Legalize TOSA rescales to StableHlo primitive math operations";
   let description = [{
-    This pass rewrites TOSA Rescale operations to StableHLO operations.
+    This pass rewrites TOSA rescale operations to StableHLO primitive math operations.
   }];
   let dependentDialects = [
-    "::mlir::quant::QuantizationDialect",
-    "::mlir::tosa::TosaDialect",
     "::mlir::stablehlo::StablehloDialect"
   ];
 }

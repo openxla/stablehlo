@@ -30,6 +30,10 @@ namespace tosa {
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
 
+// populate rewrite patterns for pass stablehlo-quant-legalize-to-tosa-rescale
+void populateStablehloQuantLegalizeToTosaRescalePatterns(
+    RewritePatternSet* patterns, MLIRContext* context);
+
 }  // namespace tosa
 }  // namespace mlir
 

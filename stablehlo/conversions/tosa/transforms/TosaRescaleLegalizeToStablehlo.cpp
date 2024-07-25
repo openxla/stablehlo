@@ -33,10 +33,6 @@ limitations under the License.
 #define PASS_NAME "tosa-rescale-legalize-to-stablehlo"
 #define DEBUG_TYPE PASS_NAME
 
-using namespace llvm;
-using namespace mlir;
-using namespace mlir::tosa;
-
 namespace mlir {
 namespace tosa {
 
@@ -45,19 +41,18 @@ namespace tosa {
 
 namespace {
 
-struct ConvertTosaRescaleToStablehlo
-    : public OpRewritePattern<tosa::RescaleOp> {
-  using OpRewritePattern<tosa::RescaleOp>::OpRewritePattern;
-  LogicalResult matchAndRewrite(tosa::RescaleOp op,
+struct ConvertTosaRescaleToStablehlo : public OpRewritePattern<RescaleOp> {
+  using OpRewritePattern<RescaleOp>::OpRewritePattern;
+  LogicalResult matchAndRewrite(RescaleOp op,
                                 PatternRewriter& rewriter) const override;
 };
 
 LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
-    tosa::RescaleOp op, PatternRewriter& rewriter) const {
+    RescaleOp op, PatternRewriter& rewriter) const {
   Value input = op.getInput();
   auto loc = op.getLoc();
-  auto inputType = dyn_cast<mlir::ShapedType>(op.getInput().getType());
-  auto outputType = dyn_cast<mlir::ShapedType>(op.getOutput().getType());
+  auto inputType = dyn_cast<ShapedType>(op.getInput().getType());
+  auto outputType = dyn_cast<ShapedType>(op.getOutput().getType());
 
   if (!inputType || !outputType) {
     return rewriter.notifyMatchFailure(
@@ -69,7 +64,6 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
   bool perChannel = op.getPerChannel();
 
   if (perChannel || doubleRound || !scale32) {
-    // do not support these modes yet
     return rewriter.notifyMatchFailure(
         op,
         "per_channel, double_round, or scale32=false are not yet supported");
@@ -77,21 +71,38 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
 
   auto inputEType = inputType.getElementType();
   auto outputEType = outputType.getElementType();
-  auto inputQType = dyn_cast<mlir::quant::UniformQuantizedType>(inputEType);
-  auto outputQType = dyn_cast<mlir::quant::UniformQuantizedType>(outputEType);
+  auto inputQType = dyn_cast<quant::UniformQuantizedType>(inputEType);
+  auto outputQType = dyn_cast<quant::UniformQuantizedType>(outputEType);
 
   if (inputQType) {
     // first bit_cast input to quantized storage type
     auto bitCastType = inputType.clone(inputQType.getStorageType());
     input =
         rewriter.create<stablehlo::BitcastConvertOp>(loc, bitCastType, input);
+    // change inputType and inputEType to be based on inputQType's storage type
+    inputEType = inputQType.getStorageType();
+    inputType = inputType.clone(inputEType);
+  }
+  if (outputQType) {
+    // change outputType and outputEType to be based on outputQType's storage
+    // type
+    outputEType = outputQType.getStorageType();
+    outputType = outputType.clone(outputEType);
+  }
+
+  if (!inputEType.isInteger() || !outputEType.isInteger()) {
+    return rewriter.notifyMatchFailure(
+        op,
+        "input and output element types must be integer types or quantized "
+        "integer types");
   }
 
   auto i8Type = inputType.clone(rewriter.getI8Type());
   auto i32Type = inputType.clone(rewriter.getI32Type());
   auto i64Type = inputType.clone(rewriter.getI64Type());
 
-  // construct multiplier, shift values from op attrs
+  // construct multiplier, shift constant values from op attrs
+  // for scale32, multiplier is tensor of i32
   auto multiplierAttr = DenseElementsAttr::get(i32Type, op.getMultiplier());
   Value multiplier =
       rewriter.create<stablehlo::ConstantOp>(loc, i32Type, multiplierAttr);
@@ -100,72 +111,68 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
   Value shift = rewriter.create<stablehlo::ConstantOp>(loc, i8Type, shiftAttr);
 
   // construct inputZp and outputZp from op attrs
-  int32_t inputZpValue = op.getInputZpAttr().getInt();
-  auto inputZpAttr = DenseElementsAttr::get(i32Type, {inputZpValue});
-  Value inputZp =
-      rewriter.create<stablehlo::ConstantOp>(loc, i32Type, inputZpAttr);
+  int64_t inputZpValue = op.getInputZpAttr().getInt();
+  auto inputZpAttr = DenseElementsAttr::get(i64Type, {inputZpValue});
+  Value inputZpI64 =
+      rewriter.create<stablehlo::ConstantOp>(loc, i64Type, inputZpAttr);
+  int64_t outputZpValue = op.getOutputZpAttr().getInt();
+  auto outputZpAttr = DenseElementsAttr::get(i64Type, {outputZpValue});
+  Value outputZpI64 =
+      rewriter.create<stablehlo::ConstantOp>(loc, i64Type, outputZpAttr);
 
-  int32_t outputZpValue = op.getOutputZpAttr().getInt();
-  auto outputZpAttr = DenseElementsAttr::get(i32Type, {outputZpValue});
-  Value outputZp =
-      rewriter.create<stablehlo::ConstantOp>(loc, i32Type, outputZpAttr);
-
-  // construct constants 1, min and max tensors
+  // construct constant 1, min and max tensors
   auto i64OnesAttr = DenseElementsAttr::get(i64Type, {1L});
   Value onesI64 =
       rewriter.create<stablehlo::ConstantOp>(loc, i64Type, i64OnesAttr);
 
   // find min and max clamp values based on bitwidth of output element type
-  unsigned outputBitWidth = outputQType
-                                ? outputQType.getStorageTypeIntegralWidth()
-                                : outputEType.getIntOrFloatBitWidth();
-  int32_t minOutputValue =
+  unsigned outputBitWidth = outputEType.getIntOrFloatBitWidth();
+  int64_t minOutputValue =
       APInt::getSignedMinValue(outputBitWidth).getSExtValue();
-  int32_t maxOutputValue =
+  int64_t maxOutputValue =
       APInt::getSignedMaxValue(outputBitWidth).getSExtValue();
-  auto i32MinAttr = DenseElementsAttr::get(i32Type, {minOutputValue});
-  Value outputMin =
-      rewriter.create<stablehlo::ConstantOp>(loc, i32Type, i32MinAttr);
-  auto i32MaxAttr = DenseElementsAttr::get(i32Type, {maxOutputValue});
-  Value outputMax =
-      rewriter.create<stablehlo::ConstantOp>(loc, i32Type, i32MaxAttr);
+  if (outputEType.isUnsignedInteger()) {
+    minOutputValue = APInt::getMinValue(outputBitWidth).getZExtValue();
+    maxOutputValue = APInt::getMaxValue(outputBitWidth).getZExtValue();
+  }
+
+  auto outputMinAttr = DenseElementsAttr::get(i64Type, {minOutputValue});
+  Value outputMinI64 =
+      rewriter.create<stablehlo::ConstantOp>(loc, i64Type, outputMinAttr);
+  auto outputMaxAttr = DenseElementsAttr::get(i64Type, {maxOutputValue});
+  Value outputMaxI64 =
+      rewriter.create<stablehlo::ConstantOp>(loc, i64Type, outputMaxAttr);
 
   // convert to i64 tensors
   Value multiplierI64 =
       rewriter.create<stablehlo::ConvertOp>(loc, i64Type, multiplier);
   Value shiftI64 = rewriter.create<stablehlo::ConvertOp>(loc, i64Type, shift);
-  Value inputZpI64 =
-      rewriter.create<stablehlo::ConvertOp>(loc, i64Type, inputZp);
-  Value outputZpI64 =
-      rewriter.create<stablehlo::ConvertOp>(loc, i64Type, outputZp);
   Value inputI64 = rewriter.create<stablehlo::ConvertOp>(loc, i64Type, input);
-  Value outputMinI64 =
-      rewriter.create<stablehlo::ConvertOp>(loc, i64Type, outputMin);
-  Value outputMaxI64 =
-      rewriter.create<stablehlo::ConvertOp>(loc, i64Type, outputMax);
 
-  Value adjustedInput = rewriter.create<stablehlo::SubtractOp>(
-      loc, i64Type, inputI64, inputZpI64);
+  Value adjustedInput =
+      rewriter.create<stablehlo::SubtractOp>(loc, inputI64, inputZpI64);
   Value adjustedShift =
-      rewriter.create<stablehlo::SubtractOp>(loc, i64Type, shiftI64, onesI64);
+      rewriter.create<stablehlo::SubtractOp>(loc, shiftI64, onesI64);
 
-  Value round = rewriter.create<stablehlo::ShiftLeftOp>(loc, i64Type, onesI64,
-                                                        adjustedShift);
+  Value round =
+      rewriter.create<stablehlo::ShiftLeftOp>(loc, onesI64, adjustedShift);
 
-  Value r1 = rewriter.create<stablehlo::MulOp>(loc, i64Type, adjustedInput,
-                                               multiplierI64);
-  Value r2 = rewriter.create<stablehlo::AddOp>(loc, i64Type, r1, round);
-  Value r3 = rewriter.create<stablehlo::ShiftRightArithmeticOp>(loc, i64Type,
-                                                                r2, shiftI64);
-  Value r4 = rewriter.create<stablehlo::AddOp>(loc, i64Type, r3, outputZpI64);
-  Value r5 = rewriter.create<stablehlo::ClampOp>(loc, i64Type, outputMinI64, r4,
-                                                 outputMaxI64);
+  Value r1 =
+      rewriter.create<stablehlo::MulOp>(loc, adjustedInput, multiplierI64);
+  Value r2 = rewriter.create<stablehlo::AddOp>(loc, r1, round);
+  Value r3 =
+      rewriter.create<stablehlo::ShiftRightArithmeticOp>(loc, r2, shiftI64);
+  Value r4 = rewriter.create<stablehlo::AddOp>(loc, r3, outputZpI64);
+  Value r5 =
+      rewriter.create<stablehlo::ClampOp>(loc, outputMinI64, r4, outputMaxI64);
 
   Value result;
   if (outputQType) {
-    auto storageType = outputType.clone(outputQType.getStorageType());
-    Value r6 = rewriter.create<stablehlo::ConvertOp>(loc, storageType, r5);
-    result = rewriter.create<stablehlo::BitcastConvertOp>(loc, outputType, r6);
+    // outputType has been converted to tensor of storage type by this point
+    Value r6 = rewriter.create<stablehlo::ConvertOp>(loc, outputType, r5);
+    auto originalOutputType = outputType.clone(outputQType);
+    result = rewriter.create<stablehlo::BitcastConvertOp>(
+        loc, originalOutputType, r6);
   } else {
     result = rewriter.create<stablehlo::ConvertOp>(loc, outputType, r5);
   }
@@ -177,15 +184,23 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
 struct TosaRescaleLegalizeToStablehloPass
     : impl::TosaRescaleLegalizeToStablehloPassBase<
           TosaRescaleLegalizeToStablehloPass> {
-  void runOnOperation() final {
-    auto* ctx = &getContext();
-    RewritePatternSet patterns(ctx);
-
-    patterns.addWithLabel<ConvertTosaRescaleToStablehlo>(
+  LogicalResult initialize(MLIRContext* ctx) override {
+    RewritePatternSet patternList(ctx);
+    patternList.addWithLabel<ConvertTosaRescaleToStablehlo>(
         {"ConvertTosaRescaleToStablehlo"}, ctx);
-
-    (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
+    patterns = std::move(patternList);
+    return success();
   }
+  void runOnOperation() final {
+    auto func = getOperation();
+    if (failed(applyPatternsAndFoldGreedily(func, patterns))) {
+      func.emitError("Failed to apply TosaRescaleLegalizeToStablehlo pass ");
+      signalPassFailure();
+    }
+  }
+
+ private:
+  FrozenRewritePatternSet patterns;
 };
 
 }  // namespace

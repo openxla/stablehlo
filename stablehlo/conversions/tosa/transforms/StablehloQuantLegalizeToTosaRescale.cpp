@@ -32,9 +32,6 @@ limitations under the License.
 #define PASS_NAME "stablehlo-quant-legalize-to-tosa-rescale"
 #define DEBUG_TYPE PASS_NAME
 
-using namespace mlir;
-using namespace mlir::tosa;
-
 namespace mlir {
 namespace tosa {
 
@@ -43,45 +40,18 @@ namespace tosa {
 
 namespace {
 
-struct StablehloQuantLegalizeToTosaRescalePass
-    : impl::StablehloQuantLegalizeToTosaRescalePassBase<
-          StablehloQuantLegalizeToTosaRescalePass> {
-  void runOnOperation() final;
-
-  LogicalResult initialize(MLIRContext* ctx) override;
-
- private:
-  FrozenRewritePatternSet patterns;
-};
-
-#define DECL_CONVERT_OP(stablehlo_op)                                        \
-  struct ConvertStablehloQuant##stablehlo_op##Op                             \
-      : public OpRewritePattern<stablehlo::stablehlo_op##Op> {               \
-    using OpRewritePattern<stablehlo::stablehlo_op##Op>::OpRewritePattern;   \
-    LogicalResult matchAndRewrite(stablehlo::stablehlo_op##Op op,            \
-                                  PatternRewriter& rewriter) const override; \
-  }
-
-DECL_CONVERT_OP(Add);
-DECL_CONVERT_OP(Subtract);
-
-#undef DECL_CONVERT_OP
-
 // create a tosa rescale op and return its result value
 Value buildRescale(PatternRewriter& rewriter, Location loc,
-                   ShapedType output_type, Value input_val, int32_t multiplier,
+                   ShapedType outputType, Value inputVal, int32_t multiplier,
                    int32_t shift, int64_t inputZp, int64_t outputZp,
-                   bool double_round, bool scale32, bool perChannel) {
-  // bool input_unsigned = input_val.getType().isUnsignedInteger();
-  // bool output_unsigned = output_type.isUnsignedInteger();
-
-  auto rescale_op = rewriter.create<tosa::RescaleOp>(
-      loc, output_type, input_val,
+                   bool doubleRound, bool scale32, bool perChannel) {
+  auto rescale_op = rewriter.create<RescaleOp>(
+      loc, outputType, inputVal,
       rewriter.getI32IntegerAttr(static_cast<int32_t>(inputZp)),
       rewriter.getI32IntegerAttr(static_cast<int32_t>(outputZp)),
       rewriter.getDenseI32ArrayAttr({multiplier}),
       rewriter.getDenseI8ArrayAttr({static_cast<int8_t>(shift)}),
-      rewriter.getBoolAttr(scale32), rewriter.getBoolAttr(double_round),
+      rewriter.getBoolAttr(scale32), rewriter.getBoolAttr(doubleRound),
       rewriter.getBoolAttr(perChannel));
 
   return rescale_op.getResult();
@@ -90,10 +60,7 @@ Value buildRescale(PatternRewriter& rewriter, Location loc,
 // Creates TOSA rescale op with int32 output
 Value buildRescaleToInt32(PatternRewriter& rewriter, Location loc,
                           Value inputVal, double inputScale, int64_t inputZp) {
-  auto inputType = dyn_cast<mlir::ShapedType>(inputVal.getType());
-  if (!inputType) {
-    return nullptr;
-  }
+  auto inputType = cast<ShapedType>(inputVal.getType());
   auto outputType = inputType.clone(rewriter.getI32Type());
 
   const int32_t scaleWidth = 32;
@@ -102,32 +69,31 @@ Value buildRescaleToInt32(PatternRewriter& rewriter, Location loc,
 
   return buildRescale(rewriter, loc, outputType, inputVal, multiplier, shift,
                       inputZp,
-                      /* output_zp = */ 0,
-                      /* double_round = */ false,
-                      /* scale32 = */ true,
-                      /* per_channel = */ false);
+                      /*output_zp=*/0,
+                      /*doubleRound=*/false,
+                      /*scale32=*/true,
+                      /*perChannel=*/false);
 }
 
 // Creates TOSA rescale op with int32 input
 Value buildRescaleFromInt32(PatternRewriter& rewriter, Location loc,
-                            mlir::ShapedType outputType, Value inputVal,
+                            ShapedType outputType, Value inputVal,
                             double outputScale, int64_t outputZp) {
   // Input should be int32 type
-  auto inputType = dyn_cast<mlir::ShapedType>(inputVal.getType());
-  if (!inputType || !inputType.getElementType().isInteger(32)) {
-    // expected rescale input element type to be i32
-    return nullptr;
-  }
+  auto inputType = cast<ShapedType>(inputVal.getType());
+  (void)inputType;
+  assert(inputType.getElementType().isInteger(32) &&
+         "expected rescale input element type to be i32");
 
   const int32_t scaleWidth = 32;
   int32_t multiplier, shift;
   computeMultiplierAndShift(outputScale, multiplier, shift, scaleWidth);
 
   return buildRescale(rewriter, loc, outputType, inputVal, multiplier, shift,
-                      /* input_zp = */ 0, outputZp,
-                      /* double_round = */ false,
-                      /* scale32 = */ true,
-                      /* per_channel = */ false);
+                      /*input_zp=*/0, outputZp,
+                      /*doubleRound=*/false,
+                      /*scale32=*/true,
+                      /*perChannel=*/false);
 }
 
 template <typename StablehloOp>
@@ -136,21 +102,16 @@ LogicalResult matchAndRewriteAddSub(StablehloOp op, PatternRewriter& rewriter) {
   Value rhs = op.getRhs();
   Value result = op.getResult();
 
-  auto lhsType = dyn_cast<mlir::ShapedType>(lhs.getType());
-  auto rhsType = dyn_cast<mlir::ShapedType>(rhs.getType());
-  auto resultType = dyn_cast<mlir::ShapedType>(result.getType());
-
-  if (!lhsType || !rhsType || !resultType) {
-    return rewriter.notifyMatchFailure(
-        op, "inputs and result tensors should all have shaped tensor types");
-  }
+  auto lhsType = cast<ShapedType>(lhs.getType());
+  auto rhsType = cast<ShapedType>(rhs.getType());
+  auto resultType = cast<ShapedType>(result.getType());
 
   auto lhsQType =
-      dyn_cast<mlir::quant::UniformQuantizedType>(lhsType.getElementType());
+      dyn_cast<quant::UniformQuantizedType>(lhsType.getElementType());
   auto rhsQType =
-      dyn_cast<mlir::quant::UniformQuantizedType>(rhsType.getElementType());
+      dyn_cast<quant::UniformQuantizedType>(rhsType.getElementType());
   auto resultQType =
-      dyn_cast<mlir::quant::UniformQuantizedType>(resultType.getElementType());
+      dyn_cast<quant::UniformQuantizedType>(resultType.getElementType());
 
   if (!lhsQType || !rhsQType || !resultQType) {
     if (lhsQType || rhsQType || resultQType) {
@@ -162,9 +123,7 @@ LogicalResult matchAndRewriteAddSub(StablehloOp op, PatternRewriter& rewriter) {
     return failure();
   }
 
-  // lhs/rhs/result are all quantized
-
-  // Following quantization described in tensorflow/lite/kernels/add.cc
+  // Following quantization described in tflite
   // In details it does:
   // 1. Rescale inputs to scale = 2.0 x max(lhs.scale, rhs.scale)
   // 2. Extra left shift to input to increase precision
@@ -190,18 +149,15 @@ LogicalResult matchAndRewriteAddSub(StablehloOp op, PatternRewriter& rewriter) {
 
   auto loc = op.getLoc();
 
-  // implement single rounding only
+  // Implement single rounding only
   Value rescaledLhs = buildRescaleToInt32(
       rewriter, loc, lhs,
-      /* scale = */ lhsRescaleScale * static_cast<double>(1 << inputShift),
+      /*scale=*/lhsRescaleScale * static_cast<double>(1 << inputShift),
       lhsQType.getZeroPoint());
   Value rescaledRhs = buildRescaleToInt32(
       rewriter, loc, rhs,
-      /* scale = */ rhsRescaleScale * static_cast<double>(1 << inputShift),
+      /*scale=*/rhsRescaleScale * static_cast<double>(1 << inputShift),
       rhsQType.getZeroPoint());
-  if (!rescaledLhs || !rescaledRhs) {
-    return rewriter.notifyMatchFailure(op, "buildRescaleToInt32 failed");
-  }
 
   auto rescaledResultType = resultType.clone(rewriter.getI32Type());
   Value rescaledResult = rewriter
@@ -213,45 +169,51 @@ LogicalResult matchAndRewriteAddSub(StablehloOp op, PatternRewriter& rewriter) {
       buildRescaleFromInt32(rewriter, loc, resultType, rescaledResult,
                             resultRescaleScale, resultQType.getZeroPoint());
 
-  if (!newOutput) {
-    return rewriter.notifyMatchFailure(op, "buildRescaleFromInt32 failed");
-  }
-
   rewriter.replaceOp(op, {newOutput});
   return success();
 }
 
-LogicalResult ConvertStablehloQuantAddOp::matchAndRewrite(
-    stablehlo::AddOp op, PatternRewriter& rewriter) const {
-  return matchAndRewriteAddSub<stablehlo::AddOp>(op, rewriter);
-}
-LogicalResult ConvertStablehloQuantSubtractOp::matchAndRewrite(
-    stablehlo::SubtractOp op, PatternRewriter& rewriter) const {
-  return matchAndRewriteAddSub<stablehlo::SubtractOp>(op, rewriter);
-}
+template <typename StablehloOpType>
+struct QuantizedStablehloOpConversion
+    : public OpRewritePattern<StablehloOpType> {
+  using OpRewritePattern<StablehloOpType>::OpRewritePattern;
+  LogicalResult matchAndRewrite(StablehloOpType op,
+                                PatternRewriter& rewriter) const override {
+    return matchAndRewriteAddSub<StablehloOpType>(op, rewriter);
+  }
+};
 
-LogicalResult StablehloQuantLegalizeToTosaRescalePass::initialize(
-    MLIRContext* ctx) {
-  RewritePatternSet patternList(ctx);
+struct StablehloQuantLegalizeToTosaRescalePass
+    : impl::StablehloQuantLegalizeToTosaRescalePassBase<
+          StablehloQuantLegalizeToTosaRescalePass> {
+  LogicalResult initialize(MLIRContext* ctx) override {
+    RewritePatternSet patternList(ctx);
+    populateStablehloQuantLegalizeToTosaRescalePatterns(&patternList, ctx);
+    patterns = std::move(patternList);
+    return success();
+  }
+  void runOnOperation() final {
+    auto func = getOperation();
+    if (failed(applyPatternsAndFoldGreedily(func, patterns))) {
+      func.emitError(
+          "Failed to apply StablehloQuantLegalizeToTosaRescale pass ");
+      signalPassFailure();
+    }
+  }
 
-#define DEF_PATTERN_INSERT(PAT)                             \
-  patternList.addWithLabel<ConvertStablehloQuant##PAT##Op>( \
-      {"StablehloQuant##PAT##"}, ctx);
-
-  DEF_PATTERN_INSERT(Add);
-  DEF_PATTERN_INSERT(Subtract);
-
-#undef DEF_PATTERN_INSERT
-
-  patterns = std::move(patternList);
-  return success();
-}
-
-void StablehloQuantLegalizeToTosaRescalePass::runOnOperation() {
-  (void)applyPatternsAndFoldGreedily(getOperation(), patterns);
-}
+ private:
+  FrozenRewritePatternSet patterns;
+};
 
 }  // namespace
+
+void populateStablehloQuantLegalizeToTosaRescalePatterns(
+    RewritePatternSet* patterns, MLIRContext* context) {
+  patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::AddOp>>(
+      {"StablehloQuantAddOp"}, context);
+  patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::SubtractOp>>(
+      {"StablehloQuantSubtractOp"}, context);
+}
 
 }  // namespace tosa
 }  // namespace mlir
