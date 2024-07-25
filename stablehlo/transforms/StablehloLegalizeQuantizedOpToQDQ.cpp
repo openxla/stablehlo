@@ -38,6 +38,9 @@ bool isAnyQuantizedTypes(TypeRange types) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 42a3fce2 (fix made to dqd pass to be reused by quant-to-math)
 // Gets the QuantizedType associated with the given type, or returns failure if
 // not quantized.
 FailureOr<quant::QuantizedType> getQuantType(Type type) {
@@ -60,8 +63,11 @@ Type getQuantExpressedType(Type type) {
   return type;
 }
 
+<<<<<<< HEAD
 =======
 >>>>>>> 277b3469 (Keep the qdq pass)
+=======
+>>>>>>> 42a3fce2 (fix made to dqd pass to be reused by quant-to-math)
 template <typename StablehloOpType>
 struct QuantizedStablehloOpConversion
     : public OpRewritePattern<StablehloOpType> {
@@ -85,6 +91,7 @@ struct QuantizedStablehloOpConversion
 
     auto origOp = op.getOperation();
 <<<<<<< HEAD
+<<<<<<< HEAD
     SmallVector<Type> newResultTypes =
         llvm::map_to_vector(origOp->getResultTypes(),
                             [](Type t) { return getQuantExpressedType(t); });
@@ -98,6 +105,15 @@ struct QuantizedStablehloOpConversion
                      .create<StablehloOpType>(op.getLoc(), dequantizedOperands,
                                               origAttrs)
 >>>>>>> 277b3469 (Keep the qdq pass)
+=======
+    SmallVector<Type> newResultTypes =
+        llvm::map_to_vector(origOp->getResultTypes(),
+                            [](Type t) { return getQuantExpressedType(t); });
+    auto origAttrs = origOp->getAttrs();
+    auto newOp = rewriter
+                     .create<StablehloOpType>(op.getLoc(), newResultTypes,
+                                              dequantizedOperands, origAttrs)
+>>>>>>> 42a3fce2 (fix made to dqd pass to be reused by quant-to-math)
                      .getOperation();
 
     SmallVector<Value> quantizedResults;
@@ -113,9 +129,13 @@ struct QuantizedStablehloOpConversion
       }
     }
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> 277b3469 (Keep the qdq pass)
+=======
+
+>>>>>>> 42a3fce2 (fix made to dqd pass to be reused by quant-to-math)
     rewriter.replaceOp(op, quantizedResults);
     return success();
   }
