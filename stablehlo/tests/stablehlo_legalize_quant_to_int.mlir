@@ -2431,6 +2431,7 @@ func.func @batch_norm_inference_per_tensor_quantization(%input: tensor<4x256x!qu
 
 // CHECK: "stablehlo.batch_norm_inference"{{.*}} : (tensor<4x256xf32>, tensor<256xf32>, tensor<256xf32>, tensor<256xf32>, tensor<256xf32>) -> tensor<4x256xf32>
 
+
 // -----
 
 // CHECK-LABEL: @batch_norm_training_per_tensor_quantization
@@ -2444,7 +2445,6 @@ func.func @batch_norm_training_per_tensor_quantization(%input: tensor<2x2x2x2x!q
 }
 
 // CHECK: "stablehlo.batch_norm_training"{{.*}} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
-// CHECK: "stablehlo.batch_norm_training"{{.*}} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
 
 // -----
 
@@ -2454,7 +2454,6 @@ func.func @dynamic_slice_per_tensor_quantization(%arg0: tensor<3x4x!quant.unifor
   func.return %0 : tensor<1x4x!quant.uniform<i8:f32, 1.0:17>>
 }
 
-// CHECK: stablehlo.dynamic_slice {{.*}} : (tensor<3x4xi8>, tensor<i64>, tensor<i64>) -> tensor<1x4xi8>
 // CHECK: stablehlo.dynamic_slice {{.*}} : (tensor<3x4xi8>, tensor<i64>, tensor<i64>) -> tensor<1x4xi8>
 
 
