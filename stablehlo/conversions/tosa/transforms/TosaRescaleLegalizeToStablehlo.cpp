@@ -41,6 +41,11 @@ namespace tosa {
 
 namespace {
 
+Value getStablehloConstantOp(PatternRewriter& rewriter, Location loc,
+                             const DenseElementsAttr& attr) {
+  return rewriter.create<stablehlo::ConstantOp>(loc, attr.getType(), attr);
+}
+
 struct ConvertTosaRescaleToStablehlo : public OpRewritePattern<RescaleOp> {
   using OpRewritePattern<RescaleOp>::OpRewritePattern;
   LogicalResult matchAndRewrite(RescaleOp op,
@@ -103,27 +108,20 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
 
   // construct multiplier, shift constant values from op attrs
   // for scale32, multiplier is tensor of i32
-  auto multiplierAttr = DenseElementsAttr::get(i32Type, op.getMultiplier());
-  Value multiplier =
-      rewriter.create<stablehlo::ConstantOp>(loc, i32Type, multiplierAttr);
-
-  auto shiftAttr = DenseElementsAttr::get(i8Type, op.getShift());
-  Value shift = rewriter.create<stablehlo::ConstantOp>(loc, i8Type, shiftAttr);
+  Value multiplier = getStablehloConstantOp(
+      rewriter, loc, DenseElementsAttr::get(i32Type, op.getMultiplier()));
+  Value shift = getStablehloConstantOp(
+      rewriter, loc, DenseElementsAttr::get(i8Type, op.getShift()));
 
   // construct inputZp and outputZp from op attrs
-  int64_t inputZpValue = op.getInputZpAttr().getInt();
-  auto inputZpAttr = DenseElementsAttr::get(i64Type, {inputZpValue});
-  Value inputZpI64 =
-      rewriter.create<stablehlo::ConstantOp>(loc, i64Type, inputZpAttr);
-  int64_t outputZpValue = op.getOutputZpAttr().getInt();
-  auto outputZpAttr = DenseElementsAttr::get(i64Type, {outputZpValue});
-  Value outputZpI64 =
-      rewriter.create<stablehlo::ConstantOp>(loc, i64Type, outputZpAttr);
+  Value inputZpI32 = getStablehloConstantOp(
+      rewriter, loc, DenseElementsAttr::get(i32Type, op.getInputZpAttr()));
+  Value outputZpI32 = getStablehloConstantOp(
+      rewriter, loc, DenseElementsAttr::get(i32Type, op.getOutputZpAttr()));
 
   // construct constant 1, min and max tensors
-  auto i64OnesAttr = DenseElementsAttr::get(i64Type, {1L});
-  Value onesI64 =
-      rewriter.create<stablehlo::ConstantOp>(loc, i64Type, i64OnesAttr);
+  Value onesI64 = getStablehloConstantOp(rewriter, loc,
+                                         DenseElementsAttr::get(i64Type, {1L}));
 
   // find min and max clamp values based on bitwidth of output element type
   unsigned outputBitWidth = outputEType.getIntOrFloatBitWidth();
@@ -136,17 +134,20 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
     maxOutputValue = APInt::getMaxValue(outputBitWidth).getZExtValue();
   }
 
-  auto outputMinAttr = DenseElementsAttr::get(i64Type, {minOutputValue});
-  Value outputMinI64 =
-      rewriter.create<stablehlo::ConstantOp>(loc, i64Type, outputMinAttr);
-  auto outputMaxAttr = DenseElementsAttr::get(i64Type, {maxOutputValue});
-  Value outputMaxI64 =
-      rewriter.create<stablehlo::ConstantOp>(loc, i64Type, outputMaxAttr);
+  Value outputMinI64 = getStablehloConstantOp(
+      rewriter, loc, DenseElementsAttr::get(i64Type, {minOutputValue}));
+  Value outputMaxI64 = getStablehloConstantOp(
+      rewriter, loc, DenseElementsAttr::get(i64Type, {maxOutputValue}));
 
   // convert to i64 tensors
   Value multiplierI64 =
       rewriter.create<stablehlo::ConvertOp>(loc, i64Type, multiplier);
   Value shiftI64 = rewriter.create<stablehlo::ConvertOp>(loc, i64Type, shift);
+  Value inputZpI64 =
+      rewriter.create<stablehlo::ConvertOp>(loc, i64Type, inputZpI32);
+  Value outputZpI64 =
+      rewriter.create<stablehlo::ConvertOp>(loc, i64Type, outputZpI32);
+
   Value inputI64 = rewriter.create<stablehlo::ConvertOp>(loc, i64Type, input);
 
   Value adjustedInput =

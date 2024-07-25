@@ -114,13 +114,10 @@ LogicalResult matchAndRewriteAddSub(StablehloOp op, PatternRewriter& rewriter) {
       dyn_cast<quant::UniformQuantizedType>(resultType.getElementType());
 
   if (!lhsQType || !rhsQType || !resultQType) {
-    if (lhsQType || rhsQType || resultQType) {
-      return rewriter.notifyMatchFailure(op,
-                                         "inputs and result tensors should be "
-                                         "all quantized or all un-quantized");
-    }
-    // not quantized - skip
-    return failure();
+    return rewriter.notifyMatchFailure(
+        op,
+        "The conversion supports operands/results with per-tensor quantized "
+        "types only");
   }
 
   // Following quantization described in tflite
