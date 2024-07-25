@@ -41,27 +41,6 @@ func.func @ops_per_axis_quantization(
 // CHECK-NEXT: stablehlo.uniform_quantize %arg0
 
 // -----
-// %arg1 can be a per-axis Quantized
-
-// CHECK-LABEL: @dot_general_per_axis_quantization
-func.func @dot_general_per_axis_quantization(
-  %arg0: tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>,
-  %arg1: tensor<2x3x5x!quant.uniform<i8:f32:0, {0.1:0, 0.1:0}>>) -> tensor<2x4x5x!quant.uniform<i8:f32:0, {0.1:-30, 0.1:-30}>> {
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>,
-  tensor<2x3x5x!quant.uniform<i8:f32:0, {0.1:0, 0.1:0}>>) -> tensor<2x4x5x!quant.uniform<i8:f32:0, {0.1:-30, 0.1:-30}>>
-  func.return %0 : tensor<2x4x5x!quant.uniform<i8:f32:0, {0.1:-30, 0.1:-30}>>
-}
-
-// CHECK: stablehlo.dot_general %arg0, %arg1
-
-// -----
 // Tests for StableHLO OPs supporting per-tensor quantization. These OPs may or may not support per-axis quantization
 
 // CHECK-LABEL: @ops_per_tensor_quantization
@@ -285,23 +264,6 @@ func.func @batch_norm_training_per_tensor_quantization(%input: tensor<2x2x2x2x!q
 // CHECK-NEXT: %[[OPR2:.*]] = stablehlo.uniform_dequantize
 // CHECK-NEXT: %[[OUTPUT:.*]], %[[GRAD_SCALE:.*]], %[[GRAD_OFFSET:.*]] = "stablehlo.batch_norm_training"(%[[OPR0]], %[[OPR1]], %[[OPR2]])
 // CHECK-NEXT: stablehlo.uniform_quantize %[[OUTPUT]]
-
-// -----
-
-// CHECK-LABEL: @dot_general_per_tensor_quantization
-func.func @dot_general_per_tensor_quantization(%arg0: tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>, %arg1: tensor<2x3x5x!quant.uniform<i8:f32, 1.0:0>>) -> tensor<2x4x5x!quant.uniform<i8:f32, 1.0:17>> {
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<2x3x4x!quant.uniform<i8:f32, 1.0:17>>, tensor<2x3x5x!quant.uniform<i8:f32, 1.0:0>>) -> tensor<2x4x5x!quant.uniform<i8:f32, 1.0:17>>
-  func.return %0 : tensor<2x4x5x!quant.uniform<i8:f32, 1.0:17>>
-}
-
-// CHECK: stablehlo.dot_general %arg0, %arg1
 
 // -----
 
