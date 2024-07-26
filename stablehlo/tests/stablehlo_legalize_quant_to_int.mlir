@@ -1414,8 +1414,7 @@ func.func @conv3d_static(
 func.func @conv3d_rhs_zp_not_zero(
     %arg0: tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:-2>>) {
-  // expected-error@+2 {{RHS/result UQ type must have zero zp}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution{{.*}} : (tensor<128x28x28x28x1xf32>, tensor<3x3x3x1x128xf32>) -> tensor<128x26x26x26x128xf32>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, 2, f]x[0, 1, 2, i, o]->[b, 0, 1, 2, f],
     window = {
@@ -1436,8 +1435,7 @@ func.func @conv3d_rhs_zp_not_zero(
 func.func @conv3d_rhs_invalid_dilate(
     %arg0: tensor<128x28x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
-  // expected-error@+2 {{lhs_dilation must be 1}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution{{.*}} : (tensor<128x28x28x28x1xf32>, tensor<3x3x3x1x128xf32>) -> tensor<128x53x53x53x128xf32>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, 2, f]x[0, 1, 2, i, o]->[b, 0, 1, 2, f],
     window = {
@@ -1458,8 +1456,7 @@ func.func @conv3d_rhs_invalid_dilate(
 func.func @conv3d_non_nhwc(
     %arg0: tensor<128x1x28x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
-  // expected-error@+2 {{Convolution data format must be NHWC}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution{{.*}} : (tensor<128x1x28x28x28xf32>, tensor<3x3x3x1x128xf32>) -> tensor<128x128x26x26x26xf32>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, f, 0, 1, 2]x[0, 1, 2, i, o]->[b, f, 0, 1, 2],
     window = {
@@ -1480,8 +1477,7 @@ func.func @conv3d_non_nhwc(
 func.func @conv2d_non_nhwc(
     %arg0: tensor<128x1x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x128x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
-  // expected-error@+2 {{Convolution data format must be NHWC}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution{{.*}} : (tensor<128x1x28x28xf32>, tensor<3x3x1x128xf32>) -> tensor<128x128x26x26xf32>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, f, 0, 1]x[0, 1, i, o]->[b, f, 0, 1],
     window = {
@@ -1503,8 +1499,7 @@ func.func @conv2d_per_channel_rhs_zp_not_zero(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:10}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:0}>> {
-  // expected-error@+2 {{RHS/result UQ type must have zero zp.}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution{{.*}} : (tensor<128x28x28x1xf32>, tensor<3x3x1x2xf32>) -> tensor<128x26x26x2xf32>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1528,8 +1523,7 @@ func.func @conv2d_per_channel_res_zp_not_zero(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:3}>> {
-  // expected-error@+2 {{RHS/result UQ type must have zero zp.}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution{{.*}} : (tensor<128x28x28x1xf32>, tensor<3x3x1x2xf32>) -> tensor<128x26x26x2xf32>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1553,8 +1547,7 @@ func.func @conv2d_per_channel_rhs_only(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32, 4.000000e+00:0>> {
-  // expected-error@+2 {{Invalid input/output type for Dot/Convolution op}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution{{.*}} : (tensor<128x28x28x1xf32>, tensor<3x3x1x2xf32>) -> tensor<128x26x26x2xf32>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1574,58 +1567,11 @@ func.func @conv2d_per_channel_rhs_only(
 
 // -----
 
-func.func @conv2d_per_channel_res_only(
-    %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
-    %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32, 2.000000e+00:0>>
-  ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:0}>> {
-  // expected-error@+1 {{mismatched rhs and result quantization granularity}}
-  %0 = stablehlo.convolution(%arg0, %arg1)
-    dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
-    window = {
-      stride = [1, 1], pad = [[0, 0], [0, 0]],
-      lhs_dilate = [1, 1],
-      rhs_dilate = [1, 1]
-    }
-    {
-      batch_group_count = 1 : i64,
-      feature_group_count = 1 : i64
-    } : (
-      tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
-      tensor<3x3x1x2x!quant.uniform<i8:f32, 2.000000e+00:0>>)
-    -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:0}>>
-  return %0 : tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:0}>>
-}
-
-// -----
-
-func.func @conv2d_per_channel_unsupported_channel(
-    %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
-    %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:2, {2.000000e+00:0}>>
-  ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:0}>> {
-  // expected-error@+1 {{quantization dimension of rhs should be same with kernel_output_feature_dimension}}
-  %0 = stablehlo.convolution(%arg0, %arg1)
-    dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
-    window = {
-      stride = [1, 1], pad = [[0, 0], [0, 0]],
-      lhs_dilate = [1, 1],
-      rhs_dilate = [1, 1]
-    }
-    {
-      batch_group_count = 1 : i64,
-      feature_group_count = 1 : i64
-    } : (tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<3x3x1x2x!quant.uniform<i8:f32:2, {2.000000e+00:0}>>)
-    -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:0}>>
-  return %0 : tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.000000e+00:0}>>
-}
-
-// -----
-
 func.func @conv2d_per_channel_rhs_result_scale_ratio_different(
     %arg0: tensor<128x28x28x1x!quant.uniform<i8:f32, 2.000000e+00:4>>,
     %arg1: tensor<3x3x1x2x!quant.uniform<i8:f32:3, {2.000000e+00:0, 1.000000e+00:0}>>
   ) -> tensor<128x26x26x2x!quant.uniform<i32:f32:3, {4.000000e+00:0, 2.200000e+00:0}>> {
-  // expected-error@+2 {{Per-axis quantizated Conv must have same RHS/Result scale ratio for each channel}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.convolution' that was explicitly marked illegal}}
+  // CHECK: stablehlo.convolution{{.*}} : (tensor<128x28x28x1xf32>, tensor<3x3x1x2xf32>) -> tensor<128x26x26x2xf32>
   %0 = stablehlo.convolution(%arg0, %arg1)
     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
     window = {
@@ -1720,8 +1666,7 @@ func.func @dot_general_hybrid_per_channel_asymmetric(
 func.func @dot_hybrid_result_type_not_float(
     %arg0: tensor<?x?xf32>,
     %arg1: tensor<?x?x!quant.uniform<i8:f32, 1.000000e+00:3>>) {
-  // expected-error@+2 {{Invalid input/output type for Dot/Convolution op}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.dot' that was explicitly marked illegal}}
+  // CHECK: stablehlo.dot {{.*}} : (tensor<?x?xf32>, tensor<?x?xf32>) -> tensor<?x?xf32>
   %1 = "stablehlo.dot" (%arg0, %arg1): (
       tensor<?x?xf32>, tensor<?x?x!quant.uniform<i8:f32, 1.000000e+00:3>>
     ) -> tensor<?x?x!quant.uniform<i8:f32, 1.000000e+00:3>>
@@ -1733,8 +1678,7 @@ func.func @dot_hybrid_result_type_not_float(
 func.func @dot_hybrid_lhs_type_not_float(
     %arg0: tensor<?x?x!quant.uniform<i8:f32, 1.000000e+00:3>>,
     %arg1: tensor<?x?xf32>) {
-  // expected-error@+2 {{Invalid input/output type for Dot/Convolution op}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.dot' that was explicitly marked illegal}}
+  // CHECK: stablehlo.dot {{.*}} : (tensor<?x?xf32>, tensor<?x?xf32>) -> tensor<?x?xf32>
   %1 = "stablehlo.dot" (%arg0, %arg1): (
       tensor<?x?x!quant.uniform<i8:f32, 1.000000e+00:3>>, tensor<?x?xf32>
     ) -> tensor<?x?x!quant.uniform<i8:f32, 1.000000e+00:3>>
@@ -1874,8 +1818,7 @@ func.func @conv2d_hybrid_result_not_float(
 func.func @dot_general_non_hybrid_result_not_float(
   %arg0: tensor<2x5x6x!quant.uniform<i8:f32, 1.000000e+00:0>>,
   %arg1: tensor<6x8x2x!quant.uniform<i8:f32:2, {1.000000e+00:0, 1.000000e+00:0}>>) {
-  // expected-error@+2 {{Invalid input/output type for Dot/Convolution op}}
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.dot_general' that was explicitly marked illegal}}
+  // CHECK: stablehlo.dot_general {{.*}} : (tensor<2x5x6xf32>, tensor<6x8x2xf32>) -> tensor<2x5x8xf32>
   %0 = "stablehlo.dot_general" (%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
