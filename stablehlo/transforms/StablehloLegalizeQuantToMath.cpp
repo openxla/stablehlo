@@ -144,9 +144,7 @@ void getQuantizationStorageInfo(OpBuilder &builder, Location loc,
                static_cast<float>(quantType.getStorageTypeMax())));
 }
 
-Type getQuantStorageType(QuantType type) { return type.getStorageType(); }
-
-// Extracts storage type of a UQ type. Return original type if it is no UQ type.
+// Extracts storage type of a UQ type, preserving its shape.
 Type getQuantStorageType(Type type) {
   if (auto shaped = dyn_cast<ShapedType>(type)) {
     return shaped.clone(getQuantStorageType(shaped.getElementType()));
@@ -154,7 +152,7 @@ Type getQuantStorageType(Type type) {
 
   auto quantizedType = getQuantType(type);
   if (succeeded(quantizedType)) {
-    return getQuantStorageType(*quantizedType);
+    return quantizedType->getStorageType();
   }
   return type;
 }
