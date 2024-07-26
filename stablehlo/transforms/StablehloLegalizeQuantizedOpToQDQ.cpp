@@ -109,27 +109,22 @@ class StablehloLegalizeQuantizedOpToQDQPass
 
 template <typename... StablehloOpTypes>
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    RewritePatternSet* patterns, MLIRContext* context) {
-  patterns->add<QuantizedStablehloOpConversion<StablehloOpTypes>...>(context);
+    RewritePatternSet* patterns, MLIRContext* context, PatternBenefit benefit) {
+  patterns->add<QuantizedStablehloOpConversion<StablehloOpTypes>...>(context,
+                                                                     benefit);
 }
 
 }  // namespace
 
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    RewritePatternSet* patterns, MLIRContext* context) {
-  // The following list covers most of the operations which, according to the
-  // stablehlo spoecification document, interprets the quantized
-  // operation using dequant-op-quant strategy. The ones excluded are
-  // AddOP, ConvolutionOp, DotGeneralOp, and DynamicConvOp, which are current
-  // using `stablehlo-legalize-quant-to-int` pass for decomposituion to
-  // primitive math operations.
+    RewritePatternSet* patterns, MLIRContext* context, PatternBenefit benefit) {
   populateStablehloLegalizeQuantizedOpToQDQPatterns<
-      AbsOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
+      AbsOp, AddOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
       BatchNormTrainingOp, CbrtOp, CeilOp, CholeskyOp, ClampOp, CompareOp,
       CosineOp, DivOp, Expm1Op, ExpOp, FloorOp, Log1pOp, LogisticOp, LogOp,
       MaxOp, MinOp, MulOp, NegOp, PowOp, ReducePrecisionOp, RemOp, RoundOp,
       RoundNearestEvenOp, RsqrtOp, SelectOp, SignOp, SineOp, SqrtOp, SubtractOp,
-      TanhOp, TriangularSolveOp>(patterns, context);
+      TanhOp, TriangularSolveOp>(patterns, context, benefit);
 }
 
 }  // namespace stablehlo

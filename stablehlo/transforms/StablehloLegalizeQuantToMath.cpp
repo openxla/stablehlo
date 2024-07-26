@@ -44,6 +44,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace mlir::stablehlo {
 namespace {
@@ -426,10 +427,10 @@ class ConvertUniformQuantizedAddOp
     // We only handle cases where lhs, rhs and results all have quantized
     // element type.
     if (failed(lhsQuantType) || failed(rhsQuantType) || failed(resQuantType)) {
-      op->emitError(
+      return rewriter.notifyMatchFailure(
+          op,
           "AddOp requires the quantized element type for all operands and "
           "results");
-      return failure();
     }
 
     if (isPerAxisType(*lhsQuantType) || isPerAxisType(*rhsQuantType) ||
@@ -440,16 +441,16 @@ class ConvertUniformQuantizedAddOp
           !isPerAxisType(*resQuantType) ||
           getPerAxisType(*lhsQuantType) != getPerAxisType(*rhsQuantType) ||
           getPerAxisType(*lhsQuantType) != getPerAxisType(*resQuantType)) {
-        op->emitError(
+        return rewriter.notifyMatchFailure(
+            op,
             "Per-axis quantized AddOp requires the same quantized element "
             "type for all operands and results");
-        return failure();
       }
       if (!getPerAxisType(*lhsQuantType).getStorageType().isInteger(32)) {
         // For server-side StableHLO Quantization, add is quantized only when
         // fused with conv/dot ops, whose output must be i32.
-        op->emitError("Per-axis quantized AddOp requires i32 storage type");
-        return failure();
+        return rewriter.notifyMatchFailure(
+            op, "Per-axis quantized AddOp requires i32 storage type");
       }
       return matchAndRewritePerAxis(op, adaptor, rewriter,
                                     getPerAxisType(*lhsQuantType));
@@ -1229,8 +1230,9 @@ class ConvertUniformQuantizedConvolutionOp
 // TODO: b/310685906 - Add operand/result type validations.
 class ConvertGenericOp : public ConversionPattern {
  public:
-  explicit ConvertGenericOp(MLIRContext *ctx, TypeConverter &converter)
-      : ConversionPattern(converter, MatchAnyOpTypeTag(), 1, ctx) {}
+  explicit ConvertGenericOp(MLIRContext *ctx, TypeConverter &converter,
+                            PatternBenefit benefit)
+      : ConversionPattern(converter, MatchAnyOpTypeTag(), benefit, ctx) {}
 
   LogicalResult matchAndRewrite(
       Operation *op, ArrayRef<Value> operands,
@@ -1244,7 +1246,8 @@ class ConvertGenericOp : public ConversionPattern {
              stablehlo::ReturnOp, stablehlo::SelectOp, stablehlo::SliceOp,
              stablehlo::TransposeOp, stablehlo::GetDimensionSizeOp,
              stablehlo::DynamicBroadcastInDimOp>(op)) {
-      return failure();
+      return rewriter.notifyMatchFailure(
+          op, "Unsupported op for performing type change");
     }
 
     if (isa<stablehlo::MinOp, stablehlo::MaxOp>(op)) {
@@ -1253,10 +1256,10 @@ class ConvertGenericOp : public ConversionPattern {
       auto rhsType = getPerTensorType(op->getOperandTypes()[1]);
       auto resultType = getPerTensorType(op->getResultTypes()[0]);
       if (lhsType != rhsType || lhsType != resultType) {
-        return op->emitError(
-            op->getName().getStringRef() +
-            " with different quantization parameters for operands and"
-            " results is not supported.");
+        return rewriter.notifyMatchFailure(
+            op, op->getName().getStringRef() +
+                    " with different quantization parameters for operands and"
+                    " results is not supported.");
       }
     }
 
@@ -1294,12 +1297,12 @@ class UniformQuantizedToIntTypeConverter : public TypeConverter {
 
 }  // namespace
 
-#define GEN_PASS_DEF_STABLEHLOLEGALIZEQUANTTOINTPASS
+#define GEN_PASS_DEF_STABLEHLOLEGALIZEQUANTTOMATHPASS
 #include "stablehlo/transforms/Passes.h.inc"
 
-class StablehloLegalizeQuantToIntPass
-    : public impl::StablehloLegalizeQuantToIntPassBase<
-          StablehloLegalizeQuantToIntPass> {
+class StablehloLegalizeQuantToMathPass
+    : public impl::StablehloLegalizeQuantToMathPassBase<
+          StablehloLegalizeQuantToMathPass> {
  public:
   // Performs conversion of stablehlo quant ops to primitive ops.
   void runOnOperation() override {
@@ -1311,11 +1314,15 @@ class StablehloLegalizeQuantToIntPass
     patterns.add<ConvertUniformQuantizeOp, ConvertUniformDequantizeOp,
                  ConvertUniformQuantizedAddOp, ConvertUniformQuantizedDotOp,
                  ConvertUniformQuantizedDotGeneralOp,
-                 ConvertUniformQuantizedConvolutionOp>(context);
+                 ConvertUniformQuantizedConvolutionOp>(context, /*benefit=*/10);
+
+    // Populate stablehlo quant-op to dq-op-q patterns as fallback.
+    populateStablehloLegalizeQuantizedOpToQDQPatterns(&patterns, context,
+                                                      /*benefit=*/1);
 
     // uq->int convert patterns for func.func, func.return and generic ops.
     UniformQuantizedToIntTypeConverter converter;
-    patterns.add<ConvertGenericOp>(context, converter);
+    patterns.add<ConvertGenericOp>(context, converter, /*benefit=*/10);
     populateFunctionOpInterfaceTypeConversionPattern<func::FuncOp>(patterns,
                                                                    converter);
     populateReturnOpTypeConversionPattern(patterns, converter);

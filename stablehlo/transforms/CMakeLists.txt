@@ -39,7 +39,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloConvertToSignless.cpp
   StablehloLegalizeCompositeToCall.cpp
   StablehloLegalizeDeprecatedOps.cpp
-  StablehloLegalizeQuantToInt.cpp
+  StablehloLegalizeQuantToMath.cpp
   StablehloLegalizeQuantizedOpToQDQ.cpp
   StablehloLegalizeToVhlo.cpp
   StablehloRefineArguments.cpp
