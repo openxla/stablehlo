@@ -984,8 +984,7 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
       op->getLoc(), resInt32TensorType, resI32, combinedZp, nullptr);
 
   // Convert results back to result storage type.
-  auto resQuantType =
-      getQuantType(getElementTypeOrSelf(op.getResult().getType()));
+  auto resQuantType = getQuantType(getElementTypeOrSelf(op.getResult()));
   auto resFinalTensorType =
       resInt32TensorType.clone(getQuantStorageType(*resQuantType));
   rewriter.replaceOpWithNewOp<stablehlo::ConvertOp>(op, resFinalTensorType,
