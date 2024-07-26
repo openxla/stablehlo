@@ -118,12 +118,6 @@ void populateStablehloLegalizeQuantizedOpToQDQPatterns(
 
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
     RewritePatternSet* patterns, MLIRContext* context, PatternBenefit benefit) {
-  // The following list covers most of the operations which, according to the
-  // stablehlo spoecification document, interprets the quantized
-  // operation using dequant-op-quant strategy. The ones excluded are
-  // ConvolutionOp, DotGeneralOp, and DynamicConvOp, which are current
-  // using `stablehlo-legalize-quant-to-int` pass for decomposituion to
-  // primitive math operations.
   populateStablehloLegalizeQuantizedOpToQDQPatterns<
       AbsOp, AddOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
       BatchNormTrainingOp, CbrtOp, CeilOp, CholeskyOp, ClampOp, CompareOp,
