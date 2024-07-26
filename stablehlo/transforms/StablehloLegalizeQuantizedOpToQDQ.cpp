@@ -124,7 +124,7 @@ void populateStablehloLegalizeQuantizedOpToQDQPatterns(
       CosineOp, DivOp, Expm1Op, ExpOp, FloorOp, Log1pOp, LogisticOp, LogOp,
       MaxOp, MinOp, MulOp, NegOp, PowOp, ReducePrecisionOp, RemOp, RoundOp,
       RoundNearestEvenOp, RsqrtOp, SelectOp, SignOp, SineOp, SqrtOp, SubtractOp,
-      TanhOp, TriangularSolveOp>(patterns, context, benefit);
+      TanhOp, TanOp, TriangularSolveOp>(patterns, context, benefit);
 }
 
 }  // namespace stablehlo

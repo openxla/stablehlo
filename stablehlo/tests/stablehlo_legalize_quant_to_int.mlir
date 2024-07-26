@@ -2388,11 +2388,15 @@ func.func @send(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>, %token0: !s
 }
 
 // -----
+
+// CHECK-LABEL:  func.func @tan
 func.func @tan(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>> {
-  // expected-error@+1 {{failed to legalize operation 'stablehlo.tan' that was explicitly marked illegal}}
   %0 = "stablehlo.tan"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
   func.return %0 : tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>
 }
+
+// CHECK: stablehlo.tan {{.*}} : tensor<1x2x2xf32>
+
 
 // -----
 func.func @tuple(%arg0: tensor<1x2x2x!quant.uniform<i8:f32, 1.0:17>>,
