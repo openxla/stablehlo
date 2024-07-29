@@ -22,6 +22,12 @@ def VHLO_EmptyDims : AttrConstraint<CPred<"isEmptyTensor($_self)">, "Empty dims"
 
 def VHLO_GetDefaultConvPadding : NativeCodeCall<"getDefaultConvPadding($_builder, $0)">;
 
+def VHLO_IsSingleOperand :  Constraint<CPred<"$0.size() == 1">, "Single operand">;
+
+def VHLO_GetFirstOperand : NativeCodeCall<"$0.front()">;
+
+def VHLO_WrapInVector : NativeCodeCall<"{$0}">;
+
 def DynamicConvUpgradeV1ToV2:
   Pat<(VHLO_DynamicConvOpV1 $lhs, $rhs, $d_padding, $window_strides, $padding, $lhs_dilation, $rhs_dilation, $window_reversal, $input_batch_dimension, $input_feature_dimension, $input_spatial_dimensions, $kernel_input_feature_dimension, $kernel_output_feature_dimension, $kernel_spatial_dimensions, $output_batch_dimension, $output_feature_dimension, $output_spatial_dimensions, $feature_group_count, $batch_group_count, $precision_config),
       (VHLO_DynamicConvOpV2 $lhs, $rhs, $d_padding, $window_strides, $lhs_dilation, $rhs_dilation, $window_reversal, $input_batch_dimension, $input_feature_dimension, $input_spatial_dimensions, $kernel_input_feature_dimension, $kernel_output_feature_dimension, $kernel_spatial_dimensions, $output_batch_dimension, $output_feature_dimension, $output_spatial_dimensions, $feature_group_count, $batch_group_count, $precision_config)>;
@@ -45,3 +51,21 @@ def DynamicGatherOpUpgradeV1ToV2:
 def DynamicGatherOpDowngradeV2ToV1 :
   Pat<(VHLO_DynamicGatherOpV2 $operand, $start_indices, $slice_sizes, $offset_dims, $collapsed_slice_dims, VHLO_EmptyDims:$operand_batching_dims, VHLO_EmptyDims:$start_indices_batching_dims, $start_index_map, $index_vector_dim, $indices_are_sorted),
       (VHLO_DynamicGatherOpV1 $operand, $start_indices, $slice_sizes, $offset_dims, $collapsed_slice_dims, $start_index_map, $index_vector_dim, $indices_are_sorted)>;
+
+def AllGatherOpUpgradeV1ToV2 :
+  Pat<(VHLO_AllGatherOpV1 $operand, $all_gather_dim, $replica_groups, $channel_id, $use_global_device_ids),
+      (VHLO_AllGatherOpV2 (VHLO_WrapInVector $operand), $all_gather_dim, $replica_groups, $channel_id, $use_global_device_ids)>;
+
+def AllGatherOpDowngradeV2ToV1 :
+  Pat<(VHLO_AllGatherOpV2 $operand, $all_gather_dim, $replica_groups, $channel_id, $use_global_device_ids),
+      (VHLO_AllGatherOpV1 (VHLO_GetFirstOperand $operand), $all_gather_dim, $replica_groups, $channel_id, $use_global_device_ids),
+      [(VHLO_IsSingleOperand $operand)]>;
+
+def AllToAllOpUpgradeV1ToV2 :
+  Pat<(VHLO_AllToAllOpV1 $operand, $split_dimension, $concat_dimension, $split_count, $replica_groups, $channel_id),
+      (VHLO_AllToAllOpV2 (VHLO_WrapInVector $operand), $split_dimension, $concat_dimension, $split_count, $replica_groups, $channel_id)>;
+
+def AllToAllOpDowngradeV2ToV1 :
+  Pat<(VHLO_AllToAllOpV2 $operand, $split_dimension, $concat_dimension, $split_count, $replica_groups, $channel_id),
+      (VHLO_AllToAllOpV1 (VHLO_GetFirstOperand $operand), $split_dimension, $concat_dimension, $split_count, $replica_groups, $channel_id),
+      [(VHLO_IsSingleOperand $operand)]>;

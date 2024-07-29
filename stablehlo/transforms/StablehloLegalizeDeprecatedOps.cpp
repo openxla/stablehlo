@@ -84,8 +84,8 @@ struct CrossReplicaSumToAllReducePattern
         /*use_global_device_ids=*/false);
 
     auto *block = rewriter.createBlock(&allReduceOp.getComputation());
-    auto elementType =
-        RankedTensorType::get({}, allReduceOp.getType().getElementType());
+    auto elementType = RankedTensorType::get(
+        {}, cast<ShapedType>(allReduceOp.getType(0)).getElementType());
     auto location = allReduceOp.getComputation().getLoc();
     block->addArguments({elementType, elementType}, {location, location});
     auto addOp = rewriter.create<AddOp>(location, block->getArgument(0),
