@@ -1212,29 +1212,29 @@ SmallVector<InterpreterValue> allToAllOp(
   if (channelId > 0) processGroups = process->crossPartition(replicaGroups);
 
   auto processGroup = processGroups.findGroup(process->getId());
-  if (!processGroup)
+  if (!processGroup.has_value())
     llvm::report_fatal_error(invalidArgument(
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
-  auto groupOperands = process->rendezvous(*processGroup, channelId, operands)
-                           .getSortedTensors();
+  auto groupOperands =
+      process->rendezvous(processGroup.value(), channelId, operands);
+
+  auto receiverIndex = llvm::find(processGroup.value(), process->getId()) -
+                       processGroup->begin();
   SmallVector<InterpreterValue> results(resultTypes.size());
-  for (const auto &[resultIndex, operand, resultType] :
-       llvm::enumerate(operands, resultTypes)) {
+  for (const auto &[resultIndex, resultType] : llvm::enumerate(resultTypes)) {
     SmallVector<Tensor> scatteredParts;
-    for (const auto &processOperands : groupOperands) {
-      auto splitParts = split(processOperands[resultIndex], splitCount,
-                              splitDimension, operand.getType().getContext());
-      for (const auto &[i, processId] : llvm::enumerate(*processGroup))
-        if (processId == process->getId())
-          scatteredParts.push_back(splitParts[i]);
+    for (const auto &sender : processGroup.value()) {
+      auto splitParts =
+          split(groupOperands.lookup(sender)[resultIndex], splitCount,
+                splitDimension, operands[resultIndex].getType().getContext());
+      scatteredParts.push_back(splitParts[receiverIndex]);
     }
     results[resultIndex] =
         concatenateOp(scatteredParts, concatDimension, resultType);
   }
   return results;
 }
-
 Tensor andOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)

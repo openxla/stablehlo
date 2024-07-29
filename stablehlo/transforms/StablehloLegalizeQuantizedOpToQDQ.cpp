@@ -37,6 +37,28 @@ bool isAnyQuantizedTypes(TypeRange types) {
   });
 }
 
+// Gets the QuantizedType associated with the given type, or returns failure if
+// not quantized.
+FailureOr<quant::QuantizedType> getQuantType(Type type) {
+  if (auto quantType =
+          dyn_cast<quant::QuantizedType>(getElementTypeOrSelf(type)))
+    return quantType;
+  return failure();
+}
+
+// Extracts expressed type of a uniform quantized type, preserving its shape.
+Type getQuantExpressedType(Type type) {
+  if (auto shaped = dyn_cast<ShapedType>(type)) {
+    return shaped.clone(getQuantExpressedType(shaped.getElementType()));
+  }
+
+  auto quantizedType = getQuantType(type);
+  if (succeeded(quantizedType)) {
+    return quantizedType->getExpressedType();
+  }
+  return type;
+}
+
 template <typename StablehloOpType>
 struct QuantizedStablehloOpConversion
     : public OpRewritePattern<StablehloOpType> {
@@ -59,10 +81,13 @@ struct QuantizedStablehloOpConversion
     }
 
     auto origOp = op.getOperation();
+    SmallVector<Type> newResultTypes =
+        llvm::map_to_vector(origOp->getResultTypes(),
+                            [](Type t) { return getQuantExpressedType(t); });
     auto origAttrs = origOp->getAttrs();
     auto newOp = rewriter
-                     .create<StablehloOpType>(op.getLoc(), dequantizedOperands,
-                                              origAttrs)
+                     .create<StablehloOpType>(op.getLoc(), newResultTypes,
+                                              dequantizedOperands, origAttrs)
                      .getOperation();
 
     SmallVector<Value> quantizedResults;
@@ -77,6 +102,7 @@ struct QuantizedStablehloOpConversion
         quantizedResults.push_back(newResult);
       }
     }
+
     rewriter.replaceOp(op, quantizedResults);
     return success();
   }
@@ -109,27 +135,23 @@ class StablehloLegalizeQuantizedOpToQDQPass
 
 template <typename... StablehloOpTypes>
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    RewritePatternSet* patterns, MLIRContext* context) {
-  patterns->add<QuantizedStablehloOpConversion<StablehloOpTypes>...>(context);
+    RewritePatternSet* patterns, MLIRContext* context, PatternBenefit benefit) {
+  patterns->add<QuantizedStablehloOpConversion<StablehloOpTypes>...>(context,
+                                                                     benefit);
 }
 
 }  // namespace
 
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    RewritePatternSet* patterns, MLIRContext* context) {
-  // The following list covers most of the operations which, according to the
-  // stablehlo spoecification document, interprets the quantized
-  // operation using dequant-op-quant strategy. The ones excluded are
-  // AddOP, ConvolutionOp, DotGeneralOp, and DynamicConvOp, which are current
-  // using `stablehlo-legalize-quant-to-int` pass for decomposituion to
-  // primitive math operations.
+    RewritePatternSet* patterns, MLIRContext* context, PatternBenefit benefit) {
   populateStablehloLegalizeQuantizedOpToQDQPatterns<
-      AbsOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
+      AbsOp, AddOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
       BatchNormTrainingOp, CbrtOp, CeilOp, CholeskyOp, ClampOp, CompareOp,
-      CosineOp, DivOp, Expm1Op, ExpOp, FloorOp, Log1pOp, LogisticOp, LogOp,
-      MaxOp, MinOp, MulOp, NegOp, PowOp, ReducePrecisionOp, RemOp, RoundOp,
-      RoundNearestEvenOp, RsqrtOp, SelectOp, SignOp, SineOp, SqrtOp, SubtractOp,
-      TanhOp, TriangularSolveOp>(patterns, context);
+      ConvolutionOp, CosineOp, DivOp, DotGeneralOp, DotOp, Expm1Op, ExpOp,
+      FloorOp, Log1pOp, LogisticOp, LogOp, MaxOp, MinOp, MulOp, NegOp, PowOp,
+      ReducePrecisionOp, RemOp, RoundOp, RoundNearestEvenOp, RsqrtOp, SelectOp,
+      SignOp, SineOp, SqrtOp, SubtractOp, TanhOp, TanOp, TriangularSolveOp>(
+      patterns, context, benefit);
 }
 
 }  // namespace stablehlo

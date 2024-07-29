@@ -44,6 +44,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace mlir::stablehlo {
 namespace {
@@ -143,9 +144,7 @@ void getQuantizationStorageInfo(OpBuilder &builder, Location loc,
                static_cast<float>(quantType.getStorageTypeMax())));
 }
 
-Type getQuantStorageType(QuantType type) { return type.getStorageType(); }
-
-// Extracts storage type of a UQ type. Return original type if it is no UQ type.
+// Extracts storage type of a UQ type, preserving its shape.
 Type getQuantStorageType(Type type) {
   if (auto shaped = dyn_cast<ShapedType>(type)) {
     return shaped.clone(getQuantStorageType(shaped.getElementType()));
@@ -153,7 +152,7 @@ Type getQuantStorageType(Type type) {
 
   auto quantizedType = getQuantType(type);
   if (succeeded(quantizedType)) {
-    return getQuantStorageType(*quantizedType);
+    return quantizedType->getStorageType();
   }
   return type;
 }
@@ -426,10 +425,10 @@ class ConvertUniformQuantizedAddOp
     // We only handle cases where lhs, rhs and results all have quantized
     // element type.
     if (failed(lhsQuantType) || failed(rhsQuantType) || failed(resQuantType)) {
-      op->emitError(
+      return rewriter.notifyMatchFailure(
+          op,
           "AddOp requires the quantized element type for all operands and "
           "results");
-      return failure();
     }
 
     if (isPerAxisType(*lhsQuantType) || isPerAxisType(*rhsQuantType) ||
@@ -440,16 +439,16 @@ class ConvertUniformQuantizedAddOp
           !isPerAxisType(*resQuantType) ||
           getPerAxisType(*lhsQuantType) != getPerAxisType(*rhsQuantType) ||
           getPerAxisType(*lhsQuantType) != getPerAxisType(*resQuantType)) {
-        op->emitError(
+        return rewriter.notifyMatchFailure(
+            op,
             "Per-axis quantized AddOp requires the same quantized element "
             "type for all operands and results");
-        return failure();
       }
       if (!getPerAxisType(*lhsQuantType).getStorageType().isInteger(32)) {
         // For server-side StableHLO Quantization, add is quantized only when
         // fused with conv/dot ops, whose output must be i32.
-        op->emitError("Per-axis quantized AddOp requires i32 storage type");
-        return failure();
+        return rewriter.notifyMatchFailure(
+            op, "Per-axis quantized AddOp requires i32 storage type");
       }
       return matchAndRewritePerAxis(op, adaptor, rewriter,
                                     getPerAxisType(*lhsQuantType));
@@ -981,13 +980,21 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
     combinedZp = rewriter.create<chlo::BroadcastSubOp>(
         op->getLoc(), resInt32TensorType, combinedZp, zpOffset, nullptr);
   }
-  rewriter.replaceOpWithNewOp<chlo::BroadcastAddOp>(
-      op, resInt32TensorType, resI32, combinedZp, nullptr);
+  Value zpAdded = rewriter.create<chlo::BroadcastAddOp>(
+      op->getLoc(), resInt32TensorType, resI32, combinedZp, nullptr);
+
+  // Convert results back to result storage type.
+  auto resQuantType = getQuantType(getElementTypeOrSelf(op.getResult()));
+  auto resFinalTensorType =
+      resInt32TensorType.clone(getQuantStorageType(*resQuantType));
+  rewriter.replaceOpWithNewOp<stablehlo::ConvertOp>(op, resFinalTensorType,
+                                                    zpAdded);
   return success();
 }
 
 template <typename DotLikeOp>
-FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op) {
+FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op,
+                                  ConversionPatternRewriter &rewriter) {
   // Checks whether a dot-like op is hybrid by looking at input/output types.
   // Returns failure() when the type is not supported.
   bool isLhsQuant = isa<quant::UniformQuantizedType>(
@@ -1013,8 +1020,8 @@ FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op) {
       !isResQuant && !isResQuantPerAxis) {
     return true;
   }
-  op->emitError("Invalid input/output type for Dot/Convolution op");
-  return failure();
+  return rewriter.notifyMatchFailure(
+      op, "Invalid input/output type for Dot/Convolution op");
 }
 
 class ConvertUniformQuantizedDotOp
@@ -1025,7 +1032,7 @@ class ConvertUniformQuantizedDotOp
   LogicalResult matchAndRewrite(
       stablehlo::DotOp op, stablehlo::DotOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto isHybrid = isDotLikeOpHybrid(op);
+    auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
     }
@@ -1061,7 +1068,7 @@ class ConvertUniformQuantizedDotGeneralOp
   LogicalResult matchAndRewrite(
       stablehlo::DotGeneralOp op, stablehlo::DotGeneralOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto isHybrid = isDotLikeOpHybrid(op);
+    auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
     }
@@ -1123,7 +1130,7 @@ bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr &dims) {
 }
 
 FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
-    stablehlo::ConvolutionOp op) {
+    stablehlo::ConvolutionOp op, ConversionPatternRewriter &rewriter) {
   // RHS (weight) must have zero zp.
   // Here assumes RHS/result must be both per-tensor or both per-axis
   // quantized.
@@ -1141,15 +1148,15 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
                     getPerAxisType(rhsElementQuantType).getZeroPoints(),
                     getPerAxisType(op.getType()).getZeroPoints()),
                 [](int64_t zp) { return zp != 0; })) {
-    op->emitError("RHS/result UQ type must have zero zp.");
-    return failure();
+    return rewriter.notifyMatchFailure(op,
+                                       "RHS/result UQ type must have zero zp.");
   }
   // For per-axis quantization, RHS quantized axis must be out channel axis.
   if (!isRhsQuantPerTensor &&
       (getPerAxisType(rhsElementQuantType).getQuantizedDimension() !=
        cast<TensorType>(op.getRhs().getType()).getRank() - 1)) {
-    op->emitError("Conv quantized axis must be out channel axis");
-    return failure();
+    return rewriter.notifyMatchFailure(
+        op, "Conv quantized axis must be out channel axis");
   }
   // For per-axis quantization, ratio between RHS and Result scales must be
   // the same for each channel.
@@ -1163,10 +1170,10 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
       auto diff = (scaleRatios[i] - scaleRatios[0]) / scaleRatios[0];
       // Check all ratios within a threshold.
       if (std::abs(diff) > 0.001) {
-        op->emitError(
+        return rewriter.notifyMatchFailure(
+            op,
             "Per-axis quantizated Conv must have same RHS/Result scale "
             "ratio for each channel");
-        return failure();
       }
     }
   }
@@ -1174,8 +1181,7 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
   if (op.getLhsDilation().has_value() &&
       llvm::any_of(*op.getLhsDilation(),
                    [](int64_t dilate) { return dilate != 1; })) {
-    op->emitError("lhs_dilation must be 1.");
-    return failure();
+    return rewriter.notifyMatchFailure(op, "lhs_dilation must be 1.");
   }
 
   // We only support NHWC Conv2D and NDHWC Conv3D.
@@ -1198,8 +1204,8 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
                                    /*rhs_spatial_dims=*/{0, 1, 2},
                                    /*rhs_contracting_dims=*/{3}};
   }
-  op->emitError("Convolution data format must be NHWC.");
-  return failure();
+  return rewriter.notifyMatchFailure(op,
+                                     "Convolution data format must be NHWC.");
 }
 
 class ConvertUniformQuantizedConvolutionOp
@@ -1210,14 +1216,14 @@ class ConvertUniformQuantizedConvolutionOp
   LogicalResult matchAndRewrite(
       stablehlo::ConvolutionOp op, stablehlo::ConvolutionOpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
-    auto isHybrid = isDotLikeOpHybrid(op);
+    auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
     }
     if (*isHybrid) {
       return matchAndRewriteDotLikeHybridOp(op, adaptor, rewriter);
     }
-    auto dims = verifyAndConstructDims(op);
+    auto dims = verifyAndConstructDims(op, rewriter);
     if (failed(dims)) return failure();
     return matchAndRewriteDotLikeOp(op, adaptor, op->getAttrs(), *dims,
                                     rewriter);
@@ -1229,8 +1235,9 @@ class ConvertUniformQuantizedConvolutionOp
 // TODO: b/310685906 - Add operand/result type validations.
 class ConvertGenericOp : public ConversionPattern {
  public:
-  explicit ConvertGenericOp(MLIRContext *ctx, TypeConverter &converter)
-      : ConversionPattern(converter, MatchAnyOpTypeTag(), 1, ctx) {}
+  explicit ConvertGenericOp(MLIRContext *ctx, TypeConverter &converter,
+                            PatternBenefit benefit)
+      : ConversionPattern(converter, MatchAnyOpTypeTag(), benefit, ctx) {}
 
   LogicalResult matchAndRewrite(
       Operation *op, ArrayRef<Value> operands,
@@ -1244,7 +1251,8 @@ class ConvertGenericOp : public ConversionPattern {
              stablehlo::ReturnOp, stablehlo::SelectOp, stablehlo::SliceOp,
              stablehlo::TransposeOp, stablehlo::GetDimensionSizeOp,
              stablehlo::DynamicBroadcastInDimOp>(op)) {
-      return failure();
+      return rewriter.notifyMatchFailure(
+          op, "Unsupported op for performing type change");
     }
 
     if (isa<stablehlo::MinOp, stablehlo::MaxOp>(op)) {
@@ -1253,10 +1261,10 @@ class ConvertGenericOp : public ConversionPattern {
       auto rhsType = getPerTensorType(op->getOperandTypes()[1]);
       auto resultType = getPerTensorType(op->getResultTypes()[0]);
       if (lhsType != rhsType || lhsType != resultType) {
-        return op->emitError(
-            op->getName().getStringRef() +
-            " with different quantization parameters for operands and"
-            " results is not supported.");
+        return rewriter.notifyMatchFailure(
+            op, op->getName().getStringRef() +
+                    " with different quantization parameters for operands and"
+                    " results is not supported.");
       }
     }
 
@@ -1270,12 +1278,13 @@ class ConvertGenericOp : public ConversionPattern {
     OperationState state(op->getLoc(), op->getName().getStringRef(), operands,
                          newResultTypes, op->getAttrs(), op->getSuccessors());
     for (Region &region : op->getRegions()) {
-      Region &newRegion = *state.addRegion();
-      rewriter.inlineRegionBefore(region, newRegion, newRegion.begin());
-      if (failed(
-              rewriter.convertRegionTypes(&newRegion, *getTypeConverter()))) {
+      auto newRegion = std::make_unique<Region>(op);
+      rewriter.inlineRegionBefore(region, *newRegion, newRegion->begin());
+      if (failed(rewriter.convertRegionTypes(newRegion.get(),
+                                             *getTypeConverter()))) {
         return failure();
       }
+      state.addRegion(std::move(newRegion));
     }
     Operation *newOp = rewriter.create(state);
     rewriter.replaceOp(op, newOp);
@@ -1293,12 +1302,12 @@ class UniformQuantizedToIntTypeConverter : public TypeConverter {
 
 }  // namespace
 
-#define GEN_PASS_DEF_STABLEHLOLEGALIZEQUANTTOINTPASS
+#define GEN_PASS_DEF_STABLEHLOLEGALIZEQUANTTOMATHPASS
 #include "stablehlo/transforms/Passes.h.inc"
 
-class StablehloLegalizeQuantToIntPass
-    : public impl::StablehloLegalizeQuantToIntPassBase<
-          StablehloLegalizeQuantToIntPass> {
+class StablehloLegalizeQuantToMathPass
+    : public impl::StablehloLegalizeQuantToMathPassBase<
+          StablehloLegalizeQuantToMathPass> {
  public:
   // Performs conversion of stablehlo quant ops to primitive ops.
   void runOnOperation() override {
@@ -1310,11 +1319,15 @@ class StablehloLegalizeQuantToIntPass
     patterns.add<ConvertUniformQuantizeOp, ConvertUniformDequantizeOp,
                  ConvertUniformQuantizedAddOp, ConvertUniformQuantizedDotOp,
                  ConvertUniformQuantizedDotGeneralOp,
-                 ConvertUniformQuantizedConvolutionOp>(context);
+                 ConvertUniformQuantizedConvolutionOp>(context, /*benefit=*/10);
+
+    // Populate stablehlo quant-op to dq-op-q patterns as fallback.
+    populateStablehloLegalizeQuantizedOpToQDQPatterns(&patterns, context,
+                                                      /*benefit=*/1);
 
     // uq->int convert patterns for func.func, func.return and generic ops.
     UniformQuantizedToIntTypeConverter converter;
-    patterns.add<ConvertGenericOp>(context, converter);
+    patterns.add<ConvertGenericOp>(context, converter, /*benefit=*/10);
     populateFunctionOpInterfaceTypeConversionPattern<func::FuncOp>(patterns,
                                                                    converter);
     populateReturnOpTypeConversionPattern(patterns, converter);

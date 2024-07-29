@@ -124,7 +124,7 @@ LogicalResult validateEntrySignature(func::FuncOp func,
   if (func.getNumArguments() != inputs.size())
     return func->emitError()
            << "incorrect number of arguments specified, provided "
-           << inputs.size() << " inputs but function expected"
+           << inputs.size() << " inputs but function expected "
            << func.getNumArguments();
 
   TypeRange signature = func.getArgumentTypes();
