@@ -300,6 +300,12 @@ def HLO_Commutative : HLO_NativeOpTrait<"IsCommutative">;
 def HLO_PairwiseSameOperandAndResultType :
   HLO_NativeOpTrait<"PairwiseSameOperandAndResultType">;
 
+// Op has pairwise operand and result element type matching: the number of operands
+// must be equal to the number of results and the element type of ith operand must
+// match the element type of ith result.
+def HLO_PairwiseSameOperandAndResultElementType :
+  HLO_NativeOpTrait<"PairwiseSameOperandAndResultElementType">;
+
 // Op has operand and result types compatible with each other according to
 // the rules implemented in isCompatibleForHloTypeInference, which account for
 // special properties dynamism, quantization and sparsity.

@@ -35,6 +35,7 @@ limitations under the License.
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
@@ -300,6 +301,31 @@ class PairwiseSameOperandAndResultType
         return op->emitOpError()
                << "requires the same type for operand and result at index "
                << idx;
+      }
+    }
+    return success();
+  }
+};
+
+template <typename ConcreteType>
+class PairwiseSameOperandAndResultElementType
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      PairwiseSameOperandAndResultElementType> {
+ public:
+  static LogicalResult verifyTrait(Operation *op) {
+    const int numOperands = op->getNumOperands();
+    const int numResults = op->getNumResults();
+    if (numOperands != numResults) {
+      return op->emitOpError()
+             << "requires the same number of operands and results";
+    }
+
+    for (int idx : llvm::seq<int>(0, numOperands)) {
+      if (getElementTypeOrSelf(op->getOperand(idx)) !=
+          getElementTypeOrSelf(op->getResult(idx))) {
+        return op->emitOpError() << "requires the same element type for "
+                                    "operand and result at index "
+                                 << idx;
       }
     }
     return success();

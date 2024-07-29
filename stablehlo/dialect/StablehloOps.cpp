@@ -1148,7 +1148,7 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   AllToAllOp::Adaptor adaptor(operands, attributes, properties, regions);
   return hlo::inferAllToAllOp(
-      location, adaptor.getOperand(), adaptor.getSplitDimension(),
+      location, adaptor.getOperands(), adaptor.getSplitDimension(),
       adaptor.getConcatDimension(), adaptor.getSplitCount(),
       adaptor.getReplicaGroups(), inferredReturnShapes);
 }
@@ -1164,20 +1164,24 @@ void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
 }
 
 mlir::Speculation::Speculatability AllToAllOp::getSpeculatability() {
-  auto inputType = getOperand().getType();
-  auto resultType = getResult().getType();
-  auto splitDim = getSplitDimension();
-  auto concatDim = getConcatDimension();
-  // The actual size of the `splitDim` and `concatDim` depends on the number
-  // of processes, which is only known at runtime. If it is dynamic, there is
-  // no expectation, so there cannot be a mismatch. If it is static, the actual
-  // number may differ at runtime, leading to UB. See all_to_all_c9 in the spec.
-  if (!resultType.isDynamicDim(splitDim) || !resultType.isDynamicDim(concatDim))
-    return mlir::Speculation::NotSpeculatable;
-  for (size_t i : llvm::seq(resultType.getRank())) {
-    if (i == splitDim || i == concatDim) continue;
-    if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+  for (auto [operand, result] : llvm::zip(getOperands(), getResults())) {
+    auto inputType = cast<RankedTensorType>(operand.getType());
+    auto resultType = cast<RankedTensorType>(result.getType());
+    auto splitDim = getSplitDimension();
+    auto concatDim = getConcatDimension();
+    // The actual size of the `splitDim` and `concatDim` depends on the number
+    // of processes, which is only known at runtime. If it is dynamic, there is
+    // no expectation, so there cannot be a mismatch. If it is static, the
+    // actual number may differ at runtime, leading to UB. See all_to_all_c9 in
+    // the spec.
+    if (!resultType.isDynamicDim(splitDim) ||
+        !resultType.isDynamicDim(concatDim))
       return mlir::Speculation::NotSpeculatable;
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (i == splitDim || i == concatDim) continue;
+      if (!resultType.isDynamicDim(i) && inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
   }
   return mlir::Speculation::Speculatable;
 }
@@ -1191,25 +1195,28 @@ LogicalResult AllGatherOp::verify() {
   if (auto channelHandleAttr = getChannelHandleAttr())
     channelId = channelHandleAttr.getHandle();
 
-  return hlo::verifyAllGatherOp(getLoc(), getOperand(), getAllGatherDim(),
+  return hlo::verifyAllGatherOp(getLoc(), getOperands(), getAllGatherDim(),
                                 getReplicaGroups(), channelId,
-                                getUseGlobalDeviceIds(), getResult());
+                                getUseGlobalDeviceIds(), getResults());
 }
 
 mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
-  auto inputType = getOperand().getType();
-  auto resultType = getResult().getType();
-  auto allGatherDim = getAllGatherDim();
-  // The actual size of the `allGatherDim` depends on the number of processes,
-  // which is only known at runtime. If it is dynamic, there is no expectation,
-  // so there cannot be a mismatch. If it is static, the actual number may
-  // differ at runtime, leading to UB. See all_gather_c6 in the spec.
-  if (!resultType.isDynamicDim(allGatherDim))
-    return mlir::Speculation::NotSpeculatable;
-  for (size_t i : llvm::seq(resultType.getRank())) {
-    if (i != allGatherDim && !resultType.isDynamicDim(i) &&
-        inputType.isDynamicDim(i))
+  for (auto [operand, result] : llvm::zip(getOperands(), getResults())) {
+    auto inputType = cast<RankedTensorType>(operand.getType());
+    auto resultType = cast<RankedTensorType>(result.getType());
+    auto allGatherDim = getAllGatherDim();
+    // The actual size of the `allGatherDim` depends on the number of processes,
+    // which is only known at runtime. If it is dynamic, there is no
+    // expectation, so there cannot be a mismatch. If it is static, the actual
+    // number may differ at runtime, leading to UB. See all_gather_c6 in the
+    // spec.
+    if (!resultType.isDynamicDim(allGatherDim))
       return mlir::Speculation::NotSpeculatable;
+    for (size_t i : llvm::seq(resultType.getRank())) {
+      if (i != allGatherDim && !resultType.isDynamicDim(i) &&
+          inputType.isDynamicDim(i))
+        return mlir::Speculation::NotSpeculatable;
+    }
   }
   return mlir::Speculation::Speculatable;
 }
@@ -1218,12 +1225,21 @@ mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
 // AllReduceOp
 //===----------------------------------------------------------------------===//
 
+void AllReduceOp::build(OpBuilder& odsBuilder, OperationState& odsState,
+                        Type resultType, Value operand,
+                        DenseIntElementsAttr replicaGroups,
+                        ChannelHandleAttr channelHandle,
+                        bool useGlobalDeviceIds) {
+  build(odsBuilder, odsState, resultType, ValueRange(operand), replicaGroups,
+        channelHandle, useGlobalDeviceIds);
+}
+
 LogicalResult AllReduceOp::verify() {
   int64_t channelId = 0;
   if (auto channelHandleAttr = getChannelHandleAttr())
     channelId = channelHandleAttr.getHandle();
 
-  return hlo::verifyAllReduceOp(getLoc(), getOperand(), getReplicaGroups(),
+  return hlo::verifyAllReduceOp(getLoc(), getOperands(), getReplicaGroups(),
                                 channelId, getUseGlobalDeviceIds(),
                                 getComputation());
 }
@@ -1233,7 +1249,7 @@ LogicalResult AllReduceOp::inferReturnTypeComponents(
     DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   AllReduceOp::Adaptor adaptor(operands, attributes, properties, regions);
-  return hlo::inferAllReduceOp(location, adaptor.getOperand(),
+  return hlo::inferAllReduceOp(location, adaptor.getOperands(),
                                adaptor.getComputation(), inferredReturnShapes);
 }
 

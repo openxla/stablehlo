@@ -343,6 +343,37 @@ struct ScatterOpV1ToV2 : public OpRewritePattern<ScatterOpV1> {
   }
 };
 
+struct AllReduceOpV1ToV2 : public OpRewritePattern<AllReduceOpV1> {
+  using OpRewritePattern<AllReduceOpV1>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(AllReduceOpV1 op,
+                                PatternRewriter& rewriter) const override {
+    auto newOp = rewriter.replaceOpWithNewOp<AllReduceOpV2>(
+        op, op->getResultTypes(), op->getOperands(), op.getReplicaGroups(),
+        op.getChannelId(), op.getUseGlobalDeviceIds());
+    Region& body = newOp.getComputation();
+    rewriter.inlineRegionBefore(op.getComputation(), body, body.begin());
+    return success();
+  }
+};
+
+struct AllReduceOpV2ToV1 : public OpRewritePattern<AllReduceOpV2> {
+  using OpRewritePattern<AllReduceOpV2>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(AllReduceOpV2 op,
+                                PatternRewriter& rewriter) const override {
+    if (op->getOperands().size() != 1) {
+      return rewriter.notifyMatchFailure(op, "multiple operands");
+    }
+    auto newOp = rewriter.replaceOpWithNewOp<AllReduceOpV1>(
+        op, op.getResultTypes().front(), op->getOperands().front(),
+        op.getReplicaGroups(), op.getChannelId(), op.getUseGlobalDeviceIds());
+    Region& body = newOp.getComputation();
+    rewriter.inlineRegionBefore(op.getComputation(), body, body.begin());
+    return success();
+  }
+};
+
 #include "stablehlo/transforms/VhloToVersionPatterns.h.inc"
 
 }  // namespace
@@ -354,6 +385,7 @@ void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    MLIRContext* context) {
   vhlo::populateWithGenerated(*patterns);
   patterns->add<vhlo::ScatterOpV1ToV2, vhlo::ScatterOpV2ToV1>(context);
+  patterns->add<vhlo::AllReduceOpV1ToV2, vhlo::AllReduceOpV2ToV1>(context);
 }
 
 }  // namespace stablehlo

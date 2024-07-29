@@ -481,9 +481,9 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
   Attribute stablehloAttr;
   auto typeConverter = pattern.getTypeConverter();
 
-  if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::AllReduceOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::AllToAllOpV1>::value ||
+  if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::AllReduceOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::AllToAllOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
@@ -683,15 +683,15 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     if (isEmptyArray(vhloOp.getResAttrsAttr()))
       eraseAttrs(vhloAttrs, "res_attrs");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::AllReduceOpV1>::value ||
+  if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::AllReduceOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value) {
     if (isInteger(vhloOp.getChannelIdAttr(), 0))
       eraseAttrs(vhloAttrs, "channel_id");
     if (isBoolean(vhloOp.getUseGlobalDeviceIdsAttr(), false))
       eraseAttrs(vhloAttrs, "use_global_device_ids");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::AllToAllOpV1>::value ||
+  if constexpr (std::is_same<VhloOpTy, vhlo::AllToAllOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
     if (isInteger(vhloOp.getChannelIdAttr(), 0))
