@@ -4013,6 +4013,29 @@ LogicalResult verifyDotGeneralOpQuantizationConstraints(
       location, lhsElementType, rhsElementType, resultElementType);
 }
 
+// namespace {
+// LogicalResult verifyDotAlgorithm(
+//     std::optional<Location> location, Type lhsElementType,
+//     bool isDefaultPrecisionConfig, Type lhsType, Type rhsType, Type accumulationType,
+//     int64_t lhsComponentCount, int64_t rhsComponentCount,
+//     int64_t numPrimitiveOps, bool allowImpreciseAccumulation) {
+
+//   // dot_general_c21
+//   if (lhsComponentCount < 1)
+//     return emitOptionalError(location, "LHS component count ",
+//                              lhsComponentCount, " must be positive");
+//   // dot_general_c22
+//   if (rhsComponentCount < 1)
+//     return emitOptionalError(location, "RHS component count ",
+//                              rhsComponentCount, " must be positive");
+//   // dot_general_c23
+//   if (numPrimitiveOps < 1)
+//     return emitOptionalError(location, "number of primitive ops ",
+//                              numPrimitiveOps, " must be positive");
+//   return success();
+// }
+// }
+
 LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  Value rhs,
                                  ArrayRef<int64_t> lhsBatchingDimensions,
@@ -4020,7 +4043,8 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  ArrayRef<int64_t> lhsContractingDimensions,
                                  ArrayRef<int64_t> rhsContractingDimensions,
                                  std::optional<ArrayAttr> precisionConfig,
-                                 Value result) {
+                                 bool isDefaultPrecisionConfig,
+                                 bool hasAlgorithmSpecified, Value result) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
   if (failed(inferDotGeneralOp(
           location, lhs.getType(), rhs.getType(), lhsBatchingDimensions,
@@ -4035,6 +4059,11 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
     return emitOptionalError(
         location, "inferred shape '", dimSizesToString(inferredShape.getDims()),
         "' ", "is incompatible with return type of operation ", resultType, "");
+
+  if (!isDefaultPrecisionConfig && hasAlgorithmSpecified)
+    return emitOptionalError(
+        location,
+        "must specify DEFAULT precision config when algorithm is set.");
 
   Type lhsType = lhs.getType();
   Type rhsType = rhs.getType();

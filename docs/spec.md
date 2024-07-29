@@ -2542,17 +2542,83 @@ planning to address this in
 * `HIGHEST`: Slowest calculation, but most accurate approximation to the
   original number.
 
+The `DotAlgorithm` attribute defines the main properties of the algorithm used
+to implement the dot operation, which also defines the precision. If the
+algorithm attribute is set, then the `precision_config` must be `DEFAULT`.
+
+`DotAlgorithm.lhs_type` and `DotAlgorithm.rhs_type` are the precisions that the
+LHS and RHS of the operation are rounded to, and `DotAlgorithm.accum_type` is
+`AccumType` - the accumulation type. These types are independent from the
+storage types of the inputs and the output. `DotAlgorithm.lhs_component_count`,
+`DotAlgorithm.rhs_component_count` and `DotAlgorithm.num_primitive_operations` apply
+when we are doing an algorithm which decomposes the LHS and/or RHS into multiple
+components and does multiple "primitive" dot operations on those values -
+usually to emulate a higher precision (e.g.
+[bf16_6x](https://arxiv.org/pdf/1904.06376.pdf), tf32_3x, etc). If this is not
+the case, these values should be set to 1. If
+`DotAlgorithm.allow_imprecise_accum` is true, then the implementation is allowed
+to accumulate in lower precision for some steps (as per
+CUBLASLT_MATMUL_DESC_FAST_ACCUM).
+
+It is up to the implementations to decide which combinations are supported.
+
+Example `DotAlgorithm` attributes:
+
+```txt
+// Inputs are casted to tf32, and then accumulated in f32:
+{lhs_precision_type = tf32,
+ rhs_precision_type = tf32,
+ accumulation_type = f32,
+ lhs_component_count = 1,
+ rhs_component_count = 1,
+ num_primitive_operations = 1,
+ allow_imprecise_accumulation = false}
+
+
+// bf16_6x: each input is decomposed to 3 bf16 components, then 6 dot operations are done on those components, and the result is accumulated in f32.
+{lhs_precision_type = bf16,
+ rhs_precision_type = bf16,
+ accumulation_type = f32,
+ lhs_component_count = 3,
+ rhs_component_count = 3,
+ num_primitive_operations = 6,
+ allow_imprecise_accumulation = false}
+
+
+// Inputs are (casted to) f8e5m2, and we accumulate in f32, but for some steps we may accumulate in lower precision.
+{lhs_precision_type = f8e5m2,
+ rhs_precision_type = f8e5m2,
+ accumulation_type = f32,
+ lhs_component_count = 1,
+ rhs_component_count = 1,
+ num_primitive_operations = 1,
+ allow_imprecise_accumulation = true}
+```
+
+In general, it is not guaranteed that the each algorithm is supported on each
+accelerator type by the consumer of the StableHLO. If a given algorithm is not
+supported, an error should be raised as opposed to falling back to an
+alternative.
+
 #### Inputs
 
-| Label | Name                         | Type                                                         | Constraints                                    |
-|-------|------------------------------|--------------------------------------------------------------|------------------------------------------------|
-| (I1)  | `lhs`                        | tensor or per-tensor quantized tensor                        | (C5-C6), (C9-C10), (C12-C14), (C17-C18), (C20) |
-| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C20)                            |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)                  |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)                         |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)                        |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10), (C16)                 |
-| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                                          |
+| Label | Name                           | Type                                                         | Constraints                                    |
+|-------|--------------------------------|--------------------------------------------------------------|------------------------------------------------|
+| (I1)  | `lhs`                          | tensor or per-tensor quantized tensor                        | (C5-C6), (C9-C10), (C12-C14), (C17-C18), (C20) |
+| (I2)  | `rhs`                          | tensor or quantized tensor                                   | (C7-C10), (C12-C20)                            |
+| (I3)  | `lhs_batching_dimensions`      | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)                  |
+| (I4)  | `rhs_batching_dimensions`      | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)                         |
+| (I5)  | `lhs_contracting_dimensions`   | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)                        |
+| (I6)  | `rhs_contracting_dimensions`   | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10), (C16)                 |
+| (I7)  | `precision_config`             | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                                          |
+| (I8)  | `lhs_precision_type`           | TensorElementType or TensorFloat32                           |                                                |
+| (I9)  | `rhs_precision_type`           | TensorElementType or TensorFloat32                           |                                                |
+| (I10) | `accumulation_type`            | TensorElementType or TensorFloat32                           |                                                |
+| (I11) | `lhs_component_count`          | constant of type `si32`                                      | (C21)                                          |
+| (I12) | `rhs_component_count`          | constant of type `si32`                                      | (C22)                                          |
+| (I13) | `num_primitive_operations`     | constant of type `si32`                                      | (C23)                                          |
+| (I14) | `allow_imprecise_accumulation` | constant of type `bool`                                      |                                                |
+
 
 #### Outputs
 
@@ -2592,6 +2658,13 @@ planning to address this in
       `is_per_tensor_quantized(result)`.
   * If `!is_quantized(lhs)`:
     * (C20) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
+* (C21) `0 < lhs_component_count`
+* (C22) `0 < rhs_component_count`
+* (C23) `0 < num_primitive_operations`
+* (C24) If `precision_config... != DEFAULT`,
+  then `lhs_precision_type = rhs_precision_type = accumulation_type = element_type(lhs)`
+  and `lhs_component_count = rhs_component_count = num_primitive_operations = 1`
+  and `allow_imprecise_accumulation = false`.
 
 #### Examples
 
@@ -2615,7 +2688,16 @@ planning to address this in
     lhs_contracting_dimensions = [2],
     rhs_contracting_dimensions = [1]
   >,
-  precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+  precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>],
+  algorithm = #stablehlo.dot_algorithm<
+    lhs_precision_type = tf32,
+    rhs_precision_type = tf32,
+    accumulation_type = f32,
+    lhs_component_count = 1,
+    rhs_component_count = 1,
+    num_primitive_operations = 1,
+    allow_imprecise_accumulation = false
+  >
 } : (tensor<2x2x2xi64>, tensor<2x2x2xi64>) -> tensor<2x2x2xi64>
 // %result: [
 //           [[1, 2],

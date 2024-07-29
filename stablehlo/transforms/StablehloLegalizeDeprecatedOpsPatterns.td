@@ -30,7 +30,6 @@ def GetDefaultDotDimensionNumbers : NativeCodeCall<
 def GetDefaultBroadcastDimensions : NativeCodeCall<
   "getBroadcastDimensionsFromBroadcastSizes(cast<RankedTensorType>($0.getType()), cast<DenseI64ArrayAttr>($1))">;
 
-
 // Here, the element type can be any integer or float type. But, note that only
 // 32 bit integers are supported for the value.
 class GetScalarOfType<int value> : NativeCodeCall<
@@ -48,7 +47,7 @@ def CreateTokenToAfterAll : Pat<
 
 def DotToDotGeneral : Pat<
   (StableHLO_DotOp $lhs, $rhs, $precision_config),
-  (StableHLO_DotGeneralOp $lhs, $rhs, (GetDefaultDotDimensionNumbers $lhs), $precision_config)>;
+  (StableHLO_DotGeneralOp $lhs, $rhs, (GetDefaultDotDimensionNumbers $lhs), $precision_config, (NativeCodeCall<"Attribute{}">))>;
 
 def UnaryEinsumToEinsum : Pat<
   (StableHLO_UnaryEinsumOp $operand, $equation),

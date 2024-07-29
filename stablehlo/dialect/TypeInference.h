@@ -456,7 +456,8 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  ArrayRef<int64_t> lhsContractingDimensions,
                                  ArrayRef<int64_t> rhsContractingDimensions,
                                  std::optional<ArrayAttr> precisionConfig,
-                                 Value result);
+                                 bool isDefaultPrecisionConfig,
+                                 bool hasAlgorithmSpecified, Value result);
 
 LogicalResult verifyDynamicBroadcastInDimOp(
     std::optional<Location> location, Value operand, Value outputDimensions,
