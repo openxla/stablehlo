@@ -150,13 +150,13 @@ def CHECK_ExpectCloseOp :
   let arguments = (ins
       TensorOf<[AnyFloat, AnyComplex]>:$actual,
       TensorOf<[AnyFloat, AnyComplex]>:$expected,
-      DefaultValuedOptionalAttr<UI64Attr, "1">:$max_ulp_difference,
+      DefaultValuedAttr<UI64Attr, "1">:$max_ulp_difference,
       DefaultValuedOptionalAttr<UI64Attr, "0">:$min_ulp_difference
   );
 
   let assemblyFormat = [{
       $actual `,` $expected
-      (`,` `max_ulp_difference` `=` $max_ulp_difference^)?
+      `,` `max_ulp_difference` `=` $max_ulp_difference
       (`,` `min_ulp_difference` `=` $min_ulp_difference^)?
       `:` attr-dict type($actual) `,` type($expected)
     }];
