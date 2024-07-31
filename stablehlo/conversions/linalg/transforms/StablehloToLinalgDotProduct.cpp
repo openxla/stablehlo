@@ -142,9 +142,12 @@ struct DotGeneralBatchMatMulOpConversion final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotGeneralOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
-    if (op.getType().getRank() != 3) {
+    if (op.getType().getRank() != 3)
       return rewriter.notifyMatchFailure(op, "expected a batch matmul");
-    }
+
+    if (op.getAlgorithm().has_value())
+      return rewriter.notifyMatchFailure(
+          op, "dot algorithms not yet supported in linalg conversion");
 
     mlir::stablehlo::DotDimensionNumbersAttr dimNumbers =
         op.getDotDimensionNumbers();
@@ -196,6 +199,10 @@ struct DotGeneralOpConversion final
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotGeneralOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const final {
+    if (op.getAlgorithm().has_value())
+      return rewriter.notifyMatchFailure(
+          op, "dot algorithms not yet supported in linalg conversion");
+
     if (op.isSimpleDot()) {
       if (succeeded(lowerDotOp<DotGeneralOp, linalg::MatmulOp>(
               rewriter, getTypeConverter(), op, adaptor)))

@@ -459,6 +459,12 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  bool isDefaultPrecisionConfig,
                                  bool hasAlgorithmSpecified, Value result);
 
+LogicalResult verifyDotAlgorithmAttr(
+    ::llvm::function_ref<InFlightDiagnostic()> emitError, Type lhsPrecisionType,
+    Type rhsPrecisionType, Type accumulationType, int64_t lhsComponentCount,
+    int64_t rhsComponentCount, int64_t numPrimitiveOperations,
+    bool allowImpreciseAccumulation);
+
 LogicalResult verifyDynamicBroadcastInDimOp(
     std::optional<Location> location, Value operand, Value outputDimensions,
     ArrayRef<int64_t> broadcastDimensions,

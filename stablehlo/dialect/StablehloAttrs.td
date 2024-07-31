@@ -76,7 +76,7 @@ def StableHLO_DotAlgorithm : AttrDef<StableHLO_Dialect, "DotAlgorithm"> {
       `allow_imprecise_accumulation` `=` $allowImpreciseAccumulation
     `>`
   }];
-  //TODO: Gen verifier decl
+  let genVerifyDecl = 1;
 }
 
 def StableHLO_DotDimensionNumbers : AttrDef<StableHLO_Dialect, "DotDimensionNumbers"> {

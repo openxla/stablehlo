@@ -2611,9 +2611,9 @@ alternative.
 | (I5)  | `lhs_contracting_dimensions`   | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)                        |
 | (I6)  | `rhs_contracting_dimensions`   | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10), (C16)                 |
 | (I7)  | `precision_config`             | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                                          |
-| (I8)  | `lhs_precision_type`           | TensorElementType or TensorFloat32                           |                                                |
-| (I9)  | `rhs_precision_type`           | TensorElementType or TensorFloat32                           |                                                |
-| (I10) | `accumulation_type`            | TensorElementType or TensorFloat32                           |                                                |
+| (I8)  | `lhs_precision_type`           | FloatType or TensorFloat32                                   |                                                |
+| (I9)  | `rhs_precision_type`           | FloatType or TensorFloat32                                   |                                                |
+| (I10) | `accumulation_type`            | FloatType or TensorFloat32                                   |                                                |
 | (I11) | `lhs_component_count`          | constant of type `si32`                                      | (C21)                                          |
 | (I12) | `rhs_component_count`          | constant of type `si32`                                      | (C22)                                          |
 | (I13) | `num_primitive_operations`     | constant of type `si32`                                      | (C23)                                          |

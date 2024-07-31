@@ -44,7 +44,11 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "llvm/ADT/iterator_range.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/LogicalResult.h"
+#include "llvm/Support/MathExtras.h"
 #include "llvm/Support/Regex.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -605,6 +609,17 @@ LogicalResult DotGeneralOp::verify() {
         return cast<PrecisionAttr>(attr).getValue() == Precision::DEFAULT;
       });
   bool hasAlgorithmSpecified = getAlgorithm().has_value();
+  if (hasAlgorithmSpecified) {
+    DotAlgorithmAttr attr = getAlgorithm().value();
+    if (failed(DotAlgorithmAttr::verify(
+            [&] { return this->emitError(); }, attr.getLhsPrecisionType(),
+            attr.getRhsPrecisionType(), attr.getAccumulationType(),
+            attr.getLhsComponentCount(), attr.getRhsComponentCount(),
+            attr.getNumPrimitiveOperations(),
+            attr.getAllowImpreciseAccumulation())))
+      return failure();
+  }
+
   return hlo::verifyDotGeneralOp(
       getLoc(), getLhs(), getRhs(),
       getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
@@ -701,7 +716,19 @@ bool DotGeneralOp::isSimpleDot() {
   auto rhsRank = cast<ShapedType>(getRhs().getType()).getRank();
   return lhsRank <= 2 && rhsRank <= 2 &&
          getDotDimensionNumbersAttr() ==
-             getDefaultDotDimensionNumbers(getLhs());
+             getDefaultDotDimensionNumbers(getLhs()) &&
+         !getAlgorithm().has_value();
+}
+
+LogicalResult DotAlgorithmAttr::verify(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError,
+    Type lhsPrecisionType, Type rhsPrecisionType, Type accumulationType,
+    int64_t lhsComponentCount, int64_t rhsComponentCount,
+    int64_t numPrimitiveOperations, bool allowImpreciseAccumulation) {
+  return hlo::verifyDotAlgorithmAttr(
+      emitError, lhsPrecisionType, rhsPrecisionType, accumulationType,
+      lhsComponentCount, rhsComponentCount, numPrimitiveOperations,
+      allowImpreciseAccumulation);
 }
 
 //===----------------------------------------------------------------------===//

@@ -169,6 +169,17 @@ enum AttributeCode {
   ///     operandTupleIndices: svarint[]
   ///   }
   kOutputOperandAlias = 14,
+
+  ///   DotAlgorithmAttr {
+  ///     lhsPrecisionType : Type
+  ///     rhsPrecisionType : Type
+  ///     accumulationType : Type
+  ///     lhsComponentCount: svarint
+  ///     rhsComponentCount : svarint,
+  ///     numPrimitiveOperations : svarint
+  ///     allowImpreciseAccumulation : svarint
+  ///   }
+  kDotAlgorithmAttr = 15,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -221,6 +232,7 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
       DialectBytecodeReader &reader) const;
   ConvDimensionNumbersAttr readConvDimensionNumbersAttr(
       DialectBytecodeReader &reader) const;
+  DotAlgorithmAttr readDotAlgorithmAttr(DialectBytecodeReader &reader) const;
   DotDimensionNumbersAttr readDotDimensionNumbersAttr(
       DialectBytecodeReader &reader) const;
   FftTypeAttr readFftTypeAttr(DialectBytecodeReader &reader) const;
@@ -245,6 +257,7 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   void write(ComparisonTypeAttr attr, DialectBytecodeWriter &writer) const;
   void write(ConvDimensionNumbersAttr attr,
              DialectBytecodeWriter &writer) const;
+  void write(DotAlgorithmAttr attr, DialectBytecodeWriter &writer) const;
   void write(DotDimensionNumbersAttr attr, DialectBytecodeWriter &writer) const;
   void write(FftTypeAttr attr, DialectBytecodeWriter &writer) const;
   void write(GatherDimensionNumbersAttr attr,
@@ -302,6 +315,8 @@ Attribute StablehloBytecodeInterface::readAttribute(
       return readComparisonTypeAttr(reader);
     case stablehlo_encoding::kConvDimensionNumbersAttr:
       return readConvDimensionNumbersAttr(reader);
+    case stablehlo_encoding::kDotAlgorithmAttr:
+      return readDotAlgorithmAttr(reader);
     case stablehlo_encoding::kDotDimensionNumbers:
       return readDotDimensionNumbersAttr(reader);
     case stablehlo_encoding::kFftTypeAttr:
@@ -335,14 +350,15 @@ LogicalResult StablehloBytecodeInterface::writeAttribute(
     Attribute attr, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Attribute, LogicalResult>(attr)
       .Case<ChannelHandleAttr, ComparisonDirectionAttr, ComparisonTypeAttr,
-            ConvDimensionNumbersAttr, DotDimensionNumbersAttr, FftTypeAttr,
-            GatherDimensionNumbersAttr, OutputOperandAliasAttr, PrecisionAttr,
-            RngAlgorithmAttr, RngDistributionAttr, ScatterDimensionNumbersAttr,
-            TransposeAttr, TypeExtensionsAttr>([&](auto attr) {
-        LOG_WRITE_CALL;
-        write(attr, writer);
-        return success();
-      })
+            ConvDimensionNumbersAttr, DotAlgorithmAttr, DotDimensionNumbersAttr,
+            FftTypeAttr, GatherDimensionNumbersAttr, OutputOperandAliasAttr,
+            PrecisionAttr, RngAlgorithmAttr, RngDistributionAttr,
+            ScatterDimensionNumbersAttr, TransposeAttr, TypeExtensionsAttr>(
+          [&](auto attr) {
+            LOG_WRITE_CALL;
+            write(attr, writer);
+            return success();
+          })
       .Default([&](Attribute) {
         LOG_NOT_IMPLEMENTED;
         return failure();
@@ -450,6 +466,43 @@ void StablehloBytecodeInterface::write(ConvDimensionNumbersAttr attr,
   writer.writeSignedVarInt(attr.getOutputBatchDimension());
   writer.writeSignedVarInt(attr.getOutputFeatureDimension());
   writer.writeSignedVarInts(attr.getOutputSpatialDimensions());
+}
+
+//===----------------------------------------------------------------------===//
+// DotAlgorithmAttr
+
+DotAlgorithmAttr StablehloBytecodeInterface::readDotAlgorithmAttr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  Type lhsPrecisionType, rhsPrecisionType, accumulationType;
+  int64_t lhsComponentCount, rhsComponentCount, numPrimitiveOperations;
+  bool allowImpreciseAccumulation;
+
+  if (failed(reader.readType(lhsPrecisionType)) ||
+      failed(reader.readType(rhsPrecisionType)) ||
+      failed(reader.readType(accumulationType)) ||
+      failed(reader.readSignedVarInt(lhsComponentCount)) ||
+      failed(reader.readSignedVarInt(rhsComponentCount)) ||
+      failed(reader.readSignedVarInt(numPrimitiveOperations)) ||
+      failed(reader.readBool(allowImpreciseAccumulation)))
+    return DotAlgorithmAttr();
+
+  return DotAlgorithmAttr::get(getContext(), lhsPrecisionType, rhsPrecisionType,
+                               accumulationType, lhsComponentCount,
+                               rhsComponentCount, numPrimitiveOperations,
+                               allowImpreciseAccumulation);
+}
+
+void StablehloBytecodeInterface::write(DotAlgorithmAttr attr,
+                                       DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(stablehlo_encoding::kDotAlgorithmAttr);
+  writer.writeType(attr.getLhsPrecisionType());
+  writer.writeType(attr.getRhsPrecisionType());
+  writer.writeType(attr.getAccumulationType());
+  writer.writeSignedVarInt(attr.getLhsComponentCount());
+  writer.writeSignedVarInt(attr.getRhsComponentCount());
+  writer.writeSignedVarInt(attr.getNumPrimitiveOperations());
+  writer.writeOwnedBool(attr.getAllowImpreciseAccumulation());
 }
 
 //===----------------------------------------------------------------------===//
