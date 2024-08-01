@@ -2598,7 +2598,10 @@ Example `DotAlgorithm` attributes:
 In general, it is not guaranteed that the each algorithm is supported on each
 accelerator type by the consumer of the StableHLO. If a given algorithm is not
 supported, an error should be raised as opposed to falling back to an
-alternative.
+alternative. StableHLO verification will prevent some combinations that are not
+known to be supported on any hardware.
+
+TODO: Create an XLA doc which details supported combinations of algorithms.
 
 #### Inputs
 
