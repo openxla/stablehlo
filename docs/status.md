@@ -153,8 +153,8 @@ one of the following tracking labels.
 | triangular_solve         | yes           | revisit      | yes            | no              | revisit     |
 | tuple                    | yes           | yes          | yes            | yes             | yes         |
 | unary_einsum             | no            | revisit      | no             | yes             | revisit     |
-| uniform_dequantize       | yes           | yes          | yes            | yes             | no          |
-| uniform_quantize         | yes           | revisit      | infeasible     | yes             | no          |
+| uniform_dequantize       | yes           | yes          | yes            | yes             | yes         |
+| uniform_quantize         | yes           | revisit      | infeasible     | yes             | yes         |
 | while                    | yes           | revisit      | yes            | revisit         | yes         |
 | xor                      | yes           | yes          | yes            | yes             | yes         |
 
