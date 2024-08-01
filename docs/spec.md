@@ -2613,14 +2613,14 @@ TODO: Create an XLA doc which details supported combinations of algorithms.
 | (I4)  | `rhs_batching_dimensions`      | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)                         |
 | (I5)  | `lhs_contracting_dimensions`   | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)                        |
 | (I6)  | `rhs_contracting_dimensions`   | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10), (C16)                 |
-| (I7)  | `precision_config`             | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                                          |
-| (I8)  | `lhs_precision_type`           | FloatType or TensorFloat32                                   |                                                |
-| (I9)  | `rhs_precision_type`           | FloatType or TensorFloat32                                   |                                                |
-| (I10) | `accumulation_type`            | FloatType or TensorFloat32                                   |                                                |
-| (I11) | `lhs_component_count`          | constant of type `si32`                                      | (C21)                                          |
-| (I12) | `rhs_component_count`          | constant of type `si32`                                      | (C22)                                          |
-| (I13) | `num_primitive_operations`     | constant of type `si32`                                      | (C23)                                          |
-| (I14) | `allow_imprecise_accumulation` | constant of type `bool`                                      |                                                |
+| (I7)  | `precision_config`             | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11), (C21)                                   |
+| (I8)  | `lhs_precision_type`           | FloatType or TensorFloat32                                   | (C21)                                          |
+| (I9)  | `rhs_precision_type`           | FloatType or TensorFloat32                                   | (C21)                                          |
+| (I10) | `accumulation_type`            | FloatType or TensorFloat32                                   | (C21)                                          |
+| (I11) | `lhs_component_count`          | constant of type `si32`                                      | (C21), (C22)                                   |
+| (I12) | `rhs_component_count`          | constant of type `si32`                                      | (C21), (C23)                                   |
+| (I13) | `num_primitive_operations`     | constant of type `si32`                                      | (C21), (C24)                                   |
+| (I14) | `allow_imprecise_accumulation` | constant of type `bool`                                      | (C21)                                          |
 
 
 #### Outputs
@@ -2661,13 +2661,14 @@ TODO: Create an XLA doc which details supported combinations of algorithms.
       `is_per_tensor_quantized(result)`.
   * If `!is_quantized(lhs)`:
     * (C20) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
-* (C21) `0 < lhs_component_count`
-* (C22) `0 < rhs_component_count`
-* (C23) `0 < num_primitive_operations`
-* (C24) If `precision_config... != DEFAULT`,
+
+* (C21) If `precision_config... != DEFAULT`,
   then `lhs_precision_type = rhs_precision_type = accumulation_type = element_type(lhs)`
   and `lhs_component_count = rhs_component_count = num_primitive_operations = 1`
   and `allow_imprecise_accumulation = false`.
+* (C22) `0 < lhs_component_count`
+* (C23) `0 < rhs_component_count`
+* (C24) `0 < num_primitive_operations`
 
 #### Examples
 

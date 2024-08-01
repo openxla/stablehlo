@@ -4037,7 +4037,7 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
         location, "inferred shape '", dimSizesToString(inferredShape.getDims()),
         "' ", "is incompatible with return type of operation ", resultType, "");
 
-  // dot_general_c24
+  // dot_general_c21
   if (!isDefaultPrecisionConfig && hasAlgorithmSpecified)
     return emitOptionalError(
         location,
@@ -4075,13 +4075,13 @@ LogicalResult verifyDotAlgorithmAttr(
   // dot_general_i10
   if (!isValidType(accumulationType))
     return emitError() << "accumulation type must be float";
-  // dot_general_c21
+  // dot_general_c22
   if (lhsComponentCount < 1)
     return emitError() << "lhs component count must be positive";
-  // dot_general_c22
+  // dot_general_c23
   if (rhsComponentCount < 1)
     return emitError() << "rhs component count must be positive";
-  // dot_general_c23
+  // dot_general_c24
   if (numPrimitiveOperations < 1)
     return emitError() << "num primitive operations must be positive";
   return success();
