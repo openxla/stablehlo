@@ -2622,7 +2622,6 @@ TODO: Create an XLA doc which details supported combinations of algorithms.
 | (I13) | `num_primitive_operations`     | constant of type `si32`                                      | (C21), (C24)                                   |
 | (I14) | `allow_imprecise_accumulation` | constant of type `bool`                                      | (C21)                                          |
 
-
 #### Outputs
 
 | Name     | Type                       | Constraints             |
