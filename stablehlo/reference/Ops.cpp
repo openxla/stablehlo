@@ -2435,8 +2435,7 @@ SmallVector<Tensor> sortOp(ArrayRef<Tensor> inputs, Axis dimension,
 
     // After the tensor of handles has been sorted, we apply the results of
     // this sort by reshuffling input elements into result elements.
-    auto &resultsTogether = inputsTogether;
-    for (auto [inputHandle, resultHandle] : llvm::enumerate(resultsTogether)) {
+    for (auto [resultHandle, inputHandle] : llvm::enumerate(inputsTogether)) {
       for (auto [input, result] : llvm::zip(inputs, results)) {
         auto inputIndex = *resultIt;
         auto resultIndex = *resultIt;
