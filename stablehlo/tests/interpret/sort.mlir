@@ -18,7 +18,7 @@ func.func @sort_stable() {
 
 // -----
 
-func.func public @sort() {
+func.func public @sort_issue_2440() {
   %input = stablehlo.constant dense<[[0, 1, 1, -3, -3, -2, 0], [4, -1, 3, 0, 4, 0, -3], [1, 0, 0, 0, 0, 2, 3], [-3, -4, -4, -2, 0, 3, 3], [0, 5, 2, -2, 0, -2, 0]]> : tensor<5x7xi64>
   %result = "stablehlo.sort"(%input) <{dimension = 0 : i64}> ({
   ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
