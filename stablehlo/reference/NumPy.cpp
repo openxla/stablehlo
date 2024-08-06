@@ -16,16 +16,32 @@ limitations under the License.
 #include "stablehlo/reference/NumPy.h"
 
 #include <cctype>
+#include <complex>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <fstream>
+#include <functional>
+#include <numeric>
 #include <regex>
+#include <sstream>
+#include <string>
+#include <type_traits>
+#include <vector>
 
-#include "llvm/Support/Endian.h"
+#include "llvm/ADT/bit.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
+#include "mlir/Support/LLVM.h"
+#include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {

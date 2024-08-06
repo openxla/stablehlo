@@ -17,15 +17,16 @@ limitations under the License.
 
 #include <string>
 
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Bytecode/BytecodeWriter.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Support/LLVM.h"
+#include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/dialect/Serialization.h"
-#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
-#include "stablehlo/dialect/VhloOps.h"
 
 namespace mlir {
 namespace stablehlo {

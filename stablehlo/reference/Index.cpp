@@ -15,8 +15,13 @@ limitations under the License.
 
 #include "stablehlo/reference/Index.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Error.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "mlir/Support/LLVM.h"
 
 namespace mlir {
 namespace stablehlo {

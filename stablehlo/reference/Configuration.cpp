@@ -16,6 +16,7 @@ limitations under the License.
 #include "stablehlo/reference/Configuration.h"
 
 #include "llvm/Support/Error.h"
+#include "mlir/IR/Operation.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Process.h"

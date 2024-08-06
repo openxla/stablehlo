@@ -15,19 +15,37 @@ limitations under the License.
 
 #include "stablehlo/tests/CheckOps.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cinttypes>
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
+#include <limits>
+#include <string>
+#include <utility>
 
-#define GET_OP_CLASSES
+#include "llvm/ADT/SmallString.h"
+#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
-#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/Path.h"
-#include "mlir/IR/BuiltinTypes.h"
+#include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/Dialect.h"
+#include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "mlir/Support/LLVM.h"
+#include "mlir/Support/TypeID.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Types.h"
+
+#define GET_OP_CLASSES
 #include "stablehlo/tests/CheckOps.cpp.inc"
 
 namespace mlir {

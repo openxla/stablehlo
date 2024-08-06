@@ -15,9 +15,9 @@ limitations under the License.
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
@@ -35,9 +35,7 @@ limitations under the License.
 #include "mlir/Pass/Pass.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
-#include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/StablehloOps.h"
-#include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/transforms/Passes.h"
 #include "stablehlo/transforms/StablehloRefineShapes.h"
 

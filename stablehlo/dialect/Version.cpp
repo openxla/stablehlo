@@ -16,12 +16,16 @@ limitations under the License.
 
 #include "stablehlo/dialect/Version.h"
 
+#include <array>
 #include <cstdint>
 
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/Support/LLVM.h"
 
 namespace mlir {
 namespace vhlo {

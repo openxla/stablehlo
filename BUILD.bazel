@@ -1211,6 +1211,7 @@ cc_binary(
     deps = [
         ":interpreter_ops",
         ":reference_api",
+        ":reference_configuration",
         ":reference_errors",
         ":reference_ops",
         ":reference_process_grid",
