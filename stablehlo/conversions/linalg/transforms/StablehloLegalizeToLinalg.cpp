@@ -67,7 +67,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/conversions/linalg/transforms/LegalizeToLinalgUtils.h"
 #include "stablehlo/conversions/linalg/transforms/MapStablehloToScalarOp.h"
-#include "stablehlo/conversions/linalg/transforms/Passes.h" // IWYU pragma: keep
+#include "stablehlo/conversions/linalg/transforms/Passes.h"  // IWYU pragma: keep
 #include "stablehlo/conversions/linalg/transforms/Rewriters.h"
 #include "stablehlo/conversions/linalg/transforms/TypeConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
