@@ -15,8 +15,18 @@ limitations under the License.
 
 #include "stablehlo/reference/Scope.h"
 
+#include <cassert>
+
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVectorExtras.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
+#include "mlir/IR/Value.h"
+#include "mlir/IR/ValueRange.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "mlir/Support/LLVM.h"
+#include "stablehlo/reference/Tensor.h"
+#include "stablehlo/reference/Token.h"
 #include "stablehlo/reference/Value.h"
 
 namespace mlir {

@@ -15,11 +15,23 @@ limitations under the License.
 
 #include "stablehlo/dialect/StablehloBytecode.h"
 
+#include <cstdint>
+#include <memory>
+
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/IR/Dialect.h"
+#include "mlir/IR/Location.h"
+#include "mlir/Support/LLVM.h"
+#include "mlir/Support/LogicalResult.h"
+#include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 //===----------------------------------------------------------------------===//

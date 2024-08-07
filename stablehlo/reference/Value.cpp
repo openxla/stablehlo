@@ -15,8 +15,17 @@ limitations under the License.
 
 #include "stablehlo/reference/Value.h"
 
-#include "llvm/Support/ErrorHandling.h"
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <variant>
+
+#include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
+#include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Token.h"

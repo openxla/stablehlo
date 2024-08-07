@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "stablehlo/reference/Axes.h"
 
+#include "llvm/ADT/STLExtras.h"
+#include "mlir/Support/LLVM.h"
+
 namespace mlir {
 namespace stablehlo {
 

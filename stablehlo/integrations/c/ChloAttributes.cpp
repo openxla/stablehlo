@@ -15,6 +15,10 @@ limitations under the License.
 
 #include <optional>
 
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "mlir-c/IR.h"
+#include "mlir-c/Support.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/CAPI/Support.h"
 #include "stablehlo/dialect/ChloOps.h"

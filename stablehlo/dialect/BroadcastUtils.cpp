@@ -17,12 +17,21 @@ limitations under the License.
 #include "stablehlo/dialect/BroadcastUtils.h"
 
 #include <algorithm>
+#include <cassert>
+#include <cstdint>
 
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/SmallVectorExtras.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
-#include "stablehlo/dialect/Base.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Location.h"
+#include "mlir/IR/Types.h"
+#include "mlir/IR/Value.h"
+#include "mlir/IR/ValueRange.h"
+#include "mlir/Support/LLVM.h"
 
 namespace mlir {
 namespace hlo {

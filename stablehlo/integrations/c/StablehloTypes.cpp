@@ -13,6 +13,8 @@ limitations under the License.
 
 #include "stablehlo/integrations/c/StablehloTypes.h"
 
+#include "llvm/Support/Casting.h"
+#include "mlir-c/IR.h"
 #include "mlir/CAPI/IR.h"
 #include "stablehlo/dialect/StablehloOps.h"
 

@@ -16,15 +16,21 @@ limitations under the License.
 
 #include "stablehlo/conversions/linalg/transforms/TypeConversion.h"
 
+#include <cassert>
 #include <optional>
 
+#include "llvm/Support/Casting.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Location.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
+#include "mlir/IR/ValueRange.h"
+#include "mlir/Support/LLVM.h"
 
 namespace mlir::stablehlo {
 

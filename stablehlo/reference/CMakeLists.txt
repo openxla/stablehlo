@@ -40,6 +40,7 @@ add_mlir_library(StablehloReferenceAxes
 
   LINK_LIBS PUBLIC
   MLIRIR
+  MLIRSupport
 )
 
 add_mlir_library(StablehloReferenceConfiguration
@@ -139,6 +140,8 @@ add_mlir_library(StablehloReferenceOps
 
   LINK_LIBS PUBLIC
   MLIRFuncDialect
+  MLIRInferTypeOpInterface
+  StablehloBase
   StablehloOps
   StablehloReferenceAxes
   StablehloReferenceElement
@@ -166,6 +169,7 @@ add_mlir_library(StablehloReferenceProcessGrid
   ProcessGrid.cpp
 
   LINK_LIBS PUBLIC
+  LLVMSupport
   MLIRIR
   MLIRSupport
   StablehloReferenceTensor
@@ -211,6 +215,7 @@ add_mlir_library(StablehloReferenceTypes
 
   LINK_LIBS PUBLIC
   MLIRIR
+  MLIRSupport
 )
 
 add_mlir_library(StablehloReferenceValue
@@ -219,6 +224,7 @@ add_mlir_library(StablehloReferenceValue
 
   LINK_LIBS PUBLIC
   MLIRIR
+  MLIRSupport
   StablehloReferenceTensor
   StablehloReferenceToken
 )

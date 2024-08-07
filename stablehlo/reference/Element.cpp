@@ -15,14 +15,25 @@ limitations under the License.
 
 #include "stablehlo/reference/Element.h"
 
+#include <cmath>
 #include <complex>
+#include <cstdint>
+#include <cstdlib>
+#include <utility>
 
 #include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/APSInt.h"
+#include "llvm/ADT/FloatingPointMode.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Error.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Types.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Types.h"
 

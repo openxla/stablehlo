@@ -15,7 +15,9 @@ limitations under the License.
 
 #include "stablehlo/reference/Token.h"
 
-#include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/Support/LLVM.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
