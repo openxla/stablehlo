@@ -258,3 +258,42 @@ def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-o
     "mlir::stablehlo::StablehloDialect",
   ];
 }
+
+def StablehloLegalizeAToBPass : Pass<"stablehlo-legalize-a-to-b", "mlir::func::FuncOp"> {
+  let summary = "Recompose StableHLO quantized ops using uniform dequantize + dequantized op";
+
+  let description = [{
+    Decompose StableHLO quantized programs using uniform quantize/dequantize
+    operations. For example, the following program
+
+    ```mlir
+    func.func @add(%arg0: tensor<16x16xf32>, %arg1: tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>> {
+      %0 = stablehlo.uniform_quantize %arg0 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+      %1 = stablehlo.uniform_dequantize %0 : (tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>) -> tensor<16x16xf32>
+      %2 = stablehlo.uniform_quantize %arg1 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+      %3 = stablehlo.uniform_dequantize %2 : (tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>) -> tensor<16x16xf32>
+      %4 = stablehlo.add %1, %3 : tensor<16x16xf32>
+      %5 = stablehlo.uniform_quantize %4 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+      func.return %5 : tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+    }
+    ```
+
+    Will become:
+
+    ```mlir
+    func.func @add(%arg0: tensor<16x16xf32>, %arg1: tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>> {
+      %0 = stablehlo.uniform_quantize %arg0 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+      %1 = stablehlo.uniform_dequantize %0 : (tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>) -> tensor<16x16xf32>
+      %2 = stablehlo.uniform_quantize %arg1 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+      %3 = stablehlo.uniform_dequantize %2 : (tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>) -> tensor<16x16xf32>
+      %4 = stablehlo.add %1, %3 : tensor<16x16xf32>
+      %5 = stablehlo.add %0, %2 : tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+      %6 = stablehlo.uniform_quantize %4 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+      return %5 : tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+    }
+    ```
+  }];
+  let dependentDialects = [
+    "mlir::stablehlo::StablehloDialect",
+  ];
+}

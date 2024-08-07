@@ -72,6 +72,10 @@ void populateStablehloLegalizeQuantizedOpToQDQPatterns(
     RewritePatternSet *patterns, MLIRContext *context,
     PatternBenefit benefit = 1);
 
+void populateStablehloLegalizeAToBPatterns(
+    RewritePatternSet *patterns, MLIRContext *context,
+    PatternBenefit benefit = 1);
+
 /// A subset of folding patterns for StableHLO that is necessary for shape
 /// refinement.
 void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
