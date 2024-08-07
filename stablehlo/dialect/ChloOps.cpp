@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "stablehlo/dialect/ChloOps.h"
 
+#include <cassert>
 #include <cstdint>
 #include <optional>
 
@@ -24,9 +25,22 @@ limitations under the License.
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Traits.h"
+#include "mlir/IR/Attributes.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
-#include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/Dialect.h"
+#include "mlir/IR/DialectImplementation.h"
+#include "mlir/IR/OpDefinition.h"
+#include "mlir/IR/OperationSupport.h"
+#include "mlir/IR/Region.h"
+#include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Support/LLVM.h"
+#include "mlir/Support/LogicalResult.h"
+#include "mlir/Support/TypeID.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/BroadcastUtils.h"

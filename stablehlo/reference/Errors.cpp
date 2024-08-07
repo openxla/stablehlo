@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "stablehlo/reference/Errors.h"
 
+#include <utility>
+
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 
 namespace mlir {

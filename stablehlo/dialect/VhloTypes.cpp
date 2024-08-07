@@ -15,11 +15,21 @@ limitations under the License.
 
 #include "stablehlo/dialect/VhloTypes.h"
 
+#include <cstdint>
+
+#include "llvm/ADT/SmallVectorExtras.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/DialectImplementation.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/OpDefinition.h"
+#include "mlir/IR/TypeSupport.h"
+#include "mlir/IR/Types.h"
+#include "mlir/Support/LLVM.h"
+#include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 
 namespace mlir {

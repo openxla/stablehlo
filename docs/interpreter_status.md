@@ -8,13 +8,13 @@ to the semantics of even the most involved operations like `Convolution`,
 `Gather`/`Scatter`, and `DotGeneral`.
 
 At the moment, OpenXLA supports the interpretation of 91 out of 96 specced
-StableHLO ops. The remaining 5 ops (`FftOp`, `RngOp`, `RngBitGeneratorOp`,
-`UniformDequantizeOp`, and `UniformQuantizeOp`) have their semantics documented
-in [spec.md](https://github.com/openxla/stablehlo/blob/main/docs/spec.md), and
-have completed initial investigations on how to move forward (see
-[status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md) for
-a complete list of ops and its latest status). These final enhancements will be
-implemented on an as-needed community basis.
+StableHLO ops. The remaining 3 ops (`FftOp`, `RngOp`, `RngBitGeneratorOp`) have
+their semantics documented in
+[spec.md](https://github.com/openxla/stablehlo/blob/main/docs/spec.md), and have
+completed initial investigations on how to move forward (see
+[status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md)
+for a complete list of ops and its latest status). These final
+enhancements will be implemented on an as-needed community basis.
 
 ## Scope
 
@@ -73,11 +73,9 @@ that the interpreter supports resides in [mlir-hlo-opt.cc](https://github.com/op
 
 ### Quantization
 
-Quantization spec'ing is still WIP, and interpreter support for quantized ops
-(`UniformDequantizeOp`, `UniformQuantizeOp`) and type (`QuantizedTensorType`) is
-tracked by [#1140](https://github.com/openxla/stablehlo/issues/1140),
-[#1141](https://github.com/openxla/stablehlo/issues/1141), and
-[#1691](https://github.com/openxla/stablehlo/issues/1691) respectively.
+Interpreter support for `stablehlo.constant` operation with quantized type is
+unsupported and tracked via
+[#1691](https://github.com/openxla/stablehlo/issues/1691).
 
 ## Usage Instructions
 

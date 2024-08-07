@@ -33,6 +33,7 @@ cc_library(
     deps = [
         ":check_ops_inc_gen",
         "//:base",
+        "//:reference_element",
         "//:reference_errors",
         "//:reference_numpy",
         "//:reference_tensor",
@@ -95,7 +96,9 @@ cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:Rewrite",
         "@llvm-project//mlir:ShapeDialect",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TransformUtils",
         "@llvm-project//mlir:Transforms",

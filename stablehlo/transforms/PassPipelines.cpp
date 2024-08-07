@@ -13,7 +13,10 @@ limitations under the License.
 ==============================================================================*/
 
 #include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/TypeRange.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/PassRegistry.h"
 #include "mlir/Transforms/Passes.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/transforms/Passes.h"

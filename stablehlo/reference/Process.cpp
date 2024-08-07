@@ -15,6 +15,13 @@ limitations under the License.
 
 #include "stablehlo/reference/Process.h"
 
+#include <cstdint>
+
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/Support/LLVM.h"
+#include "stablehlo/reference/ProcessGrid.h"
+#include "stablehlo/reference/Tensor.h"
+
 namespace mlir {
 namespace stablehlo {
 

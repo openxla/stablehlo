@@ -13,6 +13,14 @@ limitations under the License.
 
 #include "stablehlo/integrations/c/StablehloAttributes.h"
 
+#include <cstdint>
+#include <optional>
+
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "mlir-c/IR.h"
+#include "mlir-c/Support.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/CAPI/Support.h"
 #include "stablehlo/dialect/StablehloOps.h"

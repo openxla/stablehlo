@@ -15,7 +15,11 @@ limitations under the License.
 
 #include "stablehlo/reference/Types.h"
 
+#include <cstdint>
+
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Types.h"
+#include "mlir/Support/LLVM.h"
 
 namespace mlir {
 namespace stablehlo {

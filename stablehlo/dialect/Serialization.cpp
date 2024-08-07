@@ -15,13 +15,13 @@ limitations under the License.
 
 #include "stablehlo/dialect/Serialization.h"
 
-#include <cstdint>
-
 #include "mlir/Bytecode/BytecodeWriter.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/OwningOpRef.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"

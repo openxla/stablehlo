@@ -16,18 +16,40 @@ limitations under the License.
 #include "stablehlo/reference/Ops.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <numeric>
+#include <optional>
+#include <utility>
 
-#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Errc.h"
+#include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/Block.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Operation.h"
+#include "mlir/IR/Region.h"
+#include "mlir/IR/SymbolTable.h"
+#include "mlir/IR/Types.h"
+#include "mlir/IR/Value.h"
+#include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "mlir/Support/LLVM.h"
+#include "mlir/Support/LogicalResult.h"
+#include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/reference/Axes.h"
 #include "stablehlo/reference/Configuration.h"
@@ -36,8 +58,11 @@ limitations under the License.
 #include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/ProcessGrid.h"
+#include "stablehlo/reference/Scope.h"
+#include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Token.h"
 #include "stablehlo/reference/Types.h"
+#include "stablehlo/reference/Value.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -2435,8 +2460,7 @@ SmallVector<Tensor> sortOp(ArrayRef<Tensor> inputs, Axis dimension,
 
     // After the tensor of handles has been sorted, we apply the results of
     // this sort by reshuffling input elements into result elements.
-    auto &resultsTogether = inputsTogether;
-    for (auto [inputHandle, resultHandle] : llvm::enumerate(resultsTogether)) {
+    for (auto [resultHandle, inputHandle] : llvm::enumerate(inputsTogether)) {
       for (auto [input, result] : llvm::zip(inputs, results)) {
         auto inputIndex = *resultIt;
         auto resultIndex = *resultIt;

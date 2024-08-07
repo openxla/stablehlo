@@ -15,11 +15,21 @@ limitations under the License.
 
 #include "stablehlo/reference/ProcessGrid.h"
 
+#include <chrono>
 #include <condition_variable>
+#include <cstdint>
+#include <map>
 #include <mutex>
 #include <optional>
+#include <queue>
 #include <utility>
 
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/SmallVectorExtras.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
