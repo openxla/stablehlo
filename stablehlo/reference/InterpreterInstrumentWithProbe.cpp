@@ -23,7 +23,6 @@ limitations under the License.
 #include "mlir/IR/Value.h"
 #include "mlir/IR/Visitors.h"
 #include "mlir/Support/LLVM.h"
-#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/InterpreterPasses.h"
 

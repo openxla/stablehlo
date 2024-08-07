@@ -102,6 +102,7 @@ cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:ShapeDialect",
+        "@llvm-project//mlir:Support",
     ],
 )
 
@@ -142,6 +143,7 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":chlo_ops",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:CAPIIR",
     ],
 )
@@ -164,6 +166,7 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":chlo_ops",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:CAPIIRObjects",
     ],
     alwayslink = True,
@@ -281,6 +284,7 @@ cc_library(
         "@llvm-project//mlir:InliningUtils",
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:SideEffectInterfaces",
+        "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TransformUtils",
     ],
 )
@@ -345,6 +349,7 @@ cc_library(
         ":interpreter_ops_inc_gen",
         ":reference_numpy",
         ":reference_ops",
+        ":reference_process",
         ":reference_process_grid",
         ":reference_value",
         "@llvm-project//llvm:Support",
@@ -479,16 +484,20 @@ cc_library(
         ":stablehlo_ops",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithDialect",
+        "@llvm-project//mlir:ArithUtils",
         "@llvm-project//mlir:BufferizationDialect",
         "@llvm-project//mlir:ComplexDialect",
+        "@llvm-project//mlir:DialectUtils",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:LinalgDialect",
         "@llvm-project//mlir:LinalgTransforms",
         "@llvm-project//mlir:LinalgUtils",
         "@llvm-project//mlir:MathDialect",
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:Rewrite",
         "@llvm-project//mlir:SCFDialect",
         "@llvm-project//mlir:ShapeDialect",
         "@llvm-project//mlir:SparseTensorDialect",
@@ -526,6 +535,7 @@ cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -542,6 +552,7 @@ cc_library(
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
     ],
 )
 
@@ -559,6 +570,7 @@ cc_library(
         ":reference_process",
         ":reference_scope",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -625,6 +637,7 @@ cc_library(
         ":reference_tensor",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
     ],
 )
 
@@ -638,6 +651,7 @@ cc_library(
     ],
     strip_include_prefix = ".",
     deps = [
+        ":base",
         ":reference_axes",
         ":reference_configuration",
         ":reference_element",
@@ -655,6 +669,7 @@ cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -671,6 +686,8 @@ cc_library(
     deps = [
         ":reference_process_grid",
         ":reference_tensor",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
     ],
 )
 
@@ -685,6 +702,7 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":reference_tensor",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
     ],
@@ -704,6 +722,7 @@ cc_library(
         ":reference_token",
         ":reference_value",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -743,6 +762,7 @@ cc_library(
         ":stablehlo_ops",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
     ],
 )
 
@@ -757,6 +777,7 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
     ],
 )
 
@@ -775,6 +796,7 @@ cc_library(
         ":reference_token",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
     ],
 )
 
@@ -860,6 +882,7 @@ cc_library(
     deps = [
         ":stablehlo_ops",
         ":stablehlo_passes",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:CAPIIR",
     ],
 )
@@ -883,6 +906,7 @@ cc_library(
     deps = [
         ":stablehlo_ops",
         ":stablehlo_passes",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:CAPIIRObjects",
     ],
     alwayslink = True,
@@ -1077,6 +1101,7 @@ cc_library(
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:ReconcileUnrealizedCasts",
+        "@llvm-project//mlir:Rewrite",
         "@llvm-project//mlir:ShapeDialect",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TensorDialect",
@@ -1177,6 +1202,7 @@ cc_library(
         "@llvm-project//mlir:ArithDialect",
         "@llvm-project//mlir:BytecodeOpInterface",
         "@llvm-project//mlir:ComplexDialect",
+        "@llvm-project//mlir:DataLayoutInterfaces",
         "@llvm-project//mlir:FunctionInterfaces",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
@@ -1214,6 +1240,7 @@ cc_binary(
         ":reference_configuration",
         ":reference_errors",
         ":reference_ops",
+        ":reference_process",
         ":reference_process_grid",
         ":reference_scope",
         ":reference_tensor",
@@ -1230,6 +1257,7 @@ cc_binary(
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Transforms",
         "@llvm-project//mlir:TranslateLib",
@@ -1250,6 +1278,7 @@ cc_binary(
         ":tosa_passes",
         "//stablehlo/tests:check_ops",
         "//stablehlo/tests:test_utils",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AllExtensions",
         "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:MlirOptLib",
@@ -1294,12 +1323,14 @@ cc_library(
         ":stablehlo_ops",
         ":tosa_pass_inc_gen",
         ":tosa_pdll_inc_gen",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:PDLDialect",
         "@llvm-project//mlir:PDLInterpDialect",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:Rewrite",
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TosaDialect",
