@@ -72,6 +72,7 @@ void populateStablehloLegalizeQuantizedOpToQDQPatterns(
     RewritePatternSet *patterns, MLIRContext *context,
     PatternBenefit benefit = 1);
 
+/// Collection of rewrite patterns for composing quantized StableHLO operations
 void populateStablehloLegalizeQDQToQuantizedOpPatterns(
     RewritePatternSet *patterns, MLIRContext *context);
 

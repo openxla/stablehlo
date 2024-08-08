@@ -51,7 +51,7 @@ struct QuantizedStablehloQDQToQuantizedOpConversion
     auto* computeOp = quantOp->getOperand(0).getDefiningOp();
     if (!computeOp)
       return rewriter.notifyMatchFailure(
-          quantOp, "requires operand to be defined by a op");
+          quantOp, "requires operand to be defined by an op");
 
     if (computeOp->getNumRegions() != 0)
       return rewriter.notifyMatchFailure(computeOp,
@@ -72,12 +72,12 @@ struct QuantizedStablehloQDQToQuantizedOpConversion
       auto* definingOp = operand.getDefiningOp();
       if (!definingOp)
         return rewriter.notifyMatchFailure(
-            computeOp, "requires operand to be defined by a op");
+            computeOp, "requires operand to be defined by an op");
 
       auto dequantOp = dyn_cast<stablehlo::UniformDequantizeOp>(definingOp);
       if (!dequantOp)
         return rewriter.notifyMatchFailure(
-            definingOp, "requires op to be a UniformDequantizeOp");
+            definingOp, "requires operand to be defined by an stablehlo.uniform_dequantize op");
 
       quantizedComputeOpOperands.push_back(dequantOp->getOperand(0));
     }

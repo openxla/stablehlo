@@ -85,6 +85,31 @@ long-term supported counterparts.
 ```
 -fail-on-unused : Fail on (mostly) unused ops that are deprecated without any fallback.
 ```
+### `-stablehlo-legalize-qdq-to-quantized-op`
+
+_Compose StableHLO quantized op using uniform quantize/dequantize ops_
+
+Compose StableHLO quantized op using uniform quantize/dequantize ops.
+Note: The pass does not delete any preexisting op.
+For example, the following program
+
+```mlir
+func.func @add(%arg0: tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>> {
+  %0 = stablehlo.uniform_dequantize %arg0 : (tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>) -> tensor<16x16xf32>
+  %1 = stablehlo.abs %0 : tensor<16x16xf32>
+  %2 = stablehlo.uniform_quantize %1 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+  func.return %2 : tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+}
+```
+
+Will become:
+
+```mlir
+func.func @add(%arg0: tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>) -> tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>> {
+  %0 = stablehlo.abs %arg0 : tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+  return %0 : tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+}
+```
 ### `-stablehlo-legalize-quant-to-math`
 
 _Convert from StableHLO quantized ops to StableHLO primitive math ops._
