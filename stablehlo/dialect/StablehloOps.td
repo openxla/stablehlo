@@ -1356,11 +1356,13 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
 
     Example:
     ```mlir
-    %result = "stablehlo.all_gather"(%operand) {
+    %result:2 = "stablehlo.all_gather"(%operand0, %operand1) {
       all_gather_dim = 1 : i64,
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      // channel_id = 0
       channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-    } : (tensor<2x2xi64>) -> tensor<2x4xi64>
+      // use_global_device_ids = false
+    } : (tensor<2x2xi64>, tensor<2x2xi64>) -> (tensor<2x4xi64>, tensor<2x4xi64>)
     ```
   }];
 
@@ -1395,15 +1397,16 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
 
     Example:
     ```mlir
-    %result = "stablehlo.all_reduce"(%operand) ({
+    %result:2 = "stablehlo.all_reduce"(%operand0, %operand0) ({
       ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
-        %0 = stablehlo.add %arg1, %arg2 : tensor<i64>
-        stablehlo.return %0 : tensor<i64>
+      %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+      "stablehlo.return"(%0) : (tensor<i64>) -> ()
     }) {
-      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      // channel_id = 0
       channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
       // use_global_device_ids = false
-    } : (tensor<4xi64>) -> tensor<4xi64>
+    } : (tensor<4xi64>, tensor<4xi64>) -> (tensor<4xi64>, tensor<4xi64>)
     ```
   }];
 
@@ -1483,12 +1486,13 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 
     Example:
     ```mlir
-    %result = "stablehlo.all_to_all"(%operand) {
+    %result:2 = "stablehlo.all_to_all"(%operand1, %operand2) {
       split_dimension = 1 : i64,
       concat_dimension = 0 : i64,
       split_count = 2 : i64,
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
-    } : (tensor<2x4xi64>) -> tensor<4x2xi64>
+      // channel_id = 0
+    } : (tensor<2x4xi64>, tensor<2x4xi64>) -> (tensor<4x2xi64>, tensor<4x2xi64>)
     ```
   }];
 
