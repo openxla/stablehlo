@@ -741,7 +741,7 @@ Afterwards, within each `process_group`:
 // %operand0@(1, 0): [[5, 6], [7, 8]]
 // %operand1@(0, 0): [[11, 12], [13, 14]]
 // %operand1@(1, 0): [[15, 16], [17, 18]]
-%result = "stablehlo.all_gather"(%operand0, %operand1) {
+%result:2 = "stablehlo.all_gather"(%operand0, %operand1) {
   all_gather_dim = 1 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
   // channel_id = 0
@@ -823,7 +823,7 @@ Afterwards, within each `process_group`:
 // %operand0@(1, 0): [5, 6, 7, 8]
 // %operand1@(0, 0): [9, 10, 11, 12]
 // %operand1@(1, 0): [13, 14, 15, 16]
-%result = "stablehlo.all_reduce"(%operand0, %operand0) ({
+%result:2 = "stablehlo.all_reduce"(%operand0, %operand0) ({
   ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
     %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
     "stablehlo.return"(%0) : (tensor<i64>) -> ()
