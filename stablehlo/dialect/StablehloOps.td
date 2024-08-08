@@ -1359,9 +1359,7 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
     %result:2 = "stablehlo.all_gather"(%operand0, %operand1) {
       all_gather_dim = 1 : i64,
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
-      // channel_id = 0
       channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-      // use_global_device_ids = false
     } : (tensor<2x2xi64>, tensor<2x2xi64>) -> (tensor<2x4xi64>, tensor<2x4xi64>)
     ```
   }];
@@ -1403,9 +1401,7 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
       "stablehlo.return"(%0) : (tensor<i64>) -> ()
     }) {
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
-      // channel_id = 0
       channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-      // use_global_device_ids = false
     } : (tensor<4xi64>, tensor<4xi64>) -> (tensor<4xi64>, tensor<4xi64>)
     ```
   }];
@@ -1491,7 +1487,6 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
       concat_dimension = 0 : i64,
       split_count = 2 : i64,
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
-      // channel_id = 0
     } : (tensor<2x4xi64>, tensor<2x4xi64>) -> (tensor<4x2xi64>, tensor<4x2xi64>)
     ```
   }];
