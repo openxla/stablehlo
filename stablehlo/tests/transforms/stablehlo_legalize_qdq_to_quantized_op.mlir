@@ -14,10 +14,10 @@ func.func @compose_quantized_abs_op(%arg0: tensor<16x16x!quant.uniform<ui8:f32, 
 
 // -----
 
-// CHECK-LABEL @failure_operand_not_defined_by_op
+// CHECK-LABEL @failure_uniform_quant_op_operand_not_defined_by_op
 // CHECK-NOT: stablehlo.abs {{.*}} : tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
 // CHECK:     return
-func.func @operand_not_defined_by_op(%arg0: tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>> {
+func.func @failure_uniform_quant_op_operand_not_defined_by_op(%arg0: tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>> {
   %1 = stablehlo.abs %arg0 : tensor<16x16xf32>
   %2 = stablehlo.uniform_quantize %1 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
   func.return %2 : tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
@@ -91,6 +91,45 @@ func.func @compose_quantized_add_op(%arg0: tensor<16x16xf32>, %arg1: tensor<16x1
     %4 = stablehlo.add %1, %3 : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xf32>
     %5 = stablehlo.uniform_quantize %4 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
     func.return %5 : tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+}
+
+// -----
+
+// CHECK-LABEL @failure_not_all_arguments_are_quantized
+// CHECK:        %0 = stablehlo.uniform_quantize %arg0 : (tensor<1x8x8x207xf32>) -> tensor<1x8x8x207x!quant.uniform<u8:f32, 3.400000e+01:16>>
+// CHECK-NEXT:   %1 = stablehlo.uniform_dequantize %0 : (tensor<1x8x8x207x!quant.uniform<u8:f32, 3.400000e+01:16>>) -> tensor<1x8x8x207xf32>
+// CHECK-NEXT:   %2 = stablehlo.abs %arg1 : tensor<3x3x207x16x!quant.uniform<i8:f32, 5.000000e+00:20>>
+// CHECK-NEXT:   %3 = stablehlo.convolution(%1, %2) {{.*}} : (tensor<1x8x8x207xf32>, tensor<3x3x207x16x!quant.uniform<i8:f32, 5.000000e+00:20>>) -> tensor<1x8x8x16xf32>
+// CHECK-NEXT:   %4 = stablehlo.uniform_quantize %3 : (tensor<1x8x8x16xf32>) -> tensor<1x8x8x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+// CHECK-NEXT:   return %4 : tensor<1x8x8x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+func.func @failure_not_all_arguments_are_quantized(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<1x8x8x16x!quant.uniform<ui8:f32, 34.0:16>> {
+    %0 = stablehlo.uniform_quantize %arg0 : (tensor<1x8x8x207xf32>) -> tensor<1x8x8x207x!quant.uniform<ui8:f32, 34.0:16>>
+    %1 = stablehlo.uniform_dequantize %0 : (tensor<1x8x8x207x!quant.uniform<ui8:f32, 34.0:16>>) -> tensor<1x8x8x207xf32>
+    %2 = stablehlo.abs %arg1 : tensor<3x3x207x16x!quant.uniform<i8:f32, 5.0:20>>
+    %3 = stablehlo.convolution(%1, %2)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+         {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} :
+       (tensor<1x8x8x207xf32>, tensor<3x3x207x16x!quant.uniform<i8:f32, 5.0:20>>) -> tensor<1x8x8x16xf32>
+    %4 = stablehlo.uniform_quantize %3 : (tensor<1x8x8x16xf32>) -> tensor<1x8x8x16x!quant.uniform<ui8:f32, 34.0:16>>
+  func.return %4 : tensor<1x8x8x16x!quant.uniform<ui8:f32, 34.0:16>>
+}
+
+
+// -----
+
+// CHECK-LABEL @failure_operand_not_defined_by_op
+// CHECK:       %0 = stablehlo.uniform_quantize %arg1 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+// CHECK-NEXT:  %1 = stablehlo.uniform_dequantize %0 : (tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>) -> tensor<16x16xf32>
+// CHECK-NEXT:  %2 = stablehlo.add %arg0, %1 : tensor<16x16xf32>
+// CHECK-NEXT:  %3 = stablehlo.uniform_quantize %2 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+// CHECK-NEXT:  return %3 : tensor<16x16x!quant.uniform<u8:f32, 3.400000e+01:16>>
+func.func @failure_operand_not_defined_by_op(%arg0: tensor<16x16xf32>, %arg1: tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>> {
+    %1 = stablehlo.uniform_quantize %arg1 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+    %2 = stablehlo.uniform_dequantize %1 : (tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>) -> tensor<16x16xf32>
+    %3 = stablehlo.add %arg0, %2 : (tensor<16x16xf32>, tensor<16x16xf32>) -> tensor<16x16xf32>
+    %4 = stablehlo.uniform_quantize %3 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+    func.return %4: tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
 }
 
 // -----
