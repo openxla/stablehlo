@@ -84,6 +84,12 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
       [&](Float32Type type) { return FloatF32V1Type::get(type.getContext()); });
   addConversion(
       [&](Float64Type type) { return FloatF64V1Type::get(type.getContext()); });
+  addConversion([&](Float8E3M4Type type) {
+    return FloatF8E3M4V1Type::get(type.getContext());
+  });
+  addConversion([&](Float8E4M3Type type) {
+    return FloatF8E4M3V1Type::get(type.getContext());
+  });
   addConversion([&](Float8E4M3FNType type) {
     return FloatF8E4M3FNV1Type::get(type.getContext());
   });
@@ -176,6 +182,12 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
       [&](FloatF32V1Type type) { return Float32Type::get(type.getContext()); });
   addConversion(
       [&](FloatF64V1Type type) { return Float64Type::get(type.getContext()); });
+  addConversion([&](FloatF8E3M4V1Type type) {
+    return Float8E3M4Type::get(type.getContext());
+  });
+  addConversion([&](FloatF8E4M3V1Type type) {
+    return Float8E4M3Type::get(type.getContext());
+  });
   addConversion([&](FloatF8E4M3FNV1Type type) {
     return Float8E4M3FNType::get(type.getContext());
   });
