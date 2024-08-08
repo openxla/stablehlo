@@ -77,7 +77,9 @@ struct QuantizedStablehloQDQToQuantizedOpConversion
       auto dequantOp = dyn_cast<stablehlo::UniformDequantizeOp>(definingOp);
       if (!dequantOp)
         return rewriter.notifyMatchFailure(
-            definingOp, "requires operand to be defined by an stablehlo.uniform_dequantize op");
+            definingOp,
+            "requires operand to be defined by an stablehlo.uniform_dequantize "
+            "op");
 
       quantizedComputeOpOperands.push_back(dequantOp->getOperand(0));
     }
