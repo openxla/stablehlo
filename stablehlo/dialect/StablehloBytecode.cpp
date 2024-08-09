@@ -174,7 +174,7 @@ enum AttributeCode {
   ///     lhsPrecisionType : Type
   ///     rhsPrecisionType : Type
   ///     accumulationType : Type
-  ///     lhsComponentCount: svarint
+  ///     lhsComponentCount : svarint
   ///     rhsComponentCount : svarint,
   ///     numPrimitiveOperations : svarint
   ///     allowImpreciseAccumulation : svarint

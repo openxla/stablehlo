@@ -3066,7 +3066,7 @@ func.func @dot_general_algorithm_tf32(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x
 
 // -----
 
-func.func @dot_general_algorithm_i8(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
+func.func @dot_general_i8(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
   // expected-error @+3 {{lhs precision type must be float}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
@@ -3076,7 +3076,7 @@ func.func @dot_general_algorithm_i8(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x
 
 // -----
 
-func.func @dot_general_algorithm_i9(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
+func.func @dot_general_i9(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
   // expected-error @+3 {{rhs precision type must be float}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
@@ -3086,7 +3086,7 @@ func.func @dot_general_algorithm_i9(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x
 
 // -----
 
-func.func @dot_general_algorithm_i10(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
+func.func @dot_general_i10(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
   // expected-error @+3 {{accumulation type must be float}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
@@ -3322,7 +3322,7 @@ func.func @dot_general_c11(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -
 
 // -----
 
-func.func @dot_general_algorithm_c21(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
+func.func @dot_general_c21(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
   // expected-error @+1 {{must specify DEFAULT precision config when algorithm is set}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
@@ -3333,7 +3333,7 @@ func.func @dot_general_algorithm_c21(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2
 
 // -----
 
-func.func @dot_general_algorithm_c22(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
+func.func @dot_general_c22(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
   // expected-error@+3 {{lhs component count must be positive}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
@@ -3343,7 +3343,7 @@ func.func @dot_general_algorithm_c22(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2
 
 // -----
 
-func.func @dot_general_algorithm_c23(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
+func.func @dot_general_c23(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
   // expected-error@+3 {{rhs component count must be positive}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
@@ -3353,7 +3353,7 @@ func.func @dot_general_algorithm_c23(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2
 
 // -----
 
-func.func @dot_general_algorithm_c24(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
+func.func @dot_general_c24(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
   // expected-error@+3 {{num primitive operations must be positive}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,

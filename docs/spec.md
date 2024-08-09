@@ -2542,25 +2542,27 @@ planning to address this in
 * `HIGHEST`: Slowest calculation, but most accurate approximation to the
   original number.
 
-The `DotAlgorithm` attribute defines the main properties of the algorithm used
-to implement the dot operation, which also defines the precision. If the
-algorithm attribute is set, then the `precision_config` must be `DEFAULT`.
+A `DotAlgorithm` defines the main properties of the algorithm used to implement
+the dot operation, which also defines the precision. If the algorithm attribute
+fields are set, then the `precision_config` must be `DEFAULT`. `DotAlgorithms`
+do not have a default value, as the default parameters are implementation
+defined. As such, all dot algorithm fields may be set to `None` to specify an
+empty dot algorithm, which will instead use the `precision_config` value.
 
-`DotAlgorithm.lhs_type` and `DotAlgorithm.rhs_type` are the precisions that the
-LHS and RHS of the operation are rounded to, and `DotAlgorithm.accum_type` is
-`AccumType` - the accumulation type. These types are independent from the
-storage types of the inputs and the output. `DotAlgorithm.lhs_component_count`,
-`DotAlgorithm.rhs_component_count` and `DotAlgorithm.num_primitive_operations` apply
-when we are doing an algorithm which decomposes the LHS and/or RHS into multiple
-components and does multiple "primitive" dot operations on those values -
-usually to emulate a higher precision (e.g.
-[bf16_6x](https://arxiv.org/pdf/1904.06376.pdf), tf32_3x, etc). If this is not
-the case, these values should be set to 1. If
-`DotAlgorithm.allow_imprecise_accum` is true, then the implementation is allowed
-to accumulate in lower precision for some steps (as per
-CUBLASLT_MATMUL_DESC_FAST_ACCUM).
-
-It is up to the implementations to decide which combinations are supported.
+`DotAlgorithm` fields include:
+* `lhs_precision_type` and `rhs_precision_type`, the precisions that the LHS and
+  RHS of the operation are rounded to. Precision types are independent from the
+  storage types of the inputs and the output.
+* `accumulation_type` the precision used for accumulation.
+* `lhs_component_count`, `rhs_component_count`, and `num_primitive_operations`
+  apply when we are doing an algorithm which decomposes the LHS and/or RHS into
+  multiple components and does multiple "primitive" dot operations on those
+  values - usually to emulate a higher precision (e.g.
+[Leveraging the bfloat16 Artificial Intelligence Datatype For Higher-Precision Computations](https://arxiv.org/pdf/1904.06376.pdf):
+  bf16_6x tf32_3x, etc). For algorithms with no decomposition, these values
+  should be set to `1`.
+* `allow_imprecise_accumulation` to specify if accumulation in lower precision
+  is permitted for some steps (e.g. `CUBLASLT_MATMUL_DESC_FAST_ACCUM`).
 
 Example `DotAlgorithm` attributes:
 
@@ -2595,13 +2597,16 @@ Example `DotAlgorithm` attributes:
  allow_imprecise_accumulation = true}
 ```
 
-In general, it is not guaranteed that the each algorithm is supported on each
+It is up to the implementations to decide which combinations are supported. In
+general, it is not guaranteed that each algorithm is supported on each
 accelerator type by the consumer of the StableHLO. If a given algorithm is not
 supported, an error should be raised as opposed to falling back to an
-alternative. StableHLO verification will prevent some combinations that are not
-known to be supported on any hardware.
+alternative. StableHLO verification will provide best effort verification,
+preventing algorithms that are not known to be supported on _any_ hardware.
 
-TODO: Create an XLA doc which details supported combinations of algorithms.
+See [`xla_data.proto > Algorithm`](https://github.com/openxla/xla/blob/e8a707554de6b3d6bfd891583a81ff7020a97b54/xla/xla_data.proto#L1022)
+for some supported algorithm values. Ticket #2483 captures the plan to create a
+centralized doc on supported algorithms by backend.
 
 #### Inputs
 
@@ -2660,14 +2665,12 @@ TODO: Create an XLA doc which details supported combinations of algorithms.
       `is_per_tensor_quantized(result)`.
   * If `!is_quantized(lhs)`:
     * (C20) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
-
-* (C21) If `precision_config... != DEFAULT`,
-  then `lhs_precision_type = rhs_precision_type = accumulation_type = element_type(lhs)`
-  and `lhs_component_count = rhs_component_count = num_primitive_operations = 1`
-  and `allow_imprecise_accumulation = false`.
-* (C22) `0 < lhs_component_count`
-* (C23) `0 < rhs_component_count`
-* (C24) `0 < num_primitive_operations`
+* If `!is_empty_algorithm(lhs_precision_type, rhs_precision_type, accumulation_type, lhs_component_count, rhs_component_count, num_primitive_operations allow_imprecise_accumulation)`,
+  then:
+  * (C21) `precision_config... = DEFAULT`.
+  * (C22) `0 < lhs_component_count`.
+  * (C23) `0 < rhs_component_count`.
+  * (C24) `0 < num_primitive_operations`.
 
 #### Examples
 
@@ -7293,6 +7296,10 @@ returns the `TensorElementType` part of a corresponding `TensorType`.
 If `x` is a value or placeholder, this function is a shortcut for
 `member_name(type(x))`.  If `x` is not a type that has an appropriate member, or
 a value or a placeholder of such a type, returns `None`.
+
+* `is_empty_algorithm(*args: Type)` checks if all dot algorithm fields are set
+  to `None`. This is needed since dot algorithms have implementation defined
+  default behaviors, so specifying a default value would be incorrect.
 
 #### Construction of values
 
