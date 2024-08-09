@@ -247,6 +247,7 @@ SignedIntegerType ::= 'si2' | 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
 UnsignedIntegerType ::= 'ui2' | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
 FloatType ::= 'f8E4M3FN' | 'f8E5M2' | 'f8E4M3FNUZ' | 'f8E5M2FNUZ'
             | 'f8E4M3B11FNUZ' | 'bf16' | 'f16' | 'f32' | 'f64'
+TensorFloat32 ::= 'tf32'
 ComplexType ::= 'complex' '<' ComplexElementType '>'
 ComplexElementType ::= 'f32' | 'f64'
 ```
@@ -278,7 +279,9 @@ values of type `tensor<T>`).
   * `f16`, `f32` and `f64` types corresponding to respectively
     `binary16` ("half precision"), `binary32` ("single precision") and
     `binary64` ("double precision") formats described in
-  [the IEEE 754 standard](https://ieeexplore.ieee.org/document/8766229).
+    [the IEEE 754 standard](https://ieeexplore.ieee.org/document/8766229).
+  * `tf32` type corresponds to the [TensorFloat32 format](https://blogs.nvidia.com/blog/tensorfloat-32-precision-format/)
+    and has limited support in StableHLO.
 * **Complex types** represent complex values that have a **real part**
   and an **imaginary part** of the same **element type**. Supported complex
   types are `complex<f32>` (both parts are of type `f32`) and `complex<f64>`
