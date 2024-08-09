@@ -229,7 +229,7 @@ def StablehloLegalizeQuantToMathPass : Pass<"stablehlo-legalize-quant-to-math", 
 }
 
 def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-op-to-qdq", "mlir::func::FuncOp"> {
-  let summary = "Decompose StableHLO quantized ops using uniform quantize/dequantize ops.";
+  let summary = "Decompose quantized StableHLO operation to (de-quantize, floating-point operation and quantize) pattern.";
 
   let description = [{
     Decompose StableHLO quantized programs using uniform quantize/dequantize
@@ -260,10 +260,10 @@ def StablehloLegalizeQuantizedOpToQDQPass : Pass<"stablehlo-legalize-quantized-o
 }
 
 def StablehloLegalizeQDQToQuantizedOpPass : Pass<"stablehlo-legalize-qdq-to-quantized-op", "mlir::func::FuncOp"> {
-  let summary = "Compose StableHLO quantized op using uniform quantize/dequantize ops";
+  let summary = "Fuse (de-quantize, floating-point operation and quantize) pattern into StableHLO quantized operation";
 
   let description = [{
-    Compose StableHLO quantized op using uniform quantize/dequantize ops.
+    Fuse (de-quantize, floating-point operation and quantize) pattern into StableHLO quantized operation
     Note: The pass does not delete any preexisting op.
     For example, the following program
 
