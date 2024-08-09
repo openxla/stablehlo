@@ -87,9 +87,9 @@ long-term supported counterparts.
 ```
 ### `-stablehlo-legalize-qdq-to-quantized-op`
 
-_Compose StableHLO quantized op using uniform quantize/dequantize ops_
+_Fuse (de-quantize, floating-point operation and quantize) pattern into StableHLO quantized operation_
 
-Compose StableHLO quantized op using uniform quantize/dequantize ops.
+Fuse (de-quantize, floating-point operation and quantize) pattern into StableHLO quantized operation
 Note: The pass does not delete any preexisting op.
 For example, the following program
 
@@ -154,7 +154,7 @@ func.func @add(%arg0: tensor<i8>, %arg1: tensor<i8>) -> tensor<i8> {
 ```
 ### `-stablehlo-legalize-quantized-op-to-qdq`
 
-_Decompose StableHLO quantized ops using uniform quantize/dequantize ops._
+_Decompose quantized StableHLO operation to (de-quantize, floating-point operation and quantize) pattern._
 
 Decompose StableHLO quantized programs using uniform quantize/dequantize
 operations. For example, the following program
