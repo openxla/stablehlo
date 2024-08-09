@@ -2553,6 +2553,7 @@ defined. As such, all dot algorithm fields may be set to `None` to specify an
 empty dot algorithm, which will instead use the `precision_config` value.
 
 `DotAlgorithm` fields include:
+
 * `lhs_precision_type` and `rhs_precision_type`, the precisions that the LHS and
   RHS of the operation are rounded to. Precision types are independent from the
   storage types of the inputs and the output.
@@ -2605,7 +2606,7 @@ general, it is not guaranteed that each algorithm is supported on each
 accelerator type by the consumer of the StableHLO. If a given algorithm is not
 supported, an error should be raised as opposed to falling back to an
 alternative. StableHLO verification will provide best effort verification,
-preventing algorithms that are not known to be supported on _any_ hardware.
+preventing algorithms that are not known to be supported on *any* hardware.
 
 See [`xla_data.proto > Algorithm`](https://github.com/openxla/xla/blob/e8a707554de6b3d6bfd891583a81ff7020a97b54/xla/xla_data.proto#L1022)
 for some supported algorithm values. Ticket #2483 captures the plan to create a
@@ -2668,8 +2669,9 @@ centralized doc on supported algorithms by backend.
       `is_per_tensor_quantized(result)`.
   * If `!is_quantized(lhs)`:
     * (C20) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
-* If `!is_empty_algorithm(lhs_precision_type, rhs_precision_type, accumulation_type, lhs_component_count, rhs_component_count, num_primitive_operations allow_imprecise_accumulation)`,
-  then:
+* If `!is_empty_algorithm(lhs_precision_type, rhs_precision_type,
+  accumulation_type, lhs_component_count, rhs_component_count,
+  num_primitive_operations allow_imprecise_accumulation)`:
   * (C21) `precision_config... = DEFAULT`.
   * (C22) `0 < lhs_component_count`.
   * (C23) `0 < rhs_component_count`.
