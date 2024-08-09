@@ -46,7 +46,8 @@ struct QuantizedStablehloQDQToQuantizedOpConversion
     //    UniformDequantizeOp -> non-quantized Op -> UniformQuantizeOp.
     // Start matching from a UniformQuantizeOp (`quantOp`).
     // Get the Op (`computeOp`) which defines the inputs of the `quantOp`.
-    // Verify all inputs of the `computeOp` are produced by UniformDequantizeOp.
+    // Verify all inputs of the `computeOp` are produced by
+    // UniformDequantizeOp (`dequantOp`).
     // Note: The pass does not delete any prexisting op.
     auto* computeOp = quantOp->getOperand(0).getDefiningOp();
     if (!computeOp)
@@ -83,13 +84,12 @@ struct QuantizedStablehloQDQToQuantizedOpConversion
 
       quantizedComputeOpOperands.push_back(dequantOp->getOperand(0));
     }
-    SmallVector<Type> quantizedComputeOpResultTypes(quantOp->getResultTypes());
 
     rewriter.setInsertionPointAfter(computeOp);
-    OperationState newState(
-        computeOp->getLoc(), computeOp->getName().getStringRef(),
-        quantizedComputeOpOperands, quantizedComputeOpResultTypes,
-        computeOp->getAttrs());
+    OperationState newState(computeOp->getLoc(),
+                            computeOp->getName().getStringRef(),
+                            quantizedComputeOpOperands,
+                            quantOp->getResultTypes(), computeOp->getAttrs());
     Operation* quantizedComputeOp = rewriter.create(newState);
 
     // Now that `computeOp` is quantized, replace all uses of the `quantOp`
