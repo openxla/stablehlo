@@ -202,6 +202,27 @@ SpecialResult specialSuccess() { return SpecialResult::SPECIAL_SUCCESS; }
 SpecialResult specialFailure() { return SpecialResult::SPECIAL_FAILURE; }
 SpecialResult notSpecial() { return SpecialResult::NOT_SPECIAL; }
 
+LogicalResult convertBool(Attribute vhloAttr, bool& result) {
+  auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
+  if (!vhloBooleanAttr) return failure();
+  result = vhloBooleanAttr.getValue();
+  return success();
+}
+
+bool isNoneType(Attribute vhloAttr) {
+  auto typeAttr = llvm::dyn_cast<vhlo::TypeV1Attr>(vhloAttr);
+  if (!typeAttr) return false;
+  return llvm::isa<vhlo::NoneV1Type>(typeAttr.getValue());
+}
+
+LogicalResult convertTypeAttr(Attribute vhloAttr, Type& result,
+                              const TypeConverter* typeConverter) {
+  auto stablehloAttr = convertGeneric(vhloAttr, typeConverter);
+  if (!stablehloAttr || !isa<TypeAttr>(stablehloAttr)) return failure();
+  result = cast<TypeAttr>(stablehloAttr).getValue();
+  return success();
+}
+
 LogicalResult convertInt(Attribute vhloAttr, int64_t& result) {
   auto vhloIntegerAttr = dyn_cast<vhlo::IntegerV1Attr>(vhloAttr);
   if (!vhloIntegerAttr) return failure();
@@ -302,7 +323,44 @@ Attribute convertCustomCallCalledComputations(
   return {};
 }
 
-Attribute convertDotDimensionNumbers(vhlo::DotGeneralOpV1 vhloOp,
+FailureOr<Attribute> convertDotAlgorithm(vhlo::DotGeneralOpV2 vhloOp,
+                                         const TypeConverter* typeConverter) {
+  Type lhsPrecisionType, rhsPrecisionType, accumulationType;
+  if (isNoneType(vhloOp.getLhsComponentCount())) {
+    // All must be nonetype
+    if (!isNoneType(vhloOp.getRhsComponentCount()) ||
+        !isNoneType(vhloOp.getAccumulationType()) ||
+        !isNoneType(vhloOp.getLhsComponentCount()) ||
+        !isNoneType(vhloOp.getRhsComponentCount()) ||
+        !isNoneType(vhloOp.getNumPrimitiveOperations()) ||
+        !isNoneType(vhloOp.getAllowImpreciseAccumulation()))
+      return failure();
+
+    // Otherwise, valid NoneTyped Algorithm
+    return Attribute{};
+  }
+  int64_t lhsComponentCount, rhsComponentCount, numPrimitiveOperations;
+  bool allowImpreciseAccumulation;
+  if (failed(convertTypeAttr(vhloOp.getLhsPrecisionType(), lhsPrecisionType,
+                             typeConverter)) ||
+      failed(convertTypeAttr(vhloOp.getRhsPrecisionType(), rhsPrecisionType,
+                             typeConverter)) ||
+      failed(convertTypeAttr(vhloOp.getAccumulationType(), accumulationType,
+                             typeConverter)) ||
+      failed(convertInt(vhloOp.getLhsComponentCount(), lhsComponentCount)) ||
+      failed(convertInt(vhloOp.getRhsComponentCount(), rhsComponentCount)) ||
+      failed(convertInt(vhloOp.getNumPrimitiveOperations(),
+                        numPrimitiveOperations)) ||
+      failed(convertBool(vhloOp.getAllowImpreciseAccumulation(),
+                         allowImpreciseAccumulation)))
+    return failure();
+  return stablehlo::DotAlgorithmAttr::get(
+      vhloOp->getContext(), lhsPrecisionType, rhsPrecisionType,
+      accumulationType, lhsComponentCount, rhsComponentCount,
+      numPrimitiveOperations, allowImpreciseAccumulation);
+}
+
+Attribute convertDotDimensionNumbers(vhlo::DotGeneralOpV2 vhloOp,
                                      const TypeConverter* typeConverter) {
   SmallVector<int64_t> stablehloLhsBatchingDimensions,
       stablehloRhsBatchingDimensions, stablehloLhsContractingDimensions,
@@ -406,15 +464,29 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                "output_batch_dimension", "output_feature_dimension",
                "output_spatial_dimensions");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV1>::value) {
-    auto stablehloAttr =
+  if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV2>::value) {
+    // Dot Dimension Numbers
+    auto stablehloDotDimAttr =
         convertDotDimensionNumbers(vhloOp, pattern.getTypeConverter());
-    if (!stablehloAttr) return failure();
+    if (!stablehloDotDimAttr) return failure();
     stablehloAttrs.emplace_back(
         StringAttr::get(pattern.getContext(), "dot_dimension_numbers"),
-        stablehloAttr);
+        stablehloDotDimAttr);
     eraseAttrs(vhloAttrs, "lhs_batching_dimensions", "rhs_batching_dimensions",
                "lhs_contracting_dimensions", "rhs_contracting_dimensions");
+
+    // Dot Algorithm
+    auto stablehloDotAlgorithmAttr =
+        convertDotAlgorithm(vhloOp, pattern.getTypeConverter());
+    if (failed(stablehloDotAlgorithmAttr)) return failure();
+    if (stablehloDotAlgorithmAttr.value())
+      stablehloAttrs.emplace_back(
+          StringAttr::get(pattern.getContext(), "algorithm"),
+          stablehloDotAlgorithmAttr.value());
+    eraseAttrs(vhloAttrs, "lhs_precision_type", "rhs_precision_type",
+               "accumulation_type", "lhs_component_count",
+               "rhs_component_count", "num_primitive_operations",
+               "allow_imprecise_accumulation");
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::DynamicGatherOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::GatherOpV2>::value) {
@@ -765,7 +837,7 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     if (isEmptyArray(vhloOp.getOutputOperandAliases()))
       eraseAttrs(vhloAttrs, "output_operand_aliases");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV1>::value ||
+  if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::DotOpV1>::value) {
     if (isSplatArray(vhloOp.getPrecisionConfigAttr(),
                      vhlo::PrecisionV1Attr::get(pattern.getContext(),

@@ -579,13 +579,18 @@ void printPrecisionConfig(OpAsmPrinter& p, Operation*,
   p << ']';
 }
 
-ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
-  // No precision config specified
-  if (failed(parser.parseOptionalComma())) return success();
+void printDotAlgorithm(OpAsmPrinter& p, Operation*,
+                       DotAlgorithmAttr algorithm) {
+  // Precision config is an optional attribute, passes null if not specified.
+  if (!algorithm) return;
+  p << ", algorithm = ";
+  p.printStrippedAttrOrType(algorithm);
+}
 
+ParseResult parsePrecisionConfigImpl(OpAsmParser& parser,
+                                     mlir::ArrayAttr& precision) {
   if (failed(parser.parseKeyword("precision")) || failed(parser.parseEqual()))
     return failure();
-
   SmallVector<Attribute> attrs;
   if (failed(parser.parseCommaSeparatedList(
           AsmParser::Delimiter::Square, [&]() -> ParseResult {
@@ -594,8 +599,64 @@ ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
           })))
     return failure();
 
-  attr = mlir::ArrayAttr::get(parser.getContext(), attrs);
+  precision = mlir::ArrayAttr::get(parser.getContext(), attrs);
   return success();
+}
+
+void printPrecisionConfigAndAlgorithm(OpAsmPrinter& p, Operation* op,
+                                      ::mlir::ArrayAttr precision,
+                                      DotAlgorithmAttr algorithm) {
+  printPrecisionConfig(p, op, precision);
+  printDotAlgorithm(p, op, algorithm);
+}
+
+ParseResult parsePrecisionConfigAndAlgorithm(OpAsmParser& parser,
+                                             mlir::ArrayAttr& precision,
+                                             DotAlgorithmAttr& algorithm) {
+  // OptPrecisionAndAlgorithm ::= `,` PrecisionAndAlgorithm || empty
+  // PrecisionAndAlgorithm ::= Precision OptAlgorithm || Algorithm
+  // Precision ::= `precision` `=` PrecisionConfigAttr
+  // OptAlgorithm ::= `,` Algorithm || empty
+  // Algorithm ::= `algorithm` `=` DotAlgorithmAttr
+
+  // OptPrecisionAndAlgorithm
+  if (failed(parser.parseOptionalComma())) return success();
+
+  auto parseAlgorithm = [](OpAsmParser& parser,
+                           DotAlgorithmAttr& algorithm) -> ParseResult {
+    Type none;
+    auto result = DotAlgorithmAttr::parse(parser, none);
+    if (!result) return failure();
+    algorithm = cast<DotAlgorithmAttr>(result);
+    return success();
+  };
+
+  // PrecisionAndAlgorithm -> Algorithm
+  if (succeeded(parser.parseOptionalKeyword("algorithm"))) {
+    if (failed(parser.parseEqual()) ||
+        failed(parseAlgorithm(parser, algorithm)))
+      return failure();
+    return success();
+  }
+
+  // PrecisionAndAlgorithm -> Precision OptAlgorithm
+  if (failed(parsePrecisionConfigImpl(parser, precision))) return failure();
+
+  // OptAlgorithm
+  if (failed(parser.parseOptionalComma())) return success();
+
+  // Algorithm
+  if (failed(parser.parseKeyword("algorithm")) || failed(parser.parseEqual()) ||
+      failed(parseAlgorithm(parser, algorithm)))
+    return failure();
+  return success();
+}
+
+ParseResult parsePrecisionConfig(OpAsmParser& parser,
+                                 mlir::ArrayAttr& precision) {
+  // OptPrecisionConfig ::= `,` Precision || empty
+  if (failed(parser.parseOptionalComma())) return success();
+  return parsePrecisionConfigImpl(parser, precision);
 }
 
 //===----------------------------------------------------------------------===//

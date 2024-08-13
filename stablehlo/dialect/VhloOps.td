@@ -423,7 +423,7 @@ def VHLO_DivOpV1 : VHLO_Op<"divide_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general_v1", "0.9.0", "current"> {
+def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general_v1", "0.9.0", "1.5.0"> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
@@ -432,6 +432,26 @@ def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general_v1", "0.9.0", "current"> {
     VHLO_AnyAttr:$lhs_contracting_dimensions,
     VHLO_AnyAttr:$rhs_contracting_dimensions,
     VHLO_AnyAttr:$precision_config
+  );
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_DotGeneralOpV2 : VHLO_Op<"dot_general_v2", "1.6.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$lhs,
+    VHLO_AnyType:$rhs,
+    VHLO_AnyAttr:$lhs_batching_dimensions,
+    VHLO_AnyAttr:$rhs_batching_dimensions,
+    VHLO_AnyAttr:$lhs_contracting_dimensions,
+    VHLO_AnyAttr:$rhs_contracting_dimensions,
+    VHLO_AnyAttr:$precision_config,
+    VHLO_AnyAttr:$lhs_precision_type,
+    VHLO_AnyAttr:$rhs_precision_type,
+    VHLO_AnyAttr:$accumulation_type,
+    VHLO_AnyAttr:$lhs_component_count,
+    VHLO_AnyAttr:$rhs_component_count,
+    VHLO_AnyAttr:$num_primitive_operations,
+    VHLO_AnyAttr:$allow_imprecise_accumulation
   );
   let results = (outs VHLO_AnyType:$result);
 }

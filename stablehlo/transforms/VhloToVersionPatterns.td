@@ -20,6 +20,10 @@ def VHLO_GetEmptyDims : NativeCodeCall<"getEmptyI64Tensor($_builder)">;
 
 def VHLO_EmptyDims : AttrConstraint<CPred<"isEmptyTensor($_self)">, "Empty dims">;
 
+def VHLO_NoneType : AttrConstraint<CPred<"isNoneType($_self)">, "None type">;
+
+def VHLO_GetNoneType : NativeCodeCall<"getNoneType($_builder)">;
+
 def VHLO_GetDefaultConvPadding : NativeCodeCall<"getDefaultConvPadding($_builder, $0)">;
 
 def VHLO_IsSingleOperand :  Constraint<CPred<"$0.size() == 1">, "Single operand">;
@@ -69,3 +73,13 @@ def AllToAllOpDowngradeV2ToV1 :
   Pat<(VHLO_AllToAllOpV2 $operand, $split_dimension, $concat_dimension, $split_count, $replica_groups, $channel_id),
       (VHLO_AllToAllOpV1 (VHLO_GetFirstOperand $operand), $split_dimension, $concat_dimension, $split_count, $replica_groups, $channel_id),
       [(VHLO_IsSingleOperand $operand)]>;
+
+def DotGeneralOpDowngradeV2ToV1 :
+  Pat<(VHLO_DotGeneralOpV2 $lhs, $rhs, $lhs_batching_dimensions, $rhs_batching_dimensions, $lhs_contracting_dimensions, $rhs_contracting_dimensions, $precision_config,
+         VHLO_NoneType:$lhs_precision_type, VHLO_NoneType:$rhs_precision_type, VHLO_NoneType:$accumulation_type, VHLO_NoneType:$lhs_component_count, VHLO_NoneType:$rhs_component_count, VHLO_NoneType:$num_primitive_operations, VHLO_NoneType:$allow_imprecise_accumulation),
+      (VHLO_DotGeneralOpV1 $lhs, $rhs, $lhs_batching_dimensions, $rhs_batching_dimensions, $lhs_contracting_dimensions, $rhs_contracting_dimensions, $precision_config)>;
+
+def DotGeneralOpUpradeV1ToV2 :
+  Pat<(VHLO_DotGeneralOpV1 $lhs, $rhs, $lhs_batching_dimensions, $rhs_batching_dimensions, $lhs_contracting_dimensions, $rhs_contracting_dimensions, $precision_config),
+      (VHLO_DotGeneralOpV2 $lhs, $rhs, $lhs_batching_dimensions, $rhs_batching_dimensions, $lhs_contracting_dimensions, $rhs_contracting_dimensions, $precision_config,
+         (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType))>;

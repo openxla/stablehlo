@@ -17,6 +17,7 @@ limitations under the License.
 #include <type_traits>
 #include <utility>
 
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
@@ -98,6 +99,8 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
 
 Attribute convertGeneric(Attribute stablehloAttr,
                          const TypeConverter* typeConverter) {
+  LLVM_DEBUG(llvm::dbgs() << "Convert generic: " << stablehloAttr << '\n');
+
   // Handle StableHLO attributes.
   // The logic that handles attributes from other dialects (e.g. builtin
   // attributes) lives below.
@@ -236,6 +239,12 @@ enum class SpecialResult {
 SpecialResult specialSuccess() { return SpecialResult::SPECIAL_SUCCESS; }
 SpecialResult specialFailure() { return SpecialResult::SPECIAL_FAILURE; }
 SpecialResult notSpecial() { return SpecialResult::NOT_SPECIAL; }
+
+Attribute convertBool(const ConversionPattern& pattern, int64_t stablehloDim) {
+  auto stablehloType = IntegerType::get(pattern.getContext(), 1);
+  auto stablehloAttr = IntegerAttr::get(stablehloType, stablehloDim);
+  return convertGeneric(stablehloAttr, pattern.getTypeConverter());
+}
 
 Attribute convertInt(const ConversionPattern& pattern, int64_t stablehloDim) {
   auto stablehloType = IntegerType::get(pattern.getContext(), 64);
@@ -396,6 +405,62 @@ SpecialResult convertCustomCallCalledComputations(
   return specialSuccess();
 }
 
+SpecialResult convertDotAlgorithm(const ConversionPattern& pattern,
+                                  Attribute stablehloAttr,
+                                  SmallVector<NamedAttribute>& vhloAttrs) {
+  auto noneAttr = llvm::dyn_cast<vhlo::TypeV1Attr>(stablehloAttr);
+  if (noneAttr && isa<vhlo::NoneV1Type>(noneAttr.getValue())) {
+    // FIXME
+    return specialSuccess();
+  }
+  auto attr = dyn_cast<stablehlo::DotAlgorithmAttr>(stablehloAttr);
+  if (!attr) return specialFailure();
+
+  // Types
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "lhs_precision_type"),
+      convertGeneric(TypeAttr::get(attr.getLhsPrecisionType()),
+                     pattern.getTypeConverter()));
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "rhs_precision_type"),
+      convertGeneric(TypeAttr::get(attr.getRhsPrecisionType()),
+                     pattern.getTypeConverter()));
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "accumulation_type"),
+      convertGeneric(TypeAttr::get(attr.getAccumulationType()),
+                     pattern.getTypeConverter()));
+
+  // Components
+  auto vhloLhsComponentCount = convertInt(pattern, attr.getLhsComponentCount());
+  if (!vhloLhsComponentCount) return specialFailure();
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "lhs_component_count"),
+      vhloLhsComponentCount);
+
+  auto vhloRhsComponentCount = convertInt(pattern, attr.getRhsComponentCount());
+  if (!vhloRhsComponentCount) return specialFailure();
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "rhs_component_count"),
+      vhloRhsComponentCount);
+
+  auto vhloNumPrimitiveOperations =
+      convertInt(pattern, attr.getNumPrimitiveOperations());
+  if (!vhloNumPrimitiveOperations) return specialFailure();
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "num_primitive_operations"),
+      vhloNumPrimitiveOperations);
+
+  // Imprecise accum
+  auto vhloAllowImpreciseAccumulation =
+      convertBool(pattern, attr.getAllowImpreciseAccumulation());
+  if (!vhloAllowImpreciseAccumulation) return specialFailure();
+  vhloAttrs.emplace_back(
+      StringAttr::get(pattern.getContext(), "allow_imprecise_accumulation"),
+      vhloAllowImpreciseAccumulation);
+
+  return specialSuccess();
+}
+
 SpecialResult convertDotDimensionNumbers(
     const ConversionPattern& pattern, Attribute stablehloAttr,
     SmallVector<NamedAttribute>& vhloAttrs) {
@@ -551,6 +616,7 @@ template <typename StablehloOpTy>
 SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
                              StringAttr stablehloName, Attribute stablehloAttr,
                              SmallVector<NamedAttribute>& vhloAttrs) {
+  LLVM_DEBUG(llvm::dbgs() << "Convert special: " << stablehloName << '\n');
   if constexpr (std::is_same<StablehloOpTy, stablehlo::AllGatherOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::AllReduceOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::AllToAllOp>::value ||
@@ -580,6 +646,8 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
   if constexpr (std::is_same<StablehloOpTy, stablehlo::DotGeneralOp>::value) {
     if (stablehloName == "dot_dimension_numbers")
       return convertDotDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
+    if (stablehloName == "algorithm")
+      return convertDotAlgorithm(pattern, stablehloAttr, vhloAttrs);
   }
   if constexpr (std::is_same<StablehloOpTy,
                              stablehlo::DynamicGatherOp>::value ||
@@ -735,6 +803,18 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
               2, stablehlo::PrecisionAttr::get(
                      pattern.getContext(), stablehlo::Precision::DEFAULT))));
   }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::DotGeneralOp>::value) {
+    if (!stablehloOp.getAlgorithmAttr()) {
+      // Populate nonetypes in dot algorithm fields
+      auto noneTypeAttr = TypeAttr::get(NoneType::get(pattern.getContext()));
+      for (auto attrName : SmallVector<StringLiteral>{
+               "lhs_precision_type", "rhs_precision_type", "accumulation_type",
+               "lhs_component_count", "rhs_component_count",
+               "num_primitive_operations", "allow_imprecise_accumulation"}) {
+        addDefaultAttr(attrName, noneTypeAttr);
+      }
+    }
+  }
   if constexpr (std::is_same<StablehloOpTy,
                              stablehlo::DynamicBroadcastInDimOp>::value) {
     if (!stablehloOp.getKnownExpandingDimensionsAttr())
@@ -848,6 +928,8 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
     if (failed(addDefaults(*this, stablehloOp, vhloAttrs))) return failure();
 
     for (NamedAttribute stablehloAttr : stablehloOp->getAttrs()) {
+      LLVM_DEBUG(llvm::dbgs() << "Converting " << stablehloAttr.getName()
+                              << ", " << stablehloAttr.getValue() << '\n');
       auto result = convertSpecial(*this, stablehloAttr.getName(),
                                    stablehloAttr.getValue(), vhloAttrs);
       switch (result) {

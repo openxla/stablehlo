@@ -582,12 +582,19 @@ func.func @default_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "default_dot_general"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
 func.func @default_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf32>) -> tensor<8x8x8xf32> {
-  //      CHECK: "vhlo.dot_general_v1"(%[[ARG0]], %[[ARG1]]) <{
+  //      CHECK: "vhlo.dot_general_v2"(%[[ARG0]], %[[ARG1]]) <{
+  // CHECK-SAME:   accumulation_type = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   allow_imprecise_accumulation = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   lhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
+  // CHECK-SAME:   lhs_component_count = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   lhs_contracting_dimensions = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
+  // CHECK-SAME:   lhs_precision_type = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   num_primitive_operations = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   precision_config = #vhlo.array_v1<[#vhlo<precision_v1 DEFAULT>, #vhlo<precision_v1 DEFAULT>]>,
   // CHECK-SAME:   rhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
-  // CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
+  // CHECK-SAME:   rhs_component_count = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>,
+  // CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.none_v1>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<8x8x16x!vhlo.f32_v1>, !vhlo.tensor_v1<8x16x8x!vhlo.f32_v1>) -> !vhlo.tensor_v1<8x8x8x!vhlo.f32_v1>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -600,14 +607,41 @@ func.func @default_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf
   func.return %0 : tensor<8x8x8xf32>
 }
 
-// CHECK-LABEL: "default_dot"
+// CHECK-LABEL: "dot_general_algorithm"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
-func.func @default_dot(%arg0: tensor<8x16xf32>, %arg1: tensor<16x8xf32>) -> tensor<8x8xf32> {
-  //      CHECK: "vhlo.dot_v1"(%[[ARG0]], %[[ARG1]]) <{
-  // CHECK-SAME:   precision_config = #vhlo.array_v1<[#vhlo<precision_v1 DEFAULT>, #vhlo<precision_v1 DEFAULT>]>
-  // CHECK-SAME: }> : (!vhlo.tensor_v1<8x16x!vhlo.f32_v1>, !vhlo.tensor_v1<16x8x!vhlo.f32_v1>) -> !vhlo.tensor_v1<8x8x!vhlo.f32_v1>
-  %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
-  func.return %0 : tensor<8x8xf32>
+func.func @dot_general_algorithm(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf32>) -> tensor<8x8x8xf32> {
+//      CHECK: "vhlo.dot_general_v2"(%[[ARG0]], %[[ARG1]]) <{
+// CHECK-SAME:   accumulation_type = #vhlo.type_v1<!vhlo.f32_v1>,
+// CHECK-SAME:   allow_imprecise_accumulation = #vhlo.bool_v1<false>,
+// CHECK-SAME:   lhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
+// CHECK-SAME:   lhs_component_count = #vhlo.integer_v1<1 : i64>,
+// CHECK-SAME:   lhs_contracting_dimensions = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
+// CHECK-SAME:   lhs_precision_type = #vhlo.type_v1<!vhlo.tf31_v1>,
+// CHECK-SAME:   num_primitive_operations = #vhlo.integer_v1<1 : i64>,
+// CHECK-SAME:   precision_config = #vhlo.array_v1<[#vhlo<precision_v1 DEFAULT>, #vhlo<precision_v1 DEFAULT>]>,
+// CHECK-SAME:   rhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
+// CHECK-SAME:   rhs_component_count = #vhlo.integer_v1<1 : i64>,
+// CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>,
+// CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.tf31_v1>
+// CHECK-SAME: }> : (!vhlo.tensor_v1<8x8x16x!vhlo.f32_v1>, !vhlo.tensor_v1<8x16x8x!vhlo.f32_v1>) -> !vhlo.tensor_v1<8x8x8x!vhlo.f32_v1>
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [2],
+      rhs_batching_dimensions = [0],
+      rhs_contracting_dimensions = [1]
+    >,
+    algorithm = #stablehlo.dot_algorithm<
+      lhs_precision_type = tf32,
+      rhs_precision_type = tf32,
+      accumulation_type = f32,
+      lhs_component_count = 1,
+      rhs_component_count = 1,
+      num_primitive_operations = 1,
+      allow_imprecise_accumulation = false
+    >
+  } : (tensor<8x8x16xf32>, tensor<8x16x8xf32>) -> tensor<8x8x8xf32>
+  func.return %0 : tensor<8x8x8xf32>
 }
 
 // CHECK-LABEL: "default_dynamic_broadcast_in_dim"
@@ -1378,12 +1412,19 @@ func.func @op_divide(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_dot_general"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
 func.func @op_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf32>) -> tensor<8x8x8xf32> {
-  //      CHECK: "vhlo.dot_general_v1"(%[[ARG0]], %[[ARG1]]) <{
+  //      CHECK: "vhlo.dot_general_v2"(%[[ARG0]], %[[ARG1]]) <{
+  // CHECK-SAME:   accumulation_type = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   allow_imprecise_accumulation = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   lhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
+  // CHECK-SAME:   lhs_component_count = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   lhs_contracting_dimensions = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
+  // CHECK-SAME:   lhs_precision_type = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   num_primitive_operations = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   precision_config = #vhlo.array_v1<[#vhlo<precision_v1 HIGHEST>, #vhlo<precision_v1 HIGHEST>]>,
   // CHECK-SAME:   rhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
-  // CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>
+  // CHECK-SAME:   rhs_component_count = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>,
+  // CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.none_v1>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<8x8x16x!vhlo.f32_v1>, !vhlo.tensor_v1<8x16x8x!vhlo.f32_v1>) -> !vhlo.tensor_v1<8x8x8x!vhlo.f32_v1>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<

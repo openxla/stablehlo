@@ -60,9 +60,9 @@ limitations under the License.
 
 #define LOG_WRITE_CALL _LOG_CALL_TO("write")
 #define LOG_READ_CALL _LOG_CALL_TO(__func__)
-#define LOG_NOT_IMPLEMENTED                                                 \
-  LLVM_DEBUG(llvm::errs() << "***Not Implemented: " << LLVM_PRETTY_FUNCTION \
-                          << '\n')
+#define LOG_NOT_IMPLEMENTED(typeOrAttr)                                  \
+  LLVM_DEBUG(llvm::errs() << "***Not Implemented: " << typeOrAttr << " " \
+                          << LLVM_PRETTY_FUNCTION << '\n')
 
 //===----------------------------------------------------------------------===//
 // Encoding
@@ -189,6 +189,7 @@ enum AttributeCode {
 /// location is updated.
 enum TypeCode {
   // TO ADD TYPE: Add an enum value with doc string for new type.
+  // Next available code: 35
 
   ///   BooleanV1Type {
   ///   }
@@ -222,6 +223,10 @@ enum TypeCode {
   ///   FloatF8E5M2V1Type {
   ///   }
   kFloatF8E5M2V1Type = 7,
+
+  ///   FloatTF32V1Type {
+  ///   }
+  kFloatTF32V1Type = 34,
 
   ///   FunctionV1Type {
   ///     inputs: Type[]
@@ -346,6 +351,10 @@ enum TypeCode {
   ///     storageTypeMax: svarint
   ///   }
   kUniformQuantizedPerAxisV1Type = 30,
+
+  /// NoneV1Type {
+  /// }
+  kNoneV1Type = 33,
 };
 
 }  // namespace vhlo_encoding
@@ -530,8 +539,8 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
         write(attr, writer);
         return success();
       })
-      .Default([&](Attribute) {
-        LOG_NOT_IMPLEMENTED;
+      .Default([&](Attribute attr) {
+        LOG_NOT_IMPLEMENTED(attr);
         return failure();
       });
 }
@@ -694,6 +703,7 @@ const llvm::fltSemantics &getFloatSemantics(Type type) {
   if (isa<FloatF8E4M3FNV1Type>(type)) return APFloat::Float8E4M3FN();
   if (isa<FloatF8E5M2FNUZV1Type>(type)) return APFloat::Float8E5M2FNUZ();
   if (isa<FloatF8E5M2V1Type>(type)) return APFloat::Float8E5M2();
+  if (isa<FloatTF32V1Type>(type)) return APFloat::FloatTF32();
   llvm::report_fatal_error("unsupported floating-point type");
 }
 }  // namespace
@@ -966,6 +976,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return FloatF8E4M3FNUZV1Type::get(getContext());
     case vhlo_encoding::kFloatF8E4M3B11FNUZV1Type:
       return FloatF8E4M3B11FNUZV1Type::get(getContext());
+    case vhlo_encoding::kFloatTF32V1Type:
+      return FloatTF32V1Type::get(getContext());
     case vhlo_encoding::kFunctionV1Type:
       return readFunctionV1Type(reader);
     case vhlo_encoding::kIndexV1Type:
@@ -994,6 +1006,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return IntegerUI32V1Type::get(getContext());
     case vhlo_encoding::kIntegerUI64V1Type:
       return IntegerUI64V1Type::get(getContext());
+    case vhlo_encoding::kNoneV1Type:
+      return NoneV1Type::get(getContext());
     case vhlo_encoding::kRankedTensorV1Type:
       return readRankedTensorV1Type(reader, /*hasEncoding=*/false);
     case vhlo_encoding::kRankedTensorV1TypeWithEncoding:
@@ -1070,6 +1084,10 @@ LogicalResult VhloBytecodeInterface::writeType(
         return writer.writeVarInt(vhlo_encoding::kFloatF8E5M2FNUZV1Type),
                success();
       })
+      .Case([&](FloatTF32V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloatTF32V1Type), success();
+      })
       .Case([&](IndexV1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kIndexV1Type), success();
@@ -1122,12 +1140,16 @@ LogicalResult VhloBytecodeInterface::writeType(
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kIntegerUI64V1Type), success();
       })
+      .Case([&](NoneV1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kNoneV1Type), success();
+      })
       .Case([&](WitnessV1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kWitnessV1Type), success();
       })
-      .Default([&](Type) {
-        LOG_NOT_IMPLEMENTED;
+      .Default([&](Type type) {
+        LOG_NOT_IMPLEMENTED(type);
         return failure();
       });
 }
