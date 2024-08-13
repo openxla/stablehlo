@@ -28,6 +28,8 @@ limitations under the License.
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/SmallVectorExtras.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -63,6 +65,8 @@ limitations under the License.
 #include "stablehlo/reference/Token.h"
 #include "stablehlo/reference/Types.h"
 #include "stablehlo/reference/Value.h"
+
+#define DEBUG_TYPE "stablehlo-interpreter"
 
 namespace mlir {
 namespace stablehlo {
@@ -609,6 +613,10 @@ SmallVector<InterpreterValue> eval(Region &region,
     } else if (isa<DotOp>(operation)) {
       failOnDecomposableOp(operation);
     } else if (auto op = dyn_cast<DotGeneralOp>(operation)) {
+      LLVM_DEBUG({
+        if (op.getAlgorithm().has_value())
+          llvm::dbgs() << "ignoring dot algorithm constraints in interpreter";
+      });
       auto lhs = scope.findTensor(op.getLhs());
       auto rhs = scope.findTensor(op.getRhs());
       auto lhsBatchingDimensions =
