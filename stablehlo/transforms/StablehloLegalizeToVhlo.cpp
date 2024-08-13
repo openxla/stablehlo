@@ -410,7 +410,7 @@ SpecialResult convertDotAlgorithm(const ConversionPattern& pattern,
                                   SmallVector<NamedAttribute>& vhloAttrs) {
   auto noneAttr = llvm::dyn_cast<vhlo::TypeV1Attr>(stablehloAttr);
   if (noneAttr && isa<vhlo::NoneV1Type>(noneAttr.getValue())) {
-    // FIXME
+    // None type default algorithm handled in `addDefault`
     return specialSuccess();
   }
   auto attr = dyn_cast<stablehlo::DotAlgorithmAttr>(stablehloAttr);
