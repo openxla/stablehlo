@@ -2482,7 +2482,7 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
   // Use empty `` to prevent extra whitespace before precision config.
   let assemblyFormat = [{
     $lhs `,` $rhs `,` custom<DotDimensionNumbers>($dot_dimension_numbers) ``
-    custom<PrecisionConfig>($precision_config) (`,` `algorithm` `=` $algorithm^)? attr-dict
+    custom<PrecisionConfigAndAlgorithm>($precision_config, $algorithm) attr-dict
       `:` functional-type(operands, results)
   }];
 

@@ -99,6 +99,9 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
   addConversion([&](Float8E5M2FNUZType type) {
     return FloatF8E5M2FNUZV1Type::get(type.getContext());
   });
+  addConversion([&](FloatTF32Type type) {
+    return FloatTF32V1Type::get(type.getContext());
+  });
   addConversion([&](FunctionType type) -> Type {
     SmallVector<Type> convertedInputs;
     SmallVector<Type> convertedResults;
@@ -111,6 +114,8 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
       [&](IndexType type) { return IndexV1Type::get(type.getContext()); });
   addConversion(
       [&](IntegerType type) { return convertBuiltinIntegerType(type); });
+  addConversion(
+      [&](NoneType type) { return NoneV1Type::get(type.getContext()); });
   addConversion([&](RankedTensorType type) -> Type {
     auto encoding = type.getEncoding();
     auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
@@ -186,6 +191,9 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
   addConversion([&](FloatF8E5M2FNUZV1Type type) {
     return Float8E5M2FNUZType::get(type.getContext());
   });
+  addConversion([&](FloatTF32V1Type type) {
+    return FloatTF32Type::get(type.getContext());
+  });
   addConversion([&](FunctionV1Type type) -> Type {
     SmallVector<Type> convertedInputs;
     SmallVector<Type> convertedOutputs;
@@ -232,6 +240,8 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
   addConversion([&](IntegerUI64V1Type type) {
     return IntegerType::get(type.getContext(), 64, IntegerType::Unsigned);
   });
+  addConversion(
+      [&](NoneV1Type type) { return NoneType::get(type.getContext()); });
   addConversion([&](RankedTensorV1Type type) -> Type {
     auto encoding = type.getEncoding();
     auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
