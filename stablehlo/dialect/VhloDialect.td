@@ -43,6 +43,7 @@ def VHLO_Dialect : Dialect {
       1.3.0: Extend `custom_call` op `backend_config` to support `DictionaryAttr`.
       1.4.0: Add `tan` op to StableHLO opset.
       1.5.0: Make collective ops (`all_reduce`, `all_gather`, `all_to_all`) variadic.
+      1.6.0: Add DotAlgorithm specificaiton to `dot_general`.
   }];
 
   let useDefaultAttributePrinterParser = 0;
