@@ -24,5 +24,6 @@ add_lit_testsuite(check-stablehlo-tosa "Running the tosa/ suite"
         DEPENDS
         FileCheck
         stablehlo-opt
+        stablehlo-translate
         )
 add_dependencies(check-stablehlo-quick check-stablehlo-tosa)

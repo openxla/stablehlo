@@ -22,7 +22,7 @@ limitations under the License.
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-#define PASS_NAME "stablehlo-prepare-to-tosa"
+#define PASS_NAME "stablehlo-prepare-for-tosa"
 #define DEBUG_TYPE PASS_NAME
 
 namespace mlir {
