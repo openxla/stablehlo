@@ -2817,6 +2817,18 @@ func.func @type_complex_f64(%arg0: tensor<complex<f64>>, %arg1: tensor<complex<f
   func.return %0 : tensor<complex<f64>>
 }
 
+// CHECK-LABEL: "type_tf32"
+// CHECK: #vhlo.type_v1<!vhlo.tf31_v1>
+func.func @type_tf32() attributes {stablehlo.attr = tf32 } {
+  return
+}
+
+// CHECK-LABEL: "type_none"
+// CHECK: #vhlo.type_v1<!vhlo.none_v1>
+func.func @type_none() attributes {stablehlo.attr = none } {
+  return
+}
+
 // CHECK-LABEL: "type_dynamism_ranked"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @type_dynamism_ranked(%arg0: tensor<?xf32>) -> tensor<?xf32> {

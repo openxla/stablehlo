@@ -97,7 +97,6 @@ def VHLO_FloatF8E5M2FNUZV1 : VHLO_TypeDef<"FloatF8E5M2FNUZV1", "f8E5M2FNUZ_v1", 
 // Corresponds to the 'tf32' FloatType from the StableHLO spec.
 def VHLO_FloatTF32V1 : VHLO_TypeDef<"FloatTF32V1", "tf31_v1", "1.6.0", "current">;
 
-
 // Corresponds to FunctionType from the StableHLO spec.
 def VHLO_FunctionV1 : VHLO_TypeDef<"FunctionV1", "func_v1", "0.9.0", "current"> {
   let parameters = (ins
