@@ -126,12 +126,12 @@ void AddStablehloApi(py::module &m) {
 
   m.def(
       "serialize_portable_artifact_str",
-      [](const py::bytes &moduleStrOrBytecode,
-         const std::string &targetVersion) -> py::bytes {
+      [](std::string_view moduleStrOrBytecode,
+         std::string_view targetVersion) -> py::bytes {
         StringWriterHelper accumulator;
-        std::string_view moduleStr(moduleStrOrBytecode);
         if (mlirLogicalResultIsFailure(stablehloSerializePortableArtifact(
-                toMlirStringRef(moduleStr), toMlirStringRef(targetVersion),
+                toMlirStringRef(moduleStrOrBytecode),
+                toMlirStringRef(targetVersion),
                 accumulator.getMlirStringCallback(),
                 accumulator.getUserData()))) {
           PyErr_SetString(PyExc_ValueError, "failed to serialize module");
@@ -143,12 +143,10 @@ void AddStablehloApi(py::module &m) {
 
   m.def(
       "deserialize_portable_artifact_str",
-      [](const py::bytes &artifact) -> py::bytes {
+      [](std::string_view artifact) -> py::bytes {
         StringWriterHelper accumulator;
-        std::string_view artifactStr(artifact);
         if (mlirLogicalResultIsFailure(stablehloDeserializePortableArtifact(
-                toMlirStringRef(artifactStr),
-                accumulator.getMlirStringCallback(),
+                toMlirStringRef(artifact), accumulator.getMlirStringCallback(),
                 accumulator.getUserData()))) {
           PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
           return "";
@@ -159,7 +157,7 @@ void AddStablehloApi(py::module &m) {
 
   m.def(
       "serialize_portable_artifact",
-      [](MlirModule module, const std::string &target) -> py::bytes {
+      [](MlirModule module, std::string_view target) -> py::bytes {
         StringWriterHelper accumulator;
         if (mlirLogicalResultIsFailure(stablehloSerializePortableArtifact(
                 module, toMlirStringRef(target),
@@ -175,10 +173,9 @@ void AddStablehloApi(py::module &m) {
 
   m.def(
       "deserialize_portable_artifact",
-      [](MlirContext context, const py::bytes &artifact) -> MlirModule {
-        std::string_view artifactStr(artifact);
+      [](MlirContext context, std::string_view artifact) -> MlirModule {
         auto module = stablehloDeserializePortableArtifact(
-            toMlirStringRef(artifactStr), context);
+            toMlirStringRef(artifact), context);
         if (mlirModuleIsNull(module)) {
           PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
           return {};
