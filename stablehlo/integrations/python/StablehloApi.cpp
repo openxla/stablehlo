@@ -66,6 +66,9 @@ static MlirStringRef toMlirStringRef(std::string_view s) {
 }
 
 void AddStablehloApi(py::module &m) {
+  // Portable API is a subset of StableHLO API
+  AddPortableApi(m);
+
   //
   // Utility APIs.
   //
