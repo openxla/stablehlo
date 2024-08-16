@@ -65,7 +65,7 @@ static MlirStringRef toMlirStringRef(std::string_view s) {
   return mlirStringRefCreate(s.data(), s.size());
 }
 
-void AddStablehloApi(py::module& m) {
+void AddStablehloApi(py::module &m) {
   //
   // Utility APIs.
   //
@@ -113,15 +113,16 @@ void AddStablehloApi(py::module& m) {
       .value("WEEK_12", MlirStablehloCompatibilityRequirement::WEEK_12)
       .value("MAX", MlirStablehloCompatibilityRequirement::MAX);
 
-  m.def("get_version_from_compatibility_requirement",
-        [](MlirStablehloCompatibilityRequirement requirement) -> py::str {
-          StringWriterHelper accumulator;
-          stablehloVersionFromCompatibilityRequirement(
-              requirement, accumulator.getMlirStringCallback(),
-              accumulator.getUserData());
-          return accumulator.toString();
-        },
-       py::arg("requirement"));
+  m.def(
+      "get_version_from_compatibility_requirement",
+      [](MlirStablehloCompatibilityRequirement requirement) -> py::str {
+        StringWriterHelper accumulator;
+        stablehloVersionFromCompatibilityRequirement(
+            requirement, accumulator.getMlirStringCallback(),
+            accumulator.getUserData());
+        return accumulator.toString();
+      },
+      py::arg("requirement"));
 
   m.def(
       "serialize_portable_artifact_str",
