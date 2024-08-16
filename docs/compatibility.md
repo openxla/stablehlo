@@ -77,6 +77,32 @@ std::string getCurrentVersion();
 // `serializePortableArtifact`.
 std::string getMinimumVersion();
 
+// From:  #include "stablehlo/dialect/Version.h"
+
+// CompatibilityRequirement is used to get a viable target version to use for
+// `serializePortableArtifact` given a compatibility requirement specified as
+// a duration.
+//
+// New enum values can be added per use case.
+//
+// Values represent a minimum requirement, i.e. MONTH_3 may return a 4 month
+// old version, the specific implementation detail can be updated at any time
+// by the community as long as it satisfies the requirement.
+//
+// Given that integration into XLA is not immediate, coarse intervals work
+// better than providing a specific date.
+enum class CompatibilityRequirement {
+  NONE = 0,     // No compat requirement, use latest version.
+  WEEK_4 = 1,   // 1 month requirement
+  WEEK_12 = 2,  // 3 month requirement
+  MAX = 3,      // Maximum compat, use minimum supported version
+};
+
+// Get a viable target version to use for `serializePortableArtifact` for a
+// given compatibility requirement. See `CompatibilityRequirement` for
+// details.
+Version::fromCompatibilityRequirement(CompatibilityRequirement requirement);
+
 // From: #include "stablehlo/dialect/Serialization.h"
 
 // Write a StableHLO program to a portable artifact
@@ -112,12 +138,22 @@ for example usage of these APIs.
 StableHLO also provides Python bindings to the C++ compatibility APIs:
 
 ```python
+class StablehloCompatibilityRequirement(enum.Enum):
+  NONE,     # No compat, same as get_current_version
+  WEEK_4,   # 1mo compat
+  WEEK_12,  # 3mo compat
+  MAX       # Max compat, same as get_minimum_version
+
+def get_version_from_compatibility_requirement(requirement : StablehloCompatibilityRequirement) -> str: ...
 def get_current_version() -> str: ...
 def get_minimum_version() -> str: ...
+def get_smaller_version(v1 : str, v2 : str) -> str: ...
+def get_api_version() -> int: ...
 def serialize_portable_artifact(module: ir.Module, target_version: str) -> bytes: ...
 def serialize_portable_artifact(module: str, target_version: str) -> bytes: ...
 def deserialize_portable_artifact(context: ir.Context, artifact: bytes) -> ir.Module: ...
 def deserialize_portable_artifact(artifact: bytes) -> str: ...
+def eval_module(module : ir.Module, args : List[ir.Attribute])
 ```
 
 See [`StablehloModule.cpp`](https://github.com/openxla/stablehlo/blob/main/stablehlo/integrations/python/StablehloModule.cpp)
