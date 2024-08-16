@@ -16,12 +16,15 @@ limitations under the License.
 #include "stablehlo/integrations/python/StablehloApi.h"
 
 #include <string>
+#include <string_view>
 
 #include "mlir-c/BuiltinAttributes.h"
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"  // IWYU pragma: keep
-#include "mlir/CAPI/Utils.h"                      // IWYU pragma: keep
+#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/CAPI/IR.h"
+#include "mlir/CAPI/Support.h"
+#include "mlir/CAPI/Utils.h"
 #include "stablehlo/integrations/c/StablehloApi.h"
 
 namespace py = pybind11;
@@ -58,7 +61,11 @@ static MlirStringRef toMlirStringRef(const std::string &s) {
   return mlirStringRefCreate(s.data(), s.size());
 }
 
-void AddStablehloApi(py::module &m) {
+static MlirStringRef toMlirStringRef(std::string_view s) {
+  return mlirStringRefCreate(s.data(), s.size());
+}
+
+void AddStablehloApi(py::module& m) {
   //
   // Utility APIs.
   //
@@ -106,22 +113,22 @@ void AddStablehloApi(py::module &m) {
       .value("WEEK_12", MlirStablehloCompatibilityRequirement::WEEK_12)
       .value("MAX", MlirStablehloCompatibilityRequirement::MAX);
 
-  m.def(
-      "get_version_from_compatibility_requirement",
-      [](MlirStablehloCompatibilityRequirement requirement) -> py::str {
-        StringWriterHelper accumulator;
-        stablehloVersionFromCompatibilityRequirement(
-            requirement, accumulator.getMlirStringCallback(),
-            accumulator.getUserData());
-        return accumulator.toString();
-      },
-      py::arg("requirement"));
+  m.def("get_version_from_compatibility_requirement",
+        [](MlirStablehloCompatibilityRequirement requirement) -> py::str {
+          StringWriterHelper accumulator;
+          stablehloVersionFromCompatibilityRequirement(
+              requirement, accumulator.getMlirStringCallback(),
+              accumulator.getUserData());
+          return accumulator.toString();
+        },
+       py::arg("requirement"));
 
   m.def(
       "serialize_portable_artifact_str",
-      [](const std::string &moduleStr,
+      [](const py::bytes &moduleStrOrBytecode,
          const std::string &targetVersion) -> py::bytes {
         StringWriterHelper accumulator;
+        std::string_view moduleStr(moduleStrOrBytecode);
         if (mlirLogicalResultIsFailure(stablehloSerializePortableArtifact(
                 toMlirStringRef(moduleStr), toMlirStringRef(targetVersion),
                 accumulator.getMlirStringCallback(),
@@ -135,8 +142,9 @@ void AddStablehloApi(py::module &m) {
 
   m.def(
       "deserialize_portable_artifact_str",
-      [](const std::string &artifactStr) -> py::bytes {
+      [](const py::bytes &artifact) -> py::bytes {
         StringWriterHelper accumulator;
+        std::string_view artifactStr(artifact);
         if (mlirLogicalResultIsFailure(stablehloDeserializePortableArtifact(
                 toMlirStringRef(artifactStr),
                 accumulator.getMlirStringCallback(),
@@ -166,9 +174,10 @@ void AddStablehloApi(py::module &m) {
 
   m.def(
       "deserialize_portable_artifact",
-      [](MlirContext context, const std::string &artifact) -> MlirModule {
+      [](MlirContext context, const py::bytes &artifact) -> MlirModule {
+        std::string_view artifactStr(artifact);
         auto module = stablehloDeserializePortableArtifact(
-            toMlirStringRef(artifact), context);
+            toMlirStringRef(artifactStr), context);
         if (mlirModuleIsNull(module)) {
           PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
           return {};
