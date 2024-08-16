@@ -118,7 +118,7 @@ void AddStablehloApi(py::module &m) {
       py::arg("requirement"));
 
   m.def(
-      "serialize_portable_artifact",
+      "serialize_portable_artifact_str",
       [](const std::string &moduleStr,
          const std::string &targetVersion) -> py::bytes {
         StringWriterHelper accumulator;
@@ -134,7 +134,7 @@ void AddStablehloApi(py::module &m) {
       py::arg("module_str"), py::arg("target_version"));
 
   m.def(
-      "deserialize_portable_artifact",
+      "deserialize_portable_artifact_str",
       [](const std::string &artifactStr) -> py::bytes {
         StringWriterHelper accumulator;
         if (mlirLogicalResultIsFailure(stablehloDeserializePortableArtifact(

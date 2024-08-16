@@ -27,7 +27,7 @@ namespace stablehlo {
 
 /// Return the current version for portable API.
 /// Increments on all meaningful changes to this file.
-inline int64_t getApiVersion() { return 8; }
+inline int64_t getApiVersion() { return 9; }
 
 // Get the smaller version between version1 and version2.
 FailureOr<std::string> getSmallerVersion(llvm::StringRef version1,
