@@ -30,9 +30,8 @@ namespace stablehlo {
 inline int64_t getApiVersion() { return 8; }
 
 // Get the smaller version between version1 and version2.
-LogicalResult getSmallerVersion(const std::string& version1,
-                                const std::string& version2,
-                                std::string& result);
+FailureOr<std::string> getSmallerVersion(llvm::StringRef version1,
+                                         llvm::StringRef version2);
 
 // Get the current StableHLO version.
 //

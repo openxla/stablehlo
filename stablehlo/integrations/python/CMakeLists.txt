@@ -110,15 +110,12 @@ declare_mlir_python_extension(StablehloPythonExtensions.Main
   MODULE_NAME _stablehlo
   ADD_TO_PARENT StablehloPythonExtensions
   SOURCES
+    StablehloApi.cpp
     StablehloModule.cpp
-    PortableApi.cpp
   EMBED_CAPI_LINK_LIBS
     StablehloCAPI
   PRIVATE_LINK_LIBS
-    StablehloPasses
-    StablehloPortableApi
-    StablehloReferenceApi
-    StablehloSerialization
+    StablehloCAPI
     LLVMSupport
 )
 

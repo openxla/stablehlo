@@ -72,6 +72,22 @@ FailureOr<int64_t> Version::getBytecodeVersion() const {
   return failure();
 }
 
+Version Version::fromCompatibilityRequirement(
+    CompatibilityRequirement requirement) {
+  // Compatibility requirement versions can be updated as needed, as long as the
+  // version satisifies the requirement.
+  switch (requirement) {
+    case CompatibilityRequirement::NONE:
+      return Version::getCurrentVersion();
+    case CompatibilityRequirement::WEEK_4:
+      return Version(1, 3, 0);  // v1.3.0 - Jul 15, 2024
+    case CompatibilityRequirement::WEEK_12:
+      return Version(1, 0, 0);  // v1.0.0 - May 14, 2024
+    case CompatibilityRequirement::MAX:
+      return Version::getMinimumVersion();
+  }
+}
+
 mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version) {
   return diag << version.toString();
 }
