@@ -69,43 +69,6 @@ void AddStablehloApi(py::module &m) {
   //
   // Utility APIs.
   //
-
-  m.def("get_api_version", []() { return stablehloGetApiVersion(); });
-
-  m.def(
-      "get_smaller_version",
-      [](const std::string &version1, const std::string &version2) -> py::str {
-        StringWriterHelper accumulator;
-        if (mlirLogicalResultIsFailure(stablehloGetSmallerVersion(
-                toMlirStringRef(version1), toMlirStringRef(version2),
-                accumulator.getMlirStringCallback(),
-                accumulator.getUserData()))) {
-          PyErr_SetString(PyExc_ValueError,
-                          "failed to convert version to stablehlo version");
-          return "";
-        }
-        return accumulator.toString();
-      },
-      py::arg("version1"), py::arg("version2"));
-
-  //
-  // Serialization APIs.
-  //
-
-  m.def("get_current_version", []() -> py::str {
-    StringWriterHelper accumulator;
-    stablehloGetCurrentVersion(accumulator.getMlirStringCallback(),
-                               accumulator.getUserData());
-    return accumulator.toString();
-  });
-
-  m.def("get_minimum_version", []() -> py::str {
-    StringWriterHelper accumulator;
-    stablehloGetMinimumVersion(accumulator.getMlirStringCallback(),
-                               accumulator.getUserData());
-    return accumulator.toString();
-  });
-
   py::enum_<MlirStablehloCompatibilityRequirement>(
       m, "StablehloCompatibilityRequirement")
       .value("NONE", MlirStablehloCompatibilityRequirement::NONE)
@@ -124,37 +87,9 @@ void AddStablehloApi(py::module &m) {
       },
       py::arg("requirement"));
 
-  m.def(
-      "serialize_portable_artifact_str",
-      [](std::string_view moduleStrOrBytecode,
-         std::string_view targetVersion) -> py::bytes {
-        StringWriterHelper accumulator;
-        if (mlirLogicalResultIsFailure(stablehloSerializePortableArtifact(
-                toMlirStringRef(moduleStrOrBytecode),
-                toMlirStringRef(targetVersion),
-                accumulator.getMlirStringCallback(),
-                accumulator.getUserData()))) {
-          PyErr_SetString(PyExc_ValueError, "failed to serialize module");
-          return "";
-        }
-        return py::bytes(accumulator.toString());
-      },
-      py::arg("module_str"), py::arg("target_version"));
-
-  m.def(
-      "deserialize_portable_artifact_str",
-      [](std::string_view artifact) -> py::bytes {
-        StringWriterHelper accumulator;
-        if (mlirLogicalResultIsFailure(stablehloDeserializePortableArtifact(
-                toMlirStringRef(artifact), accumulator.getMlirStringCallback(),
-                accumulator.getUserData()))) {
-          PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
-          return "";
-        }
-        return py::bytes(accumulator.toString());
-      },
-      py::arg("artifact_str"));
-
+  //
+  // Serialization APIs.
+  //
   m.def(
       "serialize_portable_artifact",
       [](MlirModule module, std::string_view target) -> py::bytes {
@@ -215,6 +150,77 @@ void AddStablehloApi(py::module &m) {
         return pyResults;
       },
       py::arg("module"), py::arg("args"));
+}
+
+void AddPortableApi(py::module &m) {
+  //
+  // Utility APIs.
+  //
+  m.def("get_api_version", []() { return stablehloGetApiVersion(); });
+
+  m.def(
+      "get_smaller_version",
+      [](const std::string &version1, const std::string &version2) -> py::str {
+        StringWriterHelper accumulator;
+        if (mlirLogicalResultIsFailure(stablehloGetSmallerVersion(
+                toMlirStringRef(version1), toMlirStringRef(version2),
+                accumulator.getMlirStringCallback(),
+                accumulator.getUserData()))) {
+          PyErr_SetString(PyExc_ValueError,
+                          "failed to convert version to stablehlo version");
+          return "";
+        }
+        return accumulator.toString();
+      },
+      py::arg("version1"), py::arg("version2"));
+
+  m.def("get_current_version", []() -> py::str {
+    StringWriterHelper accumulator;
+    stablehloGetCurrentVersion(accumulator.getMlirStringCallback(),
+                               accumulator.getUserData());
+    return accumulator.toString();
+  });
+
+  m.def("get_minimum_version", []() -> py::str {
+    StringWriterHelper accumulator;
+    stablehloGetMinimumVersion(accumulator.getMlirStringCallback(),
+                               accumulator.getUserData());
+    return accumulator.toString();
+  });
+
+  //
+  // Serialization APIs.
+  //
+  m.def(
+      "serialize_portable_artifact_str",
+      [](std::string_view moduleStrOrBytecode,
+         std::string_view targetVersion) -> py::bytes {
+        StringWriterHelper accumulator;
+        if (mlirLogicalResultIsFailure(stablehloSerializePortableArtifact(
+                toMlirStringRef(moduleStrOrBytecode),
+                toMlirStringRef(targetVersion),
+                accumulator.getMlirStringCallback(),
+                accumulator.getUserData()))) {
+          PyErr_SetString(PyExc_ValueError, "failed to serialize module");
+          return "";
+        }
+        return py::bytes(accumulator.toString());
+      },
+      py::arg("module_str"), py::arg("target_version"));
+
+  m.def(
+      "deserialize_portable_artifact_str",
+      [](std::string_view artifact) -> py::bytes {
+        StringWriterHelper accumulator;
+        if (mlirLogicalResultIsFailure(stablehloDeserializePortableArtifact(
+                toMlirStringRef(artifact), accumulator.getMlirStringCallback(),
+                accumulator.getUserData()))) {
+          PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
+          return "";
+        }
+        return py::bytes(accumulator.toString());
+      },
+      py::arg("artifact_str"));
 }
 
 }  // namespace stablehlo

@@ -26,6 +26,11 @@ namespace stablehlo {
 // use C API passthrough.
 void AddStablehloApi(pybind11::module& m);
 
+// Adds a subset of the StableHLO API that doesn't use MLIR in any definitions,
+// and is methods only, introducing no new objects / enums to avoid potential
+// redefinition issues in complex build environments.
+void AddPortableApi(pybind11::module& m);
+
 }  // namespace stablehlo
 }  // namespace mlir
 
