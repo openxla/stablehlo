@@ -79,10 +79,9 @@ MlirLogicalResult stablehloGetSmallerVersion(MlirStringRef version1,
   return mlirLogicalResultSuccess();
 }
 
-MlirLogicalResult stablehloSerializePortableArtifact(MlirModule moduleStr,
-                                        MlirStringRef targetVersion,
-                                        MlirStringCallback callback,
-                                        void *userData) {
+MlirLogicalResult stablehloSerializePortableArtifact(
+    MlirModule moduleStr, MlirStringRef targetVersion,
+    MlirStringCallback callback, void *userData) {
   mlir::detail::CallbackOstream stream(callback, userData);
   if (failed(mlir::stablehlo::serializePortableArtifact(
           unwrap(moduleStr), unwrap(targetVersion), stream)))
@@ -90,10 +89,9 @@ MlirLogicalResult stablehloSerializePortableArtifact(MlirModule moduleStr,
   return mlirLogicalResultSuccess();
 }
 
-MlirLogicalResult stablehloSerializePortableArtifact(MlirStringRef moduleStr,
-                                        MlirStringRef targetVersion,
-                                        MlirStringCallback callback,
-                                        void *userData) {
+MlirLogicalResult stablehloSerializePortableArtifact(
+    MlirStringRef moduleStr, MlirStringRef targetVersion,
+    MlirStringCallback callback, void *userData) {
   mlir::detail::CallbackOstream stream(callback, userData);
   if (failed(mlir::stablehlo::serializePortableArtifact(
           unwrap(moduleStr), unwrap(targetVersion), stream)))
@@ -121,12 +119,12 @@ MlirAttribute stablehloEvalModule(MlirModule module, int nArgs,
                                   MlirAttribute const *args, int *errorCode) {
   std::vector<mlir::DenseElementsAttr> inputs;
   inputs.reserve(nArgs);
-  for (int i=0; i < nArgs; ++i) {
+  for (int i = 0; i < nArgs; ++i) {
     inputs.push_back(llvm::cast<mlir::DenseElementsAttr>(unwrap(args[i])));
   }
   mlir::stablehlo::InterpreterConfiguration config;
-  mlir::FailureOr<llvm::SmallVector<mlir::DenseElementsAttr>>
-      results = mlir::stablehlo::evalModule(unwrap(module), inputs, config);
+  mlir::FailureOr<llvm::SmallVector<mlir::DenseElementsAttr>> results =
+      mlir::stablehlo::evalModule(unwrap(module), inputs, config);
   if (mlir::failed(results)) {
     *errorCode = 1;
     return MlirAttribute{nullptr};

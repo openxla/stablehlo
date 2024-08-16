@@ -20,10 +20,8 @@ limitations under the License.
 #include "mlir-c/BuiltinAttributes.h"
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-#include "mlir/CAPI/IR.h"
-#include "mlir/CAPI/Support.h"
-#include "mlir/CAPI/Utils.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"  // IWYU pragma: keep
+#include "mlir/CAPI/Utils.h"                      // IWYU pragma: keep
 #include "stablehlo/integrations/c/StablehloApi.h"
 
 namespace py = pybind11;
@@ -60,7 +58,7 @@ static MlirStringRef toMlirStringRef(const std::string &s) {
   return mlirStringRefCreate(s.data(), s.size());
 }
 
-void AddStablehloApi(py::module& m) {
+void AddStablehloApi(py::module &m) {
   //
   // Utility APIs.
   //
@@ -108,15 +106,16 @@ void AddStablehloApi(py::module& m) {
       .value("WEEK_12", MlirStablehloCompatibilityRequirement::WEEK_12)
       .value("MAX", MlirStablehloCompatibilityRequirement::MAX);
 
-  m.def("get_version_from_compatibility_requirement",
-        [](MlirStablehloCompatibilityRequirement requirement) -> py::str {
-          StringWriterHelper accumulator;
-          stablehloVersionFromCompatibilityRequirement(
-              requirement, accumulator.getMlirStringCallback(),
-              accumulator.getUserData());
-          return accumulator.toString();
-        },
-       py::arg("requirement"));
+  m.def(
+      "get_version_from_compatibility_requirement",
+      [](MlirStablehloCompatibilityRequirement requirement) -> py::str {
+        StringWriterHelper accumulator;
+        stablehloVersionFromCompatibilityRequirement(
+            requirement, accumulator.getMlirStringCallback(),
+            accumulator.getUserData());
+        return accumulator.toString();
+      },
+      py::arg("requirement"));
 
   m.def(
       "serialize_portable_artifact",

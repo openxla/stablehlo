@@ -22,10 +22,10 @@ limitations under the License.
 MLIR_CAPI_EXPORTED int stablehloGetApiVersion();
 
 typedef enum MlirStablehloCompatibilityRequirement {
-    NONE = 0,
-    WEEK_4 = 1,
-    WEEK_12 = 2,
-    MAX = 3
+  NONE = 0,
+  WEEK_4 = 1,
+  WEEK_12 = 2,
+  MAX = 3
 } MlirStablehloCompatibilityRequirement;
 
 // Returns a StringAtt with the version of StableHLO that satisfies the
@@ -65,7 +65,7 @@ MLIR_CAPI_EXPORTED void stablehloGetMinimumVersion(MlirStringCallback callback,
 MlirLogicalResult stablehloGetSmallerVersion(MlirStringRef version1,
                                              MlirStringRef version2,
                                              MlirStringCallback callback,
-                                             void *userData);
+                                             void* userData);
 
 // Write a StableHLO program expressed as a string (either prettyprinted MLIR
 // module or MLIR bytecode) to a portable artifact.

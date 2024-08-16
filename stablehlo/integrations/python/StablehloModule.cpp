@@ -15,8 +15,8 @@ limitations under the License.
 
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
-#include "mlir/CAPI/IR.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/CAPI/IR.h"
 #include "stablehlo/integrations/c/StablehloAttributes.h"
 #include "stablehlo/integrations/c/StablehloDialect.h"
 #include "stablehlo/integrations/c/StablehloPasses.h"
@@ -534,5 +534,4 @@ PYBIND11_MODULE(_stablehlo, m) {
   // StableHLO APIs
   //
   mlir::stablehlo::AddStablehloApi(m);
-
 }
