@@ -471,6 +471,21 @@ class CHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
   }];
 }
 
+def CHLO_AsinAcosKernelOp : CHLO_UnaryElementwiseOp<"asin_acos_kernel",
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyComplexTensor> {
+  let summary = "AsinAcosKernel operator";
+
+  let description = [{
+    Returns `AsinAcosKernel(operand)` element-wise.
+
+    If
+      w = asin_acos_kernel(z)
+    then
+      asin(z) = complex(atan2(z.real, w.real), sign(z.imag) * w.imag)
+      acos(z) = complex(atan2(w.real, z.real), -sign(z.imag) * w.imag)
+  }];
+}
+
 def CHLO_AcosOp : CHLO_UnaryElementwiseOp<"acos",
     [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Acos operator";

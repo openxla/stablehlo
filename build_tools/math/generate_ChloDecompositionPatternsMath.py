@@ -80,6 +80,7 @@ def main():
   sources = []
   target = fa.targets.stablehlo
   for chloname, fname, args in [
+      ("CHLO_AsinAcosKernelOp", "asin_acos_kernel", ("z:complex",)),
       ("CHLO_AsinOp", "complex_asin", ("z:complex",)),
       ("CHLO_AsinOp", "real_asin", ("x:float",)),
       ("CHLO_AcosOp", "complex_acos", ("z:complex",)),
