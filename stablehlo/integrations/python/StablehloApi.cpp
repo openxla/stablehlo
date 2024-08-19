@@ -18,13 +18,11 @@ limitations under the License.
 #include <string>
 #include <string_view>
 
+#include "llvm/Support/raw_ostream.h"
 #include "mlir-c/BuiltinAttributes.h"
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
-#include "mlir/CAPI/IR.h"
-#include "mlir/CAPI/Support.h"
-#include "mlir/CAPI/Utils.h"
 #include "stablehlo/integrations/c/StablehloApi.h"
 
 namespace py = pybind11;
