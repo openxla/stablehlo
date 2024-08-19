@@ -508,7 +508,9 @@ LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
 }
 
 void StablehloLegalizeToTosaPass::runOnOperation() {
-  (void)applyPatternsAndFoldGreedily(getOperation(), patterns);
+  GreedyRewriteConfig config;
+  config.useTopDownTraversal = true;
+  (void)applyPatternsAndFoldGreedily(getOperation(), patterns, config);  
 }
 
 }  // namespace
