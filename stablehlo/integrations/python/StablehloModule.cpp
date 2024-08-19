@@ -14,16 +14,13 @@ limitations under the License.
 #include <vector>
 
 #include "mlir-c/IR.h"
+#include "mlir-c/Support.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
-#include "mlir/CAPI/IR.h"
-#include "mlir/IR/BuiltinAttributes.h"
-#include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/integrations/c/StablehloAttributes.h"
 #include "stablehlo/integrations/c/StablehloDialect.h"
 #include "stablehlo/integrations/c/StablehloPasses.h"
 #include "stablehlo/integrations/c/StablehloTypes.h"
-#include "stablehlo/integrations/python/PortableApi.h"
-#include "stablehlo/reference/Api.h"
+#include "stablehlo/integrations/python/StablehloApi.h"
 
 namespace py = pybind11;
 
@@ -533,73 +530,7 @@ PYBIND11_MODULE(_stablehlo, m) {
       });
 
   //
-  // Portable APIs
+  // StableHLO APIs
   //
-  mlir::stablehlo::AddPortableApi(m);
-
-  //
-  // Reference APIs
-  //
-  m.def(
-      "eval_module",
-      [](MlirModule module,
-         std::vector<MlirAttribute> &args) -> std::vector<MlirAttribute> {
-        std::vector<mlir::DenseElementsAttr> inputs;
-        for (auto arg : args) {
-          auto attr = llvm::dyn_cast<mlir::DenseElementsAttr>(unwrap(arg));
-          if (!attr) {
-            PyErr_SetString(PyExc_ValueError,
-                            "input args must be DenseElementsAttr");
-            return {};
-          }
-          inputs.push_back(attr);
-        }
-
-        mlir::stablehlo::InterpreterConfiguration config;
-        auto results =
-            mlir::stablehlo::evalModule(unwrap(module), inputs, config);
-        if (failed(results)) {
-          PyErr_SetString(PyExc_ValueError, "interpreter failed");
-          return {};
-        }
-
-        std::vector<MlirAttribute> pyResults;
-        for (auto res : *results) pyResults.push_back(wrap(res));
-        return pyResults;
-      },
-      py::arg("module"), py::arg("args"));
-
-  //
-  // Serialization APIs.
-  //
-
-  m.def(
-      "serialize_portable_artifact",
-      [](MlirModule module, std::string target) -> py::bytes {
-        std::string buffer;
-        llvm::raw_string_ostream os(buffer);
-        if (failed(mlir::stablehlo::serializePortableArtifact(unwrap(module),
-                                                              target, os))) {
-          PyErr_SetString(PyExc_ValueError, "failed to serialize module");
-          return "";
-        }
-
-        return py::bytes(buffer);
-      },
-      py::arg("module"), py::arg("target"));
-
-  m.def(
-      "deserialize_portable_artifact",
-      [](MlirContext context, std::string artifact) -> MlirModule {
-        auto module = mlir::stablehlo::deserializePortableArtifact(
-            artifact, unwrap(context));
-
-        if (!module) {
-          PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
-          return {};
-        }
-
-        return {module.release()};
-      },
-      py::arg("context"), py::arg("artifact"));
+  mlir::stablehlo::AddStablehloApi(m);
 }

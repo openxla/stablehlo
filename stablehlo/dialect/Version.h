@@ -43,6 +43,31 @@ class Version {
   /// Return a Version representing the minimum supported VHLO dialect version.
   static Version getMinimumVersion() { return Version(0, 9, 0); }
 
+  // CompatibilityRequirement is used to get a viable target version to use for
+  // `serializePortableArtifact` given a compatibility requirement specified as
+  // a duration.
+  //
+  // New enum values can be added per use case.
+  //
+  // Values represent a minimum requirement, i.e. WEEK_4 will return a >=4w
+  // old version, the specific implementation detail can be updated at any time
+  // by the community as long as it satisfies the requirement.
+  //
+  // Given that integration into XLA is not immediate, coarse intervals work
+  // better than providing a specific date.
+  enum class CompatibilityRequirement {
+    NONE = 0,     // No compat requirement, use latest version.
+    WEEK_4 = 1,   // 1 month requirement
+    WEEK_12 = 2,  // 3 month requirement
+    MAX = 3,      // Maximum compat, use minimum supported version
+  };
+
+  // Get a viable target version to use for `serializePortableArtifact` for a
+  // given compatibility requirement. See `CompatibilityRequirement` for
+  // details.
+  static Version fromCompatibilityRequirement(
+      CompatibilityRequirement requirement);
+
   /// Return the MLIR Bytecode Format associated with the version instance.
   /// Returns failure if version is not in compatibility window.
   FailureOr<int64_t> getBytecodeVersion() const;

@@ -247,6 +247,18 @@ def test_minimum_version():
   assert is_semver_format(curr_version)
 
 
+@run
+def test_version_requirements():
+  for req in (
+      stablehlo.StablehloCompatibilityRequirement.NONE,
+      stablehlo.StablehloCompatibilityRequirement.WEEK_4,
+      stablehlo.StablehloCompatibilityRequirement.WEEK_12,
+      stablehlo.StablehloCompatibilityRequirement.MAX,
+    ):
+    assert is_semver_format(
+        stablehlo.get_version_from_compatibility_requirement(req))
+
+
 ASM_FORMAT = """
 func.func @test(%arg0: tensor<{0}>) -> tensor<{0}> {{
   %0 = stablehlo.add %arg0, %arg0 : (tensor<{0}>, tensor<{0}>) -> tensor<{0}>
@@ -289,6 +301,7 @@ def test_reference_api():
 def test_get_smaller_version():
   curr_version = stablehlo.get_current_version()
   min_version = stablehlo.get_minimum_version()
+  print(curr_version)
   assert stablehlo.get_smaller_version(curr_version, min_version) == min_version
 
 
@@ -321,8 +334,8 @@ def test_str_serialization_apis():
     assert m is not None
     module_str = str(m)
     bytecode = module_to_bytecode(m)
-    serialized = stablehlo.serialize_portable_artifact(bytecode, curr_version)
-    deserialized = stablehlo.deserialize_portable_artifact(serialized)
+    serialized = stablehlo.serialize_portable_artifact_str(bytecode, curr_version)
+    deserialized = stablehlo.deserialize_portable_artifact_str(serialized)
     deserialized_module = ir.Module.parse(deserialized)
     assert module_str == str(deserialized_module)
 

@@ -33,14 +33,24 @@ add_mlir_public_c_api_library(ChloCAPI
 
 add_mlir_public_c_api_library(StablehloCAPI
   PARTIAL_SOURCES_INTENDED
+  StablehloApi.cpp
   StablehloAttributes.cpp
   StablehloDialect.cpp
   StablehloPasses.cpp
   StablehloTypes.cpp
 
   LINK_LIBS PUBLIC
+  LLVMSupport
+  MLIRCAPIIR
+  MLIRIR
+  MLIRSupport
   StablehloOps
   StablehloPasses
+  StablehloPortableApi
+  StablehloReferenceApi
+  StablehloReferenceConfiguration
+  StablehloSerialization
+  Version
 )
 
 add_mlir_public_c_api_library(VhloCAPI
