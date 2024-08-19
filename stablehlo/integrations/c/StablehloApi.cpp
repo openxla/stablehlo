@@ -74,8 +74,7 @@ MlirLogicalResult stablehloGetSmallerVersion(MlirStringRef version1,
   auto result =
       mlir::stablehlo::getSmallerVersion(unwrap(version1), unwrap(version2));
   if (mlir::failed(result)) return mlirLogicalResultFailure();
-  stream << mlir::stablehlo::getSmallerVersion(unwrap(version1),
-                                               unwrap(version2));
+  stream << result.value();
   return mlirLogicalResultSuccess();
 }
 

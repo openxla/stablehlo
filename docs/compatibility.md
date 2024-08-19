@@ -85,7 +85,7 @@ std::string getMinimumVersion();
 //
 // New enum values can be added per use case.
 //
-// Values represent a minimum requirement, i.e. MONTH_3 may return a 4 month
+// Values represent a minimum requirement, i.e. WEEK_4 will return a >=4w
 // old version, the specific implementation detail can be updated at any time
 // by the community as long as it satisfies the requirement.
 //
