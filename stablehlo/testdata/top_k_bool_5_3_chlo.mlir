@@ -1,4 +1,4 @@
-// RUN-DISABLED(#2440) stablehlo-opt --chlo-pre-serialization-pipeline -inline %s | stablehlo-translate --interpret
+// RUN: stablehlo-opt --chlo-pre-serialization-pipeline -inline %s | stablehlo-translate --interpret
 // RUN: stablehlo-opt --chlo-pre-serialization-pipeline %s | stablehlo-translate --serialize --target=current | stablehlo-translate --deserialize | stablehlo-opt > %t.0
 // RUN: stablehlo-opt --chlo-pre-serialization-pipeline %s > %t.1
 // RUN: diff %t.0 %t.1
