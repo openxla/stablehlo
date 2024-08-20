@@ -1,3 +1,5 @@
+// RUN: stablehlo-translate --interpret -split-input-file %s
+
 module attributes {jax.uses_shape_polymorphism = true} {
   func.func @main() -> tensor<i1> {
     %cst = stablehlo.constant dense<[[[-1.02716792, -0.84180355, -1.21495497, 1.22473526], [1.533764, 3.72483683, -3.63489795, 1.59403718], [-2.40816736, -1.31785822, -1.78571689, 0.202816486]]]> : tensor<1x3x4xf32>
