@@ -816,6 +816,21 @@ Element convert(Type type, std::complex<double> value) {
                                              APFloat(value.imag())));
 }
 
+Element convertUsingZeroValue(Type type) {
+  if (isSupportedBooleanType(type))
+    return convert(type, false);
+  if (isSupportedSignedIntegerType(type))
+    return convert(type, static_cast<int64_t>(0));
+  if (isSupportedUnsignedIntegerType(type))
+    return convert(type, static_cast<uint64_t>(0));
+  if (isSupportedFloatType(type))
+    return convert(type, static_cast<APFloat>(0.0));
+  if (isSupportedComplexType(type))
+    return convert(type, std::complex<APFloat>(APFloat(0.0), APFloat(0.0)));
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 Element exponential(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::exp(e); },
