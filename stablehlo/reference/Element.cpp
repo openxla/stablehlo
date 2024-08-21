@@ -817,8 +817,7 @@ Element convert(Type type, std::complex<double> value) {
 }
 
 Element convertUsingZeroValue(Type type) {
-  if (isSupportedBooleanType(type))
-    return convert(type, false);
+  if (isSupportedBooleanType(type)) return convert(type, false);
   if (isSupportedSignedIntegerType(type))
     return convert(type, static_cast<int64_t>(0));
   if (isSupportedUnsignedIntegerType(type))
