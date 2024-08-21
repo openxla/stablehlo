@@ -72,6 +72,7 @@ namespace chlo {
         inferredReturnShapes);                                        \
   }
 
+INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AsinAcosKernelOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AcosOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AcoshOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AsinOp)
