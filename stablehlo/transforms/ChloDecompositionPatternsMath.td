@@ -14,19 +14,31 @@ limitations under the License.
 ==============================================================================*/
 
 //
-// This file is generated using functional_algorithms tool (0.9.0).
+// This file is generated using functional_algorithms tool (0.9.1).
 // See build_tools/math/README.md for more information.
 
 // A kernel for evaluating asin and acos functions on complex inputs.
 //
-//     If
-//         w = asin_acos_kernel(z)
-//     then
-//         asin(z) = complex(atan2(z.real, w.real), sign(z.imag) * w.imag)
-//     and
-//         acos(z) = complex(atan2(w.real, z.real), -sign(z.imag) * w.imag)
+//       asin_acos_kernel(z) = sqrt(a ** 2 - x ** 2) + I * log(a + sqrt(a ** 2 - 1))
 //
-//     See asin and acos for the description of asin_acos_kernel algorithm.
+//     where
+//
+//       x and y are real and imaginary parts of the input to asin_acos_kernel,
+//       I is imaginary unit, and
+//       a = (hypot(x + 1, y) + hypot(x - 1, y)) / 2
+//
+//     See asin for the description of the asin_acos_kernel algorithm.
+//
+//     We have
+//         asin(z) = complex(atan2(z.real, w.real), sign(z.imag) * w.imag)
+//         acos(z) = complex(atan2(w.real, z.real), -sign(z.imag) * w.imag)
+//         asinh(z) = complex(sign(z.real) * w'.imag, atan2(z.imag, w'.real))
+//         acosh(z) = complex(w.imag, sign(z.imag) * atan2(w.real, z.real))
+//     where
+//         w = asin_acos_kernel(z)
+//         w' = asin_acos_kernel(I * z)
+//
+//     See asin, asinh, acos, acosh for the derivation of the above relations.
 //
 def : Pat<(CHLO_AsinAcosKernelOp ComplexElementType:$z),
   (StableHLO_ComplexOp
