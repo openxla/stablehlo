@@ -1718,7 +1718,7 @@ Tensor dotGeneralOp(const Tensor &lhs, const Tensor &rhs,
 
     // Now that the lhsIndex/rhsIndex and the iteration space are set up,
     // we can compute the dot product of the (virtual) slices of lhs and rhs.
-    auto resultElement = convertUsingZeroValue(resultType.getElementType());
+    auto resultElement = getZeroValueOfType(resultType.getElementType());
     while (true) {
       resultElement =
           resultElement +

@@ -816,7 +816,7 @@ Element convert(Type type, std::complex<double> value) {
                                              APFloat(value.imag())));
 }
 
-Element convertUsingZeroValue(Type type) {
+Element getZeroValueOfType(Type type) {
   if (isSupportedBooleanType(type)) return convert(type, false);
   if (isSupportedSignedIntegerType(type))
     return convert(type, static_cast<int64_t>(0));
