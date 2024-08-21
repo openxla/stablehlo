@@ -21,11 +21,9 @@ package(
 
 exports_files([
     "LICENSE",
-    "stablehlo/integrations/python/ChloModule.cpp",
+    # Export to be used by MLIR-free python binding impls
     "stablehlo/integrations/python/StablehloApi.cpp",
     "stablehlo/integrations/python/StablehloApi.h",
-    "stablehlo/integrations/python/StablehloModule.cpp",
-    "stablehlo/integrations/python/VhloModule.cpp",
 ])
 
 filegroup(
@@ -251,6 +249,13 @@ td_library(
         "@llvm-project//mlir:BuiltinDialectTdFiles",
         "@llvm-project//mlir:ControlFlowInterfacesTdFiles",
         "@llvm-project//mlir:OpBaseTdFiles",
+    ],
+)
+
+filegroup(
+    name = "chlo_py_api_files",
+    srcs = [
+        "stablehlo/integrations/python/ChloModule.cpp",
     ],
 )
 
@@ -1018,6 +1023,15 @@ gentbl_filegroup(
     deps = [
         ":stablehlo_ops_td_files",
         "@llvm-project//mlir:OpBaseTdFiles",
+    ],
+)
+
+filegroup(
+    name = "stablehlo_py_api_files",
+    srcs = [
+        "stablehlo/integrations/python/PortableApi.cpp",
+        "stablehlo/integrations/python/PortableApi.h",
+        "stablehlo/integrations/python/StablehloModule.cpp",
     ],
 )
 
