@@ -59,7 +59,7 @@ func.func @dot_general_op_test_empty_dims() {
 
 // -----
 
-func.func @dot_general_op_mismatch_operand_and_result_float_types() {
+func.func @dot_general_op_test_different_operand_and_result_element_types() {
   %lhs = stablehlo.constant dense<[[[1.0, 2.0], [3.0, 4.0]],
                                   [[5.0, 6.0], [7.0, 8.0]]]> : tensor<2x2x2xf32>
   %rhs = stablehlo.constant dense<[[[1.0, 0.0], [0.0, 1.0]],
