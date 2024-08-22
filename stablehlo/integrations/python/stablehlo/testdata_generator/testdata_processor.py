@@ -279,13 +279,13 @@ def to_testdata_format(
 
   Example Output:
     module {
-      func.func @add_op_test_f32() -> tensor<2xxi1> {
+      func.func @add_op_test_f32() -> tensor<2xf32> {
         %0 = stablehlo.constant dense<[1.0, 2.0]> : tensor<2xf32>
         %1 = stablehlo.constant dense<[3.0, 4.0]> : tensor<2xf32>
         %2 = stablehlo.add %0, %1 : tensor<2xf32>
         %3 = stablehlo.custom_call("check.eq", %2, dense<[4.0, 6.0]> :
           tensor<2xi1>
-        func.return %3 : tensor2xi1<>
+        func.return %2 : tensor<2xf32>
       }
     }
   """
@@ -316,22 +316,16 @@ def to_testdata_format(
 
     # Insert check operations at the end of the block, just before the return
     with ir.InsertionPoint.at_block_terminator(entry_block):
-      check_ops = []
       for idx, operand in enumerate(return_operands):
         custom_call = stablehlo_dialect.CustomCallOp(
             [ir.RankedTensorType.get([], ir.IntegerType.get_signless(1))],
             [golden_result_constants[idx].result, operand],
             call_target_name="check.eq",
         )
-        check_ops.append(custom_call.result)
-
-      # Replace the original return with the check results
-      new_return_op = func_dialect.ReturnOp(check_ops)
-      return_op.erase()
 
     # Update the function's type to reflect the new return values
     main_ftype = ir.FunctionType.get(
-        [], [check_op.type for check_op in check_ops]
+        [], [return_operand.type for return_operand in return_operands]
     )
     module.body.operations[0].function_type = ir.TypeAttr.get(main_ftype)
 
