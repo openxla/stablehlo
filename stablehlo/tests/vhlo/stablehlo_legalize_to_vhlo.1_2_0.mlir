@@ -2726,7 +2726,7 @@ func.func @type_per_tensor_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.
 // CHECK-LABEL: "type_per_axis_quantization"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @type_per_axis_quantization(%arg0: tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>>) -> tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>> {
-  // CHECK: "vhlo.add_v1"(%[[ARG0]], %[[ARG0]]) : (!vhlo.tensor_v1<2x!vhlo.quant_per_axis_v1<!vhlo.i8_v1:!vhlo.f32_v1, 0, 3.400000e+01, 3.400000e+01, 16, 16, -128:127, 1>>, !vhlo.tensor_v1<2x!vhlo.quant_per_axis_v1<!vhlo.i8_v1:!vhlo.f32_v1, 0, 3.400000e+01, 3.400000e+01, 16, 16, -128:127, 1>>) -> !vhlo.tensor_v1<2x!vhlo.quant_per_axis_v1<!vhlo.i8_v1:!vhlo.f32_v1, 0, 3.400000e+01, 3.400000e+01, 16, 16, -128:127, 1>>
+  // CHECK: "vhlo.add_v1"(%[[ARG0]], %[[ARG0]]) : (!vhlo.tensor_v1<2x!vhlo.quant_per_axis_v1<!vhlo.i8_v1:!vhlo.f32_v1, 0, [3.400000e+01, 3.400000e+01], [16, 16], -128:127, 1>>, !vhlo.tensor_v1<2x!vhlo.quant_per_axis_v1<!vhlo.i8_v1:!vhlo.f32_v1, 0, [3.400000e+01, 3.400000e+01], [16, 16], -128:127, 1>>) -> !vhlo.tensor_v1<2x!vhlo.quant_per_axis_v1<!vhlo.i8_v1:!vhlo.f32_v1, 0, [3.400000e+01, 3.400000e+01], [16, 16], -128:127, 1>>
   %0 = stablehlo.add %arg0, %arg0 : tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>>
   func.return %0 : tensor<2x!quant.uniform<i8:f32:0, {34.0:16, 34.0:16}>>
 }

@@ -23,14 +23,14 @@ module {
 // -----
 
 module attributes {jax.uses_shape_polymorphism = true} {
-  func.func @main() -> tensor<i1> {
+  func.func @main() -> tensor<11xf32> {
     %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.000000e-01, 3.14159274, 0x7F800000, 0xFF800000, 0x7FFFFFFF, 1.401300e-45, -1.401300e-45]> : tensor<11xf32>
     %cst_0 = stablehlo.constant dense<[0.000000e+00, 0.000000e+00, 0.761130392, 0.12536265, 0.101484053, 0.761130392, 0.761130392, 0.000000e+00, 0.462647885, 0.000000e+00, 0.000000e+00]> : tensor<11xf32>
     %0 = stablehlo.uniform_quantize %cst : (tensor<11xf32>) -> tensor<11x!quant.uniform<i8:f32, 0.0039172410964965817:-128>>
     %1 = stablehlo.tanh %0 : (tensor<11x!quant.uniform<i8:f32, 0.0039172410964965817:-128>>) -> tensor<11x!quant.uniform<i8:f32, 0.0029848250688291065:-128>>
     %2 = stablehlo.uniform_dequantize %1 : (tensor<11x!quant.uniform<i8:f32, 0.0029848250688291065:-128>>) -> tensor<11xf32>
     %3 = stablehlo.custom_call @check.eq(%cst_0, %2) : (tensor<11xf32>, tensor<11xf32>) -> tensor<i1>
-    return %3 : tensor<i1>
+    return %2 : tensor<11xf32>
   }
 }
 
