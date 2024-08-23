@@ -62,10 +62,9 @@ MLIR_CAPI_EXPORTED void stablehloGetMinimumVersion(MlirStringCallback callback,
 
 // For two given version strings, return the smaller version.
 // Returns failure if either version is not a valid version string.
-MlirLogicalResult stablehloGetSmallerVersion(MlirStringRef version1,
-                                             MlirStringRef version2,
-                                             MlirStringCallback callback,
-                                             void* userData);
+MLIR_CAPI_EXPORTED MlirLogicalResult
+stablehloGetSmallerVersion(MlirStringRef version1, MlirStringRef version2,
+                           MlirStringCallback callback, void* userData);
 
 // Write a StableHLO program expressed as a string (either prettyprinted MLIR
 // module or MLIR bytecode) to a portable artifact.
@@ -116,7 +115,9 @@ MLIR_CAPI_EXPORTED MlirModule stablehloDeserializePortableArtifact(
 // Entrypoint for calling the StableHLO reference interpreter.
 // Returns an array attribute of dense element attributes for results.
 // Sets error code to non-zero on failure.
-MlirAttribute stablehloEvalModule(MlirModule module, int nArgs,
-                                  MlirAttribute const* args, int* errorCode);
+MLIR_CAPI_EXPORTED MlirAttribute stablehloEvalModule(MlirModule module,
+                                                     int nArgs,
+                                                     MlirAttribute const* args,
+                                                     int* errorCode);
 
 #endif  // STABLEHLO_INTEGRATIONS_C_STABLEHLOAPI_H_
