@@ -167,6 +167,8 @@ def main():
             include_subnormal=not flush_subnormals,
         ).flatten()
 
+      samples = np.concatenate((samples, fa.utils.extra_samples(opname, dtype)))
+
       expected = getattr(nmp, mpmath_opname).call(samples,
                                                   enable_progressbar=True)
       expected = np.array(expected, dtype)

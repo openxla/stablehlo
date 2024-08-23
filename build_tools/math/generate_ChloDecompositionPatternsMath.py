@@ -80,6 +80,7 @@ def main():
   sources = []
   target = fa.targets.stablehlo
   for chloname, fname, args in [
+      ("CHLO_AsinAcosKernelOp", "asin_acos_kernel", ("z:complex",)),
       ("CHLO_AsinOp", "complex_asin", ("z:complex",)),
       ("CHLO_AsinOp", "real_asin", ("x:float",)),
       ("CHLO_AcosOp", "complex_acos", ("z:complex",)),
@@ -92,7 +93,7 @@ def main():
     func = getattr(fa.algorithms, fname, None)
     if func is None:
       warnings.warn(
-          "{fa.algorithms.__name__} does not define {fname}. Skipping.")
+          f"{fa.algorithms.__name__} does not define {fname}. Skipping.")
       continue
     ctx = fa.Context(paths=[fa.algorithms])
     graph = ctx.trace(func, *args).implement_missing(target).simplify()

@@ -31,7 +31,7 @@ following requirements:
 
 - Python 3.11 or newer
 - mpmath 1.3 or newer
-- functional_algorithms 0.7.0 or newer
+- functional_algorithms 0.9.1 or newer
 
 that can be installed via pypi:
 
@@ -62,8 +62,8 @@ To execute generated tests from a `build` directory, use:
 
 ```sh
 for t in $(ls ../stablehlo/tests/math/*.mlir); \
-do bin/stablehlo-opt --chlo-legalize-to-stablehlo $t \
- | bin/stablehlo-translate --interpret ; done
+do echo $t && ( bin/stablehlo-opt --chlo-legalize-to-stablehlo $t \
+ | bin/stablehlo-translate --interpret ) ; done
 ```
 
 When new implementations are generated, one likely needs to update
