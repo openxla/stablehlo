@@ -1029,8 +1029,8 @@ gentbl_filegroup(
 filegroup(
     name = "stablehlo_py_api_files",
     srcs = [
-        "stablehlo/integrations/python/PortableApi.cpp",
-        "stablehlo/integrations/python/PortableApi.h",
+        "stablehlo/integrations/python/StablehloApi.cpp",
+        "stablehlo/integrations/python/StablehloApi.h",
         "stablehlo/integrations/python/StablehloModule.cpp",
     ],
 )
