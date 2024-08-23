@@ -56,3 +56,19 @@ func.func @dot_general_op_test_empty_dims() {
                                          [[4, 0], [0, 4]]]]> : tensor<2x2x2x2xi64>
   func.return
 }
+
+// -----
+
+func.func @dot_general_op_test_different_operand_and_result_element_types() {
+  %lhs = stablehlo.constant dense<[[[1.0, 2.0], [3.0, 4.0]],
+                                  [[5.0, 6.0], [7.0, 8.0]]]> : tensor<2x2x2xf32>
+  %rhs = stablehlo.constant dense<[[[1.0, 0.0], [0.0, 1.0]],
+                                  [[1.0, 0.0], [0.0, 1.0]]]> : tensor<2x2x2xf32>
+  %result = stablehlo.dot_general %lhs, %rhs,
+      batching_dims = [0] x [0],
+      contracting_dims = [2] x [1]
+      : (tensor<2x2x2xf32>, tensor<2x2x2xf32>) -> tensor<2x2x2xf64>
+  check.expect_eq_const %result, dense<[[[1.0, 2.0], [3.0, 4.0]],
+                                        [[5.0, 6.0], [7.0, 8.0]]]> : tensor<2x2x2xf64>
+  func.return
+}
