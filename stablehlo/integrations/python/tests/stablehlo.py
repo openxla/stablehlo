@@ -301,7 +301,6 @@ def test_reference_api():
 def test_get_smaller_version():
   curr_version = stablehlo.get_current_version()
   min_version = stablehlo.get_minimum_version()
-  print(curr_version)
   assert stablehlo.get_smaller_version(curr_version, min_version) == min_version
 
 
