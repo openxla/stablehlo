@@ -1,6 +1,30 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
 module {
+  func.func @add_op_test_si2() {
+    %c = stablehlo.constant dense<[1, 0, -1, -2]> : tensor<4xi2>
+    %c_0 = stablehlo.constant dense<[-1, 1, 1, 1]> : tensor<4xi2>
+    %0 = stablehlo.add %c, %c_0 : tensor<4xi2>
+    "check.expect_eq_const"(%0) <{value = dense<[0, 1, 0, -1]> : tensor<4xi2>}> : (tensor<4xi2>) -> ()
+    return
+  }
+}
+
+// -----
+
+module {
+  func.func @add_op_test_ui2() {
+    %c = stablehlo.constant dense<[0, 2]> : tensor<2xui2>
+    %c_0 = stablehlo.constant dense<1> : tensor<2xui2>
+    %0 = stablehlo.add %c, %c_0 : tensor<2xui2>
+    "check.expect_eq_const"(%0) <{value = dense<[1, 3]> : tensor<2xui2>}> : (tensor<2xui2>) -> ()
+    return
+  }
+}
+
+// -----
+
+module {
   func.func @add_op_test_si4() {
     %c = stablehlo.constant dense<[0, 1, 2, -3, 0]> : tensor<5xi4>
     %c_0 = stablehlo.constant dense<[-8, -1, 2, -3, 7]> : tensor<5xi4>
@@ -157,16 +181,16 @@ module {
 // -----
 
 module attributes {jax.uses_shape_polymorphism = true} {
-  func.func @main() -> tensor<i1> {
+  func.func @main() -> tensor<11xf32> {
     %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.000000e-01, 3.14159274, 0x7F800000, 0x7F800000, 0xFF800000, 0x7F800000, 1.401300e-45]> : tensor<11xf32>
     %cst_0 = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 7.000000e+00, 7.500000e-01, 3.000000e-01, 3.14159274, 0.000000e+00, 0x7F800000, 0xFF800000, 0xFF800000, -1.401300e-45]> : tensor<11xf32>
     %cst_1 = stablehlo.constant dense<[0.000000e+00, 0.000000e+00, 1.97221267, 0.873960912, 0.402176708, 1.97221267, 0.997707605, 1.97221267, 0.000000e+00, 0.997707605, 0.000000e+00]> : tensor<11xf32>
-    %0 = stablehlo.uniform_quantize %cst_0 : (tensor<11xf32>) -> tensor<11x!quant.uniform<i8:f32, 0.0039172410964965817:-128>>
-    %1 = stablehlo.uniform_quantize %cst : (tensor<11xf32>) -> tensor<11x!quant.uniform<i8:f32, 0.0039188104517319626:-128>>
-    %2 = stablehlo.add %1, %0 : (tensor<11x!quant.uniform<i8:f32, 0.0039188104517319626:-128>>, tensor<11x!quant.uniform<i8:f32, 0.0039172410964965817:-128>>) -> tensor<11x!quant.uniform<i8:f32, 0.0077341673420924769:-128>>
+    %0 = stablehlo.uniform_quantize %cst_0 : (tensor<11xf32>) -> tensor<11x!quant.uniform<i8:f32, 0.0039188104517319626:-128>>
+    %1 = stablehlo.uniform_quantize %cst : (tensor<11xf32>) -> tensor<11x!quant.uniform<i8:f32, 0.0039172410964965817:-128>>
+    %2 = stablehlo.add %1, %0 : (tensor<11x!quant.uniform<i8:f32, 0.0039172410964965817:-128>>, tensor<11x!quant.uniform<i8:f32, 0.0039188104517319626:-128>>) -> tensor<11x!quant.uniform<i8:f32, 0.0077341673420924769:-128>>
     %3 = stablehlo.uniform_dequantize %2 : (tensor<11x!quant.uniform<i8:f32, 0.0077341673420924769:-128>>) -> tensor<11xf32>
     %4 = stablehlo.custom_call @check.eq(%cst_1, %3) : (tensor<11xf32>, tensor<11xf32>) -> tensor<i1>
-    return %4 : tensor<i1>
+    return %3 : tensor<11xf32>
   }
 }
 

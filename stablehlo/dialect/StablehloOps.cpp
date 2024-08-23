@@ -44,7 +44,11 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "llvm/ADT/iterator_range.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/LogicalResult.h"
+#include "llvm/Support/MathExtras.h"
 #include "llvm/Support/Regex.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -575,13 +579,18 @@ void printPrecisionConfig(OpAsmPrinter& p, Operation*,
   p << ']';
 }
 
-ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
-  // No precision config specified
-  if (failed(parser.parseOptionalComma())) return success();
+void printDotAlgorithm(OpAsmPrinter& p, Operation*,
+                       DotAlgorithmAttr algorithm) {
+  // Precision config is an optional attribute, passes null if not specified.
+  if (!algorithm) return;
+  p << ", algorithm = ";
+  p.printStrippedAttrOrType(algorithm);
+}
 
+ParseResult parsePrecisionConfigImpl(OpAsmParser& parser,
+                                     mlir::ArrayAttr& precision) {
   if (failed(parser.parseKeyword("precision")) || failed(parser.parseEqual()))
     return failure();
-
   SmallVector<Attribute> attrs;
   if (failed(parser.parseCommaSeparatedList(
           AsmParser::Delimiter::Square, [&]() -> ParseResult {
@@ -590,8 +599,64 @@ ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
           })))
     return failure();
 
-  attr = mlir::ArrayAttr::get(parser.getContext(), attrs);
+  precision = mlir::ArrayAttr::get(parser.getContext(), attrs);
   return success();
+}
+
+void printPrecisionConfigAndAlgorithm(OpAsmPrinter& p, Operation* op,
+                                      ::mlir::ArrayAttr precision,
+                                      DotAlgorithmAttr algorithm) {
+  printPrecisionConfig(p, op, precision);
+  printDotAlgorithm(p, op, algorithm);
+}
+
+ParseResult parsePrecisionConfigAndAlgorithm(OpAsmParser& parser,
+                                             mlir::ArrayAttr& precision,
+                                             DotAlgorithmAttr& algorithm) {
+  // OptPrecisionAndAlgorithm ::= `,` PrecisionAndAlgorithm || empty
+  // PrecisionAndAlgorithm ::= Precision OptAlgorithm || Algorithm
+  // Precision ::= `precision` `=` PrecisionConfigAttr
+  // OptAlgorithm ::= `,` Algorithm || empty
+  // Algorithm ::= `algorithm` `=` DotAlgorithmAttr
+
+  // OptPrecisionAndAlgorithm
+  if (failed(parser.parseOptionalComma())) return success();
+
+  auto parseAlgorithm = [](OpAsmParser& parser,
+                           DotAlgorithmAttr& algorithm) -> ParseResult {
+    Type none;
+    auto result = DotAlgorithmAttr::parse(parser, none);
+    if (!result) return failure();
+    algorithm = cast<DotAlgorithmAttr>(result);
+    return success();
+  };
+
+  // PrecisionAndAlgorithm -> Algorithm
+  if (succeeded(parser.parseOptionalKeyword("algorithm"))) {
+    if (failed(parser.parseEqual()) ||
+        failed(parseAlgorithm(parser, algorithm)))
+      return failure();
+    return success();
+  }
+
+  // PrecisionAndAlgorithm -> Precision OptAlgorithm
+  if (failed(parsePrecisionConfigImpl(parser, precision))) return failure();
+
+  // OptAlgorithm
+  if (failed(parser.parseOptionalComma())) return success();
+
+  // Algorithm
+  if (failed(parser.parseKeyword("algorithm")) || failed(parser.parseEqual()) ||
+      failed(parseAlgorithm(parser, algorithm)))
+    return failure();
+  return success();
+}
+
+ParseResult parsePrecisionConfig(OpAsmParser& parser,
+                                 mlir::ArrayAttr& precision) {
+  // OptPrecisionConfig ::= `,` Precision || empty
+  if (failed(parser.parseOptionalComma())) return success();
+  return parsePrecisionConfigImpl(parser, precision);
 }
 
 //===----------------------------------------------------------------------===//
@@ -599,13 +664,31 @@ ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
 //===----------------------------------------------------------------------===//
 
 LogicalResult DotGeneralOp::verify() {
+  bool isDefaultPrecisionConfig =
+      !getPrecisionConfig().has_value() ||
+      llvm::all_of(getPrecisionConfig().value(), [](Attribute attr) {
+        return cast<PrecisionAttr>(attr).getValue() == Precision::DEFAULT;
+      });
+  bool hasAlgorithmSpecified = getAlgorithm().has_value();
+  if (hasAlgorithmSpecified) {
+    DotAlgorithmAttr attr = getAlgorithm().value();
+    if (failed(DotAlgorithmAttr::verify(
+            [&] { return this->emitError(); }, attr.getLhsPrecisionType(),
+            attr.getRhsPrecisionType(), attr.getAccumulationType(),
+            attr.getLhsComponentCount(), attr.getRhsComponentCount(),
+            attr.getNumPrimitiveOperations(),
+            attr.getAllowImpreciseAccumulation())))
+      return failure();
+  }
+
   return hlo::verifyDotGeneralOp(
       getLoc(), getLhs(), getRhs(),
       getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
       getDotDimensionNumbersAttr().getRhsBatchingDimensions(),
       getDotDimensionNumbersAttr().getLhsContractingDimensions(),
       getDotDimensionNumbersAttr().getRhsContractingDimensions(),
-      getPrecisionConfig(), getResult());
+      getPrecisionConfig(), isDefaultPrecisionConfig, hasAlgorithmSpecified,
+      getResult());
 }
 
 LogicalResult DotGeneralOp::reifyReturnTypeShapes(
@@ -694,7 +777,19 @@ bool DotGeneralOp::isSimpleDot() {
   auto rhsRank = cast<ShapedType>(getRhs().getType()).getRank();
   return lhsRank <= 2 && rhsRank <= 2 &&
          getDotDimensionNumbersAttr() ==
-             getDefaultDotDimensionNumbers(getLhs());
+             getDefaultDotDimensionNumbers(getLhs()) &&
+         !getAlgorithm().has_value();
+}
+
+LogicalResult DotAlgorithmAttr::verify(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError,
+    Type lhsPrecisionType, Type rhsPrecisionType, Type accumulationType,
+    int64_t lhsComponentCount, int64_t rhsComponentCount,
+    int64_t numPrimitiveOperations, bool allowImpreciseAccumulation) {
+  return hlo::verifyDotAlgorithmAttr(
+      emitError, lhsPrecisionType, rhsPrecisionType, accumulationType,
+      lhsComponentCount, rhsComponentCount, numPrimitiveOperations,
+      allowImpreciseAccumulation);
 }
 
 //===----------------------------------------------------------------------===//

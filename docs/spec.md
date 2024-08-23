@@ -247,6 +247,7 @@ SignedIntegerType ::= 'si2' | 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
 UnsignedIntegerType ::= 'ui2' | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
 FloatType ::= 'f8E4M3FN' | 'f8E5M2' | 'f8E4M3FNUZ' | 'f8E5M2FNUZ'
             | 'f8E4M3B11FNUZ' | 'bf16' | 'f16' | 'f32' | 'f64'
+TensorFloat32 ::= 'tf32'
 ComplexType ::= 'complex' '<' ComplexElementType '>'
 ComplexElementType ::= 'f32' | 'f64'
 ```
@@ -278,7 +279,9 @@ values of type `tensor<T>`).
   * `f16`, `f32` and `f64` types corresponding to respectively
     `binary16` ("half precision"), `binary32` ("single precision") and
     `binary64` ("double precision") formats described in
-  [the IEEE 754 standard](https://ieeexplore.ieee.org/document/8766229).
+    [the IEEE 754 standard](https://ieeexplore.ieee.org/document/8766229).
+  * `tf32` type corresponds to the [TensorFloat32 format](https://blogs.nvidia.com/blog/tensorfloat-32-precision-format/)
+    and has limited support in StableHLO.
 * **Complex types** represent complex values that have a **real part**
   and an **imaginary part** of the same **element type**. Supported complex
   types are `complex<f32>` (both parts are of type `f32`) and `complex<f64>`
@@ -2545,17 +2548,91 @@ planning to address this in
 * `HIGHEST`: Slowest calculation, but most accurate approximation to the
   original number.
 
+A `DotAlgorithm` defines the main properties of the algorithm used to implement
+the dot operation, which also defines the precision. If the algorithm attribute
+fields are set, then the `precision_config` must be `DEFAULT`. `DotAlgorithms`
+do not have a default value, as the default parameters are implementation
+defined. As such, all dot algorithm fields may be set to `None` to specify an
+empty dot algorithm, which will instead use the `precision_config` value.
+
+`DotAlgorithm` fields include:
+
+* `lhs_precision_type` and `rhs_precision_type`, the precisions that the LHS and
+  RHS of the operation are rounded to. Precision types are independent from the
+  storage types of the inputs and the output.
+* `accumulation_type` the precision used for accumulation.
+* `lhs_component_count`, `rhs_component_count`, and `num_primitive_operations`
+  apply when we are doing an algorithm which decomposes the LHS and/or RHS into
+  multiple components and does multiple "primitive" dot operations on those
+  values - usually to emulate a higher precision (e.g.
+[Leveraging the bfloat16 Artificial Intelligence Datatype For Higher-Precision Computations](https://arxiv.org/pdf/1904.06376.pdf):
+  bf16_6x tf32_3x, etc). For algorithms with no decomposition, these values
+  should be set to `1`.
+* `allow_imprecise_accumulation` to specify if accumulation in lower precision
+  is permitted for some steps (e.g. `CUBLASLT_MATMUL_DESC_FAST_ACCUM`).
+
+Example `DotAlgorithm` attributes:
+
+```txt
+// Inputs are casted to tf32, and then accumulated in f32:
+{lhs_precision_type = tf32,
+ rhs_precision_type = tf32,
+ accumulation_type = f32,
+ lhs_component_count = 1,
+ rhs_component_count = 1,
+ num_primitive_operations = 1,
+ allow_imprecise_accumulation = false}
+
+
+// bf16_6x: each input is decomposed to 3 bf16 components, then 6 dot operations are done on those components, and the result is accumulated in f32.
+{lhs_precision_type = bf16,
+ rhs_precision_type = bf16,
+ accumulation_type = f32,
+ lhs_component_count = 3,
+ rhs_component_count = 3,
+ num_primitive_operations = 6,
+ allow_imprecise_accumulation = false}
+
+
+// Inputs are (casted to) f8e5m2, and we accumulate in f32, but for some steps we may accumulate in lower precision.
+{lhs_precision_type = f8e5m2,
+ rhs_precision_type = f8e5m2,
+ accumulation_type = f32,
+ lhs_component_count = 1,
+ rhs_component_count = 1,
+ num_primitive_operations = 1,
+ allow_imprecise_accumulation = true}
+```
+
+It is up to the implementations to decide which combinations are supported. In
+general, it is not guaranteed that each algorithm is supported on each
+accelerator type by the consumer of the StableHLO. If a given algorithm is not
+supported, an error should be raised as opposed to falling back to an
+alternative. StableHLO verification will provide best effort verification,
+preventing algorithms that are not known to be supported on *any* hardware.
+
+See [`xla_data.proto > Algorithm`](https://github.com/openxla/xla/blob/e8a707554de6b3d6bfd891583a81ff7020a97b54/xla/xla_data.proto#L1022)
+for some supported algorithm values. Ticket #2483 captures the plan to create a
+centralized doc on supported algorithms by backend.
+
 #### Inputs
 
-| Label | Name                         | Type                                                         | Constraints                                    |
-|-------|------------------------------|--------------------------------------------------------------|------------------------------------------------|
-| (I1)  | `lhs`                        | tensor or per-tensor quantized tensor                        | (C5-C6), (C9-C10), (C12-C14), (C17-C18), (C20) |
-| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C20)                            |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)                  |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)                         |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)                        |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10), (C16)                 |
-| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                                          |
+| Label | Name                           | Type                                                         | Constraints                                    |
+|-------|--------------------------------|--------------------------------------------------------------|------------------------------------------------|
+| (I1)  | `lhs`                          | tensor or per-tensor quantized tensor                        | (C5-C6), (C9-C10), (C12-C14), (C17-C18), (C20) |
+| (I2)  | `rhs`                          | tensor or quantized tensor                                   | (C7-C10), (C12-C20)                            |
+| (I3)  | `lhs_batching_dimensions`      | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)                  |
+| (I4)  | `rhs_batching_dimensions`      | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)                         |
+| (I5)  | `lhs_contracting_dimensions`   | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)                        |
+| (I6)  | `rhs_contracting_dimensions`   | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10), (C16)                 |
+| (I7)  | `precision_config`             | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11), (C21)                                   |
+| (I8)  | `lhs_precision_type`           | FloatType or TensorFloat32                                   | (C21)                                          |
+| (I9)  | `rhs_precision_type`           | FloatType or TensorFloat32                                   | (C21)                                          |
+| (I10) | `accumulation_type`            | FloatType or TensorFloat32                                   | (C21)                                          |
+| (I11) | `lhs_component_count`          | constant of type `si32`                                      | (C21), (C22)                                   |
+| (I12) | `rhs_component_count`          | constant of type `si32`                                      | (C21), (C23)                                   |
+| (I13) | `num_primitive_operations`     | constant of type `si32`                                      | (C21), (C24)                                   |
+| (I14) | `allow_imprecise_accumulation` | constant of type `bool`                                      | (C21)                                          |
 
 #### Outputs
 
@@ -2595,6 +2672,13 @@ planning to address this in
       `is_per_tensor_quantized(result)`.
   * If `!is_quantized(lhs)`:
     * (C20) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
+* If `!is_empty_algorithm(lhs_precision_type, rhs_precision_type,
+  accumulation_type, lhs_component_count, rhs_component_count,
+  num_primitive_operations allow_imprecise_accumulation)`:
+  * (C21) `precision_config... = DEFAULT`.
+  * (C22) `0 < lhs_component_count`.
+  * (C23) `0 < rhs_component_count`.
+  * (C24) `0 < num_primitive_operations`.
 
 #### Examples
 
@@ -2618,7 +2702,16 @@ planning to address this in
     lhs_contracting_dimensions = [2],
     rhs_contracting_dimensions = [1]
   >,
-  precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+  precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>],
+  algorithm = #stablehlo.dot_algorithm<
+    lhs_precision_type = tf32,
+    rhs_precision_type = tf32,
+    accumulation_type = f32,
+    lhs_component_count = 1,
+    rhs_component_count = 1,
+    num_primitive_operations = 1,
+    allow_imprecise_accumulation = false
+  >
 } : (tensor<2x2x2xi64>, tensor<2x2x2xi64>) -> tensor<2x2x2xi64>
 // %result: [
 //           [[1, 2],
@@ -7211,6 +7304,10 @@ returns the `TensorElementType` part of a corresponding `TensorType`.
 If `x` is a value or placeholder, this function is a shortcut for
 `member_name(type(x))`.  If `x` is not a type that has an appropriate member, or
 a value or a placeholder of such a type, returns `None`.
+
+* `is_empty_algorithm(*args: Type)` checks if all dot algorithm fields are set
+  to `None`. This is needed since dot algorithms have implementation defined
+  default behaviors, so specifying a default value would be incorrect.
 
 #### Construction of values
 

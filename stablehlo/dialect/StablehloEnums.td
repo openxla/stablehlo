@@ -44,8 +44,7 @@ def StableHLO_PrecisionAttr : EnumAttr<StableHLO_Dialect, StableHLO_Precision, "
 
 // TODO(b/129153247) See if it's possible to also validate the size.
 def StableHLO_PrecisionConfigAttr:
-    OptionalAttr<
-          TypedArrayAttrBase<StableHLO_PrecisionAttr, "Precision Config attribute">>;
+  TypedArrayAttrBase<StableHLO_PrecisionAttr, "Precision Config attribute">;
 
 //===----------------------------------------------------------------------===//
 // Fast Fourier Transform Type enum definitions.

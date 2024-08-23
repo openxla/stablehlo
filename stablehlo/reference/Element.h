@@ -224,6 +224,9 @@ Element convert(Type type, std::complex<APFloat> value);
 /// then the behavior is also TBD (#180).
 Element convert(Type type, std::complex<double> value);
 
+/// Returns Element object of type `type` from zero `value`
+Element getZeroValueOfType(Type type);
+
 /// Returns cosine of Element object.
 Element cosine(const Element &e);
 

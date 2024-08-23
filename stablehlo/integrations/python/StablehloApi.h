@@ -13,19 +13,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_INTEGRATIONS_PYTHON_API_PORTABLEAPI_H
-#define STABLEHLO_INTEGRATIONS_PYTHON_API_PORTABLEAPI_H
+#ifndef STABLEHLO_INTEGRATIONS_PYTHON_API_STABLEHLOAPI_H
+#define STABLEHLO_INTEGRATIONS_PYTHON_API_STABLEHLOAPI_H
 
 #include "pybind11/pybind11.h"
 
 namespace mlir {
 namespace stablehlo {
 
-// Add portable API to the pybind11 module.
-// Signatures of these APIs have no dependency on MLIR.
+// Add StableHLO APIs to the pybind11 module.
+// Signatures of these APIs have no dependency on C++ MLIR types and all must
+// use C API passthrough.
+void AddStablehloApi(pybind11::module& m);
+
+// Adds a subset of the StableHLO API that doesn't use MLIR in any definitions,
+// and is methods only, introducing no new objects / enums to avoid potential
+// redefinition issues in complex build environments.
 void AddPortableApi(pybind11::module& m);
 
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_INTEGRATIONS_PYTHON_API_PORTABLEAPI_H
+#endif  // STABLEHLO_INTEGRATIONS_PYTHON_API_STABLEHLOAPI_H

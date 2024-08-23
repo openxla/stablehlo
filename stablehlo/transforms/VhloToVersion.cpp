@@ -18,6 +18,7 @@ limitations under the License.
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
@@ -28,6 +29,7 @@ limitations under the License.
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Region.h"
+#include "mlir/IR/Types.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
@@ -280,6 +282,17 @@ bool isEmptyTensor(Attribute attr) {
   auto tensor = dyn_cast<TensorV1Attr>(attr);
   if (tensor) return tensor.getData().empty();
   return false;
+}
+
+bool isNoneType(Attribute attr) {
+  auto typeAttr = llvm::dyn_cast<TypeV1Attr>(attr);
+  if (!typeAttr) return false;
+  return isa<NoneV1Type>(typeAttr.getValue());
+}
+
+TypeV1Attr getNoneType(OpBuilder& builder) {
+  return TypeV1Attr::get(builder.getContext(),
+                         NoneV1Type::get(builder.getContext()));
 }
 
 TensorV1Attr getDefaultConvPadding(OpBuilder& builder, Value lhs) {

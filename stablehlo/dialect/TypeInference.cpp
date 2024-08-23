@@ -4020,7 +4020,8 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  ArrayRef<int64_t> lhsContractingDimensions,
                                  ArrayRef<int64_t> rhsContractingDimensions,
                                  std::optional<ArrayAttr> precisionConfig,
-                                 Value result) {
+                                 bool isDefaultPrecisionConfig,
+                                 bool hasAlgorithmSpecified, Value result) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
   if (failed(inferDotGeneralOp(
           location, lhs.getType(), rhs.getType(), lhsBatchingDimensions,
@@ -4036,12 +4037,53 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
         location, "inferred shape '", dimSizesToString(inferredShape.getDims()),
         "' ", "is incompatible with return type of operation ", resultType, "");
 
+  // dot_general_c21
+  if (!isDefaultPrecisionConfig && hasAlgorithmSpecified)
+    return emitOptionalError(
+        location,
+        "must specify DEFAULT precision config when algorithm is set.");
+
   Type lhsType = lhs.getType();
   Type rhsType = rhs.getType();
   if (anyQuantized<quant::QuantizedType>({lhsType, rhsType, resultType})) {
     return verifyDotGeneralOpQuantizationConstraints(
         location, lhsType, rhsType, resultType, rhsContractingDimensions);
   }
+  return success();
+}
+
+LogicalResult verifyDotAlgorithmAttr(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError,
+    Type lhsPrecisionType, Type rhsPrecisionType, Type accumulationType,
+    int64_t lhsComponentCount, int64_t rhsComponentCount,
+    int64_t numPrimitiveOperations, bool allowImpreciseAccumulation) {
+  auto isValidType = [](Type t) {
+    // Only support float types for now
+    // This can be extended as needed, as the RFC was for general support, but
+    // only FP hardware support exists in the ecosystem today.
+    return llvm::isa<FloatTF32Type, Float8E4M3FNType, Float8E5M2Type,
+                     Float8E4M3FNUZType, Float8E4M3B11FNUZType,
+                     Float8E5M2FNUZType, BFloat16Type, Float16Type, Float32Type,
+                     Float64Type>(t);
+  };
+  // dot_general_i8
+  if (!isValidType(lhsPrecisionType))
+    return emitError() << "lhs precision type must be float";
+  // dot_general_i9
+  if (!isValidType(rhsPrecisionType))
+    return emitError() << "rhs precision type must be float";
+  // dot_general_i10
+  if (!isValidType(accumulationType))
+    return emitError() << "accumulation type must be float";
+  // dot_general_c22
+  if (lhsComponentCount < 1)
+    return emitError() << "lhs component count must be positive";
+  // dot_general_c23
+  if (rhsComponentCount < 1)
+    return emitError() << "rhs component count must be positive";
+  // dot_general_c24
+  if (numPrimitiveOperations < 1)
+    return emitError() << "num primitive operations must be positive";
   return success();
 }
 

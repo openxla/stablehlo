@@ -94,6 +94,9 @@ def VHLO_FloatF8E4M3B11FNUZV1 : VHLO_TypeDef<"FloatF8E4M3B11FNUZV1", "f8E4M3B11F
 // Corresponds to the 'f8E5M2FNUZ' FloatType from the StableHLO spec.
 def VHLO_FloatF8E5M2FNUZV1 : VHLO_TypeDef<"FloatF8E5M2FNUZV1", "f8E5M2FNUZ_v1", "0.10.0", "current">;
 
+// Corresponds to the 'tf32' FloatType from the StableHLO spec.
+def VHLO_FloatTF32V1 : VHLO_TypeDef<"FloatTF32V1", "tf31_v1", "1.6.0", "current">;
+
 // Corresponds to FunctionType from the StableHLO spec.
 def VHLO_FunctionV1 : VHLO_TypeDef<"FunctionV1", "func_v1", "0.9.0", "current"> {
   let parameters = (ins
@@ -154,6 +157,11 @@ def VHLO_IntegerUI32V1 : VHLO_TypeDef<"IntegerUI32V1", "ui32_v1", "0.9.0", "curr
 
 // Corresponds to the 'ui64' IntegerType from the StableHLO spec.
 def VHLO_IntegerUI64V1 : VHLO_TypeDef<"IntegerUI64V1", "ui64_v1", "0.9.0", "current">;
+
+// The nonetype is used for optional values which have implementation specific
+// default values, for attributes which must be specified as None, use TypedAttr
+// of NoneType.
+def VHLO_NoneTypeV1 : VHLO_TypeDef<"NoneV1", "none_v1", "1.6.0", "current">;
 
 // Corresponds to TensorType from the StableHLO spec.
 // TODO(#8): Encoding is not part of the StableHLO spec.
@@ -248,9 +256,11 @@ def VHLO_QuantizationScalesV1 : ArrayRefParameter<"::llvm::APFloat", "array of d
     }()
   }];
   let printer = [{
+    $_printer << '[';
     llvm::interleaveComma($_self, $_printer, [&](APFloat scale) {
       $_printer << scale;
     });
+    $_printer << ']';
   }];
 }
 def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "quant_per_axis_v1", "0.18.0", "current"> {
@@ -275,7 +285,7 @@ def VHLO_UniformQuantizedPerAxisV1 : VHLO_TypeDef<"UniformQuantizedPerAxisV1", "
       return success();
     }
   }];
-  let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $quantizedDimension `,` $scales `,` $zeroPoints `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
+  let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $quantizedDimension `,` $scales `,` `[` $zeroPoints `]` `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
 }
 
 // TODO(#8): UnrankedTensor is not part of the StableHLO spec.
