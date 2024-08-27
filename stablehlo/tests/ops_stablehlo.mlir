@@ -3334,7 +3334,7 @@ func.func @dot_general_c24(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -
 // -----
 
 func.func @dot_general_i8(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
-  // expected-error @+3 {{lhs precision type must be float}}
+  // expected-error @+3 {{dot algorithm not known to be supported on any hardware}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
     algorithm = #stablehlo.dot_algorithm<lhs_precision_type = i8, rhs_precision_type = f32, accumulation_type = f32, lhs_component_count = 1, rhs_component_count = 1, num_primitive_operations = 1, allow_imprecise_accumulation = false>
@@ -3344,7 +3344,7 @@ func.func @dot_general_i8(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) ->
 // -----
 
 func.func @dot_general_i9(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
-  // expected-error @+3 {{rhs precision type must be float}}
+  // expected-error @+3 {{dot algorithm not known to be supported on any hardware}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
     algorithm = #stablehlo.dot_algorithm<lhs_precision_type = f32, rhs_precision_type = i8, accumulation_type = f32, lhs_component_count = 1, rhs_component_count = 1, num_primitive_operations = 1, allow_imprecise_accumulation = false>
@@ -3354,7 +3354,7 @@ func.func @dot_general_i9(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) ->
 // -----
 
 func.func @dot_general_i10(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
-  // expected-error @+3 {{accumulation type must be float}}
+  // expected-error @+3 {{dot algorithm not known to be supported on any hardware}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
     algorithm = #stablehlo.dot_algorithm<lhs_precision_type = f32, rhs_precision_type = f32, accumulation_type = i8, lhs_component_count = 1, rhs_component_count = 1, num_primitive_operations = 1, allow_imprecise_accumulation = false>
