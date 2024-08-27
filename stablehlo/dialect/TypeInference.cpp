@@ -27,7 +27,9 @@ limitations under the License.
 #include <iterator>
 #include <numeric>
 #include <optional>
+#include <set>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -4057,24 +4059,6 @@ LogicalResult verifyDotAlgorithmAttr(
     Type lhsPrecisionType, Type rhsPrecisionType, Type accumulationType,
     int64_t lhsComponentCount, int64_t rhsComponentCount,
     int64_t numPrimitiveOperations, bool allowImpreciseAccumulation) {
-  auto isValidType = [](Type t) {
-    // Only support float types for now
-    // This can be extended as needed, as the RFC was for general support, but
-    // only FP hardware support exists in the ecosystem today.
-    return llvm::isa<FloatTF32Type, Float8E4M3FNType, Float8E5M2Type,
-                     Float8E4M3FNUZType, Float8E4M3B11FNUZType,
-                     Float8E5M2FNUZType, BFloat16Type, Float16Type, Float32Type,
-                     Float64Type>(t);
-  };
-  // dot_general_i8
-  if (!isValidType(lhsPrecisionType))
-    return emitError() << "lhs precision type must be float";
-  // dot_general_i9
-  if (!isValidType(rhsPrecisionType))
-    return emitError() << "rhs precision type must be float";
-  // dot_general_i10
-  if (!isValidType(accumulationType))
-    return emitError() << "accumulation type must be float";
   // dot_general_c22
   if (lhsComponentCount < 1)
     return emitError() << "lhs component count must be positive";
@@ -4084,6 +4068,21 @@ LogicalResult verifyDotAlgorithmAttr(
   // dot_general_c24
   if (numPrimitiveOperations < 1)
     return emitError() << "num primitive operations must be positive";
+
+  // Best effort algorithm verification, support algorithm combinations
+  // known to be supported on some hardware, not necessarily the target hardware
+  // dot_general_i8, dot_general_i9, dot_general_i10
+  if (!isKnownDotAlgorithm(lhsPrecisionType, rhsPrecisionType, accumulationType,
+                           lhsComponentCount, rhsComponentCount,
+                           numPrimitiveOperations, allowImpreciseAccumulation))
+    return emitError()
+           << "dot algorithm not known to be supported on any hardware: "
+           << "{lhs:" << lhsPrecisionType << ", rhs:" << rhsPrecisionType
+           << ", accum:" << accumulationType
+           << ", lhs_components:" << lhsComponentCount
+           << ", rhs_components:" << rhsComponentCount
+           << ", primitive_ops:" << numPrimitiveOperations
+           << ", imprecise:" << allowImpreciseAccumulation << "}";
   return success();
 }
 

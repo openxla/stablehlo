@@ -235,6 +235,43 @@ class HloDialectInterface : public DialectInterface::Base<HloDialectInterface> {
   virtual Attribute createTypeExtensions(ArrayRef<int64_t> bounds) const = 0;
 };
 
+namespace detail {
+
+// An enum which tracks known supported dot algorithm pairs.
+// Note this implementation is a detail for now and the APIs are likely to
+// change once HLO broadens support for LHS/RHS components and num primitive
+// operations.
+//
+// It is best to not rely on these values until the API solidifies.
+// Instead use `isKnownDotAlgorithm`.
+enum class KnownDotAlgorithm {
+  ANY_F8_ANY_F8_F32 = 1,
+  ANY_F8_ANY_F8_F32_FAST_ACCUM = 2,
+  F16_F16_F16 = 3,
+  F16_F16_F32 = 4,
+  BF16_BF16_BF16 = 5,
+  BF16_BF16_F32 = 6,
+  BF16_BF16_F32_X3 = 7,
+  BF16_BF16_F32_X6 = 8,
+  TF32_TF32_F32 = 9,
+  TF32_TF32_F32_X3 = 10,
+  F32_F32_F32 = 11,
+  F64_F64_F64 = 12,
+};
+
+FailureOr<KnownDotAlgorithm> getKnownDotAlgorithm(
+    Type lhsPrecisionType, Type rhsPrecisionType, Type accumulationType,
+    int64_t lhsComponentCount, int64_t rhsComponentCount,
+    int64_t numPrimitiveOperations, bool allowImpreciseAccumulation);
+}  // namespace detail
+
+// Check if the combination of a dot algorithm struct is known.
+bool isKnownDotAlgorithm(Type lhsPrecisionType, Type rhsPrecisionType,
+                         Type accumulationType, int64_t lhsComponentCount,
+                         int64_t rhsComponentCount,
+                         int64_t numPrimitiveOperations,
+                         bool allowImpreciseAccumulation);
+
 namespace bytecode {
 // Helper methods for bytecode
 // Enum reader and writer. Many attrs have a single enum type to serialize.

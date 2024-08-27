@@ -29,7 +29,7 @@ func.func @dot_general_op_test_algorithm() {
     algorithm = <
       lhs_precision_type = tf32,
       rhs_precision_type = tf32,
-      accumulation_type = tf32,
+      accumulation_type = f32,
       lhs_component_count = 1,
       rhs_component_count = 1,
       num_primitive_operations = 1,
