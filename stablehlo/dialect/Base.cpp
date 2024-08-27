@@ -21,12 +21,15 @@ limitations under the License.
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <tuple>
 #include <utility>
 
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
@@ -42,9 +45,13 @@ limitations under the License.
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LLVM.h"
+#include "mlir/Support/LogicalResult.h"
+#include "mlir/Support/TypeID.h"
 
 // Include order matters
 #include "stablehlo/dialect/BaseAttrInterfaces.cpp.inc"
+
+#define DEBUG_TYPE "stablehlo-base"
 
 namespace mlir {
 namespace hlo {
@@ -622,6 +629,84 @@ ShapedType createShapedType(ShapedTypeComponents components) {
 bool isSplatArray(ArrayRef<int64_t> arr, int64_t val) {
   return std::all_of(arr.begin(), arr.end(),
                      [val](int64_t x) { return x == val; });
+}
+
+namespace detail {
+template <typename LHS, typename RHS, typename Accum, int64_t N>
+bool match(Type lhsPrecisionType, Type rhsPrecisionType, Type accumulationType,
+           int64_t numPrimitiveOperations) {
+  return isa<LHS>(lhsPrecisionType) && isa<RHS>(rhsPrecisionType) &&
+         isa<Accum>(accumulationType) && numPrimitiveOperations == N;
+}
+
+FailureOr<KnownDotAlgorithm> getKnownDotAlgorithm(
+    Type lhsPrecisionType, Type rhsPrecisionType, Type accumulationType,
+    int64_t lhsComponentCount, int64_t rhsComponentCount,
+    int64_t numPrimitiveOperations, bool allowImpreciseAccumulation) {
+  // Only support single component for now.
+  if (lhsComponentCount != 1 || rhsComponentCount != 1) return failure();
+
+  auto isAnyF8 = [](Type t) {
+    return llvm::isa<Float8E4M3FNType, Float8E5M2Type, Float8E4M3FNUZType,
+                     Float8E4M3B11FNUZType, Float8E5M2FNUZType>(t);
+  };
+  if (isAnyF8(lhsPrecisionType) && isAnyF8(rhsPrecisionType) &&
+      accumulationType.isF32() && numPrimitiveOperations == 1) {
+    if (allowImpreciseAccumulation)
+      return KnownDotAlgorithm::ANY_F8_ANY_F8_F32_FAST_ACCUM;
+    return KnownDotAlgorithm::ANY_F8_ANY_F8_F32;
+  }
+  if (allowImpreciseAccumulation) return failure();
+
+  // TypeID doesn't define a `<` operator so cannot use in map.
+  // Use its name instead.
+  auto key = std::make_tuple(lhsPrecisionType.getAbstractType().getName(),
+                             rhsPrecisionType.getAbstractType().getName(),
+                             accumulationType.getAbstractType().getName(),
+                             numPrimitiveOperations);
+
+  StringRef bf16 = BFloat16Type::name;
+  StringRef f16 = Float16Type::name;
+  StringRef f32 = Float32Type::name;
+  StringRef f64 = Float64Type::name;
+  StringRef tf32 = FloatTF32Type::name;
+  std::map<std::tuple<StringRef, StringRef, StringRef, int64_t>,
+           KnownDotAlgorithm>
+      knownDotAlgorithms{
+          {{f16, f16, f16, 1}, KnownDotAlgorithm::F16_F16_F16},
+          {{f16, f16, f32, 1}, KnownDotAlgorithm::F16_F16_F32},
+          {{bf16, bf16, bf16, 1}, KnownDotAlgorithm::BF16_BF16_BF16},
+          {{bf16, bf16, f32, 1}, KnownDotAlgorithm::BF16_BF16_F32},
+          {{bf16, bf16, f32, 3}, KnownDotAlgorithm::BF16_BF16_F32_X3},
+          {{bf16, bf16, f32, 6}, KnownDotAlgorithm::BF16_BF16_F32_X6},
+          {{tf32, tf32, f32, 1}, KnownDotAlgorithm::TF32_TF32_F32},
+          {{tf32, tf32, f32, 3}, KnownDotAlgorithm::TF32_TF32_F32_X3},
+          {{f32, f32, f32, 1}, KnownDotAlgorithm::F32_F32_F32},
+          {{f64, f64, f64, 1}, KnownDotAlgorithm::F64_F64_F64},
+      };
+
+  auto algorithm = knownDotAlgorithms.find(key);
+  if (algorithm != knownDotAlgorithms.end()) {
+    LLVM_DEBUG(llvm::dbgs()
+               << "Found known dot algorithm: "
+               << static_cast<int64_t>(algorithm->second) << " "
+               << std::get<0>(key) << ", " << std::get<1>(key) << ", "
+               << std::get<2>(key) << ", " << std::get<3>(key) << "\n");
+    return algorithm->second;
+  }
+  return failure();
+}
+}  // namespace detail
+
+// Check if the combination of a dot algorithm struct is known.
+bool isKnownDotAlgorithm(Type lhsPrecisionType, Type rhsPrecisionType,
+                         Type accumulationType, int64_t lhsComponentCount,
+                         int64_t rhsComponentCount,
+                         int64_t numPrimitiveOperations,
+                         bool allowImpreciseAccumulation) {
+  return succeeded(detail::getKnownDotAlgorithm(
+      lhsPrecisionType, rhsPrecisionType, accumulationType, lhsComponentCount,
+      rhsComponentCount, numPrimitiveOperations, allowImpreciseAccumulation));
 }
 
 mlir::Speculation::Speculatability getShapedSpeculatability(
