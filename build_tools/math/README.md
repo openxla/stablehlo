@@ -31,7 +31,7 @@ following requirements:
 
 - Python 3.11 or newer
 - mpmath 1.3 or newer
-- functional_algorithms 0.9.1 or newer
+- functional_algorithms 0.10.1 or newer
 
 that can be installed via pypi:
 
@@ -63,7 +63,7 @@ To execute generated tests from a `build` directory, use:
 ```sh
 for t in $(ls ../stablehlo/tests/math/*.mlir); \
 do echo $t && ( bin/stablehlo-opt --chlo-legalize-to-stablehlo $t \
- | bin/stablehlo-translate --interpret ) ; done
+ | bin/stablehlo-translate --interpret 2>&1 | grep "^ULP difference" ) ; done
 ```
 
 When new implementations are generated, one likely needs to update
@@ -76,3 +76,40 @@ build/bin/stablehlo-opt --chlo-legalize-to-stablehlo --split-input-file --verify
 ```
 
 and copy relevant checks to `chlo_legalize_to_stablehlo.mlir`.
+
+## A procedure for adding a new algorithm to an existing operation
+
+1. Implement a new algorithm in
+   [functional_algorithms](https://github.com/pearu/functional_algorithms)
+   and publish it by creating a new release of
+   `functional_algorithms`.
+2. Build stablehlo on top of its main branch.
+3. Update the version requirement of `functional_algorithms` in this
+   `README.md` and install the latest version of
+   `functional_algorithms`.
+4. Add a record of the operation to `generate_tests.py:operations`
+   list. Use `size=1000` and `max_ulp_difference=0`.
+5. Generate new tests by running `generate_tests.py`.
+6. Run the generated tests (see previos section for instructions)
+   which will output the ULP difference statistics of the current
+   implementation to stdout; copy this information for
+   comparision later.  Notice that tests failures are expected because of
+   the specified `max_ulp_difference=0` in the step 4.
+7. Add a record of the operation to
+   `generate_ChloDecompositionPatternsMath.py`, see the for-loop in
+   `main` function.
+8. Generate new implementations by running
+   `generate_ChloDecompositionPatternsMath.py` and remove existing
+   implementations in
+   `stablehlo/transforms/ChloDecompositionPatterns.td` as needed.
+9. Re-build stablehlo.
+10. Re-run the generated tests and compare the ULP difference statistics
+    results of the implementation with the one obtained in step 6.
+11. If the new implementation improves ULP difference statistics,
+    prepare a PR for stablehlo. When submitting the PR, don't forget
+    to apply the following steps:
+    - remove the specified `max_ulp_difference=0` from
+      `generate_tests.py` and re-generate tests with
+      `size=default_size`,
+    - update `chlo_legalize_to_stablehlo.mlir`, see previos section
+      for instructions.

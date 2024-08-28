@@ -80,6 +80,11 @@ def main():
   sources = []
   target = fa.targets.stablehlo
   for chloname, fname, args in [
+      # Important: new items to this list must be added to the end,
+      # otherwise, git diff may end up being unnecessarily large.
+      #
+      # (<op CHLO name>, <op name in fa.algorithms>, <a tuple of op arguments>)
+      #
       ("CHLO_AsinAcosKernelOp", "asin_acos_kernel", ("z:complex",)),
       ("CHLO_AsinOp", "complex_asin", ("z:complex",)),
       ("CHLO_AsinOp", "real_asin", ("x:float",)),
@@ -89,6 +94,8 @@ def main():
       ("CHLO_AcoshOp", "real_acosh", ("x:float",)),
       ("CHLO_AsinhOp", "complex_asinh", ("z:complex",)),
       ("CHLO_AsinhOp", "real_asinh", ("x:float",)),
+      ("CHLO_AtanOp", "complex_atan", ("z:complex",)),
+      ("CHLO_AtanhOp", "complex_atanh", ("z:complex",)),
   ]:
     func = getattr(fa.algorithms, fname, None)
     if func is None:
