@@ -32,9 +32,9 @@ config.environment["FILECHECK_OPTS"] = "-enable-var-scope"
 
 # Make LLVM and StableHLO tools available in RUN directives
 tools = [
-  'stablehlo-opt',
-  'FileCheck',
-  'stablehlo-translate',
+    'stablehlo-opt',
+    'FileCheck',
+    'stablehlo-translate',
 ]
 tool_dirs = [
   config.llvm_tools_dir,
