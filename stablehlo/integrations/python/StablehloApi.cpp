@@ -190,40 +190,6 @@ void AddPortableApi(py::module &m) {
   });
 
   //
-  // Serialization APIs (deprecated, use _str methods).
-  //
-  m.def(
-      "serialize_portable_artifact",
-      [](std::string_view moduleStrOrBytecode,
-         std::string_view targetVersion) -> py::bytes {
-        StringWriterHelper accumulator;
-        if (mlirLogicalResultIsFailure(stablehloSerializePortableArtifact(
-                toMlirStringRef(moduleStrOrBytecode),
-                toMlirStringRef(targetVersion),
-                accumulator.getMlirStringCallback(),
-                accumulator.getUserData()))) {
-          PyErr_SetString(PyExc_ValueError, "failed to serialize module");
-          return "";
-        }
-        return py::bytes(accumulator.toString());
-      },
-      py::arg("module_str"), py::arg("target_version"));
-
-  m.def(
-      "deserialize_portable_artifact",
-      [](std::string_view artifact) -> py::bytes {
-        StringWriterHelper accumulator;
-        if (mlirLogicalResultIsFailure(stablehloDeserializePortableArtifact(
-                toMlirStringRef(artifact), accumulator.getMlirStringCallback(),
-                accumulator.getUserData()))) {
-          PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
-          return "";
-        }
-        return py::bytes(accumulator.toString());
-      },
-      py::arg("artifact_str"));
-
-  //
   // Serialization APIs.
   //
   m.def(
