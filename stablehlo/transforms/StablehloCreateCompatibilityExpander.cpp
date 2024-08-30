@@ -18,6 +18,7 @@ limitations under the License.
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -39,6 +40,9 @@ namespace {
 
 // Creates a constant with all ones.
 static Value createConstantWithAllOnes(OpBuilder &b, Location loc, Value val) {
+  if (!isa<FloatType>(getElementTypeOrSelf(val)))
+    llvm_unreachable("Unsupported element type, expecting float");
+
   auto shapedTy = dyn_cast<mlir::ShapedType>(val.getType());
   if (!shapedTy) llvm_unreachable("Unsupported shaped type.");
 
