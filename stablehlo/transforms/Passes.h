@@ -25,6 +25,7 @@ limitations under the License.
 #include "mlir/Pass/Pass.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "stablehlo/dialect/Version.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -95,6 +96,12 @@ void populateStablehloLegalizeDeprecatedOpsPatterns(
 /// Collection of shape dialect to StableHLO patterns.
 void populateShapeToStablehloPatterns(MLIRContext *context,
                                       RewritePatternSet *patterns);
+
+/// Collection of patterns to create compatibility expander for StableHLO
+/// operations.
+void populateStablehloCreateCompatibilityExpanderPatterns(
+    RewritePatternSet *patterns, MLIRContext *context,
+    vhlo::Version targetVersion);
 
 //// Additional pass constructors ////
 
