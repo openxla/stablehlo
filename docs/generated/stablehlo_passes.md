@@ -39,6 +39,49 @@ value, then the operation can be transformed to ReshapeOp.
 
 _Pass to transform the IR to be on signless integers._
 
+### `-stablehlo-create-compatibility-expander`
+
+_Create compatibility expander for StableHLO operations._
+
+StableHLO ops gets updates or new op is introduced in the latest versions.
+This opt-in pass expands backward compatibility with older StableHLO
+versions by decomposing newer StableHLO operations into equivalent
+operations supported by those older versions.
+
+Why is this an opt-in pass?
+
+Occasionally, StableHLO op enhancements are used to greatly simplify the
+handling of certain common patterns in the OpenXLA ecosystem. This
+includes things like TanOp, which has high framework and compiler support,
+as well as gather/scatter batching dimensions, which can be represented
+using slices, but makes sharding much more difficult. For this category of
+new features, we do not offer automatic downgrade, since it may throw away
+important information used in subsequent optimizations. This pass can be
+used to expand these ops based on a target version to maximize compatibility
+at the expense of potentially less optimal compilation.
+
+```mlir
+func.func @tan_op_non_complex(%arg0: tensor<4xf64>) -> tensor<4xf64> {
+  %1 = stablehlo.tan %arg0 : tensor<4xf64>
+  func.return %1 : tensor<4xf64>
+}
+```
+
+will become:
+
+```mlir
+func.func @tan_op_non_complex(%arg0: tensor<4xf64>) -> tensor<4xf64> {
+  %0 = stablehlo.sine %arg0 : tensor<4xf64>
+  %1 = stablehlo.cosine %arg0 : tensor<4xf64>
+  %2 = stablehlo.divide %0, %1 : tensor<4xf64>
+  return %2 : tensor<4xf64>
+}
+```
+
+#### Options
+```
+-target : The target version. Must be a version of the form #.#.#.
+```
 ### `-stablehlo-legalize-composite-to-call`
 
 _Replaces composite ops with a call to their decomposition_
