@@ -941,9 +941,7 @@ cc_library(
         ":stablehlo_serialization",
         ":version",
         "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:CAPIIR",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:CAPIIRObjects",
     ],
     alwayslink = True,
 )
