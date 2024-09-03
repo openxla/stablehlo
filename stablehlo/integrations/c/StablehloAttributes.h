@@ -114,6 +114,39 @@ MLIR_CAPI_EXPORTED int64_t
 stablehloGatherDimensionNumbersGetIndexVectorDim(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
+// DotAlgorithm
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute stablehloDotAlgorithmGet(
+    MlirContext ctx, MlirType lhsPrecisionType, MlirType rhsPrecisionType,
+    MlirType accumulationType, int64_t lhsComponentCount,
+    int64_t rhsComponentCount, int64_t numPrimitiveOperations,
+    bool allowImpreciseAccumulation);
+
+MLIR_CAPI_EXPORTED bool stablehloAttributeIsADotAlgorithm(MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED MlirType
+stablehloDotAlgorithmGetLhsPrecisionType(MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED MlirType
+stablehloDotAlgorithmGetRhsPrecisionType(MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED MlirType
+stablehloDotAlgorithmGetAccumulationType(MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED int64_t
+stablehloDotAlgorithmGetLhsComponentCount(MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED int64_t
+stablehloDotAlgorithmGetRhsComponentCount(MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED int64_t
+stablehloDotAlgorithmGetNumPrimitiveOperations(MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED bool stablehloDotAlgorithmGetAllowImpreciseAccumulation(
+    MlirAttribute attr);
+
+//===----------------------------------------------------------------------===//
 // DotDimensionNumbers
 //===----------------------------------------------------------------------===//
 

@@ -221,6 +221,62 @@ PYBIND11_MODULE(_stablehlo, m) {
       });
 
   mlir::python::adaptors::mlir_attribute_subclass(
+      m, "DotAlgorithm", stablehloAttributeIsADotAlgorithm)
+      .def_classmethod(
+          "get",
+          [](py::object cls, MlirType lhsPrecisionType,
+             MlirType rhsPrecisionType, MlirType accumulationType,
+             int64_t lhsComponentCount, int64_t rhsComponentCount,
+             int64_t numPrimitiveOperations, bool allowImpreciseAccumulation,
+             MlirContext ctx) {
+            return cls(stablehloDotAlgorithmGet(
+                ctx, lhsPrecisionType, rhsPrecisionType, accumulationType,
+                lhsComponentCount, rhsComponentCount, numPrimitiveOperations,
+                allowImpreciseAccumulation));
+          },
+          py::arg("cls"), py::arg("lhs_precision_type"),
+          py::arg("rhs_precision_type"), py::arg("accumulation_type"),
+          py::arg("lhs_component_count"), py::arg("rhs_component_count"),
+          py::arg("num_primitive_operations"),
+          py::arg("allow_imprecise_accumulation"), py::arg("ctx") = py::none(),
+          "Creates a DotAlgorithm attribute with the given dimension "
+          "configuration.")
+      .def_property_readonly(
+          "lhs_precision_type",
+          [](MlirAttribute self) {
+            return stablehloDotAlgorithmGetLhsPrecisionType(self);
+          })
+      .def_property_readonly(
+          "rhs_precision_type",
+          [](MlirAttribute self) {
+            return stablehloDotAlgorithmGetRhsPrecisionType(self);
+          })
+      .def_property_readonly(
+          "accumulation_type",
+          [](MlirAttribute self) {
+            return stablehloDotAlgorithmGetAccumulationType(self);
+          })
+      .def_property_readonly(
+          "lhs_component_count",
+          [](MlirAttribute self) {
+            return stablehloDotAlgorithmGetLhsComponentCount(self);
+          })
+      .def_property_readonly(
+          "rhs_component_count",
+          [](MlirAttribute self) {
+            return stablehloDotAlgorithmGetRhsComponentCount(self);
+          })
+      .def_property_readonly(
+          "num_primitive_operations",
+          [](MlirAttribute self) {
+            return stablehloDotAlgorithmGetNumPrimitiveOperations(self);
+          })
+      .def_property_readonly(
+          "allow_imprecise_accumulation", [](MlirAttribute self) {
+            return stablehloDotAlgorithmGetAllowImpreciseAccumulation(self);
+          });
+
+  mlir::python::adaptors::mlir_attribute_subclass(
       m, "DotDimensionNumbers", stablehloAttributeIsADotDimensionNumbers)
       .def_classmethod(
           "get",

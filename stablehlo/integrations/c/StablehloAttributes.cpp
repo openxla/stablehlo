@@ -212,6 +212,61 @@ int64_t stablehloGatherDimensionNumbersGetIndexVectorDim(MlirAttribute attr) {
       .getIndexVectorDim();
 }
 
+
+//===----------------------------------------------------------------------===//
+// DotAlgorithm
+//===----------------------------------------------------------------------===//
+
+MlirAttribute stablehloDotAlgorithmGet(
+    MlirContext ctx, MlirType lhsPrecisionType, MlirType rhsPrecisionType,
+    MlirType accumulationType, int64_t lhsComponentCount,
+    int64_t rhsComponentCount, int64_t numPrimitiveOperations,
+    bool allowImpreciseAccumulation) {
+  return wrap(mlir::stablehlo::DotAlgorithmAttr::get(
+      unwrap(ctx), unwrap(lhsPrecisionType), unwrap(rhsPrecisionType),
+      unwrap(accumulationType), lhsComponentCount, rhsComponentCount,
+      numPrimitiveOperations, allowImpreciseAccumulation));
+}
+
+bool stablehloAttributeIsADotAlgorithm(MlirAttribute attr) {
+  return llvm::isa<mlir::stablehlo::DotAlgorithmAttr>(unwrap(attr));
+}
+
+MlirType stablehloDotAlgorithmGetLhsPrecisionType(MlirAttribute attr) {
+  return wrap(llvm::cast<mlir::stablehlo::DotAlgorithmAttr>(unwrap(attr))
+                  .getLhsPrecisionType());
+}
+
+MlirType stablehloDotAlgorithmGetRhsPrecisionType(MlirAttribute attr) {
+  return wrap(llvm::cast<mlir::stablehlo::DotAlgorithmAttr>(unwrap(attr))
+                  .getRhsPrecisionType());
+}
+
+MlirType stablehloDotAlgorithmGetAccumulationType(MlirAttribute attr) {
+  return wrap(llvm::cast<mlir::stablehlo::DotAlgorithmAttr>(unwrap(attr))
+                  .getAccumulationType());
+}
+
+int64_t stablehloDotAlgorithmGetLhsComponentCount(MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::DotAlgorithmAttr>(unwrap(attr))
+      .getLhsComponentCount();
+}
+
+int64_t stablehloDotAlgorithmGetRhsComponentCount(MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::DotAlgorithmAttr>(unwrap(attr))
+      .getRhsComponentCount();
+}
+
+int64_t stablehloDotAlgorithmGetNumPrimitiveOperations(MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::DotAlgorithmAttr>(unwrap(attr))
+      .getNumPrimitiveOperations();
+}
+
+bool stablehloDotAlgorithmGetAllowImpreciseAccumulation(MlirAttribute attr){
+  return llvm::cast<mlir::stablehlo::DotAlgorithmAttr>(unwrap(attr))
+      .getAllowImpreciseAccumulation();
+}
+
 //===----------------------------------------------------------------------===//
 // DotDimensionNumbers
 //===----------------------------------------------------------------------===//
