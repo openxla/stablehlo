@@ -30,9 +30,6 @@ add_mlir_library(StablehloLinalgTransforms
   StablehloOpsIncGen
   StablehloLinalgTransformsPassIncGen
 
-  LINK_COMPONENTS
-  Core
-
   LINK_LIBS PUBLIC
   ChloOps
   StablehloBase
