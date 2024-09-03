@@ -212,7 +212,6 @@ int64_t stablehloGatherDimensionNumbersGetIndexVectorDim(MlirAttribute attr) {
       .getIndexVectorDim();
 }
 
-
 //===----------------------------------------------------------------------===//
 // DotAlgorithm
 //===----------------------------------------------------------------------===//
@@ -262,7 +261,7 @@ int64_t stablehloDotAlgorithmGetNumPrimitiveOperations(MlirAttribute attr) {
       .getNumPrimitiveOperations();
 }
 
-bool stablehloDotAlgorithmGetAllowImpreciseAccumulation(MlirAttribute attr){
+bool stablehloDotAlgorithmGetAllowImpreciseAccumulation(MlirAttribute attr) {
   return llvm::cast<mlir::stablehlo::DotAlgorithmAttr>(unwrap(attr))
       .getAllowImpreciseAccumulation();
 }
