@@ -83,6 +83,32 @@ def test_conv_dimension_numbers():
 
 
 @run
+def test_dot_algorithm():
+  # BF16_BF16_F32_X3
+  attr = stablehlo.DotAlgorithm.get(
+      lhs_precision_type=ir.BF16Type.get(),
+      rhs_precision_type=ir.BF16Type.get(),
+      accumulation_type=ir.F32Type.get(),
+      lhs_component_count=1,
+      rhs_component_count=1,
+      num_primitive_operations=3,
+      allow_imprecise_accumulation=False)
+  assert attr is not None
+  assert str(attr) == ("#stablehlo.dot_algorithm<lhs_precision_type = bf16, "
+                       "rhs_precision_type = bf16, accumulation_type = f32, "
+                       "lhs_component_count = 1, rhs_component_count = 1, "
+                       "num_primitive_operations = 3, "
+                       "allow_imprecise_accumulation = false>")
+  assert isinstance(attr.lhs_precision_type, ir.BF16Type)
+  assert isinstance(attr.rhs_precision_type, ir.BF16Type)
+  assert isinstance(attr.accumulation_type, ir.F32Type)
+  assert attr.lhs_component_count == 1
+  assert attr.rhs_component_count == 1
+  assert attr.num_primitive_operations == 3
+  assert attr.allow_imprecise_accumulation == False
+
+
+@run
 def test_dot_dimension_numbers():
   attr = stablehlo.DotDimensionNumbers.get(
       lhs_batching_dimensions=[0, 1],
