@@ -45,6 +45,7 @@ def VHLO_Dialect : Dialect {
       1.4.0: Add `tan` op to StableHLO opset.
       1.5.0: Make collective ops (`all_reduce`, `all_gather`, `all_to_all`) variadic.
       1.6.0: Add DotAlgorithm specificaiton to `dot_general`.
+      1.7.0: Introduce `f8E4M3` and `f8E3M4` types.
   }];
 
   let useDefaultAttributePrinterParser = 0;

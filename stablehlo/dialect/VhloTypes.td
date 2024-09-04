@@ -79,6 +79,12 @@ def VHLO_FloatF32V1 : VHLO_TypeDef<"FloatF32V1", "f32_v1", "0.9.0", "current">;
 // Corresponds to the 'f64' FloatType from the StableHLO spec.
 def VHLO_FloatF64V1 : VHLO_TypeDef<"FloatF64V1","f64_v1", "0.9.0", "current">;
 
+// Corresponds to the 'f8E3M4' FloatType from the StableHLO spec.
+def VHLO_FloatF8E3M4V1 : VHLO_TypeDef<"FloatF8E3M4V1", "f8E3M4_v1", "1.7.0", "current">;
+
+// Corresponds to the 'f8E4M3' FloatType from the StableHLO spec.
+def VHLO_FloatF8E4M3V1 : VHLO_TypeDef<"FloatF8E4M3V1", "f8E4M3_v1", "1.7.0", "current">;
+
 // Corresponds to the 'f8E4M3FN' FloatType from the StableHLO spec.
 def VHLO_FloatF8E4M3FNV1 : VHLO_TypeDef<"FloatF8E4M3FNV1", "f8E4M3FN_v1", "0.9.0", "current">;
 

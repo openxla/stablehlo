@@ -33,9 +33,6 @@ add_mlir_library(StablehloTOSATransforms
   StablehloTOSAPDLLPatternsIncGen
   StablehloOpsIncGen
 
-  LINK_COMPONENTS
-  Core
-
   LINK_LIBS PUBLIC
   MLIRIR
   MLIRPass

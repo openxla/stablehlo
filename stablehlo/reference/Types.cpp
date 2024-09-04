@@ -48,7 +48,8 @@ bool isSupportedIntegerType(Type type) {
 }
 
 bool isSupportedFloatType(Type type) {
-  return type.isFloat8E4M3B11FNUZ() || type.isFloat8E4M3FN() ||
+  return type.isFloat8E3M4() || type.isFloat8E4M3B11FNUZ() ||
+         type.isFloat8E4M3() || type.isFloat8E4M3FN() ||
          type.isFloat8E4M3FNUZ() || type.isFloat8E5M2() ||
          type.isFloat8E5M2FNUZ() || type.isF16() || type.isBF16() ||
          type.isF32() || type.isF64();

@@ -245,8 +245,8 @@ BooleanType ::= 'i1'
 IntegerType ::= SignedIntegerType | UnsignedIntegerType
 SignedIntegerType ::= 'si2' | 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
 UnsignedIntegerType ::= 'ui2' | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
-FloatType ::= 'f8E4M3FN' | 'f8E5M2' | 'f8E4M3FNUZ' | 'f8E5M2FNUZ'
-            | 'f8E4M3B11FNUZ' | 'bf16' | 'f16' | 'f32' | 'f64'
+FloatType ::= 'f8E3M4' | 'f8E4M3' | 'f8E4M3FN' | 'f8E4M3FNUZ' | 'f8E4M3B11FNUZ'
+            | 'f8E5M2' | 'f8E5M2FNUZ' | 'bf16' | 'f16' | 'f32' | 'f64'
 TensorFloat32 ::= 'tf32'
 ComplexType ::= 'complex' '<' ComplexElementType '>'
 ComplexElementType ::= 'f32' | 'f64'
@@ -265,6 +265,8 @@ values of type `tensor<T>`).
   inclusive, and unsigned `uiN` types represent integer values from `0` to
   `2^N-1` inclusive.
 * **Floating-point types** can be one of the following:
+  * `f8E3M4`, `f8E4M3` and `f8E5M2` 8-bit floating point numbers following
+    IEEE-754 conventions.
   * `f8E4M3FN` and `f8E5M2` types corresponding to respectively the
     `E4M3` and `E5M2` encodings of the FP8 format described in
     [FP8 Formats for Deep Learning](https://arxiv.org/abs/2209.05433).
