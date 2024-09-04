@@ -647,8 +647,9 @@ FailureOr<KnownDotAlgorithm> getKnownDotAlgorithm(
   if (lhsComponentCount != 1 || rhsComponentCount != 1) return failure();
 
   auto isAnyF8 = [](Type t) {
-    return llvm::isa<Float8E4M3FNType, Float8E5M2Type, Float8E4M3FNUZType,
-                     Float8E4M3B11FNUZType, Float8E5M2FNUZType>(t);
+    return llvm::isa<Float8E3M4Type, Float8E4M3Type, Float8E4M3FNType,
+                     Float8E5M2Type, Float8E4M3FNUZType, Float8E4M3B11FNUZType,
+                     Float8E5M2FNUZType>(t);
   };
   if (isAnyF8(lhsPrecisionType) && isAnyF8(rhsPrecisionType) &&
       accumulationType.isF32() && numPrimitiveOperations == 1) {

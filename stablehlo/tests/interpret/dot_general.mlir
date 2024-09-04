@@ -72,3 +72,26 @@ func.func @dot_general_op_test_different_operand_and_result_element_types() {
                                         [[5.0, 6.0], [7.0, 8.0]]]> : tensor<2x2x2xf64>
   func.return
 }
+
+// -----
+
+func.func @add_op_test_f8E3M4() {
+  %0 = stablehlo.constant dense<[0.0, 1.0, 2.0, 3.0]> : tensor<4xf8E3M4>
+  %result = stablehlo.dot_general %0, %0,
+    contracting_dims = [0] x [0]
+    : (tensor<4xf8E3M4>, tensor<4xf8E3M4>) -> tensor<f8E3M4>
+  check.expect_almost_eq_const %result, dense<14.0> : tensor<f8E3M4>
+  func.return
+}
+
+// -----
+
+func.func @add_op_test_f8E4M3() {
+  %0 = stablehlo.constant dense<[0.0, 1.0, 2.0, 3.0,
+                                 4.0, 5.0, 6.0, 7.0]> : tensor<8xf8E4M3>
+  %result = stablehlo.dot_general %0, %0,
+    contracting_dims = [0] x [0]
+    : (tensor<8xf8E4M3>, tensor<8xf8E4M3>) -> tensor<f8E4M3>
+  check.expect_almost_eq_const %result, dense<140.0> : tensor<f8E4M3>
+  func.return
+}

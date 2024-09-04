@@ -189,7 +189,7 @@ enum AttributeCode {
 /// location is updated.
 enum TypeCode {
   // TO ADD TYPE: Add an enum value with doc string for new type.
-  // Next available code: 35
+  // Next available code: 37
 
   ///   BooleanV1Type {
   ///   }
@@ -215,6 +215,14 @@ enum TypeCode {
   ///   FloatF64V1Type {
   ///   }
   kFloatF64V1Type = 5,
+
+  ///   FloatF8E3M4V1Type {
+  ///   }
+  kFloatF8E3M4V1Type = 36,
+
+  ///   FloatF8E4M3V1Type {
+  ///   }
+  kFloatF8E4M3V1Type = 35,
 
   ///   FloatF8E4M3FNV1Type {
   ///   }
@@ -698,9 +706,11 @@ const llvm::fltSemantics &getFloatSemantics(Type type) {
   if (isa<FloatF16V1Type>(type)) return APFloat::IEEEhalf();
   if (isa<FloatF32V1Type>(type)) return APFloat::IEEEsingle();
   if (isa<FloatF64V1Type>(type)) return APFloat::IEEEdouble();
+  if (isa<FloatF8E3M4V1Type>(type)) return APFloat::Float8E3M4();
   if (isa<FloatF8E4M3FNUZV1Type>(type)) return APFloat::Float8E4M3FNUZ();
   if (isa<FloatF8E4M3B11FNUZV1Type>(type)) return APFloat::Float8E4M3B11FNUZ();
   if (isa<FloatF8E4M3FNV1Type>(type)) return APFloat::Float8E4M3FN();
+  if (isa<FloatF8E4M3V1Type>(type)) return APFloat::Float8E4M3();
   if (isa<FloatF8E5M2FNUZV1Type>(type)) return APFloat::Float8E5M2FNUZ();
   if (isa<FloatF8E5M2V1Type>(type)) return APFloat::Float8E5M2();
   if (isa<FloatTF32V1Type>(type)) return APFloat::FloatTF32();
@@ -968,6 +978,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return FloatF64V1Type::get(getContext());
     case vhlo_encoding::kFloatF8E5M2V1Type:
       return FloatF8E5M2V1Type::get(getContext());
+    case vhlo_encoding::kFloatF8E4M3V1Type:
+      return FloatF8E4M3V1Type::get(getContext());
     case vhlo_encoding::kFloatF8E4M3FNV1Type:
       return FloatF8E4M3FNV1Type::get(getContext());
     case vhlo_encoding::kFloatF8E5M2FNUZV1Type:
@@ -976,6 +988,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return FloatF8E4M3FNUZV1Type::get(getContext());
     case vhlo_encoding::kFloatF8E4M3B11FNUZV1Type:
       return FloatF8E4M3B11FNUZV1Type::get(getContext());
+    case vhlo_encoding::kFloatF8E3M4V1Type:
+      return FloatF8E3M4V1Type::get(getContext());
     case vhlo_encoding::kFloatTF32V1Type:
       return FloatTF32V1Type::get(getContext());
     case vhlo_encoding::kFunctionV1Type:
@@ -1059,6 +1073,14 @@ LogicalResult VhloBytecodeInterface::writeType(
       .Case([&](FloatF64V1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kFloatF64V1Type), success();
+      })
+      .Case([&](FloatF8E3M4V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloatF8E3M4V1Type), success();
+      })
+      .Case([&](FloatF8E4M3V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloatF8E4M3V1Type), success();
       })
       .Case([&](FloatF8E4M3FNV1Type) {
         LOG_WRITE_CALL;
