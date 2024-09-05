@@ -291,7 +291,7 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
     return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
-      bool result;
+      bool result = false;
       switch (op.getComparisonDirection()) {
         case ComparisonDirection::EQ:
           result = lhs == rhs;

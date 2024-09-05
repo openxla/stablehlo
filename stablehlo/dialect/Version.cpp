@@ -86,6 +86,7 @@ Version Version::fromCompatibilityRequirement(
     case CompatibilityRequirement::MAX:
       return Version::getMinimumVersion();
   }
+  llvm_unreachable("Unhandled case");
 }
 
 mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version) {
