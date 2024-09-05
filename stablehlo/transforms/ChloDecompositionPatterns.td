@@ -48,7 +48,7 @@ def StableHLO_ConstantLikeSmallestNormalizedValue : NativeCodeCall<
 
 // Express `atan` as
 //   atan(x) = atan2(x, 1)
-def : Pat<(CHLO_AtanOp $input),
+def : Pat<(CHLO_AtanOp NonComplexElementType:$input),
   (StableHLO_Atan2Op
     $input,
     (StableHLO_ConstantLike<"1"> $input)
@@ -75,23 +75,6 @@ def : Pat<(CHLO_AtanhOp NonComplexElementType:$input),
       ),
       (StableHLO_ConstantLike<"0.5"> $input)
     )
-  )>;
-
-// Express `atanh` for complex arguments as follows:
-//   atanh(x) = (log(1 + x) - log(1 + (-x))) * 0.5
-//
-// Per tensorflow/compiler/xla/client/lib/math.cc at the time of writing:
-// "For now, we ignore the nan edge case for complex inputs,
-// because we don't yet have exhaustive tests for complex trig functions".
-def : Pat<(CHLO_AtanhOp ComplexElementType:$input),
-  (StableHLO_MulOp
-    (StableHLO_SubtractOp
-      (StableHLO_Log1pOp $input),
-      (StableHLO_Log1pOp
-        (StableHLO_NegOp $input)
-      )
-    ),
-    (StableHLO_ConstantLike<"0.5"> $input)
   )>;
 
 // Express `conj` as

@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 //
-// This file is generated using functional_algorithms tool (0.9.1).
+// This file is generated using functional_algorithms tool (0.10.1).
 // See build_tools/math/README.md for more information.
 
 // A kernel for evaluating asin and acos functions on complex inputs.
@@ -677,3 +677,207 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$x),
               (StableHLO_ConstantLike<"1">:$one $x),
               (StableHLO_SqrtOp
                 (StableHLO_AddOp $one, $ax2))))))))>;
+
+// Arcus tangent on complex inputs:
+//
+//     atan(z) = -I * atanh(I * z)
+//
+def : Pat<(CHLO_AtanOp ComplexElementType:$z),
+  (StableHLO_ComplexOp
+    (StableHLO_ImagOp
+      (CHLO_AtanhOp:$w
+        (StableHLO_ComplexOp
+          (StableHLO_NegOp
+            (StableHLO_ImagOp $z)),
+          (StableHLO_RealOp $z)))),
+    (StableHLO_NegOp
+      (StableHLO_RealOp $w)))>;
+
+// Inverse hyperbolic tangent on complex inputs:
+//
+//     atanh(z) = (log1p(z) - log1p(-z)) / 2
+//
+//     Algorithm derivation
+//     --------------------
+//
+//     We have
+//
+//       log1p(x + I * y) = log((x + 1)**2 + y ** 2) / 2 + I * atan2(y, x + 1)
+//
+//     where
+//
+//       x and y are real and imaginary parts of the input to log1p, and
+//       I is imaginary unit.
+//
+//     The real part
+//     -------------
+//
+//     We have
+//
+//       real(atanh(x + I * y)) = (log((x + 1)**2 + y ** 2) - log((x - 1)**2 + y ** 2)) / 4
+//         = log(((x + 1)**2 + y ** 2) / ((x - 1)**2 + y ** 2)) / 4
+//         = log1p(((x + 1)**2 + y ** 2) / ((x - 1)**2 + y ** 2) - 1) / 4
+//         = log1p(4 * x / ((x - 1)**2 + y ** 2)) / 4
+//         = sign(x) * log1p(4 * abs(x) / ((abs(x) - 1)**2 + y ** 2)) / 4      Eq 2.3.
+//
+//     However, when abs(x) is large so that (~= denotes equality between
+//     floating point numbers)
+//
+//       abs(x) + 1 ~= abs(x)
+//
+//     or equivalently,
+//
+//       abs(x) > 1 / epsneg ** 2
+//
+//     where
+//
+//       epsneg = 1 - nextafter(1, 0)
+//
+//     we'll find
+//
+//       real(atanh(x + I * y))
+//         = sign(x) * log1p(4 * x / (x * y * (x / y + y / x))) / 4
+//         = log1p(4 / y / (x / y + y / x)) / 4                                Eq 5.
+//
+//     If abs(y) is not large, so that
+//
+//       x / y + y / x ~= x / y
+//
+//     or equivalently,
+//
+//       (x / y) ** 2 + 1 ~= (x / y) ** 2
+//       (x / y) ** 2 > 1 / epsneg ** 2
+//       abs(y) < abs(x) * epsneg
+//
+//     then we'll use
+//
+//       real(atanh(x + I * y)) = log1p(4 / x) / 4                             Eq 4.
+//
+//     The imaginary part
+//     ------------------
+//
+//       imag(atanh(x + I * y)) = (atan2(y, x + 1) - atan2(y, x - 1)) / 2
+//         = atan2(y * (1/(x+1) - 1/(x-1)), 1 + y ** 2 / (x ** 2 - 1))
+//         = atan2(-2 * y, x ** 2 + y ** 2 - 1)
+//         = atan2(-2 * y, (x + 1) * (x - 1) + y * y)
+//
+//     For large values of abs(x) or abs(y), that is, when
+//
+//       x ** 2 + y ** 2 > 1 / epsneg ** 2
+//
+//     we have
+//
+//         imag(atanh(x + I * y)) = sign(y) * pi / 2
+//
+def : Pat<(CHLO_AtanhOp ComplexElementType:$z),
+  (StableHLO_ComplexOp
+    (StableHLO_MulOp
+      (StableHLO_MulOp
+        (StableHLO_SelectOp
+          (StableHLO_CompareOp
+           (StableHLO_RealOp:$x $z),
+           (StableHLO_ConstantLike<"0">:$zero $x),
+            StableHLO_ComparisonDirectionValue<"GE">,
+            (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+          (StableHLO_ConstantLike<"1">:$one $x),
+          (StableHLO_ConstantLike<"-1">:$constant_neg1 $x)),
+        (StableHLO_Log1pOp
+          (StableHLO_MulOp
+            (StableHLO_ConstantLike<"4"> $x),
+            (StableHLO_SelectOp
+              (StableHLO_AndOp:$in_safe_region
+                (StableHLO_CompareOp
+                 (StableHLO_AbsOp:$ax $x),
+                 (StableHLO_MulOp:$safe_max
+                   (StableHLO_SelectOp:$inv_negeps
+                     (StableHLO_CompareOp
+                      (StableHLO_ConstantLikeMaxFiniteValue:$largest $x),
+                      (StableHLO_ConstantLike<"1e+308"> $x),
+                       StableHLO_ComparisonDirectionValue<"GT">,
+                       (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                     (StableHLO_ConstantLike<"9007199254740994.0"> $x),
+                     (StableHLO_SelectOp
+                       (StableHLO_CompareOp
+                        $largest,
+                        (StableHLO_ConstantLike<"1e+38"> $x),
+                         StableHLO_ComparisonDirectionValue<"GT">,
+                         (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                       (StableHLO_ConstantLike<"16777218.0"> $x),
+                       (StableHLO_ConstantLike<"2050.0"> $x))),
+                   $inv_negeps),
+                  StableHLO_ComparisonDirectionValue<"LT">,
+                  (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                (StableHLO_CompareOp
+                 (StableHLO_AbsOp:$ay
+                   (StableHLO_ImagOp:$y $z)),
+                 $safe_max,
+                  StableHLO_ComparisonDirectionValue<"LT">,
+                  (STABLEHLO_DEFAULT_COMPARISON_TYPE))),
+              (StableHLO_DivOp
+                $ax,
+                (StableHLO_AddOp
+                  (StableHLO_MulOp
+                    (StableHLO_SubtractOp:$naxm1 $one, $ax),
+                    $naxm1),
+                  (StableHLO_MulOp:$y2 $y, $y))),
+              (StableHLO_SelectOp
+                (StableHLO_CompareOp
+                 (StableHLO_MulOp $ay, $inv_negeps),
+                 $ax,
+                  StableHLO_ComparisonDirectionValue<"LT">,
+                  (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                (StableHLO_DivOp $one, $ax),
+                (StableHLO_SelectOp
+                  (StableHLO_OrOp
+                    (StableHLO_OrOp
+                      (StableHLO_CompareOp
+                       $x,
+                       (StableHLO_ConstantLikePosInfValue:$constant_posinf $x),
+                        StableHLO_ComparisonDirectionValue<"EQ">,
+                        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                      (StableHLO_CompareOp
+                       $x,
+                       (StableHLO_ConstantLikeNegInfValue:$constant_neginf $x),
+                        StableHLO_ComparisonDirectionValue<"EQ">,
+                        (STABLEHLO_DEFAULT_COMPARISON_TYPE))),
+                    (StableHLO_OrOp
+                      (StableHLO_CompareOp
+                       $y,
+                       $constant_posinf,
+                        StableHLO_ComparisonDirectionValue<"EQ">,
+                        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                      (StableHLO_CompareOp
+                       $y,
+                       $constant_neginf,
+                        StableHLO_ComparisonDirectionValue<"EQ">,
+                        (STABLEHLO_DEFAULT_COMPARISON_TYPE)))),
+                  $zero,
+                  (StableHLO_DivOp
+                    (StableHLO_DivOp
+                      $one,
+                      (StableHLO_AddOp
+                        (StableHLO_DivOp $ax, $y),
+                        (StableHLO_DivOp $y, $ax))),
+                    $y))))))),
+      (StableHLO_ConstantLike<"0.25"> $x)),
+    (StableHLO_MulOp
+      (StableHLO_SelectOp
+        $in_safe_region,
+        (StableHLO_Atan2Op
+          (StableHLO_AddOp $y, $y),
+          (StableHLO_SubtractOp
+            (StableHLO_MulOp
+              $naxm1,
+              (StableHLO_AddOp $one, $ax)),
+            $y2)),
+        (StableHLO_MulOp
+          (StableHLO_SelectOp
+            (StableHLO_CompareOp
+             $y,
+             (StableHLO_ConstantLike<"0"> $y),
+              StableHLO_ComparisonDirectionValue<"GE">,
+              (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+            $one,
+            $constant_neg1),
+          (StableHLO_ConstantLike<"M_PI"> $x))),
+      (StableHLO_ConstantLike<"0.5"> $x)))>;

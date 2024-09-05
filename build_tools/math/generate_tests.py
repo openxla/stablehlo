@@ -43,38 +43,26 @@ default_extra_prec_multiplier = 1
 default_max_ulp_difference = 1
 
 operations = [
-    dict(
-        name="asin",
-        mpmath_name="arcsin",
-        size=13,
-        # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
-        extra_prec_multiplier=20,
-        max_ulp_difference=3,
-    ),
-    dict(
-        name="acos",
-        mpmath_name="arccos",
-        size=13,
-        # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
-        extra_prec_multiplier=20,
-        max_ulp_difference=3,
-    ),
-    dict(
-        name="asinh",
-        mpmath_name="arcsinh",
-        size=13,
-        # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
-        extra_prec_multiplier=20,
-        max_ulp_difference=3,
-    ),
-    dict(
-        name="acosh",
-        mpmath_name="arccosh",
-        size=13,
-        # TODO(pearu): reduce to 1 after a fix to mpmath/mpmath#787 becomes available
-        extra_prec_multiplier=20,
-        max_ulp_difference=3,
-    ),
+  # The following dictionaries may have additional keys like
+  #
+  #   size - defines the number of samples: size ** 2
+  #
+  #   max_ulp_difference - the maximal allowed ULP difference between
+  #   function and reference values
+  #
+  #   extra_prec_multiplier - the precison multiplier for mpmath.mp
+  #   that defines the precision of computing reference values:
+  #   mpmath.mp.prec * extra_prec_multiplier
+  #
+  # When unspecifed, these parameters are retrieved from
+  # functional_algorithms database of support functions.
+  #
+  dict(name="asin", mpmath_name="arcsin"),
+  dict(name="acos", mpmath_name="arccos"),
+  dict(name="atan", mpmath_name="arctan"),
+  dict(name="asinh", mpmath_name="arcsinh"),
+  dict(name="acosh", mpmath_name="arccosh"),
+  dict(name="atanh", mpmath_name="arctanh"),
 ]
 
 
@@ -139,16 +127,20 @@ def main():
     opname = op["name"]
     mpmath_opname = op.get("mpmath_name", opname)
     size_re = size_im = op.get("size", default_size)
-    extra_prec_multiplier = op.get("extra_prec_multiplier",
-                                   default_extra_prec_multiplier)
-    max_ulp_difference = op.get("max_ulp_difference",
-                                default_max_ulp_difference)
 
-    nmp = fa.utils.numpy_with_mpmath(
-        extra_prec_multiplier=extra_prec_multiplier,
-        flush_subnormals=flush_subnormals,
-    )
     for dtype in [np.complex64, np.complex128, np.float32, np.float64]:
+      params = fa.utils.function_validation_parameters(opname, dtype)
+      max_ulp_difference = op.get(
+        "max_ulp_difference",
+        params.get("max_valid_ulp_count", default_max_ulp_difference))
+
+      nmp = fa.utils.numpy_with_mpmath(
+        extra_prec_multiplier = op.get(
+          "extra_prec_multiplier",
+          params.get("extra_prec_multiplier", default_extra_prec_multiplier)),
+        flush_subnormals=flush_subnormals,
+      )
+
       fi = np.finfo(dtype)
 
       float_dtype = to_float_dtype[dtype]
