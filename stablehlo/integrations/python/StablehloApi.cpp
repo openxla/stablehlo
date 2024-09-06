@@ -111,7 +111,7 @@ void AddStablehloApi(py::module &m) {
   m.def(
       "deserialize_portable_artifact",
       [](MlirContext context, std::string_view artifact) -> MlirModule {
-        auto module = stablehloDeserializePortableArtifact(
+        auto module = stablehloDeserializePortableArtifactNoError(
             toMlirStringRef(artifact), context);
         if (mlirModuleIsNull(module)) {
           PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
