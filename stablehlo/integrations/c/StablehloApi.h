@@ -76,9 +76,11 @@ stablehloGetSmallerVersion(MlirStringRef version1, MlirStringRef version2,
 // `targetVersion` version of StableHLO, e.g. if it's using new or removed
 // features, or if it involves unsupported dialects.
 // Returns false on failure.
-MLIR_CAPI_EXPORTED MlirLogicalResult stablehloSerializePortableArtifactFromString(
-    MlirStringRef moduleStr, MlirStringRef targetVersion,
-    MlirStringCallback callback, void* userData);
+MLIR_CAPI_EXPORTED MlirLogicalResult
+stablehloSerializePortableArtifactFromString(MlirStringRef moduleStr,
+                                             MlirStringRef targetVersion,
+                                             MlirStringCallback callback,
+                                             void* userData);
 
 // Write a StableHLO program expressed as a string (either prettyprinted MLIR
 // module or MLIR bytecode) to a portable artifact.
@@ -86,9 +88,11 @@ MLIR_CAPI_EXPORTED MlirLogicalResult stablehloSerializePortableArtifactFromStrin
 // `targetVersion` version of StableHLO, e.g. if it's using new or removed
 // features, or if it involves unsupported dialects.
 // Returns false on failure.
-MLIR_CAPI_EXPORTED MlirLogicalResult stablehloSerializePortableArtifactFromModule(
-    MlirModule moduleStr, MlirStringRef targetVersion,
-    MlirStringCallback callback, void* userData);
+MLIR_CAPI_EXPORTED MlirLogicalResult
+stablehloSerializePortableArtifactFromModule(MlirModule moduleStr,
+                                             MlirStringRef targetVersion,
+                                             MlirStringCallback callback,
+                                             void* userData);
 
 // Read a StableHLO program from a portable artifact, returning the module as
 // MLIR bytecode. Note, this bytecode returned is not a portable artifact,
@@ -113,8 +117,9 @@ MLIR_CAPI_EXPORTED MlirModule stablehloDeserializePortableArtifactNoError(
 
 // Call the Interpreter, returns MlirArrayAttr of dense element
 // MlirAttribute results
-MLIR_CAPI_EXPORTED MlirModule stablehloDeserializePortableArtifactToMlirArrayAttr(
-    MlirStringRef artifactStr, MlirContext ctx);
+MLIR_CAPI_EXPORTED MlirModule
+stablehloDeserializePortableArtifactToMlirArrayAttr(MlirStringRef artifactStr,
+                                                    MlirContext ctx);
 
 // Entrypoint for calling the StableHLO reference interpreter.
 // Returns an array attribute of dense element attributes for results.
