@@ -78,9 +78,9 @@ stablehloGetSmallerVersion(MlirStringRef version1, MlirStringRef version2,
 // Returns false on failure.
 MLIR_CAPI_EXPORTED MlirLogicalResult
 stablehloSerializePortableArtifactFromStringRef(MlirStringRef moduleStr,
-                                             MlirStringRef targetVersion,
-                                             MlirStringCallback callback,
-                                             void* userData);
+                                                MlirStringRef targetVersion,
+                                                MlirStringCallback callback,
+                                                void* userData);
 
 // Write a StableHLO program expressed as a string (either prettyprinted MLIR
 // module or MLIR bytecode) to a portable artifact.
