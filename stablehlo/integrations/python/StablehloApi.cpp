@@ -95,10 +95,11 @@ void AddStablehloApi(py::module &m) {
       "serialize_portable_artifact",
       [](MlirModule module, std::string_view target) -> py::bytes {
         StringWriterHelper accumulator;
-        if (mlirLogicalResultIsFailure(stablehloSerializePortableArtifactFromModule(
-                module, toMlirStringRef(target),
-                accumulator.getMlirStringCallback(),
-                accumulator.getUserData()))) {
+        if (mlirLogicalResultIsFailure(
+                stablehloSerializePortableArtifactFromModule(
+                    module, toMlirStringRef(target),
+                    accumulator.getMlirStringCallback(),
+                    accumulator.getUserData()))) {
           PyErr_SetString(PyExc_ValueError, "failed to serialize module");
           return "";
         }
@@ -197,11 +198,12 @@ void AddPortableApi(py::module &m) {
       [](std::string_view moduleStrOrBytecode,
          std::string_view targetVersion) -> py::bytes {
         StringWriterHelper accumulator;
-        if (mlirLogicalResultIsFailure(stablehloSerializePortableArtifactFromString(
-                toMlirStringRef(moduleStrOrBytecode),
-                toMlirStringRef(targetVersion),
-                accumulator.getMlirStringCallback(),
-                accumulator.getUserData()))) {
+        if (mlirLogicalResultIsFailure(
+                stablehloSerializePortableArtifactFromString(
+                    toMlirStringRef(moduleStrOrBytecode),
+                    toMlirStringRef(targetVersion),
+                    accumulator.getMlirStringCallback(),
+                    accumulator.getUserData()))) {
           PyErr_SetString(PyExc_ValueError, "failed to serialize module");
           return "";
         }
