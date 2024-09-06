@@ -266,5 +266,5 @@ _Convert between versions of VHLO._
 
 #### Options
 ```
--target : The target version. Must be a version of the form #.#.# or 'current'.
+-target : The target version. Must be a version of the form #.#.# .
 ```
