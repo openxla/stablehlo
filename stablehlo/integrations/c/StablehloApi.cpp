@@ -107,8 +107,8 @@ MlirLogicalResult stablehloDeserializePortableArtifact(
   return mlirLogicalResultSuccess();
 }
 
-MlirModule stablehloDeserializePortableArtifactNoError(MlirStringRef artifactStr,
-                                                MlirContext ctx) {
+MlirModule stablehloDeserializePortableArtifactNoError(
+    MlirStringRef artifactStr, MlirContext ctx) {
   return wrap(mlir::stablehlo::deserializePortableArtifact(unwrap(artifactStr),
                                                            unwrap(ctx))
                   .release());
