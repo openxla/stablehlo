@@ -16,6 +16,10 @@ limitations under the License.
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Get the current StableHLO API version.
 //
 // This value is incremented as needed to help integrate API changes.
@@ -72,9 +76,11 @@ stablehloGetSmallerVersion(MlirStringRef version1, MlirStringRef version2,
 // `targetVersion` version of StableHLO, e.g. if it's using new or removed
 // features, or if it involves unsupported dialects.
 // Returns false on failure.
-MLIR_CAPI_EXPORTED MlirLogicalResult stablehloSerializePortableArtifact(
-    MlirStringRef moduleStr, MlirStringRef targetVersion,
-    MlirStringCallback callback, void* userData);
+MLIR_CAPI_EXPORTED MlirLogicalResult
+stablehloSerializePortableArtifactFromStringRef(MlirStringRef moduleStr,
+                                                MlirStringRef targetVersion,
+                                                MlirStringCallback callback,
+                                                void* userData);
 
 // Write a StableHLO program expressed as a string (either prettyprinted MLIR
 // module or MLIR bytecode) to a portable artifact.
@@ -82,9 +88,11 @@ MLIR_CAPI_EXPORTED MlirLogicalResult stablehloSerializePortableArtifact(
 // `targetVersion` version of StableHLO, e.g. if it's using new or removed
 // features, or if it involves unsupported dialects.
 // Returns false on failure.
-MLIR_CAPI_EXPORTED MlirLogicalResult stablehloSerializePortableArtifact(
-    MlirModule moduleStr, MlirStringRef targetVersion,
-    MlirStringCallback callback, void* userData);
+MLIR_CAPI_EXPORTED MlirLogicalResult
+stablehloSerializePortableArtifactFromModule(MlirModule moduleStr,
+                                             MlirStringRef targetVersion,
+                                             MlirStringCallback callback,
+                                             void* userData);
 
 // Read a StableHLO program from a portable artifact, returning the module as
 // MLIR bytecode. Note, this bytecode returned is not a portable artifact,
@@ -104,12 +112,7 @@ MLIR_CAPI_EXPORTED MlirLogicalResult stablehloDeserializePortableArtifact(
 // StableHLO, e.g. if it's using incompatible features.
 //
 // Returns empty module on failure.
-MLIR_CAPI_EXPORTED MlirModule stablehloDeserializePortableArtifact(
-    MlirStringRef artifactStr, MlirContext ctx);
-
-// Call the Interpreter, returns MlirArrayAttr of dense element
-// MlirAttribute results
-MLIR_CAPI_EXPORTED MlirModule stablehloDeserializePortableArtifact(
+MLIR_CAPI_EXPORTED MlirModule stablehloDeserializePortableArtifactNoError(
     MlirStringRef artifactStr, MlirContext ctx);
 
 // Entrypoint for calling the StableHLO reference interpreter.
@@ -119,5 +122,9 @@ MLIR_CAPI_EXPORTED MlirAttribute stablehloEvalModule(MlirModule module,
                                                      int nArgs,
                                                      MlirAttribute const* args,
                                                      int* errorCode);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // STABLEHLO_INTEGRATIONS_C_STABLEHLOAPI_H_
