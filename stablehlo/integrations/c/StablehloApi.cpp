@@ -78,7 +78,7 @@ MlirLogicalResult stablehloGetSmallerVersion(MlirStringRef version1,
   return mlirLogicalResultSuccess();
 }
 
-MlirLogicalResult stablehloSerializePortableArtifact(
+MlirLogicalResult stablehloSerializePortableArtifactFromModule(
     MlirModule moduleStr, MlirStringRef targetVersion,
     MlirStringCallback callback, void *userData) {
   mlir::detail::CallbackOstream stream(callback, userData);
@@ -88,7 +88,7 @@ MlirLogicalResult stablehloSerializePortableArtifact(
   return mlirLogicalResultSuccess();
 }
 
-MlirLogicalResult stablehloSerializePortableArtifact(
+MlirLogicalResult stablehloSerializePortableArtifactFromString(
     MlirStringRef moduleStr, MlirStringRef targetVersion,
     MlirStringCallback callback, void *userData) {
   mlir::detail::CallbackOstream stream(callback, userData);
