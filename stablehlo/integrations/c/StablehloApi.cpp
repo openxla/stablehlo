@@ -88,7 +88,7 @@ MlirLogicalResult stablehloSerializePortableArtifactFromModule(
   return mlirLogicalResultSuccess();
 }
 
-MlirLogicalResult stablehloSerializePortableArtifactFromString(
+MlirLogicalResult stablehloSerializePortableArtifactFromStringRef(
     MlirStringRef moduleStr, MlirStringRef targetVersion,
     MlirStringCallback callback, void *userData) {
   mlir::detail::CallbackOstream stream(callback, userData);

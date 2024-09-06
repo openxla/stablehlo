@@ -199,7 +199,7 @@ void AddPortableApi(py::module &m) {
          std::string_view targetVersion) -> py::bytes {
         StringWriterHelper accumulator;
         if (mlirLogicalResultIsFailure(
-                stablehloSerializePortableArtifactFromString(
+                stablehloSerializePortableArtifactFromStringRef(
                     toMlirStringRef(moduleStrOrBytecode),
                     toMlirStringRef(targetVersion),
                     accumulator.getMlirStringCallback(),

@@ -77,7 +77,7 @@ stablehloGetSmallerVersion(MlirStringRef version1, MlirStringRef version2,
 // features, or if it involves unsupported dialects.
 // Returns false on failure.
 MLIR_CAPI_EXPORTED MlirLogicalResult
-stablehloSerializePortableArtifactFromString(MlirStringRef moduleStr,
+stablehloSerializePortableArtifactFromStringRef(MlirStringRef moduleStr,
                                              MlirStringRef targetVersion,
                                              MlirStringCallback callback,
                                              void* userData);
@@ -114,12 +114,6 @@ MLIR_CAPI_EXPORTED MlirLogicalResult stablehloDeserializePortableArtifact(
 // Returns empty module on failure.
 MLIR_CAPI_EXPORTED MlirModule stablehloDeserializePortableArtifactNoError(
     MlirStringRef artifactStr, MlirContext ctx);
-
-// Call the Interpreter, returns MlirArrayAttr of dense element
-// MlirAttribute results
-MLIR_CAPI_EXPORTED MlirModule
-stablehloDeserializePortableArtifactToMlirArrayAttr(MlirStringRef artifactStr,
-                                                    MlirContext ctx);
 
 // Entrypoint for calling the StableHLO reference interpreter.
 // Returns an array attribute of dense element attributes for results.
