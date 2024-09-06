@@ -78,7 +78,7 @@ def VhloToVersionPass : Pass<"vhlo-to-version"> {
   let summary = "Convert between versions of VHLO.";
   let options = [
     Option<"targetVersionOption", "target", "std::string", "",
-           "The target version. Must be a version of the form #.#.# or 'current'.">,
+           "The target version. Must be a version of the form #.#.# .">,
   ];
 }
 
