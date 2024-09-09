@@ -41,7 +41,7 @@ namespace tosa {
 namespace {
 
 // create a tosa rescale op and return its result value
-Value buildRescale(PatternRewriter& rewriter, Location loc,
+Value buildRescale(PatternRewriter &rewriter, Location loc,
                    ShapedType outputType, Value inputVal, int32_t multiplier,
                    int32_t shift, int64_t inputZp, int64_t outputZp,
                    bool doubleRound, bool scale32, bool perChannel) {
@@ -58,7 +58,7 @@ Value buildRescale(PatternRewriter& rewriter, Location loc,
 }
 
 // Creates TOSA rescale op with int32 output
-Value buildRescaleToInt32(PatternRewriter& rewriter, Location loc,
+Value buildRescaleToInt32(PatternRewriter &rewriter, Location loc,
                           Value inputVal, double inputScale, int64_t inputZp) {
   auto inputType = cast<ShapedType>(inputVal.getType());
   auto outputType = inputType.clone(rewriter.getI32Type());
@@ -76,7 +76,7 @@ Value buildRescaleToInt32(PatternRewriter& rewriter, Location loc,
 }
 
 // Creates TOSA rescale op with int32 input
-Value buildRescaleFromInt32(PatternRewriter& rewriter, Location loc,
+Value buildRescaleFromInt32(PatternRewriter &rewriter, Location loc,
                             ShapedType outputType, Value inputVal,
                             double outputScale, int64_t outputZp) {
   // Input should be int32 type
@@ -315,22 +315,22 @@ LogicalResult matchAndRewriteOp(stablehlo::SubtractOp op,
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::MulOp op,
-                                PatternRewriter& rewriter) {
+                                PatternRewriter &rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetMulDivRescaleScales);
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::DivOp op,
-                                PatternRewriter& rewriter) {
+                                PatternRewriter &rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetMulDivRescaleScales);
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::MinOp op,
-                                PatternRewriter& rewriter) {
+                                PatternRewriter &rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetMinMaxRescaleScales);
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::MaxOp op,
-                                PatternRewriter& rewriter) {
+                                PatternRewriter &rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetMinMaxRescaleScales);
 }
 
@@ -404,7 +404,7 @@ struct QuantizedStablehloOpConversion
     : public OpRewritePattern<StablehloOpType> {
   using OpRewritePattern<StablehloOpType>::OpRewritePattern;
   LogicalResult matchAndRewrite(StablehloOpType op,
-                                PatternRewriter& rewriter) const override {
+                                PatternRewriter &rewriter) const override {
     return matchAndRewriteOp(op, rewriter);
   }
 };
@@ -412,7 +412,7 @@ struct QuantizedStablehloOpConversion
 struct StablehloQuantLegalizeToTosaRescalePass
     : impl::StablehloQuantLegalizeToTosaRescalePassBase<
           StablehloQuantLegalizeToTosaRescalePass> {
-  LogicalResult initialize(MLIRContext* ctx) override {
+  LogicalResult initialize(MLIRContext *ctx) override {
     RewritePatternSet patternList(ctx);
     populateStablehloQuantLegalizeToTosaRescalePatterns(&patternList, ctx);
     patterns = std::move(patternList);
@@ -434,7 +434,7 @@ struct StablehloQuantLegalizeToTosaRescalePass
 }  // namespace
 
 void populateStablehloQuantLegalizeToTosaRescalePatterns(
-    RewritePatternSet* patterns, MLIRContext* context) {
+    RewritePatternSet *patterns, MLIRContext *context) {
   // unary ops
   patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::AbsOp>>(
       {"StablehloQuantAbsOp"}, context);
