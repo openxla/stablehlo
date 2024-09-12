@@ -2733,7 +2733,7 @@ This operation is functionally identical to
 [broadcast_in_dim](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim)
 op, but the result shape is specified dynamically via `output_dimensions`.
 
-The operation also accepts optional attributes `known_expanding_dimensions`, `known_non_expanding_dimensions`
+The operation also accepts optional attributes `known_expanding_dimensions`, `known_nonexpanding_dimensions`
 to express static knowledge about the expanding behavior of dimensions.
 If not specified, all dimensions are assumed to be possibly expanding.
 
@@ -2745,7 +2745,7 @@ If not specified, all dimensions are assumed to be possibly expanding.
 | (I2)  | `output_dimensions`              | 1-dimensional tensor of integer type          | (C7)                   |
 | (I3)  | `broadcast_dimensions`           | 1-dimensional constant tensor of integer type | (C2-C6)                |
 | (I4)  | `known_expanding_dimensions`     | 1-dimensional constant tensor of integer type | (C8-C9)                |
-| (I5)  | `known_non_expanding_dimensions` | 1-dimensional constant tensor of integer type | (C8-C9)                |
+| (I5)  | `known_nonexpanding_dimensions` | 1-dimensional constant tensor of integer type | (C8-C9)                |
 
 #### Outputs
 
@@ -2774,9 +2774,9 @@ If not specified, all dimensions are assumed to be possibly expanding.
     zero_points(operand)[0] for i in
     range(dim(result, quantization_dimension(result)))`.
 * (C7) `size(output_dimensions) = rank(result)`.
-* (C8) `is_unique(known_expanding_dimensions + known_non_expanding_dimensions)`.
+* (C8) `is_unique(known_expanding_dimensions + known_nonexpanding_dimensions)`.
 * (C9) `0 <= known_expanding_dimensions < rank(operand)`.
-* (C10) `0 <= known_non_expanding_dimensions < rank(operand)`.
+* (C10) `0 <= known_nonexpanding_dimensions < rank(operand)`.
 
 #### Examples
 
@@ -2789,7 +2789,7 @@ If not specified, all dimensions are assumed to be possibly expanding.
 %result = "stablehlo.dynamic_broadcast_in_dim"(%operand, %output_dimensions) {
   broadcast_dimensions = array<i64: 2, 1>,
   known_expanding_dimensions = array<i64: 0>,
-  known_non_expanding_dimensions = array<i64: 1>
+  known_nonexpanding_dimensions = array<i64: 1>
 } : (tensor<1x3xi64>, tensor<3xi64>) -> tensor<2x3x2xi64>
 // %result: [
 //            [
