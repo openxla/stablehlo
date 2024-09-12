@@ -133,15 +133,15 @@ QuantizedTensorElementType ::= '!quant.uniform' '<'
                   [':' QuantizationDimension]
                   ',' QuantizationParameters '>'
 QuantizationStorageType ::= IntegerType
-QuantizationStorageMin ::= IntegerConstant
-QuantizationStorageMax ::= IntegerConstant
+QuantizationStorageMin ::= IntegerLiteral
+QuantizationStorageMax ::= IntegerLiteral
 QuantizationExpressedType ::= FloatType
-QuantizationDimension ::= IntegerConstant
+QuantizationDimension ::= IntegerLiteral
 QuantizationParameters ::= QuantizationParameter
                          | '{' QuantizationParameter {',' QuantizationParameter} '}'
-QuantizationParameter ::= QuantizationScale ':' QuantizationZeroPoint
-QuantizationScale ::= FloatConstant
-QuantizationZeroPoint ::= IntegerConstant
+QuantizationParameter ::= QuantizationScale [':' QuantizationZeroPoint]
+QuantizationScale ::= FloatLiteral
+QuantizationZeroPoint ::= IntegerLiteral
 ```
 
 | Name                     | Type                                        | Constraints                 |
