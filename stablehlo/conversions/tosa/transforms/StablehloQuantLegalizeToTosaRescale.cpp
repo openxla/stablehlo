@@ -41,7 +41,7 @@ namespace tosa {
 namespace {
 
 // create a tosa rescale op and return its result value
-Value buildRescale(PatternRewriter& rewriter, Location loc,
+Value buildRescale(PatternRewriter &rewriter, Location loc,
                    ShapedType outputType, Value inputVal, int32_t multiplier,
                    int32_t shift, int64_t inputZp, int64_t outputZp,
                    bool doubleRound, bool scale32, bool perChannel) {
@@ -58,7 +58,7 @@ Value buildRescale(PatternRewriter& rewriter, Location loc,
 }
 
 // Creates TOSA rescale op with int32 output
-Value buildRescaleToInt32(PatternRewriter& rewriter, Location loc,
+Value buildRescaleToInt32(PatternRewriter &rewriter, Location loc,
                           Value inputVal, double inputScale, int64_t inputZp) {
   auto inputType = cast<ShapedType>(inputVal.getType());
   auto outputType = inputType.clone(rewriter.getI32Type());
@@ -76,7 +76,7 @@ Value buildRescaleToInt32(PatternRewriter& rewriter, Location loc,
 }
 
 // Creates TOSA rescale op with int32 input
-Value buildRescaleFromInt32(PatternRewriter& rewriter, Location loc,
+Value buildRescaleFromInt32(PatternRewriter &rewriter, Location loc,
                             ShapedType outputType, Value inputVal,
                             double outputScale, int64_t outputZp) {
   // Input should be int32 type
@@ -96,8 +96,165 @@ Value buildRescaleFromInt32(PatternRewriter& rewriter, Location loc,
                       /*perChannel=*/false);
 }
 
+using UnaryRescaleScalesFn =
+    void (*)(const quant::UniformQuantizedType &operandQType,
+             const quant::UniformQuantizedType &resultQType,
+             double &operandRescaleScale, double &resultRescaleScale);
+
+void GetUnaryRescaleScales(const quant::UniformQuantizedType &operandQType,
+                           const quant::UniformQuantizedType &resultQType,
+                           double &operandRescaleScale,
+                           double &resultRescaleScale) {
+  double operandScale = operandQType.getScale();
+  double resultScale = resultQType.getScale();
+
+  // rescale inputs to I32 with scale=1.0
+  // perform I32 unary operation
+  // rescale result to scale = operandScale / resultScale
+
+  operandRescaleScale = 1.0f;
+  resultRescaleScale = operandScale / resultScale;
+}
+
 template <typename StablehloOp>
-LogicalResult matchAndRewriteAddSub(StablehloOp op, PatternRewriter& rewriter) {
+LogicalResult matchAndRewriteUnaryOp(
+    StablehloOp op, PatternRewriter &rewriter,
+    UnaryRescaleScalesFn rescaleScalesFn = GetUnaryRescaleScales) {
+  Value operand = op.getOperand();
+  Value result = op.getResult();
+
+  auto operandType = cast<ShapedType>(operand.getType());
+  auto resultType = cast<ShapedType>(result.getType());
+
+  auto operandQType =
+      dyn_cast<quant::UniformQuantizedType>(operandType.getElementType());
+  auto resultQType =
+      dyn_cast<quant::UniformQuantizedType>(resultType.getElementType());
+
+  if (!operandQType || !resultQType) {
+    return rewriter.notifyMatchFailure(
+        op,
+        "The conversion supports operands/results with per-tensor quantized "
+        "types only");
+  }
+
+  double operandRescaleScale, resultRescaleScale;
+
+  rescaleScalesFn(operandQType, resultQType, operandRescaleScale,
+                  resultRescaleScale);
+
+  auto loc = op.getLoc();
+
+  // Implement single rounding only
+  Value rescaledOperand = buildRescaleToInt32(
+      rewriter, loc, operand, operandRescaleScale, operandQType.getZeroPoint());
+
+  auto rescaledResultType = resultType.clone(rewriter.getI32Type());
+  Value rescaledResult =
+      rewriter.create<StablehloOp>(loc, rescaledResultType, rescaledOperand)
+          .getResult();
+
+  Value newOutput =
+      buildRescaleFromInt32(rewriter, loc, resultType, rescaledResult,
+                            resultRescaleScale, resultQType.getZeroPoint());
+
+  rewriter.replaceOp(op, {newOutput});
+  return success();
+}
+
+LogicalResult matchAndRewriteOp(stablehlo::AbsOp op,
+                                PatternRewriter &rewriter) {
+  return matchAndRewriteUnaryOp(op, rewriter);
+}
+
+using BinaryRescaleScalesFn = void (*)(
+    const quant::UniformQuantizedType &lhsQType,
+    const quant::UniformQuantizedType &rhsQType,
+    const quant::UniformQuantizedType &resultQType, double &lhsRescaleScale,
+    double &rhsRescaleScale, double &resultRescaleScale);
+
+void GetAddSubRescaleScales(const quant::UniformQuantizedType &lhsQType,
+                            const quant::UniformQuantizedType &rhsQType,
+                            const quant::UniformQuantizedType &resultQType,
+                            double &lhsRescaleScale, double &rhsRescaleScale,
+                            double &resultRescaleScale) {
+  // 1. Rescale inputs to scale = 2.0 x max(lhs.scale, rhs.scale)
+  // 2. Extra left shift to input to increase precision
+  // Where input_shift = 20 if input is 8-bit
+  // input_shift = 15 if input is 16-bit
+
+  double lhsScale = lhsQType.getScale();
+  double rhsScale = rhsQType.getScale();
+  double resultScale = resultQType.getScale();
+  double maxScale2x = 2.0 * std::max(lhsScale, rhsScale);
+
+  const int32_t SHIFT_8_BIT = 20;
+  const int32_t SHIFT_16_BIT = 15;
+
+  int32_t inputShift = (resultQType.getStorageTypeIntegralWidth() == 16)
+                           ? SHIFT_16_BIT
+                           : SHIFT_8_BIT;
+
+  lhsRescaleScale =
+      (lhsScale / maxScale2x) * static_cast<double>(1 << inputShift);
+  rhsRescaleScale =
+      (rhsScale / maxScale2x) * static_cast<double>(1 << inputShift);
+  resultRescaleScale =
+      maxScale2x / (resultScale * static_cast<double>(1 << inputShift));
+}
+
+void GetMulDivRescaleScales(const quant::UniformQuantizedType &lhsQType,
+                            const quant::UniformQuantizedType &rhsQType,
+                            const quant::UniformQuantizedType &resultQType,
+                            double &lhsRescaleScale, double &rhsRescaleScale,
+                            double &resultRescaleScale) {
+  double lhsScale = lhsQType.getScale();
+  double rhsScale = rhsQType.getScale();
+  double resultScale = resultQType.getScale();
+
+  // rescale inputs to I32 with scale=1.0
+  // perform I32 multiply or divide
+  // rescale result to scale=(lhsScale * rhsScale) / resultScale
+
+  lhsRescaleScale = 1.0f;
+  rhsRescaleScale = 1.0f;
+  resultRescaleScale = lhsScale * rhsScale / resultScale;
+}
+
+void GetMinMaxRescaleScales(const quant::UniformQuantizedType &lhsQType,
+                            const quant::UniformQuantizedType &rhsQType,
+                            const quant::UniformQuantizedType &resultQType,
+                            double &lhsRescaleScale, double &rhsRescaleScale,
+                            double &resultRescaleScale) {
+  // 1. Rescale inputs to scale = max(lhs.scale, rhs.scale)
+  // 2. Extra left shift to input to increase precision
+  // Where input_shift = 20 if input is 8-bit
+  // input_shift = 15 if input is 16-bit
+
+  double lhsScale = lhsQType.getScale();
+  double rhsScale = rhsQType.getScale();
+  double resultScale = resultQType.getScale();
+
+  double maxScale = std::max(lhsScale, rhsScale);
+
+  const int32_t SHIFT_8_BIT = 20;
+  const int32_t SHIFT_16_BIT = 15;
+
+  int32_t inputShift = (resultQType.getStorageTypeIntegralWidth() == 16)
+                           ? SHIFT_16_BIT
+                           : SHIFT_8_BIT;
+
+  lhsRescaleScale =
+      (lhsScale / maxScale) * static_cast<double>(1 << inputShift);
+  rhsRescaleScale =
+      (rhsScale / maxScale) * static_cast<double>(1 << inputShift);
+  resultRescaleScale =
+      maxScale / (resultScale * static_cast<double>(1 << inputShift));
+}
+
+template <typename StablehloOp>
+LogicalResult matchAndRewriteBinaryOp(StablehloOp op, PatternRewriter &rewriter,
+                                      BinaryRescaleScalesFn rescaleScalesFn) {
   Value lhs = op.getLhs();
   Value rhs = op.getRhs();
   Value result = op.getResult();
@@ -120,41 +277,18 @@ LogicalResult matchAndRewriteAddSub(StablehloOp op, PatternRewriter& rewriter) {
         "types only");
   }
 
-  // Following quantization described in tflite
-  // In details it does:
-  // 1. Rescale inputs to scale = 2.0 x max(lhs.scale, rhs.scale)
-  // 2. Extra left shift to input to increase precision
-  // Where input_shift = 20 if input is 8-bit
-  // input_shift = 15 if input is 16-bit
+  double lhsRescaleScale, rhsRescaleScale, resultRescaleScale;
 
-  double lhsScale = lhsQType.getScale();
-  double rhsScale = rhsQType.getScale();
-  double resultScale = resultQType.getScale();
-  double maxScale2x = 2.0 * std::max(lhsScale, rhsScale);
-
-  const int32_t SHIFT_8_BIT = 20;
-  const int32_t SHIFT_16_BIT = 15;
-
-  int32_t inputShift = (resultQType.getStorageTypeIntegralWidth() == 16)
-                           ? SHIFT_16_BIT
-                           : SHIFT_8_BIT;
-
-  double lhsRescaleScale = lhsScale / maxScale2x;
-  double rhsRescaleScale = rhsScale / maxScale2x;
-  double resultRescaleScale =
-      maxScale2x / (resultScale * static_cast<double>(1 << inputShift));
+  rescaleScalesFn(lhsQType, rhsQType, resultQType, lhsRescaleScale,
+                  rhsRescaleScale, resultRescaleScale);
 
   auto loc = op.getLoc();
 
   // Implement single rounding only
-  Value rescaledLhs = buildRescaleToInt32(
-      rewriter, loc, lhs,
-      /*scale=*/lhsRescaleScale * static_cast<double>(1 << inputShift),
-      lhsQType.getZeroPoint());
-  Value rescaledRhs = buildRescaleToInt32(
-      rewriter, loc, rhs,
-      /*scale=*/rhsRescaleScale * static_cast<double>(1 << inputShift),
-      rhsQType.getZeroPoint());
+  Value rescaledLhs = buildRescaleToInt32(rewriter, loc, lhs, lhsRescaleScale,
+                                          lhsQType.getZeroPoint());
+  Value rescaledRhs = buildRescaleToInt32(rewriter, loc, rhs, rhsRescaleScale,
+                                          rhsQType.getZeroPoint());
 
   auto rescaledResultType = resultType.clone(rewriter.getI32Type());
   Value rescaledResult = rewriter
@@ -170,20 +304,115 @@ LogicalResult matchAndRewriteAddSub(StablehloOp op, PatternRewriter& rewriter) {
   return success();
 }
 
+LogicalResult matchAndRewriteOp(stablehlo::AddOp op,
+                                PatternRewriter &rewriter) {
+  return matchAndRewriteBinaryOp(op, rewriter, GetAddSubRescaleScales);
+}
+
+LogicalResult matchAndRewriteOp(stablehlo::SubtractOp op,
+                                PatternRewriter &rewriter) {
+  return matchAndRewriteBinaryOp(op, rewriter, GetAddSubRescaleScales);
+}
+
+LogicalResult matchAndRewriteOp(stablehlo::MulOp op,
+                                PatternRewriter &rewriter) {
+  return matchAndRewriteBinaryOp(op, rewriter, GetMulDivRescaleScales);
+}
+
+LogicalResult matchAndRewriteOp(stablehlo::DivOp op,
+                                PatternRewriter &rewriter) {
+  return matchAndRewriteBinaryOp(op, rewriter, GetMulDivRescaleScales);
+}
+
+LogicalResult matchAndRewriteOp(stablehlo::MinOp op,
+                                PatternRewriter &rewriter) {
+  return matchAndRewriteBinaryOp(op, rewriter, GetMinMaxRescaleScales);
+}
+
+LogicalResult matchAndRewriteOp(stablehlo::MaxOp op,
+                                PatternRewriter &rewriter) {
+  return matchAndRewriteBinaryOp(op, rewriter, GetMinMaxRescaleScales);
+}
+
+LogicalResult matchAndRewriteCompareOp(stablehlo::CompareOp op,
+                                       PatternRewriter &rewriter) {
+  Value lhs = op.getLhs();
+  Value rhs = op.getRhs();
+  Value result = op.getResult();
+
+  auto lhsType = cast<ShapedType>(lhs.getType());
+  auto rhsType = cast<ShapedType>(rhs.getType());
+  auto resultType = cast<ShapedType>(result.getType());
+
+  auto lhsQType =
+      dyn_cast<quant::UniformQuantizedType>(lhsType.getElementType());
+  auto rhsQType =
+      dyn_cast<quant::UniformQuantizedType>(rhsType.getElementType());
+
+  if (!lhsQType || !rhsQType) {
+    return rewriter.notifyMatchFailure(
+        op,
+        "The conversion supports operands with per-tensor quantized "
+        "types only");
+  }
+
+  double lhsScale = lhsQType.getScale();
+  double rhsScale = rhsQType.getScale();
+  double maxScale = std::max(lhsScale, rhsScale);
+
+  const int32_t SHIFT_8_BIT = 20;
+  const int32_t SHIFT_16_BIT = 15;
+
+  // note: compare op require lhs/rhs have equal base storage width
+  int32_t inputShift = (lhsQType.getStorageTypeIntegralWidth() == 16)
+                           ? SHIFT_16_BIT
+                           : SHIFT_8_BIT;
+
+  double lhsRescaleScale =
+      (lhsScale / maxScale) * static_cast<double>(1 << inputShift);
+  double rhsRescaleScale =
+      (rhsScale / maxScale) * static_cast<double>(1 << inputShift);
+
+  auto loc = op.getLoc();
+
+  // Implement single rounding only
+  Value rescaledLhs = buildRescaleToInt32(rewriter, loc, lhs, lhsRescaleScale,
+                                          lhsQType.getZeroPoint());
+  Value rescaledRhs = buildRescaleToInt32(rewriter, loc, rhs, rhsRescaleScale,
+                                          rhsQType.getZeroPoint());
+
+  auto compareDirection = op.getComparisonDirection();
+  auto compareTypeAttr = op.getCompareTypeAttr();
+
+  Value newOutput = rewriter
+                        .create<stablehlo::CompareOp>(
+                            loc, resultType, rescaledLhs, rescaledRhs,
+                            compareDirection, compareTypeAttr)
+                        .getResult();
+
+  rewriter.replaceOp(op, {newOutput});
+  return success();
+}
+
+LogicalResult matchAndRewriteOp(stablehlo::CompareOp op,
+                                PatternRewriter &rewriter) {
+  return matchAndRewriteCompareOp(op, rewriter);
+}
+
 template <typename StablehloOpType>
 struct QuantizedStablehloOpConversion
     : public OpRewritePattern<StablehloOpType> {
   using OpRewritePattern<StablehloOpType>::OpRewritePattern;
   LogicalResult matchAndRewrite(StablehloOpType op,
-                                PatternRewriter& rewriter) const override {
-    return matchAndRewriteAddSub<StablehloOpType>(op, rewriter);
+                                PatternRewriter &rewriter) const override {
+    return matchAndRewriteOp(op, rewriter);
   }
 };
 
 struct StablehloQuantLegalizeToTosaRescalePass
     : impl::StablehloQuantLegalizeToTosaRescalePassBase<
           StablehloQuantLegalizeToTosaRescalePass> {
-  LogicalResult initialize(MLIRContext* ctx) override {
+  LogicalResult initialize(MLIRContext *ctx) override {
     RewritePatternSet patternList(ctx);
     populateStablehloQuantLegalizeToTosaRescalePatterns(&patternList, ctx);
     patterns = std::move(patternList);
@@ -205,11 +434,25 @@ struct StablehloQuantLegalizeToTosaRescalePass
 }  // namespace
 
 void populateStablehloQuantLegalizeToTosaRescalePatterns(
-    RewritePatternSet* patterns, MLIRContext* context) {
+    RewritePatternSet *patterns, MLIRContext *context) {
+  // unary ops
+  patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::AbsOp>>(
+      {"StablehloQuantAbsOp"}, context);
+  // binary ops
   patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::AddOp>>(
       {"StablehloQuantAddOp"}, context);
   patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::SubtractOp>>(
       {"StablehloQuantSubtractOp"}, context);
+  patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::MulOp>>(
+      {"StablehloQuantMulOp"}, context);
+  patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::DivOp>>(
+      {"StablehloQuantDivOp"}, context);
+  patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::MaxOp>>(
+      {"StablehloQuantMaxOp"}, context);
+  patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::MinOp>>(
+      {"StablehloQuantMinOp"}, context);
+  patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::CompareOp>>(
+      {"StablehloQuantCompareOp"}, context);
 }
 
 }  // namespace tosa
