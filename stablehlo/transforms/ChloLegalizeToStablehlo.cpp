@@ -49,6 +49,7 @@
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/transforms/Passes.h"
+#include "stablehlo/transforms/passes_utils.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -169,29 +170,6 @@ static void populateForBroadcastingBinaryOp(MLIRContext *context,
   patterns->add<Pattern<mlir::chlo::BroadcastCompareOp,
                         mlir::stablehlo::CompareOp, HloCompareAdaptor>>(
       context, args...);
-}
-
-template <typename T>
-static Value getConstantLike(OpBuilder &b, Location loc, T constant,
-                             Value val) {
-  Type ty = getElementTypeOrSelf(val.getType());
-  auto getAttr = [&]() -> Attribute {
-    if (isa<IntegerType>(ty)) return b.getIntegerAttr(ty, constant);
-    if (isa<FloatType>(ty)) return b.getFloatAttr(ty, constant);
-    if (auto complexTy = dyn_cast<ComplexType>(ty)) {
-      return complex::NumberAttr::get(complexTy, constant, 0);
-    }
-    llvm_unreachable("unhandled element type");
-  };
-  return b.create<mlir::chlo::ConstantLikeOp>(loc, cast<TypedAttr>(getAttr()),
-                                              val);
-}
-
-static Value getConstantLike(OpBuilder &b, Location loc,
-                             const APFloat &constant, Value val) {
-  Type ty = getElementTypeOrSelf(val.getType());
-  return b.create<mlir::chlo::ConstantLikeOp>(loc, b.getFloatAttr(ty, constant),
-                                              val);
 }
 
 static Value getConstantLikeMaxFiniteValue(OpBuilder &b, Location loc,

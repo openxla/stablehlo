@@ -26,6 +26,7 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/transforms/Passes.h"
+#include "stablehlo/transforms/passes_utils.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -37,21 +38,6 @@ namespace {
 //===----------------------------------------------------------------------===//
 // Helpers.
 //===----------------------------------------------------------------------===//
-
-// Creates a constant with all ones.
-static Value createConstantWithAllOnes(OpBuilder &b, Location loc, Value val) {
-  if (!isa<FloatType>(getElementTypeOrSelf(val)))
-    llvm_unreachable("Unsupported element type, expecting float");
-
-  auto shapedTy = dyn_cast<mlir::ShapedType>(val.getType());
-  if (!shapedTy) llvm_unreachable("Unsupported shaped type.");
-
-  mlir::DenseElementsAttr elementsAttr =
-      mlir::DenseElementsAttr::get(shapedTy, 1.0);
-
-  return b.create<mlir::stablehlo::ConstantOp>(loc, val.getType(),
-                                               elementsAttr);
-}
 
 // Check user-specified target version.
 vhlo::Version validateTargetVersion(llvm::StringRef versionRef) {
