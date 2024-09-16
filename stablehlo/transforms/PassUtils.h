@@ -10,8 +10,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef THIRD_PARTY_STABLEHLO_STABLEHLO_TRANSFORMS_PASSES_UTILS_H_
-#define THIRD_PARTY_STABLEHLO_STABLEHLO_TRANSFORMS_PASSES_UTILS_H_
+#ifndef THIRD_PARTY_STABLEHLO_STABLEHLO_TRANSFORMS_PASS_UTILS_H_
+#define THIRD_PARTY_STABLEHLO_STABLEHLO_TRANSFORMS_PASS_UTILS_H_
 
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -54,4 +54,4 @@ Value getConstantLike(OpBuilder &b, Location loc, const APFloat &constant,
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // THIRD_PARTY_STABLEHLO_STABLEHLO_TRANSFORMS_PASSES_UTILS_H_
+#endif  // THIRD_PARTY_STABLEHLO_STABLEHLO_TRANSFORMS_PASS_UTILS_H_

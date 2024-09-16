@@ -26,7 +26,7 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/transforms/Passes.h"
-#include "stablehlo/transforms/PassesUtils.h"
+#include "stablehlo/transforms/PassUtils.h"
 
 namespace mlir {
 namespace stablehlo {
