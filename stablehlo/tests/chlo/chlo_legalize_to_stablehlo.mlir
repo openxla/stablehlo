@@ -3029,28 +3029,11 @@ func.func @next_after_f32(%x: tensor<2xf32>, %y: tensor<2xf32>) -> tensor<2xf32>
 
 // -----
 
-// CHECK-LABEL: @tan_f16
-// CHECK-SAME: (%[[ARG:.*]]: tensor<f16>)
-func.func @tan_f16(%arg : tensor<f16>) -> tensor<f16> {
-  // %[[TMP_0:.*]] = stablehlo.convert [[ARG]] : (tensor<f16>) -> tensor<f32>
-  // %[[TMP_1:.*]] = stablehlo.sine %[[TMP_0]]
-  // %[[TMP_2:.*]] = stablehlo.cosine %[[TMP_0]]
-  // %[[TMP_3:.*]] = stablehlo.divide %[[TMP_1]], %[[TMP_2]]
-  // %[[TMP_4:.*]] = stablehlo.convert %[[TMP_3]] : (tensor<f32>) -> tensor<f16>
-  // return %[[TMP_4]] : tensor<f16>
-  %1 = chlo.tan %arg : tensor<f16> -> tensor<f16>
-  func.return %1 : tensor<f16>
-}
-
-// -----
-
 // CHECK-LABEL: @tan_f32
 // CHECK-SAME: (%[[ARG:.*]]: tensor<f32>)
 func.func @tan_f32(%arg : tensor<f32>) -> tensor<f32> {
-  // %[[TMP_0:.*]] = stablehlo.sine %[[ARG]]
-  // %[[TMP_1:.*]] = stablehlo.cosine %[[ARG]]
-  // %[[TMP_2:.*]] = stablehlo.divide %[[TMP_0]], %[[TMP_1]]
-  // return %[[TMP_2]] : tensor<f32>
+  // CHECK: %[[TMP_0:.*]] = stablehlo.tan %[[ARG]] : tensor<f32>
+  // CHECK: return %[[TMP_0]] : tensor<f32>
   %1 = chlo.tan %arg : tensor<f32> -> tensor<f32>
   func.return %1 : tensor<f32>
 }
@@ -3060,22 +3043,11 @@ func.func @tan_f32(%arg : tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: @tan_complexf32
 // CHECK-SAME: %[[ARG0:.+]]: tensor<1xf32>, %[[ARG1:.+]]: tensor<1xf32>
 func.func @tan_complexf32(%arg0 : tensor<1xf32>, %arg1 : tensor<1xf32>) -> (tensor<1xf32>, tensor<1xf32>) {
-  // CHECK: %[[COMPLEX:.+]] = stablehlo.complex %[[ARG0]], %[[ARG1]] : tensor<1xcomplex<f32>>
-  // CHECK: %[[REAL:.+]] = stablehlo.real %[[COMPLEX]] : (tensor<1xcomplex<f32>>) -> tensor<1xf32>
-  // CHECK: %[[SINE:.+]] = stablehlo.sine %[[REAL]]
-  // CHECK: %[[COS:.+]] = stablehlo.cosine %[[REAL]]
-  // CHECK: %[[TAN:.+]] = stablehlo.divide %[[SINE]], %[[COS]]
-  // CHECK: %[[IMAG:.+]] = stablehlo.imag %[[COMPLEX]] : (tensor<1xcomplex<f32>>) -> tensor<1xf32>
-  // CHECK: %[[TANH:.+]] = stablehlo.tanh %[[IMAG]]
-  // CHECK: %[[NUM:.+]] = stablehlo.complex %[[TAN]], %[[TANH]]
-  // CHECK: %[[ONE:.+]] = stablehlo.constant dense<1.000000e+00> : tensor<1xf32>
-  // CHECK: %[[MUL:.+]] = stablehlo.multiply %[[TAN]], %[[TANH]]
-  // CHECK: %[[NEG:.+]] = stablehlo.negate %[[MUL]]
-  // CHECK: %[[DEN:.+]] = stablehlo.complex %[[ONE]], %[[NEG]]
-  // CHECK: %[[RES:.+]] = stablehlo.divide %[[NUM]], %[[DEN]]
-  // CHECK: %[[REAL:.+]] = stablehlo.real %[[RES]]
-  // CHECK: %[[IMAG:.+]] = stablehlo.imag %[[RES]]
-  // CHECK: return %[[REAL]], %[[IMAG]]
+  // CHECK: %[[TMP_0:.*]] = stablehlo.complex %[[ARG0]], %[[ARG1]] : tensor<1xcomplex<f32>>
+  // CHECK: %[[TMP_1:.*]] = stablehlo.tan %[[TMP_0]] : tensor<1xcomplex<f32>>
+  // CHECK: %[[TMP_2:.*]] = stablehlo.real %[[TMP_1]] :  (tensor<1xcomplex<f32>>) -> tensor<1xf32>
+  // CHECK: %[[TMP_3:.*]] = stablehlo.imag %[[TMP_1]] : (tensor<1xcomplex<f32>>) -> tensor<1xf32>
+  // CHECK: return %[[TMP_2]], %[[TMP_3]] : tensor<1xf32>, tensor<1xf32>
   %0 = stablehlo.complex %arg0, %arg1 : tensor<1xcomplex<f32>>
   %1 = chlo.tan %0 : tensor<1xcomplex<f32>> -> tensor<1xcomplex<f32>>
   %2 = stablehlo.real %1 : (tensor<1xcomplex<f32>>) -> tensor<1xf32>

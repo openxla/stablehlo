@@ -24,7 +24,8 @@ def NonComplexElementType : Type<
   CPred<"!isa<ComplexType>(cast<ShapedType>($_self).getElementType())">,
   "Non-complex element type">;
 
-def createConstantWithAllOnes : NativeCodeCall<"createConstantWithAllOnes($_builder, $_loc, $0)">;
+class StableHLO_ConstantLike<string value> : NativeCodeCall<
+    "::mlir::stablehlo::getConstantLike($_builder, $_loc, " # value # ", $0)">;
 
 // Express `tan` as
 //   sine(x) / cosine(x)
@@ -42,6 +43,6 @@ def TanOp_ComplexElementType_CompatiblityExpander : Pat<(StableHLO_TanOp Complex
       (StableHLO_TanOp:$tan (StableHLO_RealOp $input)),
       (StableHLO_TanhOp:$tanh (StableHLO_ImagOp $input))),
     (StableHLO_ComplexOp
-      (createConstantWithAllOnes $tan),
+      (StableHLO_ConstantLike<"1.0"> $tan),
       (StableHLO_NegOp (StableHLO_MulOp $tan, $tanh)))
   )>;
