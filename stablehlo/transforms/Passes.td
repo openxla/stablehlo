@@ -338,5 +338,6 @@ def StablehloCreateCompatibilityExpanderPass : Pass<"stablehlo-create-compatibil
   ];
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
+    "mlir::chlo::ChloDialect",
   ];
 }
