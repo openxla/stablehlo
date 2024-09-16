@@ -48,8 +48,8 @@
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
-#include "stablehlo/transforms/Passes.h"
 #include "stablehlo/transforms/PassUtils.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
 namespace stablehlo {

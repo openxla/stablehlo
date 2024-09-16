@@ -25,8 +25,8 @@ limitations under the License.
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
-#include "stablehlo/transforms/Passes.h"
 #include "stablehlo/transforms/PassUtils.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
 namespace stablehlo {
