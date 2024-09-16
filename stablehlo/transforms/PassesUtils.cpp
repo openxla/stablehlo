@@ -10,7 +10,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/transforms/passes_utils.h"
+#include "stablehlo/transforms/PassesUtils.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Location.h"

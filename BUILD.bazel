@@ -1112,13 +1112,13 @@ cc_library(
         "stablehlo/transforms/StablehloRefineShapes.cpp",
         "stablehlo/transforms/VhloLegalizeToStablehlo.cpp",
         "stablehlo/transforms/VhloToVersion.cpp",
-        "stablehlo/transforms/passes_utils.cpp",
+        "stablehlo/transforms/PassesUtils.cpp",
     ],
     hdrs = [
         "stablehlo/transforms/MapStablehloToVhlo.h",
         "stablehlo/transforms/Passes.h",
         "stablehlo/transforms/StablehloRefineShapes.h",
-        "stablehlo/transforms/passes_utils.h",
+        "stablehlo/transforms/PassesUtils.h",
     ],
     strip_include_prefix = ".",
     deps = [

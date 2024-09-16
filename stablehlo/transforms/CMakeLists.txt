@@ -53,7 +53,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloRefineShapes.cpp
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp
-  passes_utils.cpp
+  PassesUtils.cpp
 
   DEPENDS
   ChloDecompositionPatternsIncGen
