@@ -89,6 +89,9 @@ func.func @bitcast_convert_contract(%input: tensor<7x4xi8>) -> tensor<7xi32> {
 // CHECK-SAME:   %[[VAL_0:[a-zA-Z0-9_]*]]
 // CHECK-SAME:   %[[VAL_1:[a-zA-Z0-9_]*]]
 // CHECK-SAME:   %[[VAL_2:[a-zA-Z0-9_]*]]
+// CHECK-PRIMTIVE-NOT: linalg.generic
+// CHECK-PRIMITIVE: %[[CONCAT:.*]] = tensor.concat dim(1)
+// CHECK-PRIMITIVE: return %[[CONCAT:.*]]
 // CHECK-DAG:       %[[C0:.*]] = arith.constant 0 : index
 // CHECK-DAG:       %[[C1:.*]] = arith.constant 1 : index
 // CHECK:           %[[VAL_5:.*]] = tensor.dim %[[VAL_0]], %[[C0]] : tensor<?x?xi32>
@@ -139,6 +142,9 @@ func.func @concatenate(%a: tensor<?x?xi32>, %b: tensor<?x?xi32>, %c: tensor<?x?x
 // CHECK-SAME:   %[[VAL_0:[a-zA-Z0-9_]*]]
 // CHECK-SAME:   %[[VAL_1:[a-zA-Z0-9_]*]]
 // CHECK-SAME:   %[[VAL_2:[a-zA-Z0-9_]*]]
+// CHECK-PRIMTIVE-NOT: linalg.generic
+// CHECK-PRIMITIVE: %[[CONCAT:.*]] = tensor.concat dim(1)
+// CHECK-PRIMITIVE: return %[[CONCAT:.*]]
 // CHECK-DAG:       %[[C0:.*]] = arith.constant 0 : index
 // CHECK-DAG:       %[[C1:.*]] = arith.constant 1 : index
 // CHECK-DAG:       %[[VAL_5:.*]] = builtin.unrealized_conversion_cast %[[VAL_2]] : tensor<?x?xui32> to tensor<?x?xi32>

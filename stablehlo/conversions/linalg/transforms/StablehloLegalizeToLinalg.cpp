@@ -1298,7 +1298,10 @@ struct IotaToMapConverter final : OpConversionPattern<OpTy> {
 /// Converts stablehlo.concatenate operation to a linalg.generic op.
 struct ConcatenateConverter final
     : OpConversionPattern<mlir::stablehlo::ConcatenateOp> {
-  using OpConversionPattern::OpConversionPattern;
+  explicit ConcatenateConverter(TypeConverter &converter, MLIRContext *context,
+                                bool enablePrimitiveOps)
+      : OpConversionPattern<mlir::stablehlo::ConcatenateOp>(converter, context),
+        enablePrimitiveOps(enablePrimitiveOps) {}
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ConcatenateOp op, OpAdaptor adaptor,
@@ -1327,6 +1330,13 @@ struct ConcatenateConverter final
 
     uint64_t dim = op.getDimension();
     Location loc = op.getLoc();
+
+    if (enablePrimitiveOps) {
+      auto concatOp =
+          rewriter.create<tensor::ConcatOp>(loc, dim, adaptor.getOperands());
+      rewriter.replaceOp(op, concatOp);
+      return success();
+    }
     Value zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
 
     // Allocate the output tensor with tensor.empty.
@@ -1394,6 +1404,8 @@ struct ConcatenateConverter final
         linalg::getPrunedAttributeList(op));
     return success();
   }
+
+  bool enablePrimitiveOps = false;
 };
 
 /// Converts stablehlo.concatenate operation to a sparse_tensor.concatenate op.
@@ -2594,9 +2606,10 @@ static void populateConversionPatterns(MLIRContext *context,
                                        bool enablePrimitiveOps,
                                        bool enableSparseOps) {
   // clang-format off
+  patterns->add<ConcatenateConverter>(typeConverter, context,
+                                      enablePrimitiveOps);
   patterns->add<
       BitcastConvertConverter,
-      ConcatenateConverter,
       ConstConverterTensor,
       EinsumToLinalgConverter,
       GatherConversion,
