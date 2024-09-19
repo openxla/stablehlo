@@ -31,10 +31,10 @@ AsyncType ::= 'async' '<' ValueType '>'
 *Async Types* represents tensor values that must be awaited on before using the underlying values. Async operations 
 allow multiple operations to be running at once as described in the Async Execution section.
 
-Add `AsyncType` to `NonValueType`
+Add `AsyncType` to `ValueType`
 
 ```ebnf
-NonValueType ::= TensorElementType | QuantizedTensorElementType | FunctionType | StringType | AsyncType
+ValueType ::= TensorType | QuantizedTensorType | TokenType | TupleType | AsyncType
 ```
 
 ### Ops
