@@ -21,6 +21,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"  // Include for TypeConverter
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/transforms/PassUtils.h"
 #include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
@@ -30,12 +31,6 @@ namespace stablehlo {
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
-
-bool isAnyQuantizedTypes(TypeRange types) {
-  return llvm::any_of(types, [](Type type) {
-    return isa<quant::QuantizedType>(getElementTypeOrSelf(type));
-  });
-}
 
 struct QuantizedStablehloQDQToQuantizedOpConversion
     : public OpRewritePattern<stablehlo::UniformQuantizeOp> {
