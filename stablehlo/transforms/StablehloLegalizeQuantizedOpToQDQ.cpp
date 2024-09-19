@@ -28,8 +28,8 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"  // Include for TypeConverter
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
-#include "stablehlo/transforms/Passes.h"
 #include "stablehlo/transforms/PassUtils.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
 namespace stablehlo {
