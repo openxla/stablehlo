@@ -30,5 +30,11 @@ Value getConstantLike(OpBuilder &b, Location loc, const APFloat &constant,
                                               val);
 }
 
+bool isAnyQuantizedTypes(TypeRange types) {
+  return llvm::any_of(types, [](Type type) {
+    return isa<quant::QuantizedType>(getElementTypeOrSelf(type));
+  });
+}
+
 }  // namespace stablehlo
 }  // namespace mlir

@@ -22,6 +22,7 @@ limitations under the License.
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/transforms/Passes.h"
+#include "stablehlo/transforms/PassUtils.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -30,12 +31,6 @@ namespace stablehlo {
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
-
-bool isAnyQuantizedTypes(TypeRange types) {
-  return llvm::any_of(types, [](Type type) {
-    return isa<quant::QuantizedType>(getElementTypeOrSelf(type));
-  });
-}
 
 struct QuantizedStablehloQDQToQuantizedOpConversion
     : public OpRewritePattern<stablehlo::UniformQuantizeOp> {

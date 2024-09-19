@@ -51,6 +51,9 @@ Value getConstantLike(OpBuilder &b, Location loc, T constant, Value val) {
 Value getConstantLike(OpBuilder &b, Location loc, const APFloat &constant,
                       Value val);
 
+// Check if any of the given types are mlir::quant::QuantizedType.
+bool isAnyQuantizedTypes(TypeRange types);
+
 }  // namespace stablehlo
 }  // namespace mlir
 
