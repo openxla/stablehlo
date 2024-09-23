@@ -521,6 +521,41 @@ struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
   }
 };
 
+template <typename RangeType>
+DenseElementsAttr sliceType(SliceOp& op, const RangeType& data) {
+  using ElementType = std::decay_t<decltype(*std::begin(data))>;
+
+  RankedTensorType operandType = op.getOperand().getType();
+  RankedTensorType resultType = op.getResult().getType();
+
+  const auto dimOffsets = computeStrides(operandType.getShape());
+  auto startIndices = op.getStartIndices();
+  auto limitIndices = op.getLimitIndices();
+  auto strides = op.getStrides();
+
+  const SmallVector<int64_t> startIndex(startIndices);
+  const SmallVector<int64_t> endIndex(limitIndices);
+
+  SmallVector<ElementType> result;
+  result.reserve(resultType.getNumElements());
+
+  SmallVector<int64_t> srcIndex(startIndex);
+  for (int64_t i = 0; i < resultType.getNumElements(); ++i) {
+    auto srcLinearIndex = linearize(srcIndex, dimOffsets);
+    result.push_back(data[srcLinearIndex]);
+    for (int64_t dim = srcIndex.size() - 1; dim >= 0; --dim) {
+      srcIndex[dim] += strides[dim];
+      if (srcIndex[dim] >= endIndex[dim])
+        srcIndex[dim] = startIndex[dim];
+      else
+        break;
+    }
+  }
+
+  return DenseElementsAttr::get(op.getResult().getType(),
+                                ArrayRef<ElementType>(result));
+}
+
 struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(SliceOp op,
@@ -529,45 +564,27 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
     if (failed(validateResultTypeForEval(rewriter, op, resultType)))
       return failure();
 
-    if (resultType.getRank() < 1)
-      return rewriter.notifyMatchFailure(
-          op, "expected non-0 ranked tensor result type");
-
-    auto operand = cast<TypedValue<RankedTensorType>>(op.getOperand());
+    auto operand = op.getOperand();
     RankedTensorType operandType = operand.getType();
     if (!operandType.hasStaticShape())
       return rewriter.notifyMatchFailure(
           op, "expected operand with static ranked tensor type");
 
-    // A ranked tensor type with unit dimension prefix of R-1 size is physically
-    // compatible with 1-dimensional type.
-    if (!llvm::all_of(resultType.getShape().drop_back(),
-                      [](int64_t s) { return s == 1; }))
+    ElementsAttr els;
+    if (!matchPattern(operand, m_Constant(&els)))
       return rewriter.notifyMatchFailure(
-          op, "expected 1-dimensional compatible result type");
+          op, "expected constant integer or float operand");
 
-    SmallVector<APSInt> operandData;
-    if (failed(hlo::matchInts(operand, operandData)))
-      return rewriter.notifyMatchFailure(op, "expected constant operand");
+    DenseElementsAttr resAttr;
+    if (auto data = els.tryGetValues<APInt>())
+      resAttr = sliceType(op, *data);
+    else if (auto data = els.tryGetValues<APFloat>())
+      resAttr = sliceType(op, *data);
+    else
+      return rewriter.notifyMatchFailure(op.getLoc(),
+                                         "unsupported element type");
 
-    const auto dimOffsets = computeSuffixProduct(operandType.getShape());
-    auto startIndices = op.getStartIndices();
-    auto limitIndices = op.getLimitIndices();
-    auto strides = op.getStrides();
-
-    int64_t start = 0;
-    for (size_t i = 0; i < startIndices.size(); ++i)
-      start += startIndices[i] * dimOffsets[i];
-
-    auto slicedDim = operandType.getRank() - 1;
-    int64_t limit = start + limitIndices[slicedDim] - startIndices[slicedDim];
-    int64_t stride = strides[slicedDim];
-    SmallVector<APSInt> result;
-    for (auto i = start; i < limit; i += stride)
-      result.push_back(operandData[i]);
-
-    rewriter.replaceOpWithNewOp<ConstantOp>(op,
-                                            getTensorAttr(resultType, result));
+    rewriter.replaceOpWithNewOp<ConstantOp>(op, resAttr);
     return success();
   }
 };
