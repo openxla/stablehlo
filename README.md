@@ -2,6 +2,11 @@
 
 Official Documentation: <https://openxla.org/stablehlo>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/assets/stablehlo_ecosystem_dark.svg">
+  <img alt="StableHLO Ecosystem" src="docs/images/assets/stablehlo_ecosystem.svg">
+</picture>
+
 StableHLO is an operation set for high-level operations (HLO) in machine
 learning (ML) models. Essentially, it's a portability layer between different
 ML frameworks and ML compilers: ML frameworks that produce StableHLO programs
