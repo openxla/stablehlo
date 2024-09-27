@@ -20,9 +20,9 @@ set(LLVM_TARGET_DEFINITIONS ChloDecompositionPatterns.td)
 mlir_tablegen(ChloDecompositionPatterns.h.inc --gen-rewriters)
 add_public_tablegen_target(ChloDecompositionPatternsIncGen)
 
-set(LLVM_TARGET_DEFINITIONS StablehloCreateCompatibilityExpanderPatterns.td)
-mlir_tablegen(StablehloCreateCompatibilityExpanderPatterns.h.inc --gen-rewriters)
-add_public_tablegen_target(StablehloCreateCompatibilityExpanderPatternsIncGen)
+set(LLVM_TARGET_DEFINITIONS StablehloCompatibilityExpanderPatterns.td)
+mlir_tablegen(StablehloCompatibilityExpanderPatterns.h.inc --gen-rewriters)
+add_public_tablegen_target(StablehloCompatibilityExpanderPatternsIncGen)
 
 set(LLVM_TARGET_DEFINITIONS StablehloLegalizeDeprecatedOpsPatterns.td)
 mlir_tablegen(StablehloLegalizeDeprecatedOpsPatterns.h.inc --gen-rewriters)
@@ -42,7 +42,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloAggressiveSimplification.cpp
   StablehloCanonicalizeDynamism.cpp
   StablehloConvertToSignless.cpp
-  StablehloCreateCompatibilityExpander.cpp
+  StablehloCompatibilityExpander.cpp
   StablehloLegalizeCompositeToCall.cpp
   StablehloLegalizeDeprecatedOps.cpp
   StablehloLegalizeQuantToMath.cpp
@@ -60,7 +60,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloLegalizeDeprecatedOpsPatternsIncGen
   PassesIncGen
   VhloToVersionPatterns
-  StablehloCreateCompatibilityExpanderPatternsIncGen
+  StablehloCompatibilityExpanderPatternsIncGen
 
   LINK_LIBS PUBLIC
   ChloOps

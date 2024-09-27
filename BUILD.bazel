@@ -345,11 +345,11 @@ gentbl_cc_library(
     tbl_outs = [
         (
             ["--gen-rewriters"],
-            "stablehlo/transforms/StablehloCreateCompatibilityExpanderPatterns.h.inc",
+            "stablehlo/transforms/StablehloCompatibilityExpanderPatterns.h.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/transforms/StablehloCreateCompatibilityExpanderPatterns.td",
+    td_file = "stablehlo/transforms/StablehloCompatibilityExpanderPatterns.td",
     deps = [
         ":stablehlo_ops_td_files",
     ],
@@ -1102,7 +1102,7 @@ cc_library(
         "stablehlo/transforms/StablehloAggressiveSimplification.cpp",
         "stablehlo/transforms/StablehloCanonicalizeDynamism.cpp",
         "stablehlo/transforms/StablehloConvertToSignless.cpp",
-        "stablehlo/transforms/StablehloCreateCompatibilityExpander.cpp",
+        "stablehlo/transforms/StablehloCompatibilityExpander.cpp",
         "stablehlo/transforms/StablehloLegalizeCompositeToCall.cpp",
         "stablehlo/transforms/StablehloLegalizeDeprecatedOps.cpp",
         "stablehlo/transforms/StablehloLegalizeQDQToQuantizedOp.cpp",
