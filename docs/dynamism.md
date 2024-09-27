@@ -7,7 +7,7 @@ programs.
 
 [dynamism-rfc]:https://github.com/openxla/stablehlo/blob/main/rfcs/20230704-dynamism-101.md
 
-## Terminology
+## Dynamism Terminology & Support Overview
 
 First, to cover a few terms that will appear in this doc, as well as a brief
 intro to their support in StableHLO:
@@ -32,9 +32,13 @@ support, originating in TensorFlow, and with some support in PyTorch/XLA.
 ### Unbounded dynamism
 
 Unbounded dynamism as the name implies refers to a dynamic dimension with
-no known bound on the size, commonly used for dynamic batch size or sequence
-length. In StableHLO we simply elide the bounds encoding for this form of
-dynamism, i.e. `tensor<?x?xf32>`.
+no known bound on the size. This type of dynamism is very common in StableHLO,
+with JAX, PyTorch/XLA, and TF support, often used for exporting models with
+dynamic batch size or sequence length.
+
+In StableHLO we simply elide the bounds encoding for this form of dynamism, i.e.
+`tensor<?x?xf32>`.
+
 
 ### Shape polymorphism
 
@@ -80,9 +84,9 @@ dynamic batch sizes or sequence lengths:
 [jax-export-dynamic]:https://openxla.org/stablehlo/tutorials/jax-export#export_with_dynamic_batch_size
 [pytorch-export-dynamic]:https://openxla.org/stablehlo/tutorials/pytorch-export#export_with_dynamic_batch_dimension
 
-## Compiler passes for refining dynamic programs
+## Compiler Passes for Refining Dynamic Programs
 
-### Remove dynamism pass pipeline
+### Remove Dynamism Pass Pipeline
 
 There are a few useful passes for refining shapes, conveniently they are all
 bundled in a pass pipeline [`createStablehloRemoveDynamismPipeline`][remove-dynamism]:
@@ -109,11 +113,13 @@ on their functionality.
 [refine-arguments]:https://openxla.org/stablehlo/generated/stablehlo_passes#-stablehlo-refine-arguments
 [refine-shapes]:https://openxla.org/stablehlo/generated/stablehlo_passes#-stablehlo-refine-shapes
 
-## Example: How is dynamism useful, and how can I use it?
+## Example: How is Dynamism Useful, and How Can I Use It?
 
 Dynamism has lots of uses, here we'll mainly focus in on the common use case for
 Shape Polymorphism - creating a flexible exported model representation,
 generally used to represent dynamic batch size or sequence length.
+
+### Dynamic add_one model
 
 We'll use the following simple `add_one` model to demonstrate this:
 
@@ -138,6 +144,8 @@ shape. If we ever changed our batch size or sequence length, we would need to
 re-trace the source code and re-lower to StableHLO, and there's no guarantee
 that we even have access to the source code still!
 
+### Dynamic add_one model
+
 This is where shape polymorphic dynamism comes into play. Instead JAX and
 PyTorch/XLA can emit the `add_one` model with dynamically valid IR which
 will broadcast the constant to match the dynamic input shape as follows:
@@ -158,6 +166,8 @@ This model representation is much more flexible, and allows deferred
 specification of values like batch size or sequence length. This model can be
 deployed on platforms with dynamic shape support (like AI Edge), or it can be
 refined using the dynamism passes mentioned in this documentation.
+
+### Refining the dynamic model
 
 For example the following pass ordering can fully refine this program:
 
