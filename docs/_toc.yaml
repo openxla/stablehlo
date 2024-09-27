@@ -21,6 +21,8 @@ toc:
     path: /stablehlo/spec
   - title: Compatibility guarantees
     path: /stablehlo/compatibility
+  - title: Dynamism support
+    path: /stablehlo/dynamism
   - title: Reference interpreter
     path: /stablehlo/reference
   - title: Roadmap
