@@ -73,7 +73,7 @@ lead to data dependent dynamism.
 
 [shape-poly]:https://jax.readthedocs.io/en/latest/export/shape_poly.html
 
-## Exporting Programs with Dynamic Dimensions
+## Exporting programs with dynamic dimensions
 
 See our StableHLO tutorials for information on how to export programs with
 dynamic batch sizes or sequence lengths:
@@ -84,9 +84,9 @@ dynamic batch sizes or sequence lengths:
 [jax-export-dynamic]:https://openxla.org/stablehlo/tutorials/jax-export#export_with_dynamic_batch_size
 [pytorch-export-dynamic]:https://openxla.org/stablehlo/tutorials/pytorch-export#export_with_dynamic_batch_dimension
 
-## Compiler Passes for Refining Dynamic Programs
+## Compiler passes for refining dynamic programs
 
-### Remove Dynamism Pass Pipeline
+### Remove dynamism pass pipeline
 
 There are a few useful passes for refining shapes, conveniently they are all
 bundled in a pass pipeline [`createStablehloRemoveDynamismPipeline`][remove-dynamism]:
@@ -95,6 +95,8 @@ bundled in a pass pipeline [`createStablehloRemoveDynamismPipeline`][remove-dyna
 void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
                                            TypeRange refinedTypes);
 ```
+
+### Individual passes for refining dynamism
 
 Individually, the passes that tend to be useful for shape refinement are:
 
@@ -113,7 +115,7 @@ on their functionality.
 [refine-arguments]:https://openxla.org/stablehlo/generated/stablehlo_passes#-stablehlo-refine-arguments
 [refine-shapes]:https://openxla.org/stablehlo/generated/stablehlo_passes#-stablehlo-refine-shapes
 
-## Example: How is Dynamism Useful, and How Can I Use It?
+## Example: How is dynamism useful, and how can I use it?
 
 Dynamism has lots of uses, here we'll mainly focus in on the common use case for
 Shape Polymorphism - creating a flexible exported model representation,
