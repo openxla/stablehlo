@@ -51,7 +51,7 @@ There are two key implications to shape polymorphism:
 
 With these two rules, once the static shapes of a program are known, we are able
 to take a dynamic program and fully refine it into a static program for
-compilation (see "Argument and Shape Refinement").
+compilation (see ["Compiler passes for refining dynamic programs"](#compiler-passes-for-refining-dynamic-programs)).
 
 Generally shape polymorphism uses unbounded dynamism, if known argument shapes
 can lead to a fully static program, there isn't a need to guess on how to bound
