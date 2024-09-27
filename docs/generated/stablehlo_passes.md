@@ -30,9 +30,9 @@ _Canonicalizes StableHLO operations_
 _Canonicalizes dynamic StableHLO ops into static ops._
 
 Replaces dynamic StableHLO ops like DynamicReshapeOp with the corresponding
-static counterparts like DynamicReshapeOp to ReshapeOp or
-DynamicBroadcastInDim to BroadcastInDim if all the dynamic elements of these
-ops are actually constant.
+static counterparts like `DynamicReshapeOp` to `ReshapeOp` or
+`DynamicBroadcastInDim` to `BroadcastInDim` if all the dynamic elements of =
+these ops are actually constants.
 
 ```
   %c = stablehlo.constant dense<16> : tensor<1xi32>
@@ -89,7 +89,7 @@ _Pass to transform the IR to be on signless integers._
 
 ### `-stablehlo-legalize-composite-to-call`
 
-_Replaces composite ops with a call to their decomposition_
+_Replaces composite ops with a call to their decomposition._
 
 Replaces composite ops with a call to their decomposition, e.g. the below:
 
