@@ -1,7 +1,7 @@
 # Dynamism in StableHLO
 
 The current state of dynamism is more formally spelled out in the
-[Dynamism RFC](dynamism-rfc), this page will provide a high level overview of
+[Dynamism RFC][dynamism-rfc], this page will provide a high level overview of
 the RFC and discuss important APIs and tooling for interacting with dynamic
 programs.
 
@@ -38,7 +38,7 @@ dynamism, i.e. `tensor<?x?xf32>`.
 
 ### Shape polymorphism
 
-Shape polymorphism is a [term we've inherited from JAX](shape-poly).
+Shape polymorphism is a [term we've inherited from JAX][shape-poly].
 
 There are two key implications to shape polymorphism:
 
@@ -74,18 +74,18 @@ lead to data dependent dynamism.
 See our StableHLO tutorials for information on how to export programs with
 dynamic batch sizes or sequence lengths:
 
-- [JAX Tutorial > Export with Dynamic Batch Size](jax-export-dynamic)
-- [PyTorch/XLA Tutorial > Export with Dynamic Batch Size](pytorch-export-dynamic)
+- [JAX Tutorial > Export with Dynamic Batch Size][jax-export-dynamic]
+- [PyTorch/XLA Tutorial > Export with Dynamic Batch Size][pytorch-export-dynamic]
 
-[jax-export-dynamism]:https://openxla.org/stablehlo/tutorials/jax-export#export_with_dynamic_batch_size
-[pytorch-export-dynamic]:(https://openxla.org/stablehlo/tutorials/pytorch-export#export_with_dynamic_batch_dimension)
+[jax-export-dynamic]:https://openxla.org/stablehlo/tutorials/jax-export#export_with_dynamic_batch_size
+[pytorch-export-dynamic]:https://openxla.org/stablehlo/tutorials/pytorch-export#export_with_dynamic_batch_dimension
 
 ## Compiler passes for refining dynamic programs
 
 ### Remove dynamism pass pipeline
 
 There are a few useful passes for refining shapes, conveniently they are all
-bundled in a pass pipeline [`createStablehloRemoveDynamismPipeline`](https://github.com/openxla/stablehlo/blob/ff13c96e56b73c62dcbb5b34b69f5ece9e71322f/stablehlo/transforms/Passes.h#L134):
+bundled in a pass pipeline [`createStablehloRemoveDynamismPipeline`][remove-dynamism]:
 
 ```c++
 void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
@@ -104,6 +104,7 @@ Individually, the passes that tend to be useful for shape refinement are:
 See these passes generated documentation for up-to-date information and examples
 on their functionality.
 
+[remove-dynamism]:https://github.com/openxla/stablehlo/blob/ff13c96e56b73c62dcbb5b34b69f5ece9e71322f/stablehlo/transforms/Passes.h#L134
 [canonicalize-dynamism]:https://openxla.org/stablehlo/generated/stablehlo_passes#-stablehlo-canonicalize-dynamism
 [refine-arguments]:https://openxla.org/stablehlo/generated/stablehlo_passes#-stablehlo-refine-arguments
 [refine-shapes]:https://openxla.org/stablehlo/generated/stablehlo_passes#-stablehlo-refine-shapes
