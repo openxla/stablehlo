@@ -39,7 +39,6 @@ dynamic batch size or sequence length.
 In StableHLO we simply elide the bounds encoding for this form of dynamism, i.e.
 `tensor<?x?xf32>`.
 
-
 ### Shape polymorphism
 
 Shape polymorphism is a [term we've inherited from JAX][shape-poly].
