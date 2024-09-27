@@ -121,7 +121,7 @@ Dynamism has lots of uses, here we'll mainly focus in on the common use case for
 Shape Polymorphism - creating a flexible exported model representation,
 generally used to represent dynamic batch size or sequence length.
 
-### Dynamic add_one model
+### Static add_one model
 
 We'll use the following simple `add_one` model to demonstrate this:
 
