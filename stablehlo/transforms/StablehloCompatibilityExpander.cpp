@@ -125,11 +125,10 @@ class GatherWithBatchingDimsExpander : public OpRewritePattern<GatherOp> {
                                 PatternRewriter &rewriter) const override {
     GatherDimensionNumbersAttr dimNumbers = op.getDimensionNumbers();
     ArrayRef<int64_t> operandBatchingDims = dimNumbers.getOperandBatchingDims();
-    if (operandBatchingDims.empty()) {
+    if (operandBatchingDims.empty())
       return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
         diag << "gather op has no batching dims";
       });
-    }
 
     SmallVector<int64_t> newCollapsedSliceDims = mergeSortedDims(
         operandBatchingDims, dimNumbers.getCollapsedSliceDims());
@@ -161,11 +160,10 @@ class ScatterWithBatchingDimsExpander : public OpRewritePattern<ScatterOp> {
                                 PatternRewriter &rewriter) const override {
     ScatterDimensionNumbersAttr dimNumbers = op.getScatterDimensionNumbers();
     ArrayRef<int64_t> inputBatchingDims = dimNumbers.getInputBatchingDims();
-    if (inputBatchingDims.empty()) {
+    if (inputBatchingDims.empty())
       return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
         diag << "scatter op has no batching dims";
       });
-    }
 
     SmallVector<int64_t> newInsertedWindowDims =
         mergeSortedDims(inputBatchingDims, dimNumbers.getInsertedWindowDims());
@@ -242,16 +240,15 @@ void populateStablehloCompatibilityExpanderPatterns(
     RewritePatternSet *patterns, MLIRContext *context,
     vhlo::Version targetVersion) {
   // StableHLO GatherOp/ScatterOp with batching dims is introduced in v1.1.0.
-  if (targetVersion < vhlo::Version(1, 1, 0)) {
+  if (targetVersion < vhlo::Version(1, 1, 0))
     patterns
         ->add<GatherWithBatchingDimsExpander, ScatterWithBatchingDimsExpander>(
             context);
-  }
+
   // StableHLO TanOp is introduced in v1.4.0.
-  if (targetVersion < vhlo::Version(1, 4, 0)) {
+  if (targetVersion < vhlo::Version(1, 4, 0))
     patterns->add<TanOp_ComplexElementType_CompatiblityExpander,
                   TanOp_CompatiblityExpander>(context);
-  }
 }
 
 }  // namespace stablehlo

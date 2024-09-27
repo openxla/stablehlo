@@ -99,7 +99,7 @@ void populateShapeToStablehloPatterns(MLIRContext *context,
 
 /// Collection of patterns to create compatibility expander for StableHLO
 /// operations.
-void populateStablehloCreateCompatibilityExpanderPatterns(
+void populateStablehloCompatibilityExpanderPatterns(
     RewritePatternSet *patterns, MLIRContext *context,
     vhlo::Version targetVersion);
 
