@@ -46,7 +46,7 @@ Shape polymorphism is a [term we've inherited from JAX][shape-poly].
 
 There are two key implications to shape polymorphism:
 
-1. All dynamism in program traces back to its input arguments.
+1. All dynamism in the program traces back to its input arguments.
 2. All dynamism pertains to tensor _shapes_ only, i.e. not data-dependent.
 
 With these two rules, once the static shapes of a program are known, we are able
@@ -65,7 +65,7 @@ returns the indices of all elements that are `0` in a tensor value. The shape
 cannot be known without evaluating the data, but it can often be compiled using
 bounded dynamism, spending extra memory on the potential output tensor size.
 
-Many data-dependent dynamic ops can be modelled using bounded dynamism, where an
+Many data-dependent dynamic ops can be modeled using bounded dynamism, where an
 upper bound on a tensor size is specified, and hardware generally will implement
 this via tensor padding. Today there is some support for data-dependent dynamism
 in PyTorch/XLA and TensorFlow, but JAX does not currently trace operations which
@@ -107,8 +107,7 @@ Individually, the passes that tend to be useful for shape refinement are:
 - [`stablehlo-canonicalize-dynamism`][canonicalize-dynamism] to replace dynamic
   ops with their static variants.
 
-See these passes generated documentation for up-to-date information and examples
-on their functionality.
+See linked documentation for up-to-date information and examples.
 
 [remove-dynamism]:https://github.com/openxla/stablehlo/blob/ff13c96e56b73c62dcbb5b34b69f5ece9e71322f/stablehlo/transforms/Passes.h#L134
 [canonicalize-dynamism]:https://openxla.org/stablehlo/generated/stablehlo_passes#-stablehlo-canonicalize-dynamism
@@ -117,7 +116,7 @@ on their functionality.
 
 ## Example: How is dynamism useful, and how can I use it?
 
-Dynamism has lots of uses, here we'll mainly focus in on the common use case for
+Dynamism has lots of uses, here we'll mainly focus on the common use case for
 Shape Polymorphism - creating a flexible exported model representation,
 generally used to represent dynamic batch size or sequence length.
 
@@ -166,8 +165,10 @@ func.func public @main(%arg0: tensor<?xf32>) -> tensor<?xf32> {
 
 This model representation is much more flexible, and allows deferred
 specification of values like batch size or sequence length. This model can be
-deployed on platforms with dynamic shape support (like AI Edge), or it can be
-refined using the dynamism passes mentioned in this documentation.
+deployed on platforms with dynamic shape support (like [AI Edge][ai-edge]), or
+it can be refined using the dynamism passes mentioned in this documentation.
+
+[ai-edge]:https://github.com/google-ai-edge/ai-edge-torch
 
 ### Refining the dynamic model
 

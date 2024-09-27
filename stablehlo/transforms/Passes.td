@@ -60,9 +60,9 @@ def StablehloCanonicalizeDynamismPass : Pass<"stablehlo-canonicalize-dynamism", 
   let summary = "Canonicalizes dynamic StableHLO ops into static ops.";
   let description = [{
     Replaces dynamic StableHLO ops like DynamicReshapeOp with the corresponding
-    static counterparts like DynamicReshapeOp to ReshapeOp or
-    DynamicBroadcastInDim to BroadcastInDim if all the dynamic elements of these
-    ops are actually constant.
+    static counterparts like `DynamicReshapeOp` to `ReshapeOp` or
+    `DynamicBroadcastInDim` to `BroadcastInDim` if all the dynamic elements of =
+    these ops are actually constants.
 
     ```
       %c = stablehlo.constant dense<16> : tensor<1xi32>
@@ -128,7 +128,7 @@ def StablehloConvertToSignlessPass : Pass<"stablehlo-convert-to-signless", "Modu
 
 def StablehloLegalizeCompositeToCallPass :
     Pass<"stablehlo-legalize-composite-to-call", "func::FuncOp"> {
-  let summary = "Replaces composite ops with a call to their decomposition";
+  let summary = "Replaces composite ops with a call to their decomposition.";
   let description = [{
     Replaces composite ops with a call to their decomposition, e.g. the below:
 
