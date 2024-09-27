@@ -30,18 +30,21 @@ _Canonicalizes StableHLO operations_
 _Canonicalizes dynamic StableHLO ops into static ops._
 
 Replaces dynamic StableHLO ops like DynamicReshapeOp with the corresponding
-static counterparts like ReshapeOp if all the dynamic elements of these ops
-are actually constant.
+static counterparts like DynamicReshapeOp to ReshapeOp or
+DynamicBroadcastInDim to BroadcastInDim if all the dynamic elements of these
+ops are actually constant.
 
-For example, if the output_shape operand of DynamicReshapeOp is a constant
-value, then the operation can be transformed to ReshapeOp.
-### `-stablehlo-convert-to-signless`
+```
+  %c = stablehlo.constant dense<16> : tensor<1xi32>
+  %0 = stablehlo.dynamic_broadcast_in_dim %cst, %c, dims = [] : (tensor<f32>, tensor<1xi32>) -> tensor<16xf32>
 
-_Pass to transform the IR to be on signless integers._
+  ==>
 
-### `-stablehlo-create-compatibility-expander`
+  %0 = stablehlo.broadcast_in_dim %cst, dims = [] : (tensor<f32>) -> tensor<16xf32>
+```
+### `-stablehlo-compatibility-expander`
 
-_Create compatibility expander for StableHLO operations._
+_Compatibility expander for StableHLO operations._
 
 StableHLO ops gets updates or new op is introduced in the latest versions.
 This opt-in pass expands backward compatibility with older StableHLO
@@ -65,11 +68,9 @@ func.func @tan_op_non_complex(%arg0: tensor<4xf64>) -> tensor<4xf64> {
   %1 = stablehlo.tan %arg0 : tensor<4xf64>
   func.return %1 : tensor<4xf64>
 }
-```
 
-will become:
+==>
 
-```mlir
 func.func @tan_op_non_complex(%arg0: tensor<4xf64>) -> tensor<4xf64> {
   %0 = stablehlo.sine %arg0 : tensor<4xf64>
   %1 = stablehlo.cosine %arg0 : tensor<4xf64>
@@ -82,6 +83,10 @@ func.func @tan_op_non_complex(%arg0: tensor<4xf64>) -> tensor<4xf64> {
 ```
 -target : The target version. Must be a version of the form #.#.#.
 ```
+### `-stablehlo-convert-to-signless`
+
+_Pass to transform the IR to be on signless integers._
+
 ### `-stablehlo-legalize-composite-to-call`
 
 _Replaces composite ops with a call to their decomposition_
@@ -232,8 +237,22 @@ _Legalize StableHLO to VHLO._
 _Refines the argument shapes of the main function._
 
 Modifies the arguments of the main function using the input type signature.
-Wraps arguments in custom_call @stablehlo.shape_refinement_operand_wrapper
+Wraps arguments in `custom_call @stablehlo.shape_refinement_operand_wrapper`
 to keep the IR valid before shape refinement is run.
+
+```
+func.func public @main(%arg0: tensor<?xf32>) -> tensor<?xf32> {
+  ...
+}
+
+==>
+
+func.func public @main(%arg0: tensor<16xf32>) -> tensor<?xf32> {
+  %c = stablehlo.constant dense<16> : tensor<1xi64>
+  %0 = stablehlo.custom_call @stablehlo.shape_refinement_operand_wrapper(%arg0, %c) {...}
+    : (tensor<16xf32>, tensor<1xi64>) -> tensor<?xf32>
+  ...
+```
 
 The `refinedTypesOption` can be used to specify a list of refined types.
 This can be specified in MLIR with `--types='tensor<...>,tensor<...>'`, or
@@ -255,6 +274,21 @@ programs to static shapes. If a dynamically-shaped StableHLO program has the
 right structure, then updating its argument types from dynamic shapes to
 static shapes and running this pass will propagate static shapes across
 the program.
+
+This pass removes `custom_call @shape_refinement_operand_wrapper` by
+replacing uses of the result with the operand directly, and propagates
+static shapes throughout the program.
+
+```
+%c = stablehlo.constant dense<16> : tensor<1xi64>
+%0 = stablehlo.custom_call @stablehlo.shape_refinement_operand_wrapper(%arg0, %c) {...}
+    : (tensor<16xf32>, tensor<1xi64>) -> tensor<?xf32>
+%1 = stablehlo.add %0, %0 : tensor<?xf32>
+
+==>
+
+%1 = stablehlo.add %arg0, %arg0 : tensor<16xf32>
+```
 ### `-vhlo-legalize-to-stablehlo`
 
 _Legalize VHLO to StableHLO._
