@@ -433,17 +433,25 @@ func.func @eval_sign() -> tensor<3xi64> {
 // -----
 
 // CHECK-LABEL: func @eval_slice
-func.func @eval_slice() -> tensor<2xi64> {
+func.func @eval_slice() -> (tensor<2xi64>, tensor<1x2x1xi64>) {
   // CHECK-NOT: stablehlo.slice
-  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
-  // CHECK: return [[RESULT]]
+  // CHECK: [[RESULT1:%.*]] = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
+  // CHECK: [[RESULT2:%.*]] = stablehlo.constant dense<{{\[\[}}[15], [19]]]> : tensor<1x2x1xi64>
+  // CHECK: return [[RESULT1]], [[RESULT2]]
   %0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
   %1 = "stablehlo.slice"(%0) {
     start_indices = array<i64: 0>,
     limit_indices = array<i64: 2>,
     strides = array<i64: 1>
   } : (tensor<4xi64>) -> tensor<2xi64>
-  func.return %1 : tensor<2xi64>
+  %2 = stablehlo.constant dense<[[[10, 11, 12, 13], [14, 15, 16, 17], [18, 19, 20, 21]],
+                                 [[22, 23, 24, 25], [26, 27, 28, 29], [30, 31, 32, 33]]]> : tensor<2x3x4xi64>
+  %3 = "stablehlo.slice"(%2) {
+    start_indices = array<i64: 0, 1, 1>,
+    limit_indices = array<i64: 2, 3, 3>,
+    strides = array<i64: 3, 1, 2>
+  } : (tensor<2x3x4xi64>) -> tensor<1x2x1xi64>
+  func.return %1, %3 : tensor<2xi64>, tensor<1x2x1xi64>
 }
 
 // -----
@@ -496,18 +504,32 @@ func.func @eval_slice_unit_prefix() -> (tensor<1x1x1x2xi64>, tensor<1x1x1x2xi64>
 
 // -----
 
-// CHECK-LABEL: func @eval_slice_non_unit_prefix
-func.func @eval_slice_non_unit_prefix() -> tensor<1x2x1xi64> {
-  // CHECK: stablehlo.constant {{.*}} : tensor<1x2x2xi64>
-  // CHECK: [[RESULT:%.*]] = stablehlo.slice{{.*}}
+// CHECK-LABEL: func @eval_slice_zerodim
+func.func @eval_slice_zerodim() -> tensor<0x2x1xi64> {
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<> : tensor<0x2x1xi64>
   // CHECK: return [[RESULT]]
   %0 = stablehlo.constant dense<[[[1, 2], [3, 4]]]> : tensor<1x2x2xi64>
   %1 = "stablehlo.slice"(%0) {
-    start_indices = array<i64: 0, 0, 1>,
+    start_indices = array<i64: 1, 0, 1>,
     limit_indices = array<i64: 1, 2, 2>,
     strides = array<i64: 1, 1, 1>
-  } : (tensor<1x2x2xi64>) -> tensor<1x2x1xi64>
-  func.return %1 : tensor<1x2x1xi64>
+  } : (tensor<1x2x2xi64>) -> tensor<0x2x1xi64>
+  func.return %1 : tensor<0x2x1xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_slice_zerorank
+func.func @eval_slice_zerorank() -> tensor<f32> {
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<3.300000e+01> : tensor<f32>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<33.0> : tensor<f32>
+  %1 = "stablehlo.slice"(%0) {
+    start_indices = array<i64>,
+    limit_indices = array<i64>,
+    strides = array<i64>
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %1 : tensor<f32>
 }
 
 // -----
