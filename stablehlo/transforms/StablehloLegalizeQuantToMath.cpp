@@ -24,8 +24,8 @@ limitations under the License.
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Func/Transforms/FuncConversions.h"
-#include "mlir/Dialect/Quant/QuantOps.h"
-#include "mlir/Dialect/Quant/QuantTypes.h"
+#include "mlir/Dialect/Quant/IR/Quant.h"
+#include "mlir/Dialect/Quant/IR/QuantTypes.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
@@ -1331,7 +1331,7 @@ class StablehloLegalizeQuantToMathPass
     populateReturnOpTypeConversionPattern(patterns, converter);
 
     ConversionTarget target(*op->getContext());
-    target.addIllegalDialect<quant::QuantizationDialect>();
+    target.addIllegalDialect<quant::QuantDialect>();
     auto isLegal = [&converter](Operation *op) {
       return converter.isLegal(op);
     };

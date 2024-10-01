@@ -1338,24 +1338,24 @@ func.func @quantized_element_type_c8(%arg0: tensor<1x2x!quant.uniform<i8<-128:12
 
 // -----
 
+// expected-error@+1 {{scale out of expressed type range}}
 func.func @quantized_element_type_c6(%arg0: tensor<1x2x!quant.uniform<i4:f16, 10.550400e+04>>) {
-  // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}} 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x2x!quant.uniform<i4:f16, 1.055040e+05>>'}}
    %0 = stablehlo.add %arg0,  %arg0 : tensor<1x2x!quant.uniform<i4:f16, 10.550400e+04>>
    func.return
 }
 
 // -----
 
+// expected-error@+1 {{scale out of expressed type range}}
 func.func @quantized_element_type_c6(%arg0: tensor<1x2x!quant.uniform<i4:f16, 4.960464e-08>>) {
-  // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}} 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x2x!quant.uniform<i4:f16, 4.9604639999999998E-8>>'}}
    %0 = stablehlo.add %arg0,  %arg0 : tensor<1x2x!quant.uniform<i4:f16, 4.960464e-08>>
    func.return
 }
 
 // -----
 
+// expected-error@+1 {{illegal quantized dimension: -1}}
 func.func @quantized_element_type_c11(%arg0: tensor<1x5x2x!quant.uniform<i8<-128:127>:f32:-1, {0.1:-30, 0.1:-30}>>) {
-  // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}} 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x5x2x!quant.uniform<i8:f32:-1, {1.000000e-01:-30,1.000000e-01:-30}>>'}}
   %0 = stablehlo.add %arg0,  %arg0 : tensor<1x5x2x!quant.uniform<i8<-128:127>:f32:-1, {0.1:-30, 0.1:-30}>>
   func.return
 }

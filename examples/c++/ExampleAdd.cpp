@@ -18,7 +18,7 @@ limitations under the License.
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/LogicalResult.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Quant/IR/Quant.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/Builders.h"
@@ -43,7 +43,7 @@ int main() {
       mlir::ModuleOp::create(mlir::UnknownLoc::get(&context));
   module->getContext()->loadDialect<mlir::func::FuncDialect>();
   module->getContext()->loadDialect<mlir::stablehlo::StablehloDialect>();
-  module->getContext()->loadDialect<mlir::quant::QuantizationDialect>();
+  module->getContext()->loadDialect<mlir::quant::QuantDialect>();
   module->setName("test_module");
 
   /** create function **/

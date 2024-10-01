@@ -17,6 +17,8 @@ limitations under the License.
 
 #include "mlir/Bytecode/BytecodeWriter.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Diagnostics.h"
+#include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OwningOpRef.h"
 #include "mlir/Parser/Parser.h"
@@ -71,6 +73,9 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
   context->loadDialect<vhlo::VhloDialect>();
   auto module = parseSourceString<ModuleOp>(sourceStr, context);
   if (!module) {
+    emitError(UnknownLoc::get(context))
+        << "failed to deserialize portable artifact using StableHLO_v"
+        << vhlo::Version::getCurrentVersion();
     return nullptr;
   }
 
