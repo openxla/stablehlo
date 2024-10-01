@@ -17,6 +17,8 @@ limitations under the License.
 
 #include "mlir/Bytecode/BytecodeWriter.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Diagnostics.h"
+#include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OwningOpRef.h"
 #include "mlir/Parser/Parser.h"
@@ -26,8 +28,6 @@ limitations under the License.
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
-#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/Diagnostics.h"
-#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/Location.h"
 
 namespace mlir {
 namespace stablehlo {

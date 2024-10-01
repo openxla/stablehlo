@@ -1,5 +1,6 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=1.5.0' --verify-diagnostics --split-input-file %s
 
+// expected-error @-3 {{failed to convert VHLO to v1.5.0}}
 func.func @dot_general_algorithm(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -> tensor<2x2x2xi64> {
   // expected-error @+1 {{failed to legalize operation 'vhlo.dot_general_v2' that was explicitly marked illegal}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
@@ -11,6 +12,7 @@ func.func @dot_general_algorithm(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi
 
 // -----
 
+// expected-error @-3 {{failed to convert VHLO to v1.5.0}}
 // expected-error @+1 {{failed to legalize operation 'vhlo.func_v1' that was explicitly marked illegal}}
 func.func @none_type() attributes {stablehlo.attr = none } {
   return
@@ -18,6 +20,7 @@ func.func @none_type() attributes {stablehlo.attr = none } {
 
 // -----
 
+// expected-error @-3 {{failed to convert VHLO to v1.5.0}}
 // expected-error @+1 {{failed to legalize operation 'vhlo.func_v1' that was explicitly marked illegal}}
 func.func @tf32_type() attributes {stablehlo.attr = tf32 } {
   return

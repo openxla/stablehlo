@@ -5,9 +5,9 @@
 // The bytecode file should not break, as it is a portable artifact with full
 // backward compatibility.
 
-// CHECK:      unregistered operation 'vhlo.constant_v99' found in dialect ('vhlo') that does not allow unknown operations
-// CHECK-NEXT: note: in bytecode version 6 produced by: StableHLO_v2.0.0
-// CHECK-NEXT: failed to deserialize portable artifact using StableHLO_v1.7.5
+// CHECK: error: unregistered operation 'vhlo.constant_v99' found in dialect ('vhlo') that does not allow unknown operations
+// CHECK: note: in bytecode version 6 produced by: StableHLO_v2.0.0
+// CHECK: error: failed to deserialize portable artifact using StableHLO_v{{.*}}
 vhlo.func_v1 @main() -> (!vhlo.tensor_v1<!vhlo.f32_v1>) {
   %0 = "vhlo.constant_v99"() <{value = #vhlo.tensor_v1<dense<1.000000e+00> : tensor<f32>>}> : () -> !vhlo.tensor_v1<!vhlo.f32_v1>
   "vhlo.return_v1"(%0) : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> ()
