@@ -22,8 +22,11 @@ limitations under the License.
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/MathExtras.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
@@ -75,6 +78,42 @@ SmallVector<int64_t> mergeSortedDims(ArrayRef<int64_t> dims1,
   return result;
 }
 
+bool fitsInIntegralType(int64_t size, IntegerType type) {
+  if (type.isUnsigned()) {
+    return llvm::isUIntN(type.getWidth(), size);
+  } else {
+    return llvm::isIntN(type.getWidth(), size);
+  }
+}
+
+// If `type` is an integer type in which `size` doesn't fit, promote it to i32
+// or i64 (depending on `size`).
+Type promoteTypeForSize(Type type, int64_t size, OpBuilder &builder) {
+  // Gather/Scatter should have an integer type, but we check just in case.
+  auto intType = dyn_cast<IntegerType>(type);
+  if (!intType || fitsInIntegralType(size, intType)) {
+    return type;
+  }
+  if (fitsInIntegralType(size, builder.getI32Type())) {
+    return builder.getI32Type();
+  }
+  return builder.getI64Type();
+}
+
+// If `indices_batching_dims` and `updated_index_map` are both sorted, then the
+// `indices_are_sorted` property is preserved.
+//
+// This is because each concatenated iota is monotonically increasing, sorted
+// indices batching dims mean their order corresponds to the order of batching
+// dims in the operand, and a sorted updated start index map means the order of
+// the index vector dim corresponds to the order of operand dims.
+bool getUpdatedIndicesAreSorted(bool indices_are_sorted,
+                                ArrayRef<int64_t> indices_batching_dims,
+                                ArrayRef<int64_t> updated_index_map) {
+  return indices_are_sorted && llvm::is_sorted(indices_batching_dims) &&
+         llvm::is_sorted(updated_index_map);
+}
+
 // Returns an updated indices tensor such that an `IotaOp` is prepended for each
 // dim in `indicesBatchingDims` with a `ConcatenateOp`.
 //
@@ -85,16 +124,31 @@ Value createConcatIndices(Value indices, int64_t indexVectorDim,
                           PatternRewriter &rewriter) {
   Location loc = indices.getLoc();
   auto indicesType = cast<RankedTensorType>(indices.getType());
-  bool indexVectorDimOnLastDim = indexVectorDim == indicesType.getRank();
+  Type elementType = indicesType.getElementType();
 
+  // The batching dim sizes might not fit in the existing element type,
+  // in which case we need to promote it.
+  for (int64_t batchingDim : indicesBatchingDims) {
+    elementType = promoteTypeForSize(
+        elementType, indicesType.getDimSize(batchingDim), rewriter);
+  }
+  if (elementType != indicesType.getElementType()) {
+    indicesType = RankedTensorType::get(indicesType.getShape(), elementType);
+    indices = rewriter.create<ConvertOp>(loc, indicesType, indices);
+  }
+
+  bool indexVectorDimOnLastDim = indexVectorDim == indicesType.getRank();
   SmallVector<int64_t> iotaShape(indicesType.getShape());
   if (indexVectorDimOnLastDim) {
     iotaShape.push_back(1);
   } else {
     iotaShape[indexVectorDim] = 1;
   }
-  auto iotaType =
-      RankedTensorType::get(iotaShape, indicesType.getElementType());
+  auto iotaType = RankedTensorType::get(iotaShape, elementType);
+
+  if (indexVectorDimOnLastDim) {
+    indices = rewriter.create<ReshapeOp>(loc, iotaType, indices);
+  }
 
   SmallVector<Value> indicesToConcat;
   indicesToConcat.reserve(indicesBatchingDims.size() + 1);
@@ -102,12 +156,7 @@ Value createConcatIndices(Value indices, int64_t indexVectorDim,
     indicesToConcat.push_back(
         rewriter.create<IotaOp>(loc, iotaType, batchingDim));
   }
-  if (indexVectorDimOnLastDim) {
-    indicesToConcat.push_back(
-        rewriter.create<ReshapeOp>(loc, iotaType, indices));
-  } else {
-    indicesToConcat.push_back(indices);
-  }
+  indicesToConcat.push_back(indices);
   return rewriter.create<ConcatenateOp>(loc, indicesToConcat, indexVectorDim);
 }
 
@@ -125,26 +174,37 @@ class GatherWithBatchingDimsExpander : public OpRewritePattern<GatherOp> {
                                 PatternRewriter &rewriter) const override {
     GatherDimensionNumbersAttr dimNumbers = op.getDimensionNumbers();
     ArrayRef<int64_t> operandBatchingDims = dimNumbers.getOperandBatchingDims();
-    if (operandBatchingDims.empty())
+    ArrayRef<int64_t> startIndicesBatchingDims =
+        dimNumbers.getStartIndicesBatchingDims();
+    if (operandBatchingDims.empty()) {
       return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
         diag << "gather op has no batching dims";
       });
+    }
+
+    if (!op.getStartIndices().getType().hasStaticShape()) {
+      return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
+        diag << "gather op has start indices with dynamic shape, can't expand";
+      });
+    }
 
     SmallVector<int64_t> newCollapsedSliceDims = mergeSortedDims(
         operandBatchingDims, dimNumbers.getCollapsedSliceDims());
     SmallVector<int64_t> newStartIndexMap =
         llvm::to_vector(llvm::concat<const int64_t>(
             operandBatchingDims, dimNumbers.getStartIndexMap()));
-    Value newIndices = createConcatIndices(
-        op.getStartIndices(), dimNumbers.getIndexVectorDim(),
-        dimNumbers.getStartIndicesBatchingDims(), rewriter);
+    Value newIndices = createConcatIndices(op.getStartIndices(),
+                                           dimNumbers.getIndexVectorDim(),
+                                           startIndicesBatchingDims, rewriter);
     rewriter.replaceOpWithNewOp<GatherOp>(
         op, op.getOperand(), newIndices,
         GatherDimensionNumbersAttr::get(
             op.getContext(), dimNumbers.getOffsetDims(), newCollapsedSliceDims,
             /*operandBatchingDims=*/{}, /*startIndicesBatchingDims=*/{},
             newStartIndexMap, dimNumbers.getIndexVectorDim()),
-        op.getSliceSizes(), /*indicesAreSorted=*/false);
+        op.getSliceSizes(),
+        getUpdatedIndicesAreSorted(op.getIndicesAreSorted(),
+                                   startIndicesBatchingDims, newStartIndexMap));
 
     return success();
   }
@@ -160,10 +220,19 @@ class ScatterWithBatchingDimsExpander : public OpRewritePattern<ScatterOp> {
                                 PatternRewriter &rewriter) const override {
     ScatterDimensionNumbersAttr dimNumbers = op.getScatterDimensionNumbers();
     ArrayRef<int64_t> inputBatchingDims = dimNumbers.getInputBatchingDims();
-    if (inputBatchingDims.empty())
+    ArrayRef<int64_t> scatterIndicesBatchingDims =
+        dimNumbers.getScatterIndicesBatchingDims();
+    if (inputBatchingDims.empty()) {
       return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
         diag << "scatter op has no batching dims";
       });
+    }
+
+    if (!op.getScatterIndices().getType().hasStaticShape()) {
+      return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
+        diag << "gather op has start indices with dynamic shape, can't expand";
+      });
+    }
 
     SmallVector<int64_t> newInsertedWindowDims =
         mergeSortedDims(inputBatchingDims, dimNumbers.getInsertedWindowDims());
@@ -172,7 +241,7 @@ class ScatterWithBatchingDimsExpander : public OpRewritePattern<ScatterOp> {
             inputBatchingDims, dimNumbers.getScatterDimsToOperandDims()));
     Value newIndices = createConcatIndices(
         op.getScatterIndices(), dimNumbers.getIndexVectorDim(),
-        dimNumbers.getScatterIndicesBatchingDims(), rewriter);
+        scatterIndicesBatchingDims, rewriter);
     auto newScatterOp = rewriter.create<ScatterOp>(
         op.getLoc(), op->getResultTypes(), op.getInputs(), newIndices,
         op.getUpdates(),
@@ -181,7 +250,10 @@ class ScatterWithBatchingDimsExpander : public OpRewritePattern<ScatterOp> {
             newInsertedWindowDims,
             /*inputBatchingDims=*/{}, /*scatterIndicesBatchingDims=*/{},
             newScatterDimsToOperandDims, dimNumbers.getIndexVectorDim()),
-        /*indicesAreSorted=*/false, op.getUniqueIndices());
+        getUpdatedIndicesAreSorted(op.getIndicesAreSorted(),
+                                   scatterIndicesBatchingDims,
+                                   newScatterDimsToOperandDims),
+        op.getUniqueIndices());
 
     newScatterOp.getUpdateComputation().takeBody(op.getUpdateComputation());
     rewriter.replaceOp(op, newScatterOp.getResults());
