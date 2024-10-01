@@ -26,6 +26,8 @@ limitations under the License.
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
+#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/Diagnostics.h"
+#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/Location.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -71,6 +73,9 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
   context->loadDialect<vhlo::VhloDialect>();
   auto module = parseSourceString<ModuleOp>(sourceStr, context);
   if (!module) {
+    emitError(UnknownLoc::get(context))
+        << "failed to deserialize portable artifact using StableHLO_v"
+        << vhlo::Version::getCurrentVersion();
     return nullptr;
   }
 

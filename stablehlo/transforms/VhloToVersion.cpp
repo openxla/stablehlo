@@ -258,8 +258,11 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
         });
 
     // Conversions within VHLO may fail if new features or ops are used.
-    if (failed(applyPartialConversion(getOperation(), target, patterns)))
+    if (failed(applyPartialConversion(getOperation(), target, patterns))) {
+      getOperation()->emitError()
+          << "failed to convert VHLO to v" << targetVersion;
       return signalPassFailure();
+    }
   }
 
  private:
