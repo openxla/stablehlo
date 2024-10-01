@@ -24,7 +24,7 @@ limitations under the License.
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LogicalResult.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Quant/IR/Quant.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectRegistry.h"
@@ -237,7 +237,7 @@ TranslateFromMLIRRegistration interpretRegistration(
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
-      registry.insert<quant::QuantizationDialect>();
+      registry.insert<quant::QuantDialect>();
       registry.insert<stablehlo::check::CheckDialect>();
       registry.insert<stablehlo::interpreter::InterpreterDialect>();
       registry.insert<stablehlo::StablehloDialect>();
