@@ -643,6 +643,58 @@ struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
   }
 };
 
+template <typename RangeType>
+DenseElementsAttr transposeType(TransposeOp& op, const RangeType& data) {
+  using ElementType = std::decay_t<decltype(*std::begin(data))>;
+
+  RankedTensorType operandType = op.getOperand().getType();
+  RankedTensorType resultType = op.getResult().getType();
+
+  const auto operandStrides = computeStrides(operandType.getShape());
+  const auto resultStrides = computeStrides(resultType.getShape());
+  const auto inversePermutation = invertPermutationVector(op.getPermutation());
+
+  SmallVector<ElementType> result;
+  result.reserve(resultType.getNumElements());
+
+  for (int64_t i = 0; i < resultType.getNumElements(); ++i) {
+    auto dstDimIndex = delinearize(i, resultStrides);
+    auto srcDimIndex = applyPermutation(dstDimIndex, inversePermutation);
+    auto srcLinearIndex = linearize(srcDimIndex, operandStrides);
+    result.push_back(data[srcLinearIndex]);
+  }
+
+  return DenseElementsAttr::get(op.getResult().getType(),
+                                ArrayRef<ElementType>(result));
+}
+
+struct EvalTransposeOpPattern : public OpRewritePattern<TransposeOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(TransposeOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+      return failure();
+
+    ElementsAttr els;
+    if (!matchPattern(op.getOperand(), m_Constant(&els)))
+      return rewriter.notifyMatchFailure(
+          op, "expected constant integer or float operand");
+
+    DenseElementsAttr resAttr;
+    if (auto data = els.tryGetValues<APInt>())
+      resAttr = transposeType(op, *data);
+    else if (auto data = els.tryGetValues<APFloat>())
+      resAttr = transposeType(op, *data);
+    else
+      return rewriter.notifyMatchFailure(op.getLoc(),
+                                         "unsupported element type");
+
+    rewriter.replaceOpWithNewOp<ConstantOp>(op, resAttr);
+    return success();
+  }
+};
+
 struct StablehloAggressiveFolderPass
     : public impl::StablehloAggressiveFolderPassBase<
           StablehloAggressiveFolderPass> {
@@ -672,6 +724,7 @@ void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
                                                bool foldFloat) {
   populateStablehloShapeFolderPatterns(patterns, context, foldFloat);
   patterns->add<EvalIotaOpPattern>(context);
+  patterns->add<EvalTransposeOpPattern>(context);
 }
 
 void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
