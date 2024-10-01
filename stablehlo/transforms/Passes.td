@@ -362,7 +362,7 @@ def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp">
   let summary = "Legalize VHLO to StableHLO.";
   let dependentDialects = [
     "mlir::func::FuncDialect",
-    "mlir::quant::QuantizationDialect",
+    "mlir::quant::QuantDialect",
     "mlir::shape::ShapeDialect",
     "mlir::stablehlo::StablehloDialect",
   ];

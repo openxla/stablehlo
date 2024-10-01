@@ -21,7 +21,7 @@ limitations under the License.
 #include <optional>
 
 #include "llvm/ADT/StringRef.h"
-#include "mlir/Dialect/Quant/QuantTypes.h"
+#include "mlir/Dialect/Quant/IR/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
