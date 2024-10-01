@@ -53,6 +53,8 @@ toc:
     path: /stablehlo/type_inference
   - title: The VHLO dialect
     path: /stablehlo/vhlo
+  - title: IDE setup tips
+    path: /stablehlo/ide
   - title: StableHLO Passes
     path: /stablehlo/generated/stablehlo_passes
   - title: StableHLO Interpreter Passes
