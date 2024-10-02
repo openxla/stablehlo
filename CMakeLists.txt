@@ -109,20 +109,17 @@ if(STABLEHLO_STANDALONE_BUILD)
   set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
   list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
   list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-
-  include(TableGen)
-  include(AddLLVM)
-  include(AddMLIR)
   include(HandleLLVMOptions)
 endif()
 
 if(STABLEHLO_BUILD_EMBEDDED)
   message(STATUS "Building StableHLO embedded in another project")
-  include(TableGen)
-  include(AddLLVM)
-  include(AddMLIR)
   include(HandleLLVMOptions)
 endif()
+
+include(TableGen)
+include(AddLLVM)
+include(AddMLIR)
 
 # Add the CMake modules specific to StableHLO
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
