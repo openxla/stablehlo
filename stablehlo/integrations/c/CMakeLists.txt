@@ -28,6 +28,8 @@ add_mlir_public_c_api_library(ChloCAPI
 
   LINK_LIBS PUBLIC
   ChloOps
+
+  LINK_COMPONENTS PUBLIC
   LLVMSupport
 )
 
@@ -40,7 +42,6 @@ add_mlir_public_c_api_library(StablehloCAPI
   StablehloTypes.cpp
 
   LINK_LIBS PUBLIC
-  LLVMSupport
   MLIRCAPIIR
   MLIRIR
   MLIRSupport
@@ -51,6 +52,9 @@ add_mlir_public_c_api_library(StablehloCAPI
   StablehloReferenceConfiguration
   StablehloSerialization
   Version
+
+  LINK_COMPONENTS PUBLIC
+  LLVMSupport
 )
 
 add_mlir_public_c_api_library(VhloCAPI
