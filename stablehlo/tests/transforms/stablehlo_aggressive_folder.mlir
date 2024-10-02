@@ -163,3 +163,14 @@ func.func @eval_transpose_zerorank() -> tensor<i32> {
   %1 = stablehlo.transpose %0, dims = [] : (tensor<i32>) -> tensor<i32>
   func.return %1 : tensor<i32>
 }
+
+// -----
+
+// CHECK-LABEL: func @eval_transpose_splat
+func.func @eval_transpose_splat() -> (tensor<10x3x1xi32>) {
+  // CHECK: [[RESULT0:%.*]] = stablehlo.constant dense<1> : tensor<10x3x1xi32>
+  // CHECK: return [[RESULT0]]
+  %0 = stablehlo.constant dense<1> : tensor<3x1x10xi32>
+  %1 = stablehlo.transpose %0, dims = [2, 0, 1] : (tensor<3x1x10xi32>) -> tensor<10x3x1xi32>
+  func.return %1 : tensor<10x3x1xi32>
+}

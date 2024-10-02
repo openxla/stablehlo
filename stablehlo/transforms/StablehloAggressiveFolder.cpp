@@ -664,8 +664,7 @@ DenseElementsAttr transposeType(TransposeOp& op, const RangeType& data) {
     result.push_back(data[srcLinearIndex]);
   }
 
-  return DenseElementsAttr::get(op.getResult().getType(),
-                                ArrayRef<ElementType>(result));
+  return DenseElementsAttr::get(resultType, ArrayRef<ElementType>(result));
 }
 
 struct EvalTransposeOpPattern : public OpRewritePattern<TransposeOp> {
