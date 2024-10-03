@@ -28,7 +28,6 @@ add_mlir_public_c_api_library(ChloCAPI
 
   LINK_LIBS PUBLIC
   ChloOps
-  LLVMSupport
 )
 
 add_mlir_public_c_api_library(StablehloCAPI
@@ -40,7 +39,6 @@ add_mlir_public_c_api_library(StablehloCAPI
   StablehloTypes.cpp
 
   LINK_LIBS PUBLIC
-  LLVMSupport
   MLIRCAPIIR
   MLIRIR
   MLIRSupport

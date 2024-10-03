@@ -169,7 +169,6 @@ add_mlir_library(StablehloReferenceProcessGrid
   ProcessGrid.cpp
 
   LINK_LIBS PUBLIC
-  LLVMSupport
   MLIRIR
   MLIRSupport
   StablehloReferenceTensor
