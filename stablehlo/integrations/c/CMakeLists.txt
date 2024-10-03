@@ -41,7 +41,7 @@ add_mlir_public_c_api_library(StablehloCAPI
   LINK_LIBS PUBLIC
   MLIRCAPIIR
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
   StablehloOps
   StablehloPasses
   StablehloPortableApi

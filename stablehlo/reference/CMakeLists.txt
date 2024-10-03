@@ -20,7 +20,7 @@ add_mlir_library(StablehloReferenceApi
   MLIRIR
   MLIRParser
   MLIRPass
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
   InterpreterOps
   StablehloPasses
   StablehloReferenceConfiguration
@@ -40,7 +40,7 @@ add_mlir_library(StablehloReferenceAxes
 
   LINK_LIBS PUBLIC
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
 )
 
 add_mlir_library(StablehloReferenceConfiguration
@@ -48,7 +48,7 @@ add_mlir_library(StablehloReferenceConfiguration
   Configuration.cpp
 
   LINK_LIBS PUBLIC
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
   StablehloReferenceErrors
   StablehloReferenceProcess
   StablehloReferenceScope
@@ -60,7 +60,7 @@ add_mlir_library(StablehloReferenceElement
 
   LINK_LIBS PUBLIC
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
   StablehloReferenceTypes
 )
 
@@ -70,7 +70,7 @@ add_mlir_library(StablehloReferenceErrors
 
   LINK_LIBS PUBLIC
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
 )
 
 add_mlir_library(StablehloReferenceIndex
@@ -79,7 +79,7 @@ add_mlir_library(StablehloReferenceIndex
 
   LINK_LIBS PUBLIC
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
 )
 
 set(LLVM_TARGET_DEFINITIONS InterpreterOps.td)
@@ -102,7 +102,7 @@ add_mlir_dialect_library(InterpreterOps
   StablehloReferenceOps
   StablehloReferenceProcessGrid
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
 )
 
 set(LLVM_TARGET_DEFINITIONS InterpreterPasses.td)
@@ -120,7 +120,7 @@ add_mlir_library(InterpreterPasses
   InterpreterOps
   MLIRIR
   MLIRPass
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
   MLIRTransforms
   MLIRTransformUtils
 )
@@ -170,7 +170,7 @@ add_mlir_library(StablehloReferenceProcessGrid
 
   LINK_LIBS PUBLIC
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
   StablehloReferenceTensor
 )
 
@@ -182,7 +182,7 @@ add_mlir_library(StablehloReferenceScope
   StablehloReferenceValue
   StablehloReferenceTensor
   StablehloReferenceToken
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
 )
 
 add_mlir_library(StablehloReferenceTensor
@@ -204,7 +204,7 @@ add_mlir_library(StablehloReferenceToken
 
   LINK_LIBS PUBLIC
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
   StablehloOps
 )
 
@@ -214,7 +214,7 @@ add_mlir_library(StablehloReferenceTypes
 
   LINK_LIBS PUBLIC
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
 )
 
 add_mlir_library(StablehloReferenceValue
@@ -223,7 +223,7 @@ add_mlir_library(StablehloReferenceValue
 
   LINK_LIBS PUBLIC
   MLIRIR
-  MLIRSupport
+  MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
   StablehloReferenceTensor
   StablehloReferenceToken
 )
