@@ -667,6 +667,9 @@ DenseElementsAttr transposeType(TransposeOp& op, const RangeType& data) {
   return DenseElementsAttr::get(resultType, ArrayRef<ElementType>(result));
 }
 
+// transpose(constant) => constant with permuted dimensions
+// This covers ranked tensor types with 0 dimensions(zero elements) and 0
+// rank(scalar), as well as splat values.
 struct EvalTransposeOpPattern : public OpRewritePattern<TransposeOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(TransposeOp op,
