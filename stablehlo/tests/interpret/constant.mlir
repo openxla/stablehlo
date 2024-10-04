@@ -96,6 +96,30 @@ func.func @constant_op_test_ui64() {
 
 // -----
 
+func.func @constant_op_test_f4_e2m1fn() {
+  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, 0x07, 0x0F, 0x01, 0x09]> : tensor<10xf4E2M1FN>
+  check.expect_almost_eq_const %0, dense<[0.0, -0.0, 1.0, 0.0, 0.0, 3.0, 6.0, -6.0, 0.5, -0.5]> : tensor<10xf4E2M1FN>
+  func.return
+}
+
+// -----
+
+func.func @constant_op_test_f6_e2m3fn() {
+  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, 0x1F, 0x3F, 0x01, 0x21]> : tensor<10xf6E2M3FN>
+  check.expect_almost_eq_const %0, dense<[0.0, -0.0, 1.0, 0.125, 0.125, 3.25, 7.5, -7.5, 0.125, -0.125]> : tensor<10xf6E2M3FN>
+  func.return
+}
+
+// -----
+
+func.func @constant_op_test_f6_e3m2fn() {
+  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, 0x1F, 0x3F, 0x01, 0x21]> : tensor<10xf6E3M2FN>
+  check.expect_almost_eq_const %0, dense<[0.0, -0.0, 1.0, 0.125, 0.125, 3.0, 28.0, -28.0, 0.0625, -0.0625]> : tensor<10xf6E3M2FN>
+  func.return
+}
+
+// -----
+
 func.func @constant_op_test_f8_e3m4() {
   %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, 0x7F, 0xFF, 0x01, 0x81]> : tensor<10xf8E3M4>
   check.expect_almost_eq_const %0, dense<[0.0, -0.0, 1.0, 0.125, 0.09375, 3.125, 0x7F, 0xFF, 0.015625, -0.015625]> : tensor<10xf8E3M4>
@@ -154,6 +178,14 @@ func.func @constant_op_test_f8_e5m2_fnuz() {
 func.func @constant_op_test_f8_e5m2_fnuz() {
   %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, 0x7F, 0xFF, 0x01, 0x81]> : tensor<10xf8E5M2FNUZ>
   check.expect_eq_const %0, dense<[0.0, 0.0, 1.0, 0.125, 0.1, 3.0, 57344.0, -57344.0, 7.62939e-06, -7.62939e-06]> : tensor<10xf8E5M2FNUZ>
+  func.return
+}
+
+// -----
+
+func.func @constant_op_test_f8_e8m0fnu() {
+  %0 = stablehlo.constant dense<[0.0, 1.0, 0.125, 0.1, 3.1415, 0x00, 0x80, 0xFF]> : tensor<8xf8E8M0FNU>
+  check.expect_almost_eq_const %0, dense<[0.0, 1.0, 0.125, 0.125, 4.0, 1.175490e-38, 2.0, 0xFF]> : tensor<8xf8E8M0FNU>
   func.return
 }
 
