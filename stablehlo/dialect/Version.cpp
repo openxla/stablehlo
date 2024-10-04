@@ -76,14 +76,14 @@ Version Version::fromCompatibilityRequirement(
     CompatibilityRequirement requirement) {
   // Compatibility requirement versions can be updated as needed, as long as the
   // version satisifies the requirement.
-  // The time frames used are from the date that the release was tagged on, not merged.
-  // The tag date is when the version has been verified and exported to XLA.
-  // See: https://github.com/openxla/stablehlo/tags
+  // The time frames used are from the date that the release was tagged on, not
+  // merged. The tag date is when the version has been verified and exported to
+  // XLA. See: https://github.com/openxla/stablehlo/tags
   switch (requirement) {
     case CompatibilityRequirement::NONE:
       return Version::getCurrentVersion();
     case CompatibilityRequirement::WEEK_4:
-      return Version(1, 7, 0);  // v1.7.0 - Sept 5, 2024
+      return Version(1, 7, 0);  // v1.7.0 - Sept 05, 2024
     case CompatibilityRequirement::WEEK_12:
       return Version(1, 1, 0);  // v1.1.0 - May 30, 2024
     case CompatibilityRequirement::MAX:
