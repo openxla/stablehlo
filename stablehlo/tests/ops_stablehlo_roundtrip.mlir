@@ -183,6 +183,9 @@ func.func @test_constants() {
   %cst_4 = arith.constant dense<[[1, 2], [3, 4]]> : tensor<2x2xi32>
   %cst_5 = arith.constant dense<[[3, 2], [1, 4]]> : tensor<2x2xi32>
   %cst_6 = arith.constant dense<[[1, 2], [4, 8]]> : tensor<2x2xui32>
+  %cst_18 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf4E2M1FN>
+  %cst_19 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf6E2M3FN>
+  %cst_20 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf6E3M2FN>
   %cst_17 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf8E3M4>
   %cst_7 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf8E4M3B11FNUZ>
   %cst_16 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf8E4M3>
@@ -190,6 +193,7 @@ func.func @test_constants() {
   %cst_9 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf8E4M3FNUZ>
   %cst_10 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf8E5M2>
   %cst_11 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf8E5M2FNUZ>
+  %cst_21 = arith.constant dense<[1.0, 2.0, 4.0, 8.0]> : tensor<4xf8E8M0FNU>
   %cst_12 = arith.constant dense<[1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00]> : tensor<4xbf16>
   %cst_13 = arith.constant dense<[1.0e+00, -4.0e+00, -65504.0e+00, 1.5625e-02]> : tensor<4xf16>
   %cst_14 = arith.constant dense<(1.000000e+00,0.000000e+00)> : tensor<complex<f32>>
