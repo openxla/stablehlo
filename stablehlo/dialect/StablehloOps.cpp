@@ -1517,11 +1517,51 @@ DenseI64ArrayAttr getBroadcastDimensionsFromBroadcastSizes(
       getBroadcastDimensionsFromBroadcast(broadcastSizesSize, operandRank));
 }
 
+namespace {
+
+// Check that broadcast dimensions are suitable for isSimpleBroadcast():
+// extending rank is OK for them, but for dims where rank is not extended the
+// dim sizes must match.
+//
+// Two dimensions are compatible when:
+// - they are equal, or
+// - one of them is 1.
+// and here we reject the case when only one of them is 1.
+//
+// Examples of compatible dimensions for simple broadcast:
+// - tensor<3xf32> -> tensor<1x2x3xf32>
+// - tensor<1x1xf32> -> tensor<3x1x1xf32>
+// - tensor<5x7xf32> -> tensor<1x3x5x7xf32>
+// Examples of non-compatible dimensions:
+// - tensor<3xf32> -> tensor<3x3xf32>
+// - tensor<3xf32> -> tensor<1x3x3xf32>
+// - tensor<1x1xf32> -> tensor<3x2x2xf32>
+// - tensor<3x1x1xf32> -> tensor<1x3x5x7xf32>
+// - tensor<1x5x7xf32> -> tensor<1x3x5x7xf32>
+bool haveSimpleCompatibleDimensions(RankedTensorType operand,
+                                    RankedTensorType result) {
+  auto operandTy = cast<ShapedType>(operand);
+  auto resultTy = cast<ShapedType>(result);
+  ArrayRef<int64_t> operandShape = operandTy.getShape();
+  ArrayRef<int64_t> resultShape = resultTy.getShape();
+  bool isCompatible = true;
+  for (auto [operandDim, resultDim] : llvm::zip(operandShape, resultShape))
+    isCompatible &= operandDim == resultDim;
+  return isCompatible;
+}
+}  // namespace
+
 bool BroadcastInDimOp::isSimpleBroadcast() {
-  auto operandRank = getOperand().getType().getRank();
-  auto broadcastSizesSize = getType().getRank() - operandRank;
-  return llvm::to_vector(getBroadcastDimensions()) ==
-         getBroadcastDimensionsFromBroadcast(broadcastSizesSize, operandRank);
+  auto operandTy = getOperand().getType();
+  auto resultTy = getType();
+  auto operandRank = operandTy.getRank();
+  auto broadcastSizesSize = resultTy.getRank() - operandRank;
+  bool haveCompatibleDimensions =
+      haveSimpleCompatibleDimensions(operandTy, resultTy);
+  return haveCompatibleDimensions &&
+         llvm::to_vector(getBroadcastDimensions()) ==
+             getBroadcastDimensionsFromBroadcast(broadcastSizesSize,
+                                                 operandRank);
 }
 
 //===----------------------------------------------------------------------===//
