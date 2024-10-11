@@ -153,6 +153,19 @@ def : Pat<(StableHLO_DynamicBroadcastInDimOp:$op $operand, $shape, $dims, $expan
           (StableHLO_ConvertOpWithShape $op, $operand),
           [(AllDimsNonExpanding $nonexpanding, $op)]>;
 
+// Pattern: dynamic_broadcast_in_dim(dynamic_reshape(X, shape), shape) -> dynamic_reshape(X, shape)
+// If sharing same shape operand, is dynamic reshape.
+def : Pat<(StableHLO_DynamicBroadcastInDimOp
+            (StableHLO_DynamicReshapeOp $operand, $shape), $shape, $dims, $expanding, $nonexpanding),
+          (StableHLO_DynamicReshapeOp $operand, $shape)>;
+
+
+////////
+// DynamicReshapeOp
+
+// Pattern: dynamic_reshape(dynamic_reshape(X, _), shape)) -> dynamic_reshape(X, shape)
+def  : Pat<(StableHLO_DynamicReshapeOp (StableHLO_DynamicReshapeOp $operand, $shape_p), $shape),
+           (StableHLO_DynamicReshapeOp $operand, $shape)>;
 
 ////////
 // ImagOp
@@ -234,9 +247,8 @@ def : Pat<(StableHLO_ReshapeOp:$reshape $operand),
 
 // Pattern: subtract(X, X) -> 0
 // Must be static shape, otherwise would require broadcasting via CHLO_ConstantLike
-def : Pat<(StableHLO_SubtractOp AnyStaticShapeTensor:$lhs, AnyStaticShapeTensor:$rhs),
-          (StableHLO_ConstantLike<"0"> $lhs),
-          [(OperandsEqual $lhs, $rhs)]>;
+def : Pat<(StableHLO_SubtractOp AnyStaticShapeTensor:$operand, $operand),
+          (StableHLO_ConstantLike<"0"> $operand)>;
 
 // Pattern: subtract(X, 0) -> X
 def : Pat<(StableHLO_SubtractOp $lhs, (StableHLO_ConstantOp AnyZero:$value)),
@@ -265,6 +277,5 @@ def : CanonicalizeConstantToRhs<StableHLO_XorOp>;
 // To consider: xor(X, X) -> 0
 // Unclear if this is beneficial on hardware vs adding another constant
 //
-// def : Pat<(StableHLO_XorOp AnyStaticShapeTensor:$lhs, AnyStaticShapeTensor:$rhs),
-//           (StableHLO_ConstantLike<"0"> $lhs),
-//           [(OperandsEqual $lhs, $rhs)]>;
+// def : Pat<(StableHLO_XorOp AnyStaticShapeTensor:$operand, $operand),
+//           (StableHLO_ConstantLike<"0"> $operand)>;

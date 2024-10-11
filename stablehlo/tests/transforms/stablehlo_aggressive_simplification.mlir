@@ -107,6 +107,13 @@ func.func @broadcast_in_dim_reshape(%arg0: tensor<3x6xi32>)
   return %0, %5 : tensor<1x3x6xi32>, tensor<3x6x1xi32>
 }
 
+// CHECK-LABEL: func.func @broadcast_in_dim_not_identity_broadcasts
+func.func @broadcast_in_dim_not_identity_broadcasts(%arg0: tensor<1x2xf32>) -> tensor<2x2xf32> {
+  // CHECK: stablehlo.broadcast_in_dim
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<1x2xf32>) -> tensor<2x2xf32>
+  return %0 : tensor<2x2xf32>
+}
+
 // -----
 
 /////////
@@ -205,6 +212,16 @@ func.func @dynamic_broadcast_in_dim_all_dims_non_expanding(%arg0: tensor<?xf32>,
     known_nonexpanding_dimensions = array<i64: 0>
   } : (tensor<?xf32>, tensor<1xindex>) -> tensor<?xf32>
   func.return %1 : tensor<?xf32>
+}
+
+// CHECK-LABEL: @dynamic_broadcast_of_dynamic_reshape_same_shape
+func.func @dynamic_broadcast_of_dynamic_reshape_same_shape(%arg0: tensor<?xf32>, %arg1: tensor<2xi64>) -> tensor<?x?xf32> {
+  %0 = stablehlo.dynamic_reshape %arg0, %arg1 : (tensor<?xf32>, tensor<2xi64>) -> tensor<?x?xf32>
+  %1 = stablehlo.dynamic_broadcast_in_dim %0, %arg1, dims = [0, 1] : (tensor<?x?xf32>, tensor<2xi64>) -> tensor<?x?xf32>
+
+  // CHECK-NOT: stablehlo.dynamic_broadcast_in_dim
+  // CHECK: stablehlo.dynamic_reshape %arg0, %arg1
+  return %1 : tensor<?x?xf32>
 }
 
 // CHECK-LABEL: func @dynamic_broadcast_in_dim_op_not_actually_dynamic
