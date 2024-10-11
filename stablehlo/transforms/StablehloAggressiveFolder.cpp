@@ -14,6 +14,7 @@ limitations under the License.
 
 #include <cstddef>
 #include <cstdint>
+#include <numeric>
 #include <utility>
 
 #include "llvm/ADT/APInt.h"
@@ -56,6 +57,8 @@ namespace stablehlo {
 
 namespace {
 
+constexpr int64_t kFoldOpEltLimit = 65536;
+
 // DenseElementsAttr can be constructed from ArrayRef<APInt> but not from
 // ArrayRef<APSInt>. This helper bridges the gap.
 DenseIntElementsAttr getTensorAttr(ShapedType type, ArrayRef<APSInt> values) {
@@ -83,6 +86,26 @@ LogicalResult validateResultTypeForEval(PatternRewriter& rewriter,
     return rewriter.notifyMatchFailure(
         op, "unable to fold dynamically shaped result type to constant");
   return success();
+}
+
+/// Binary constant folder that used a generic folder function to handle both
+/// ints and floats.
+template <typename Fn>
+static TypedAttr foldBinaryOpIntOrFloat(TypedAttr lhs, TypedAttr rhs,
+                                        Fn&& folder) {
+  Attribute operands[2] = {lhs, rhs};
+  Type elemTy = getElementTypeOrSelf(lhs);
+
+  Attribute res;
+  if (isa<IntegerType>(elemTy))
+    res = constFoldBinaryOp<IntegerAttr, IntegerAttr::ValueType, void>(operands,
+                                                                       folder);
+  if (isa<FloatType>(elemTy))
+    res = constFoldBinaryOp<FloatAttr, FloatAttr::ValueType, void>(operands,
+                                                                   folder);
+  if (res) return cast<TypedAttr>(res);
+
+  return nullptr;
 }
 
 template <class AttrElementT, class TargetAttrElementT, class CalculationT,
@@ -226,7 +249,31 @@ LogicalResult evalElementwise(PatternRewriter& rewriter, OpType op,
   return success();
 }
 
-struct EvalAddOpPattern : public OpRewritePattern<AddOp> {
+struct FoldAddOpPattern final : OpRewritePattern<mlir::stablehlo::AddOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::AddOp op,
+                                PatternRewriter& rewriter) const override {
+    Value lhs = op.getLhs();
+    Value rhs = op.getRhs();
+
+    // Pattern: add(cst,cst) -> cst
+    TypedAttr lhsAttr, rhsAttr;
+    matchPattern(lhs, m_Constant(&lhsAttr));
+    matchPattern(rhs, m_Constant(&rhsAttr));
+
+    if (TypedAttr res;
+        lhsAttr && rhsAttr &&
+        (res = foldBinaryOpIntOrFloat(lhsAttr, rhsAttr, std::plus<>{}))) {
+      rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res);
+      return success();
+    }
+
+    return failure();
+  }
+};
+
+struct EvalAddOpShapePattern : public OpRewritePattern<AddOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(AddOp op,
                                 PatternRewriter& rewriter) const override {
@@ -246,6 +293,26 @@ struct EvalAndOpPattern : public OpRewritePattern<AndOp> {
     return evalElementwise(rewriter, op, [&](APSInt lhsInt, APSInt rhsInt) {
       return getAPSInt(resultType.getElementType(), lhsInt != 0 && rhsInt != 0);
     });
+  }
+};
+
+// Pattern: broadcast_in_dim(splat, _) -> constant(splat)
+struct FoldBroadcastInDimSplatPattern final
+    : OpRewritePattern<mlir::stablehlo::BroadcastInDimOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::BroadcastInDimOp op,
+                                PatternRewriter& rewriter) const override {
+    TypedValue<RankedTensorType> operand = op.getOperand();
+
+    if (SplatElementsAttr cstAttr;
+        matchPattern(operand, m_Constant(&cstAttr))) {
+      rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
+          op, SplatElementsAttr::get(op.getType(),
+                                     cstAttr.getSplatValue<Attribute>()));
+      return success();
+    }
+    return failure();
   }
 };
 
@@ -290,7 +357,8 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
   LogicalResult matchAndRewrite(CompareOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
+    auto kind = op.getCompareType();
+    return evalElementwise(rewriter, op, [&](APInt lhs, APInt rhs) {
       bool result = false;
       switch (op.getComparisonDirection()) {
         case ComparisonDirection::EQ:
@@ -300,20 +368,66 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
           result = lhs != rhs;
           break;
         case ComparisonDirection::GE:
-          result = lhs >= rhs;
+          result = kind == ComparisonType::SIGNED ? lhs.sge(rhs) : lhs.uge(rhs);
           break;
         case ComparisonDirection::GT:
-          result = lhs > rhs;
+          result = kind == ComparisonType::SIGNED ? lhs.sgt(rhs) : lhs.ugt(rhs);
           break;
         case ComparisonDirection::LE:
-          result = lhs <= rhs;
+          result = kind == ComparisonType::SIGNED ? lhs.sle(rhs) : lhs.ule(rhs);
           break;
         case ComparisonDirection::LT:
-          result = lhs < rhs;
+          result = kind == ComparisonType::SIGNED ? lhs.slt(rhs) : lhs.ult(rhs);
           break;
       }
       return getAPSInt(resultType.getElementType(), result);
     });
+  }
+};
+
+//////////////////////////////////
+// ConcatenateOp
+/////////////////////////////////
+
+struct FoldConcatenateOpPattern final
+    : OpRewritePattern<mlir::stablehlo::ConcatenateOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::ConcatenateOp op,
+                                PatternRewriter& rewriter) const override {
+    RankedTensorType type = op.getType();
+    if (!type.hasStaticShape()) return failure();
+
+    size_t numElems = type.getNumElements();
+    if (numElems > kFoldOpEltLimit) return failure();
+
+    // Fold concatenate when all inputs are constants.
+    OperandRange inputs = op.getInputs();
+    SmallVector<DenseElementsAttr> constants(inputs.size());
+    for (auto [input, constant] : llvm::zip_equal(inputs, constants)) {
+      if (!matchPattern(input, m_Constant(&constant))) return failure();
+    }
+
+    uint64_t dim = op.getDimension();
+    ArrayRef<int64_t> shape = type.getShape();
+    int64_t topSize = std::accumulate(shape.begin(), shape.begin() + dim,
+                                      int64_t{1}, std::multiplies<>{});
+
+    SmallVector<Attribute> newElems;
+    newElems.reserve(numElems);
+
+    for (int64_t i = 0; i != topSize; ++i) {
+      for (ElementsAttr attr : constants) {
+        size_t bottomSize = attr.getNumElements() / topSize;
+        auto begin = attr.value_begin<Attribute>() + (i * bottomSize);
+        newElems.append(begin, begin + bottomSize);
+      }
+    }
+
+    assert(newElems.size() == numElems);
+    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
+        op, DenseElementsAttr::get(op.getType(), newElems));
+    return success();
   }
 };
 
@@ -426,6 +540,40 @@ struct EvalMinOpPattern : public OpRewritePattern<MinOp> {
   }
 };
 
+struct FoldMulOpPattern final : OpRewritePattern<mlir::stablehlo::MulOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::MulOp op,
+                                PatternRewriter& rewriter) const override {
+    auto elemType = op.getType().getElementType();
+    Value lhs = op.getLhs();
+    Value rhs = op.getRhs();
+
+    TypedAttr lhsAttr;
+    matchPattern(lhs, m_Constant(&lhsAttr));
+
+    TypedAttr rhsAttr;
+    matchPattern(rhs, m_Constant(&rhsAttr));
+
+    // The canonical form has the constant operand as the RHS.
+    if (isa<IntegerType>(elemType) && lhsAttr && !rhsAttr) {
+      rewriter.modifyOpInPlace(op, [op, lhs, rhs] {
+        op->setOperands(ValueRange{rhs, lhs});
+      });
+      return success();
+    }
+
+    if (TypedAttr res;
+        lhsAttr && rhsAttr &&
+        (res = foldBinaryOpIntOrFloat(lhsAttr, rhsAttr, std::multiplies<>{}))) {
+      rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res);
+      return success();
+    }
+
+    return failure();
+  }
+};
+
 struct EvalMulOpPattern : public OpRewritePattern<MulOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(MulOp op,
@@ -466,6 +614,7 @@ struct EvalReshapeOpPattern : public OpRewritePattern<ReshapeOp> {
     if (failed(validateResultTypeForEval(rewriter, op, resultType)))
       return failure();
 
+    // Pattern: reshape(cst, shape) -> cst
     DenseIntElementsAttr attr;
     if (!matchPattern(op.getOperand(), m_Constant(&attr)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
@@ -586,6 +735,30 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
 
     rewriter.replaceOpWithNewOp<ConstantOp>(op, resAttr);
     return success();
+  }
+};
+
+struct FoldSubtractOpPattern final
+    : OpRewritePattern<mlir::stablehlo::SubtractOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::SubtractOp op,
+                                PatternRewriter& rewriter) const override {
+    Value lhs = op.getLhs();
+    Value rhs = op.getRhs();
+
+    TypedAttr lhsAttr, rhsAttr;
+    matchPattern(lhs, m_Constant(&lhsAttr));
+    matchPattern(rhs, m_Constant(&rhsAttr));
+
+    if (TypedAttr res;
+        lhsAttr && rhsAttr &&
+        (res = foldBinaryOpIntOrFloat(lhsAttr, rhsAttr, std::minus<>{}))) {
+      rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res);
+      return success();
+    }
+
+    return failure();
   }
 };
 
@@ -727,12 +900,19 @@ void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
   populateStablehloShapeFolderPatterns(patterns, context, foldFloat);
   patterns->add<EvalIotaOpPattern>(context);
   patterns->add<EvalTransposeOpPattern>(context);
+
+  // TODO: Consolidate FoldOp patterns
+  // One is used by Shape Refinement, the other is a generic folder.
+  patterns
+      ->add<FoldAddOpPattern, FoldBroadcastInDimSplatPattern,
+            FoldConcatenateOpPattern, FoldMulOpPattern, FoldSubtractOpPattern>(
+          context);
 }
 
 void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
                                           MLIRContext* context,
                                           bool foldFloat) {
-  patterns->add<EvalAddOpPattern>(context);
+  patterns->add<EvalAddOpShapePattern>(context);
   patterns->add<EvalAndOpPattern>(context);
   patterns->add<EvalBroadcastInDimOpPattern>(context);
   patterns->add<EvalClampOpPattern>(context);
