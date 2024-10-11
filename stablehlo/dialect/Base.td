@@ -42,8 +42,9 @@ def HLO_SInt : SignlessIntOfWidths<[2, 4, 8, 16, 32, 64]>;
 def HLO_UInt : UnsignedIntOfWidths<[2, 4, 8, 16, 32, 64]>;
 def HLO_Int : AnyTypeOf<[HLO_SInt, HLO_UInt]>;
 
-def HLO_Float : AnyTypeOf<[F8E3M4, F8E4M3, F8E4M3FN, F8E4M3FNUZ, F8E4M3B11FNUZ,
-                           F8E5M2, F8E5M2FNUZ, F16, F32, F64, BF16]>;
+def HLO_Float : AnyTypeOf<[F4E2M1FN, F6E2M3FN, F6E3M2FN, F8E3M4, F8E4M3,
+                           F8E4M3FN, F8E4M3FNUZ, F8E4M3B11FNUZ, F8E5M2,
+                           F8E5M2FNUZ, F8E8M0FNU, F16, F32, F64, BF16]>;
 def HLO_Float32Or64 : AnyTypeOf<[F32, F64]>;
 
 def HLO_Complex : Complex<AnyTypeOf<[F32, F64]>>;

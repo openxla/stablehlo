@@ -118,40 +118,13 @@ Element Tensor::get(const Index &index) const {
       getSizeInBytes(elementType) * flattenIndex(getShape(), index);
 
   // Handle floating-point types.
-  if (elementType.isFloat8E3M4()) {
+  if (isSupportedFloatType(elementType) &&
+      cast<FloatType>(elementType).getWidth() <= 8) {
     auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
-    return Element(elementType, APFloat(llvm::APFloatBase::Float8E3M4(),
-                                        APInt(8, *elementData)));
-  }
-  if (elementType.isFloat8E4M3B11FNUZ()) {
-    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
-    return Element(elementType, APFloat(llvm::APFloatBase::Float8E4M3B11FNUZ(),
-                                        APInt(8, *elementData)));
-  }
-  if (elementType.isFloat8E4M3()) {
-    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
-    return Element(elementType, APFloat(llvm::APFloatBase::Float8E4M3(),
-                                        APInt(8, *elementData)));
-  }
-  if (elementType.isFloat8E4M3FN()) {
-    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
-    return Element(elementType, APFloat(llvm::APFloatBase::Float8E4M3FN(),
-                                        APInt(8, *elementData)));
-  }
-  if (elementType.isFloat8E4M3FNUZ()) {
-    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
-    return Element(elementType, APFloat(llvm::APFloatBase::Float8E4M3FNUZ(),
-                                        APInt(8, *elementData)));
-  }
-  if (elementType.isFloat8E5M2()) {
-    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
-    return Element(elementType, APFloat(llvm::APFloatBase::Float8E5M2(),
-                                        APInt(8, *elementData)));
-  }
-  if (elementType.isFloat8E5M2FNUZ()) {
-    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
-    return Element(elementType, APFloat(llvm::APFloatBase::Float8E5M2FNUZ(),
-                                        APInt(8, *elementData)));
+    auto floatTy = cast<FloatType>(elementType);
+    return Element(elementType,
+                   APFloat(floatTy.getFloatSemantics(),
+                           APInt(floatTy.getWidth(), *elementData)));
   }
   if (elementType.isF16()) {
     auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
@@ -262,10 +235,8 @@ void Tensor::set(const Index &index, const Element &element) {
       getSizeInBytes(elementType) * flattenIndex(getShape(), index);
 
   // Handle floating-point types.
-  if (elementType.isFloat8E3M4() || elementType.isFloat8E4M3B11FNUZ() ||
-      elementType.isFloat8E4M3() || elementType.isFloat8E4M3FN() ||
-      elementType.isFloat8E4M3FNUZ() || elementType.isFloat8E5M2() ||
-      elementType.isFloat8E5M2FNUZ()) {
+  if (isSupportedFloatType(elementType) &&
+      cast<FloatType>(elementType).getWidth() <= 8) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
     auto value = element.getFloatValue();
     *elementData = (uint8_t)value.bitcastToAPInt().getZExtValue();
@@ -457,18 +428,19 @@ Tensor makeTensor(DenseElementsAttr attr) {
   auto elementType = type.getElementType();
 
   // Handle floating-point types.
-  if (elementType.isFloat8E3M4() || elementType.isFloat8E4M3B11FNUZ() ||
-      elementType.isFloat8E4M3() || elementType.isFloat8E4M3FN() ||
-      elementType.isFloat8E4M3FNUZ() || elementType.isFloat8E5M2() ||
-      elementType.isFloat8E5M2FNUZ()) {
+  if (isSupportedFloatType(elementType) &&
+      cast<FloatType>(elementType).getWidth() <= 8) {
     auto floatValues = llvm::map_to_vector(
         attr.getValues<APFloat>(), [&](APFloat value) -> uint8_t {
           return value.bitcastToAPInt().getZExtValue();
         });
 
     // For f8E3M4, f8E4M3, f8E4M3FN, f8E4M3FNUZ, f8E4M3B11FNUZ, f8E5M2, and
-    // f8E5M2FNUZ floating-point types, we use uint8_t as their storage type
-    // because there are no builtin types for those.
+    // f8E5M2FNUZ, f8E8M0FNU floating-point types, we use uint8_t as their
+    // storage type because there are no builtin types for those.
+    // For f4E2M1FN, f6E2M3FN, and f6E3M2FN floating-point types, we still use
+    // uint8_t, even though the underlying types require less bits (similar
+    // to how ui2/ui4 types are handled).
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<uint8_t>(
                             floatValues));
   }
