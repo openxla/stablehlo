@@ -21,7 +21,7 @@ Thus, further analysis needs to be done to support this feature on CPUs. This an
 ## Proposed Specification
 
 ### `result_accuracy`
-The users can specify the worst numerical error they can tolerate in terms of absolute, relative and ULP (unit in last place) errors. If they don't care about the numerical accuracy, they can also choose the implementation using `mode`. We propose a new attribute `result_accuracy`.
+The users can specify the worst case numerical error they can tolerate in terms of absolute, relative and ULP (unit in last place) errors. If they don't care about the numerical accuracy, they can also choose the implementation using `mode`. We propose a new attribute `result_accuracy`.
 `result_accuracy` can be any combination of the following numerical tolerances `atol`, `rtol`, `ulps` or an enum of `HIGHEST`, `DEFAULT` or `TOLERANCE`. `TOLERANCE` enum is a default placeholder value for `mode` when the numerical tolerances are used. When using the numerical tolerances, at least one of atol, rtol or ulps should be specified.
 
 |Name   |Type                   |Constraints      |
