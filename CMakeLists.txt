@@ -135,6 +135,10 @@ endif()
 if(MSVC)
   # Required to use M_PI. Must be set before any `#include <cmath>`.
   add_compile_definitions("_USE_MATH_DEFINES")
+
+  # Tablegen outputs from LLVM/MLIR can easily exceed the default 64k section
+  # count limit, so increase to 2^32.
+  add_compile_options("/bigobj")
 endif()
 
 #-------------------------------------------------------------------------------
