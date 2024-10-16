@@ -59,8 +59,9 @@ namespace stablehlo {
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
-// This is an upper limit on how many elements canonicalization patterns are
-// allowed to materialize as new constants.
+// This is an upper limit on how many elements can be folded by an op folder.
+// This limit doesn't apply to some special cases like adding a zero,
+// multiplying by one, doing many operations with splats.
 constexpr int64_t kFoldOpEltLimit = 65536;
 
 static bool isIotaRange(ArrayRef<int64_t> dims) {

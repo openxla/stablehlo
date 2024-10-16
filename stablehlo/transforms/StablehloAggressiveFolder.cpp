@@ -57,6 +57,9 @@ namespace stablehlo {
 
 namespace {
 
+// This is an upper limit on how many elements can be folded by an op folder.
+// This limit doesn't apply to some special cases like adding a zero,
+// multiplying by one, doing many operations with splats.
 constexpr int64_t kFoldOpEltLimit = 65536;
 
 // DenseElementsAttr can be constructed from ArrayRef<APInt> but not from
