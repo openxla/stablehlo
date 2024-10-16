@@ -62,6 +62,11 @@ void populateVhloToVersionPatterns(RewritePatternSet *patterns,
 void populateChloToStablehloPatterns(MLIRContext *context,
                                      RewritePatternSet *patterns);
 
+/// CHLO ConstantLikeOp to StableHLO ConstantOp
+/// May require dynamic shape broadcasting.
+void populateChloConstantLikePattern(MLIRContext *context,
+                                     RewritePatternSet *patterns);
+
 /// Collection of folding patterns for StableHLO.
 void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
                                                MLIRContext *context,

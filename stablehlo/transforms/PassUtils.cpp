@@ -12,6 +12,7 @@ limitations under the License.
 
 #include "stablehlo/transforms/PassUtils.h"
 
+#include "llvm/Support/ErrorHandling.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/TypeUtilities.h"
@@ -23,11 +24,39 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+namespace {
+// Need some extra handling to generate a DenseElementsAttr from a complex
+// scalar, so add a helper function.
+DenseElementsAttr getSplatFromScalar(OpBuilder &b, Attribute scalar,
+                                     ShapedType type) {
+  if (auto complexScalar = dyn_cast<complex::NumberAttr>(scalar)) {
+    return DenseElementsAttr::get(type, complexScalar.getValue());
+  }
+  return DenseElementsAttr::get(type, scalar);
+}
+}  // namespace
+
+// Returns `stablehlo::ConstantOp` if value type if static,
+// else returns `chlo::ConstantLikeOp`.
+Value getConstantLikeImpl(OpBuilder &b, Location loc, Attribute scalar,
+                          Value val) {
+  if (!llvm::isa<IntegerAttr, FloatAttr, complex::NumberAttr>(scalar))
+    llvm::report_fatal_error("unhandled constant like element type");
+
+  auto shapedTy = cast<ShapedType>(val.getType());
+  if (shapedTy.hasStaticShape()) {
+    Attribute splat = getSplatFromScalar(b, scalar, shapedTy);
+    return b.create<mlir::stablehlo::ConstantOp>(loc, splat);
+  }
+
+  return b.create<mlir::chlo::ConstantLikeOp>(loc, cast<TypedAttr>(scalar),
+                                              val);
+}
+
 Value getConstantLike(OpBuilder &b, Location loc, const APFloat &constant,
                       Value val) {
   Type ty = getElementTypeOrSelf(val.getType());
-  return b.create<mlir::chlo::ConstantLikeOp>(loc, b.getFloatAttr(ty, constant),
-                                              val);
+  return getConstantLikeImpl(b, loc, b.getFloatAttr(ty, constant), val);
 }
 
 bool isAnyQuantizedTypes(TypeRange types) {

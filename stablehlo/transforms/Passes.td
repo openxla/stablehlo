@@ -40,6 +40,7 @@ def StablehloAggressiveFolderPass
     : Pass<"stablehlo-aggressive-folder", "func::FuncOp"> {
   let summary = "Folds StableHLO operations";
   let dependentDialects = [
+    "mlir::stablehlo::StablehloDialect",
     "mlir::tensor::TensorDialect",
   ];
   let options = [
@@ -52,6 +53,7 @@ def StablehloAggressiveSimplificationPass
     : Pass<"stablehlo-aggressive-simplification", "func::FuncOp"> {
   let summary = "Canonicalizes StableHLO operations";
   let dependentDialects = [
+    "mlir::stablehlo::StablehloDialect",
     "mlir::tensor::TensorDialect",
   ];
 }

@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -24,30 +25,44 @@ limitations under the License.
 #include "mlir/IR/Value.h"
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/dialect/ChloOps.h"
+#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace stablehlo {
-// Add utility functions common across passes.
+
+// Utility functions common across passes.
+
+template <typename T>
+Attribute getScalarLike(OpBuilder &b, T constant, Type type) {
+  Type element = getElementTypeOrSelf(type);
+  if (isa<IntegerType>(element)) return b.getIntegerAttr(element, constant);
+  if (isa<FloatType>(element)) return b.getFloatAttr(element, constant);
+  if (auto complexTy = dyn_cast<ComplexType>(element)) {
+    return complex::NumberAttr::get(complexTy, constant, 0);
+  }
+  llvm_unreachable("unhandled element type");
+}
+
+// Creates a constant with using IntegerAttr, FloatAttr, or ComplexAttr stored
+// in `scalar`.
+// Returns stablehlo::ConstantOp if value type if static, else returns
+// chlo::ConstantLikeOp.
+Value getConstantLikeImpl(OpBuilder &b, Location loc, Attribute scalar,
+                          Value val);
 
 // Creates a chlo::ConstantLikeOp using a splat `constant` of the same shape
 // as `val`.
 template <typename T>
 Value getConstantLike(OpBuilder &b, Location loc, T constant, Value val) {
-  Type ty = getElementTypeOrSelf(val.getType());
-  auto getAttr = [&]() -> Attribute {
-    if (isa<IntegerType>(ty)) return b.getIntegerAttr(ty, constant);
-    if (isa<FloatType>(ty)) return b.getFloatAttr(ty, constant);
-    if (auto complexTy = dyn_cast<ComplexType>(ty)) {
-      return complex::NumberAttr::get(complexTy, constant, 0);
-    }
-    llvm_unreachable("unhandled element type");
-  };
-  return b.create<mlir::chlo::ConstantLikeOp>(loc, cast<TypedAttr>(getAttr()),
-                                              val);
+  auto shapedTy = cast<ShapedType>(val.getType());
+  Attribute scalar = getScalarLike(b, constant, shapedTy);
+  return getConstantLikeImpl(b, loc, scalar, val);
 }
 
 // Creates a chlo::ConstantLikeOp using a APFloat splat `constant` of the
 // same shape as `val`.
+// The distinction between double and APFloat causes issues so need this
+// explicit template specialization.
 Value getConstantLike(OpBuilder &b, Location loc, const APFloat &constant,
                       Value val);
 
