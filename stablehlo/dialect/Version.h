@@ -40,6 +40,12 @@ class Version {
   /// Return a Version representing the current VHLO dialect version.
   static Version getCurrentVersion() { return Version(1, 7, 9); }
 
+  /// Return CompatibilityRequirement::WEEK_4 VHLO dialect version.
+  static Version getWeek4Version() { return Version(1, 7, 1); }
+
+  /// Return CompatibilityRequirement::WEEK_12 VHLO dialect version.
+  static Version getWeek12Version() { return Version(1, 4, 1); }
+
   /// Return a Version representing the minimum supported VHLO dialect version.
   static Version getMinimumVersion() { return Version(0, 9, 0); }
 
