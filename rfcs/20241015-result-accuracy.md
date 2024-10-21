@@ -43,7 +43,8 @@ any combination of the following numerical tolerances `atol`, `rtol`, `ulps` or
 an enum of `HIGHEST`, `DEFAULT` or `TOLERANCE`. `TOLERANCE` enum is a default
 placeholder value for `mode` when the numerical tolerances are used. When using
 the numerical tolerances, at least one of atol, rtol or ulps should be
-specified.
+specified. `HIGHEST` will give the most accurate implementation of the op
+and `DEFAULT` will give the fastest implementation with less accuracy.
 
 Name   | Type                  | Constraints
 ------ | --------------------- | ---------------------------------
