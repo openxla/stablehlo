@@ -311,6 +311,21 @@ gentbl_cc_library(
 )
 
 gentbl_cc_library(
+    name = "stablehlo_aggressive_simplification_inc_gen",
+    tbl_outs = [
+        (
+            ["--gen-rewriters"],
+            "stablehlo/transforms/StablehloAggressiveSimplificationPatterns.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/transforms/StablehloAggressiveSimplificationPatterns.td",
+    deps = [
+        ":stablehlo_ops_td_files",
+    ],
+)
+
+gentbl_cc_library(
     name = "stablehlo_legalize_deprecated_ops_inc_gen",
     tbl_outs = [
         (
@@ -1127,6 +1142,7 @@ cc_library(
         ":chlo_ops",
         ":chlo_rewriters_inc_gen",
         ":linalg_passes",
+        ":stablehlo_aggressive_simplification_inc_gen",
         ":stablehlo_create_compatibility_expander_inc_gen",
         ":stablehlo_legalize_deprecated_ops_inc_gen",
         ":stablehlo_ops",
