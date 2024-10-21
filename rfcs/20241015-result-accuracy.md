@@ -8,7 +8,8 @@ Discussion thread:
 ## Overview
 
 This RFC proposes adding a new attribute `result_accuracy` to the following
-transcendental unary ops: `exp`, `expm1`, `log`, `logp1`, `logistic` and `tanh`.
+transcendental unary ops: `exp`, `expm1`, `log`, `logp1`, `logistic`,
+`recp`, `sqrt`, `rsqrt`, `cbrt`, `sin`, `cos` and `tanh`.
 `result_accuracy` allows the user to choose the implementation of these ops
 based on the accuracy they request. The choice of implementation is restricted
 to F32 inputs.
