@@ -92,6 +92,13 @@ FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
                                    << " is greater than current version "
                                    << Version::getCurrentVersion();
 
+  // Opset changes warrant a minor version bump, so this conversion assumes
+  // patch v0 since it is written against the opset at version `X.Y.0`.
+  if (targetVersion.getPatch() != 0) {
+    targetVersion =
+        vhlo::Version(targetVersion.getMajor(), targetVersion.getMinor(), 0);
+  }
+
   return targetVersion;
 }
 
