@@ -12,4 +12,4 @@ func.func public @all_to_all(%arg0: tensor<8x8x1xui16>) -> tensor<1x8x8xui16> {
   // CHECK: vhlo.all_to_all_v1
   %0 = "stablehlo.all_to_all"(%arg0) <{concat_dimension = 2 : i64, replica_groups = dense<[[0, 1, 2, 3, 4, 5, 6, 7]]> : tensor<1x8xi64>, split_count = 8 : i64, split_dimension = 0 : i64}> : (tensor<8x8x1xui16>) -> tensor<1x8x8xui16>
   return %0 : tensor<1x8x8xui16>
-}diff --ruN a/stablehlo/stablehlo/transforms/VhloToVersion.cpp b/stablehlo/stablehlo/transforms/VhloToVersion.cpp
+}
