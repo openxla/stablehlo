@@ -23,11 +23,14 @@ limitations under the License.
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LogicalResult.h"
+#include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/IR/Quant.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectRegistry.h"
+#include "mlir/IR/Location.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Pass/PassManager.h"
@@ -66,6 +69,10 @@ llvm::cl::opt<std::string> targetOption(
     "target", llvm::cl::desc("Target version for serialization"),
     llvm::cl::init(""));
 
+llvm::cl::opt<std::string> argsOption(
+    "args", llvm::cl::desc("Arguments to pass to the interpreter"),
+    llvm::cl::init(""));
+
 namespace {
 
 stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
@@ -73,6 +80,35 @@ stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
   auto type = RankedTensorType::get({}, builder.getI1Type());
   auto res = DenseElementsAttr::get(type, builder.getBoolAttr(true));
   return stablehlo::makeTensor(res);
+}
+
+// Parse `--args` option into a list of interpreter arguments.
+// The format is:
+//   --args=[dense<1> : tensor<2xi32>, ...], where each dense attribute is
+//   interpreted as a tensor.
+mlir::FailureOr<SmallVector<stablehlo::InterpreterValue>>
+parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
+  llvm::SmallVector<stablehlo::InterpreterValue> inputs;
+  auto parseError = [&](llvm::StringRef msg) {
+    std::string usage = "--args=[dense<1> : tensor<2xi32>, ...]";
+    return emitError(UnknownLoc::get(context), msg) << ", i.e. " << usage;
+  };
+  if (!argsStr.empty()) {
+    auto arrayAttr =
+        dyn_cast_or_null<ArrayAttr>(mlir::parseAttribute(argsStr, context));
+    if (!arrayAttr) {
+      return parseError("expectected array attribute string for args");
+    }
+    for (auto attr : arrayAttr.getValue()) {
+      auto denseAttr = dyn_cast<DenseElementsAttr>(attr);
+      if (!denseAttr) {
+        return parseError(
+            "expected dense elements attribute for args elements");
+      }
+      inputs.push_back(stablehlo::makeTensor(denseAttr));
+    }
+  }
+  return inputs;
 }
 
 llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
@@ -224,8 +260,11 @@ TranslateFromMLIRRegistration interpretRegistration(
       config.fallback = std::make_unique<StablehloTranslateInterpreterFallback>(
           config.probeInstrumentationDir);
 
-      llvm::SmallVector<stablehlo::InterpreterValue> inputs;
-      auto results = evalModule(module, inputs, config);
+      auto inputs = parseInterpreterArguments(argsOption.getValue(),
+                                              module->getContext());
+      if (failed(inputs)) return failure();
+
+      auto results = evalModule(module, inputs.value(), config);
       if (failed(results)) return failure();
 
       for (auto &result : *results) {
