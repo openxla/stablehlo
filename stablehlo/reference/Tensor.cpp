@@ -41,7 +41,6 @@ limitations under the License.
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Types.h"
-#include "mlir/IR/BuiltinTypes.h"
 
 namespace mlir {
 namespace stablehlo {

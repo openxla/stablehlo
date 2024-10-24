@@ -23,11 +23,14 @@ limitations under the License.
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LogicalResult.h"
+#include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/IR/Quant.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectRegistry.h"
+#include "mlir/IR/Location.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Pass/PassManager.h"
@@ -50,10 +53,6 @@ limitations under the License.
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Value.h"
 #include "stablehlo/tests/CheckOps.h"
-#include "mlir/AsmParser/AsmParser.h"
-#include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/Diagnostics.h"
-#include "mlir/IR/Location.h"
 
 namespace mlir {
 
