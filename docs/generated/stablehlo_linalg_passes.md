@@ -4,6 +4,7 @@
 _Legalize StableHLO to LinAlg_
 
 
+
 #### Options
 ```
 -enable-primitive-ops : Lower to primitive Linalg ops (map, reduce and transpose) when possible, instead of linalg.generic
