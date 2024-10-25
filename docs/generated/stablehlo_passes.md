@@ -3,6 +3,7 @@
 
 _Legalizes from CHLO ops flow to StableHLO and Shape ops_
 
+
 ### `-shape-legalize-to-stablehlo`
 
 _Legalize shape-related ops to StableHLO._
@@ -17,6 +18,7 @@ compilation pipelines that use StableHLO operations to model dynamism.
 _Folds StableHLO operations_
 
 
+
 #### Options
 ```
 -fold-float : Allow for potentially lossy computations using float type.
@@ -24,6 +26,7 @@ _Folds StableHLO operations_
 ### `-stablehlo-aggressive-simplification`
 
 _Canonicalizes StableHLO operations_
+
 
 ### `-stablehlo-canonicalize-dynamism`
 
@@ -86,6 +89,7 @@ func.func @tan_op_non_complex(%arg0: tensor<4xf64>) -> tensor<4xf64> {
 ### `-stablehlo-convert-to-signless`
 
 _Pass to transform the IR to be on signless integers._
+
 
 ### `-stablehlo-legalize-composite-to-call`
 
@@ -232,6 +236,7 @@ func.func @add(%arg0: tensor<!quant.uniform<i8:f32, 1.000000e+00>>, %arg1: tenso
 
 _Legalize StableHLO to VHLO._
 
+
 ### `-stablehlo-refine-arguments`
 
 _Refines the argument shapes of the main function._
@@ -293,9 +298,11 @@ static shapes throughout the program.
 
 _Legalize VHLO to StableHLO._
 
+
 ### `-vhlo-to-version`
 
 _Convert between versions of VHLO._
+
 
 
 #### Options
