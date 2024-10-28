@@ -89,7 +89,7 @@ The inequality will be checked against the errors of each implementation and the
 one that can satisfy the constraint will be returned. If multiple
 implementations satisfy the inequality, the faster implementation will be used.
 If none of the implementations can meet the requested tolerance, the compiler
-will return an error.
+will return a compile time error.
 
 ### Unary Ops
 
