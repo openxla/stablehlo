@@ -46,6 +46,7 @@ def VHLO_Dialect : Dialect {
       1.5.0: Make collective ops (`all_reduce`, `all_gather`, `all_to_all`) variadic.
       1.6.0: Add DotAlgorithm specificaiton to `dot_general`.
       1.7.0: Introduce `f8E4M3` and `f8E3M4` types.
+      1.8.0: Introduce `f4E2M1FN`, `f6E2M3FN`, `f6E3M2FN` and `f8E8M0FNU` types.
   }];
 
   let useDefaultAttributePrinterParser = 0;

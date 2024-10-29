@@ -84,6 +84,15 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
       [&](Float32Type type) { return FloatF32V1Type::get(type.getContext()); });
   addConversion(
       [&](Float64Type type) { return FloatF64V1Type::get(type.getContext()); });
+  addConversion([&](Float4E2M1FNType type) {
+    return FloatF4E2M1FNV1Type::get(type.getContext());
+  });
+  addConversion([&](Float6E2M3FNType type) {
+    return FloatF6E2M3FNV1Type::get(type.getContext());
+  });
+  addConversion([&](Float6E3M2FNType type) {
+    return FloatF6E3M2FNV1Type::get(type.getContext());
+  });
   addConversion([&](Float8E3M4Type type) {
     return FloatF8E3M4V1Type::get(type.getContext());
   });
@@ -104,6 +113,9 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
   });
   addConversion([&](Float8E5M2FNUZType type) {
     return FloatF8E5M2FNUZV1Type::get(type.getContext());
+  });
+  addConversion([&](Float8E8M0FNUType type) {
+    return FloatF8E8M0FNUV1Type::get(type.getContext());
   });
   addConversion([&](FloatTF32Type type) {
     return FloatTF32V1Type::get(type.getContext());
@@ -182,6 +194,15 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
       [&](FloatF32V1Type type) { return Float32Type::get(type.getContext()); });
   addConversion(
       [&](FloatF64V1Type type) { return Float64Type::get(type.getContext()); });
+  addConversion([&](FloatF4E2M1FNV1Type type) {
+    return Float4E2M1FNType::get(type.getContext());
+  });
+  addConversion([&](FloatF6E2M3FNV1Type type) {
+    return Float6E2M3FNType::get(type.getContext());
+  });
+  addConversion([&](FloatF6E3M2FNV1Type type) {
+    return Float6E3M2FNType::get(type.getContext());
+  });
   addConversion([&](FloatF8E3M4V1Type type) {
     return Float8E3M4Type::get(type.getContext());
   });
@@ -202,6 +223,9 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
   });
   addConversion([&](FloatF8E5M2FNUZV1Type type) {
     return Float8E5M2FNUZType::get(type.getContext());
+  });
+  addConversion([&](FloatF8E8M0FNUV1Type type) {
+    return Float8E8M0FNUType::get(type.getContext());
   });
   addConversion([&](FloatTF32V1Type type) {
     return FloatTF32Type::get(type.getContext());
