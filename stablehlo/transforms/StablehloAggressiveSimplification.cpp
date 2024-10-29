@@ -161,8 +161,7 @@ struct CompareOpCanon final : OpRewritePattern<CompareOp> {
       llvm_unreachable("Unhandled case");
     }
 
-    // Pattern: compare(cst, X, comparator) -> compare(X, cst,
-    // inverse(comparator))
+    // Pattern: compare(cst, X, comparator) -> compare(X, cst, inv(comparator))
     TypedAttr lhsAttr, rhsAttr;
     matchPattern(lhs, m_Constant(&lhsAttr));
     matchPattern(rhs, m_Constant(&rhsAttr));
