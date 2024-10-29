@@ -198,7 +198,7 @@ def : Pat<(StableHLO_DynamicBroadcastInDimOp
           (StableHLO_DynamicReshapeOp $operand, $shape)>;
 
 // Pattern: dynamic_broadcast_in_dim(X, shape_of(X)) -> X
-def : Pat<(StableHLO_DynamicBroadcastInDimOp 
+def : Pat<(StableHLO_DynamicBroadcastInDimOp
             $operand, (Shape_ShapeOfOp $operand), IotaDims:$dims, $expanding, $nonexpanding),
           (replaceWithValue $operand)>;
 
@@ -317,7 +317,7 @@ def : Pat<(StableHLO_OrOp $lhs, (StableHLO_ConstantOp:$zero IntZero:$value)),
 ////////
 // RealDynamicSliceOp
 
-// Pattern: real_dynamic_slice(X, start, limit, strides) 
+// Pattern: real_dynamic_slice(X, start, limit, strides)
 //           -> slice(X, start, limit, strides)
 //          [if start, limit, strides are all constants]
 def : Pat<(StableHLO_RealDynamicSliceOp $operand,

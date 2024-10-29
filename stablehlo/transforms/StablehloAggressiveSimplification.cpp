@@ -545,7 +545,7 @@ struct RealDynamicSliceOpToDynamicSlice
   using OpRewritePattern<RealDynamicSliceOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(RealDynamicSliceOp op,
-                                PatternRewriter& rewriter) const override {
+                                PatternRewriter &rewriter) const override {
     // This rewrite only works for unit strides because DynamicSliceOp
     // doesn't support strides (i.e. it implicitly has unit strides).
     DenseIntElementsAttr stridesAttr;
