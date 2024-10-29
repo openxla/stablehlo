@@ -12,49 +12,87 @@
 
 include "mlir/IR/OpBase.td"
 include "stablehlo/dialect/StablehloOps.td"
+include "mlir/Dialect/Shape/IR/ShapeOps.td"
 
-//// Utilities
+///////////
+//// Op & Type Constraints
+
+class DimSizeEquals<int dimSize> : Constraint<
+    CPred<"llvm::cast<ShapedType>($0.getType()).getDimSize($1.getInt()) == " # dimSize>,
+    "dim size is " # dimSize>;
+
+def AllDimsNonExpanding : Constraint<
+    CPred<"$0 && cast<DenseI64ArrayAttr>($0).size() == llvm::cast<ShapedType>($1.getType()).getRank()">,
+    "all dims are non-expanding">;
+
+def AllZero : Constraint<
+    CPred<"llvm::all_of($0, [](Value operand) {return matchPattern(operand, m_Zero()); })">,
+    "is all zero">;
+
+def CommutativeOp : Constraint<
+    CPred<"$0.getDefiningOp()->hasTrait<hlo::OpTrait::IsCommutative>()">,
+    "op is commutative">;
+
+def HasOneUse : Constraint<CPred<"$0.hasOneUse()">>;
+
 def NotConstantOp : Constraint<
     CPred<"llvm::isa<BlockArgument>($0) || !llvm::isa<stablehlo::ConstantOp>($0.getDefiningOp())">,
     "is not a constant.">;
-
-def OperandsEqual : Constraint<CPred<"$0 == $1">, "operands are equal">;
-
-def TypesEqual : Constraint<CPred<"$0.getType() == $1.getType()">, "operands are equal">;
 
 def NumberOfElementsEqual : Constraint<
     CPred<"llvm::cast<ShapedType>($0.getType()).getNumElements() == llvm::cast<ShapedType>($1.getType()).getNumElements()">,
     "same number of elements">;
 
+def OperandsEqual : Constraint<CPred<"$0 == $1">, "operands are equal">;
+
 def RankEqual : Constraint<
     CPred<"llvm::cast<ShapedType>($0.getType()).getRank() == llvm::cast<ShapedType>($1.getType()).getRank()">,
     "same rank">;
 
-def EmptyI64Array : AttrConstraint<
-    CPred<"cast<DenseI64ArrayAttr>($_self).empty()">, "is empty i64 array">;
+def TypesEqual : Constraint<CPred<"$0.getType() == $1.getType()">, "operands are equal">;
 
-def CommutativeOp : Constraint<
-    CPred<"$0.getDefiningOp()->hasTrait<hlo::OpTrait::IsCommutative>()">, "op is commutative">;
+///////////
+//// Attribute Constraints
 
 def AnySplat : AttrConstraint<CPred<"$_self.isSplat()">, "is any splat">;
 
 def AnyZero : AttrConstraint<
-   CPred<"::mlir::matchPattern($_self, m_AnyAttrOf(m_Zero(), m_AnyZeroFloat()))">, "is int or float zero">;
+    CPred<"::mlir::matchPattern($_self, m_AnyAttrOf(m_Zero(), m_AnyZeroFloat()))">,
+    "is int or float zero">;
 
-def IntZero : AttrConstraint<
-   CPred<"::mlir::matchPattern($_self, m_Zero())">, "is integer zero">;
+def DenseIntElementsAttr : AttrConstraint<
+    CPred<"llvm::isa<DenseIntElementsAttr>($_self)">,
+    "is dense int elements attr">;
+
+def EmptyI64Array : AttrConstraint<
+    CPred<"cast<DenseI64ArrayAttr>($_self).empty()">,
+    "is empty i64 array">;
 
 def IntOne : AttrConstraint<
-   CPred<"::mlir::matchPattern($_self, m_One())">, "is integer one">;
+    CPred<"::mlir::matchPattern($_self, m_One())">,
+    "is integer one">;
+
+def IntZero : AttrConstraint<
+    CPred<"::mlir::matchPattern($_self, m_Zero())">,"is integer zero">;
 
 def IotaDims : AttrConstraint<
-   CPred<"isIotaRange(cast<DenseI64ArrayAttr>($_self).asArrayRef())">, "is iota dimensions">;
+    CPred<"isIotaRange(cast<DenseI64ArrayAttr>($_self).asArrayRef())">,
+    "is iota dimensions">;
 
 def SortedDims : AttrConstraint<
-   CPred<"llvm::is_sorted(cast<DenseI64ArrayAttr>($_self).asArrayRef())">, "is sorted dimensions">;
+    CPred<"llvm::is_sorted(cast<DenseI64ArrayAttr>($_self).asArrayRef())">,
+    "is sorted dimensions">;
 
-def AllDimsNonExpanding : Constraint<
-   CPred<"$0 && cast<DenseI64ArrayAttr>($0).size() == llvm::cast<ShapedType>($1.getType()).getRank()">, "all dims are non-expanding">;
+def ZeroExtent : AttrConstraint<
+    CPred<"cast<DenseIntElementsAttr>($_self).getNumElements() == 0">,
+    "is zero extent">;
+
+///////////
+//// Native Code Call Utilities
+
+def CastIntElementsAttr : NativeCodeCall<"cast<DenseIntElementsAttr>($0)">;
+
+def ConvertToI64Array : NativeCodeCall<"convertToI64Array($_builder, $0)">;
 
 def GetOperandN : NativeCodeCall<"$0.getDefiningOp()->getOperand($1.getInt())">;
 
@@ -145,27 +183,79 @@ def : Pat<(StableHLO_DynamicBroadcastInDimOp
              $shape, $dims, $expanding, $nonexpanding),
           (StableHLO_DynamicBroadcastInDimOp $operand, $shape, (MergeBroadcastDims $dims, $dims_p), (GetEmptyI64Array), (GetEmptyI64Array))>;
 
-// Pattern: dynamic_broadcast_in_dim(X, _, _, [all_nonexpanding...]) -> cast(X)
+// Pattern: dynamic_broadcast_in_dim(X, _, _, [all_nonexpanding...]) -> convert(X)
 // No-op, but wrap in ConvertOp to preserve dynamic output shape, can be
 // important if this result is returned, where refining type would require
 // also updating the funciton signature.
-def : Pat<(StableHLO_DynamicBroadcastInDimOp:$op $operand, $shape, $dims, $expanding, $nonexpanding),
+def : Pat<(StableHLO_DynamicBroadcastInDimOp:$op $operand, $shape, IotaDims:$dims, $expanding, $nonexpanding),
           (StableHLO_ConvertOpWithShape $op, $operand),
           [(AllDimsNonExpanding $nonexpanding, $op)]>;
 
 // Pattern: dynamic_broadcast_in_dim(dynamic_reshape(X, shape), shape) -> dynamic_reshape(X, shape)
 // If sharing same shape operand, is dynamic reshape.
 def : Pat<(StableHLO_DynamicBroadcastInDimOp
-            (StableHLO_DynamicReshapeOp $operand, $shape), $shape, $dims, $expanding, $nonexpanding),
+            (StableHLO_DynamicReshapeOp $operand, $shape), $shape, IotaDims:$dims, $expanding, $nonexpanding),
           (StableHLO_DynamicReshapeOp $operand, $shape)>;
 
+// Pattern: dynamic_broadcast_in_dim(X, shape_of(X)) -> X
+def : Pat<(StableHLO_DynamicBroadcastInDimOp 
+            $operand, (Shape_ShapeOfOp $operand), IotaDims:$dims, $expanding, $nonexpanding),
+          (replaceWithValue $operand)>;
+
+////////
+// DynamicGatherOp
+
+// Pattern: dynamic_gather(x, constant(slice_sizes)) -> gather(x, slice_sizes)
+def : Pat<(StableHLO_DynamicGatherOp $operand, $start_indices, (StableHLO_ConstantOp DenseIntElementsAttr:$slice_sizes), $dimension_numbers, $indices_are_sorted),
+          (StableHLO_GatherOp $operand, $start_indices, $dimension_numbers, (ConvertToI64Array $slice_sizes), $indices_are_sorted)>;
+
+////////
+// DynamicPadOp
+
+// Pattern: dynamic_pad(X, low, high, interior) -> pad(X, low, high, interior)
+//            [if low, high, interior are all constants]
+def : Pat<(StableHLO_DynamicPadOp $input,
+            $padding_value,
+            (ConstantLikeMatcher AnyIntElementsAttr:$edge_padding_low),
+            (ConstantLikeMatcher AnyIntElementsAttr:$edge_padding_high),
+            (ConstantLikeMatcher AnyIntElementsAttr:$interior_padding)),
+          (StableHLO_PadOp $input, $padding_value,
+            (ConvertToI64Array $edge_padding_low),
+            (ConvertToI64Array $edge_padding_high),
+            (ConvertToI64Array $interior_padding))>;
 
 ////////
 // DynamicReshapeOp
 
 // Pattern: dynamic_reshape(dynamic_reshape(X, _), shape)) -> dynamic_reshape(X, shape)
-def  : Pat<(StableHLO_DynamicReshapeOp (StableHLO_DynamicReshapeOp $operand, $shape_p), $shape),
+def : Pat<(StableHLO_DynamicReshapeOp (StableHLO_DynamicReshapeOp $operand, $shape_p), $shape),
            (StableHLO_DynamicReshapeOp $operand, $shape)>;
+
+// Pattern: shape_of(dynamic_reshape(X, shape)) -> shape
+def : Pat<(Shape_ShapeOfOp:$op (StableHLO_DynamicReshapeOp $x, $shape)),
+          (replaceWithValue $shape),
+          [(TypesEqual $shape, $op)]>;
+
+////////
+// DynamicUpdateSliceOp
+
+// Pattern: dynamic_update_slice(X, update : zero_extent)) -> X
+def : Pat<(StableHLO_DynamicUpdateSliceOp $operand, (ConstantLikeMatcher ZeroExtent:$update), $start_indices),
+           (replaceWithValue $operand)>;
+
+// Pattern: dynamic_update_slice(X, update, start_indices : zero)) -> update
+def : Pat<(StableHLO_DynamicUpdateSliceOp AnyStaticShapeTensor:$operand, AnyStaticShapeTensor:$update, $start_indices),
+           (replaceWithValue $update),
+           [(TypesEqual $operand, $update), (AllZero $start_indices)]>;
+
+
+////////
+// ComplexOp
+
+// Pattern: complex(real(X), imag(X))) -> X
+def : Pat<(StableHLO_ComplexOp (StableHLO_RealOp $operand), (StableHLO_ImagOp $operand)),
+          (replaceWithValue $operand)>;
+
 
 ////////
 // ImagOp
@@ -173,6 +263,15 @@ def  : Pat<(StableHLO_DynamicReshapeOp (StableHLO_DynamicReshapeOp $operand, $sh
 // Pattern: imag(complex(R,I)) -> I
 def : Pat<(StableHLO_ImagOp (StableHLO_ComplexOp $lhs, $rhs)),
           (replaceWithValue $rhs)>;
+
+////////
+// IotaOp
+
+// Pattern: iota(dim) : type -> constant(0) : type [if type[dim] == 1]
+def : Pat<(StableHLO_IotaOp:$iota $dim),
+          (StableHLO_ConstantLike<"0"> $iota),
+          [(DimSizeEquals<1> $iota, $dim)]>;
+
 
 ////////
 // MaxOp
@@ -216,6 +315,21 @@ def : Pat<(StableHLO_OrOp $lhs, (StableHLO_ConstantOp:$zero IntZero:$value)),
           (replaceWithValue $lhs)>;
 
 ////////
+// RealDynamicSliceOp
+
+// Pattern: real_dynamic_slice(X, start, limit, strides) 
+//           -> slice(X, start, limit, strides)
+//          [if start, limit, strides are all constants]
+def : Pat<(StableHLO_RealDynamicSliceOp $operand,
+            (ConstantLikeMatcher DenseIntElementsAttr:$start_indices),
+            (ConstantLikeMatcher DenseIntElementsAttr:$limit_indices),
+            (ConstantLikeMatcher DenseIntElementsAttr:$strides)),
+          (StableHLO_SliceOp $operand,
+            (ConvertToI64Array $start_indices),
+            (ConvertToI64Array $limit_indices),
+            (ConvertToI64Array $strides))>;
+
+////////
 // RealOp
 
 // Pattern: real(complex(R,I)) -> X
@@ -242,6 +356,20 @@ def : Pat<(StableHLO_ReshapeOp:$reshape $operand),
           (replaceWithValue $operand),
           [(TypesEqual $reshape, $operand)]>;
 
+
+////////
+// SelectOp
+
+// Pattern: select(not(p), t, f) => select(p, f, t)
+def : Pat<
+  (StableHLO_SelectOp (StableHLO_NotOp $pred), $on_true, $on_false),
+  (StableHLO_SelectOp $pred, $on_false, $on_true)>;
+
+// Pattern: select(broadcast(not(p)), t, f) => select(broadcast(p), f, t)
+def : Pat<(StableHLO_SelectOp (StableHLO_BroadcastInDimOp:$b (StableHLO_NotOp $pred), $broadcast_dimensions), $on_true, $on_false),
+          (StableHLO_SelectOp (StableHLO_BroadcastInDimOp $pred, $broadcast_dimensions, (returnType $b)), $on_false, $on_true),
+          [(HasOneUse $b)]>;
+
 ////////
 // SubtractOp
 
@@ -253,6 +381,14 @@ def : Pat<(StableHLO_SubtractOp AnyStaticShapeTensor:$operand, $operand),
 // Pattern: subtract(X, 0) -> X
 def : Pat<(StableHLO_SubtractOp $lhs, (StableHLO_ConstantOp AnyZero:$value)),
           (replaceWithValue $lhs)>;
+
+////////
+// SliceOp
+
+// Pattern: slice(X, [A:A], [B:B], ...) -> X
+def : Pat<(StableHLO_SliceOp:$op AnyStaticShapeTensor:$operand, $start_indices, $limit_indices, $strides),
+          (replaceWithValue $operand),
+          [(TypesEqual $operand, $op)]>;
 
 ////////
 // TransposeOp
