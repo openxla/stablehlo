@@ -1385,7 +1385,7 @@ static std::optional<RankedTensorType> getMaybeZeroExtentType(Type t) {
 }
 
 // Replace instances of zero extent tensors with empty tensors
-// Pattern: op(X : zero_extent_tensor) -> tensor.empty()
+// Pattern: op(X : zero_extent_tensor) -> constant([])
 struct ZeroExtentToEmptyConstant final : RewritePattern {
   ZeroExtentToEmptyConstant(MLIRContext *context, PatternBenefit benefit)
       : RewritePattern(MatchAnyOpTypeTag(), benefit, context) {}
