@@ -117,9 +117,26 @@ FailureOr<PointwiseConversionInfo> checkOperandsAndResults(
 /// Converts a HLO operation to a linalg.map op that contains the corresponding
 /// scalar operations.
 template <typename OpTy>
-struct PointwiseToLinalgMapConverter final : OpConversionPattern<OpTy> {
+struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
   using OpConversionPattern<OpTy>::OpConversionPattern;
   using OpAdaptor = typename OpTy::Adaptor;
+
+  virtual FailureOr<Operation *> createLinalgOp(
+      OpTy &op, ConversionPatternRewriter &rewriter,
+      ArrayRef<Value> mappedInputs, ArrayRef<Value> scalarVals,
+      Value emptyTensor, int64_t maxRank) const {
+    Operation *mapOp = rewriter.create<linalg::MapOp>(
+        op.getLoc(), mappedInputs, emptyTensor,
+        [&](OpBuilder &b, Location loc, ValueRange args) {
+          Value innerResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
+              op, getElementTypeOrSelf(emptyTensor),
+              interleaveScalarAndBlockArgs(scalarVals, args), &b);
+
+          b.create<linalg::YieldOp>(loc, innerResult);
+        },
+        linalg::getPrunedAttributeList(op));
+    return mapOp;
+  }
 
   LogicalResult matchAndRewrite(
       OpTy op, OpAdaptor adaptor,
@@ -143,7 +160,12 @@ struct PointwiseToLinalgMapConverter final : OpConversionPattern<OpTy> {
     SmallVector<Value> mappedInputs;
     SmallVector<Value> scalarInputs;
     for (Value input : adaptor.getOperands()) {
-      if (getRank(input) == maxRank) {
+      DenseElementsAttr attr;
+      if (matchPattern(input, m_Constant(&attr)) && attr.isSplat()) {
+        scalarInputs.push_back(rewriter.create<arith::ConstantOp>(
+            loc, cast<ShapedType>(input.getType()).getElementType(),
+            attr.getSplatValue<TypedAttr>()));
+      } else if (getRank(input) == maxRank) {
         mappedInputs.push_back(coerceTensorShape(
             rewriter, loc, cast<TypedValue<ShapedType>>(input),
             cast<ShapedType>(emptyTensor.getType())));
@@ -153,18 +175,11 @@ struct PointwiseToLinalgMapConverter final : OpConversionPattern<OpTy> {
       }
     }
 
-    auto mapOp = rewriter.create<linalg::MapOp>(
-        loc, mappedInputs, emptyTensor,
-        [&](OpBuilder &b, Location loc, ValueRange args) {
-          Value innerResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
-              op, getElementTypeOrSelf(emptyTensor),
-              interleaveScalarAndBlockArgs(scalarInputs, args), &b);
+    auto mapOp = createLinalgOp(op, rewriter, mappedInputs, scalarInputs,
+                                emptyTensor, maxRank);
+    if (failed(mapOp)) return failure();
 
-          b.create<linalg::YieldOp>(loc, innerResult);
-        },
-        linalg::getPrunedAttributeList(op));
-
-    rewriter.replaceOp(op, mapOp->getResults());
+    rewriter.replaceOp(op, (*mapOp)->getResults());
     return success();
   }
 };
@@ -172,59 +187,46 @@ struct PointwiseToLinalgMapConverter final : OpConversionPattern<OpTy> {
 /// Converts a HLO operation to a linalg.generic op that contains the
 /// corresponding scalar operations.
 template <typename OpTy>
-struct PointwiseToLinalgConverter final : OpConversionPattern<OpTy> {
-  using OpConversionPattern<OpTy>::OpConversionPattern;
+struct PointwiseToLinalgConverter : PointwiseToLinalgMapConverter<OpTy> {
+  using PointwiseToLinalgMapConverter<OpTy>::PointwiseToLinalgMapConverter;
   using OpAdaptor = typename OpTy::Adaptor;
 
-  LogicalResult matchAndRewrite(
-      OpTy op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
-    auto conversionInfo = checkOperandsAndResults(
-        op, adaptor.getOperands(), *this->typeConverter, rewriter);
-    if (failed(conversionInfo)) {
-      return failure();
-    }
-
-    int64_t maxRank = conversionInfo->maxOperandRank;
-    ShapedType resultTy = conversionInfo->resultType;
-    Location loc = op.getLoc();
-
-    // Find input/output values and types.
-    ValueRange inputs = adaptor.getOperands();
-    Value output =
-        getEmptyTensorFor(rewriter, loc, resultTy, op, adaptor.getOperands());
-
+  FailureOr<Operation *> createLinalgOp(OpTy &op,
+                                        ConversionPatternRewriter &rewriter,
+                                        ArrayRef<Value> mappedInputs,
+                                        ArrayRef<Value> scalarVals,
+                                        Value emptyTensor,
+                                        int64_t maxRank) const override {
     // Create indexing maps.
     AffineMap scalarMap = AffineMap::get(maxRank, 0, rewriter.getContext());
     AffineMap idMap = rewriter.getMultiDimIdentityMap(maxRank);
     SmallVector<AffineMap> maps;
-    for (Value v : inputs) maps.push_back(isScalar(v) ? scalarMap : idMap);
+    for (Value v : mappedInputs)
+      maps.push_back(isScalar(v) ? scalarMap : idMap);
     maps.push_back(idMap);
-
-    // Build `linalg.generic` op.
     bool failed = false;
-    auto linalgOp = rewriter.create<linalg::GenericOp>(
-        loc, resultTy ? resultTy : TypeRange{}, inputs, output, maps,
+    Operation *linalgOp = rewriter.create<linalg::GenericOp>(
+        op.getLoc(), emptyTensor.getType(), mappedInputs, emptyTensor, maps,
         getNParallelLoopsAttrs(maxRank),
         [&](OpBuilder &nestedBuilder, Location /*nested_loc*/,
             ValueRange args) {
-          Type innerResultTy = getElementTypeOrSelf(output);
-          auto argvec = llvm::to_vector<2>(args.take_front(inputs.size()));
+          Type innerResultTy = getElementTypeOrSelf(emptyTensor);
+          auto argvec =
+              llvm::to_vector<2>(args.take_front(mappedInputs.size()));
           Value semiring = preSparsify(op, argvec, innerResultTy, &rewriter);
           Value innerResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
-              op, innerResultTy, argvec, &rewriter);
+              op, innerResultTy, interleaveScalarAndBlockArgs(scalarVals, args),
+              &rewriter);
           if (!innerResult) {
             failed = true;
           } else {
             innerResult = postSparsify(op, semiring, innerResult, &rewriter);
-            nestedBuilder.create<linalg::YieldOp>(loc, innerResult);
+            nestedBuilder.create<linalg::YieldOp>(op.getLoc(), innerResult);
           }
         },
         linalg::getPrunedAttributeList(op));
     if (failed) return failure();
-
-    rewriter.replaceOp(op, linalgOp->getResults());
-    return success();
+    return linalgOp;
   }
 };
 }  // namespace
