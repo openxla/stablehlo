@@ -603,12 +603,36 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
     std::vector<llvm::APInt> values;
     for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
       Element element = tensor.get(*it);
-      values.push_back(element.getIntegerValue());
+      if (isSupportedBooleanType(elementType)) {
+        values.push_back(APInt(1, element.getBooleanValue() ? 1 : 0));
+      } else {
+        values.push_back(element.getIntegerValue());
+      }
     }
     return DenseIntElementsAttr::get(tensor.getType(), values);
   }
+  if (isa<ComplexType>(elementType)) {
+    auto complexElemTy = cast<ComplexType>(elementType).getElementType();
 
-  llvm::report_fatal_error("Only FloatType and IntType are handled currently.");
+    if (complexElemTy.isF32()) {
+      auto elementData =
+          reinterpret_cast<const std::complex<float> *>(tensor.getData());
+      ArrayRef<std::complex<float>> elementDataRef(elementData,
+                                                   tensor.getNumElements());
+      return DenseElementsAttr::get(tensor.getType(), elementDataRef);
+    }
+
+    if (complexElemTy.isF64()) {
+      auto elementData =
+          reinterpret_cast<const std::complex<double> *>(tensor.getData());
+      ArrayRef<std::complex<double>> elementDataRef(elementData,
+                                                    tensor.getNumElements());
+      return DenseElementsAttr::get(tensor.getType(), elementDataRef);
+    }
+  }
+
+  llvm::report_fatal_error(
+      "Only FloatType, IntType, and Complex<f32,f64> are handled currently.");
 }
 
 Sizes makeSizes(Tensor tensor) {
