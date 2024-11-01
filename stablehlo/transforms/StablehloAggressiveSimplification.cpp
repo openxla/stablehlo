@@ -1212,7 +1212,7 @@ struct SortOpSetDimension : public OpRewritePattern<SortOp> {
 
   LogicalResult matchAndRewrite(SortOp op,
                                 PatternRewriter &rewriter) const override {
-    if (op.getResults().size() == 0 ||
+    if (op.getResults().empty() ||
         static_cast<int64_t>(op.getDimension()) != -1)
       return rewriter.notifyMatchFailure(op,
                                          "dimension already set or no results");
