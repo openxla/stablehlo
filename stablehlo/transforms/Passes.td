@@ -54,7 +54,6 @@ def StablehloAggressiveSimplificationPass
   let summary = "Canonicalizes StableHLO operations";
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
-    "mlir::tensor::TensorDialect",
   ];
 }
 
