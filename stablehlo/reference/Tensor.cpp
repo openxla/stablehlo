@@ -155,42 +155,22 @@ Element Tensor::get(const Index &index) const {
   // integer variants.
   if (isSupportedIntegerType(elementType)) {
     IntegerType intTy = cast<IntegerType>(elementType);
-
-    if (elementType.isSignlessInteger(2) || elementType.isSignlessInteger(4) ||
-        elementType.isSignlessInteger(8)) {
-      auto elementData = reinterpret_cast<const int8_t *>(elementPtr);
-      return Element(elementType, APInt(intTy.getWidth(), *elementData,
-                                        intTy.isSignedInteger()));
-    } else if (elementType.isSignlessInteger(16)) {
-      auto elementData = reinterpret_cast<const int16_t *>(elementPtr);
-      return Element(elementType, APInt(intTy.getWidth(), *elementData,
-                                        intTy.isSignedInteger()));
-    } else if (elementType.isSignlessInteger(32)) {
-      auto elementData = reinterpret_cast<const int32_t *>(elementPtr);
-      return Element(elementType, APInt(intTy.getWidth(), *elementData,
-                                        intTy.isSignedInteger()));
-    } else if (elementType.isSignlessInteger(64)) {
-      auto elementData = reinterpret_cast<const int64_t *>(elementPtr);
-      return Element(elementType, APInt(intTy.getWidth(), *elementData,
-                                        intTy.isSignedInteger()));
-    } else if (elementType.isUnsignedInteger(2) ||
-               elementType.isUnsignedInteger(4) ||
-               elementType.isUnsignedInteger(8)) {
+    const unsigned int bitwidth = intTy.getWidth();
+    if (bitwidth == 2 || bitwidth == 4 || bitwidth == 8) {
       auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
-      return Element(elementType, APInt(intTy.getWidth(), *elementData,
-                                        intTy.isSignedInteger()));
-    } else if (elementType.isUnsignedInteger(16)) {
+      // Set implicitTrunc to ignore garbage bits on 2-bit and 4-bit types.
+      const bool implicitTrunc = bitwidth == 2 || bitwidth == 4;
+      return Element(elementType, APInt(bitwidth, *elementData,
+                                        /*isSigned=*/false, implicitTrunc));
+    } else if (bitwidth == 16) {
       auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
-      return Element(elementType, APInt(intTy.getWidth(), *elementData,
-                                        intTy.isSignedInteger()));
-    } else if (elementType.isUnsignedInteger(32)) {
+      return Element(elementType, APInt(bitwidth, *elementData));
+    } else if (bitwidth == 32) {
       auto elementData = reinterpret_cast<const uint32_t *>(elementPtr);
-      return Element(elementType, APInt(intTy.getWidth(), *elementData,
-                                        intTy.isSignedInteger()));
-    } else if (elementType.isUnsignedInteger(64)) {
+      return Element(elementType, APInt(bitwidth, *elementData));
+    } else if (bitwidth == 64) {
       auto elementData = reinterpret_cast<const uint64_t *>(elementPtr);
-      return Element(elementType, APInt(intTy.getWidth(), *elementData,
-                                        intTy.isSignedInteger()));
+      return Element(elementType, APInt(bitwidth, *elementData));
     }
   }
 
