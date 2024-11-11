@@ -1,4 +1,4 @@
-# How awsome ML compilation community is using awesome OpenXLA?
+# How ML compilation community is using awesome OpenXLA?
 
 ## ML Frameworks
 
