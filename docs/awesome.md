@@ -2,19 +2,13 @@
 
 ## ML Frameworks
 
-### JAX
-
-JAX [uses OpenXLA]((https://jax.readthedocs.io/en/latest/quickstart.html)) as
+**JAX:** [uses OpenXLA]((https://jax.readthedocs.io/en/latest/quickstart.html)) as
 its backend for compilation and execution on CPUs, GPUs, TPUs, xPUs.
 
-### PyTorch
-
-[PyTorch/XLA](https://github.com/pytorch/xla/) is a Python package that uses the
+**PyTorch:** [PyTorch/XLA](https://github.com/pytorch/xla/) is a Python package that uses the
 XLA to connect the PyTorch framework and Cloud TPUs.
 
-### TF
-
-TensorFlow can use
+**TF:** TensorFlow can use
 [OpenXLA as an alternative backend](https://openxla.org/xla/tf2xla) for
 compilation and execution.
 
