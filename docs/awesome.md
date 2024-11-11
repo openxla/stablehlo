@@ -14,15 +14,11 @@ compilation and execution.
 
 ## PJRT Plugins
 
-### JAX-Metal
-
-[JAX-Metal](https://developer.apple.com/metal/jax/) uses OpenXLA to compile JAX
+**JAX-Metal:** [JAX-Metal](https://developer.apple.com/metal/jax/) uses OpenXLA to compile JAX
 computations into Metal Shading Language(MSL) code, which can then be executed
 on Apple GPUs.
 
-### libTPU
-
-libTPU is used by OpenXLA as a backend to target TPUs. OpenXLA compiles
+**libTPU:** libTPU is used by OpenXLA as a backend to target TPUs. OpenXLA compiles
 computations into XLA, which is then further compiled and executed on TPUs using
 libTPU.
 
@@ -35,30 +31,22 @@ libTPU.
 
 ## Tooling and Vizualization
 
-### Model Explorer
-
-Model Explorer can visualize StableHLO representations of models, providing
+**Model Explorer:** Model Explorer can visualize StableHLO representations of models, providing
 insights into the compilation process within OpenXLA.
 
-### SHerLOC
-
-SHerLOC (StableHLO Rule Optimization and Composition) is a framework for
+**SHerLOC:** SHerLOC (StableHLO Rule Optimization and Composition) is a framework for
 defining and applying rewrite rules to StableHLO programs.
 
 ## Edge Compilation
 
-### Google AI Edge
-
-Google AI Edge leverages OpenXLA for compiling and optimizing models for
+**Google AI Edge:** Google AI Edge leverages OpenXLA for compiling and optimizing models for
 efficient execution on resource-constrained edge devices.
 
-### StableHLO and Apple CoreML
-
-StableHLO can act as an intermediate representation for converting models to
+**StableHLO and Apple CoreML:** StableHLO can act as an intermediate representation for converting models to
 the Apple CoreML format, enabling deployment on Apple devices.
 
 ## Uncategorized
 
-### ByteIR
+**ByteIR:** 
 
-### BladeDISC
+**BladeDISC:** 
