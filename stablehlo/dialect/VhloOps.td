@@ -1099,6 +1099,11 @@ def VHLO_SqrtOpV1 : VHLO_Op<"sqrt_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
+def VHLO_SquareOpV1 : VHLO_Op<"square_v1", "1.8.3", "current"> {
+  let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
 def VHLO_SubtractOpV1 : VHLO_Op<"subtract_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);

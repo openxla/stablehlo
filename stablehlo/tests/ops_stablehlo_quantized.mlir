@@ -664,6 +664,14 @@ func.func @negative_sqrt_quantization(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:
 
 // -----
 
+func.func @negative_square_quantization(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>){
+  // expected-error@+1 {{operand #0 must be ranked tensor of f4E2M1FN type or f6E2M3FN type or f6E3M2FN type or f8E3M4 type or f8E4M3 type or f8E4M3FN type or f8E4M3FNUZ type or f8E4M3B11FNUZ type or f8E5M2 type or f8E5M2FNUZ type or f8E8M0FNU type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or complex type with 32-bit float or 64-bit float elements or 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
+  %square = "stablehlo.square"(%arg0) : (tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>
+  func.return
+}
+
+// -----
+
 func.func @negative_subtract_quantization(%arg0: tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>, %arg1: tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>){
   // expected-error@+1 {{operand #0 must be ranked tensor of 2/4/8/16/32/64-bit signless integer or 2/4/8/16/32/64-bit unsigned integer or f4E2M1FN type or f6E2M3FN type or f6E3M2FN type or f8E3M4 type or f8E4M3 type or f8E4M3FN type or f8E4M3FNUZ type or f8E4M3B11FNUZ type or f8E5M2 type or f8E5M2FNUZ type or f8E8M0FNU type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or complex type with 32-bit float or 64-bit float elements or 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<1x2x2x!quant.uniform<i8:f32:0, {1.000000e-01:-30}>>'}}
   %subtract = "stablehlo.subtract"(%arg0, %arg1) : (tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>, tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>) -> tensor<1x2x2x!quant.uniform<i8:f32:0, {0.1:-30}>>

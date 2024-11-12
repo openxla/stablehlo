@@ -640,6 +640,23 @@ def StableHLO_SqrtOp: StableHLO_UnaryElementwiseOp<"sqrt",
   }];
 }
 
+def StableHLO_SquareOp: StableHLO_UnaryElementwiseOp<"square",
+    [HLO_CompatibleOperandsAndResultType], HLO_FpComplexOrQuantizedIntTensor> {
+  let summary = "Square operation";
+  let description = [{
+    Performs element-wise square operation on `operand` tensor and produces
+    a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#square
+
+    Example:
+    ```mlir
+    %result = stablehlo.square %operand : tensor<2x2xf32>
+    ```
+  }];
+}
+
 def StableHLO_TanOp: StableHLO_UnaryElementwiseOp<"tan",
     [HLO_CompatibleOperandsAndResultType /* tan_c1 */],
     HLO_FpComplexOrQuantizedIntTensor /* tan_i1 */> {

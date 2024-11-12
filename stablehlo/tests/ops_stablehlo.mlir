@@ -6489,3 +6489,10 @@ func.func @composite_c4(%arg0: !stablehlo.token) {
   } : (!stablehlo.token) -> tensor<f32>
   func.return
 }
+
+// -----
+
+func.func @square(%arg: tensor<2x4xf32>) -> tensor<2x4xf32> {
+  %0 = "stablehlo.square"(%arg) : (tensor<2x4xf32>) -> tensor<2x4xf32>
+  func.return %0 : tensor<2x4xf32>
+}

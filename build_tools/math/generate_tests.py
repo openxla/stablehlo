@@ -63,6 +63,7 @@ operations = [
   dict(name="asinh", mpmath_name="arcsinh"),
   dict(name="acosh", mpmath_name="arccosh"),
   dict(name="atanh", mpmath_name="arctanh"),
+  dict(name="square", mpmath_name="square", namespace="stablehlo"),
 ]
 
 
@@ -126,6 +127,7 @@ def main():
   for op in operations:
     opname = op["name"]
     mpmath_opname = op.get("mpmath_name", opname)
+    namespace = op.get("namespace", "chlo")
     size_re = size_im = op.get("size", default_size)
 
     for dtype in [np.complex64, np.complex128, np.float32, np.float64]:
@@ -179,7 +181,7 @@ def main():
       main_func = m.make_function("main", "", "", "public")
 
       ref_samples = main_func.call("samples")
-      actual = main_func.composite(f"chlo.{opname}", ref_samples)
+      actual = main_func.composite(f"{namespace}.{opname}", ref_samples)
       expected = main_func.call("expected")
 
       main_func.void_call(

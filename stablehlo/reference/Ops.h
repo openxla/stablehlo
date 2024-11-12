@@ -196,6 +196,7 @@ SmallVector<Tensor> sortOp(ArrayRef<Tensor> inputs, Axis dimension,
                            bool isStable, Region &comparator, Process *process,
                            Scope &scope);
 Tensor sqrtOp(const Tensor &operand, ShapedType resultType);
+Tensor squareOp(const Tensor &operand, ShapedType resultType);
 Tensor subtractOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor tanOp(const Tensor &operand, ShapedType resultType);
 Tensor tanhOp(const Tensor &operand, ShapedType resultType);

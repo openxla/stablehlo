@@ -1078,6 +1078,10 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto operand = scope.findTensor(op.getOperand());
       auto result = sqrtOp(operand, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<SquareOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto result = squareOp(operand, op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<SubtractOp>(operation)) {
       auto lhs = scope.findTensor(op.getLhs());
       auto rhs = scope.findTensor(op.getRhs());
@@ -2488,6 +2492,13 @@ Tensor sqrtOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, sqrt(operand.get(*it)));
+  return result;
+}
+
+Tensor squareOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, square(operand.get(*it)));
   return result;
 }
 

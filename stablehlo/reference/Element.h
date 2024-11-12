@@ -307,6 +307,9 @@ Element sine(const Element &e);
 /// Returns square root of Element object.
 Element sqrt(const Element &e);
 
+/// Returns square of Element object.
+Element square(const Element &e);
+
 /// Returns tan of Element object.
 Element tan(const Element &e);
 

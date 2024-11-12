@@ -6280,6 +6280,45 @@ Performs element-wise square root operation on `operand` tensor and produces a
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/sqrt.mlir)
 
+### square
+
+#### Semantics
+
+Performs element-wise square operation on `operand` tensor and produces a
+`result` tensor. Depending on the element type, does the following:
+
+* For integers and floats: multiply operand by itself.
+* For complex numbers: complex square using formula `complex((re -
+  im) * (re + im), re * im * 2)` where `re=real(operand)` and
+  `im=imag(operand)`.
+* For quantized types: `dequantize_op_quantize(square, operand, type(result))`.
+
+#### Inputs
+
+| Label | Name      | Type                                                                    | Constraints |
+|-------|-----------|-------------------------------------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
+
+#### Outputs
+
+| Name     | Type                                                                    | Constraints |
+|----------|-------------------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
+
+#### Constraints
+
+* (C1) `baseline_type(operand) = baseline_type(result)`.
+
+#### Examples
+
+```mlir
+// %operand: [[0.0, 1.0], [2.0, 3.0]]
+%result = "stablehlo.sqrt"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
+// %result: [[0.0, 1.0], [4.0, 9.0]]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/square.mlir)
+
 ### subtract
 
 #### Semantics
