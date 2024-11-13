@@ -1,5 +1,12 @@
 # Awesome OpenXLA
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/openxla/xla/refs/heads/main/docs/images/openxla_dark.svg" class="devsite-dark-theme">
+  <img alt="OpenXLA Ecosystem" src="https://raw.githubusercontent.com/openxla/xla/refs/heads/main/docs/images/openxla.svg">
+</picture>
+
+[OpenXLA](https://openxla.org) is open ecosystem of performant, portable, and extensible machine learning (ML) infrastructure components that simplify ML development by defragmenting the tools between frontend frameworks and hardware backends. Built by industry leaders in AI modeling, software, and hardware.
+
 **How is the community using OpenXLA?** This page consolidates links to
 repositories and projects using OpenXLA to provide inspiration and code pointers!
 
@@ -7,54 +14,20 @@ repositories and projects using OpenXLA to provide inspiration and code pointers
 
 ## Frameworks
 
-### JAX
-
-<img src="https://raw.githubusercontent.com/jax-ml/jax/main/images/jax_logo_250px.png"
-alt="logo" width="80" height="40">
-
-[JAX](https://github.com/jax-ml/jax) is a machine-learning framework with a
-NumPy-like API for writing high-performance ML models. JAX lowers to StableHLO,
-PJRT, and XLA for high-performance compilation and execution on CPUs, GPUs,
-TPUs, and xPUs.
-
-### PyTorch
-
-<img src="https://github.com/pytorch/pytorch/raw/main/docs/source/_static/img/pytorch-logo-dark.png"
-alt="logo" width="150" height="30">
-
-[PyTorch/XLA](https://github.com/pytorch/xla/) is a Python package that uses
-OpenXLA to connect the PyTorch deep learning framework to TPUs, GPUs, and CPUs.
-
-### TensorFlow
-
-<img src="https://www.tensorflow.org/images/tf_logo_horizontal.png" alt="logo"
-width="200" height="60">
-
-[TensorFlow](https://github.com/tensorflow/tensorflow) is an end-to-end
-open-source platform for machine learning. It has a comprehensive, flexible
-ecosystem of tools, libraries, and community resources for ML research and
-application development. TensorFlow can use
-[OpenXLA as an alternative backend](https://openxla.org/xla/tf2xla) for
-compilation and execution.
+- [JAX](https://github.com/jax-ml/jax) is a ML framework with a
+NumPy-like API for writing high-performance ML models <img src="https://img.shields.io/github/stars/jax-ml/jax?style=social" align="center">
+- [PyTorch/XLA](https://github.com/pytorch/xla/) provides a bridge from PyTorch to OpenXLA and StableHLO <img src="https://img.shields.io/github/stars/pytorch/xla?style=social" align="center">
+- [TensorFlow](https://github.com/tensorflow/tensorflow) is a long-standing ML framework with a large ecosystem <img src="https://img.shields.io/github/stars/tensorflow/tensorflow?style=social" align="center">
 
 ## PJRT Plugins
 
-### libTPU
-
-The libTPU PJRT plugin enables frameworks to compile and run models on Cloud TPUs.
+- [libTPU](https://cloud.google.com/tpu/docs/runtimes) allows models to execute on Google's Cloud TPUs
 
 ## Edge Compilation
 
-### Google AI Edge
-
-[Google AI Edge](https://ai.google.dev/edge) uses frameworks to generate
-StableHLO, which is then converted into a mix of TFLite and StableHLO ops.
-This is serialized in a flatbuffer and sent to resource-constrained edge devices.
+- [Google AI Edge](https://ai.google.dev/edge) uses StableHLO as an input format to deploy to mobile devices using [LiteRT](https://ai.google.dev/edge/litert)
+  - [AI Edge Torch](https://github.com/google-ai-edge/ai-edge-torch) exports PyTorch models for mobile deployment via StableHLO <img src="https://img.shields.io/github/stars/google-ai-edge/ai-edge-torch?style=social" align="center">
 
 ## Tooling and Visualization
 
-### Model Explorer
-
-[Model Explorer](https://github.com/google-ai-edge/model-explorer) can visualize
-StableHLO representations of models, providing insights into the compilation
-process within OpenXLA.
+- [Model Explorer](https://github.com/google-ai-edge/model-explorer) offers heirarchical graph visualization with support for StableHLO models <img src="https://img.shields.io/github/stars/google-ai-edge/model-explorer?style=social" align="center">
