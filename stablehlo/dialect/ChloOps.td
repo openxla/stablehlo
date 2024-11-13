@@ -747,6 +747,20 @@ def CHLO_LgammaOp : CHLO_UnaryElementwiseOp<"lgamma",
   }];
 }
 
+def CHLO_SquareOp : CHLO_UnaryElementwiseOp<"square",
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
+  let summary = "Square operation";
+
+  let description = [{
+    Returns `Square(operand)` element-wise.
+
+    $$
+    \square(x) = complex((x.real - x.imag) * (x.real + x.imag), x.real * x.imag * 2) if x is a complex number
+               = x * x                                                               otherwise
+    $$
+  }];
+}
+
 //===----------------------------------------------------------------------===//
 // Broadcasting compare op
 //===----------------------------------------------------------------------===//
