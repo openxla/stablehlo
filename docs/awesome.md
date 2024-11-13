@@ -1,52 +1,56 @@
-# How community is using awesome OpenXLA?
+# Awesome OpenXLA
 
-## ML Frameworks
+**How is the community using OpenXLA?** This page consolidates links to
+repositories and projects using OpenXLA to provide inspiration and code pointers!
 
-**JAX:** [uses OpenXLA]((https://jax.readthedocs.io/en/latest/quickstart.html)) as
-its backend for compilation and execution on CPUs, GPUs, TPUs, xPUs.
+**Have a project that uses OpenXLA?** Send us a pull request and add it to this page!
 
-**PyTorch:** [PyTorch/XLA](https://github.com/pytorch/xla/) is a Python package that uses the
-XLA to connect the PyTorch framework and Cloud TPUs.
+## Frameworks
 
-**TF:** TensorFlow can use
+### JAX
+
+<img src="https://raw.githubusercontent.com/jax-ml/jax/main/images/jax_logo_250px.png" alt="logo" width="80" height="40">
+
+[JAX](https://github.com/jax-ml/jax) is a machine-learning framework with a
+NumPy-like API for writing high-performance ML models. JAX lowers to StableHLO,
+PJRT, and XLA for high-performance compilation and execution on CPUs, GPUs,
+TPUs, and xPUs.
+
+### PyTorch
+
+<img src="https://github.com/pytorch/pytorch/raw/main/docs/source/_static/img/pytorch-logo-dark.png" alt="logo" width="250" height="50">
+
+[PyTorch/XLA](https://github.com/pytorch/xla/) is a Python package that uses
+OpenXLA to connect the PyTorch deep learning framework to TPUs, GPUs, and CPUs.
+
+### TensorFlow
+
+<img src="https://www.tensorflow.org/images/tf_logo_horizontal.png" alt="logo" width="200" height="50">
+
+[TensorFlow](https://github.com/tensorflow/tensorflow) is an end-to-end
+open-source platform for machine learning. It has a comprehensive, flexible
+ecosystem of tools, libraries, and community resources for ML research and
+application development. TensorFlow can use
 [OpenXLA as an alternative backend](https://openxla.org/xla/tf2xla) for
 compilation and execution.
 
 ## PJRT Plugins
 
-**JAX-Metal:** [JAX-Metal](https://developer.apple.com/metal/jax/) uses OpenXLA to compile JAX
-computations into Metal Shading Language(MSL) code, which can then be executed
-on Apple GPUs.
+### libTPU
 
-**libTPU:** libTPU is used by OpenXLA as a backend to target TPUs. OpenXLA compiles
-computations into XLA, which is then further compiled and executed on TPUs using
-libTPU.
-
-## MLIR Bridges
-
-## StableHLO Transformations
-
- StableHLO Transformations are a set of MLIR passes designed to optimize and
- transform programs in the StableHLO dialect.
-
-## Tooling and Vizualization
-
-**Model Explorer:** Model Explorer can visualize StableHLO representations of models, providing
-insights into the compilation process within OpenXLA.
-
-**SHerLOC:** SHerLOC (StableHLO Rule Optimization and Composition) is a framework for
-defining and applying rewrite rules to StableHLO programs.
+The libTPU PJRT plugin enables frameworks to compile and run models on Cloud TPUs.
 
 ## Edge Compilation
 
-**Google AI Edge:** Google AI Edge leverages OpenXLA for compiling and optimizing models for
-efficient execution on resource-constrained edge devices.
+### Google AI Edge
 
-**StableHLO and Apple CoreML:** StableHLO can act as an intermediate representation for converting models to
-the Apple CoreML format, enabling deployment on Apple devices.
+[Google AI Edge](https://ai.google.dev/edge) uses frameworks to generate
+StableHLO, which is then converted into a mix of TFLite and StableHLO ops.
+This is serialized in a flatbuffer and sent to resource-constrained edge devices.
 
-## Uncategorized
+## Tooling and Visualization
 
-**ByteIR:** 
+### Model Explorer
 
-**BladeDISC:** 
+Model Explorer can visualize StableHLO representations of models, providing
+insights into the compilation process within OpenXLA.
