@@ -3,8 +3,13 @@
 Official Documentation: <https://openxla.org/stablehlo>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/assets/stablehlo_ecosystem_dark.svg">
-  <img alt="StableHLO Ecosystem" src="docs/images/assets/stablehlo_ecosystem.svg">
+  <source
+   media="(prefers-color-scheme: dark)"
+   srcset="docs/images/assets/stablehlo_ecosystem_dark.svg"
+   class="devsite-dark-theme">
+  <img
+  alt="StableHLO Ecosystem"
+  src="docs/images/assets/stablehlo_ecosystem.svg">
 </picture>
 
 StableHLO is an operation set for high-level operations (HLO) in machine
