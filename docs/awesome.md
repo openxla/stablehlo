@@ -18,14 +18,11 @@ repositories and projects using OpenXLA to provide inspiration and code pointers
 ## Frameworks
 
 - [JAX](https://github.com/jax-ml/jax) is a ML framework with a
-NumPy-like API for writing high-performance ML models
-<img src="https://img.shields.io/github/stars/jax-ml/jax?style=social" align="center">
+NumPy-like API for writing high-performance ML models <img src="https://img.shields.io/github/stars/jax-ml/jax?style=social" align="center">
 - [PyTorch/XLA](https://github.com/pytorch/xla/) provides a bridge from PyTorch
-to OpenXLA and StableHLO
-<img src="https://img.shields.io/github/stars/pytorch/xla?style=social" align="center">
+to OpenXLA and StableHLO <img src="https://img.shields.io/github/stars/pytorch/xla?style=social" align="center">
 - [TensorFlow](https://github.com/tensorflow/tensorflow) is a long-standing ML
-framework with a large ecosystem
-<img src="https://img.shields.io/github/stars/tensorflow/tensorflow?style=social" align="center">
+framework with a large ecosystem <img src="https://img.shields.io/github/stars/tensorflow/tensorflow?style=social" align="center">
 
 ## PJRT Plugins
 
@@ -37,11 +34,9 @@ on Google's Cloud TPUs
 - [Google AI Edge](https://ai.google.dev/edge) uses StableHLO as an input format
 to deploy to mobile devices using [LiteRT](https://ai.google.dev/edge/litert)
   - [AI Edge Torch](https://github.com/google-ai-edge/ai-edge-torch) exports
-  PyTorch models for mobile deployment via StableHLO
-  <img src="https://img.shields.io/github/stars/google-ai-edge/ai-edge-torch?style=social" align="center">
+  PyTorch models for mobile deployment via StableHLO <img src="https://img.shields.io/github/stars/google-ai-edge/ai-edge-torch?style=social" align="center">
 
 ## Tooling and Visualization
 
 - [Model Explorer](https://github.com/google-ai-edge/model-explorer) offers
-heirarchical graph visualization with support for StableHLO models
-<img src="https://img.shields.io/github/stars/google-ai-edge/model-explorer?style=social" align="center">
+heirarchical graph visualization with support for StableHLO models <img src="https://img.shields.io/github/stars/google-ai-edge/model-explorer?style=social" align="center">
