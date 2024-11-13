@@ -2,101 +2,55 @@
 
 At the time of writing, StableHLO is ready to supersede MHLO/HLO as compiler
 interface. It can be produced by TensorFlow, JAX and PyTorch, it can be consumed
-by XLA and IREE, and it has all the public features provided by MHLO/HLO
-as well as additional functionality.
+by XLA and several 3p PJRT plugins, and it has all the public features provided
+by MHLO/HLO as well as additional functionality.
 
 This document describes the next steps for the StableHLO project, categorizing
 the ongoing work reflected in the issue tracker and arranging this work into
 planned deliverables.
 
-## Milestones
+## Current Milestones
 
-In 2023, we are planning two big milestones: 1) StableHLO v0.9 which will
-provide an initial version of the opset and initial compatibility
-guarantees, 2) StableHLO v1.0 which will implement high-priority improvements
-and start providing full compatibility guarantees.
+Our current milestones follow two main trends:
 
-**StableHLO v0.9** will mirror MHLO/HLO, augmented with a specification for
-statically-shaped ops and initial compatibility guarantees. Per the
-[compatibility RFC](https://github.com/openxla/stablehlo/blob/main/rfcs/20220912-compatibility.md),
-this release will provide 1 month of forward and backward compatibility. These
-modest guarantees will enable gaining experience with dialect evolution and
-allow some time for cleanup before full guarantees go into effect. We are
-planning to release StableHLO v0.9 in Q1 2023.
+1. Maximize the benefit of StableHLO for the entire OpenXLA community.
+2. Unify the developer experience for all OpenXLA members.
 
-**StableHLO v1.0** will implement high-priority improvements, including
-cleaning up the frontend contract (with the goal that StableHLO programs only
-include ops from the StableHLO dialect, rather than today's mixture of dialects
-and unregistered attributes) and providing a reference implementation. We are
-planning to release StableHLO v1.0 in H2 2023.
+- **MHLO Deprecation**: In Q4'24 we have began exploring internal deprecation of
+  MHLO, migrating useful passes including canonicalization and folder patterns
+  to StableHLO. Once the migration process is proven trivial internally, we plan
+  to share an RFC with timelines for external migrations to StableHLO. This will
+  likely happen in Q1'25, and we plan to give ample time and support to teams to
+  migrate to StableHLO in H1'25.
+- **Migrate hardware independent optimizations to StableHLO**: Following the
+  trend above, we want StableHLO to be the best place to consolidate hardware
+  independent graph simplifications, so that all PJRT plugins including those
+  which convert from StableHLO to a non-XLA compiler IR can see max benefits.
+  Part of this goal involves consolidating patterns used in Google AI Edge,
+  the JAX-Enzyme project, and other projects all in the StableHLO repo. Some of
+  this consolidation has already began, but the workstream will largely pick up
+  and complete in Q1'25.
+- **OpenXLA Componentization**: We have began creating dedicated components in
+  openxla/xla for HLO which resembles the StableHLO repo setup
+  ([ref](https://github.com/openxla/xla/tree/main/xla/hlo)), as well as started
+  moving all OpenXLA backends behind PJRT plugins. We are additionally investing
+  in fixing prominent UX issues we discover in these PJRT plugins, including
+  things like having precise StableHLO version communication in StableHLO
+  plugins, so new features can be used immediately by new plugins
+  ([ref](https://github.com/openxla/xla/commit/84ad5fab88e3979b9c43ce93089e0ef537d14b88)).
+- **Make composites work e2e**: In Q3'24 we added composites to HLO, enabling
+  full compiler stack support for abstractions. In Q4'24 we taught the XLA
+  inliner about composites and added passes in HLO/StableHLO for inlining
+  unknown composites with their decompositions. We are now investigating adding
+  dedicated JAX APIs for generating composites from the framework (PyTorch APIs
+  already exist), as well as adding Colab documentation on how to properly use
+  composites, to be completed in Q4'24.
 
-## Workstreams
+## Past Milestones
 
-In order to organize the development towards the aforementioned milestones,
-we have categorized the tickets in the issue tracker into multiple workstreams
-and tied these workstreams to the milestones. A limited number of tickets
-(less than 10%) are not assigned to any specific workstream and aren't part of
-any specific milestone.
-
-(P0) The
-[Compatibility Implementation](https://github.com/orgs/openxla/projects/4)
-workstream is dedicated to implementing
-[the compatibility RFC](https://github.com/openxla/stablehlo/blob/main/rfcs/20220912-compatibility.md)
-along with a compatibility test suite. Most of this work is expected to be
-completed in StableHLO v0.9, and the rest will be done in StableHLO v1.0.
-
-(P0) The
-[Frontend Contract](https://github.com/orgs/openxla/projects/6) workstream
-consists of implementing 100% of the features which are used by StableHLO
-frontends but are not yet in the StableHLO specification. The goal of this
-workstream is to ensure that StableHLO programs only include ops from the
-StableHLO dialect, rather than today's mixture of dialects and unregistered
-attributes. We are planning to complete all or almost all work in this
-workstream in StableHLO v1.0.
-
-(P0) The
-[Reference Implementation](https://github.com/orgs/openxla/projects/7)
-workstream organizes the work on implementing
-[an interpreter](https://github.com/openxla/stablehlo/blob/main/docs/reference.md)
-for 100% of StableHLO ops as defined in the StableHLO specification. We are
-planning to complete all or almost all work in this workstream in
-StableHLO v1.0.
-
-(P0) The [Documentation](https://github.com/orgs/openxla/projects/12) workstream
-is dedicated to providing all the information that StableHLO producers or
-consumers might need. The StableHLO specification is a major deliverable, as
-well as a reference for the StableHLO API and StableHLO serialization format.
-Critical pieces of the workstream will be delivered in StableHLO v1.0, with
-lower-priority items addressed on a rolling basis.
-
-(P1) The [Conformance Suite](https://github.com/orgs/openxla/projects/8)
-workstream consists of delivering a test suite that compares a reference
-implementation with implementations provided by StableHLO backends. Tests for
-the reference implementation will provide a conformance suite of sorts, so this
-workstream does not have P0 priority. However, further augmenting this suite
-with additional interesting test cases will likely be a useful area for future
-work.
-
-(P1) The
-[Specification Compliance](https://github.com/orgs/openxla/projects/9)
-workstream ensures that 100% of StableHLO ops are implemented in the StableHLO
-dialect as defined in the StableHLO specification. The StableHLO dialect is
-already reasonably compliant, so this workstream does not have P0 priority,
-but a lot of minor items still remain (especially in the corner cases of
-verifier implementation) and will be addressed on a rolling basis.
-
-(P1) The [New Features](https://github.com/orgs/openxla/projects/10) workstream
-concludes the StableHLO roadmap and consists of a ragtag collection of new
-functionality for the StableHLO opset (not the StableHLO dialect or the
-StableHLO bindings - that would be other workstreams). A few of these new
-features are planned for delivery in StableHLO v1.0, but
-the majority are currently lower-priority items which are not part of any
-specific milestone.
-
-(P1) The [Public API](https://github.com/orgs/openxla/projects/5) workstream is
-dedicated to delivering C/C++/Python bindings for the StableHLO dialect.
-Existing C++/Python bindings are already fairly reasonable, so this workstream
-does not have P0 priority. However, quite a bit of work still remains to be
-done, especially around providing stability for these bindings - which is
-something that is not currently covered by the compatibility RFC but will
-likely be a useful area for future work.
+In H1 2024, we released **StableHLO v1.0** which implemented high-priority
+improvements, including finishing the public opset spec, reference interpreter,
+extending forward and backward compatibility to support on-device deployment
+with compatibility unit testing, extensibility via composite operations, spec'ed
+dynamism support, released a full testdata suite with evaluated golden results,
+and more.
