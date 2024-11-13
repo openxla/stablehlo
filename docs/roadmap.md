@@ -26,10 +26,11 @@ Our current milestones follow two main trends:
   trend above, we want StableHLO to be the best place to consolidate hardware
   independent graph simplifications, so that all PJRT plugins including those
   which convert from StableHLO to a non-XLA compiler IR can see max benefits.
-  Part of this goal involves consolidating patterns used in Google AI Edge,
-  the JAX-Enzyme project, and other projects all in the StableHLO repo. Some of
-  this consolidation has already began, but the workstream will largely pick up
-  and complete in Q1'25.
+  Part of this goal involves consolidating patterns used in
+  [Google AI Edge](https://io.google/2024/explore/18c47ed9-a8f7-4cd5-aec2-80457d839942/),
+  the [JAX-Enzyme](https://github.com/EnzymeAD/Enzyme-JAX) project, and other
+  projects all in the StableHLO repo. Some of this consolidation has already
+  began, but the workstream will largely pick up and complete in Q1'25.
 - **OpenXLA Componentization**: We have began creating dedicated components in
   openxla/xla for HLO which resembles the StableHLO repo setup
   ([ref](https://github.com/openxla/xla/tree/main/xla/hlo)), as well as started
