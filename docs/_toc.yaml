@@ -28,7 +28,7 @@ toc:
   - title: Roadmap
     path: /stablehlo/roadmap
   - title: Awesome OpenXLA
-    path: /stablehlo/awesome_openxla
+    path: /stablehlo/awesome
 - title: Tutorials
   section:
   - title: JAX Export to StableHLO
