@@ -55,5 +55,6 @@ This is serialized in a flatbuffer and sent to resource-constrained edge devices
 
 ### Model Explorer
 
-Model Explorer can visualize StableHLO representations of models, providing
-insights into the compilation process within OpenXLA.
+[Model Explorer](https://github.com/google-ai-edge/model-explorer) can visualize
+StableHLO representations of models, providing insights into the compilation
+process within OpenXLA.
