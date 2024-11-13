@@ -18,14 +18,14 @@ TPUs, and xPUs.
 
 ### PyTorch
 
-<img src="https://github.com/pytorch/pytorch/raw/main/docs/source/_static/img/pytorch-logo-dark.png" alt="logo" width="250" height="50">
+<img src="https://github.com/pytorch/pytorch/raw/main/docs/source/_static/img/pytorch-logo-dark.png" alt="logo" width="200" height="40">
 
 [PyTorch/XLA](https://github.com/pytorch/xla/) is a Python package that uses
 OpenXLA to connect the PyTorch deep learning framework to TPUs, GPUs, and CPUs.
 
 ### TensorFlow
 
-<img src="https://www.tensorflow.org/images/tf_logo_horizontal.png" alt="logo" width="200" height="50">
+<img src="https://www.tensorflow.org/images/tf_logo_horizontal.png" alt="logo" width="200" height="60">
 
 [TensorFlow](https://github.com/tensorflow/tensorflow) is an end-to-end
 open-source platform for machine learning. It has a comprehensive, flexible
