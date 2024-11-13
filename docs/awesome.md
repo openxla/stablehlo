@@ -44,4 +44,5 @@ to deploy to mobile devices using [LiteRT](https://ai.google.dev/edge/litert)
 ## Tooling and Visualization
 
 - [Model Explorer](https://github.com/google-ai-edge/model-explorer) offers
-heirarchical graph visualization with support for StableHLO models <img align="center" src="https://img.shields.io/github/stars/google-ai-edge/model-explorer?style=social">
+heirarchical graph visualization with support for StableHLO models
+<img align="center" src="https://img.shields.io/github/stars/google-ai-edge/model-explorer?style=social">
