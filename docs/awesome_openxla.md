@@ -9,7 +9,8 @@ repositories and projects using OpenXLA to provide inspiration and code pointers
 
 ### JAX
 
-<img src="https://raw.githubusercontent.com/jax-ml/jax/main/images/jax_logo_250px.png" alt="logo" width="80" height="40">
+<img src="https://raw.githubusercontent.com/jax-ml/jax/main/images/jax_logo_250p
+x.png" alt="logo" width="80" height="40">
 
 [JAX](https://github.com/jax-ml/jax) is a machine-learning framework with a
 NumPy-like API for writing high-performance ML models. JAX lowers to StableHLO,
@@ -18,14 +19,16 @@ TPUs, and xPUs.
 
 ### PyTorch
 
-<img src="https://github.com/pytorch/pytorch/raw/main/docs/source/_static/img/pytorch-logo-dark.png" alt="logo" width="150" height="30">
+<img src="https://github.com/pytorch/pytorch/raw/main/docs/source/_static/img/py
+torch-logo-dark.png" alt="logo" width="150" height="30">
 
 [PyTorch/XLA](https://github.com/pytorch/xla/) is a Python package that uses
 OpenXLA to connect the PyTorch deep learning framework to TPUs, GPUs, and CPUs.
 
 ### TensorFlow
 
-<img src="https://www.tensorflow.org/images/tf_logo_horizontal.png" alt="logo" width="200" height="60">
+<img src="https://www.tensorflow.org/images/tf_logo_horizontal.png" alt="logo"
+width="200" height="60">
 
 [TensorFlow](https://github.com/tensorflow/tensorflow) is an end-to-end
 open-source platform for machine learning. It has a comprehensive, flexible
