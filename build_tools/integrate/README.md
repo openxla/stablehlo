@@ -12,8 +12,17 @@ ecosystem in a reasonable amount of time.
 First we bump LLVM to match that of XLA, and apply any patches the the XLA
 LLVM integrate had to apply to StableHLO to build LLVM:
 
-```
+```sh
 $ ./build_tools/integrate/llvm_bump_revision.sh
+Using LLVM commit: b3134fa2338388adf8cfb2d77339d0b042eab9f6
+Updating LLVM Commit & SHA256
+Bumping commit to: b3134fa2338388adf8cfb2d77339d0b042eab9f6
+Bumping sha256 to: b6024606092290b0838735c26ad1c5c239b3e931136b420af8680e3a1156e759
+Patch file openxla/xla/third_party/stablehlo/temporary.patch is empty
+Skipping patch apply
+Commit changes with message:
+git add .
+git commit -m "Integrate LLVM at llvm/llvm-project@b3134fa23383"
 ```
 
 ### Integarte into OpenXLA Repositories
@@ -33,11 +42,45 @@ This step takes care of a few things:
 3. Bump the 4w and 12w forward compatibility requirement versions in
    [Version.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.cpp#L75)
 
-```
+```sh
 Usage: ./build_tools/integrate/stablehlo_tag_and_bump_version.sh [-t <COMMIT_TO_TAG>]
    -t  Specify a commit to tag, must be an integrated StableHLO commit
        available on https://github.com/search?q=repo%3Aopenxla%2Fxla+integrate+stablehlo&type=commits
        If not specifed, will only bump the 4w and 12w versions.
 
 $ ./build_tools/integrate/stablehlo_tag_and_bump_version.sh -t 37487a8e
+Bumping 4w and 12w compatibility window values
+From https://github.com/openxla/stablehlo
+New WEEK_4 Version: 1, 7, 8
+New WEEK_12 Version: 1, 6, 0
+      return Version(1, 7, 8);  // WEEK_4 ANCHOR: DO NOT MODIFY
+      return Version(1, 6, 0);  // WEEK_12 ANCHOR: DO NOT MODIFY
+Bumping version Version(1, 8, 4) -> Version(1, 8, 5)
+Using commit:
+Integrate LLVM at llvm/llvm-project@246b57cb2086 (#2620)
+
+Is this the correct commit? [y] y
+
+Creating tagged release v1.8.4 at 37487a8e
+$ git tag -a v1.8.4 37487a8e -m "StableHLO v1.8.4"
+fatal: tag 'v1.8.4' already exists
+
+Most recent tags:
+v1.8.4
+v1.8.3
+v1.8.2
+
+If this is incorrect, can undo using:
+$ git tag -d v1.8.4
+
+Bumping revision to: Version(1, 8, 5)
+$ sed -i "s/Version(1, 8, 4)/Version(1, 8, 5)/" /usr/local/google/home/gleasonk/Coding/openxla/stablehlo/build_tools/integrate/../../stablehlo/dialect/Version.h
+
+NEXT STEPS
+  Push tag to upstream using:
+  $ git push upstream v1.8.4
+
+  Commit and patch bump changes:
+  $ git add .
+  $ git commit -m "Bump patch version after integrate 1.8.4 -> 1.8.5"
 ```

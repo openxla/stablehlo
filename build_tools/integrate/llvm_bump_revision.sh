@@ -19,8 +19,8 @@ REPO_ROOT="$SCRIPT_DIR/../.."
 # Update build files
 bump_to_xla_llvm_version() {
   LLVM_URL="https://raw.githubusercontent.com/openxla/xla/refs/heads/main/third_party/llvm/workspace.bzl"
-  LLVM_REV=$(curl -s LLVM_URL | grep 'LLVM_COMMIT =' | cut -d '"' -f 2)
-  echo "Bumping to LLVM commit: $LLVM_REV"
+  LLVM_REV=$(curl -s $LLVM_URL | grep 'LLVM_COMMIT =' | cut -d '"' -f 2)
+  echo "Using LLVM commit: $LLVM_REV"
   echo "$LLVM_REV" > ./build_tools/llvm_version.txt
   "$GH_ACTIONS/lint_llvm_commit.sh" -f .
 }
@@ -29,7 +29,8 @@ apply_xla_patch() {
   PATCH_URL="https://raw.githubusercontent.com/openxla/xla/refs/heads/main/third_party/stablehlo/temporary.patch"
   PATCH=$(curl -s "$PATCH_URL")
   if (( $(echo "$PATCH" | wc -l) < 2 )); then
-    echo "Patch file is empty, skipping patch."
+    echo "Patch file openxla/xla/third_party/stablehlo/temporary.patch is empty"
+    echo "Skipping patch apply"
     return 0
   fi
 

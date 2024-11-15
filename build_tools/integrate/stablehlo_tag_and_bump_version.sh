@@ -75,7 +75,7 @@ setup_version_vars() {
   # getCurrentVersion() { Version(0, X, Y); }
   VERSION_STR=$(cat "$VERSION_H" | grep getCurrentVersion -A1 | grep -o 'Version([0-9], .*)')
   REGEX="Version\(([0-9]+), ([0-9]+), ([0-9]+)\)"
-  if [[ "$VERSION_STR" =~ "$REGEX" ]]
+  if [[ $VERSION_STR =~ $REGEX ]]
   then
     VERSION=(${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]})
     OLD_VERSION_STR="${BASH_REMATCH}"
@@ -155,9 +155,9 @@ update_forward_compat_versions() {
   echo "New WEEK_12 Version: $WEEK_12_TAG" >&2
 
   sed -i -E \
-  -e "s/(return Version\()([0-9]+), ([0-9]+), ([0-9]+)(\);\s+\/\/ WEEK_4 ANCHOR: DO NOT MODIFY)/\1$WEEK_4_TAG\5/" \
-  -e "s/(return Version\()([0-9]+), ([0-9]+), ([0-9]+)(\);\s+\/\/ WEEK_12 ANCHOR: DO NOT MODIFY)/\1$WEEK_12_TAG\5/" \
-  "$VERSION_CPP"
+    -e "s/(return Version\()([0-9]+), ([0-9]+), ([0-9]+)(\);\s+\/\/ WEEK_4 ANCHOR: DO NOT MODIFY)/\1$WEEK_4_TAG\5/" \
+    -e "s/(return Version\()([0-9]+), ([0-9]+), ([0-9]+)(\);\s+\/\/ WEEK_12 ANCHOR: DO NOT MODIFY)/\1$WEEK_12_TAG\5/" \
+    "$VERSION_CPP"
 
 
   # Checking Version.cpp values
