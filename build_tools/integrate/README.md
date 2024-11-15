@@ -72,7 +72,7 @@ If this is incorrect, can undo using:
 $ git tag -d v1.8.4
 
 Bumping revision to: Version(1, 8, 5)
-$ sed -i "s/Version(1, 8, 4)/Version(1, 8, 5)/" /usr/local/google/home/gleasonk/Coding/openxla/stablehlo/build_tools/integrate/../../stablehlo/dialect/Version.h
+$ sed -i "s/Version(1, 8, 4)/Version(1, 8, 5)/" ./stablehlo/dialect/Version.h
 
 NEXT STEPS
   Push tag to upstream using:
