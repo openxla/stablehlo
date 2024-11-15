@@ -77,7 +77,7 @@ setup_version_vars() {
   REGEX="Version\(([0-9]+), ([0-9]+), ([0-9]+)\)"
   if [[ $VERSION_STR =~ $REGEX ]]
   then
-    VERSION=("${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}")
+    VERSION=("${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")
     OLD_VERSION_STR="${BASH_REMATCH[0]}"
     NEW_VERSION_STR="Version(${VERSION[0]}, ${VERSION[1]}, $((VERSION[2]+1)))"
   else

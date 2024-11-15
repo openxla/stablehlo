@@ -50,7 +50,6 @@ Usage: ./build_tools/integrate/stablehlo_tag_and_bump_version.sh [-t <COMMIT_TO_
 
 $ ./build_tools/integrate/stablehlo_tag_and_bump_version.sh -t 37487a8e
 Bumping 4w and 12w compatibility window values
-From https://github.com/openxla/stablehlo
 New WEEK_4 Version: 1, 7, 8
 New WEEK_12 Version: 1, 6, 0
       return Version(1, 7, 8);  // WEEK_4 ANCHOR: DO NOT MODIFY
@@ -63,7 +62,6 @@ Is this the correct commit? [y] y
 
 Creating tagged release v1.8.4 at 37487a8e
 $ git tag -a v1.8.4 37487a8e -m "StableHLO v1.8.4"
-fatal: tag 'v1.8.4' already exists
 
 Most recent tags:
 v1.8.4
