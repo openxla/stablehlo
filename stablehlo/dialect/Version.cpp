@@ -83,7 +83,7 @@ Version Version::fromCompatibilityRequirement(
     case CompatibilityRequirement::NONE:
       return Version::getCurrentVersion();
     case CompatibilityRequirement::WEEK_4:
-      return Version(1, 7, 7);  // WEEK_4 ANCHOR: DO NOT MODIFY
+      return Version(1, 7, 8);  // WEEK_4 ANCHOR: DO NOT MODIFY
     case CompatibilityRequirement::WEEK_12:
       return Version(1, 6, 0);  // WEEK_12 ANCHOR: DO NOT MODIFY
     case CompatibilityRequirement::MAX:
