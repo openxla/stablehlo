@@ -73,12 +73,12 @@ VERSION_H="$SCRIPT_DIR/../../stablehlo/dialect/Version.h"
 VERSION_CPP="$SCRIPT_DIR/../../stablehlo/dialect/Version.cpp"
 setup_version_vars() {
   # getCurrentVersion() { Version(0, X, Y); }
-  VERSION_STR=$(cat "$VERSION_H" | grep getCurrentVersion -A1 | grep -o 'Version([0-9], .*)')
+  VERSION_STR=$(grep getCurrentVersion -A1 "$VERSION_H" | grep -o 'Version([0-9], .*)')
   REGEX="Version\(([0-9]+), ([0-9]+), ([0-9]+)\)"
   if [[ $VERSION_STR =~ $REGEX ]]
   then
-    VERSION=(${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]})
-    OLD_VERSION_STR="${BASH_REMATCH}"
+    VERSION=("${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}")
+    OLD_VERSION_STR="${BASH_REMATCH[0]}"
     NEW_VERSION_STR="Version(${VERSION[0]}, ${VERSION[1]}, $((VERSION[2]+1)))"
   else
     echo "Error: Could not find current version string in Version.h" >&2
