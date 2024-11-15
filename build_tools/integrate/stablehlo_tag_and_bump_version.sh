@@ -1,4 +1,16 @@
 #!/bin/bash
+# Copyright 2024 The StableHLO Authors.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 exit_with_usage() {
   echo "Usage: $0 [-t <COMMIT_TO_TAG>]"
@@ -26,7 +38,7 @@ tag_integrated_version() {
   echo
   read -p "Is this the correct commit? [y] " -n 1 -r
   echo; echo
-  if [[ $REPLY =~ ^[Nn]$ ]]; then
+  if [[ "$REPLY" =~ ^[Nn]$ ]]; then
     echo "Exiting..."
     exit 1
   fi
@@ -36,7 +48,7 @@ tag_integrated_version() {
   NEW_RELEASE="${VERSION[0]}.${VERSION[1]}.$((VERSION[2]+1))"
   echo "Creating tagged release $RELEASE_TAG at $COMMIT"
   echo "$ git tag -a $RELEASE_TAG $COMMIT -m \"StableHLO $RELEASE_TAG\""
-  git tag -a $RELEASE_TAG $COMMIT -m "StableHLO $RELEASE_TAG"
+  git tag -a "$RELEASE_TAG" "$COMMIT" -m "StableHLO $RELEASE_TAG"
   echo
   echo "Most recent tags:"
   git tag --sort=-version:refname | head -3
@@ -50,7 +62,7 @@ bump_patch_version() {
   ## Bump revision
   echo "Bumping revision to: $NEW_VERSION_STR"
   echo "$ sed -i \"s/$OLD_VERSION_STR/$NEW_VERSION_STR/\" $VERSION_H"
-  sed -i "s/$OLD_VERSION_STR/$NEW_VERSION_STR/" $VERSION_H
+  sed -i "s/$OLD_VERSION_STR/$NEW_VERSION_STR/" "$VERSION_H"
   echo
 }
 
@@ -61,9 +73,9 @@ VERSION_H="$SCRIPT_DIR/../../stablehlo/dialect/Version.h"
 VERSION_CPP="$SCRIPT_DIR/../../stablehlo/dialect/Version.cpp"
 setup_version_vars() {
   # getCurrentVersion() { Version(0, X, Y); }
-  VERSION_STR=$(cat $VERSION_H | grep getCurrentVersion -A1 | grep -o 'Version([0-9], .*)')
+  VERSION_STR=$(cat "$VERSION_H" | grep getCurrentVersion -A1 | grep -o 'Version([0-9], .*)')
   REGEX="Version\(([0-9]+), ([0-9]+), ([0-9]+)\)"
-  if [[ $VERSION_STR =~ $REGEX ]]
+  if [[ "$VERSION_STR" =~ "$REGEX" ]]
   then
     VERSION=(${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]})
     OLD_VERSION_STR="${BASH_REMATCH}"
@@ -79,7 +91,7 @@ tag_and_bump() {
   setup_version_vars
   echo "Bumping version $OLD_VERSION_STR -> $NEW_VERSION_STR"
 
-  tag_integrated_version $COMMIT
+  tag_integrated_version "$COMMIT"
   bump_patch_version
 
   ## Next steps
@@ -191,7 +203,7 @@ fi
 update_forward_compat_versions
 
 if [ -n "$COMMIT_TO_TAG" ]; then
-  tag_and_bump $COMMIT_TO_TAG
+  tag_and_bump "$COMMIT_TO_TAG"
 else
   echo "No commit to tag specified, only bumping 4w and 12w values."
 fi
