@@ -42,6 +42,10 @@ apply_xla_patch() {
   patch -p1 < "$TMP_PATCH"
 }
 
+set -o errexit  # Exit immediately if any command returns a non-zero exit status
+set -o nounset  # Using uninitialized variables raises error and exits
+set -o pipefail # Ensures the script detects errors in any part of a pipeline.
+
 bump_to_xla_llvm_version
 apply_xla_patch
 

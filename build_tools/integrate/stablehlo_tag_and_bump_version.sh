@@ -179,6 +179,10 @@ update_forward_compat_versions() {
 # MAIN
 # ------
 
+set -o errexit  # Exit immediately if any command returns a non-zero exit status
+set -o nounset  # Using uninitialized variables raises error and exits
+set -o pipefail # Ensures the script detects errors in any part of a pipeline.
+
 COMMIT_TO_TAG=""
 while getopts 't:' flag; do
   case "${flag}" in
