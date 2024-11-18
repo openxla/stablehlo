@@ -27,7 +27,8 @@ VERSION_H="$SCRIPT_DIR/../../stablehlo/dialect/Version.h"
 VERSION_CPP="$SCRIPT_DIR/../../stablehlo/dialect/Version.cpp"
 setup_version_vars() {
   # getCurrentVersion() { Version(0, X, Y); }
-  local VERSION_STR=$(grep getCurrentVersion -A1 "$VERSION_H" | grep -o 'Version([0-9], .*)')
+  local VERSION_STR
+  VERSION_STR=$(grep getCurrentVersion -A1 "$VERSION_H" | grep -o 'Version([0-9], .*)')
   local REGEX="Version\(([0-9]+), ([0-9]+), ([0-9]+)\)"
   if [[ $VERSION_STR =~ $REGEX ]]
   then
@@ -116,7 +117,8 @@ tag_and_bump() {
 update_forward_compat_versions() {
   echo "Bumping 4w and 12w compatibility window values"
 
-  local UTC_TIME=$(date -u +%s)
+  local UTC_TIME
+  UTC_TIME=$(date -u +%s)
 
   local WEEK_4_TAG=""
   local WEEK_12_TAG=""
