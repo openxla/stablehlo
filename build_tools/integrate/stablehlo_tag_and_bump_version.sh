@@ -20,8 +20,30 @@ exit_with_usage() {
   exit 1
 }
 
+## Setup global variables:
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+VERSION=""
+VERSION_H="$SCRIPT_DIR/../../stablehlo/dialect/Version.h"
+VERSION_CPP="$SCRIPT_DIR/../../stablehlo/dialect/Version.cpp"
+setup_version_vars() {
+  # getCurrentVersion() { Version(0, X, Y); }
+  local VERSION_STR=$(grep getCurrentVersion -A1 "$VERSION_H" | grep -o 'Version([0-9], .*)')
+  local REGEX="Version\(([0-9]+), ([0-9]+), ([0-9]+)\)"
+  if [[ $VERSION_STR =~ $REGEX ]]
+  then
+    VERSION=("${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")
+  else
+    echo "Error: Could not find current version string in Version.h" >&2
+    exit 1
+  fi
+}
+setup_version_vars
+
 ## Tag old version
 tag_integrated_version() {
+  local COMMIT="$1"
+  local RELEASE_TAG="$2"
+
   # Must be valid commit
   if ! git rev-parse "$COMMIT" > /dev/null; then
     echo "Could not find commit $COMMIT."
@@ -43,9 +65,6 @@ tag_integrated_version() {
     exit 1
   fi
 
-  RELEASE="${VERSION[0]}.${VERSION[1]}.${VERSION[2]}"
-  RELEASE_TAG="v$RELEASE"
-  NEW_RELEASE="${VERSION[0]}.${VERSION[1]}.$((VERSION[2]+1))"
   echo "Creating tagged release $RELEASE_TAG at $COMMIT"
   echo "$ git tag -a $RELEASE_TAG $COMMIT -m \"StableHLO $RELEASE_TAG\""
   git tag -a "$RELEASE_TAG" "$COMMIT" -m "StableHLO $RELEASE_TAG"
@@ -59,39 +78,21 @@ tag_integrated_version() {
 }
 
 bump_patch_version() {
-  ## Bump revision
+  ## Bump patch version in Version.h
+  local VERSION_STR="Version(${VERSION[0]}, ${VERSION[1]}, ${VERSION[2]})"
+  local NEW_VERSION_STR="Version(${VERSION[0]}, ${VERSION[1]}, $((VERSION[2]+1)))"
   echo "Bumping revision to: $NEW_VERSION_STR"
-  echo "$ sed -i \"s/$OLD_VERSION_STR/$NEW_VERSION_STR/\" $VERSION_H"
-  sed -i "s/$OLD_VERSION_STR/$NEW_VERSION_STR/" "$VERSION_H"
+  echo "$ sed -i \"s/$VERSION_STR/$NEW_VERSION_STR/\" $VERSION_H"
+  sed -i "s/$VERSION_STR/$NEW_VERSION_STR/" "$VERSION_H"
   echo
 }
 
-## Setup version variables as globals:
-##  VERSION, OLD_VERSION_STR, NEW_VERSION_STR
-SCRIPT_DIR="$(dirname "$(realpath "$0")")"
-VERSION_H="$SCRIPT_DIR/../../stablehlo/dialect/Version.h"
-VERSION_CPP="$SCRIPT_DIR/../../stablehlo/dialect/Version.cpp"
-setup_version_vars() {
-  # getCurrentVersion() { Version(0, X, Y); }
-  VERSION_STR=$(grep getCurrentVersion -A1 "$VERSION_H" | grep -o 'Version([0-9], .*)')
-  REGEX="Version\(([0-9]+), ([0-9]+), ([0-9]+)\)"
-  if [[ $VERSION_STR =~ $REGEX ]]
-  then
-    VERSION=("${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")
-    OLD_VERSION_STR="${BASH_REMATCH[0]}"
-    NEW_VERSION_STR="Version(${VERSION[0]}, ${VERSION[1]}, $((VERSION[2]+1)))"
-  else
-    echo "Error: Could not find current version string in Version.h" >&2
-    exit 1
-  fi
-}
-
 tag_and_bump() {
-  COMMIT="$1"
-  setup_version_vars
-  echo "Bumping version $OLD_VERSION_STR -> $NEW_VERSION_STR"
-
-  tag_integrated_version "$COMMIT"
+  local COMMIT="$1"
+  local RELEASE="${VERSION[0]}.${VERSION[1]}.${VERSION[2]}"
+  local RELEASE_TAG="v$RELEASE"
+  local NEXT_RELEASE="${VERSION[0]}.${VERSION[1]}.$((VERSION[2]+1))"
+  tag_integrated_version "$COMMIT" "$RELEASE_TAG"
   bump_patch_version
 
   ## Next steps
@@ -101,7 +102,7 @@ tag_and_bump() {
   echo
   echo "  Commit and patch bump changes:"
   echo "  $ git add ."
-  echo "  $ git commit -m \"Bump patch version after integrate $RELEASE -> $NEW_RELEASE\""
+  echo "  $ git commit -m \"Bump patch version after integrate $RELEASE -> $NEXT_RELEASE\""
 }
 
 ## Update the 4w and 12w forward compatiblility versions
@@ -115,10 +116,10 @@ tag_and_bump() {
 update_forward_compat_versions() {
   echo "Bumping 4w and 12w compatibility window values"
 
-  UTC_TIME=$(date -u +%s)
+  local UTC_TIME=$(date -u +%s)
 
-  WEEK_4_TAG=""
-  WEEK_12_TAG=""
+  local WEEK_4_TAG=""
+  local WEEK_12_TAG=""
 
   git fetch --tags upstream
 
