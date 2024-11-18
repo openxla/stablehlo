@@ -10,7 +10,7 @@ ecosystem in a reasonable amount of time.
 ### Bump LLVM Revision
 
 The XLA repo has constant integrates of LLVM and carries a patch file for
-StableHLO in [temporary.patch(https://github.com/openxla/xla/blob/main/third_party/stablehlo/temporary.patch),
+StableHLO in [temporary.patch](https://github.com/openxla/xla/blob/main/third_party/stablehlo/temporary.patch),
 which contains any changes needed to build StableHLO at a new LLVM revision.
 To sync to XLA's LLVM revision and apply necessary patches, use:
 
