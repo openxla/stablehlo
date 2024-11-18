@@ -37,6 +37,7 @@ _Note: this is the only step that must be carried out by a Google team member._
 ### Tag the integrated StableHLO commit and bump StableHLO version numbers
 
 This step takes care of a few things:
+
 1. Add a tag for the integrated StableHLO version
 2. Bump the patch version in [Version.h](https://github.com/openxla/stablehlo/tree/main/stablehlo/dialect/Version.h#L41)
 3. Bump the 4w and 12w forward compatibility requirement versions in
