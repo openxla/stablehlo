@@ -96,15 +96,19 @@ def main():
       ("CHLO_AsinhOp", "real_asinh", ("x:float",)),
       ("CHLO_AtanOp", "complex_atan", ("z:complex",)),
       ("CHLO_AtanhOp", "complex_atanh", ("z:complex",)),
+      ("CHLO_SquareOp", "complex_square", ("z:complex",)),
+      ("CHLO_SquareOp", "real_square", ("x:float",)),
   ]:
+    print(f'Generating {chloname} from {fname}{args}')
     func = getattr(fa.algorithms, fname, None)
     if func is None:
       warnings.warn(
           f"{fa.algorithms.__name__} does not define {fname}. Skipping."
       )
       continue
-    ctx = fa.Context(paths=[fa.algorithms])
-    graph = ctx.trace(func, *args).implement_missing(target).simplify()
+    ctx = fa.Context(paths=[fa.algorithms],
+                     parameters=dict(rewrite_keep_integer_literals=True))
+    graph = ctx.trace(func, *args).rewrite(target, fa.rewrite)
     graph.props.update(name=chloname)
     src = graph.tostring(target)
     sources.append(target.make_comment(func.__doc__)) if func.__doc__ else None
