@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/LogicalResult.h"
 #include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
@@ -201,15 +202,7 @@ struct StablehloRefineArgumentsPass
       return signalPassFailure();
     }
 
-    // Verify that refinements are valid
-    if (failed(validateRefinedTypes(func, refinedTypes)))
-      return signalPassFailure();
-
-    // Wrap refined operands in operand wrapper to keep IR valid for refinement
-    wrapRefinedOperands(func, refinedTypes);
-
-    // Actually update main's input types.
-    refineOperandsAndUpdateFunctionSignature(func, refinedTypes);
+    if (failed(refineArguments(func, refinedTypes))) return signalPassFailure();
   }
 
  private:
@@ -217,6 +210,19 @@ struct StablehloRefineArgumentsPass
 };
 
 }  // namespace
+
+LogicalResult refineArguments(func::FuncOp func, TypeRange refinedTypes) {
+  // Verify that refinements are valid
+  if (failed(validateRefinedTypes(func, refinedTypes))) return failure();
+
+  // Wrap refined operands in operand wrapper to keep IR valid for refinement
+  wrapRefinedOperands(func, refinedTypes);
+
+  // Actually update main's input types.
+  refineOperandsAndUpdateFunctionSignature(func, refinedTypes);
+
+  return success();
+}
 
 std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
     TypeRange refinedTypes) {

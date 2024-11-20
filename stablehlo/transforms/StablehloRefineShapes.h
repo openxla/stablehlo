@@ -35,6 +35,11 @@ namespace stablehlo {
 // be obtained from the module.
 func::FuncOp getStablehloRefineShapesTarget(ModuleOp module);
 
+// Refine the arguments of the given function using the given types.
+// Wraps all operands in a custom call to keep the IR valid during refinement.
+// %0 = stablehlo.custom_call @stablehlo.shape_refinement_operand_wrapper(%arg0)
+LogicalResult refineArguments(func::FuncOp func, TypeRange refinedTypes);
+
 // Refines the values using the given types.
 // Tricky implementation details:
 //   1) Need to support partial shape refinements, e.g. if just a single
