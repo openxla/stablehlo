@@ -356,6 +356,25 @@ def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
 
     %1 = stablehlo.add %arg0, %arg0 : tensor<16xf32>
     ```
+
+  Modules valid for shape refinement must have the following properties:
+
+    * All the dynamic shapes depend only on the input shapes (no shape
+      dependency on the input array contents). We refer to the operations that
+      depend transitively only on the input shapes (e.g., as given by
+      `stablehlo.get_dimension_size`) or global constants like the resolved
+      values of symbolic integers (i.e. tensor<Axf32> : A = 5), as `dimension`
+      operations. All dimension values can be resolved to constants through
+      inter-procedural constant folding.
+    * Intermediate functions may take a number of token arguments (of type
+      !stablehlo.token) at the start of the argument list, followed by some
+      global constant arguments which are constant integer scalars, such as the
+      resolved values of symbolic integers (i.e. tensor<Axf32> : A = 5).
+    * Some intermediate functions may return computations on global constants,
+      i.e. `floordiv` on symint values. These functions are indicated by only
+      returning constant values after refinement. These functions are inlined.
+    * All calls to a single function resolve to the same argument shapes, and no
+      recursive / co-recursive function calls are made.
   }];
 }
 
@@ -375,4 +394,5 @@ def VhloToVersionPass : Pass<"vhlo-to-version"> {
     Option<"targetVersionOption", "target", "std::string", "",
            "The target version. Must be a version of the form #.#.# .">,
   ];
+  let dependentDialects = ["mlir::vhlo::VhloDialect"];
 }
