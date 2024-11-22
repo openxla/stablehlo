@@ -98,6 +98,7 @@ def main():
       ("CHLO_AtanhOp", "complex_atanh", ("z:complex",)),
       ("CHLO_SquareOp", "complex_square", ("z:complex",)),
       ("CHLO_SquareOp", "real_square", ("x:float",)),
+      ("CHLO_Log1pOp", "complex_log1p", ("z:complex",)),
   ]:
     print(f'Generating {chloname} from {fname}{args}')
     func = getattr(fa.algorithms, fname, None)

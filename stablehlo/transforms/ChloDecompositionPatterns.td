@@ -117,5 +117,9 @@ def : Pat<(CHLO_ConstantOp $v),
           (StableHLO_ConstantOp $v)>;
 
 
+def : Pat<(CHLO_Log1pOp NonComplexElementType:$x),
+  (StableHLO_Log1pOp $x)>;
+
+
 // Include generated implementations of math functions:
 include "ChloDecompositionPatternsMath.td"

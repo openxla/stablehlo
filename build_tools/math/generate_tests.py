@@ -64,6 +64,7 @@ operations = [
   dict(name="acosh", mpmath_name="arccosh"),
   dict(name="atanh", mpmath_name="arctanh"),
   dict(name="square", mpmath_name="square"),
+  dict(name="log1p", mpmath_name="log1p"),
 ]
 
 
