@@ -43,27 +43,31 @@ default_extra_prec_multiplier = 1
 default_max_ulp_difference = 1
 
 operations = [
-  # The following dictionaries may have additional keys like
-  #
-  #   size - defines the number of samples: size ** 2
-  #
-  #   max_ulp_difference - the maximal allowed ULP difference between
-  #   function and reference values
-  #
-  #   extra_prec_multiplier - the precison multiplier for mpmath.mp
-  #   that defines the precision of computing reference values:
-  #   mpmath.mp.prec * extra_prec_multiplier
-  #
-  # When unspecifed, these parameters are retrieved from
-  # functional_algorithms database of support functions.
-  #
-  dict(name="asin", mpmath_name="arcsin"),
-  dict(name="acos", mpmath_name="arccos"),
-  dict(name="atan", mpmath_name="arctan"),
-  dict(name="asinh", mpmath_name="arcsinh"),
-  dict(name="acosh", mpmath_name="arccosh"),
-  dict(name="atanh", mpmath_name="arctanh"),
-  dict(name="square", mpmath_name="square"),
+    # The following dictionaries may have additional keys like
+    #
+    #   size - defines the number of samples: size ** 2
+    #
+    #   max_ulp_difference - the maximal allowed ULP difference between
+    #   function and reference values
+    #
+    #   extra_prec_multiplier - the precison multiplier for mpmath.mp
+    #   that defines the precision of computing reference values:
+    #   mpmath.mp.prec * extra_prec_multiplier
+    #
+    # When unspecifed, these parameters are retrieved from
+    # functional_algorithms database of support functions.
+    #
+    dict(name="asin", mpmath_name="arcsin"),
+    dict(name="acos", mpmath_name="arccos"),
+    dict(name="atan", mpmath_name="arctan"),
+    dict(name="asinh", mpmath_name="arcsinh"),
+    dict(name="acosh", mpmath_name="arccosh"),
+    dict(name="atanh", mpmath_name="arctanh"),
+    dict(name="square", mpmath_name="square"),
+    dict(name="log_plus_one",
+         mpmath_name="log1p",
+         namespace="stablehlo",
+         passes="--stablehlo-complex-math-expander"),
 ]
 
 
@@ -127,19 +131,21 @@ def main():
   for op in operations:
     opname = op["name"]
     mpmath_opname = op.get("mpmath_name", opname)
+    namespace = op.get("namespace", "chlo")
     size_re = size_im = op.get("size", default_size)
-
+    passes = op.get("passes", "--chlo-legalize-to-stablehlo")
     for dtype in [np.complex64, np.complex128, np.float32, np.float64]:
       params = fa.utils.function_validation_parameters(opname, dtype)
       max_ulp_difference = op.get(
-        "max_ulp_difference",
-        params.get("max_valid_ulp_count", default_max_ulp_difference))
+          "max_ulp_difference",
+          params.get("max_valid_ulp_count", default_max_ulp_difference))
 
       nmp = fa.utils.numpy_with_mpmath(
-        extra_prec_multiplier = op.get(
-          "extra_prec_multiplier",
-          params.get("extra_prec_multiplier", default_extra_prec_multiplier)),
-        flush_subnormals=flush_subnormals,
+          extra_prec_multiplier=op.get(
+              "extra_prec_multiplier",
+              params.get("extra_prec_multiplier",
+                         default_extra_prec_multiplier)),
+          flush_subnormals=flush_subnormals,
       )
 
       fi = np.finfo(dtype)
@@ -180,7 +186,7 @@ def main():
       main_func = m.make_function("main", "", "", "public")
 
       ref_samples = main_func.call("samples")
-      actual = main_func.composite(f"chlo.{opname}", ref_samples)
+      actual = main_func.composite(f"{namespace}.{opname}", ref_samples)
       expected = main_func.call("expected")
 
       main_func.void_call(
@@ -202,7 +208,7 @@ def main():
           continue
 
       f = open(fname, "w")
-      f.write("// RUN: stablehlo-opt --chlo-legalize-to-stablehlo %s |"
+      f.write(f"// RUN: stablehlo-opt {passes} %s |"
               " stablehlo-translate --interpret\n")
       f.write(
           "// This file is generated, see build_tools/math/README.md for more"

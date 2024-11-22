@@ -28,6 +28,10 @@ set(LLVM_TARGET_DEFINITIONS StablehloCompatibilityExpanderPatterns.td)
 mlir_tablegen(StablehloCompatibilityExpanderPatterns.h.inc --gen-rewriters)
 add_public_tablegen_target(StablehloCompatibilityExpanderPatternsIncGen)
 
+set(LLVM_TARGET_DEFINITIONS StablehloComplexMathExpanderPatterns.td)
+mlir_tablegen(StablehloComplexMathExpanderPatterns.h.inc --gen-rewriters)
+add_public_tablegen_target(StablehloComplexMathExpanderPatternsIncGen)
+
 set(LLVM_TARGET_DEFINITIONS StablehloLegalizeDeprecatedOpsPatterns.td)
 mlir_tablegen(StablehloLegalizeDeprecatedOpsPatterns.h.inc --gen-rewriters)
 add_public_tablegen_target(StablehloLegalizeDeprecatedOpsPatternsIncGen)
@@ -47,6 +51,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloCanonicalizeDynamism.cpp
   StablehloConvertToSignless.cpp
   StablehloCompatibilityExpander.cpp
+  StablehloComplexMathExpander.cpp
   StablehloLegalizeCompositeToCall.cpp
   StablehloLegalizeDeprecatedOps.cpp
   StablehloLegalizeQuantToMath.cpp
@@ -64,6 +69,7 @@ add_mlir_dialect_library(StablehloPasses
   PassesIncGen
   StablehloAggressiveSimplificationPatternsIncGen
   StablehloCompatibilityExpanderPatternsIncGen
+  StablehloComplexMathExpanderPatternsIncGen
   StablehloLegalizeDeprecatedOpsPatternsIncGen
   VhloToVersionPatterns
 

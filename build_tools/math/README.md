@@ -31,7 +31,7 @@ following requirements:
 
 - Python 3.11 or newer
 - mpmath 1.3 or newer
-- functional_algorithms 0.11.1 or newer
+- functional_algorithms 0.12 or newer
 
 that can be installed via pypi:
 
@@ -62,7 +62,7 @@ To execute generated tests from a `build` directory, use:
 
 ```sh
 for t in $(ls ../stablehlo/tests/math/*.mlir); \
-do echo $t && ( bin/stablehlo-opt --chlo-legalize-to-stablehlo $t \
+do echo $t && ( bin/stablehlo-opt --stablehlo-complex-math-expander --chlo-legalize-to-stablehlo $t \
  | bin/stablehlo-translate --interpret 2>&1 | grep "^ULP difference" ) ; done
 ```
 
@@ -76,6 +76,14 @@ build/bin/stablehlo-opt --chlo-legalize-to-stablehlo --split-input-file --verify
 ```
 
 and copy relevant checks to `chlo_legalize_to_stablehlo.mlir`.
+
+A similar procedure is applied for updating
+`stablehlo/tests/stablehlo_complex_math_expander.mlir`:
+
+```sh
+build/bin/stablehlo-opt --stablehlo-complex-math-expander --split-input-file --verify-diagnostics \
+   stablehlo/tests/stablehlo_complex_math_expander.mlir | python llvm-project/mlir/utils/generate-test-checks.py | less
+```
 
 ## A procedure for adding a new algorithm to an existing operation
 
@@ -98,6 +106,10 @@ and copy relevant checks to `chlo_legalize_to_stablehlo.mlir`.
 7. Add a record of the operation to
    `generate_ChloDecompositionPatternsMath.py`, see the for-loop in
    `main` function.
+   - If the operation is a StableHLO operation on complex inputs, add
+     it to `stable-complex-math-expander` pass: update
+     `populateStablehloComplexMathExpanderPatterns` function in
+     `stablehlo/transforms/StablehloComplexMathExpander.cpp`.
 8. Generate new implementations by running
    `generate_ChloDecompositionPatternsMath.py` and remove existing
    implementations in

@@ -123,6 +123,40 @@ def StablehloCompatibilityExpanderPass : Pass<"stablehlo-compatibility-expander"
   ];
 }
 
+def StablehloComplexMathExpanderPass : Pass<"stablehlo-complex-math-expander", "mlir::func::FuncOp"> {
+  let summary = "Expander for StableHLO complex math operations.";
+
+  let description = [{
+    StableHLO complex math operations are decompositions using
+    StableHLO real math operations.
+
+    This statement is based on the assumption that no hardware exists
+    that supports complex numbers nor complex math operations
+    natively. This means that the fallback mechanisms on complex math
+    operations that compilers may implement, are redundant. With
+    enabling this pass, all StableHLO complex math operations will be
+    expanded.
+
+    ```mlir
+    func.func @sqrt_op_complex(%arg0: tensor<4xcomplex<f64>>) -> tensor<4xcomplex<f64>> {
+      %1 = stablehlo.sqrt %arg0 : tensor<4xcomplex<f64>>
+      func.return %1 : tensor<4xcomplex<f64>>
+    }
+
+    ==>
+
+    func.func @sqrt_op_complex(%arg0: tensor<4xcomplex<f64>>) -> tensor<4xcomplex<f64>> {
+      TBD
+      return %2 : tensor<4xcomplex<f64>>
+    }
+    ```
+  }];
+  let dependentDialects = [
+    "mlir::stablehlo::StablehloDialect",
+    "mlir::chlo::ChloDialect",
+  ];
+}
+
 def StablehloConvertToSignlessPass : Pass<"stablehlo-convert-to-signless", "ModuleOp"> {
   let summary = "Pass to transform the IR to be on signless integers.";
 }
