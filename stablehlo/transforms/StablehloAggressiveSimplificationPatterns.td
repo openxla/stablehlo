@@ -72,6 +72,16 @@ def IntOne : AttrConstraint<
     CPred<"::mlir::matchPattern($_self, m_One())">,
     "is integer one">;
 
+def IntAllOnes : AttrConstraint<
+    CPred<[{
+    ::mlir::matchPattern($_self,
+        ::mlir::detail::constant_int_predicate_matcher{
+            [](const llvm::APInt &val) {
+                return val.isAllOnes();
+        }})
+    }]>,
+    "is integer with all bits set to 1">;
+
 def IntZero : AttrConstraint<
     CPred<"::mlir::matchPattern($_self, m_Zero())">,"is integer zero">;
 
@@ -139,7 +149,7 @@ def : Pat<(StableHLO_AndOp $lhs, (StableHLO_ConstantOp:$zero IntZero:$value)),
           (replaceWithValue $zero)>;
 
 // Pattern: and(X, 1) -> X
-def : Pat<(StableHLO_AndOp $lhs, (StableHLO_ConstantOp:$one IntOne:$value)),
+def : Pat<(StableHLO_AndOp $lhs, (StableHLO_ConstantOp:$one IntAllOnes:$value)),
           (replaceWithValue $lhs)>;
 
 ////////
@@ -307,7 +317,7 @@ def : Pat<(StableHLO_MulOp $lhs, (StableHLO_ConstantOp IntOne:$value)),
 def : CanonicalizeConstantToRhs<StableHLO_OrOp>;
 
 // Pattern: or(X, 1) -> 1
-def : Pat<(StableHLO_OrOp $lhs, (StableHLO_ConstantOp:$one IntOne:$value)),
+def : Pat<(StableHLO_OrOp $lhs, (StableHLO_ConstantOp:$one IntAllOnes:$value)),
           (replaceWithValue $one)>;
 
 // Pattern: or(X, 0) -> X

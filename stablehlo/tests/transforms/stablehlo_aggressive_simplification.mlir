@@ -63,6 +63,25 @@ func.func @and_one(%arg0: tensor<2xi1>) -> tensor<2xi1> {
   return %1 : tensor<2xi1>
 }
 
+// CHECK-LABEL: @and_i32_one
+func.func @and_i32_one(%arg0: tensor<2xi32>) -> tensor<2xi32> {
+  %0 = stablehlo.constant dense<1> : tensor<2xi32>
+  %1 = stablehlo.and %0, %arg0 : tensor<2xi32>
+  // CHECK: %[[AND:.+]] = stablehlo.and
+  // CHECK: return %[[AND]]
+  return %1 : tensor<2xi32>
+}
+
+// CHECK-LABEL: @and_i32_neg_one
+//  CHECK-SAME:  (%[[ARG0:.+]]: tensor<2xi32>)
+func.func @and_i32_neg_one(%arg0: tensor<2xi32>) -> tensor<2xi32> {
+  %0 = stablehlo.constant dense<-1> : tensor<2xi32>
+  %1 = stablehlo.and %0, %arg0 : tensor<2xi32>
+  // CHECK-NOT:  stablehlo.and
+  // CHECK: return %[[ARG0]]
+  return %1 : tensor<2xi32>
+}
+
 // -----
 
 /////////
@@ -872,6 +891,25 @@ func.func @or_one(%arg0: tensor<2xi1>) -> tensor<2xi1> {
   // CHECK: [[TRUE:%.+]] = stablehlo.constant dense<true> : tensor<2xi1>
   // CHECK: return [[TRUE]]
   return %1 : tensor<2xi1>
+}
+
+// CHECK-LABEL: @or_i32_one
+func.func @or_i32_one(%arg0: tensor<2xi32>) -> tensor<2xi32> {
+  %0 = stablehlo.constant dense<1> : tensor<2xi32>
+  %1 = stablehlo.or %0, %arg0 : tensor<2xi32>
+  // CHECK: %[[OR:.+]] = stablehlo.or
+  // CHECK: return %[[OR]]
+  return %1 : tensor<2xi32>
+}
+
+// CHECK-LABEL: @or_i32_neg_one
+func.func @or_i32_neg_one(%arg0: tensor<2xi32>) -> tensor<2xi32> {
+  %0 = stablehlo.constant dense<-1> : tensor<2xi32>
+  %1 = stablehlo.or %0, %arg0 : tensor<2xi32>
+  // CHECK-NOT: stablehlo.or
+  // CHECK: [[NEG_ONE:%.+]] = stablehlo.constant dense<-1> : tensor<2xi32>
+  // CHECK: return [[NEG_ONE]]
+  return %1 : tensor<2xi32>
 }
 
 // -----
