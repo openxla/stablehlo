@@ -84,7 +84,7 @@ bump_patch_version() {
   local NEW_VERSION_STR="Version(${VERSION[0]}, ${VERSION[1]}, $((VERSION[2]+1)))"
   echo "Bumping revision to: $NEW_VERSION_STR"
   echo "$ sed -i \"s/$VERSION_STR/$NEW_VERSION_STR/\" $VERSION_H"
-  sed -i "s/$VERSION_STR/$NEW_VERSION_STR/" "$VERSION_H"
+  sed -i "s/$VERSION_STR/$NEW_VERSION_STR/" $VERSION_H
   echo
 }
 
