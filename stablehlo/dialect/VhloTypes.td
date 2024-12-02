@@ -222,7 +222,6 @@ def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple_v1", "0.9.0", "current"> {
   let assemblyFormat = "`<` $types `>`";
 }
 
-// TODO(#8): UniformQuantized is not part of the StableHLO spec.
 // At the moment, it is used to represent uniform quantization, and we're
 // planning to look into it as part of the work on speccing quantization.
 def VHLO_APFloatV1 : APFloatParameter<""> {
