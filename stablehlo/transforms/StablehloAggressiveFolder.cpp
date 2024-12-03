@@ -79,8 +79,9 @@ APSInt getAPSInt(Type type, uint64_t value) {
   } else {
     llvm::report_fatal_error("expected integer type");
   }
-  return APSInt({/*numBits=*/numBits, value},
-                /*isUnsigned=*/isUnsigned);
+  return APSInt(
+      {/*numBits=*/numBits, value, /*isSigned=*/false, /*implicitTrunc=*/true},
+      /*isUnsigned=*/isUnsigned);
 }
 
 LogicalResult validateResultTypeForEval(PatternRewriter& rewriter,
