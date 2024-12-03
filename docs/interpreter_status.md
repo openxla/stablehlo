@@ -237,15 +237,6 @@ hlo-expand --triangular_solve_expander <path/to/hlo_module>
 ### Convert Not In HLO Ops
 
 ```sh
-# broadcast
-mlir-hlo-opt -mhlo-legalize-broadcast-to-broadcast-in-dim <path/to/input>
-
-# create_token
-mlir-hlo-opt -mhlo-legalize-create-token-to-after-all <path/to/input>
-
-# cross-replica-sum
-mlir-hlo-opt -mhlo-legalize-cross-replica-sum-to-all-reduce <path/to/input>
-
 # dot
 mlir-hlo-opt -mhlo-legalize-dot-to-dot-general <path/to/input>
 
