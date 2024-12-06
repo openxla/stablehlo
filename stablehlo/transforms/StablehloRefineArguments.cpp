@@ -34,6 +34,7 @@ limitations under the License.
 #include "mlir/IR/Value.h"
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -79,7 +80,8 @@ LogicalResult refinementError(func::FuncOp func, int64_t idx, Type argType,
                               Type refinedType, StringRef msg) {
   return func.emitOpError()
          << "invalid refinement for argument " << idx << ", refinement " << msg
-         << " in " << argType << "->" << refinedType;
+         << " in " << mlir::debugString(argType) << " -> "
+         << mlir::debugString(refinedType);
 }
 
 // Validates refinement types:
@@ -111,6 +113,12 @@ LogicalResult validateRefinedTypes(func::FuncOp func, TypeRange refinedTypes) {
     auto refinedTensorType = dyn_cast<TensorType>(refinedType);
     if (!tensorType || !refinedTensorType) {
       return refinementError(func, i, type, refinedType, "must be a tensor");
+    }
+
+    // Check that element types match
+    if (tensorType.getElementType() != refinedTensorType.getElementType()) {
+      return refinementError(func, i, type, refinedType,
+                             "element types must match");
     }
 
     // Refined rank cannot be unranked if mismatch
