@@ -13,5 +13,9 @@ limitations under the License.
 #include "stablehlo/integrations/c/StablehloPasses.h"
 
 #include "stablehlo/transforms/Passes.h"
+#include "stablehlo/conversions/linalg/transforms/Passes.h"
 
-void mlirRegisterAllStablehloPasses() { mlir::stablehlo::registerPasses(); }
+void mlirRegisterAllStablehloPasses() {
+    mlir::stablehlo::registerPasses();
+    mlir::stablehlo::registerStablehloLinalgTransformsPasses();
+}
