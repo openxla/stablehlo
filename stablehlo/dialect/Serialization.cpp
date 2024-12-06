@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "stablehlo/dialect/Serialization.h"
 
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "mlir/Bytecode/BytecodeReader.h"
 #include "mlir/Bytecode/BytecodeWriter.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
@@ -28,6 +31,8 @@ limitations under the License.
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
+
+#define DEBUG_TYPE "compat-passes"
 
 namespace mlir {
 namespace stablehlo {
@@ -87,6 +92,37 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
   }
 
   return module;
+}
+
+FailureOr<vhlo::Version> getPortableArtifactVersion(llvm::StringRef bytecode) {
+  auto logFailure = [&](llvm::StringRef message) {
+    LLVM_DEBUG(llvm::dbgs() << "Failed to get portable artifact version: "
+                            << message << "\n");
+    return failure();
+  };
+  // Must start with MLiRxStableHLO_vX.Y.Z, minimum length of 19.
+  constexpr size_t minHeaderLength = 19;
+  if (bytecode.size() < minHeaderLength) return logFailure("min header");
+
+  // Truncate to the end of the null-terminated producer string.
+  size_t pos = bytecode.find('\0');
+  if (pos == llvm::StringRef::npos) return logFailure("no terminator");
+  bytecode = bytecode.substr(0, pos);
+
+  // Check if the bytecode is valid, starts with MLiR magic number.
+  if (!isBytecode(
+          llvm::MemoryBuffer::getMemBuffer(bytecode)->getMemBufferRef()))
+    return logFailure("not bytecode");
+
+  // Skip 4 bytes for the magic number.
+  std::string stablehloHeader = "StableHLO_v";
+  size_t stablehloPos = bytecode.find(stablehloHeader);
+  if (stablehloPos == llvm::StringRef::npos)
+    return logFailure("not a StableHLO portable artifact");
+
+  // Skip the 11 bytes for StableHLO_v to get the StableHLO version to parse.
+  StringRef version = bytecode.substr(stablehloPos + stablehloHeader.size());
+  return vhlo::Version::fromString(version);
 }
 
 }  // namespace stablehlo

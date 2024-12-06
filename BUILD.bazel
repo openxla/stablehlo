@@ -925,6 +925,7 @@ cc_library(
         ":stablehlo_serialization",
         ":version",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:BytecodeReader",
         "@llvm-project//mlir:CAPIIR",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
