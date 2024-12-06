@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LogicalResult.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/IR/Quant.h"
@@ -63,6 +64,12 @@ llvm::cl::opt<std::string> probeOutputDir(
 
 llvm::cl::opt<bool> stripDebuginfoOption(
     "strip-debuginfo", llvm::cl::desc("Strip debug info from all operations"),
+    llvm::cl::init(false));
+
+llvm::cl::opt<bool> printStablehloVersion(
+    "print-stablehlo-version",
+    llvm::cl::desc(
+        "When deserializing a portable artifact, print the StableHLO version"),
     llvm::cl::init(false));
 
 llvm::cl::opt<std::string> targetOption(
@@ -306,6 +313,17 @@ TranslateFromMLIRRegistration serializeRegistration(
 TranslateToMLIRRegistration deserializeRegistration(
     "deserialize", "Deserialize a portable artifact into a StableHLO program",
     [](llvm::StringRef input, mlir::MLIRContext *context) {
+      if (printStablehloVersion.getValue()) {
+        auto version = stablehlo::getPortableArtifactVersion(input);
+        if (failed(version)) {
+          llvm::outs()
+              << "// Failed parsing StableHLO version from portable artifact\n";
+        } else {
+          llvm::outs()
+              << "// Reading portable artifact with StableHLO version: "
+              << *version << "\n";
+        }
+      }
       return stablehlo::deserializePortableArtifact(input, context);
     },
     [](DialectRegistry &registry) {
