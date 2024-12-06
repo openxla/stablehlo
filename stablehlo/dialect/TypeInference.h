@@ -54,6 +54,18 @@ FailureOr<SmallVector<bool>> convertWindowReversalAttribute(
     std::optional<DenseElementsAttr> optionalAttr, std::optional<Location> loc,
     StringRef attrName);
 
+LogicalResult checkDimInBounds(std::optional<Location> loc, int64_t dim,
+                               int64_t upperBound, StringRef dimName,
+                               StringRef upperBoundName,
+                               bool upperBoundInclusive = false);
+
+LogicalResult checkDimsDistinct(std::optional<Location> loc,
+                                ArrayRef<int64_t> lhsDims,
+                                ArrayRef<int64_t> rhsDims, llvm::StringRef lhs,
+                                llvm::StringRef rhs);
+
+bool verifyCompatibleDims(int64_t dimSize1, int64_t dimSize2);
+
 // WindowDimension described how the kernel window moves across the base area
 // in a particular dimension.
 // Describes the windowing in an operation such as convolution.
@@ -85,6 +97,9 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                   bool allGroupsMustHaveSameSize,
                                   bool useGlobalDeviceIds,
                                   std::optional<size_t> expectedGroupSize);
+
+LogicalResult verifyPrecisionConfig(std::optional<Location> loc,
+                                    std::optional<ArrayAttr> maybeArrayAttr);
 
 LogicalResult verifyConvolutionAttributes(
     std::optional<Location> location, Type lhsType, Type rhsType,
@@ -206,6 +221,14 @@ LogicalResult inferDotOp(
     std::optional<Location> location, RankedTensorType lhsType,
     RankedTensorType rhsType, std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult checkDotGeneralConstraints(
+    std::optional<Location> location, Type lhsType, Type rhsType,
+    ArrayRef<int64_t> lhsBatchingDimensions,
+    ArrayRef<int64_t> rhsBatchingDimensions,
+    ArrayRef<int64_t> lhsContractingDimensions,
+    ArrayRef<int64_t> rhsContractingDimensions,
+    std::optional<ArrayAttr> precisionConfig);
 
 LogicalResult inferDotGeneralOp(
     std::optional<Location> location, Type lhsType, Type rhsType,

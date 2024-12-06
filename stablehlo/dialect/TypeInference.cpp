@@ -392,7 +392,7 @@ LogicalResult checkDimsDistinct(std::optional<Location> loc,
 LogicalResult checkDimInBounds(std::optional<Location> loc, int64_t dim,
                                int64_t upperBound, StringRef dimName,
                                StringRef upperBoundName,
-                               bool upperBoundInclusive = false) {
+                               bool upperBoundInclusive) {
   StringRef rangeEnd = upperBoundInclusive ? "]" : ")";
   if (dim < 0 || dim >= upperBound + (upperBoundInclusive ? 1 : 0))
     return emitOptionalError(loc, "Expects ", dimName, " to be in range [0, ",
@@ -2280,14 +2280,13 @@ LogicalResult inferDotOp(
   return success();
 }
 
-LogicalResult inferDotGeneralOp(
+LogicalResult checkDotGeneralConstraints(
     std::optional<Location> location, Type lhsType, Type rhsType,
     ArrayRef<int64_t> lhsBatchingDimensions,
     ArrayRef<int64_t> rhsBatchingDimensions,
     ArrayRef<int64_t> lhsContractingDimensions,
     ArrayRef<int64_t> rhsContractingDimensions,
-    std::optional<ArrayAttr> precisionConfig,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+    std::optional<ArrayAttr> precisionConfig) {
   // dot_general_c11
   if (failed(verifyPrecisionConfig(location, precisionConfig)))
     return failure();
@@ -2366,9 +2365,30 @@ LogicalResult inferDotGeneralOp(
                                "contracting dimension sizes must "
                                "match for lhs/rhs");
   }
+  return success();
+}
+
+LogicalResult inferDotGeneralOp(
+    std::optional<Location> location, Type lhsType, Type rhsType,
+    ArrayRef<int64_t> lhsBatchingDimensions,
+    ArrayRef<int64_t> rhsBatchingDimensions,
+    ArrayRef<int64_t> lhsContractingDimensions,
+    ArrayRef<int64_t> rhsContractingDimensions,
+    std::optional<ArrayAttr> precisionConfig,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (failed(checkDotGeneralConstraints(
+          location, lhsType, rhsType, lhsBatchingDimensions,
+          rhsBatchingDimensions, lhsContractingDimensions,
+          rhsContractingDimensions, precisionConfig))) {
+    return failure();
+  }
 
   // Infer the output dimensions of the operation.
   SmallVector<int64_t> dimensions;
+  auto lhsRankedType = cast<RankedTensorType>(lhsType);
+  auto rhsRankedType = cast<RankedTensorType>(rhsType);
+  auto lhsShape = lhsRankedType.getShape();
+  auto rhsShape = rhsRankedType.getShape();
   for (const int64_t lhsBatchingDim : lhsBatchingDimensions)
     dimensions.push_back(lhsShape[lhsBatchingDim]);
   for (int64_t i = 0; i < lhsRankedType.getRank(); i++)
