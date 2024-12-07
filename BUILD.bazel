@@ -917,6 +917,7 @@ cc_library(
     hdrs = STABLEHLO_CAPI_HEADERS,
     strip_include_prefix = ".",
     deps = [
+        ":linalg_passes",
         ":reference_api",
         ":reference_configuration",
         ":stablehlo_ops",
