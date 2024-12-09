@@ -1,0 +1,29 @@
+name: Execute Tutorial Notebooks
+
+on:
+  push:
+    paths:
+      - 'docs/tutorials/**.ipynb'
+      - .github/workflows/execute_tutorials.yml
+  workflow_dispatch:
+
+jobs:
+  test-notebooks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python and install dependencies
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run:  |
+          pip install --upgrade pip
+          pip install ipython ipykernel nbclient
+
+      - name: Execute tutorial notebooks
+        run: |
+          jupyter execute docs/tutorials/*.ipynb
+        shell: bash
