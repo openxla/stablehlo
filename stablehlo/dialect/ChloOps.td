@@ -747,6 +747,20 @@ def CHLO_LgammaOp : CHLO_UnaryElementwiseOp<"lgamma",
   }];
 }
 
+def CHLO_Log1pOp : CHLO_UnaryElementwiseOp<"log1p",
+    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
+  let summary = "Log1p function";
+
+  let description = [{
+    Returns `Log1p(operand)` element-wise.
+
+    $$
+    \log1p(x) = complex(log(hypot(x.real + 1, x.imag)), arctan2(x.imag, x.real + 1)) if x is a complex number
+               = log(x + 1)                                                          otherwise
+    $$
+  }];
+}
+
 def CHLO_SquareOp : CHLO_UnaryElementwiseOp<"square",
     [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
   let summary = "Square operation";
