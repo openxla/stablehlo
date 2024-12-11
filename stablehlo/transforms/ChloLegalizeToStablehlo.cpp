@@ -46,6 +46,7 @@
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/transforms/ChloDecompositionUtils.h"
 #include "stablehlo/transforms/PassUtils.h"
 #include "stablehlo/transforms/Passes.h"
 
@@ -169,29 +170,30 @@ static void populateForBroadcastingBinaryOp(MLIRContext *context,
                         mlir::stablehlo::CompareOp, HloCompareAdaptor>>(
       context, args...);
 }
+}  // namespace
 
-static Value getConstantLikeMaxFiniteValue(OpBuilder &b, Location loc,
-                                           Value val) {
+Value getConstantLikeMaxFiniteValue(OpBuilder &b, Location loc, Value val) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(
       b, loc, llvm::APFloat::getLargest(ty.getFloatSemantics()), val);
 }
 
-static Value getConstantLikeInfValue(OpBuilder &b, Location loc, Value val,
-                                     bool negative) {
+Value getConstantLikeInfValue(OpBuilder &b, Location loc, Value val,
+                              bool negative) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(
       b, loc, llvm::APFloat::getInf(ty.getFloatSemantics(), negative), val);
 }
 
-static Value getConstantLikeSmallestNormalizedValue(OpBuilder &b, Location loc,
-                                                    Value val) {
+Value getConstantLikeSmallestNormalizedValue(OpBuilder &b, Location loc,
+                                             Value val) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(
       b, loc, llvm::APFloat::getSmallestNormalized(ty.getFloatSemantics()),
       val);
 }
 
+namespace {
 //===----------------------------------------------------------------------===//
 // Broadcasting Patterns.
 //===----------------------------------------------------------------------===//
@@ -1248,6 +1250,8 @@ constexpr std::array<double, 8> kLanczosCoefficients = {
     12.507343278686904814458936853,     -0.13857109526572011689554707,
     9.984369578019570859563e-6,         1.50563273514931155834e-7};
 
+} // namespace
+
 // Compute the Lgamma function using Lanczos' approximation from "A Precision
 // Approximation of the Gamma Function". SIAM Journal on Numerical Analysis
 // series B. Vol. 1:
@@ -1257,8 +1261,8 @@ constexpr std::array<double, 8> kLanczosCoefficients = {
 //   with   t(z) = z + kLanczosGamma + 1/2
 //          a(z) = kBaseLanczosCoeff
 //                   + sum(k = 1, n, kLanczosCoefficients[i] / (z + k))
-static Value materializeLgamma(ConversionPatternRewriter &rewriter,
-                               Location loc, ValueRange args) {
+Value materializeLgamma(ConversionPatternRewriter &rewriter, Location loc,
+                        ValueRange args) {
   // If the input is less than 0.5 use Euler's reflection formula.
   //   gamma(x) = pi / (sin(pi * x) * gamma(1 - x))
   // Let z be
@@ -1393,6 +1397,8 @@ static Value materializeLgamma(ConversionPatternRewriter &rewriter,
       getConstantLikeInfValue(rewriter, loc, x, /*negative=*/false), lgamma);
 }
 
+namespace {
+
 // Express `cosh` as
 //   cosh(x) = (e^x + e^-x) / 2
 //           = e^(x + log(1/2)) + e^(-x + log(1/2))
@@ -1431,6 +1437,8 @@ struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
   }
 };
 
+} // namespace
+
 // Compute the Digamma function using Lanczos' approximation from "A Precision
 // Approximation of the Gamma Function". SIAM Journal on Numerical Analysis
 // series B. Vol. 1:
@@ -1439,8 +1447,8 @@ struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
 //          a(z) = kBaseLanczosCoeff
 //                   + sum(k = 1, n, kLanczosCoefficients[i] / (z + k))
 //          a'(z) = - sum(k = 1, n, kLanczosCoefficients[i] / (z + k) / (z + k))
-static Value materializeDigamma(ConversionPatternRewriter &rewriter,
-                                Location loc, ValueRange args) {
+Value materializeDigamma(ConversionPatternRewriter &rewriter, Location loc,
+                         ValueRange args) {
   // If the input is less than 0.5 use Euler's reflection formula.
   //   digamma(x) = digamma(1 - x) - pi * cot(pi * x)
   // Let z be
@@ -1544,6 +1552,8 @@ static Value materializeDigamma(ConversionPatternRewriter &rewriter,
                       x),
       digamma);
 }
+
+namespace {
 
 static Value getConstantLikeSmallestFiniteValue(OpBuilder &b, Location loc,
                                                 Value val) {
