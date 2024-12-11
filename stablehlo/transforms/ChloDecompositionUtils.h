@@ -10,8 +10,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef THIRD_PARTY_STABLEHLO_STABLEHLO_TRANSFORMS_CHLO_DECOMP_UTILS_H_
-#define THIRD_PARTY_STABLEHLO_STABLEHLO_TRANSFORMS_CHLO_DECOMP_UTILS_H_
+#ifndef STABLEHLO_TRANSFORMS_CHLO_DECOMP_UTILS_H_
+#define STABLEHLO_TRANSFORMS_CHLO_DECOMP_UTILS_H_
 
 #include "mlir/IR/Value.h"
 #include "mlir/IR/ValueRange.h"
@@ -46,4 +46,4 @@ Value materializePolygamma(ConversionPatternRewriter &rewriter, Location loc,
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // THIRD_PARTY_STABLEHLO_STABLEHLO_TRANSFORMS_CHLO_DECOMP_UTILS_H_
+#endif  // STABLEHLO_TRANSFORMS_CHLO_DECOMP_UTILS_H_
