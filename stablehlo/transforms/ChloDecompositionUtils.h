@@ -22,19 +22,26 @@ namespace stablehlo {
 
 // Utility functions used in the Chlo to stablehlo legalization.
 
-Value getConstantLikeMaxFiniteValue(OpBuilder &b, Location loc, Value val);
-
-Value getConstantLikeInfValue(OpBuilder &b, Location loc, Value val,
-                              bool negative);
-
-Value getConstantLikeSmallestNormalizedValue(OpBuilder &b, Location loc,
-                                             Value val);
-
 Value materializeLgamma(ConversionPatternRewriter &rewriter, Location loc,
                         ValueRange args);
 
+Value materializeCoshApproximation(ConversionPatternRewriter &rewriter,
+                                   Location loc, ValueRange operands);
+
+Value materializeSinhApproximationForLargeX(ConversionPatternRewriter &rewriter,
+                                            Location loc, ValueRange operands);
+
+Value materializeSinhApproximation(ConversionPatternRewriter &rewriter,
+                                   Location loc, ValueRange operands);
+
 Value materializeDigamma(ConversionPatternRewriter &rewriter, Location loc,
                          ValueRange args);
+
+Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
+                      ValueRange args);
+
+Value materializePolygamma(ConversionPatternRewriter &rewriter, Location loc,
+                           ValueRange args);
 
 }  // namespace stablehlo
 }  // namespace mlir
