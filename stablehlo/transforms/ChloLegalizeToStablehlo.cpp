@@ -1250,7 +1250,7 @@ constexpr std::array<double, 8> kLanczosCoefficients = {
     12.507343278686904814458936853,     -0.13857109526572011689554707,
     9.984369578019570859563e-6,         1.50563273514931155834e-7};
 
-} // namespace
+}  // namespace
 
 // Compute the Lgamma function using Lanczos' approximation from "A Precision
 // Approximation of the Gamma Function". SIAM Journal on Numerical Analysis
@@ -1437,7 +1437,7 @@ struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
   }
 };
 
-} // namespace
+}  // namespace
 
 // Compute the Digamma function using Lanczos' approximation from "A Precision
 // Approximation of the Gamma Function". SIAM Journal on Numerical Analysis
