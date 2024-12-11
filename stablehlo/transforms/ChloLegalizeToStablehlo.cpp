@@ -46,6 +46,7 @@
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/transforms/ChloDecompositionUtils.h"
 #include "stablehlo/transforms/PassUtils.h"
 #include "stablehlo/transforms/Passes.h"
 
@@ -1248,6 +1249,8 @@ constexpr std::array<double, 8> kLanczosCoefficients = {
     12.507343278686904814458936853,     -0.13857109526572011689554707,
     9.984369578019570859563e-6,         1.50563273514931155834e-7};
 
+}  // namespace
+
 // Compute the Lgamma function using Lanczos' approximation from "A Precision
 // Approximation of the Gamma Function". SIAM Journal on Numerical Analysis
 // series B. Vol. 1:
@@ -1257,8 +1260,8 @@ constexpr std::array<double, 8> kLanczosCoefficients = {
 //   with   t(z) = z + kLanczosGamma + 1/2
 //          a(z) = kBaseLanczosCoeff
 //                   + sum(k = 1, n, kLanczosCoefficients[i] / (z + k))
-static Value materializeLgamma(ConversionPatternRewriter &rewriter,
-                               Location loc, ValueRange args) {
+Value materializeLgamma(ConversionPatternRewriter &rewriter, Location loc,
+                        ValueRange args) {
   // If the input is less than 0.5 use Euler's reflection formula.
   //   gamma(x) = pi / (sin(pi * x) * gamma(1 - x))
   // Let z be
@@ -1403,8 +1406,8 @@ static Value materializeLgamma(ConversionPatternRewriter &rewriter,
 // +/-89.4159851, due to rounding error when computing x +/- log(1/2).  The
 // correct answer of 3.40281961e+38 (0x7f7fffec) is very close to max-float, so
 // we deem this acceptable.
-static Value materializeCoshApproximation(ConversionPatternRewriter &rewriter,
-                                          Location loc, ValueRange operands) {
+Value materializeCoshApproximation(ConversionPatternRewriter &rewriter,
+                                   Location loc, ValueRange operands) {
   mlir::chlo::CoshOp::Adaptor transformed(operands);
   Value x = transformed.getOperand();
 
@@ -1416,6 +1419,8 @@ static Value materializeCoshApproximation(ConversionPatternRewriter &rewriter,
       loc, rewriter.create<mlir::stablehlo::SubtractOp>(loc, logOneHalf, x));
   return rewriter.create<mlir::stablehlo::AddOp>(loc, expAdd, expSub);
 }
+
+namespace {
 
 struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1431,6 +1436,8 @@ struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
   }
 };
 
+}  // namespace
+
 // Compute the Digamma function using Lanczos' approximation from "A Precision
 // Approximation of the Gamma Function". SIAM Journal on Numerical Analysis
 // series B. Vol. 1:
@@ -1439,8 +1446,8 @@ struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
 //          a(z) = kBaseLanczosCoeff
 //                   + sum(k = 1, n, kLanczosCoefficients[i] / (z + k))
 //          a'(z) = - sum(k = 1, n, kLanczosCoefficients[i] / (z + k) / (z + k))
-static Value materializeDigamma(ConversionPatternRewriter &rewriter,
-                                Location loc, ValueRange args) {
+Value materializeDigamma(ConversionPatternRewriter &rewriter, Location loc,
+                         ValueRange args) {
   // If the input is less than 0.5 use Euler's reflection formula.
   //   digamma(x) = digamma(1 - x) - pi * cot(pi * x)
   // Let z be
@@ -1545,6 +1552,8 @@ static Value materializeDigamma(ConversionPatternRewriter &rewriter,
       digamma);
 }
 
+namespace {
+
 static Value getConstantLikeSmallestFiniteValue(OpBuilder &b, Location loc,
                                                 Value val) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
@@ -1552,8 +1561,9 @@ static Value getConstantLikeSmallestFiniteValue(OpBuilder &b, Location loc,
       b, loc, llvm::APFloat::getSmallest(ty.getFloatSemantics()), val);
 }
 
-static Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
-                             ValueRange args) {
+}  // namespace
+Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
+                      ValueRange args) {
   // Implementation ported from:
   // https://github.com/openxla/xla/blob/7a067a7b88d2ffb15b1dc5e3c06f701a15f0391d/xla/client/lib/math.cc#L1912-L1917
   // Reference: Johansson, Fredrik.
@@ -1703,8 +1713,8 @@ static Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
   return output;
 }
 
-static Value materializePolygamma(ConversionPatternRewriter &rewriter,
-                                  Location loc, ValueRange args) {
+Value materializePolygamma(ConversionPatternRewriter &rewriter, Location loc,
+                           ValueRange args) {
   mlir::chlo::PolygammaOp::Adaptor transformed(args);
   Value n = transformed.getN();
   Value x = transformed.getX();
@@ -1746,6 +1756,8 @@ static Value materializePolygamma(ConversionPatternRewriter &rewriter,
                       x),
       result);
 }
+
+namespace {
 
 struct ConvertLgammaOp final : OpConversionPattern<mlir::chlo::LgammaOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1890,6 +1902,7 @@ struct ConvertPolygammaOp final : OpConversionPattern<mlir::chlo::PolygammaOp> {
     return success();
   }
 };
+}  // namespace
 
 // Sinh(x) = (e^x - e^-x) / 2
 //         = e^(x + log(1/2)) - e^(-x + log(1/2)).
@@ -1901,8 +1914,8 @@ struct ConvertPolygammaOp final : OpConversionPattern<mlir::chlo::PolygammaOp> {
 // +/-89.4159851, due to rounding error when computing x +/- log(1/2).  The
 // correct answer of 3.40281961e+38 (0x7f7fffec) is very close to max-float, so
 // we deem this acceptable.
-static Value materializeSinhApproximationForLargeX(
-    ConversionPatternRewriter &rewriter, Location loc, ValueRange operands) {
+Value materializeSinhApproximationForLargeX(ConversionPatternRewriter &rewriter,
+                                            Location loc, ValueRange operands) {
   mlir::chlo::SinhOp::Adaptor transformed(operands);
   Value x = transformed.getOperand();
 
@@ -1918,8 +1931,8 @@ static Value materializeSinhApproximationForLargeX(
 // Express `sinh` as
 //   sinh(x) = (e^x - e^-x) / 2                     if |x| < 1
 //           = e^(x + log(1/2)) - e^(-x + log(1/2)) otherwise.
-static Value materializeSinhApproximation(ConversionPatternRewriter &rewriter,
-                                          Location loc, ValueRange operands) {
+Value materializeSinhApproximation(ConversionPatternRewriter &rewriter,
+                                   Location loc, ValueRange operands) {
   Value largeSinhResult =
       materializeSinhApproximationForLargeX(rewriter, loc, operands);
 
@@ -1950,6 +1963,8 @@ static Value materializeSinhApproximation(ConversionPatternRewriter &rewriter,
   return rewriter.create<mlir::stablehlo::SelectOp>(
       loc, absXLtOne, smallSinhResult, largeSinhResult);
 }
+
+namespace {
 
 struct ConvertSinhOp final : OpConversionPattern<mlir::chlo::SinhOp> {
   using OpConversionPattern::OpConversionPattern;

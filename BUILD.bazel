@@ -1137,6 +1137,7 @@ cc_library(
         "stablehlo/transforms/PassUtils.h",
         "stablehlo/transforms/Passes.h",
         "stablehlo/transforms/StablehloRefineShapes.h",
+        "stablehlo/transforms/ChloDecompositionUtils.h",
     ],
     strip_include_prefix = ".",
     deps = [
