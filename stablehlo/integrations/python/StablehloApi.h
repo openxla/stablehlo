@@ -16,20 +16,20 @@ limitations under the License.
 #ifndef STABLEHLO_INTEGRATIONS_PYTHON_API_STABLEHLOAPI_H
 #define STABLEHLO_INTEGRATIONS_PYTHON_API_STABLEHLOAPI_H
 
-#include "pybind11/pybind11.h"
+#include "nanobind/nanobind.h"
 
 namespace mlir {
 namespace stablehlo {
 
-// Add StableHLO APIs to the pybind11 module.
+// Add StableHLO APIs to the nanobind module.
 // Signatures of these APIs have no dependency on C++ MLIR types and all must
 // use C API passthrough.
-void AddStablehloApi(pybind11::module& m);
+void AddStablehloApi(nanobind::module_& m);
 
 // Adds a subset of the StableHLO API that doesn't use MLIR in any definitions,
 // and is methods only, introducing no new objects / enums to avoid potential
 // redefinition issues in complex build environments.
-void AddPortableApi(pybind11::module& m);
+void AddPortableApi(nanobind::module_& m);
 
 }  // namespace stablehlo
 }  // namespace mlir
