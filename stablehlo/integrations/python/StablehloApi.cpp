@@ -259,7 +259,7 @@ void AddPortableApi(nb::module_ &m) {
       nb::arg("artifact_str"));
   m.def(
       "deserialize_portable_artifact_str",
-      [](const nb::bytes& artifact) -> nb::bytes {
+      [](const nb::bytes &artifact) -> nb::bytes {
         StringWriterHelper accumulator;
         if (mlirLogicalResultIsFailure(stablehloDeserializePortableArtifact(
                 toMlirStringRef(artifact), accumulator.getMlirStringCallback(),
