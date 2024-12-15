@@ -22,25 +22,16 @@ namespace stablehlo {
 
 // Utility functions used in the Chlo to stablehlo legalization.
 
-Value materializeLgamma(ConversionPatternRewriter &rewriter, Location loc,
+Value materializeLgamma(OpBuilder &rewriter, Location loc,
                         ValueRange args);
 
-Value materializeCoshApproximation(ConversionPatternRewriter &rewriter,
-                                   Location loc, ValueRange operands);
-
-Value materializeSinhApproximationForLargeX(ConversionPatternRewriter &rewriter,
-                                            Location loc, ValueRange operands);
-
-Value materializeSinhApproximation(ConversionPatternRewriter &rewriter,
-                                   Location loc, ValueRange operands);
-
-Value materializeDigamma(ConversionPatternRewriter &rewriter, Location loc,
+Value materializeDigamma(OpBuilder &rewriter, Location loc,
                          ValueRange args);
 
-Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
+Value materializeZeta(OpBuilder &rewriter, Location loc,
                       ValueRange args);
 
-Value materializePolygamma(ConversionPatternRewriter &rewriter, Location loc,
+Value materializePolygamma(OpBuilder &rewriter, Location loc,
                            ValueRange args);
 
 }  // namespace stablehlo
