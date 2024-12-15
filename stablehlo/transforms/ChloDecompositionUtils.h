@@ -22,17 +22,13 @@ namespace stablehlo {
 
 // Utility functions used in the Chlo to stablehlo legalization.
 
-Value materializeLgamma(OpBuilder &rewriter, Location loc,
-                        ValueRange args);
+Value materializeLgamma(OpBuilder &rewriter, Location loc, ValueRange args);
 
-Value materializeDigamma(OpBuilder &rewriter, Location loc,
-                         ValueRange args);
+Value materializeDigamma(OpBuilder &rewriter, Location loc, ValueRange args);
 
-Value materializeZeta(OpBuilder &rewriter, Location loc,
-                      ValueRange args);
+Value materializeZeta(OpBuilder &rewriter, Location loc, ValueRange args);
 
-Value materializePolygamma(OpBuilder &rewriter, Location loc,
-                           ValueRange args);
+Value materializePolygamma(OpBuilder &rewriter, Location loc, ValueRange args);
 
 }  // namespace stablehlo
 }  // namespace mlir
