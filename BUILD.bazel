@@ -1133,6 +1133,7 @@ cc_library(
         "stablehlo/transforms/VhloToVersion.cpp",
     ],
     hdrs = [
+        "stablehlo/transforms/ChloDecompositionUtils.h",
         "stablehlo/transforms/MapStablehloToVhlo.h",
         "stablehlo/transforms/PassUtils.h",
         "stablehlo/transforms/Passes.h",

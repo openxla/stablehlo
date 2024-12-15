@@ -46,6 +46,7 @@
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/transforms/ChloDecompositionUtils.h"
 #include "stablehlo/transforms/PassUtils.h"
 #include "stablehlo/transforms/Passes.h"
 
@@ -462,8 +463,7 @@ struct ConvertConstantOp final : OpConversionPattern<mlir::chlo::ConstantOp> {
 
 template <typename FTy>
 static Value materializeChebyshevPolynomialApproximation(
-    ConversionPatternRewriter &rewriter, Location loc, Value x,
-    ArrayRef<FTy> coefficients) {
+    OpBuilder &rewriter, Location loc, Value x, ArrayRef<FTy> coefficients) {
   Value b0 = getConstantLike(rewriter, loc, 0.0, x);
   Value b1 = getConstantLike(rewriter, loc, 0.0, x);
   Value b2 = getConstantLike(rewriter, loc, 0.0, x);
@@ -483,9 +483,10 @@ static Value materializeChebyshevPolynomialApproximation(
 }
 
 template <typename FTy>
-static Value materializeBesselI1eApproximation(
-    ConversionPatternRewriter &rewriter, Location loc, Value x,
-    ArrayRef<FTy> kI1eCoeffsA, ArrayRef<FTy> kI1eCoeffsB) {
+static Value materializeBesselI1eApproximation(OpBuilder &rewriter,
+                                               Location loc, Value x,
+                                               ArrayRef<FTy> kI1eCoeffsA,
+                                               ArrayRef<FTy> kI1eCoeffsB) {
   Value z = rewriter.create<mlir::stablehlo::AbsOp>(loc, x);
   Value half = getConstantLike(rewriter, loc, 0.5, x);
   Value two = getConstantLike(rewriter, loc, 2.0, x);
@@ -515,8 +516,8 @@ static Value materializeBesselI1eApproximation(
       loc, rewriter.create<mlir::stablehlo::SignOp>(loc, x), select);
 }
 
-Value materializeBesselI1eApproximationF32(ConversionPatternRewriter &rewriter,
-                                           Location loc, ValueRange args) {
+Value materializeBesselI1eApproximationF32(OpBuilder &rewriter, Location loc,
+                                           ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
          "expect f32 element type");
@@ -541,8 +542,9 @@ Value materializeBesselI1eApproximationF32(ConversionPatternRewriter &rewriter,
                                                   kI1eCoeffsB);
 }
 
-static Value materializeBesselI1eApproximationF64(
-    ConversionPatternRewriter &rewriter, Location loc, ValueRange args) {
+static Value materializeBesselI1eApproximationF64(OpBuilder &rewriter,
+                                                  Location loc,
+                                                  ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF64() &&
          "expect f64 element type");
@@ -586,8 +588,8 @@ static Value materializeBesselI1eApproximationF64(
 static Value materializeWithUpcast(ConversionPatternRewriter &rewriter,
                                    Location loc, ValueRange args,
                                    FloatType minPrecisionTy,
-                                   Value callback(ConversionPatternRewriter &,
-                                                  Location, ValueRange)) {
+                                   Value callback(OpBuilder &, Location,
+                                                  ValueRange)) {
   Type originalTy = getElementTypeOrSelf(args.front().getType());
   auto floatOriginalTy = dyn_cast<FloatType>(originalTy);
   bool needsUpcast =
@@ -645,9 +647,9 @@ struct ConvertBesselI1eOp final : OpConversionPattern<mlir::chlo::BesselI1eOp> {
 };
 
 template <typename FTy>
-static Value materializePolynomialApproximation(
-    ConversionPatternRewriter &rewriter, Location loc, Value x,
-    ArrayRef<FTy> coefficients) {
+static Value materializePolynomialApproximation(OpBuilder &rewriter,
+                                                Location loc, Value x,
+                                                ArrayRef<FTy> coefficients) {
   if (coefficients.empty()) return getConstantLike(rewriter, loc, 0.0, x);
 
   Value poly = getConstantLike(rewriter, loc, coefficients[0], x);
@@ -836,7 +838,7 @@ static Value materializeErfcApproximationF64(
 // argument and derive the final approximation for all |x| >= 1.
 // This implementation is based on Cephes.
 static Value materializeErfcApproximationF32ForMagnitudeGeOne(
-    ConversionPatternRewriter &rewriter, Location loc, ValueRange args) {
+    OpBuilder &rewriter, Location loc, ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
          "expect f32 element type");
@@ -902,7 +904,7 @@ static Value materializeErfcApproximationF32ForMagnitudeGeOne(
 // Precondition is |x| <= 1. Use erfc approximation, otherwise.
 // This implementation is based on Cephes.
 static Value materializeErfApproximationF32ForMagnitudeLeOne(
-    ConversionPatternRewriter &rewriter, Location loc, ValueRange args) {
+    OpBuilder &rewriter, Location loc, ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
          "expect f32 element type");
@@ -921,8 +923,8 @@ static Value materializeErfApproximationF32ForMagnitudeLeOne(
 }
 
 // This is the same approximation as used in Eigen.
-static Value materializeErfApproximationF32(ConversionPatternRewriter &rewriter,
-                                            Location loc, ValueRange args) {
+static Value materializeErfApproximationF32(OpBuilder &rewriter, Location loc,
+                                            ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
          "expect f32 element type");
@@ -958,8 +960,8 @@ static Value materializeErfApproximationF32(ConversionPatternRewriter &rewriter,
                                                    erf, ubErf);
 }
 
-static Value materializeErfcApproximationF32(
-    ConversionPatternRewriter &rewriter, Location loc, ValueRange args) {
+static Value materializeErfcApproximationF32(OpBuilder &rewriter, Location loc,
+                                             ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
          "expect f32 element type");
@@ -1041,8 +1043,7 @@ struct ConvertErfcOp final : OpConversionPattern<mlir::chlo::ErfcOp> {
   }
 };
 
-static Value erfInv32(ConversionPatternRewriter &b, Location loc,
-                      ValueRange args) {
+static Value erfInv32(OpBuilder &b, Location loc, ValueRange args) {
   constexpr int kDegree = 9;
   constexpr std::array<float, 9> wLessThan5Constants = {
       2.81022636e-08f,  3.43273939e-07f, -3.5233877e-06f,
@@ -1248,6 +1249,8 @@ constexpr std::array<double, 8> kLanczosCoefficients = {
     12.507343278686904814458936853,     -0.13857109526572011689554707,
     9.984369578019570859563e-6,         1.50563273514931155834e-7};
 
+}  // namespace
+
 // Compute the Lgamma function using Lanczos' approximation from "A Precision
 // Approximation of the Gamma Function". SIAM Journal on Numerical Analysis
 // series B. Vol. 1:
@@ -1257,8 +1260,7 @@ constexpr std::array<double, 8> kLanczosCoefficients = {
 //   with   t(z) = z + kLanczosGamma + 1/2
 //          a(z) = kBaseLanczosCoeff
 //                   + sum(k = 1, n, kLanczosCoefficients[i] / (z + k))
-static Value materializeLgamma(ConversionPatternRewriter &rewriter,
-                               Location loc, ValueRange args) {
+Value materializeLgamma(OpBuilder &rewriter, Location loc, ValueRange args) {
   // If the input is less than 0.5 use Euler's reflection formula.
   //   gamma(x) = pi / (sin(pi * x) * gamma(1 - x))
   // Let z be
@@ -1393,6 +1395,8 @@ static Value materializeLgamma(ConversionPatternRewriter &rewriter,
       getConstantLikeInfValue(rewriter, loc, x, /*negative=*/false), lgamma);
 }
 
+namespace {
+
 // Express `cosh` as
 //   cosh(x) = (e^x + e^-x) / 2
 //           = e^(x + log(1/2)) + e^(-x + log(1/2))
@@ -1403,8 +1407,8 @@ static Value materializeLgamma(ConversionPatternRewriter &rewriter,
 // +/-89.4159851, due to rounding error when computing x +/- log(1/2).  The
 // correct answer of 3.40281961e+38 (0x7f7fffec) is very close to max-float, so
 // we deem this acceptable.
-static Value materializeCoshApproximation(ConversionPatternRewriter &rewriter,
-                                          Location loc, ValueRange operands) {
+static Value materializeCoshApproximation(OpBuilder &rewriter, Location loc,
+                                          ValueRange operands) {
   mlir::chlo::CoshOp::Adaptor transformed(operands);
   Value x = transformed.getOperand();
 
@@ -1431,6 +1435,8 @@ struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
   }
 };
 
+}  // namespace
+
 // Compute the Digamma function using Lanczos' approximation from "A Precision
 // Approximation of the Gamma Function". SIAM Journal on Numerical Analysis
 // series B. Vol. 1:
@@ -1439,8 +1445,7 @@ struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
 //          a(z) = kBaseLanczosCoeff
 //                   + sum(k = 1, n, kLanczosCoefficients[i] / (z + k))
 //          a'(z) = - sum(k = 1, n, kLanczosCoefficients[i] / (z + k) / (z + k))
-static Value materializeDigamma(ConversionPatternRewriter &rewriter,
-                                Location loc, ValueRange args) {
+Value materializeDigamma(OpBuilder &rewriter, Location loc, ValueRange args) {
   // If the input is less than 0.5 use Euler's reflection formula.
   //   digamma(x) = digamma(1 - x) - pi * cot(pi * x)
   // Let z be
@@ -1545,6 +1550,8 @@ static Value materializeDigamma(ConversionPatternRewriter &rewriter,
       digamma);
 }
 
+namespace {
+
 static Value getConstantLikeSmallestFiniteValue(OpBuilder &b, Location loc,
                                                 Value val) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
@@ -1552,7 +1559,7 @@ static Value getConstantLikeSmallestFiniteValue(OpBuilder &b, Location loc,
       b, loc, llvm::APFloat::getSmallest(ty.getFloatSemantics()), val);
 }
 
-static Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
+static Value materializeZeta(OpBuilder &rewriter, Location loc,
                              ValueRange args) {
   // Implementation ported from:
   // https://github.com/openxla/xla/blob/7a067a7b88d2ffb15b1dc5e3c06f701a15f0391d/xla/client/lib/math.cc#L1912-L1917
@@ -1703,8 +1710,9 @@ static Value materializeZeta(ConversionPatternRewriter &rewriter, Location loc,
   return output;
 }
 
-static Value materializePolygamma(ConversionPatternRewriter &rewriter,
-                                  Location loc, ValueRange args) {
+}  // namespace
+
+Value materializePolygamma(OpBuilder &rewriter, Location loc, ValueRange args) {
   mlir::chlo::PolygammaOp::Adaptor transformed(args);
   Value n = transformed.getN();
   Value x = transformed.getX();
@@ -1746,6 +1754,8 @@ static Value materializePolygamma(ConversionPatternRewriter &rewriter,
                       x),
       result);
 }
+
+namespace {
 
 struct ConvertLgammaOp final : OpConversionPattern<mlir::chlo::LgammaOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1901,8 +1911,9 @@ struct ConvertPolygammaOp final : OpConversionPattern<mlir::chlo::PolygammaOp> {
 // +/-89.4159851, due to rounding error when computing x +/- log(1/2).  The
 // correct answer of 3.40281961e+38 (0x7f7fffec) is very close to max-float, so
 // we deem this acceptable.
-static Value materializeSinhApproximationForLargeX(
-    ConversionPatternRewriter &rewriter, Location loc, ValueRange operands) {
+static Value materializeSinhApproximationForLargeX(OpBuilder &rewriter,
+                                                   Location loc,
+                                                   ValueRange operands) {
   mlir::chlo::SinhOp::Adaptor transformed(operands);
   Value x = transformed.getOperand();
 
@@ -1918,8 +1929,8 @@ static Value materializeSinhApproximationForLargeX(
 // Express `sinh` as
 //   sinh(x) = (e^x - e^-x) / 2                     if |x| < 1
 //           = e^(x + log(1/2)) - e^(-x + log(1/2)) otherwise.
-static Value materializeSinhApproximation(ConversionPatternRewriter &rewriter,
-                                          Location loc, ValueRange operands) {
+static Value materializeSinhApproximation(OpBuilder &rewriter, Location loc,
+                                          ValueRange operands) {
   Value largeSinhResult =
       materializeSinhApproximationForLargeX(rewriter, loc, operands);
 
