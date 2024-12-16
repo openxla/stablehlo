@@ -55,7 +55,10 @@ RUNFILES_DIR = LITE_CFG_PY.parents[2].absolute().as_posix()''',
         tags = ["stablehlo_testdata_tests"],
         deps = ["@rules_python//python/runfiles"],
     )
-    for src in glob(["**/*.mlir"], exclude=["**/*.large.mlir"])
+    for src in glob(
+        ["**/*.mlir"],
+        exclude = ["**/*.large.mlir"],
+    )
 ]
 
 # Give large tests more RAM / timeout
