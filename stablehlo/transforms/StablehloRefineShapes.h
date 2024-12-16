@@ -16,7 +16,6 @@ limitations under the License.
 #ifndef STABLEHLO_TRANSFORMS_STABLEHLO_REFINE_SHAPES_H
 #define STABLEHLO_TRANSFORMS_STABLEHLO_REFINE_SHAPES_H
 
-#include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Operation.h"
@@ -100,6 +99,18 @@ LogicalResult refineReturnShape(PatternRewriter& rewriter, OpType op,
     return rewriter.notifyMatchFailure(op, "expected constant output shape");
   return refineReturnShape(rewriter, op, shape);
 }
+
+// Entrypoint for any pass adding extensibility to the StableHLO shape
+// refinement pass. If program is inlined before shape refinement,
+// populateShapeRefinementPatterns can be safely used, but if shape refinement
+// needs to operate on programs with functions and calls, then
+// additionalPatterns will need to be populated and passed in.
+using AdditionalShapeRefinementPatternsFn =
+    std::function<void(RewritePatternSet*)>;
+LogicalResult refineEntryFunction(
+    MLIRContext& context, func::FuncOp func,
+    std::optional<AdditionalShapeRefinementPatternsFn> additionalPatternsFn =
+        std::nullopt);
 
 // Custom call used to buffer operands for shape refinement
 // This is a temporary artifact that is introduced by StablehloRefineArguments
