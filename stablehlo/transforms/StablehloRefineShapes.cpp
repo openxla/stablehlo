@@ -369,6 +369,10 @@ class RefinementKey {
 // Which correlates to <func, sym_int_values, arg_types>
 class RefineShapeState {
  public:
+  RefineShapeState(
+      std::optional<AdditionalShapeRefinementPatternsFn> additionalPatternsFn)
+      : additionalPatternsFn(additionalPatternsFn) {}
+
   enum class RefinementState {
     NOT_ALREADY_REFINED,
     ALREADY_REFINED,
@@ -431,7 +435,14 @@ class RefineShapeState {
     });
   }
 
+  void addAdditionalPatterns(RewritePatternSet& patterns) {
+    if (additionalPatternsFn.has_value())
+      additionalPatternsFn.value()(&patterns);
+  }
+
  private:
+  std::optional<AdditionalShapeRefinementPatternsFn> additionalPatternsFn;
+
   // Maps refined functions to the refinement context: the values of dimension
   // arguments and the types of non-global-constant arguments. A function is
   // added here when we start refining it.
@@ -1001,7 +1012,7 @@ struct UpdateRegionTypePattern : public OpRewritePattern<ReturnOp> {
 LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
                                            RefineShapeState& state) {
   MLIRContext* context = func.getContext();
-  RewritePatternSet patterns(context);
+  RewritePatternSet patterns(func->getContext());
   GreedyRewriteConfig config;
 
   // The algorithm behind this pass consists of a single traversal of the
@@ -1018,6 +1029,9 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
 
   populateStablehloRefineShapesPatterns(&patterns, context);
   patterns.add<RefineCallOpPattern>(context, state);
+
+  // Populate additional patterns for StableHLO extensions.
+  state.addAdditionalPatterns(patterns);
 
   // The folding patterns implement partial evaluation of shape computations
   // which is a critical part of implementing type refinement for ops like
@@ -1103,14 +1117,22 @@ struct StablehloRefineShapesPass
 
     // Start with empty state, and no dim args / token args.
     MLIRContext* context = func.getContext();
-    RefineShapeState state;
-    RefinementKey key(func, 0, {}, llvm::to_vector(func.getArgumentTypes()));
-    if (failed(refineFunction(*context, state, key)))
-      return signalPassFailure();
+    if (failed(refineEntryFunction(*context, func))) return signalPassFailure();
   }
 };
 
 }  // namespace
+
+LogicalResult refineEntryFunction(
+    MLIRContext& context, func::FuncOp func,
+    std::optional<AdditionalShapeRefinementPatternsFn> additionalPatternsFn) {
+  // Start with empty state, and no dim args / token args.
+  RefineShapeState state(additionalPatternsFn);
+  RefinementKey key(func, 0, {}, llvm::to_vector(func.getArgumentTypes()));
+  if (failed(refineFunction(context, state, key)))
+    return func.emitError("Failed to refine entry function");
+  return success();
+}
 
 func::FuncOp getStablehloRefineShapesTarget(ModuleOp module) {
   // Only one function per module is supported at the moment to avoid the need
