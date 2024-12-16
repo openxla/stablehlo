@@ -55,7 +55,29 @@ RUNFILES_DIR = LITE_CFG_PY.parents[2].absolute().as_posix()''',
         tags = ["stablehlo_testdata_tests"],
         deps = ["@rules_python//python/runfiles"],
     )
-    for src in glob(["**/*.mlir"])
+    for src in glob(
+        ["**/*.mlir"],
+        exclude = ["**/*.large.mlir"],
+    )
+]
+
+# Give large tests more RAM / timeout
+[
+    lit_test(
+        name = "%s.test" % src,
+        size = "large",
+        srcs = [src],
+        data = [
+            "lit.cfg.py",
+            "lit.site.cfg.py",
+            "//:stablehlo-opt",
+            "//:stablehlo-translate",
+            "@llvm-project//llvm:FileCheck",
+        ],
+        tags = ["stablehlo_testdata_tests"],
+        deps = ["@rules_python//python/runfiles"],
+    )
+    for src in glob(["**/*.large.mlir"])
 ]
 
 test_suite(
