@@ -834,6 +834,67 @@ def CHLO_BroadcastSelectOp : CHLO_Op<"broadcast_select",
 }
 
 //===----------------------------------------------------------------------===//
+// Ragged dot op
+//===----------------------------------------------------------------------===//
+
+def CHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
+  let parser = "parseDimSizes($_parser)";
+  let printer = "printDimSizes($_printer, $_self)";
+}
+
+def CHLO_RaggedDotDimensionNumbers : AttrDef<CHLO_Dialect, "RaggedDotDimensionNumbers"> {
+  let mnemonic = "ragged_dot";
+  let summary = "Attribute that models the dimension information for ragged dot.";
+  let parameters = (ins
+      CHLO_Dims:$lhsBatchingDimensions,
+      CHLO_Dims:$rhsBatchingDimensions,
+      CHLO_Dims:$lhsContractingDimensions,
+      CHLO_Dims:$rhsContractingDimensions,
+      CHLO_Dims:$lhsRaggedDimensions,
+      CHLO_Dims:$rhsGroupDimensions
+  );
+  let hasCustomAssemblyFormat = 1;
+}
+
+def CHLO_RaggedDotOp : CHLO_Op<"ragged_dot",
+    [Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+  string summary = "Computes a matmul over a single ragged dimension";
+
+  string description = [{
+
+    This operation takes three tensor args---lhs, rhs, and group_sizes---and
+    a "ragged_dot_dimension_numbers" attribute. Like dot_general, the lhs and
+    rhs are allowed arbitrary batch and contracting dimensions. Additionally,
+    the lhs is required to have one ragged dimension, and the rhs may have at
+    most one group dimension. The op has three modes, depending on the kind of
+    the lhs ragged dimension.
+
+    In mode 1, the shape-signature is `[b,m,k], [g,b,k,n], [g] -> [b,m,n]`.
+    Here the ragged dimension is an lhs non-contracting dimension (`m`). The
+    dimensions `b` and `k` represent batch and contracting dimensions
+    respectively. The rhs is required to have a group dimension (`g`).
+
+    In mode 2, the shape-signature is `[b,m,k], [b,k,n], [g] -> [g,b,m,n]`.
+    Here the ragged dimension is an lhs/rhs contracting dimension (`k`).
+
+    In mode 3, the shape-signature is `[b,m,k], [b,k,n], [g] -> [b,m,n]`. Here
+    the ragged dimension is an lhs/rhs batch dimension (`b`).
+
+   }];
+
+  let arguments = (ins
+    HLO_AnyTensor:$lhs,
+    HLO_AnyTensor:$rhs,
+    Arg<HLO_IntTensor, [{A g-shaped array indicating the size of each group}]>:$group_sizes,
+    CHLO_RaggedDotDimensionNumbers:$ragged_dot_dimension_numbers,
+    OptionalAttr<CHLO_PrecisionConfigAttr>:$precision_config
+  );
+
+  let results = (outs HLO_AnyTensor:$result);
+  let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
 // Miscellaneous ops
 //===----------------------------------------------------------------------===//
 

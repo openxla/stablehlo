@@ -70,4 +70,29 @@ def CHLO_ComparisonType : I32EnumAttr<"ComparisonType",
 
 def CHLO_ComparisonTypeAttr : EnumAttr<CHLO_Dialect, CHLO_ComparisonType, "comparison_type">;
 
+//===----------------------------------------------------------------------===//
+// Ragged dot op definitions.
+//===----------------------------------------------------------------------===//
+
+// These mirror the XLA PrecisionConfig proto enum.
+def CHLO_PRECISION_DEFAULT : I32EnumAttrCase<"DEFAULT", 0>;
+def CHLO_PRECISION_HIGH    : I32EnumAttrCase<"HIGH", 1>;
+def CHLO_PRECISION_HIGHEST : I32EnumAttrCase<"HIGHEST", 2>;
+
+def CHLO_Precision : I32EnumAttr<"Precision",
+    "XLA precision for an operand. Has backend specific meaning.",
+    [
+      CHLO_PRECISION_DEFAULT,
+      CHLO_PRECISION_HIGH,
+      CHLO_PRECISION_HIGHEST
+    ]> {
+  let genSpecializedAttr = 0;
+  let cppNamespace = "::mlir::chlo";
+}
+
+def CHLO_PrecisionAttr : EnumAttr<CHLO_Dialect, CHLO_Precision, "precision">;
+
+def CHLO_PrecisionConfigAttr:
+  TypedArrayAttrBase<CHLO_PrecisionAttr, "Precision Config attribute">;
+
 #endif // STABLEHLO_DIALECT_CHLO_ENUMS
