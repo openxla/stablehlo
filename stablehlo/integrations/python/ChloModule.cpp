@@ -12,21 +12,23 @@ limitations under the License.
 ==============================================================================*/
 
 #include "mlir-c/IR.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include "nanobind/nanobind.h"
+#include "nanobind/stl/string_view.h"
 #include "stablehlo/integrations/c/ChloAttributes.h"
 #include "stablehlo/integrations/c/ChloDialect.h"
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 namespace {
 
 auto toPyString(MlirStringRef mlirStringRef) {
-  return py::str(mlirStringRef.data, mlirStringRef.length);
+  return nb::str(mlirStringRef.data, mlirStringRef.length);
 }
 
 }  // namespace
 
-PYBIND11_MODULE(_chlo, m) {
+NB_MODULE(_chlo, m) {
   m.doc() = "chlo main python extension";
 
   //
@@ -42,35 +44,37 @@ PYBIND11_MODULE(_chlo, m) {
           mlirDialectHandleLoadDialect(dialect, context);
         }
       },
-      py::arg("context"), py::arg("load") = true);
+      nb::arg("context"), nb::arg("load") = true);
 
   //
   // Attributes.
   //
 
-  mlir::python::adaptors::mlir_attribute_subclass(
+  mlir::python::nanobind_adaptors::mlir_attribute_subclass(
       m, "ComparisonDirectionAttr", chloAttributeIsAComparisonDirectionAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &value, MlirContext ctx) {
+          [](nb::object cls, std::string_view value, MlirContext ctx) {
             return cls(chloComparisonDirectionAttrGet(
-                ctx, mlirStringRefCreate(value.c_str(), value.size())));
+                ctx, mlirStringRefCreate(value.data(), value.size())));
           },
-          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          nb::arg("cls"), nb::arg("value"),
+          nb::arg("context").none() = nb::none(),
           "Creates a ComparisonDirection attribute with the given value.")
       .def_property_readonly("value", [](MlirAttribute self) {
         return toPyString(chloComparisonDirectionAttrGetValue(self));
       });
 
-  mlir::python::adaptors::mlir_attribute_subclass(
+  mlir::python::nanobind_adaptors::mlir_attribute_subclass(
       m, "ComparisonTypeAttr", chloAttributeIsAComparisonTypeAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &value, MlirContext ctx) {
+          [](nb::object cls, std::string_view value, MlirContext ctx) {
             return cls(chloComparisonTypeAttrGet(
-                ctx, mlirStringRefCreate(value.c_str(), value.size())));
+                ctx, mlirStringRefCreate(value.data(), value.size())));
           },
-          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          nb::arg("cls"), nb::arg("value"),
+          nb::arg("context").none() = nb::none(),
           "Creates a ComparisonType attribute with the given value.")
       .def_property_readonly("value", [](MlirAttribute self) {
         return toPyString(chloComparisonTypeAttrGetValue(self));

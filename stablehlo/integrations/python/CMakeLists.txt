@@ -90,10 +90,16 @@ declare_mlir_dialect_python_bindings(
 # Extensions
 ################################################################################
 
+## The following options are used specifically for compiling nanobind codebase.
+add_compile_options(-Wno-error=cast-qual -Wno-error=nested-anon-types
+  -Wno-error=extra-semi -Wno-error=zero-length-array
+  -Wno-error=covered-switch-default)
+
 declare_mlir_python_sources(CheckPythonExtensions)
 declare_mlir_python_extension(CheckPythonExtensions.Main
   MODULE_NAME _check
   ADD_TO_PARENT CheckPythonExtensions
+  PYTHON_BINDINGS_LIBRARY nanobind
   SOURCES
   CheckModule.cpp
   EMBED_CAPI_LINK_LIBS
@@ -106,6 +112,7 @@ declare_mlir_python_sources(ChloPythonExtensions)
 declare_mlir_python_extension(ChloPythonExtensions.Main
   MODULE_NAME _chlo
   ADD_TO_PARENT ChloPythonExtensions
+  PYTHON_BINDINGS_LIBRARY nanobind
   SOURCES
     ChloModule.cpp
   EMBED_CAPI_LINK_LIBS
@@ -118,6 +125,7 @@ declare_mlir_python_sources(StablehloPythonExtensions)
 declare_mlir_python_extension(StablehloPythonExtensions.Main
   MODULE_NAME _stablehlo
   ADD_TO_PARENT StablehloPythonExtensions
+  PYTHON_BINDINGS_LIBRARY nanobind
   SOURCES
     StablehloApi.cpp
     StablehloModule.cpp
@@ -132,6 +140,7 @@ declare_mlir_python_sources(VhloPythonExtensions)
 declare_mlir_python_extension(VhloPythonExtensions.Main
   MODULE_NAME _vhlo
   ADD_TO_PARENT VhloPythonExtensions
+  PYTHON_BINDINGS_LIBRARY nanobind
   SOURCES
     VhloModule.cpp
   EMBED_CAPI_LINK_LIBS
