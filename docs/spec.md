@@ -4066,7 +4066,8 @@ Performs element-wise logarithm plus one operation on `operand` tensor and
 produces a `result` tensor. Depending on the element type, does the following:
 
 * For floats: `logp1` from IEEE-754.
-* For complex numbers: complex logarithm plus one.
+* For complex numbers:
+  `complex(log(hypot(real(x) + 1, imag(x))), atan2(imag(x), real(x) + 1))`
 * For quantized types:
   `dequantize_op_quantize(log_plus_one, operand, type(result))`.
 

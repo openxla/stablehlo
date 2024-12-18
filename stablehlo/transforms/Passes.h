@@ -144,6 +144,11 @@ void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
 // operations into a primitive math operations.
 void createStablehloLowerQuantPipeline(OpPassManager &pm);
 
+/// Collection of patterns to create expander for StableHLO complex
+/// math operations.
+void populateStablehloComplexMathExpanderPatterns(RewritePatternSet *patterns,
+                                                  MLIRContext *context);
+
 // Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
 // for opt tools.
 void registerPassPipelines();
