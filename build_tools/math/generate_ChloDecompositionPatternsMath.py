@@ -44,7 +44,7 @@ def get_functional_algorithms_required_version():
     )
 
 
-def main():
+def main(kind="CHLO"):
   try:
     import functional_algorithms as fa
   except ImportError as msg:
@@ -64,16 +64,15 @@ def main():
     warnings.warn(msg)
     return
 
+  output_filename = dict(
+      CHLO="ChloDecompositionPatternsMath.td",
+      StableHLO="StablehloComplexMathExpanderPatterns.td",
+  )[kind]
+
   output_file = os.path.relpath(
       os.path.normpath(
-          os.path.join(
-              os.path.dirname(__file__),
-              "..",
-              "..",
-              "stablehlo",
-              "transforms",
-              "ChloDecompositionPatternsMath.td",
-          )),
+          os.path.join(os.path.dirname(__file__), "..", "..", "stablehlo",
+                       "transforms", output_filename)),
       os.getcwd(),
   )
 
@@ -98,13 +97,15 @@ def main():
       ("CHLO_AtanhOp", "complex_atanh", ("z:complex",)),
       ("CHLO_SquareOp", "complex_square", ("z:complex",)),
       ("CHLO_SquareOp", "real_square", ("x:float",)),
+      ("StableHLO_Log1pOp", "complex_log1p", ("z:complex",)),
   ]:
+    if not chloname.startswith(kind):
+      continue
     print(f'Generating {chloname} from {fname}{args}')
     func = getattr(fa.algorithms, fname, None)
     if func is None:
       warnings.warn(
-          f"{fa.algorithms.__name__} does not define {fname}. Skipping."
-      )
+          f"{fa.algorithms.__name__} does not define {fname}. Skipping.")
       continue
     ctx = fa.Context(paths=[fa.algorithms],
                      parameters=dict(rewrite_keep_integer_literals=True))
@@ -114,6 +115,16 @@ def main():
     sources.append(target.make_comment(func.__doc__)) if func.__doc__ else None
     sources[-1] += src
   source = "\n\n".join(sources) + "\n"
+
+  if chloname.startswith('StableHLO_'):
+    # an ugly hack to fix the definition of stablehlo complex math
+    # functions. TODO(pearu): add the corresponding feature to
+    # functional_algorithms stablehlo printer
+    NameOp = chloname.split('_', 1)[1]
+    source = source.replace(
+        f'def : Pat<({chloname}',
+        f'def {NameOp}_ComplexElementType_ComplexMathExpander : Pat<({chloname}'
+    )
 
   if os.path.isfile(output_file):
     f = open(output_file, "r")
@@ -146,10 +157,32 @@ limitations under the License.
 
 This file is generated using functional_algorithms tool ({fa.__version__}).
 See build_tools/math/README.md for more information.""") + "\n")
+
+  if kind == "StableHLO":
+    f.write("""\
+include "mlir/IR/OpBase.td"
+include "stablehlo/dialect/StablehloOps.td"
+
+class StableHLO_ComparisonDirectionValue<string enumStr> :
+  ConstantAttr<StableHLO_ComparisonDirectionAttr,
+               "::mlir::stablehlo::ComparisonDirection::" # enumStr>;
+
+class StableHLO_ConstantLike<string value> : NativeCodeCall<
+    "::mlir::stablehlo::getConstantLike($_builder, $_loc, " # value # ", $0)">;
+
+def ComplexElementType : Type<
+  CPred<"isa<ComplexType>(cast<ShapedType>($_self).getElementType())">,
+  "Complex element type">;
+
+def StableHLO_ConstantLikeMaxFiniteValue : NativeCodeCall<
+    "::mlir::stablehlo::getConstantLikeMaxFiniteValue($_builder, $_loc, $0)">;
+
+""")
   f.write(source)
   f.close()
   print(f"Created {output_file}")
 
 
 if __name__ == "__main__":
-  main()
+  main(kind="CHLO")
+  main(kind="StableHLO")

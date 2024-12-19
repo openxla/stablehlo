@@ -86,6 +86,33 @@ func.func @tan_op_non_complex(%arg0: tensor<4xf64>) -> tensor<4xf64> {
 ```
 -target : The target version. Must be a version of the form #.#.#.
 ```
+### `-stablehlo-complex-math-expander`
+
+_Expander for StableHLO complex math operations._
+
+StableHLO complex math operations are decompositions using
+StableHLO real math operations.
+
+This statement is based on the assumption that no hardware exists
+that supports complex numbers nor complex math operations
+natively. This means that the fallback mechanisms on complex math
+operations that compilers may implement, are redundant. With
+enabling this pass, all StableHLO complex math operations will be
+expanded.
+
+```mlir
+func.func @sqrt_op_complex(%arg0: tensor<4xcomplex<f64>>) -> tensor<4xcomplex<f64>> {
+  %1 = stablehlo.sqrt %arg0 : tensor<4xcomplex<f64>>
+  func.return %1 : tensor<4xcomplex<f64>>
+}
+
+==>
+
+func.func @sqrt_op_complex(%arg0: tensor<4xcomplex<f64>>) -> tensor<4xcomplex<f64>> {
+  TBD
+  return %2 : tensor<4xcomplex<f64>>
+}
+```
 ### `-stablehlo-convert-to-signless`
 
 _Pass to transform the IR to be on signless integers._

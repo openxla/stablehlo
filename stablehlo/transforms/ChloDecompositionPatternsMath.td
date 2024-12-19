@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 //
-// This file is generated using functional_algorithms tool (0.11.1).
+// This file is generated using functional_algorithms tool (0.12.0).
 // See build_tools/math/README.md for more information.
 
 // A kernel for evaluating asin and acos functions on complex inputs.
