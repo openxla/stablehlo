@@ -11,12 +11,13 @@ limitations under the License.
 ==============================================================================*/
 
 #include "mlir-c/IR.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include "nanobind/nanobind.h"
 #include "stablehlo/integrations/c/VhloDialect.h"
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
-PYBIND11_MODULE(_vhlo, m) {
+NB_MODULE(_vhlo, m) {
   m.doc() = "vhlo main python extension";
 
   //
@@ -32,5 +33,5 @@ PYBIND11_MODULE(_vhlo, m) {
           mlirDialectHandleLoadDialect(dialect, context);
         }
       },
-      py::arg("context"), py::arg("load") = true);
+      nb::arg("context"), nb::arg("load") = true);
 }
