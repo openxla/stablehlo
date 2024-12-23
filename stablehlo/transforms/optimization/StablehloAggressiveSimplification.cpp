@@ -1477,12 +1477,12 @@ struct ReorderElementwiseAndShapeOp final
   }
 };
 
-// Fuses batch normalization operation with convolution weight:
-// X = conv(input, weight)
+// Fuses batch normalization operation with convolution kernel:
+// X = conv(input, kernel.old)
 // Y = batch_norm_inference(X, ...)
 // into ->
-// X = conv(input, weight(new))
-// Y = add(X, broadcast_in_dim(Bias(new)))
+// X = conv(input, kernel.new)
+// Y = add(X, broadcast_in_dim(bias.new))
 //
 struct FuseConvolutionBatchNormalization final
     : OpRewritePattern<BatchNormInferenceOp> {
@@ -1498,9 +1498,9 @@ struct FuseConvolutionBatchNormalization final
     auto convOp = op.getOperand().getDefiningOp<ConvolutionOp>();
     if (!convOp) return failure();
 
-    auto convWeight = convOp.getRhs();
-    auto convWeightType = convWeight.getType();
-    auto convWeightShape = convWeightType.getShape();
+    auto convKernel = convOp.getRhs();
+    auto convKernelType = convKernel.getType();
+    auto convKernelShape = convKernelType.getShape();
 
     auto dimNumbers = convOp.getDimensionNumbers();
     if (dimNumbers.getInputBatchDimension() != 0 ||
@@ -1508,29 +1508,31 @@ struct FuseConvolutionBatchNormalization final
         dimNumbers.getOutputBatchDimension() != 0 ||
         dimNumbers.getOutputFeatureDimension() != 1 ||
         dimNumbers.getKernelOutputFeatureDimension() != 0 ||
-        dimNumbers.getKernelInputFeatureDimension() != 1)
-      return rewriter.notifyMatchFailure(convOp,
-                                         "Only [b, f, ...]x[o, i, ...]->[b, f, "
-                                         "...] configuration is supported");
+        dimNumbers.getKernelInputFeatureDimension() != 1) {
+      constexpr StringLiteral msg =
+          "Only [b, f, ...]x[o, i, ...]->[b, f, ...] configuration is "
+          "supported";
+      return rewriter.notifyMatchFailure(convOp, msg);
+    }
 
     if (convOp.getFeatureGroupCount() > 1 || convOp.getBatchGroupCount() > 1)
       return rewriter.notifyMatchFailure(
           convOp, "feature or batch grouping is not supported");
 
-    if (bnOperandShape[bnFeatureIndex] != convWeightShape.front())
+    if (bnOperandShape[bnFeatureIndex] != convKernelShape.front())
       return failure();
 
-    DenseFPElementsAttr convWeightElems;
+    DenseFPElementsAttr convKernelElems;
     DenseFPElementsAttr scaleElems;
     DenseFPElementsAttr offsetElems;
     DenseFPElementsAttr meanElems;
     DenseFPElementsAttr varianceElems;
 
-    auto epsilon = op.getEpsilon();
+    const auto epsilon = op.getEpsilon();
 
-    if (!matchPattern(convWeight, m_Constant(&convWeightElems)))
+    if (!matchPattern(convKernel, m_Constant(&convKernelElems)))
       return rewriter.notifyMatchFailure(
-          op, "expected constant convolution weight");
+          op, "expected constant convolution kernel");
 
     if (!matchPattern(op.getScale(), m_Constant(&scaleElems)) ||
         !matchPattern(op.getOffset(), m_Constant(&offsetElems)) ||
@@ -1538,15 +1540,15 @@ struct FuseConvolutionBatchNormalization final
         !matchPattern(op.getVariance(), m_Constant(&varianceElems)))
       return failure();
 
-    const auto &convWeightSemantics =
-        cast<FloatType>(convWeightType.getElementType()).getFloatSemantics();
+    const auto &convKernelSemantics =
+        cast<FloatType>(convKernelType.getElementType()).getFloatSemantics();
 
-    // W(new) = W(old) * gamma * rsqrt(variance + epsilon)
-    // B(new) = (B(old) - mean) * rsqrt(variance + epsilon) * gamma + betta
+    // K.new = K.old * gamma * rsqrt(variance + epsilon)
+    // B.new = (B.old - mean) * rsqrt(variance + epsilon) * gamma + beta
     // where: gamma - scaling factor
-    //        betta - shifting factor
+    //        beta - shifting factor
     //        rsqrt - reciprocal square root function
-    //        W - weight
+    //        K - kernel(a.k.a weight)
     //        B - bias
     //
     const SmallVector<double> multipliers = llvm::map_to_vector(
@@ -1558,22 +1560,22 @@ struct FuseConvolutionBatchNormalization final
           return rsqrt * scale.convertToDouble();
         });
 
-    SmallVector<APFloat> newWeight;
-    newWeight.reserve(convWeightType.getNumElements());
+    SmallVector<APFloat> newKernel;
+    newKernel.reserve(convKernelType.getNumElements());
 
     const size_t outFeatureTileSize =
-        computeProduct(convWeightShape.drop_front());
-    auto it = convWeightElems.begin();
+        computeProduct(convKernelShape.drop_front());
+    auto it = convKernelElems.begin();
     for (const auto &multiplier : multipliers) {
       for (size_t i = 0; i < outFeatureTileSize; ++i) {
         double v = (*it).convertToDouble() * multiplier;
         APFloat result(v);
         bool losesInfo;
         if (APFloat::opStatus::opInvalidOp ==
-            result.convert(convWeightSemantics, APFloat::rmNearestTiesToEven,
+            result.convert(convKernelSemantics, APFloat::rmNearestTiesToEven,
                            &losesInfo))
           return failure();
-        newWeight.push_back(result);
+        newKernel.push_back(result);
         ++it;
       }
     }
@@ -1591,7 +1593,7 @@ struct FuseConvolutionBatchNormalization final
 
       bool losesInfo;
       if (APFloat::opStatus::opInvalidOp ==
-          result.convert(convWeightSemantics, APFloat::rmNearestTiesToEven,
+          result.convert(convKernelSemantics, APFloat::rmNearestTiesToEven,
                          &losesInfo))
         return failure();
 
@@ -1599,18 +1601,18 @@ struct FuseConvolutionBatchNormalization final
     }
 
     rewriter.setInsertionPoint(op);
-    auto newConvWeight = rewriter.create<ConstantOp>(
-        convWeight.getLoc(), convWeightType,
-        DenseFPElementsAttr::get(convWeightType, newWeight));
+    auto newConvKernel = rewriter.create<ConstantOp>(
+        convKernel.getLoc(), convKernelType,
+        DenseFPElementsAttr::get(convKernelType, newKernel));
 
     // Keep old convolution as it might have other users
     auto newConvOp = rewriter.create<ConvolutionOp>(
         convOp.getLoc(), convOp->getResultTypes(),
-        ValueRange{convOp.getLhs(), newConvWeight}, convOp->getAttrs());
+        ValueRange{convOp.getLhs(), newConvKernel}, convOp->getAttrs());
 
     SmallVector<int64_t> biasShape{static_cast<int64_t>(biasValues.size())};
     auto biasType =
-        convWeightType.cloneWith(biasShape, convWeightType.getElementType());
+        convKernelType.cloneWith(biasShape, convKernelType.getElementType());
     auto bias = rewriter.create<ConstantOp>(
         op.getLoc(), biasType, DenseFPElementsAttr::get(biasType, biasValues));
 
