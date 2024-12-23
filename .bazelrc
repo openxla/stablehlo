@@ -14,6 +14,11 @@
 
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17
+# llvm builds typically without rtti
+# disable it to be consistent with the llvm build
+# this also helps later on when using sanitizers
+build --cxxopt=-fno-rtti
+build --host_cxxopt=-fno-rtti
 # support layering_check similar to Google internal
 # this only works for Clang toolchain AFAIK
 # https://github.com/bazelbuild/bazel/pull/11440
@@ -21,6 +26,41 @@ build --features=layering_check
 # Set the default compiler to the `clang` binary on the `PATH`.
 # TODO(fzakaria): Make this a toolchain or hermetic somehow
 build --repo_env=CC=clang
+
+# turn on fission https://gcc.gnu.org/wiki/DebugFission
+# this separates the debug information and can improve link times
+build --fission=dbg
+
+build:san-common --strip=never --copt=-fno-omit-frame-pointer
+
+# Some of this is from "Can I run AddressSanitizer with more aggressive diagnostics enabled?"
+# on https://github.com/google/sanitizers/wiki/AddressSanitizer#faq and some is from
+# https://chromium.googlesource.com/external/github.com/grpc/grpc/+/4e9206f48c91e17f43856b016b12f59dd5118293/tools/bazel.rc
+build:asan --config=san-common
+build:asan --features=asan
+build:asan --copt=-fsanitize-address-use-after-scope
+# We explicitly disable strict_init_order because LLVM is "hostile to init order"
+# even the google3 monorepo disables it
+# TODO(fzakaria): disabling due to costs of test execution
+# I don't think internally to Google we use these options
+# build:asan --action_env=ASAN_OPTIONS=detect_odr_violations=2:detect_leaks=1:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=0
+# build:asan --action_env=LSAN_OPTIONS=report_objects=1
+build:asan --cc_output_directory_tag=asan
+# asan tests tend to take longer, so increase the timeouts
+# defaults are: 60,300,900,3600
+test:asan --test_timeout=300,600,1800,-1
+
+build:ubsan --config=san-common
+build:ubsan --features=ubsan
+# This is needed on account of
+# https://github.com/bazelbuild/bazel/issues/11122#issuecomment-896613570
+# tl;dr; bazel uses clang and not clang++ to be the driver
+# that discrepenancy causes some issues with ubsan
+build:ubsan --linkopt=-fsanitize-link-c++-runtime
+build:ubsan --copt=-fsanitize-link-c++-runtime
+build:ubsan --linkopt=--driver-mode=g++
+build:ubsan --host_linkopt=-fsanitize-link-c++-runtime
+build:ubsan --action_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 
 # Disabling runfiles links drastically increases performance in slow disk IO situations
 # Do not build runfile trees by default. If an execution strategy relies on runfile

@@ -22,5 +22,5 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 # Build and Test StableHLO
-bazel build --lockfile_mode=error //...
-bazel test //...
+bazel build --lockfile_mode=error //... --config=asan --config=ubsan
+bazel test //... --config=asan --config=ubsan
