@@ -1505,10 +1505,10 @@ struct FuseConvolutionBatchNormalization final
     auto dimNumbers = convOp.getDimensionNumbers();
     if (dimNumbers.getInputBatchDimension() != 0 ||
         dimNumbers.getInputFeatureDimension() != 1 ||
-        dimNumbers.getOutputBatchDimension() != 0 ||
-        dimNumbers.getOutputFeatureDimension() != 1 ||
         dimNumbers.getKernelOutputFeatureDimension() != 0 ||
-        dimNumbers.getKernelInputFeatureDimension() != 1) {
+        dimNumbers.getKernelInputFeatureDimension() != 1 ||
+        dimNumbers.getOutputBatchDimension() != 0 ||
+        dimNumbers.getOutputFeatureDimension() != 1) {
       constexpr StringLiteral msg =
           "Only [b, f, ...]x[o, i, ...]->[b, f, ...] configuration is "
           "supported";
