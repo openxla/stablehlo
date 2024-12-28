@@ -98,10 +98,16 @@ def main(kind="CHLO"):
       ("CHLO_SquareOp", "complex_square", ("z:complex",)),
       ("CHLO_SquareOp", "real_square", ("x:float",)),
       ("StableHLO_Log1pOp", "complex_log1p", ("z:complex",)),
+      ("StableHLO_SqrtOp", "complex_sqrt", ("z:complex",)),
   ]:
     if not chloname.startswith(kind):
       continue
-    print(f'Generating {chloname} from {fname}{args}')
+    if chloname.startswith("StableHLO_"):
+      NameOp = chloname.split("_", 1)[1]
+      expander_name = f"{NameOp}_ComplexElementType_ComplexMathExpander"
+    else:
+      expander_name = ""
+    print(f"Generating {chloname} from {fname}{args}")
     func = getattr(fa.algorithms, fname, None)
     if func is None:
       warnings.warn(
@@ -110,21 +116,11 @@ def main(kind="CHLO"):
     ctx = fa.Context(paths=[fa.algorithms],
                      parameters=dict(rewrite_keep_integer_literals=True))
     graph = ctx.trace(func, *args).rewrite(target, fa.rewrite)
-    graph.props.update(name=chloname)
+    graph.props.update(name=chloname, expander_name=expander_name)
     src = graph.tostring(target)
     sources.append(target.make_comment(func.__doc__)) if func.__doc__ else None
     sources[-1] += src
   source = "\n\n".join(sources) + "\n"
-
-  if chloname.startswith('StableHLO_'):
-    # an ugly hack to fix the definition of stablehlo complex math
-    # functions. TODO(pearu): add the corresponding feature to
-    # functional_algorithms stablehlo printer
-    NameOp = chloname.split('_', 1)[1]
-    source = source.replace(
-        f'def : Pat<({chloname}',
-        f'def {NameOp}_ComplexElementType_ComplexMathExpander : Pat<({chloname}'
-    )
 
   if os.path.isfile(output_file):
     f = open(output_file, "r")
@@ -177,6 +173,8 @@ def ComplexElementType : Type<
 def StableHLO_ConstantLikeMaxFiniteValue : NativeCodeCall<
     "::mlir::stablehlo::getConstantLikeMaxFiniteValue($_builder, $_loc, $0)">;
 
+def StableHLO_ConstantLikePosInfValue : NativeCodeCall<
+    "::mlir::stablehlo::getConstantLikeInfValue($_builder, $_loc, $0, /*negative=*/false)">;
 """)
   f.write(source)
   f.close()

@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 //
-// This file is generated using functional_algorithms tool (0.12.0).
+// This file is generated using functional_algorithms tool (0.13.1).
 // See build_tools/math/README.md for more information.
 
 include "mlir/IR/OpBase.td"
@@ -34,6 +34,8 @@ def ComplexElementType : Type<
 def StableHLO_ConstantLikeMaxFiniteValue : NativeCodeCall<
     "::mlir::stablehlo::getConstantLikeMaxFiniteValue($_builder, $_loc, $0)">;
 
+def StableHLO_ConstantLikePosInfValue : NativeCodeCall<
+    "::mlir::stablehlo::getConstantLikeInfValue($_builder, $_loc, $0, /*negative=*/false)">;
 // Logarithm of 1 + z on complex input:
 //
 //       log1p(x + I * y) = 0.5 * log((x + 1) ** 2 + y ** 2) + I * arctan2(y, x + 1)
@@ -139,7 +141,7 @@ def StableHLO_ConstantLikeMaxFiniteValue : NativeCodeCall<
 //     the Case A method [verified numerically for float32 and float64].
 //
 //
-def Log1pOp_ComplexElementType_ComplexMathExpander : Pat<(StableHLO_Log1pOp ComplexElementType:$z),
+def Log1pOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_Log1pOp ComplexElementType:$z),
   (StableHLO_ComplexOp
     (StableHLO_SelectOp
       (StableHLO_CompareOp
@@ -273,3 +275,229 @@ def Log1pOp_ComplexElementType_ComplexMathExpander : Pat<(StableHLO_Log1pOp Comp
                       (StableHLO_SubtractOp:$subtract_add_2sum_high__add_2sum_high_0_ $add_2sum_high, $_add_2sum_high_0_))),
                   (StableHLO_SubtractOp $_square_dekker_low_0_, $subtract_add_2sum_high__add_2sum_high_0_)))))))),
     (StableHLO_Atan2Op $y, $xp1))>;
+
+// Square root on complex inputs:
+//
+//       sqrt(z) = sqrt((hypot(x, y) + x)/2) + I * sgn(y) * sqrt((hypot(x, y) - x) / 2)
+//
+//     where z = x + I * y, sgn(y) = 1 if y >= 0, and sgn(y) = -1 otherwise.
+//
+//     Algorithm
+//     ---------
+//
+//     In the above formula, catastrophic cancellation errors occur in
+//     the imaginary part when x is positive, and in the real part when x
+//     is negative. To avoid these, let us define
+//
+//       u = sqrt((hypot(x, y) + abs(x))/2)
+//       v = sgn(y) * sqrt((hypot(x, y) - abs(x))/2)
+//
+//     and find
+//
+//       u * v = sgn(y) * sqrt(hypot(x, y) ** 2 - x ** 2) / 2 = y / 2
+//
+//     That is, if x > 0, then we have
+//
+//       sqrt(z) = u + I * y / u / 2
+//
+//     and if x < 0,
+//
+//       sqrt(z) = abs(y) / u / 2 + I * sgn(y) * u
+//
+//     If abs(x) and abs(y) are smaller that smallest normal, then as a
+//     result of underflow, u will be zero and v will be undefined. On
+//     the other hand, if abs(x) and abs(y) are close to largest floating
+//     point number, then `hypot(x, y) + abs(x)` will overflow, and u
+//     will be `inf`. To address the issues from underflow and overflow,
+//     we'll use the following formula:
+//
+//     1. abs(x) == abs(y), or abs(x) == inf and abs(y) == inf, then
+//
+//       u_eq = sqrt(abs(x)) * sqrt((1 + sqrt(2))/2)
+//       abs(y) / u = sqrt(abs(x)) / sqrt((1 + sqrt(2))/2)
+//
+//     2. If abs(x) > abs(y) and u == 0 (the underflow case) or u == inf
+//       (the overflow case), denote r = abs(y) / abs(x), then
+//
+//       u_gt = sqrt(abs(x)) * sqrt((1 + hypot(1, r)) / 2)
+//       abs(y) / u = sqrt(abs(y)) * sqrt(r) / sqrt((1 + hypot(1, r)) / 2)
+//
+//     3. If abs(x) < abs(y) and u == 0 (the underflow case) or u == inf
+//       (the overflow case), denote r = abs(x) / abs(y), then
+//
+//       u_lt = sqrt(abs(y)) * sqrt((r + sqrt(1, r)) / 2)
+//       abs(y) / u = sqrt(abs(y)) / sqrt((r + sqrt(1, r)) / 2)
+//
+def SqrtOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_SqrtOp ComplexElementType:$z),
+  (StableHLO_ComplexOp
+    (StableHLO_SelectOp
+      (StableHLO_CompareOp
+       (StableHLO_RealOp:$x $z),
+       (StableHLO_ConstantLike<"0">:$constant_0 $x),
+        StableHLO_ComparisonDirectionValue<"GE">,
+        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+      (StableHLO_SelectOp:$u
+        (StableHLO_CompareOp:$eq_ax_ay
+         (StableHLO_AbsOp:$ax $x),
+         (StableHLO_AbsOp:$ay
+           (StableHLO_ImagOp:$y $z)),
+          StableHLO_ComparisonDirectionValue<"EQ">,
+          (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+        (StableHLO_DivOp
+          (StableHLO_MulOp
+            (StableHLO_SqrtOp:$sq_ax $ax),
+            (StableHLO_ConstantLike<"1.5537739740300374"> $x)),
+          (StableHLO_ConstantLike<"1.4142135623730951">:$sq_2 $x)),
+        (StableHLO_SelectOp
+          (StableHLO_OrOp:$logical_or_eq_u_general_constant_0_eq_u_general_constant_posinf
+            (StableHLO_CompareOp
+             (StableHLO_SqrtOp:$u_general
+               (StableHLO_AddOp
+                 (StableHLO_DivOp
+                   (StableHLO_SelectOp
+                     (StableHLO_CompareOp
+                      (StableHLO_MaxOp:$mx $ax, $ay),
+                      (StableHLO_MinOp:$mn $ax, $ay),
+                       StableHLO_ComparisonDirectionValue<"EQ">,
+                       (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                     (StableHLO_MulOp $sq_2, $mx),
+                     (StableHLO_SelectOp
+                       (StableHLO_AndOp
+                         (StableHLO_CompareOp
+                          (StableHLO_SqrtOp:$sqa
+                            (StableHLO_AddOp
+                              (StableHLO_ConstantLike<"1">:$one $x),
+                              (StableHLO_MulOp:$r
+                                (StableHLO_DivOp:$mn_over_mx $mn, $mx),
+                                $mn_over_mx))),
+                          $one,
+                           StableHLO_ComparisonDirectionValue<"EQ">,
+                           (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                         (StableHLO_CompareOp
+                          $r,
+                          $constant_0,
+                           StableHLO_ComparisonDirectionValue<"GT">,
+                           (STABLEHLO_DEFAULT_COMPARISON_TYPE))),
+                       (StableHLO_AddOp
+                         $mx,
+                         (StableHLO_DivOp
+                           (StableHLO_MulOp $mx, $r),
+                           (StableHLO_ConstantLike<"2">:$two $x))),
+                       (StableHLO_MulOp $mx, $sqa))),
+                   $two),
+                 (StableHLO_DivOp $ax, $two))),
+             $constant_0,
+              StableHLO_ComparisonDirectionValue<"EQ">,
+              (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+            (StableHLO_CompareOp
+             $u_general,
+             (StableHLO_ConstantLikePosInfValue $x),
+              StableHLO_ComparisonDirectionValue<"EQ">,
+              (STABLEHLO_DEFAULT_COMPARISON_TYPE))),
+          (StableHLO_SelectOp
+            (StableHLO_CompareOp:$gt_ax_ay
+             $ax,
+             $ay,
+              StableHLO_ComparisonDirectionValue<"GT">,
+              (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+            (StableHLO_MulOp
+              $sq_ax,
+              (StableHLO_DivOp
+                (StableHLO_SqrtOp:$sq_1h
+                  (StableHLO_AddOp
+                    $one,
+                    (StableHLO_SelectOp:$h
+                      (StableHLO_CompareOp
+                       (StableHLO_MaxOp:$_mx_0_
+                         $one,
+                         (StableHLO_AbsOp:$abs__r_0_
+                           (StableHLO_SelectOp:$_r_0_
+                             $eq_ax_ay,
+                             $one,
+                             (StableHLO_SelectOp
+                               (StableHLO_CompareOp:$lt_ax_ay
+                                $ax,
+                                $ay,
+                                 StableHLO_ComparisonDirectionValue<"LT">,
+                                 (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                               (StableHLO_DivOp $ax, $ay),
+                               (StableHLO_DivOp $ay, $ax))))),
+                       (StableHLO_MinOp:$_mn_0_ $one, $abs__r_0_),
+                        StableHLO_ComparisonDirectionValue<"EQ">,
+                        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                      (StableHLO_MulOp $sq_2, $_mx_0_),
+                      (StableHLO_SelectOp
+                        (StableHLO_AndOp
+                          (StableHLO_CompareOp
+                           (StableHLO_SqrtOp:$_sqa_0_
+                             (StableHLO_AddOp
+                               $one,
+                               (StableHLO_MulOp:$_r_1_
+                                 (StableHLO_DivOp:$_mn_over_mx_0_ $_mn_0_, $_mx_0_),
+                                 $_mn_over_mx_0_))),
+                           $one,
+                            StableHLO_ComparisonDirectionValue<"EQ">,
+                            (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+                          (StableHLO_CompareOp
+                           $_r_1_,
+                           $constant_0,
+                            StableHLO_ComparisonDirectionValue<"GT">,
+                            (STABLEHLO_DEFAULT_COMPARISON_TYPE))),
+                        (StableHLO_AddOp
+                          $_mx_0_,
+                          (StableHLO_DivOp
+                            (StableHLO_MulOp $_mx_0_, $_r_1_),
+                            $two)),
+                        (StableHLO_MulOp $_mx_0_, $_sqa_0_))))),
+                $sq_2)),
+            (StableHLO_MulOp
+              (StableHLO_SqrtOp:$sq_ay $ay),
+              (StableHLO_DivOp
+                (StableHLO_SqrtOp:$sq_rh
+                  (StableHLO_AddOp $_r_0_, $h)),
+                $sq_2))),
+          $u_general)),
+      (StableHLO_SelectOp:$ay_div_u
+        $eq_ax_ay,
+        (StableHLO_DivOp
+          $sq_ay,
+          (StableHLO_ConstantLike<"2.19736822693562"> $x)),
+        (StableHLO_SelectOp
+          $logical_or_eq_u_general_constant_0_eq_u_general_constant_posinf,
+          (StableHLO_SelectOp
+            $gt_ax_ay,
+            (StableHLO_DivOp
+              (StableHLO_MulOp
+                $sq_ay,
+                (StableHLO_SelectOp
+                  $eq_ax_ay,
+                  $one,
+                  (StableHLO_SelectOp
+                    $lt_ax_ay,
+                    (StableHLO_DivOp $sq_ax, $sq_ay),
+                    (StableHLO_DivOp $sq_ay, $sq_ax)))),
+              (StableHLO_MulOp $sq_1h, $sq_2)),
+            (StableHLO_DivOp
+              $sq_ay,
+              (StableHLO_MulOp $sq_rh, $sq_2))),
+          (StableHLO_DivOp
+            $ay,
+            (StableHLO_MulOp $u_general, $two))))),
+    (StableHLO_SelectOp
+      (StableHLO_CompareOp
+       $x,
+       $constant_0,
+        StableHLO_ComparisonDirectionValue<"LT">,
+        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+      (StableHLO_SelectOp
+        (StableHLO_CompareOp:$lt_y_constant_0
+         $y,
+         $constant_0,
+          StableHLO_ComparisonDirectionValue<"LT">,
+          (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+        (StableHLO_NegOp $u),
+        $u),
+      (StableHLO_SelectOp
+        $lt_y_constant_0,
+        (StableHLO_NegOp $ay_div_u),
+        $ay_div_u)))>;
