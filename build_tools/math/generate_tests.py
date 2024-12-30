@@ -72,6 +72,10 @@ operations = [
          mpmath_name="log1p",
          namespace="stablehlo",
          passes="--stablehlo-complex-math-expander"),
+    dict(name="log",
+         mpmath_name="log",
+         namespace="stablehlo",
+         passes="--stablehlo-complex-math-expander"),
     dict(name="sqrt",
          mpmath_name="sqrt",
          namespace="stablehlo",
@@ -117,8 +121,8 @@ def main():
 
   if fa_version < required_fa_version:
     msg = (
-        f"functional_algorithm version {'.'.join(map(str, required_fa_version))}"
-        f" or newer is required, got {fa.__version__}")
+        f"functional_algorithms version {'.'.join(map(str, required_fa_version))}"
+        f" or newer is required, got {fa.__version__}, stopping.")
     warnings.warn(msg)
     return
 
