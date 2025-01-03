@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 //
-// This file is generated using functional_algorithms tool (0.14.1.dev0+ge22be68.d20241231).
+// This file is generated using functional_algorithms tool (0.15.0).
 // See build_tools/math/README.md for more information.
 
 include "mlir/IR/OpBase.td"
@@ -654,3 +654,66 @@ def LogOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_LogOp ComplexEl
                 (StableHLO_DivOp $mn, $mx)),
               $mn_over_mx))))),
     (StableHLO_Atan2Op $y, $x))>;
+
+// Exponential on complex inputs:
+//
+//       exp(z) = exp(x) * (cos(y) + I * sin(y))
+//
+//     where z = x + I * y.
+//
+//     Algorithm
+//     ---------
+//
+//     While the above expression is accurate for a large part of the
+//     complex plane, there is two cases that require special attention.
+//
+//     First, when `y == 0`, we'll define
+//
+//       imag(exp(z)) = 0
+//
+//     that otherwise for overflowing `exp(x)` would evaluate to nan.
+//
+//     Second, the overflow case `exp(x) -> inf` is compensated when `y`
+//     is close to the zeros of `cos(y)` or `sin(y)` and the real or
+//     imaginary parts of `exp(z)` ought to be finite. Therefore, for the
+//     `exp(x) -> inf` case, we'll use
+//
+//       exp(z) = exp(x / 2) * (cos(y) + I * sin(y)) * exp(x / 2)
+//
+//     Notice that for `y != 0`, neither `cos(y)` nor `sin(y)` is never
+//     zero on the set of floating point numbers.
+//
+def ExpOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_ExpOp ComplexElementType:$z),
+  (StableHLO_ComplexOp
+    (StableHLO_SelectOp
+      (StableHLO_CompareOp:$eq_e_constant_posinf
+       (StableHLO_ExpOp:$e
+         (StableHLO_RealOp:$x $z)),
+       (StableHLO_ConstantLikePosInfValue $x),
+        StableHLO_ComparisonDirectionValue<"EQ">,
+        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+      (StableHLO_MulOp
+        (StableHLO_MulOp
+          (StableHLO_ExpOp:$e2
+            (StableHLO_MulOp
+              $x,
+              (StableHLO_ConstantLike<"0.5"> $x))),
+          (StableHLO_CosineOp:$cs
+            (StableHLO_ImagOp:$y $z))),
+        $e2),
+      (StableHLO_MulOp $e, $cs)),
+    (StableHLO_SelectOp
+      (StableHLO_CompareOp
+       $y,
+       (StableHLO_ConstantLike<"0">:$zero $x),
+        StableHLO_ComparisonDirectionValue<"EQ">,
+        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+      $zero,
+      (StableHLO_SelectOp
+        $eq_e_constant_posinf,
+        (StableHLO_MulOp
+          (StableHLO_MulOp
+            $e2,
+            (StableHLO_SineOp:$sn $y)),
+          $e2),
+        (StableHLO_MulOp $e, $sn))))>;

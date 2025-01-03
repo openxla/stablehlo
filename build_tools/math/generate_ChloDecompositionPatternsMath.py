@@ -100,6 +100,7 @@ def main(kind="CHLO"):
       ("StableHLO_Log1pOp", "complex_log1p", ("z:complex",)),
       ("StableHLO_SqrtOp", "complex_sqrt", ("z:complex",)),
       ("StableHLO_LogOp", "complex_log", ("z:complex",)),
+      ("StableHLO_ExpOp", "complex_exp", ("z:complex",)),
   ]:
     if not chloname.startswith(kind):
       continue
