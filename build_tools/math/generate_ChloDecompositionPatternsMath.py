@@ -71,8 +71,15 @@ def main(kind="CHLO"):
 
   output_file = os.path.relpath(
       os.path.normpath(
-          os.path.join(os.path.dirname(__file__), "..", "..", "stablehlo",
-                       "transforms", output_filename)),
+          os.path.join(
+              os.path.dirname(__file__),
+              "..",
+              "..",
+              "stablehlo",
+              "transforms",
+              output_filename,
+          )
+      ),
       os.getcwd(),
   )
 
@@ -105,7 +112,8 @@ def main(kind="CHLO"):
     func = getattr(fa.algorithms, fname, None)
     if func is None:
       warnings.warn(
-          f"{fa.algorithms.__name__} does not define {fname}. Skipping.")
+          f"{fa.algorithms.__name__} does not define {fname}. Skipping."
+      )
       continue
     ctx = fa.Context(paths=[fa.algorithms],
                      parameters=dict(rewrite_keep_integer_literals=True))
@@ -116,14 +124,15 @@ def main(kind="CHLO"):
     sources[-1] += src
   source = "\n\n".join(sources) + "\n"
 
-  if chloname.startswith('StableHLO_'):
+  if chloname.startswith("StableHLO_"):
     # an ugly hack to fix the definition of stablehlo complex math
     # functions. TODO(pearu): add the corresponding feature to
     # functional_algorithms stablehlo printer
-    NameOp = chloname.split('_', 1)[1]
+    NameOp = chloname.split("_", 1)[1]
     source = source.replace(
-        f'def : Pat<({chloname}',
-        f'def {NameOp}_ComplexElementType_ComplexMathExpander : Pat<({chloname}'
+        f"def : Pat<({chloname}",
+        f"def {NameOp}_ComplexElementType_ComplexMathExpander :"
+        f" Pat<({chloname}",
     )
 
   if os.path.isfile(output_file):
