@@ -291,7 +291,7 @@ struct StablehloCompatibilityExpanderPass
 
   void runOnOperation() override {
     auto func = getOperation();
-    if (failed(applyPatternsAndFoldGreedily(func, patterns, config))) {
+    if (failed(applyPatternsGreedily(func, patterns, config))) {
       func.emitError(
           "Failed to converge StableHLOCompatibilityExpanderPass in ")
           << config.maxIterations << " iterations";

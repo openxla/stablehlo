@@ -146,13 +146,16 @@ def main():
       params = fa.utils.function_validation_parameters(opname, dtype)
       max_ulp_difference = op.get(
           "max_ulp_difference",
-          params.get("max_valid_ulp_count", default_max_ulp_difference))
+          params.get("max_valid_ulp_count", default_max_ulp_difference),
+      )
 
       nmp = fa.utils.numpy_with_mpmath(
           extra_prec_multiplier=op.get(
               "extra_prec_multiplier",
-              params.get("extra_prec_multiplier",
-                         default_extra_prec_multiplier)),
+              params.get(
+                  "extra_prec_multiplier", default_extra_prec_multiplier
+              ),
+          ),
           flush_subnormals=flush_subnormals,
       )
 
@@ -216,8 +219,10 @@ def main():
           continue
 
       f = open(fname, "w")
-      f.write(f"// RUN: stablehlo-opt {passes} %s |"
-              " stablehlo-translate --interpret\n")
+      f.write(
+          f"// RUN: stablehlo-opt {passes} %s |"
+          " stablehlo-translate --interpret\n"
+      )
       f.write(
           "// This file is generated, see build_tools/math/README.md for more"
           " information.\n")

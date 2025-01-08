@@ -194,7 +194,7 @@ struct TosaRescaleLegalizeToStablehloPass
   }
   void runOnOperation() final {
     auto func = getOperation();
-    if (failed(applyPatternsAndFoldGreedily(func, patterns))) {
+    if (failed(applyPatternsGreedily(func, patterns))) {
       func.emitError("Failed to apply TosaRescaleLegalizeToStablehlo pass ");
       signalPassFailure();
     }
