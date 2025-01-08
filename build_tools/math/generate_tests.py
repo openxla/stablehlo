@@ -54,6 +54,10 @@ operations = [
     #   that defines the precision of computing reference values:
     #   mpmath.mp.prec * extra_prec_multiplier
     #
+    #   namespace - "chlo" or "stablehlo"
+    #
+    #   passes - a string of pass arguments
+    #
     # When unspecifed, these parameters are retrieved from
     # functional_algorithms database of support functions.
     #
@@ -66,6 +70,10 @@ operations = [
     dict(name="square", mpmath_name="square"),
     dict(name="log_plus_one",
          mpmath_name="log1p",
+         namespace="stablehlo",
+         passes="--stablehlo-complex-math-expander"),
+    dict(name="sqrt",
+         mpmath_name="sqrt",
          namespace="stablehlo",
          passes="--stablehlo-complex-math-expander"),
 ]
