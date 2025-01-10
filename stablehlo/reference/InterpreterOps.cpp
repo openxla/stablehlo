@@ -209,7 +209,7 @@ SmallVector<InterpreterValue> evalRunParallelOp(
 llvm::Error evalPrintOp(PrintOp &op, InterpreterValue operand) {
   std::string ssaValueStr;
   llvm::raw_string_ostream stream(ssaValueStr);
-  stream << op;
+  stream << op.getOperand();
 
   // Get the SSA name and print it like: `%0 = `
   llvm::outs() << ssaValueStr.substr(0, ssaValueStr.find("=") + 2);
