@@ -25,6 +25,9 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/Value.h"
 
+#define GET_OP_CLASSES
+#include "stablehlo/reference/InterpreterOps.h.inc"
+
 namespace mlir {
 namespace stablehlo {
 namespace interpreter {
@@ -39,6 +42,12 @@ SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable);
 
+// Print the SSA name followed by its type and value like:
+// >>> %0 = tensor<i1> {
+// ...    [true]
+// ... }
+InterpreterValue evalPrintOp(PrintOp &op, InterpreterValue operand);
+
 llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
                         StringRef probeOutputDir,
                         int64_t serializedProbeFileId);
@@ -46,8 +55,5 @@ llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
 }  // namespace interpreter
 }  // namespace stablehlo
 }  // namespace mlir
-
-#define GET_OP_CLASSES
-#include "stablehlo/reference/InterpreterOps.h.inc"
 
 #endif  // STABLEHLO_REFERENCE_INTERPRETEROPS_H
