@@ -206,7 +206,7 @@ SmallVector<InterpreterValue> evalRunParallelOp(
   return results;
 }
 
-InterpreterValue evalPrintOp(PrintOp &op, InterpreterValue operand) {
+llvm::Error evalPrintOp(PrintOp &op, InterpreterValue operand) {
   std::string ssaValueStr;
   llvm::raw_string_ostream stream(ssaValueStr);
   stream << op;
@@ -217,7 +217,7 @@ InterpreterValue evalPrintOp(PrintOp &op, InterpreterValue operand) {
   // Prints the tensor value
   operand.getTensor().print(llvm::outs());
   llvm::outs() << "\n";
-  return operand;
+  return llvm::Error::success();
 }
 
 // `serializedProbeFileId` should be a unique positive integer which can be used
