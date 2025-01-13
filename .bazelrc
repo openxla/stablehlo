@@ -40,9 +40,7 @@ build:asan --config=san-common
 build:asan --features=asan
 build:asan --copt=-fsanitize-address-use-after-scope
 # We explicitly disable strict_init_order because LLVM is "hostile to init order"
-# even the google3 monorepo disables it
 # TODO(fzakaria): disabling due to costs of test execution
-# I don't think internally to Google we use these options
 # build:asan --action_env=ASAN_OPTIONS=detect_odr_violations=2:detect_leaks=1:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=0
 # build:asan --action_env=LSAN_OPTIONS=report_objects=1
 build:asan --cc_output_directory_tag=asan
