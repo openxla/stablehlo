@@ -151,8 +151,7 @@ struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
   }
 
   void runOnOperation() override {
-    if (failed(
-            applyPatternsGreedily(getOperation(), std::move(patterns))))
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       return signalPassFailure();
   }
 
