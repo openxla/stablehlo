@@ -441,7 +441,6 @@ func.func @asinh_f32(%arg : tensor<f32>) -> tensor<f32> {
 
 // -----
 
-
 // CHECK-LABEL:   func.func @asinh_f64(
 // CHECK-SAME:                         %[[VAL_0:.*]]: tensor<f64>) -> tensor<f64> {
 // CHECK:           %[[VAL_1:.*]] = stablehlo.sign %[[VAL_0]] : tensor<f64>
@@ -2788,7 +2787,6 @@ func.func @polygamma_f16(%lhs : tensor<f16>, %rhs : tensor<f16>) -> tensor<f16> 
 
 // -----
 
-
 // CHECK-LABEL: @sinh_f32
 // CHECK-SAME: (%[[X:.*]]: tensor<f32>)
 func.func @sinh_f32(%x : tensor<f32>) -> tensor<f32> {
@@ -3891,6 +3889,8 @@ func.func @erf_inv_wide(%arg0 : tensor<16x16xf64>) {
   return
 }
 
+// -----
+
 // CHECK-LABEL:   @square_complex_f32(
 // CHECK-SAME:                                  %[[VAL_0:.*]]: tensor<complex<f32>>) -> tensor<complex<f32>> {
 // CHECK:           %[[VAL_1:.*]] = stablehlo.real %[[VAL_0]] : (tensor<complex<f32>>) -> tensor<f32>
@@ -3915,6 +3915,8 @@ func.func @square_complex_f32(%arg : tensor<complex<f32>>) -> tensor<complex<f32
   %result = "chlo.square"(%arg) : (tensor<complex<f32>>) -> tensor<complex<f32>>
   func.return %result : tensor<complex<f32>>
 }
+
+// -----
 
 // CHECK-LABEL:   @square_f32(
 // CHECK-SAME:                          %[[VAL_0:.*]]: tensor<f32>) -> tensor<f32> {

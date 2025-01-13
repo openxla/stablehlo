@@ -48,7 +48,7 @@ void StablehloPrepareForTosaPass::runOnOperation() {
   // TODO: Enable post upstreaming decision.
   // stablehlo::DotGeneralOp::getCanonicalizationPatterns(patterns, ctx);
   // stablehlo::populateGeneralDotOpLoweringPatterns(&patterns, ctx);
-  (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
+  (void)applyPatternsGreedily(getOperation(), std::move(patterns));
 }
 
 }  // namespace

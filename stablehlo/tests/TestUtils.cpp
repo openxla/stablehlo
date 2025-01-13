@@ -151,8 +151,7 @@ struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
   }
 
   void runOnOperation() override {
-    if (failed(
-            applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       return signalPassFailure();
   }
 
@@ -176,7 +175,7 @@ struct HloTestSpeculatabilityPass
     config.maxIterations = 1;
     config.useTopDownTraversal = true;
     config.enableRegionSimplification = GreedySimplifyRegionLevel::Disabled;
-    (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
+    (void)applyPatternsGreedily(getOperation(), std::move(patterns));
   }
 
  private:

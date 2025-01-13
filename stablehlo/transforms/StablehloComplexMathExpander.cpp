@@ -58,7 +58,7 @@ struct StablehloComplexMathExpanderPass
 
   void runOnOperation() override {
     auto func = getOperation();
-    if (failed(applyPatternsAndFoldGreedily(func, patterns, config))) {
+    if (failed(applyPatternsGreedily(func, patterns, config))) {
       func.emitError("Failed to converge StableHLOComplexMathExpanderPass in ")
           << config.maxIterations << " iterations";
       signalPassFailure();

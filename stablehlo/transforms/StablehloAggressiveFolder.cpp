@@ -888,7 +888,7 @@ struct StablehloAggressiveFolderPass
   }
 
   void runOnOperation() override {
-    if (failed(applyPatternsAndFoldGreedily(getOperation(), patterns)))
+    if (failed(applyPatternsGreedily(getOperation(), patterns)))
       signalPassFailure();
   }
 

@@ -1019,7 +1019,7 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
   // function. This is sufficient because we only support one function per
   // program at the moment.
   // TODO(#1048): Find out why .maxIterations = 1 no longer works.
-  // There have been recent refactors to applyPatternsAndFoldGreedily
+  // There have been recent refactors to applyPatternsGreedily
   // upstream, and that might be the reason.
   config.useTopDownTraversal = true;
   config.enableRegionSimplification = GreedySimplifyRegionLevel::Aggressive;
@@ -1039,7 +1039,7 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
   // depends on the value of their shape operands.
   populateStablehloShapeFolderPatterns(&patterns, context);
 
-  if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns), config)))
+  if (failed(applyPatternsGreedily(func, std::move(patterns), config)))
     func.emitError("Failed to converge StablehloRefineShapes in ")
         << config.maxIterations << " iterations";
 

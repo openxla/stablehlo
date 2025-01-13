@@ -71,8 +71,15 @@ def main(kind="CHLO"):
 
   output_file = os.path.relpath(
       os.path.normpath(
-          os.path.join(os.path.dirname(__file__), "..", "..", "stablehlo",
-                       "transforms", output_filename)),
+          os.path.join(
+              os.path.dirname(__file__),
+              "..",
+              "..",
+              "stablehlo",
+              "transforms",
+              output_filename,
+          )
+      ),
       os.getcwd(),
   )
 
@@ -113,7 +120,8 @@ def main(kind="CHLO"):
     func = getattr(fa.algorithms, fname, None)
     if func is None:
       warnings.warn(
-          f"{fa.algorithms.__name__} does not define {fname}. Skipping.")
+          f"{fa.algorithms.__name__} does not define {fname}. Skipping."
+      )
       continue
     ctx = fa.Context(paths=[fa.algorithms],
                      parameters=dict(rewrite_keep_integer_literals=True))
