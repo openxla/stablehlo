@@ -80,6 +80,27 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
   let hasVerifier = 1;
 }
 
+def Interpreter_PrintOp : Op<Interpreter_Dialect, "print"> {
+  let summary = "Print operation";
+  let arguments = (ins
+    HLO_Tensor:$operand
+  );
+  let description = [{
+    Print the value to stdout.
+
+    This is useful to print intermediate states of the tensors while debugging.
+    This should only be used to debug small tensors since every instance of this
+    op and its contents are printed to stdout. To gather information in bulk for
+    larger tensors, prefer using ProbeOp.
+
+    Example:
+    ```mlir
+    interpreter.print %operand : tensor<i1>
+    ```
+  }];
+  let assemblyFormat = "$operand attr-dict `:` type($operand)";
+}
+
 def Interpreter_ProbeOp : Op<Interpreter_Dialect, "probe",
     [SameOperandsAndResultType]> {
   let arguments = (ins

@@ -88,6 +88,14 @@ class DefaultInterpreterFallback : public InterpreterFallback {
                                  Process *process) final {
     llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
 
+    if (auto printOp = dyn_cast<stablehlo::interpreter::PrintOp>(op)) {
+      auto operand =
+          stablehlo::InterpreterValue(scope.findTensor(printOp.getOperand()));
+      auto status = stablehlo::interpreter::evalPrintOp(printOp, operand);
+      return wrapFallbackStatus(std::move(status), funcName,
+                                "interpreter.print");
+    }
+
     if (auto probeOp = dyn_cast<stablehlo::interpreter::ProbeOp>(op)) {
       auto input =
           stablehlo::InterpreterValue(scope.findTensor(probeOp.getOperand()));
