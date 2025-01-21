@@ -76,78 +76,6 @@ ParseResult parseRefinedTypes(ModuleOp module,
   return success();
 }
 
-LogicalResult refinementError(func::FuncOp func, int64_t idx, Type argType,
-                              Type refinedType, StringRef msg) {
-  return func.emitOpError()
-         << "invalid refinement for argument " << idx << ", refinement " << msg
-         << " in " << mlir::debugString(argType) << " -> "
-         << mlir::debugString(refinedType);
-}
-
-// Validates refinement types:
-//   - A type refinement must be specified for each operand
-//   - Refinement types that match operand types are skipped
-//   - Refinement types that do not match operands must be refining tensors
-//   - Refined tensor types must be ranked, operand type can be unranked
-//   - Refined tensor types must match operand type for all static dimensions
-//
-LogicalResult validateRefinedTypes(func::FuncOp func, TypeRange refinedTypes) {
-  // Validate refined shapes
-  if (func.getNumArguments() != refinedTypes.size()) {
-    return func.emitOpError(
-               "number of refinements must match number of function operands ")
-           << refinedTypes.size() << " vs " << func.getNumArguments();
-  }
-
-  // Validate that refinements are valid
-  auto argTypes = func.getArgumentTypes();
-  for (int64_t i = 0; i < func.getNumArguments(); ++i) {
-    Type type = argTypes[i];
-    Type refinedType = refinedTypes[i];
-
-    // Always allow skipping refinement
-    if (type == refinedType) continue;
-
-    // If mismatched, must be tensor types
-    auto tensorType = dyn_cast<TensorType>(type);
-    auto refinedTensorType = dyn_cast<TensorType>(refinedType);
-    if (!tensorType || !refinedTensorType) {
-      return refinementError(func, i, type, refinedType, "must be a tensor");
-    }
-
-    // Check that element types match
-    if (tensorType.getElementType() != refinedTensorType.getElementType()) {
-      return refinementError(func, i, type, refinedType,
-                             "element types must match");
-    }
-
-    // Refined rank cannot be unranked if mismatch
-    if (isa<UnrankedTensorType>(refinedType)) {
-      return refinementError(func, i, type, refinedType, "must be ranked");
-    }
-
-    // Unranked operands can be refined to anything
-    if (!tensorType.hasRank()) continue;
-
-    // Validate ranks match if ranked (must allow unranked tensorType)
-    if (tensorType.getRank() != refinedTensorType.getRank()) {
-      return refinementError(func, i, type, refinedType,
-                             "rank must match operand rank");
-    }
-
-    // Validate static dimension sizes match
-    for (auto [dimSize, refinedDimSize] :
-         llvm::zip(tensorType.getShape(), refinedTensorType.getShape())) {
-      if (!ShapedType::isDynamic(dimSize) && dimSize != refinedDimSize) {
-        return refinementError(
-            func, i, type, refinedType,
-            "dimension sizes must match for static dimensions");
-      }
-    }
-  }
-  return success();
-}
-
 // Wrap operands in "type barriers" so the rest of the program remains valid
 // after the signature update and before shape refinement.
 //
@@ -219,9 +147,75 @@ struct StablehloRefineArgumentsPass
 
 }  // namespace
 
+LogicalResult refinementError(Operation* op, int64_t idx, Type argType,
+                              Type refinedType, StringRef msg) {
+  return op->emitOpError() << "invalid refinement for argument " << idx
+                           << ", refinement " << msg << " in "
+                           << mlir::debugString(argType) << " -> "
+                           << mlir::debugString(refinedType);
+}
+
+LogicalResult validateRefinedTypes(Operation* op, TypeRange argTypes,
+                                   TypeRange refinedTypes) {
+  // Validate refined shapes
+  if (argTypes.size() != refinedTypes.size()) {
+    return op->emitOpError(
+               "number of refinements must match number of op operands ")
+           << refinedTypes.size() << " vs " << argTypes.size();
+  }
+
+  // Validate that refinements are valid
+  for (size_t i = 0; i < argTypes.size(); ++i) {
+    Type type = argTypes[i];
+    Type refinedType = refinedTypes[i];
+
+    // Always allow skipping refinement
+    if (type == refinedType) continue;
+
+    // If mismatched, must be tensor types
+    auto tensorType = dyn_cast<TensorType>(type);
+    auto refinedTensorType = dyn_cast<TensorType>(refinedType);
+    if (!tensorType || !refinedTensorType) {
+      return refinementError(op, i, type, refinedType, "must be a tensor");
+    }
+
+    // Check that element types match
+    if (tensorType.getElementType() != refinedTensorType.getElementType()) {
+      return refinementError(op, i, type, refinedType,
+                             "element types must match");
+    }
+
+    // Refined rank cannot be unranked if mismatch
+    if (isa<UnrankedTensorType>(refinedType)) {
+      return refinementError(op, i, type, refinedType, "must be ranked");
+    }
+
+    // Unranked operands can be refined to anything
+    if (!tensorType.hasRank()) continue;
+
+    // Validate ranks match if ranked (must allow unranked tensorType)
+    if (tensorType.getRank() != refinedTensorType.getRank()) {
+      return refinementError(op, i, type, refinedType,
+                             "rank must match operand rank");
+    }
+
+    // Validate static dimension sizes match
+    for (auto [dimSize, refinedDimSize] :
+         llvm::zip(tensorType.getShape(), refinedTensorType.getShape())) {
+      if (!ShapedType::isDynamic(dimSize) && dimSize != refinedDimSize) {
+        return refinementError(
+            op, i, type, refinedType,
+            "dimension sizes must match for static dimensions");
+      }
+    }
+  }
+  return success();
+}
+
 LogicalResult refineArguments(func::FuncOp func, TypeRange refinedTypes) {
   // Verify that refinements are valid
-  if (failed(validateRefinedTypes(func, refinedTypes))) return failure();
+  if (failed(validateRefinedTypes(func, func.getArgumentTypes(), refinedTypes)))
+    return failure();
 
   // Wrap refined operands in operand wrapper to keep IR valid for refinement
   wrapRefinedOperands(func, refinedTypes);

@@ -258,9 +258,13 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
       }
     }
 
+    auto shapeType = rewriter.getType<tosa::shapeType>(tileMultiples.size());
+    auto shapedMultiples = rewriter.create<tosa::ConstShapeOp>(
+        op.getLoc(), shapeType, rewriter.getIndexVectorAttr(tileMultiples));
+
     // Tile the const array to the result shape of the iota op.
-    rewriter.replaceOpWithNewOp<tosa::TileOp>(
-        op, resultType, constOp, rewriter.getDenseI64ArrayAttr(tileMultiples));
+    rewriter.replaceOpWithNewOp<tosa::TileOp>(op, resultType, constOp,
+                                              shapedMultiples);
     return success();
   }
 };

@@ -14,15 +14,16 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -1962,6 +1963,232 @@ static Value materializeSinhApproximation(OpBuilder &rewriter, Location loc,
       loc, absXLtOne, smallSinhResult, largeSinhResult);
 }
 
+namespace {
+
+ArrayAttr convertPrecisionConfig(mlir::ArrayAttr precisionConfig,
+                                 ConversionPatternRewriter &rewriter) {
+  std::vector<Attribute> precisions;
+  for (Attribute precision : precisionConfig.getValue()) {
+    switch (dyn_cast<mlir::chlo::PrecisionAttr>(precision).getValue()) {
+      case mlir::chlo::Precision::HIGHEST:
+        precisions.push_back(rewriter.getAttr<mlir::stablehlo::PrecisionAttr>(
+            mlir::stablehlo::Precision::HIGHEST));
+        break;
+      case mlir::chlo::Precision::HIGH:
+        precisions.push_back(rewriter.getAttr<mlir::stablehlo::PrecisionAttr>(
+            mlir::stablehlo::Precision::HIGH));
+        break;
+      default:
+        precisions.push_back(rewriter.getAttr<mlir::stablehlo::PrecisionAttr>(
+            mlir::stablehlo::Precision::DEFAULT));
+        break;
+    }
+  }
+  return ArrayAttr::get(rewriter.getContext(), precisions);
+}
+
+// Mode 1, where the ragged dimension is an lhs non-contracting dim (m).
+//   lhs : [b, m, k]
+//   rhs : [g, b, k, n]
+//   group_sizes : [g]
+//   result : [b, m, n]
+// This pass basically does g iterations of [b, m, k] x [b, k, n] dot_general
+// operations, apply partial mask of size group_sizes[i] and then add them
+// together. This is a slow implementation that's simple enough to understand
+// with the hope that there's already an efficient hardware kernel.
+// Note:
+// In this implementation, the IR size increases by a factor of g. If this
+// becomes a problem, we can try adding stablehlo.while to reduce the IR size.
+LogicalResult handleRaggedDotMode1(mlir::chlo::RaggedDotOp op,
+                                   ConversionPatternRewriter &rewriter) {
+  Value lhs = op.getLhs();
+  Value rhs = op.getRhs();
+  chlo::RaggedDotDimensionNumbersAttr raggedDotDimensionNumbers =
+      op.getRaggedDotDimensionNumbers();
+  ArrayRef<int64_t> lhsBatchingDimensions =
+      raggedDotDimensionNumbers.getLhsBatchingDimensions();
+  ArrayRef<int64_t> lhsContractingDimensions =
+      raggedDotDimensionNumbers.getLhsContractingDimensions();
+  int64_t rhsGroupDimension =
+      raggedDotDimensionNumbers.getRhsGroupDimensions()[0];
+
+  auto groupSizes = op.getGroupSizes();
+  auto precisionConfig = op.getPrecisionConfig();
+  if (precisionConfig.has_value()) {
+    precisionConfig = convertPrecisionConfig(precisionConfig.value(), rewriter);
+  }
+  RankedTensorType lhsTy = cast<RankedTensorType>(lhs.getType());
+  RankedTensorType rhsTy = cast<RankedTensorType>(rhs.getType());
+  int64_t lhsRank = lhsTy.getRank();
+  int64_t rhsRank = rhsTy.getRank();
+  auto outDType = op.getResult().getType().getElementType();
+
+  int64_t m = lhsTy.getShape()[lhsTy.getRank() - 2];
+  int64_t k = lhsTy.getShape()[lhsTy.getRank() - 1];
+  int64_t g = rhsTy.getShape()[0];
+  int64_t n = rhsTy.getShape()[rhsTy.getRank() - 1];
+
+  std::vector<int64_t> outDims = {m, n};
+  std::vector<int64_t> iotaShape = {m, 1};
+  auto iotaDim = 0;
+  std::vector<int64_t> rhsBatchingDims = {};
+  std::vector<int64_t> rhsContractingDims = {0};
+  std::vector<int64_t> rhsReshapedSliceShape = {k, n};
+
+  // If LHS has batching dimension, then decompose ragged dot based on shape
+  // [b, m, k], otherwise assume shape with no batch [m, k].
+  if (lhsRank == 3) {
+    int64_t b = lhsTy.getShape()[0];
+    outDims = {b, m, n};
+    iotaShape = {1, m, 1};
+    iotaDim = 1;
+    rhsBatchingDims = {0};
+    rhsContractingDims = {1};
+    rhsReshapedSliceShape = {b, k, n};
+  }
+
+  // result_iota = iota of shape [m, 1] or [1, m, 1]
+  Value resultIota = rewriter.create<mlir::stablehlo::IotaOp>(
+      op.getLoc(), RankedTensorType::get(iotaShape, rewriter.getI64Type()),
+      /*dimension=*/iotaDim);
+  Value start = rewriter.create<mlir::stablehlo::ConstantOp>(
+      op.getLoc(),
+      rewriter.getZeroAttr(RankedTensorType::get({1}, rewriter.getI64Type())));
+
+  std::vector<int64_t> broadcastDimensions(lhsRank);
+  std::iota(broadcastDimensions.begin(), broadcastDimensions.end(), 0);
+
+  Value out = rewriter.create<mlir::stablehlo::ConstantOp>(
+      op.getLoc(),
+      rewriter.getZeroAttr(RankedTensorType::get(outDims, outDType)));
+
+  Value outZeros = rewriter.create<mlir::stablehlo::ConstantOp>(
+      op.getLoc(),
+      rewriter.getZeroAttr(RankedTensorType::get(outDims, outDType)));
+  for (auto i = 0; i < g; ++i) {
+    // groupSize = group_sizes[i]
+    Value groupSize = rewriter.create<mlir::stablehlo::SliceOp>(
+        op.getLoc(), RankedTensorType::get({1}, rewriter.getI64Type()),
+        groupSizes,
+        /*startIndices=*/rewriter.getDenseI64ArrayAttr({i}),
+        /*limitIndices=*/rewriter.getDenseI64ArrayAttr({i + 1}),
+        /*strides=*/rewriter.getDenseI64ArrayAttr({1}));
+
+    Value startBroadcasted = rewriter.create<mlir::stablehlo::BroadcastInDimOp>(
+        op.getLoc(), resultIota.getType(), start,
+        /*broadcast_dimensions=*/
+        rewriter.getDenseI64ArrayAttr(0));
+
+    // start <= result_iota
+    Value startLEResultIota = rewriter.create<mlir::stablehlo::CompareOp>(
+        op.getLoc(), startBroadcasted, resultIota, ComparisonDirection::LE);
+
+    // result_iota < (start + size)
+    Value resultIotaLTStartPlusGroupSize =
+        rewriter.create<mlir::stablehlo::CompareOp>(
+            op.getLoc(), resultIota,
+            rewriter.create<mlir::stablehlo::BroadcastInDimOp>(
+                op.getLoc(), resultIota.getType(),
+                rewriter.create<mlir::stablehlo::AddOp>(op.getLoc(), start,
+                                                        groupSize),
+                /*broadcast_dimensions=*/rewriter.getDenseI64ArrayAttr(0)),
+            ComparisonDirection::LT);
+
+    // (start <= result_iota) & (result_iota < (start + size))
+    Value logicalAnd = rewriter.create<mlir::stablehlo::AndOp>(
+        op.getLoc(), startLEResultIota, resultIotaLTStartPlusGroupSize);
+    Value logicalAndBroadcasted =
+        rewriter.create<mlir::stablehlo::BroadcastInDimOp>(
+            op.getLoc(),
+            RankedTensorType::get(op.getResult().getType().getShape(),
+                                  rewriter.getI1Type()),
+            logicalAnd,
+            /*broadcast_dimensions=*/
+            rewriter.getDenseI64ArrayAttr(broadcastDimensions));
+
+    // rhs_rehaped_slice = rhs[i, :, :, :]
+    std::vector<int64_t> rhs_start_indices(rhsTy.getRank(), 0);
+    rhs_start_indices[rhsGroupDimension] = i;
+    std::vector<int64_t> rhs_limit_indices = rhsTy.getShape();
+    rhs_limit_indices[rhsGroupDimension] = i + 1;
+    Value rhsSliced = rewriter.create<mlir::stablehlo::SliceOp>(
+        op.getLoc(), rhs,
+        /*startIndices=*/rewriter.getDenseI64ArrayAttr(rhs_start_indices),
+        /*limitIndices=*/rewriter.getDenseI64ArrayAttr(rhs_limit_indices),
+        /*strides=*/
+        rewriter.getDenseI64ArrayAttr(std::vector<int64_t>(rhsRank, 1)));
+    Value rhsReshapedSlice = rewriter.create<mlir::stablehlo::ReshapeOp>(
+        op.getLoc(),
+        RankedTensorType::get(rhsReshapedSliceShape, rhsTy.getElementType()),
+        rhsSliced);
+
+    // Einsum of (b)mk,(b)kn->(b)mn
+    Value dotGeneral = rewriter.create<mlir::stablehlo::DotGeneralOp>(
+        op.getLoc(), TypeRange{out.getType()},
+        ValueRange{lhs, rhsReshapedSlice},
+        ArrayRef<mlir::NamedAttribute>{
+            rewriter.getNamedAttr(
+                "dot_dimension_numbers",
+                rewriter.getAttr<mlir::stablehlo::DotDimensionNumbersAttr>(
+                    /*lhs_batching_dimensions=*/lhsBatchingDimensions,
+                    /*rhs_batching_dimensions=*/rhsBatchingDims,
+                    /*lhs_contracting_dimensions=*/lhsContractingDimensions,
+                    /*rhs_contracting_dimensions=*/rhsContractingDims)),
+            rewriter.getNamedAttr("precision_config",
+                                  precisionConfig.value())});
+
+    // Place the i'th dot_general to the corresponding position in the result.
+    Value select = rewriter.create<mlir::stablehlo::SelectOp>(
+        op.getLoc(), logicalAndBroadcasted, dotGeneral, outZeros);
+    out = rewriter.create<mlir::stablehlo::AddOp>(op.getLoc(), out, select);
+    start =
+        rewriter.create<mlir::stablehlo::AddOp>(op.getLoc(), start, groupSize);
+  }
+  rewriter.replaceOp(op, {out});
+  return success();
+}
+
+// Mode 2, where the ragged dimension is an lhs/rhs contracting dim (k).
+//   lhs : [b, m, k]
+//   rhs : [b, k, n]
+//   group_sizes : [g]
+//   result : [g, b, m, n]
+LogicalResult handleRaggedDotMode2(mlir::chlo::RaggedDotOp op,
+                                   ConversionPatternRewriter &rewriter) {
+  return failure();
+}
+
+// Mode 3, where the ragged dimension is an lhs/rhs batch dim (b).
+//   lhs : [b, m, k]
+//   rhs : [b, k, n]
+//   group_sizes : [g]
+//   result : [b, m, n]
+LogicalResult handleRaggedDotMode3(mlir::chlo::RaggedDotOp op,
+                                   ConversionPatternRewriter &rewriter) {
+  return failure();
+}
+
+}  // namespace
+
+struct ConvertRaggedDotOp final : OpConversionPattern<mlir::chlo::RaggedDotOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  // RaggedDot has three general modes, based on the kind of the ragged
+  // dimension.
+  LogicalResult matchAndRewrite(
+      mlir::chlo::RaggedDotOp op, OpAdaptor,
+      ConversionPatternRewriter &rewriter) const override {
+    if (op.getLhs().getType().getRank() < op.getRhs().getType().getRank()) {
+      return handleRaggedDotMode1(op, rewriter);
+    } else if (op.getLhs().getType().getRank() <
+               op.getResult().getType().getRank()) {
+      return handleRaggedDotMode2(op, rewriter);
+    } else {
+      return handleRaggedDotMode3(op, rewriter);
+    }
+  }
+};
+
 struct ConvertSinhOp final : OpConversionPattern<mlir::chlo::SinhOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -2193,10 +2420,12 @@ static void populateChloBroadcastingPatterns(MLIRContext *context,
 static void populateChloDecompositionPatterns(MLIRContext *context,
                                               RewritePatternSet *patterns) {
   populateWithGenerated(*patterns);
-  patterns->add<ConvertConstantOp, ConvertBesselI1eOp, ConvertCoshOp,
-                ConvertDigammaOp, ConvertErfOp, ConvertErfcOp, ConvertErfInvOp,
-                ConvertLgammaOp, ConvertNextAfterOp, ConvertPolygammaOp,
-                ConvertSinhOp, ConvertTopKOp, ConvertZetaOp>(context);
+  patterns
+      ->add<ConvertConstantOp, ConvertBesselI1eOp, ConvertCoshOp,
+            ConvertDigammaOp, ConvertErfOp, ConvertErfcOp, ConvertErfInvOp,
+            ConvertLgammaOp, ConvertNextAfterOp, ConvertPolygammaOp,
+            ConvertRaggedDotOp, ConvertSinhOp, ConvertTopKOp, ConvertZetaOp>(
+          context);
 }
 }  // namespace
 

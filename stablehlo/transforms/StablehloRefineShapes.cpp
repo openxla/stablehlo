@@ -111,6 +111,10 @@ LogicalResult refineValues(PatternRewriter& rewriter, Operation* op,
       // verification of the op.
       if (isa<chlo::ChloDialect, StablehloDialect>(user->getDialect()))
         continue;
+      // TODO(bartchr): Consider if the dialect allow-listing approach is too
+      // strict. In the meantime, allow some shape interop with the shardy
+      // dialect.
+      if (user->getDialect()->getNamespace() == "sdy") continue;
 
       // Simply changing operand type of `func.return` won't work because
       // that won't update the FunctionType of the enclosing `func.func`.

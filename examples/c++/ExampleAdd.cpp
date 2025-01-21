@@ -49,7 +49,7 @@ int main() {
   /** create function **/
   // create function argument and result types.
   auto tensorType =
-      mlir::RankedTensorType::get({3, 4}, mlir::FloatType::getF32(&context));
+      mlir::RankedTensorType::get({3, 4}, mlir::Float32Type::get(&context));
   auto func_type =
       mlir::FunctionType::get(&context, {tensorType, tensorType}, {tensorType});
 
