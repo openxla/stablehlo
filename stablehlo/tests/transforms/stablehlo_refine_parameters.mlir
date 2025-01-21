@@ -36,7 +36,7 @@ func.func @refine_params(%arg0: tensor<f32>, %arg1: tensor<1xf32>, %arg2: tensor
 
 // -----
 
-// expected-error @+1 {{number of refinements must match number of function operands 6 vs 1}}
+// expected-error @+1 {{number of refinements must match number of op operands 6 vs 1}}
 func.func @refine_arguments_invalid_arg_num_mismatch(%arg0: tensor<f32>) {
   return
 }

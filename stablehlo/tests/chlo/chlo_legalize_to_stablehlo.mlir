@@ -3927,3 +3927,68 @@ func.func @square_f32(%arg : tensor<f32>) -> tensor<f32> {
   %result = "chlo.square"(%arg) : (tensor<f32>) -> tensor<f32>
   func.return %result : tensor<f32>
 }
+
+// -----
+
+// CHECK-LABEL: @ragged_dot_mode_1
+// CHECK-SAME:  (%[[ARG_0:.*]]: tensor<2x11x5xf32>, %[[ARG_1:.*]]: tensor<3x2x5x7xf32>, %[[ARG_2:.*]]: tensor<3xi64>) -> tensor<2x11x7xf32> {
+// CHECK: %[[VAL_0:.*]] = stablehlo.iota dim = 1 : tensor<1x11x1xi64>
+// CHECK: %[[VAL_C:.*]] = stablehlo.constant dense<0> : tensor<1xi64>
+// CHECK: %[[VAL_CST:.*]] = stablehlo.constant dense<0.000000e+00> : tensor<2x11x7xf32>
+// CHECK: %[[VAL_CST_0:.*]] = stablehlo.constant dense<0.000000e+00> : tensor<2x11x7xf32>
+// CHECK: %[[VAL_1:.*]] = stablehlo.slice %[[ARG_2]] [0:1] : (tensor<3xi64>) -> tensor<1xi64>
+// CHECK: %[[VAL_2:.*]] = stablehlo.broadcast_in_dim %[[VAL_C]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK: %[[VAL_3:.*]] = stablehlo.compare  LE, %[[VAL_2]], %[[VAL_0]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK: %[[VAL_4:.*]] = stablehlo.add %[[VAL_C]], %[[VAL_1]] : tensor<1xi64>
+// CHECK: %[[VAL_5:.*]] = stablehlo.broadcast_in_dim %[[VAL_4]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK: %[[VAL_6:.*]] = stablehlo.compare  LT, %[[VAL_0]], %[[VAL_5]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK: %[[VAL_7:.*]] = stablehlo.and %[[VAL_3]], %[[VAL_6]] : tensor<1x11x1xi1>
+// CHECK: %[[VAL_8:.*]] = stablehlo.broadcast_in_dim %[[VAL_7]], dims = [0, 1, 2] : (tensor<1x11x1xi1>) -> tensor<2x11x7xi1>
+// CHECK: %[[VAL_9:.*]] = stablehlo.slice %[[ARG_1]] [0:1, 0:2, 0:5, 0:7] : (tensor<3x2x5x7xf32>) -> tensor<1x2x5x7xf32>
+// CHECK: %[[VAL_10:.*]] = stablehlo.reshape %[[VAL_9]] : (tensor<1x2x5x7xf32>) -> tensor<2x5x7xf32>
+// CHECK: %[[VAL_11:.*]] = stablehlo.dot_general %[[ARG_0]], %[[VAL_10]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x11x5xf32>, tensor<2x5x7xf32>) -> tensor<2x11x7xf32>
+// CHECK: %[[VAL_12:.*]] = stablehlo.select %[[VAL_8]], %[[VAL_11]], %[[VAL_CST_0]] : tensor<2x11x7xi1>, tensor<2x11x7xf32>
+// CHECK: %[[VAL_13:.*]] = stablehlo.add %[[VAL_CST]], %[[VAL_12]] : tensor<2x11x7xf32>
+// CHECK: %[[VAL_14:.*]] = stablehlo.add %[[VAL_C]], %[[VAL_1]] : tensor<1xi64>
+// CHECK: %[[VAL_15:.*]] = stablehlo.slice %[[ARG_2]] [1:2] : (tensor<3xi64>) -> tensor<1xi64>
+// CHECK: %[[VAL_16:.*]] = stablehlo.broadcast_in_dim %[[VAL_14]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK: %[[VAL_17:.*]] = stablehlo.compare  LE, %[[VAL_16]], %[[VAL_0]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK: %[[VAL_18:.*]] = stablehlo.add %[[VAL_14]], %[[VAL_15]] : tensor<1xi64>
+// CHECK: %[[VAL_19:.*]] = stablehlo.broadcast_in_dim %[[VAL_18]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK: %[[VAL_20:.*]] = stablehlo.compare  LT, %[[VAL_0]], %[[VAL_19]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK: %[[VAL_21:.*]] = stablehlo.and %[[VAL_17]], %[[VAL_20]] : tensor<1x11x1xi1>
+// CHECK: %[[VAL_22:.*]] = stablehlo.broadcast_in_dim %[[VAL_21]], dims = [0, 1, 2] : (tensor<1x11x1xi1>) -> tensor<2x11x7xi1>
+// CHECK: %[[VAL_23:.*]] = stablehlo.slice %[[ARG_1]] [1:2, 0:2, 0:5, 0:7] : (tensor<3x2x5x7xf32>) -> tensor<1x2x5x7xf32>
+// CHECK: %[[VAL_24:.*]] = stablehlo.reshape %[[VAL_23]] : (tensor<1x2x5x7xf32>) -> tensor<2x5x7xf32>
+// CHECK: %[[VAL_25:.*]] = stablehlo.dot_general %[[ARG_0]], %[[VAL_24]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x11x5xf32>, tensor<2x5x7xf32>) -> tensor<2x11x7xf32>
+// CHECK: %[[VAL_26:.*]] = stablehlo.select %[[VAL_22]], %[[VAL_25]], %[[VAL_CST_0]] : tensor<2x11x7xi1>, tensor<2x11x7xf32>
+// CHECK: %[[VAL_27:.*]] = stablehlo.add %[[VAL_13]], %[[VAL_26]] : tensor<2x11x7xf32>
+// CHECK: %[[VAL_28:.*]] = stablehlo.add %[[VAL_14]], %[[VAL_15]] : tensor<1xi64>
+// CHECK: %[[VAL_29:.*]] = stablehlo.slice %[[ARG_2]] [2:3] : (tensor<3xi64>) -> tensor<1xi64>
+// CHECK: %[[VAL_30:.*]] = stablehlo.broadcast_in_dim %[[VAL_28]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK: %[[VAL_31:.*]] = stablehlo.compare  LE, %[[VAL_30]], %[[VAL_0]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK: %[[VAL_32:.*]] = stablehlo.add %[[VAL_28]], %[[VAL_29]] : tensor<1xi64>
+// CHECK: %[[VAL_33:.*]] = stablehlo.broadcast_in_dim %[[VAL_32]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK: %[[VAL_34:.*]] = stablehlo.compare  LT, %[[VAL_0]], %[[VAL_33]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK: %[[VAL_35:.*]] = stablehlo.and %[[VAL_31]], %[[VAL_34]] : tensor<1x11x1xi1>
+// CHECK: %[[VAL_36:.*]] = stablehlo.broadcast_in_dim %[[VAL_35]], dims = [0, 1, 2] : (tensor<1x11x1xi1>) -> tensor<2x11x7xi1>
+// CHECK: %[[VAL_37:.*]] = stablehlo.slice %[[ARG_1]] [2:3, 0:2, 0:5, 0:7] : (tensor<3x2x5x7xf32>) -> tensor<1x2x5x7xf32>
+// CHECK: %[[VAL_38:.*]] = stablehlo.reshape %[[VAL_37]] : (tensor<1x2x5x7xf32>) -> tensor<2x5x7xf32>
+// CHECK: %[[VAL_39:.*]] = stablehlo.dot_general %[[ARG_0]], %[[VAL_38]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x11x5xf32>, tensor<2x5x7xf32>) -> tensor<2x11x7xf32>
+// CHECK: %[[VAL_40:.*]] = stablehlo.select %[[VAL_36]], %[[VAL_39]], %[[VAL_CST_0]] : tensor<2x11x7xi1>, tensor<2x11x7xf32>
+// CHECK: %[[VAL_41:.*]] = stablehlo.add %[[VAL_27]], %[[VAL_40]] : tensor<2x11x7xf32>
+// CHECK: %[[VAL_42:.*]] = stablehlo.add %[[VAL_28]], %[[VAL_29]] : tensor<1xi64>
+func.func @ragged_dot_mode_1(%lhs : tensor<2x11x5xf32>, %rhs : tensor<3x2x5x7xf32>, %group_sizes : tensor<3xi64>) -> tensor<2x11x7xf32> {
+  %0 = "chlo.ragged_dot"(%lhs, %rhs, %group_sizes) {
+    ragged_dot_dimension_numbers = #chlo.ragged_dot<
+      lhs_batching_dimensions = [0],
+      rhs_batching_dimensions = [1],
+      lhs_contracting_dimensions = [2],
+      rhs_contracting_dimensions = [2],
+      lhs_ragged_dimensions = [1],
+      rhs_group_dimensions = [0]
+    >,
+    precision_config = [#chlo<precision DEFAULT>, #chlo<precision DEFAULT>]
+  } : (tensor<2x11x5xf32>, tensor<3x2x5x7xf32>, tensor<3xi64>) -> tensor<2x11x7xf32>
+  func.return %0 : tensor<2x11x7xf32>
+}

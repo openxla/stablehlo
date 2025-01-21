@@ -16,18 +16,37 @@ limitations under the License.
 #ifndef STABLEHLO_TRANSFORMS_STABLEHLO_REFINE_SHAPES_H
 #define STABLEHLO_TRANSFORMS_STABLEHLO_REFINE_SHAPES_H
 
+#include <cstdint>
+
+#include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/TypeRange.h"
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
+#include "mlir/IR/ValueRange.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
 
 namespace mlir {
 namespace stablehlo {
+
+// Emits an error message for invalid refinement.
+LogicalResult refinementError(Operation* op, int64_t idx, Type argType,
+                              Type refinedType, StringRef msg);
+
+// Validates refinement types:
+//   - A type refinement must be specified for each operand
+//   - Refinement types that match operand types are skipped
+//   - Refinement types that do not match operands must be refining tensors
+//   - Refined tensor types must be ranked, operand type can be unranked
+//   - Refined tensor types must match operand type for all static dimensions
+LogicalResult validateRefinedTypes(Operation* op, TypeRange argTypes,
+                                   TypeRange refinedTypes);
 
 // Gets a FuncOp that --stablehlo-refine-shapes will run on.
 // Returns a nullptr and emits appropriate errors if such a function cannot
