@@ -98,21 +98,6 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
   if (!vhloValue.has_value()) return {};                             \
   return vhlo::Name##Version##Attr::get(attr.getContext(), vhloValue.value())
 
-FailureOr<vhlo::ResultAccuracyModeV1> convertResultAccuracyMode(
-    stablehlo::ResultAccuracyMode mode) {
-  switch (mode) {
-    case stablehlo::ResultAccuracyMode::DEFAULT:
-      return vhlo::ResultAccuracyModeV1::DEFAULT;
-    case stablehlo::ResultAccuracyMode::HIGHEST:
-      return vhlo::ResultAccuracyModeV1::HIGHEST;
-    case stablehlo::ResultAccuracyMode::TOLERANCE:
-      return vhlo::ResultAccuracyModeV1::TOLERANCE;
-    default:
-      llvm::report_fatal_error("Unknown ResultAccuracyModeV1");
-      return failure();
-  }
-}
-
 Attribute convertGeneric(Attribute stablehloAttr,
                          const TypeConverter* typeConverter) {
   LLVM_DEBUG(llvm::dbgs() << "Convert generic: " << stablehloAttr << '\n');
@@ -146,11 +131,12 @@ Attribute convertGeneric(Attribute stablehloAttr,
   if (auto attr = dyn_cast<stablehlo::TransposeAttr>(stablehloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
   }
+  if (auto attr = dyn_cast<stablehlo::ResultAccuracyModeAttr>(stablehloAttr)) {
+    RETURN_CONVERTED_ENUM_ATTR(ResultAccuracyMode, V1);
+  }
   if (auto attr = dyn_cast<stablehlo::ResultAccuracyAttr>(stablehloAttr)) {
-    auto mode = convertResultAccuracyMode(attr.getMode().getValue());
-    if (failed(mode)) return {};
-    auto modeAttr = vhlo::ResultAccuracyModeV1Attr::get(
-      attr.getContext(), mode.value());
+    auto modeAttr = convertGeneric(attr.getMode(), typeConverter);
+    if (!modeAttr) return {};
     return vhlo::ResultAccuracyV1Attr::get(
         attr.getContext(), attr.getAtol(), attr.getRtol(), attr.getUlps(),
         modeAttr);

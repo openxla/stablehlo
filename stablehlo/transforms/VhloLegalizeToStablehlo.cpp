@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/Support/AllocatorBase.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -38,9 +39,6 @@ limitations under the License.
 #include "stablehlo/dialect/VhloTypes.h"
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/transforms/Passes.h"
-#include "stablehlo/dialect/VhloOps.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "third_party/stablehlo/stablehlo/dialect/StablehloOps.h"
 
 #define DEBUG_TYPE "compat-passes"
 
@@ -88,21 +86,6 @@ class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
   auto stablehloValue = stablehlo::symbolize##Name(vhloValue);      \
   if (!stablehloValue.has_value()) return {};                       \
   return stablehlo::Name##Attr::get(attr.getContext(), stablehloValue.value())
-
-FailureOr<stablehlo::ResultAccuracyMode> convertResultAccuracyMode(
-    vhlo::ResultAccuracyModeV1 mode) {
-  switch (mode) {
-    case vhlo::ResultAccuracyModeV1::DEFAULT:
-      return stablehlo::ResultAccuracyMode::DEFAULT;
-    case vhlo::ResultAccuracyModeV1::HIGHEST:
-      return stablehlo::ResultAccuracyMode::HIGHEST;
-    case vhlo::ResultAccuracyModeV1::TOLERANCE:
-      return stablehlo::ResultAccuracyMode::TOLERANCE;
-    default:
-      llvm::report_fatal_error("Unknown ResultAccuracyModeV1");
-      return failure();
-  }
-}
 
 Attribute convertGeneric(Attribute vhloAttr,
                          const TypeConverter* typeConverter) {
@@ -187,12 +170,13 @@ Attribute convertGeneric(Attribute vhloAttr,
     if (!builtinType) return {};
     return TypeAttr::get(builtinType);
   }
+  if (auto attr = dyn_cast<vhlo::ResultAccuracyModeV1Attr>(vhloAttr)) {
+      RETURN_CONVERTED_ENUM_ATTR(ResultAccuracyMode, V1);
+  }
   if (auto attr = dyn_cast<vhlo::ResultAccuracyV1Attr>(vhloAttr)) {
-    auto mode = convertResultAccuracyMode(
-        dyn_cast<vhlo::ResultAccuracyModeV1Attr>(attr.getMode()).getValue());
-    if (failed(mode)) return {};
-    auto modeAttr = stablehlo::ResultAccuracyModeAttr::get(
-        attr.getContext(), mode.value());
+    auto modeAttr = dyn_cast_or_null<stablehlo::ResultAccuracyModeAttr>(
+        convertGeneric(attr.getMode(), typeConverter));
+    if (!modeAttr) return {};
     return stablehlo::ResultAccuracyAttr::get(
         attr.getContext(), attr.getAtol(), attr.getRtol(), attr.getUlps(),
         modeAttr);
