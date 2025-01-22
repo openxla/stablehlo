@@ -171,15 +171,15 @@ Attribute convertGeneric(Attribute vhloAttr,
     return TypeAttr::get(builtinType);
   }
   if (auto attr = dyn_cast<vhlo::ResultAccuracyModeV1Attr>(vhloAttr)) {
-      RETURN_CONVERTED_ENUM_ATTR(ResultAccuracyMode, V1);
+    RETURN_CONVERTED_ENUM_ATTR(ResultAccuracyMode, V1);
   }
   if (auto attr = dyn_cast<vhlo::ResultAccuracyV1Attr>(vhloAttr)) {
     auto modeAttr = dyn_cast_or_null<stablehlo::ResultAccuracyModeAttr>(
         convertGeneric(attr.getMode(), typeConverter));
     if (!modeAttr) return {};
-    return stablehlo::ResultAccuracyAttr::get(
-        attr.getContext(), attr.getAtol(), attr.getRtol(), attr.getUlps(),
-        modeAttr);
+    return stablehlo::ResultAccuracyAttr::get(attr.getContext(), attr.getAtol(),
+                                              attr.getRtol(), attr.getUlps(),
+                                              modeAttr);
   }
 
   // All VHLO Attributes must be converted by now.

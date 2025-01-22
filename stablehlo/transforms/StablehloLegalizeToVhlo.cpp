@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
@@ -35,7 +36,6 @@ limitations under the License.
 #include "stablehlo/dialect/VhloTypes.h"
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/transforms/Passes.h"
-#include "llvm/Support/ErrorHandling.h"
 
 #define DEBUG_TYPE "compat-passes"
 
@@ -137,9 +137,9 @@ Attribute convertGeneric(Attribute stablehloAttr,
   if (auto attr = dyn_cast<stablehlo::ResultAccuracyAttr>(stablehloAttr)) {
     auto modeAttr = convertGeneric(attr.getMode(), typeConverter);
     if (!modeAttr) return {};
-    return vhlo::ResultAccuracyV1Attr::get(
-        attr.getContext(), attr.getAtol(), attr.getRtol(), attr.getUlps(),
-        modeAttr);
+    return vhlo::ResultAccuracyV1Attr::get(attr.getContext(), attr.getAtol(),
+                                           attr.getRtol(), attr.getUlps(),
+                                           modeAttr);
   }
   if (stablehloAttr.getDialect().getNamespace() ==
       stablehlo::StablehloDialect::getDialectNamespace()) {

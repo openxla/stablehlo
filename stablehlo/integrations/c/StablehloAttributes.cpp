@@ -755,4 +755,3 @@ MlirStringRef stablehloResultAccuracyAttrGetValue(MlirAttribute attr) {
   return wrap(
       mlir::stablehlo::stringifyResultAccuracyMode(modeAttr.getValue()));
 }
-

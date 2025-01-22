@@ -600,8 +600,7 @@ LogicalResult verifyWhileOp(std::optional<Location> location,
 
 LogicalResult verifyResultAccuracyCombination(
     ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
-    APFloat rtol, int64_t ulps,
-    StringRef mode);
+    APFloat rtol, int64_t ulps, StringRef mode);
 
 LogicalResult verifyResultAccuracyAttr(
     ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
