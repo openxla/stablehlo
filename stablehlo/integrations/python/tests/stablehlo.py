@@ -386,3 +386,21 @@ def test_register_passes():
     cloned_module = module.operation.clone()
     pipeline.run(cloned_module.operation)
     assert str(module) == str(cloned_module)
+
+
+@run
+def test_result_accuracy_attr_default():
+  attr = stablehlo.ResultAccuracyAttr.get("DEFAULT")
+  assert attr is not None
+  assert attr.value == "DEFAULT"
+
+@run
+def test_result_accuracy_attr_tolerance():
+  attr = stablehlo.ResultAccuracyAttr.get("TOLERANCE", atol=1e-5, rtol=0,
+                                          ulps=2)
+  assert attr is not None
+  assert attr.value == "TOLERANCE"
+  assert attr.atol == 1e-5
+  assert attr.rtol == 0
+  assert attr.ulps == 2
+

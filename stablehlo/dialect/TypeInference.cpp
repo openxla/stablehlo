@@ -5057,5 +5057,31 @@ LogicalResult verifyWhileOp(std::optional<Location> location,
   return success();
 }
 
+LogicalResult verifyResultAccuracyCombination(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
+    APFloat rtol, int64_t ulps,
+    StringRef mode) {
+  if (mode == "DEFAULT" || mode == "HIGHEST") {
+    bool all_zero = atol.isZero() && rtol.isZero() && ulps == 0;
+    if (!all_zero) {
+      return emitError()
+             << "Invalid tolerances for ResultAccuracyAttr with mode " << mode
+             << ", must be all zero.";
+    }
+  }
+  return success();
+}
+
+LogicalResult verifyResultAccuracyAttr(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
+    APFloat rtol, int64_t ulps, StringRef mode) {
+  if (atol.isNegative() || rtol.isNegative() || ulps < 0)
+    return emitError() << "Negative tolerance";
+  if (failed(
+          verifyResultAccuracyCombination(emitError, atol, rtol, ulps, mode)))
+    return failure();
+  return success();
+}
+
 }  // end namespace hlo
 }  // end namespace mlir

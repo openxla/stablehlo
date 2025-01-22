@@ -378,6 +378,65 @@ ParseResult parseDotDimensionNumbers(AsmParser& parser, AttrTy& target) {
   return success();
 }
 
+// ResultAccuracyAttr - Custom printing and parsing for ResultAccuracyAttr.
+//
+// ResultAccuractAttr ::= `<` OptAtolAccuracy OptRtolAccuracy
+//                            OptUlpAccuracy  ModeAccuracy `>`
+// OptAtolAccuracy ::= `atol` `=` APFloat `, ` | eps
+// OptRtolAccuracy ::= `rtol` `=` APFloat `, ` | eps
+// OptUlpAccuracy  ::= `ulps` `=` int64_t `, ` | eps
+// ModeAccuracy    ::= `mode` `=` ResultAccuracyModeAttr
+void printResultAccuracyAttr(AsmPrinter& odsPrinter, APFloat atol, APFloat rtol,
+                             int64_t ulps, Attribute mode);
+
+template <typename AttrTy, typename ModeTy>
+Attribute parseResultAccuracyAttr(AsmParser& parser, Type type) {
+  APFloat resultAtol = APFloat::getZero(APFloat::IEEEdouble());
+  APFloat resultRtol = APFloat::getZero(APFloat::IEEEdouble());
+  int64_t resultUlps = 0;
+
+  // Parse literal '<'
+  if (parser.parseLess()) return {};
+
+  // OptAtolAccuracy
+  if (succeeded(parser.parseOptionalKeyword("atol"))) {
+    double value;
+    if (parser.parseEqual() || parser.parseFloat(value) || parser.parseComma())
+      return {};
+    resultAtol = APFloat(value);
+  }
+
+  // OptRtolAccuracy
+  if (succeeded(parser.parseOptionalKeyword("rtol"))) {
+    double value;
+    if (parser.parseEqual() || parser.parseFloat(value) || parser.parseComma())
+      return {};
+    resultRtol = APFloat(value);
+  }
+
+  // OptUlpAccuracy
+  if (succeeded(parser.parseOptionalKeyword("ulps"))) {
+    int64_t value;
+    if (parser.parseEqual() || parser.parseInteger(value) ||
+        parser.parseComma())
+      return {};
+    resultUlps = value;
+  }
+
+  // ModeAccuracy
+  ModeTy modeAttr;
+  if (parser.parseKeyword("mode") || parser.parseEqual() ||
+      parser.parseAttribute(modeAttr)) {
+    return {};
+  }
+
+  // Parse literal '>'
+  if (parser.parseGreater()) return {};
+  return parser.getChecked<AttrTy>(
+      parser.getCurrentLocation(), parser.getContext(), resultAtol, resultRtol,
+      resultUlps, modeAttr);
+}
+
 }  // namespace hlo
 }  // namespace mlir
 

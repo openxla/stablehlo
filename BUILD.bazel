@@ -1274,6 +1274,7 @@ cc_library(
     ],
     hdrs = [
         "stablehlo/dialect/StablehloBytecode.h",
+        
         "stablehlo/dialect/StablehloOps.h",
     ],
     strip_include_prefix = ".",
@@ -1547,7 +1548,7 @@ gentbl_cc_library(
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/dialect/VhloAttrs.td",
+    td_file = "stablehlo/dialect/VhloEnums.td",
     deps = [
         ":vhlo_ops_td_files",
     ],
