@@ -1486,7 +1486,7 @@ ResultAccuracyModeV1Attr VhloBytecodeInterface::readResultAccuracyModeV1Attr(
 }
 
 void VhloBytecodeInterface::write(ResultAccuracyModeV1Attr attr,
-                                       DialectBytecodeWriter &writer) const {
+                                  DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kResultAccuracyModeV1Attr);
   hlo::bytecode::writeEnumAttribute<ResultAccuracyModeV1>(attr, writer);
 }
@@ -1515,14 +1515,13 @@ ResultAccuracyV1Attr VhloBytecodeInterface::readResultAccuracyV1Attr(
 }
 
 void VhloBytecodeInterface::write(ResultAccuracyV1Attr attr,
-                                       DialectBytecodeWriter &writer) const {
+                                  DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kResultAccuracyV1Attr);
   writer.writeAPFloatWithKnownSemantics(attr.getAtol());
   writer.writeAPFloatWithKnownSemantics(attr.getRtol());
   writer.writeSignedVarInt(attr.getUlps());
   writer.writeAttribute(attr.getMode());
 }
-
 
 }  // namespace
 

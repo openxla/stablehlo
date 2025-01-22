@@ -330,8 +330,8 @@ bool isDefaultResultAccuracy(Attribute attr) {
   auto resultAccuracy = dyn_cast<ResultAccuracyV1Attr>(attr);
   auto default_mode = ResultAccuracyModeV1Attr::get(
       attr.getContext(), ResultAccuracyModeV1::DEFAULT);
-  return resultAccuracy.getAtol().isZero() && resultAccuracy.getRtol().isZero() &&
-         resultAccuracy.getUlps() == 0 &&
+  return resultAccuracy.getAtol().isZero() &&
+         resultAccuracy.getRtol().isZero() && resultAccuracy.getUlps() == 0 &&
          resultAccuracy.getMode() == default_mode;
 }
 
@@ -419,7 +419,7 @@ struct ExpOpV1ToV2 : public OpRewritePattern<ExpOpV1> {
     ResultAccuracyV1Attr defaultResultAccuracy = ResultAccuracyV1Attr::get(
         rewriter.getContext(), APFloat(0.0), APFloat(0.0), 0,
         ResultAccuracyModeV1Attr::get(rewriter.getContext(),
-                                       ResultAccuracyModeV1::DEFAULT));
+                                      ResultAccuracyModeV1::DEFAULT));
     rewriter.replaceOpWithNewOp<ExpOpV2>(
         op, op->getResultTypes(), op.getOperand(), defaultResultAccuracy);
     return success();
@@ -440,7 +440,7 @@ struct ExpOpV2ToV1 : public OpRewritePattern<ExpOpV2> {
                                          "non-default result accuracy attr");
     }
     rewriter.replaceOpWithNewOp<ExpOpV1>(op, op->getResultTypes(),
-                                                      op.getOperand());
+                                         op.getOperand());
     return success();
   }
 };

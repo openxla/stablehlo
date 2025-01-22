@@ -5059,8 +5059,7 @@ LogicalResult verifyWhileOp(std::optional<Location> location,
 
 LogicalResult verifyResultAccuracyCombination(
     ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
-    APFloat rtol, int64_t ulps,
-    StringRef mode) {
+    APFloat rtol, int64_t ulps, StringRef mode) {
   if (mode == "DEFAULT" || mode == "HIGHEST") {
     bool all_zero = atol.isZero() && rtol.isZero() && ulps == 0;
     if (!all_zero) {
