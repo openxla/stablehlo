@@ -26,6 +26,7 @@ limitations under the License.
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
 
@@ -596,6 +597,15 @@ LogicalResult verifyUniformQuantizeOp(std::optional<Location> location,
 
 LogicalResult verifyWhileOp(std::optional<Location> location,
                             ValueRange operand, Region& cond, Region& body);
+
+LogicalResult verifyResultAccuracyCombination(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
+    APFloat rtol, int64_t ulps,
+    StringRef mode);
+
+LogicalResult verifyResultAccuracyAttr(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
+    APFloat rtol, int64_t ulps, StringRef mode);
 }  // end namespace hlo
 }  // end namespace mlir
 

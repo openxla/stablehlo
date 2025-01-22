@@ -599,6 +599,49 @@ NB_MODULE(_stablehlo, m) {
                                        stablehloTypeExtensionsGetBoundsElem);
       });
 
+  mlir::python::nanobind_adaptors::mlir_attribute_subclass(
+      m, "ResultAccuracyAttr", stablehloAttributeIsAResultAccuracyAttr)
+      .def_classmethod(
+          "get",
+          [](nb::object cls, float atol, float rtol, int64_t ulps,
+             const std::string &value, MlirContext ctx) {
+            return cls(stablehloResultAccuracyAttrGet(
+                ctx, atol, rtol, ulps,
+                mlirStringRefCreate(value.c_str(), value.size())));
+          },
+          nb::arg("cls"), nb::arg("atol"), nb::arg("rtol"), nb::arg("ulps"),
+          nb::arg("value"), nb::arg("context") = nb::none(),
+          "Creates a ResultAccuracyAttr with the given values.")
+      .def_property_readonly("atol",
+                             [](MlirAttribute self) {
+                               return stablehloResultAccuracyAttrGetAtol(self);
+                             })
+      .def_property_readonly("rtol",
+                             [](MlirAttribute self) {
+                               return stablehloResultAccuracyAttrGetRtol(self);
+                             })
+      .def_property_readonly("ulps",
+                             [](MlirAttribute self) {
+                               return stablehloResultAccuracyAttrGetUlps(self);
+                             })
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(stablehloResultAccuracyAttrGetValue(self));
+      });
+
+  mlir::python::nanobind_adaptors::mlir_attribute_subclass(
+      m, "ResultAccuracyModeAttr", stablehloAttributeIsAResultAccuracyModeAttr)
+      .def_classmethod(
+          "get",
+          [](nb::object cls, const std::string &value, MlirContext ctx) {
+            return cls(stablehloResultAccuracyModeAttrGet(
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
+          },
+          nb::arg("cls"), nb::arg("value"), nb::arg("context") = nb::none(),
+          "Creates a ResultAccuracyModeAttr with the given values.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(stablehloResultAccuracyModeAttrGetValue(self));
+      });
+
   //
   // StableHLO APIs
   //
