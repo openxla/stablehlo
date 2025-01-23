@@ -2600,11 +2600,45 @@ struct SetDimensionSizeConverter final
   }
 };
 
-static void populateConversionPatterns(MLIRContext *context,
-                                       TypeConverter &typeConverter,
-                                       RewritePatternSet *patterns,
-                                       bool enablePrimitiveOps,
-                                       bool enableSparseOps) {
+struct StablehloLegalizeToLinalgPass
+    : impl::StablehloLegalizeToLinalgPassBase<StablehloLegalizeToLinalgPass> {
+  using StablehloLegalizeToLinalgPassBase::StablehloLegalizeToLinalgPassBase;
+
+  LogicalResult initialize(MLIRContext *context) override {
+    target = std::make_shared<ConversionTarget>(*context);
+    target->addLegalDialect<
+        bufferization::BufferizationDialect, arith::ArithDialect,
+        complex::ComplexDialect, linalg::LinalgDialect, math::MathDialect,
+        tensor::TensorDialect, sparse_tensor::SparseTensorDialect,
+        scf::SCFDialect, shape::ShapeDialect>();
+    target->addLegalOp<UnrealizedConversionCastOp>();
+
+    RewritePatternSet patterns_(context);
+    populateStablehloToLinalgConversionPatterns(
+        context, converter, &patterns_, enablePrimitiveOps, enableSparseOps);
+    patterns = std::move(patterns_);
+
+    return success();
+  }
+
+  void runOnOperation() override {
+    if (failed(applyPartialConversion(getOperation(), *target, patterns))) {
+      return signalPassFailure();
+    }
+  }
+
+ private:
+  std::shared_ptr<ConversionTarget> target;
+  FrozenRewritePatternSet patterns;
+  LinalgTypeConverter converter;
+};
+}  // namespace
+
+void populateStablehloToLinalgConversionPatterns(MLIRContext *context,
+                                                 TypeConverter &typeConverter,
+                                                 RewritePatternSet *patterns,
+                                                 bool enablePrimitiveOps,
+                                                 bool enableSparseOps) {
   // clang-format off
   patterns->add<ConcatenateConverter>(typeConverter, context,
                                       enablePrimitiveOps);
@@ -2670,37 +2704,4 @@ static void populateConversionPatterns(MLIRContext *context,
   linalg::populateEraseUnusedOperandsAndResultsPatterns(*patterns);
 }
 
-struct StablehloLegalizeToLinalgPass
-    : impl::StablehloLegalizeToLinalgPassBase<StablehloLegalizeToLinalgPass> {
-  using StablehloLegalizeToLinalgPassBase::StablehloLegalizeToLinalgPassBase;
-
-  LogicalResult initialize(MLIRContext *context) override {
-    target = std::make_shared<ConversionTarget>(*context);
-    target->addLegalDialect<
-        bufferization::BufferizationDialect, arith::ArithDialect,
-        complex::ComplexDialect, linalg::LinalgDialect, math::MathDialect,
-        tensor::TensorDialect, sparse_tensor::SparseTensorDialect,
-        scf::SCFDialect, shape::ShapeDialect>();
-    target->addLegalOp<UnrealizedConversionCastOp>();
-
-    RewritePatternSet patterns_(context);
-    populateConversionPatterns(context, converter, &patterns_,
-                               enablePrimitiveOps, enableSparseOps);
-    patterns = std::move(patterns_);
-
-    return success();
-  }
-
-  void runOnOperation() override {
-    if (failed(applyPartialConversion(getOperation(), *target, patterns))) {
-      return signalPassFailure();
-    }
-  }
-
- private:
-  std::shared_ptr<ConversionTarget> target;
-  FrozenRewritePatternSet patterns;
-  LinalgTypeConverter converter;
-};
-}  // namespace
 }  // namespace mlir::stablehlo
