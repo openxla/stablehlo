@@ -394,21 +394,24 @@ stablehloResultAccuracyModeAttrGetValue(MlirAttribute attr);
 // ResultAccuracyAttr
 //===----------------------------------------------------------------------===//
 
-MLIR_CAPI_EXPORTED MlirAttribute stablehloResultAccuracyAttrGet(
-    MlirContext ctx, float atol, float rtol, int64_t ulps, MlirStringRef value);
+MLIR_CAPI_EXPORTED MlirAttribute
+stablehloResultAccuracyAttrGet(MlirContext ctx, double atol, double rtol,
+                               int64_t ulps, MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool stablehloAttributeIsAResultAccuracyAttr(
     MlirAttribute attr);
 
-MLIR_CAPI_EXPORTED float stablehloResultAccuracyAttrGetAtol(MlirAttribute attr);
+MLIR_CAPI_EXPORTED double stablehloResultAccuracyAttrGetAtol(
+    MlirAttribute attr);
 
-MLIR_CAPI_EXPORTED float stablehloResultAccuracyAttrGetRtol(MlirAttribute attr);
+MLIR_CAPI_EXPORTED double stablehloResultAccuracyAttrGetRtol(
+    MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED int64_t
 stablehloResultAccuracyAttrGetUlps(MlirAttribute attr);
 
-MLIR_CAPI_EXPORTED MlirStringRef
-stablehloResultAccuracyAttrGetValue(MlirAttribute attr);
+MLIR_CAPI_EXPORTED MlirAttribute
+stablehloResultAccuracyAttrGetMode(MlirAttribute attr);
 
 #ifdef __cplusplus
 }
