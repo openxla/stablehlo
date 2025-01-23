@@ -1274,7 +1274,6 @@ cc_library(
     ],
     hdrs = [
         "stablehlo/dialect/StablehloBytecode.h",
-
         "stablehlo/dialect/StablehloOps.h",
     ],
     strip_include_prefix = ".",
