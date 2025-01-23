@@ -22,28 +22,15 @@ limitations under the License.
 namespace mlir::stablehlo {
 
 //===----------------------------------------------------------------------===//
-// General StableHLO/CHLO lowering patterns.
+// General StableHLO lowering patterns.
 //===----------------------------------------------------------------------===//
 
 /// Populates the patterns that convert from StableHLO to Linalg on tensors.
 void populateStablehloToLinalgConversionPatterns(MLIRContext *context,
                                                  TypeConverter &typeConverter,
                                                  RewritePatternSet *patterns,
-                                                 bool enablePrimitiveOps);
-
-/// Collection of rewrite patterns for lowering of CHLO ops to StableHLO and
-/// Shape ops.
-void populateLegalizeChloPatterns(MLIRContext *context,
-                                  RewritePatternSet *patterns);
-
-/// Collection of rewrite patterns for lowering of StableHLO ops to SCF control
-/// flow ops.
-void populateLegalizeControlFlowPatterns(MLIRContext *context,
-                                         RewritePatternSet *patterns);
-
-/// Collection of rewrite patterns for lowering of StableHLO dim operations.
-void populateLegalizeShapeComputationPatterns(MLIRContext *context,
-                                              RewritePatternSet *patterns);
+                                                 bool enablePrimitiveOps,
+                                                 bool enableSparseOps);
 
 //===----------------------------------------------------------------------===//
 // Fine-grained patterns used by the implementation.
