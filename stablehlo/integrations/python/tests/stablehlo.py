@@ -390,17 +390,20 @@ def test_register_passes():
 
 @run
 def test_result_accuracy_attr_default():
-  attr = stablehlo.ResultAccuracyAttr.get("DEFAULT")
+  attr = stablehlo.ResultAccuracyAttr.get(atol=0, rtol=0, ulps=0, mode="DEFAULT")
   assert attr is not None
-  assert attr.value == "DEFAULT"
+  assert attr.mode == "DEFAULT"
+  assert attr.atol == 0
+  assert attr.rtol == 0
+  assert attr.ulps == 0
 
 @run
 def test_result_accuracy_attr_tolerance():
-  attr = stablehlo.ResultAccuracyAttr.get("TOLERANCE", atol=1e-5, rtol=0,
-                                          ulps=2)
+  attr = stablehlo.ResultAccuracyAttr.get(atol=1e-5, rtol=1.0,
+                                          ulps=2, mode="TOLERANCE")
   assert attr is not None
-  assert attr.value == "TOLERANCE"
+  assert attr.mode == "TOLERANCE"
   assert attr.atol == 1e-5
-  assert attr.rtol == 0
+  assert attr.rtol == 1.0
   assert attr.ulps == 2
 

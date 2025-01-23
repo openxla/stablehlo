@@ -715,11 +715,11 @@ MlirStringRef stablehloResultAccuracyModeAttrGetValue(MlirAttribute attr) {
 // ResultAccuracyAttr
 //===----------------------------------------------------------------------===//
 
-MlirAttribute stablehloResultAccuracyAttrGet(MlirContext ctx, float atol,
-                                             float rtol, int64_t ulps,
-                                             MlirStringRef value) {
+MlirAttribute stablehloResultAccuracyAttrGet(MlirContext ctx, double atol,
+                                             double rtol, int64_t ulps,
+                                             MlirStringRef mode) {
   std::optional<mlir::stablehlo::ResultAccuracyMode> accuracyMode =
-      mlir::stablehlo::symbolizeResultAccuracyMode(unwrap(value));
+      mlir::stablehlo::symbolizeResultAccuracyMode(unwrap(mode));
   if (!accuracyMode) llvm::report_fatal_error("Invalid value.");
   mlir::stablehlo::ResultAccuracyModeAttr modeAttr =
       mlir::stablehlo::ResultAccuracyModeAttr::get(unwrap(ctx),
@@ -732,16 +732,16 @@ bool stablehloAttributeIsAResultAccuracyAttr(MlirAttribute attr) {
   return llvm::isa<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr));
 }
 
-float stablehloResultAccuracyAttrGetAtol(MlirAttribute attr) {
+double stablehloResultAccuracyAttrGetAtol(MlirAttribute attr) {
   llvm::APFloat result =
       llvm::cast<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr)).getAtol();
-  return result.convertToFloat();
+  return result.convertToDouble();
 }
 
-float stablehloResultAccuracyAttrGetRtol(MlirAttribute attr) {
+double stablehloResultAccuracyAttrGetRtol(MlirAttribute attr) {
   llvm::APFloat result =
       llvm::cast<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr)).getRtol();
-  return result.convertToFloat();
+  return result.convertToDouble();
 }
 
 int64_t stablehloResultAccuracyAttrGetUlps(MlirAttribute attr) {
@@ -749,9 +749,8 @@ int64_t stablehloResultAccuracyAttrGetUlps(MlirAttribute attr) {
       .getUlps();
 }
 
-MlirStringRef stablehloResultAccuracyAttrGetValue(MlirAttribute attr) {
+MlirAttribute stablehloResultAccuracyAttrGetMode(MlirAttribute attr) {
   mlir::stablehlo::ResultAccuracyModeAttr modeAttr =
       llvm::cast<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr)).getMode();
-  return wrap(
-      mlir::stablehlo::stringifyResultAccuracyMode(modeAttr.getValue()));
+  return wrap(modeAttr);
 }
