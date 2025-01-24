@@ -40,6 +40,11 @@ on Google's Cloud TPUs
 to deploy to mobile devices using [LiteRT](https://ai.google.dev/edge/litert)
   - [AI Edge Torch](https://github.com/google-ai-edge/ai-edge-torch) exports
   PyTorch models for mobile deployment via StableHLO <img align="center" src="https://img.shields.io/github/stars/google-ai-edge/ai-edge-torch?style=social">
+- [IREE](https://iree.dev/) uses StableHLO as an input format to deploy across
+  a range of devices and accelerators
+  <img align="center" src="https://img.shields.io/github/stars/iree-org/iree?style=social">
+  - IREE also includes a
+    [PJRT plugin](https://github.com/iree-org/iree/tree/main/integrations/pjrt)
 
 ## Tooling and Visualization
 
