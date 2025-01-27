@@ -52,6 +52,10 @@ to deploy to mobile devices using [LiteRT](https://ai.google.dev/edge/litert)
   <img align="center" src="https://img.shields.io/github/stars/iree-org/iree?style=social">
   - IREE also includes a
     [PJRT plugin](https://github.com/iree-org/iree/tree/main/integrations/pjrt)
+- [StableHLO to CoreML](https://github.com/kasper0406/stablehlo-coreml/tree/main)
+  converts StableHLO models to [Apple's CoreML](https://developer.apple.com/documentation/coreml/)
+  for deploying to Apple devices
+  <img align="center" src="https://img.shields.io/github/stars/kasper0406/stablehlo-coreml?style=social">
 
 ## Tooling and Visualization
 
