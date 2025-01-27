@@ -40,7 +40,10 @@ on Google's Cloud TPUs
 to deploy to mobile devices using [LiteRT](https://ai.google.dev/edge/litert)
   - [AI Edge Torch](https://github.com/google-ai-edge/ai-edge-torch) exports
   PyTorch models for mobile deployment via StableHLO <img align="center" src="https://img.shields.io/github/stars/google-ai-edge/ai-edge-torch?style=social">
-- [StableHLO to CoreML](https://github.com/kasper0406/stablehlo-coreml/tree/main) converts StableHLO to [Apple's CoreML](https://developer.apple.com/documentation/coreml/) for deploying StableHLO models to Apple devices <img align="center" src="https://img.shields.io/github/stars/kasper0406/stablehlo-coreml?style=social">
+- [StableHLO to CoreML](https://github.com/kasper0406/stablehlo-coreml/tree/main)
+converts StableHLO models to [Apple's CoreML](https://developer.apple.com/documentation/coreml/)
+for deploying to Apple devices
+<img align="center" src="https://img.shields.io/github/stars/kasper0406/stablehlo-coreml?style=social">
 
 ## Tooling and Visualization
 
