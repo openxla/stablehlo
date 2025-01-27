@@ -18,7 +18,9 @@ backends. Built by industry leaders in AI modeling, software, and hardware.
 **How is the community using OpenXLA?** This page consolidates links to
 repositories and projects using OpenXLA to provide inspiration and code pointers!
 
-**Have a project that uses OpenXLA?** Send us a pull request and add it to this page!
+**Have a project that uses OpenXLA?** Send us a
+[pull request](https://github.com/openxla/stablehlo/blob/main/docs/awesome.md)
+and add it to this page!
 
 ## Frameworks
 
