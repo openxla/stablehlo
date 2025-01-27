@@ -21,18 +21,8 @@ include "mlir/IR/AttrTypeBase.td"
 include "stablehlo/dialect/VhloBase.td"
 include "stablehlo/dialect/VhloDialect.td"
 include "stablehlo/dialect/VhloTypes.td"
+include "stablehlo/dialect/VhloEnums.td"
 
-def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
-  let cppNamespace = "::mlir::vhlo";
-  let methods = [
-    InterfaceMethod<
-      "Returns the minimum version of the VHLO dialect an attribute is supported in.",
-      "mlir::vhlo::Version", "getMinVersion">,
-    InterfaceMethod<
-      "Returns the maximum version (inclusive) of the VHLO dialect an attribute is supported in.",
-      "mlir::vhlo::Version", "getMaxVersion">,
-  ];
-}
 
 class VHLO_AttrDef<string name, string minVersion, string maxVersion>
   : AttrDef<VHLO_Dialect, name, [VHLO_VersionedAttrInterface]> {
@@ -188,6 +178,29 @@ def VHLO_TypeExtensionsAttrV1 : VHLO_AttrDef<"TypeExtensionsV1", "0.9.0", "curre
   let mnemonic = "type_extensions_v1";
   let parameters = (ins VHLO_Dims:$bounds);
   let assemblyFormat = "`<` struct(params) `>`";
+}
+
+
+def VHLO_ResultAccuracyAttrV1 : VHLO_AttrDef<"ResultAccuracyV1", "1.9.0", "current"> {
+  let mnemonic = "result_accuracy_v1";
+  let summary = "The requested accuracy for transcendental unary ops.";
+  let parameters = (ins
+      VHLO_APFloatV1:$atol,
+      VHLO_APFloatV1:$rtol,
+      "int64_t":$ulps,
+      "mlir::Attribute":$mode
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult ResultAccuracyV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
+        APFloat atol, APFloat rtol, int64_t ulps,
+        mlir::Attribute mode) {
+          if (!isFromVhlo(mode)) return errFn() << "expected VHLO result accuracy mode";
+          return success();
+        }
+  }];
 }
 
 #endif // STABLEHLO_DIALECT_VHLO_ATTRS

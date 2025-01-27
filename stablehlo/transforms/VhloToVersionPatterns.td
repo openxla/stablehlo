@@ -15,6 +15,9 @@ limitations under the License.
 
 include "mlir/IR/OpBase.td"
 include "stablehlo/dialect/VhloOps.td"
+include "mlir/IR/CommonAttrConstraints.td"
+include "stablehlo/dialect/VhloEnums.td"
+include "stablehlo/dialect/VhloAttrs.td"
 
 def VHLO_GetEmptyDims : NativeCodeCall<"getEmptyI64Tensor($_builder)">;
 
@@ -31,6 +34,11 @@ def VHLO_IsSingleOperand :  Constraint<CPred<"$0.size() == 1">, "Single operand"
 def VHLO_GetFirstOperand : NativeCodeCall<"$0.front()">;
 
 def VHLO_WrapInVector : NativeCodeCall<"{$0}">;
+
+def VHLO_GetDefaultResultAccuracyAttr : NativeCodeCall<"getDefaultResultAccuracy($_builder)">;
+
+
+def VHLO_DefaultResultAccuracy : AttrConstraint<CPred<"isDefaultResultAccuracy($_self)">, "Default result accuracy">;
 
 def DynamicConvUpgradeV1ToV2:
   Pat<(VHLO_DynamicConvOpV1 $lhs, $rhs, $d_padding, $window_strides, $padding, $lhs_dilation, $rhs_dilation, $window_reversal, $input_batch_dimension, $input_feature_dimension, $input_spatial_dimensions, $kernel_input_feature_dimension, $kernel_output_feature_dimension, $kernel_spatial_dimensions, $output_batch_dimension, $output_feature_dimension, $output_spatial_dimensions, $feature_group_count, $batch_group_count, $precision_config),
@@ -83,3 +91,11 @@ def DotGeneralOpUpradeV1ToV2 :
   Pat<(VHLO_DotGeneralOpV1 $lhs, $rhs, $lhs_batching_dimensions, $rhs_batching_dimensions, $lhs_contracting_dimensions, $rhs_contracting_dimensions, $precision_config),
       (VHLO_DotGeneralOpV2 $lhs, $rhs, $lhs_batching_dimensions, $rhs_batching_dimensions, $lhs_contracting_dimensions, $rhs_contracting_dimensions, $precision_config,
          (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType))>;
+
+def ExpOpDowngradeV2ToV1 :
+  Pat<(VHLO_ExpOpV2 $operand, VHLO_DefaultResultAccuracy:$result_accuracy),
+      (VHLO_ExpOpV1 $operand)>;
+
+def ExpOpUpgradeV1ToV2 :
+  Pat<(VHLO_ExpOpV1 $operand),
+      (VHLO_ExpOpV2 $operand, (VHLO_GetDefaultResultAccuracyAttr))>;

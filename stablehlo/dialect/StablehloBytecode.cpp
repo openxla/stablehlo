@@ -18,6 +18,7 @@ limitations under the License.
 #include <cstdint>
 #include <memory>
 
+#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -180,6 +181,18 @@ enum AttributeCode {
   ///     allowImpreciseAccumulation : svarint
   ///   }
   kDotAlgorithmAttr = 15,
+
+  // ResultAccuracyModeAttr {
+  //   mode: varint (encoded enum)
+  // }
+  kResultAccuracyModeAttr = 16,
+
+  // ResultAccuracyAttr {
+  //   atol: APFloat
+  //   rtol: APFloat
+  //   ulps: svarint
+  // }
+  kResultAccuracyAttr = 17,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -241,6 +254,10 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   OutputOperandAliasAttr readOutputOperandAliasAttr(
       DialectBytecodeReader &reader) const;
   PrecisionAttr readPrecisionAttr(DialectBytecodeReader &reader) const;
+  ResultAccuracyAttr readResultAccuracyAttr(
+      DialectBytecodeReader &reader) const;
+  ResultAccuracyModeAttr readResultAccuracyModeAttr(
+      DialectBytecodeReader &reader) const;
   RngAlgorithmAttr readRngAlgorithmAttr(DialectBytecodeReader &reader) const;
   RngDistributionAttr readRngDistributionAttr(
       DialectBytecodeReader &reader) const;
@@ -264,6 +281,8 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
              DialectBytecodeWriter &writer) const;
   void write(OutputOperandAliasAttr attr, DialectBytecodeWriter &writer) const;
   void write(PrecisionAttr attr, DialectBytecodeWriter &writer) const;
+  void write(ResultAccuracyAttr attr, DialectBytecodeWriter &writer) const;
+  void write(ResultAccuracyModeAttr attr, DialectBytecodeWriter &writer) const;
   void write(RngAlgorithmAttr attr, DialectBytecodeWriter &writer) const;
   void write(RngDistributionAttr attr, DialectBytecodeWriter &writer) const;
   void write(ScatterDimensionNumbersAttr attr,
@@ -327,6 +346,10 @@ Attribute StablehloBytecodeInterface::readAttribute(
       return readOutputOperandAliasAttr(reader);
     case stablehlo_encoding::kPrecisionAttr:
       return readPrecisionAttr(reader);
+    case stablehlo_encoding::kResultAccuracyAttr:
+      return readResultAccuracyAttr(reader);
+    case stablehlo_encoding::kResultAccuracyModeAttr:
+      return readResultAccuracyModeAttr(reader);
     case stablehlo_encoding::kRngAlgorithmAttr:
       return readRngAlgorithmAttr(reader);
     case stablehlo_encoding::kRngDistributionAttr:
@@ -352,13 +375,13 @@ LogicalResult StablehloBytecodeInterface::writeAttribute(
       .Case<ChannelHandleAttr, ComparisonDirectionAttr, ComparisonTypeAttr,
             ConvDimensionNumbersAttr, DotAlgorithmAttr, DotDimensionNumbersAttr,
             FftTypeAttr, GatherDimensionNumbersAttr, OutputOperandAliasAttr,
-            PrecisionAttr, RngAlgorithmAttr, RngDistributionAttr,
-            ScatterDimensionNumbersAttr, TransposeAttr, TypeExtensionsAttr>(
-          [&](auto attr) {
-            LOG_WRITE_CALL;
-            write(attr, writer);
-            return success();
-          })
+            PrecisionAttr, ResultAccuracyAttr, ResultAccuracyModeAttr,
+            RngAlgorithmAttr, RngDistributionAttr, ScatterDimensionNumbersAttr,
+            TransposeAttr, TypeExtensionsAttr>([&](auto attr) {
+        LOG_WRITE_CALL;
+        write(attr, writer);
+        return success();
+      })
       .Default([&](Attribute) {
         LOG_NOT_IMPLEMENTED;
         return failure();
@@ -804,6 +827,55 @@ void StablehloBytecodeInterface::writeVersion(
     writer.writeVarInt(static_cast<uint64_t>(version->getMinor()));
     writer.writeVarInt(static_cast<uint64_t>(version->getPatch()));
   }
+}
+
+//===----------------------------------------------------------------------===//
+// ResultAccuracyModeAttr
+
+ResultAccuracyModeAttr StablehloBytecodeInterface::readResultAccuracyModeAttr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  return hlo::bytecode::readEnumAttribute<ResultAccuracyModeAttr>(
+      reader, getContext(),
+      [](uint32_t val) { return symbolizeResultAccuracyMode(val); });
+}
+
+void StablehloBytecodeInterface::write(ResultAccuracyModeAttr attr,
+                                       DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(stablehlo_encoding::kResultAccuracyModeAttr);
+  hlo::bytecode::writeEnumAttribute<ResultAccuracyMode>(attr, writer);
+}
+
+//===----------------------------------------------------------------------===//
+// ResultAccuracyAttr
+
+ResultAccuracyAttr StablehloBytecodeInterface::readResultAccuracyAttr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  FailureOr<APFloat> atol;
+  FailureOr<APFloat> rtol;
+  int64_t ulps;
+  ResultAccuracyModeAttr mode;
+  if (failed(atol =
+                 reader.readAPFloatWithKnownSemantics(APFloat::IEEEdouble())) ||
+      failed(rtol =
+                 reader.readAPFloatWithKnownSemantics(APFloat::IEEEdouble())) ||
+      failed(reader.readSignedVarInt(ulps)) ||
+      failed(reader.readAttribute(mode))) {
+    mlir::emitWarning(mlir::UnknownLoc::get(getContext()))
+        << "failed to read APFloat for atol";
+    return ResultAccuracyAttr();
+  }
+  return ResultAccuracyAttr::get(getContext(), *atol, *rtol, ulps, mode);
+}
+
+void StablehloBytecodeInterface::write(ResultAccuracyAttr attr,
+                                       DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(stablehlo_encoding::kResultAccuracyAttr);
+  writer.writeAPFloatWithKnownSemantics(attr.getAtol());
+  writer.writeAPFloatWithKnownSemantics(attr.getRtol());
+  writer.writeSignedVarInt(attr.getUlps());
+  writer.writeAttribute(attr.getMode());
 }
 
 }  // namespace

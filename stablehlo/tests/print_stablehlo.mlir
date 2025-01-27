@@ -406,3 +406,16 @@ func.func @slice(%arg0: tensor<3x8xf32>, %arg1: tensor<8xf32>)
   %slice6 = stablehlo.slice %arg0 [1:3:1, 4:8:2] : (tensor<3x8xf32>) -> tensor<2x2xf32>
   return %slice1, %slice2, %slice3, %slice4, %slice5, %slice6 : tensor<1xf32>, tensor<2xf32>, tensor<1xf32>, tensor<1xf32>, tensor<2x2xf32>, tensor<2x2xf32>
 }
+
+func.func @result_accuracy_default() -> () attributes {
+  // CHECK: mode.default = #stablehlo.result_accuracy<mode = #stablehlo.result_accuracy_mode<DEFAULT>>
+  // CHECK: mode.highest = #stablehlo.result_accuracy<mode = #stablehlo.result_accuracy_mode<HIGHEST>>
+  // CHECK: mode.tolerance_full = #stablehlo.result_accuracy<atol = 1.000000e-05, rtol = 1.000000e-04, ulps = 2, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>
+  // CHECK: mode.tolerance_partial = #stablehlo.result_accuracy<atol = 1.000000e-05, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>
+  mode.default = #stablehlo.result_accuracy<atol = 0.0, rtol = 0.0, ulps = 0, mode = #stablehlo.result_accuracy_mode<DEFAULT>>,
+  mode.highest = #stablehlo.result_accuracy<atol = 0.0, rtol = 0.0, ulps = 0, mode = #stablehlo.result_accuracy_mode<HIGHEST>>,
+  mode.tolerance_full = #stablehlo.result_accuracy<atol = 1.0e-5, rtol = 1.0e-4, ulps = 2, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>,
+  mode.tolerance_partial = #stablehlo.result_accuracy<atol = 1.0e-5, rtol = 0.0, ulps = 0, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>
+} {
+  func.return
+}

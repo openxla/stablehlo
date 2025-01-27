@@ -16,6 +16,7 @@ limitations under the License.
 #include <cstdint>
 #include <optional>
 
+#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -686,4 +687,70 @@ intptr_t stablehloTypeExtensionsGetBoundsSize(MlirAttribute attr) {
 int64_t stablehloTypeExtensionsGetBoundsElem(MlirAttribute attr, intptr_t pos) {
   return llvm::cast<mlir::stablehlo::TypeExtensionsAttr>(unwrap(attr))
       .getBounds()[pos];
+}
+
+//===----------------------------------------------------------------------===//
+// ResultAccuracyModeAttr
+//===----------------------------------------------------------------------===//
+
+MlirAttribute stablehloResultAccuracyModeAttrGet(MlirContext ctx,
+                                                 MlirStringRef value) {
+  std::optional<mlir::stablehlo::ResultAccuracyMode> accuracyMode =
+      mlir::stablehlo::symbolizeResultAccuracyMode(unwrap(value));
+  if (!accuracyMode) llvm::report_fatal_error("Invalid value.");
+  return wrap(mlir::stablehlo::ResultAccuracyModeAttr::get(
+      unwrap(ctx), accuracyMode.value()));
+}
+
+bool stablehloAttributeIsAResultAccuracyModeAttr(MlirAttribute attr) {
+  return llvm::isa<mlir::stablehlo::ResultAccuracyModeAttr>(unwrap(attr));
+}
+
+MlirStringRef stablehloResultAccuracyModeAttrGetValue(MlirAttribute attr) {
+  return wrap(mlir::stablehlo::stringifyResultAccuracyMode(
+      llvm::cast<mlir::stablehlo::ResultAccuracyModeAttr>(unwrap(attr))
+          .getValue()));
+}
+//===----------------------------------------------------------------------===//
+// ResultAccuracyAttr
+//===----------------------------------------------------------------------===//
+
+MlirAttribute stablehloResultAccuracyAttrGet(MlirContext ctx, double atol,
+                                             double rtol, int64_t ulps,
+                                             MlirStringRef mode) {
+  std::optional<mlir::stablehlo::ResultAccuracyMode> accuracyMode =
+      mlir::stablehlo::symbolizeResultAccuracyMode(unwrap(mode));
+  if (!accuracyMode) llvm::report_fatal_error("Invalid value.");
+  mlir::stablehlo::ResultAccuracyModeAttr modeAttr =
+      mlir::stablehlo::ResultAccuracyModeAttr::get(unwrap(ctx),
+                                                   accuracyMode.value());
+  return wrap(mlir::stablehlo::ResultAccuracyAttr::get(
+      unwrap(ctx), llvm::APFloat(atol), llvm::APFloat(rtol), ulps, modeAttr));
+}
+
+bool stablehloAttributeIsAResultAccuracyAttr(MlirAttribute attr) {
+  return llvm::isa<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr));
+}
+
+double stablehloResultAccuracyAttrGetAtol(MlirAttribute attr) {
+  llvm::APFloat result =
+      llvm::cast<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr)).getAtol();
+  return result.convertToDouble();
+}
+
+double stablehloResultAccuracyAttrGetRtol(MlirAttribute attr) {
+  llvm::APFloat result =
+      llvm::cast<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr)).getRtol();
+  return result.convertToDouble();
+}
+
+int64_t stablehloResultAccuracyAttrGetUlps(MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr))
+      .getUlps();
+}
+
+MlirAttribute stablehloResultAccuracyAttrGetMode(MlirAttribute attr) {
+  mlir::stablehlo::ResultAccuracyModeAttr modeAttr =
+      llvm::cast<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr)).getMode();
+  return wrap(modeAttr);
 }

@@ -683,12 +683,15 @@ def LogOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_LogOp ComplexEl
 //     Notice that for `y != 0`, neither `cos(y)` nor `sin(y)` is never
 //     zero on the set of floating point numbers.
 //
-def ExpOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_ExpOp ComplexElementType:$z),
+def ConstDefaultResultAccuracyAttr :
+  ConstantAttr<StableHLO_ResultAccuracyAttr, "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">;
+
+def ExpOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_ExpOp ComplexElementType:$z, ConstDefaultResultAccuracyAttr),
   (StableHLO_ComplexOp
     (StableHLO_SelectOp
       (StableHLO_CompareOp:$eq_e_constant_posinf
        (StableHLO_ExpOp:$e
-         (StableHLO_RealOp:$x $z)),
+         (StableHLO_RealOp:$x $z), ConstDefaultResultAccuracyAttr),
        (StableHLO_ConstantLikePosInfValue $x),
         StableHLO_ComparisonDirectionValue<"EQ">,
         (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
@@ -697,7 +700,7 @@ def ExpOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_ExpOp ComplexEl
           (StableHLO_ExpOp:$e2
             (StableHLO_MulOp
               $x,
-              (StableHLO_ConstantLike<"0.5"> $x))),
+              (StableHLO_ConstantLike<"0.5"> $x)), ConstDefaultResultAccuracyAttr),
           (StableHLO_CosineOp:$cs
             (StableHLO_ImagOp:$y $z))),
         $e2),
