@@ -87,6 +87,7 @@ limitations under the License.
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/StablehloBytecode.h"
+#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/StablehloOps.h.inc"
 #include "stablehlo/dialect/TypeInference.h"
 
