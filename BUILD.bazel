@@ -864,7 +864,6 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":chlo_ops",
-        ":interpreter_ops",
         ":stablehlo_ops",
         ":vhlo_ops",
         "@llvm-project//mlir:FuncDialect",
