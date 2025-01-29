@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
@@ -129,6 +130,16 @@ Attribute convertGeneric(Attribute stablehloAttr,
   }
   if (auto attr = dyn_cast<stablehlo::TransposeAttr>(stablehloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
+  }
+  if (auto attr = dyn_cast<stablehlo::ResultAccuracyModeAttr>(stablehloAttr)) {
+    RETURN_CONVERTED_ENUM_ATTR(ResultAccuracyMode, V1);
+  }
+  if (auto attr = dyn_cast<stablehlo::ResultAccuracyAttr>(stablehloAttr)) {
+    auto modeAttr = convertGeneric(attr.getMode(), typeConverter);
+    if (!modeAttr) return {};
+    return vhlo::ResultAccuracyV1Attr::get(attr.getContext(), attr.getAtol(),
+                                           attr.getRtol(), attr.getUlps(),
+                                           modeAttr);
   }
   if (stablehloAttr.getDialect().getNamespace() ==
       stablehlo::StablehloDialect::getDialectNamespace()) {
@@ -814,6 +825,19 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
         addDefaultAttr(attrName, noneTypeAttr);
       }
     }
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::ExpOp>::value) {
+    if (!stablehloOp.getResultAccuracyAttr())
+      addDefaultAttr("result_accuracy",
+                     stablehlo::ResultAccuracyAttr::get(
+                         pattern.getContext(),
+                         /*atol=*/APFloat(0.0),
+                         /*rtol=*/APFloat(0.0),
+                         /*ulps=*/0,
+                         /*mode=*/
+                         stablehlo::ResultAccuracyModeAttr::get(
+                             pattern.getContext(),
+                             stablehlo::ResultAccuracyMode::DEFAULT)));
   }
   if constexpr (std::is_same<StablehloOpTy,
                              stablehlo::DynamicBroadcastInDimOp>::value) {

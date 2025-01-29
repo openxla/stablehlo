@@ -766,6 +766,11 @@ func.func @test_unary_cbrt(%arg: tensor<3x4xf32>) -> tensor<3x4xf32> {
   func.return %0 : tensor<3x4xf32>
 }
 
+func.func @test_unary_result_accuracy(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+  %exp = "stablehlo.exponential"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  func.return %exp : tensor<2xf32>
+}
+
 func.func @test_unary_round_nearest_even(%arg0: tensor<2xf32>) -> tensor<2xf32> {
     %0 = "stablehlo.round_nearest_even"(%arg0) {} : (tensor<2xf32>) -> tensor<2xf32>
     func.return %0 : tensor<2xf32>

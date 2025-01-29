@@ -860,6 +860,29 @@ ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target) {
   return parser.parseSymbolName(target);
 }
 
+void printResultAccuracyAttr(AsmPrinter& odsPrinter, APFloat atol, APFloat rtol,
+                             int64_t ulps, Attribute mode) {
+  odsPrinter << "<";
+  if (!atol.isZero()) {
+    odsPrinter << "atol = ";
+    odsPrinter.printFloat(atol);
+    odsPrinter << ", ";
+  }
+  if (!rtol.isZero()) {
+    odsPrinter << "rtol = ";
+    odsPrinter.printFloat(rtol);
+    odsPrinter << ", ";
+  }
+  if (ulps != 0) {
+    odsPrinter << "ulps = ";
+    odsPrinter << ulps;
+    odsPrinter << ", ";
+  }
+  odsPrinter << "mode = ";
+  odsPrinter.printAttribute(mode);
+  odsPrinter << ">";
+}
+
 void printTypeExtensions(BoundedAttrInterface attr, DialectAsmPrinter& os) {
   os << "bounds<";
   llvm::interleaveComma(attr.getBounds(), os,

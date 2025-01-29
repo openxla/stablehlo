@@ -328,6 +328,23 @@ def StableHLO_ExpOp: StableHLO_UnaryElementwiseOp<"exponential",
     %result = stablehlo.exponential %operand : tensor<2x2xf64>
     ```
   }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+  DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr, "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let extraClassDeclaration = commonClassDeclaration # [{
+    LogicalResult reifyReturnTypeShapes(
+        OpBuilder& builder, ValueRange operands,
+        SmallVectorImpl<Value>& reifiedReturnShapes) {
+      return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
+                                                 operands.front(),
+                                                 &reifiedReturnShapes);
+    }
+  }];
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
 }
 
 def StableHLO_Expm1Op: StableHLO_UnaryElementwiseOp<"exponential_minus_one",

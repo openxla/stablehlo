@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/Support/AllocatorBase.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -168,6 +169,17 @@ Attribute convertGeneric(Attribute vhloAttr,
     auto builtinType = typeConverter->convertType(attr.getValue());
     if (!builtinType) return {};
     return TypeAttr::get(builtinType);
+  }
+  if (auto attr = dyn_cast<vhlo::ResultAccuracyModeV1Attr>(vhloAttr)) {
+    RETURN_CONVERTED_ENUM_ATTR(ResultAccuracyMode, V1);
+  }
+  if (auto attr = dyn_cast<vhlo::ResultAccuracyV1Attr>(vhloAttr)) {
+    auto modeAttr = dyn_cast_or_null<stablehlo::ResultAccuracyModeAttr>(
+        convertGeneric(attr.getMode(), typeConverter));
+    if (!modeAttr) return {};
+    return stablehlo::ResultAccuracyAttr::get(attr.getContext(), attr.getAtol(),
+                                              attr.getRtol(), attr.getUlps(),
+                                              modeAttr);
   }
 
   // All VHLO Attributes must be converted by now.
@@ -737,6 +749,13 @@ bool isSplatArray(Attribute vhloAttr, Attribute splatValue) {
          });
 }
 
+bool isDefaultResultAccuracyAttribute(Attribute vhloAttr) {
+  auto attr = dyn_cast_or_null<vhlo::ResultAccuracyV1Attr>(vhloAttr);
+  return attr.getAtol().isZero() && attr.getRtol().isZero() &&
+         attr.getUlps() == 0 &&
+         dyn_cast<vhlo::ResultAccuracyModeV1Attr>(attr.getMode()).getValue() ==
+             vhlo::ResultAccuracyModeV1::DEFAULT;
+}
 template <typename T>
 bool isSplatTensor(const ConversionPattern& pattern, Attribute vhloAttr,
                    T splatValue) {
@@ -897,6 +916,11 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       eraseAttrs(vhloAttrs, "dimension");
     if (isBoolean(vhloOp.getIsStableAttr(), false))
       eraseAttrs(vhloAttrs, "is_stable");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::ExpOpV2>::value) {
+    if (isDefaultResultAccuracyAttribute(vhloOp.getResultAccuracyAttr())) {
+      eraseAttrs(vhloAttrs, "result_accuracy");
+    }
   }
   return success();
 }
