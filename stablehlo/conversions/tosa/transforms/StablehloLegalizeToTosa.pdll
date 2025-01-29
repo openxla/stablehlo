@@ -15,6 +15,14 @@
 #include "mlir/Dialect/Tosa/IR/TosaOps.td"
 #include "stablehlo/dialect/StablehloOps.td"
 
+Rewrite zeroConst() -> Op [{
+  auto type = rewriter.getI8Type();
+  auto attr = mlir::DenseElementsAttr::get(
+      llvm::cast<mlir::ShapedType>(type), rewriter.getZeroAttr(type));
+  return rewriter.create<mlir::tosa::ConstOp>(
+      rewriter.getUnknownLoc(), type, attr);
+}];
+
 // Helper functions.
 Rewrite onesLike(op: Op, type: Type) -> Op [{
   auto elementType = llvm::cast<mlir::TensorType>(type).getElementType();
@@ -137,7 +145,7 @@ Pattern =>
 Pattern =>
   replace op<stablehlo.multiply>(input0 : Value<_: Tosa_Tensor>,
                             input1 : Value<_: Tosa_Tensor>)
-     with op<tosa.mul>(input0, input1) {shift = attr<"0 : i8">};
+     with op<tosa.mul>(input0, input1, zeroConst());
 Pattern =>
   replace op<stablehlo.or>(input0 : Value<_: Tosa_Tensor>,
                       input1 : Value<_: Tosa_Tensor>)
