@@ -14,26 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_CONVERSIONS_LINALG_TRANSFORMS_TYPE_CONVERSION_H
-#define STABLEHLO_CONVERSIONS_LINALG_TRANSFORMS_TYPE_CONVERSION_H
+#ifndef STABLEHLO_TRANSFORMS_CONVERSIONS_TYPE_CONVERSION_H
+#define STABLEHLO_TRANSFORMS_CONVERSIONS_TYPE_CONVERSION_H
 
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#include "stablehlo/transforms/conversions/TypeConversion.h"
-
 namespace mlir::stablehlo {
 
-// Type converter which adds additional materializations (beyond signless)
-// that are needed as part of the HloToLinalg conversion patterns.
-// This is the type converter used by the test pass and is the sanctioned
-// way to use the underlying patterns.
-class LinalgTypeConverter : public RemoveSignTypeConverter {
+// Type converter to use as part of lowerings from dialects that carry signs
+// in their types to those that are signless.
+class RemoveSignTypeConverter : public TypeConverter {
  public:
-  LinalgTypeConverter();
+  RemoveSignTypeConverter();
 };
 
 }  // namespace mlir::stablehlo
 
-#endif  // STABLEHLO_CONVERSIONS_LINALG_TRANSFORMS_TYPE_CONVERSION_H
+#endif  // STABLEHLO_TRANSFORMS_CONVERSIONS_TYPE_CONVERSION_H

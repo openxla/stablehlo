@@ -30,7 +30,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "stablehlo/conversions/linalg/transforms/TypeConversion.h"
+#include "stablehlo/transforms/conversions/TypeConversion.h"
 
 namespace mlir {
 namespace stablehlo {
