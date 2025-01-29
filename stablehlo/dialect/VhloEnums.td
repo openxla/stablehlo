@@ -20,7 +20,20 @@ limitations under the License.
 include "mlir/IR/EnumAttr.td"
 include "mlir/IR/PatternBase.td"
 include "stablehlo/dialect/VhloBase.td"
-include "stablehlo/dialect/VhloAttrs.td"
+include "stablehlo/dialect/VhloDialect.td"
+include "mlir/IR/AttrTypeBase.td"
+
+def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
+  let cppNamespace = "::mlir::vhlo";
+  let methods = [
+    InterfaceMethod<
+      "Returns the minimum version of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMinVersion">,
+    InterfaceMethod<
+      "Returns the maximum version (inclusive) of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMaxVersion">,
+  ];
+}
 
 class VHLO_I32EnumAttr<string name, list<I32EnumAttrCase> cases> :
     I32EnumAttr<name, name, cases> {
@@ -197,5 +210,24 @@ def VHLO_TransposeV1 : VHLO_I32EnumAttr<"TransposeV1", [
 
 def VHLO_TransposeAttrV1
   : VHLO_EnumAttr<VHLO_TransposeV1, "transpose_v1", "0.9.0", "current">;
+
+//===----------------------------------------------------------------------===//
+// ResultAccuracyMode
+//===----------------------------------------------------------------------===//
+
+def VHLO_RESULT_V1_ACCURACY_DEFAULT : I32EnumAttrCase<"DEFAULT", 0>;
+def VHLO_RESULT_V1_ACCURACY_HIGHEST : I32EnumAttrCase<"HIGHEST", 1>;
+def VHLO_RESULT_V1_ACCURACY_TOLERANCE: I32EnumAttrCase<"TOLERANCE", 2>;
+
+def VHLO_ResultAccuracyModeV1 : VHLO_I32EnumAttr<"ResultAccuracyModeV1",
+    [
+      VHLO_RESULT_V1_ACCURACY_DEFAULT,
+      VHLO_RESULT_V1_ACCURACY_HIGHEST,
+      VHLO_RESULT_V1_ACCURACY_TOLERANCE
+    ]> {}
+
+def VHLO_ResultAccuracyModeV1Attr
+  : VHLO_EnumAttr<VHLO_ResultAccuracyModeV1, "result_accuracy_mode_v1", "1.9.0", "current">;
+
 
 #endif // STABLEHLO_DIALECT_VHLO_ENUMS

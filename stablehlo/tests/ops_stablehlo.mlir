@@ -1274,6 +1274,22 @@ func.func @broadcast_in_dim_c5(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
 
 // -----
 
+// CHECK-LABEL: func @broadcast_in_dim_dynamic_i1
+func.func @broadcast_in_dim_dynamic_i1(%arg0: tensor<?xi32>) -> tensor<1x3xi32> {
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [1] : (tensor<?xi32>) -> tensor<1x3xi32>
+  return %0 : tensor<1x3xi32>
+}
+
+// -----
+
+func.func @broadcast_in_dim_dynamic_result(%arg0: tensor<3xi32>) -> tensor<?x3xi32> {
+  // expected-error@+1 {{must be statically shaped or single bounded dimension tensor}}
+  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = array<i64: 1>} : (tensor<3xi32>) -> tensor<?x3xi32>
+  func.return %0 : tensor<?x3xi32>
+}
+
+// -----
+
 // Regression test for b/180052624, where this was improperly marked as an
 // invalid stablehlo.broadcast_in_dim op.
 // CHECK-LABEL: func @broadcast_in_dim_dynamic_shaped_operand
@@ -1775,6 +1791,30 @@ func.func @dot_bad_precision_config(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi3
   // expected-error@+1 {{'precision_config' failed to satisfy constraint}}
   %0 = "stablehlo.dot"(%arg0, %arg1) {precision_config = ["FOO", #stablehlo<precision HIGHEST>]} : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
   func.return %0: tensor<2x2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func @exponential_result_accuracy
+func.func @exponential_result_accuracy(%arg0: tensor<f32>) -> tensor<f32> {
+  %0 = "stablehlo.exponential"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 0.0, rtol = 0.0, ulps = 0, mode = #stablehlo.result_accuracy_mode<DEFAULT>>} : (tensor<f32>) -> tensor<f32>
+  func.return %0: tensor<f32>
+}
+
+// -----
+
+// CHECK-LABEL: func @exponential_result_accuracy_tol
+func.func @exponential_result_accuracy_tol(%arg0: tensor<f32>) -> tensor<f32> {
+  %0 = "stablehlo.exponential"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.0, rtol = 0.0, ulps = 4, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<f32>) -> tensor<f32>
+  func.return %0: tensor<f32>
+}
+
+// -----
+
+func.func @exponential_result_accuracy_tol(%arg0: tensor<f32>) -> tensor<f32> {
+  // expected-error@+1 {{Invalid tolerances for ResultAccuracyAttr with mode HIGHEST, must be all zero.}}
+  %0 = "stablehlo.exponential"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.0, rtol = 0.0, ulps = 4, mode = #stablehlo.result_accuracy_mode<HIGHEST>>} : (tensor<f32>) -> tensor<f32>
+  func.return %0: tensor<f32>
 }
 
 // -----

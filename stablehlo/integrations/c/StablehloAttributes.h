@@ -13,6 +13,7 @@ limitations under the License.
 #ifndef STABLEHLO_INTEGRATIONS_C_STABLEHLO_ATTRIBUTES_H
 #define STABLEHLO_INTEGRATIONS_C_STABLEHLO_ATTRIBUTES_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -375,6 +376,42 @@ MLIR_CAPI_EXPORTED intptr_t
 stablehloTypeExtensionsGetBoundsSize(MlirAttribute attr);
 MLIR_CAPI_EXPORTED int64_t
 stablehloTypeExtensionsGetBoundsElem(MlirAttribute attr, intptr_t pos);
+
+// ===---------------------------------------------------------------------===//
+// ResultAccuracyModeAttr
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute
+stablehloResultAccuracyModeAttrGet(MlirContext ctx, MlirStringRef value);
+
+MLIR_CAPI_EXPORTED bool stablehloAttributeIsAResultAccuracyModeAttr(
+    MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED MlirStringRef
+stablehloResultAccuracyModeAttrGetValue(MlirAttribute attr);
+
+// ===---------------------------------------------------------------------===//
+// ResultAccuracyAttr
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute
+stablehloResultAccuracyAttrGet(MlirContext ctx, double atol, double rtol,
+                               int64_t ulps, MlirStringRef value);
+
+MLIR_CAPI_EXPORTED bool stablehloAttributeIsAResultAccuracyAttr(
+    MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED double stablehloResultAccuracyAttrGetAtol(
+    MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED double stablehloResultAccuracyAttrGetRtol(
+    MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED int64_t
+stablehloResultAccuracyAttrGetUlps(MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED MlirAttribute
+stablehloResultAccuracyAttrGetMode(MlirAttribute attr);
 
 #ifdef __cplusplus
 }

@@ -75,7 +75,7 @@ FailureOr<int64_t> Version::getBytecodeVersion() const {
 Version Version::fromCompatibilityRequirement(
     CompatibilityRequirement requirement) {
   // Compatibility requirement versions can be updated as needed, as long as the
-  // version satisifies the requirement.
+  // version satisfies the requirement.
   // The time frames used are from the date that the release was tagged on, not
   // merged. The tag date is when the version has been verified and exported to
   // XLA. See: https://github.com/openxla/stablehlo/tags

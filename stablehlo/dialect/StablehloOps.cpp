@@ -792,6 +792,29 @@ LogicalResult DotAlgorithmAttr::verify(
       allowImpreciseAccumulation);
 }
 
+// ===----------------------------------------------------------------------===//
+// ExpOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult ResultAccuracyAttr::verify(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
+    APFloat rtol, int64_t ulps, ResultAccuracyModeAttr mode) {
+  return hlo::verifyResultAccuracyAttr(
+      emitError, atol, rtol, ulps,
+      stringifyResultAccuracyMode(mode.getValue()));
+}
+
+LogicalResult ExpOp::verify() {
+  if (auto attr = getResultAccuracyAttr()) {
+    if (failed(ResultAccuracyAttr::verify([&] { return emitError(); },
+                                          attr.getAtol(), attr.getRtol(),
+                                          attr.getUlps(), attr.getMode()))) {
+      return failure();
+    }
+  }
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // FftOp
 //===----------------------------------------------------------------------===//
@@ -3125,6 +3148,20 @@ Attribute DotDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   return DotDimensionNumbersAttr::get(
       parser.getContext(), lhsBatchingDimensions, rhsBatchingDimensions,
       lhsContractingDimensions, rhsContractingDimensions);
+}
+
+// ===----------------------------------------------------------------------===//
+// Custom unary op
+// ===----------------------------------------------------------------------===//
+
+void ResultAccuracyAttr::print(AsmPrinter& odsPrinter) const {
+  hlo::printResultAccuracyAttr(odsPrinter, getAtol(), getRtol(), getUlps(),
+                               getMode());
+}
+
+Attribute ResultAccuracyAttr::parse(AsmParser& parser, Type type) {
+  return hlo::parseResultAccuracyAttr<ResultAccuracyAttr,
+                                      ResultAccuracyModeAttr>(parser, type);
 }
 
 namespace {

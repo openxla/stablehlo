@@ -3724,9 +3724,8 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                                      Value operand,
                                      ArrayRef<int64_t> broadcastDimensions,
                                      Value result) {
-  auto operandType = cast<RankedTensorType>(operand.getType());
-
   // broadcast_in_dim_c1
+  auto operandType = cast<RankedTensorType>(operand.getType());
   if (failed(verifyQPerTensorScaleAndZeroPointConstraints(location, operandType,
                                                           result.getType())))
     return failure();
@@ -4658,11 +4657,12 @@ LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
                               Value result) {
   // If the operand type is dynamically shaped there is nothing to verify.
   auto operandTy = cast<RankedTensorType>(operand.getType());
-  if (!operandTy.hasStaticShape()) return success();
+  auto resultTy = cast<RankedTensorType>(result.getType());
+  if (!operandTy.hasStaticShape() || !resultTy.hasStaticShape())
+    return success();
 
   // If the operand type is statically shaped (not required) the number of
   // elements must match that of the result type.
-  auto resultTy = cast<RankedTensorType>(result.getType());
   int64_t numResultElements = resultTy.getNumElements();
   int64_t numOperandElements = operandTy.getNumElements();
   if (numResultElements != numOperandElements)
@@ -5054,6 +5054,31 @@ LogicalResult verifyWhileOp(std::optional<Location> location,
         "expect condition block return a zero-ranked tensor of i1 but got ",
         condReturnTypes[0]);
 
+  return success();
+}
+
+LogicalResult verifyResultAccuracyCombination(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
+    APFloat rtol, int64_t ulps, StringRef mode) {
+  if (mode == "DEFAULT" || mode == "HIGHEST") {
+    bool all_zero = atol.isZero() && rtol.isZero() && ulps == 0;
+    if (!all_zero) {
+      return emitError()
+             << "Invalid tolerances for ResultAccuracyAttr with mode " << mode
+             << ", must be all zero.";
+    }
+  }
+  return success();
+}
+
+LogicalResult verifyResultAccuracyAttr(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, APFloat atol,
+    APFloat rtol, int64_t ulps, StringRef mode) {
+  if (atol.isNegative() || rtol.isNegative() || ulps < 0)
+    return emitError() << "Negative tolerance";
+  if (failed(
+          verifyResultAccuracyCombination(emitError, atol, rtol, ulps, mode)))
+    return failure();
   return success();
 }
 

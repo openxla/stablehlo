@@ -19,6 +19,7 @@ limitations under the License.
 
 include "mlir/IR/OpBase.td"
 include "mlir/IR/TensorEncoding.td"
+include "stablehlo/dialect/StablehloTypes.td"
 
 def StableHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
   let parser = "parseDimSizes($_parser)";
@@ -207,6 +208,20 @@ def StableHLO_ConvDimensionNumbers : AttrDef<StableHLO_Dialect, "ConvDimensionNu
     StableHLO_Dims:$outputSpatialDimensions
   );
   let hasCustomAssemblyFormat = 1;
+}
+
+def StableHLO_ResultAccuracyAttr : AttrDef<StableHLO_Dialect, "ResultAccuracy"> {
+  let mnemonic = "result_accuracy";
+  let summary = "The requested accuracy for transcendental unary ops.";
+  let parameters = (ins
+      "APFloat":$atol,
+      "APFloat":$rtol,
+      "int64_t":$ulps,
+      StableHLO_ResultAccuracyModeAttr:$mode
+  );
+  let hasCustomAssemblyFormat = 1;
+  let genVerifyDecl = 1;
+  let constBuilderCall = "ResultAccuracyAttr::get($_builder.getContext(), APFloat(0.0), APFloat(0.0), 0, ResultAccuracyModeAttr::get($_builder.getContext(), $0))";
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_ATTRS

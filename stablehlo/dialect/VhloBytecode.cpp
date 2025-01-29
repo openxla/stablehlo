@@ -178,6 +178,18 @@ enum AttributeCode {
   ///     bounds : svarint[]
   ///   }
   kTypeExtensionsV1Attr = 18,
+
+  // ResultAccuracyModeV1Attr {
+  //   mode: varint (encoded enum)
+  // }
+  kResultAccuracyModeV1Attr = 19,
+
+  // ResultAccuracyV1Attr {
+  //   atol: APFloat
+  //   rtol: APFloat
+  //   ulps: svarint
+  // }
+  kResultAccuracyV1Attr = 20,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -433,6 +445,10 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   TypeV1Attr readTypeV1Attr(DialectBytecodeReader &reader) const;
   TypeExtensionsV1Attr readTypeExtensionsV1Attr(
       DialectBytecodeReader &reader) const;
+  ResultAccuracyModeV1Attr readResultAccuracyModeV1Attr(
+      DialectBytecodeReader &reader) const;
+  ResultAccuracyV1Attr readResultAccuracyV1Attr(
+      DialectBytecodeReader &reader) const;
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in VHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
@@ -457,6 +473,9 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   void write(TransposeV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(TypeV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(TypeExtensionsV1Attr attr, DialectBytecodeWriter &writer) const;
+  void write(ResultAccuracyModeV1Attr attr,
+             DialectBytecodeWriter &writer) const;
+  void write(ResultAccuracyV1Attr attr, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
   // Types
@@ -541,6 +560,10 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readTypeV1Attr(reader);
     case vhlo_encoding::kTypeExtensionsV1Attr:
       return readTypeExtensionsV1Attr(reader);
+    case vhlo_encoding::kResultAccuracyModeV1Attr:
+      return readResultAccuracyModeV1Attr(reader);
+    case vhlo_encoding::kResultAccuracyV1Attr:
+      return readResultAccuracyV1Attr(reader);
     default:
       reader.emitError() << "unknown vhlo attribute code: " << code;
       return Attribute();
@@ -558,7 +581,8 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
             FftTypeV1Attr, FloatV1Attr, IntegerV1Attr, OutputOperandAliasV1Attr,
             PrecisionV1Attr, RngAlgorithmV1Attr, RngDistributionV1Attr,
             StringV1Attr, TensorV1Attr, TransposeV1Attr, TypeV1Attr,
-            TypeExtensionsV1Attr>([&](auto attr) {
+            TypeExtensionsV1Attr, ResultAccuracyV1Attr,
+            ResultAccuracyModeV1Attr>([&](auto attr) {
         LOG_WRITE_CALL;
         write(attr, writer);
         return success();
@@ -1448,6 +1472,55 @@ void VhloBytecodeInterface::write(UnrankedTensorV1Type type,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kUnrankedTensorV1Type);
   writer.writeType(type.getElementType());
+}
+
+//===----------------------------------------------------------------------===//
+// ResultAccuracyModeAttr
+
+ResultAccuracyModeV1Attr VhloBytecodeInterface::readResultAccuracyModeV1Attr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  return hlo::bytecode::readEnumAttribute<ResultAccuracyModeV1Attr>(
+      reader, getContext(),
+      [](uint32_t val) { return symbolizeResultAccuracyModeV1(val); });
+}
+
+void VhloBytecodeInterface::write(ResultAccuracyModeV1Attr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kResultAccuracyModeV1Attr);
+  hlo::bytecode::writeEnumAttribute<ResultAccuracyModeV1>(attr, writer);
+}
+
+//===----------------------------------------------------------------------===//
+// ResultAccuracyAttr
+
+ResultAccuracyV1Attr VhloBytecodeInterface::readResultAccuracyV1Attr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  FailureOr<APFloat> atol;
+  FailureOr<APFloat> rtol;
+  int64_t ulps;
+  ResultAccuracyModeV1Attr mode;
+  if (failed(atol =
+                 reader.readAPFloatWithKnownSemantics(APFloat::IEEEdouble())) ||
+      failed(rtol =
+                 reader.readAPFloatWithKnownSemantics(APFloat::IEEEdouble())) ||
+      failed(reader.readSignedVarInt(ulps)) ||
+      failed(reader.readAttribute(mode))) {
+    mlir::emitWarning(mlir::UnknownLoc::get(getContext()))
+        << "failed to read APFloat for atol";
+    return ResultAccuracyV1Attr();
+  }
+  return ResultAccuracyV1Attr::get(getContext(), *atol, *rtol, ulps, mode);
+}
+
+void VhloBytecodeInterface::write(ResultAccuracyV1Attr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kResultAccuracyV1Attr);
+  writer.writeAPFloatWithKnownSemantics(attr.getAtol());
+  writer.writeAPFloatWithKnownSemantics(attr.getRtol());
+  writer.writeSignedVarInt(attr.getUlps());
+  writer.writeAttribute(attr.getMode());
 }
 
 }  // namespace

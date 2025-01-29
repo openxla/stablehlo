@@ -101,6 +101,9 @@ bool isValidStablehloQuantizedElementType(Type elementType);
 // mentioned in the StableHLO specification.
 bool isValidQuantizedDimension(Type type);
 
+// Returns true if the given type has a single bounded dimension.
+bool hasSingleBoundedDimension(Type type);
+
 // TODO(zhouxin) Move type inference related methods to TypeInference.cpp
 
 std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
