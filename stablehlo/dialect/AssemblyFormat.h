@@ -432,9 +432,9 @@ Attribute parseResultAccuracyAttr(AsmParser& parser, Type type) {
 
   // Parse literal '>'
   if (parser.parseGreater()) return {};
-  return parser.getChecked<AttrTy>(
-      parser.getCurrentLocation(), parser.getContext(), resultAtol, resultRtol,
-      resultUlps, modeAttr);
+  return parser.getChecked<AttrTy>(parser.getCurrentLocation(),
+                                   parser.getContext(), resultAtol, resultRtol,
+                                   resultUlps, modeAttr);
 }
 
 }  // namespace hlo
