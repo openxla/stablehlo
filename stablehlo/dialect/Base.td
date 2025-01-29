@@ -31,6 +31,20 @@ def I32RankedTensor : RankedTensorOf<[I32]>;
 def UI32RankedTensor : RankedTensorOf<[UI32]>;
 
 //===----------------------------------------------------------------------===//
+// HLO type constraints.
+//===----------------------------------------------------------------------===//
+
+// Note: Bounded dynamisms is largely unspecced and this feature needs more
+// thoguht as it is adopted to modern frameworks. The current support is
+// designed to allow existing TF programs to be representable in StableHLO and
+// is subject to change as a formal design for boudned dynamism is developed.
+def HLO_HasSingleBoundedDimensionPred
+  : CPred<"mlir::hlo::hasSingleBoundedDimension($_self)">;
+
+def HLO_HasStaticOrSingleBoundedShapePred
+  : Or<[HasStaticShapePred, HLO_HasSingleBoundedDimensionPred]>;
+
+//===----------------------------------------------------------------------===//
 // HLO type definitions.
 //===----------------------------------------------------------------------===//
 
@@ -266,6 +280,9 @@ def HLO_StaticShapeTensor : StaticShapeTensorOf<[
 
 def HLO_StaticShapeTensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
     [IsValidQuantizedDimension, HasStaticShapePred], "statically shaped tensor">;
+
+def HLO_StaticShapeTensorPerAxisQuantizedTensorOrBoundedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
+    [IsValidQuantizedDimension, HLO_HasStaticOrSingleBoundedShapePred], "statically shaped or single bounded dimension tensor">;
 
 def HLO_StaticShapeTensorOrPerAxisQuantizedTensorOrToken : AnyTypeOf<[HLO_StaticShapeTensor, HLO_StaticShapeTensorOrPerAxisQuantizedTensor, HLO_Token]>;
 

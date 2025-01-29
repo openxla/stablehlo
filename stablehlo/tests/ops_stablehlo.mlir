@@ -1274,6 +1274,22 @@ func.func @broadcast_in_dim_c5(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
 
 // -----
 
+// CHECK-LABEL: func @broadcast_in_dim_dynamic_i1
+func.func @broadcast_in_dim_dynamic_i1(%arg0: tensor<?xi32>) -> tensor<1x3xi32> {
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [1] : (tensor<?xi32>) -> tensor<1x3xi32>
+  return %0 : tensor<1x3xi32>
+}
+
+// -----
+
+func.func @broadcast_in_dim_dynamic_result(%arg0: tensor<3xi32>) -> tensor<?x3xi32> {
+  // expected-error@+1 {{must be statically shaped or single bounded dimension tensor}}
+  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = array<i64: 1>} : (tensor<3xi32>) -> tensor<?x3xi32>
+  func.return %0 : tensor<?x3xi32>
+}
+
+// -----
+
 // Regression test for b/180052624, where this was improperly marked as an
 // invalid stablehlo.broadcast_in_dim op.
 // CHECK-LABEL: func @broadcast_in_dim_dynamic_shaped_operand

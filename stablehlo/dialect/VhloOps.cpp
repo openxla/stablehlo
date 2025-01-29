@@ -25,7 +25,7 @@ limitations under the License.
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/TypeSwitch.h"
+#include "llvm/ADT/TypeSwitch.h"  // IWYU pragma: keep
 #include "llvm/Support/Casting.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
@@ -40,7 +40,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
-#include "stablehlo/dialect/AssemblyFormat.h"
+#include "stablehlo/dialect/AssemblyFormat.h"  // IWYU pragma: keep
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloBytecode.h"
 #include "stablehlo/dialect/VhloTypes.h"
@@ -184,12 +184,13 @@ ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
   return success();
 }
 
-void TensorV1Attr::print(mlir::AsmPrinter& p) const {
-  p << '<'
-    << DenseIntOrFPElementsAttr::getFromRawBuffer(
-           llvm::cast<ShapedType>(convertTypeToBuiltinForPrint(getType())),
-           getData())
-    << '>';
+void TensorV1Attr::print(mlir::AsmPrinter& odsPrinter) const {
+  odsPrinter << '<'
+             << DenseIntOrFPElementsAttr::getFromRawBuffer(
+                    llvm::cast<ShapedType>(
+                        convertTypeToBuiltinForPrint(getType())),
+                    getData())
+             << '>';
 }
 
 // Parse tensor elements using DenseIntOrFPElementsAttr printing.

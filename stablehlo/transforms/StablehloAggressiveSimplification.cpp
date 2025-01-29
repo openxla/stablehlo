@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <utility>
 
@@ -21,6 +22,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/Builders.h"
@@ -38,6 +40,7 @@
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Value.h"
 #include "mlir/IR/ValueRange.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
@@ -1447,12 +1450,18 @@ struct ReorderElementwiseAndShapeOp final
       return rewriter.notifyMatchFailure(
           op, "defining operation of unexpected type");
 
+    // Reshape and broadcast are not allowed to have dynamic shape.
+    Value result = op->getResult(0);
+    if (isa<ReshapeOp, BroadcastOp>(definingOp) &&
+        !cast<ShapedType>(result.getType()).hasStaticShape())
+      return rewriter.notifyMatchFailure(
+          op, "cannot reorder around reshape/broadcast with dynamic shape");
+
     // Only reorder if the defining op has no other uses.
     if (!llvm::hasSingleElement(definingOp->getResult(0).getUses()))
       return rewriter.notifyMatchFailure(op, "operation has more than one use");
 
     Value input = definingOp->getOperand(0);
-    Value result = op->getResult(0);
     auto intermediateType = cast<ShapedType>(input.getType())
                                 .clone(getElementTypeOrSelf(result.getType()));
 
@@ -1470,6 +1479,9 @@ struct ReorderElementwiseAndShapeOp final
 struct StablehloAggressiveSimplificationPass final
     : impl::StablehloAggressiveSimplificationPassBase<
           StablehloAggressiveSimplificationPass> {
+  StablehloAggressiveSimplificationPass() = default;
+  StablehloAggressiveSimplificationPass(GreedyRewriteConfig config)
+      : config(config) {}
   LogicalResult initialize(MLIRContext *context) override {
     RewritePatternSet patterns_(context);
     populateStablehloCanonicalizationPatterns(context, &patterns_);
@@ -1478,11 +1490,12 @@ struct StablehloAggressiveSimplificationPass final
   }
 
   void runOnOperation() override {
-    if (failed(applyPatternsGreedily(getOperation(), patterns)))
+    if (failed(applyPatternsGreedily(getOperation(), patterns, config)))
       signalPassFailure();
   }
 
  private:
+  GreedyRewriteConfig config;
   FrozenRewritePatternSet patterns;
 };
 
@@ -1513,6 +1526,11 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
   patterns
       ->add<GetDimensionSizeOpCanon, DynamicBroadcastInDimOpNotActuallyDynamic,
             DynamicReshapeOpIsStatic, DynamicIotaIsStatic>(context);
+}
+
+std::unique_ptr<Pass> createStablehloAggressiveSimplificationPass(
+    GreedyRewriteConfig config) {
+  return std::make_unique<StablehloAggressiveSimplificationPass>(config);
 }
 
 }  // namespace stablehlo

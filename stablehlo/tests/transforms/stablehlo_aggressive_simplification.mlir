@@ -1940,6 +1940,17 @@ func.func @reorder_with_type_change(%arg0 : tensor<3x4xi32>) -> tensor<12xi64> {
   return %1 : tensor<12xi64>
 }
 
+// -----
+
+// CHECK-LABEL: @reorder_invalid_with_dynamic_shape
+func.func @reorder_invalid_with_dynamic_shape(%arg0: tensor<1x3x4xf32>) -> (tensor<?x4xf32>) {
+  // CHECK:      %[[RESHAPE:.+]] = stablehlo.reshape %arg0 : (tensor<1x3x4xf32>) -> tensor<3x4xf32>
+  // CHECK-NEXT: %[[CONVERT:.+]] = stablehlo.convert %[[RESHAPE]] : (tensor<3x4xf32>) -> tensor<?x4xf32>
+  // CHECK: return %[[CONVERT]]
+  %0 = stablehlo.reshape %arg0 : (tensor<1x3x4xf32>) -> tensor<3x4xf32>
+  %1 = stablehlo.convert %0 : (tensor<3x4xf32>) -> tensor<?x4xf32>
+  return %1 : tensor<?x4xf32>
+}
 
 // -----
 

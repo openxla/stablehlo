@@ -780,5 +780,22 @@ bool isValidQuantizedDimension(Type type) {
           numScales == rankedType.getDimSize(quantDim));
 }
 
+bool hasSingleBoundedDimension(Type type) {
+  RankedTensorType rankedType = dyn_cast<RankedTensorType>(type);
+  auto boundedAttr =
+      dyn_cast_or_null<BoundedAttrInterface>(rankedType.getEncoding());
+  if (!boundedAttr) return false;
+
+  // Count if bounded attr size is not kDynamic
+  int64_t numBoundedDims = llvm::count_if(
+      boundedAttr.getBounds(),
+      [](int64_t bound) { return !ShapedType::isDynamic(bound); });
+  // Also check that there are only bounded dims and no unbounded dims.
+  int64_t numDynamicDims = llvm::count_if(
+      rankedType.getShape(),
+      [](int64_t bound) { return ShapedType::isDynamic(bound); });
+  return numBoundedDims == 1 && numDynamicDims == 1;
+}
+
 }  // namespace hlo
 }  // namespace mlir

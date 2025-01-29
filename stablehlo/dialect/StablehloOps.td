@@ -1980,7 +1980,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
     DenseI64ArrayAttr:$broadcast_dimensions /*broadcast_in_dim_i2*/
   );
 
-  let results = (outs HLO_StaticShapeTensorOrPerAxisQuantizedTensor);
+  let results = (outs HLO_StaticShapeTensorPerAxisQuantizedTensorOrBoundedTensor);
 
   let hasVerifier = 1;
 
@@ -2732,7 +2732,7 @@ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
 
   let arguments = (ins HLO_TensorOrPerAxisQuantizedTensor:$operand);
 
-  let results = (outs HLO_StaticShapeTensorOrPerAxisQuantizedTensor);
+  let results = (outs HLO_StaticShapeTensorPerAxisQuantizedTensorOrBoundedTensor);
   let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";

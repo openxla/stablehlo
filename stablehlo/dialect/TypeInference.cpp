@@ -3724,9 +3724,8 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                                      Value operand,
                                      ArrayRef<int64_t> broadcastDimensions,
                                      Value result) {
-  auto operandType = cast<RankedTensorType>(operand.getType());
-
   // broadcast_in_dim_c1
+  auto operandType = cast<RankedTensorType>(operand.getType());
   if (failed(verifyQPerTensorScaleAndZeroPointConstraints(location, operandType,
                                                           result.getType())))
     return failure();
@@ -4658,11 +4657,12 @@ LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
                               Value result) {
   // If the operand type is dynamically shaped there is nothing to verify.
   auto operandTy = cast<RankedTensorType>(operand.getType());
-  if (!operandTy.hasStaticShape()) return success();
+  auto resultTy = cast<RankedTensorType>(result.getType());
+  if (!operandTy.hasStaticShape() || !resultTy.hasStaticShape())
+    return success();
 
   // If the operand type is statically shaped (not required) the number of
   // elements must match that of the result type.
-  auto resultTy = cast<RankedTensorType>(result.getType());
   int64_t numResultElements = resultTy.getNumElements();
   int64_t numOperandElements = operandTy.getNumElements();
   if (numResultElements != numOperandElements)
