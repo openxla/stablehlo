@@ -28,7 +28,7 @@ limitations under the License.
 #include "nanobind/stl/string.h"
 #include "nanobind/stl/string_view.h"
 #include "nanobind/stl/vector.h"
-#include "stablehlo/integrations/c/StablehloApi.h"
+#include "stablehlo/integrations/c/StablehloUnifiedApi.h"
 
 namespace nb = nanobind;
 
