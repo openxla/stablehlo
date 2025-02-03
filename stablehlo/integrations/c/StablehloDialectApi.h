@@ -115,7 +115,6 @@ MLIR_CAPI_EXPORTED MlirLogicalResult stablehloDeserializePortableArtifact(
 MLIR_CAPI_EXPORTED MlirModule stablehloDeserializePortableArtifactNoError(
     MlirStringRef artifactStr, MlirContext ctx);
 
-
 #ifdef __cplusplus
 }
 #endif

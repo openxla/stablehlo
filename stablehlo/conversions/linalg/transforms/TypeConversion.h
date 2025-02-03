@@ -20,7 +20,6 @@ limitations under the License.
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/Transforms/DialectConversion.h"
-
 #include "stablehlo/transforms/conversions/TypeConversion.h"
 
 namespace mlir::stablehlo {

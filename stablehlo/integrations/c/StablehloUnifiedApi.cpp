@@ -28,7 +28,6 @@ limitations under the License.
 #include "stablehlo/api/PortableApi.h"
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/dialect/Version.h"
-
 #include "stablehlo/reference/Api.h"
 #include "stablehlo/reference/Configuration.h"
 
