@@ -23,6 +23,7 @@ limitations under the License.
 #include "mlir/Dialect/PDL/IR/PDL.h"
 #include "mlir/Dialect/PDLInterp/IR/PDLInterp.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
+#include "mlir/Dialect/Tosa/Utils/ConversionUtils.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -435,8 +436,8 @@ struct ConvertStablehloSliceOp : public OpRewritePattern<stablehlo::SliceOp> {
 
     rewriter.replaceOpWithNewOp<tosa::SliceOp>(
         op, op.getType(), op.getOperand(),
-        rewriter.getDenseI64ArrayAttr(startIndicesI64),
-        rewriter.getDenseI64ArrayAttr(size));
+        getTosaConstShape(rewriter, op.getLoc(), startIndicesI64),
+        getTosaConstShape(rewriter, op.getLoc(), size));
     return success();
   }
 };
