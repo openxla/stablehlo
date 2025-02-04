@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+add_subdirectory(optimization)
+
 set(LLVM_TARGET_DEFINITIONS Passes.td)
 mlir_tablegen(Passes.h.inc -gen-pass-decls)
 add_public_tablegen_target(PassesIncGen)
@@ -19,10 +21,6 @@ add_public_tablegen_target(PassesIncGen)
 set(LLVM_TARGET_DEFINITIONS ChloDecompositionPatterns.td)
 mlir_tablegen(ChloDecompositionPatterns.h.inc --gen-rewriters)
 add_public_tablegen_target(ChloDecompositionPatternsIncGen)
-
-set(LLVM_TARGET_DEFINITIONS StablehloAggressiveSimplificationPatterns.td)
-mlir_tablegen(StablehloAggressiveSimplificationPatterns.h.inc --gen-rewriters)
-add_public_tablegen_target(StablehloAggressiveSimplificationPatternsIncGen)
 
 set(LLVM_TARGET_DEFINITIONS StablehloCompatibilityExpanderPatterns.td)
 mlir_tablegen(StablehloCompatibilityExpanderPatterns.h.inc --gen-rewriters)
@@ -46,8 +44,6 @@ add_mlir_dialect_library(StablehloPasses
   ChloLegalizeToStablehlo.cpp
   PassPipelines.cpp
   ShapeLegalizeToStablehlo.cpp
-  StablehloAggressiveFolder.cpp
-  StablehloAggressiveSimplification.cpp
   StablehloCanonicalizeDynamism.cpp
   StablehloConvertToSignless.cpp
   StablehloCompatibilityExpander.cpp
@@ -67,7 +63,6 @@ add_mlir_dialect_library(StablehloPasses
   DEPENDS
   ChloDecompositionPatternsIncGen
   PassesIncGen
-  StablehloAggressiveSimplificationPatternsIncGen
   StablehloCompatibilityExpanderPatternsIncGen
   StablehloComplexMathExpanderPatternsIncGen
   StablehloLegalizeDeprecatedOpsPatternsIncGen
@@ -93,6 +88,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloBroadcastUtils
   StablehloLinalgTransforms
   StablehloOps
+  StablehloOptimizationPasses
   StablehloTypeInference
   VhloOps
 )

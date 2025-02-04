@@ -26,7 +26,6 @@ limitations under the License.
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/CommonFolders.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
@@ -47,13 +46,13 @@ limitations under the License.
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/StablehloOps.h"
-#include "stablehlo/transforms/Passes.h"
+#include "stablehlo/transforms/optimization/Passes.h"
 
 namespace mlir {
 namespace stablehlo {
 
 #define GEN_PASS_DEF_STABLEHLOAGGRESSIVEFOLDERPASS
-#include "stablehlo/transforms/Passes.h.inc"
+#include "stablehlo/transforms/optimization/Passes.h.inc"
 
 namespace {
 
@@ -461,8 +460,9 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
 struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  EvalConvertOpPattern(MLIRContext* context, bool foldFloat_)
-      : OpRewritePattern<ConvertOp>(context), foldFloat{foldFloat_} {}
+  EvalConvertOpPattern(MLIRContext* context, PatternBenefit benefit,
+                       bool foldFloat_)
+      : OpRewritePattern<ConvertOp>(context, benefit), foldFloat{foldFloat_} {}
 
   LogicalResult matchAndRewrite(ConvertOp op,
                                 PatternRewriter& rewriter) const override {
@@ -900,10 +900,11 @@ struct StablehloAggressiveFolderPass
 
 void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
                                                MLIRContext* context,
-                                               bool foldFloat) {
-  populateStablehloShapeFolderPatterns(patterns, context, foldFloat);
-  patterns->add<EvalIotaOpPattern>(context);
-  patterns->add<EvalTransposeOpPattern>(context);
+                                               bool foldFloat,
+                                               PatternBenefit benefit) {
+  populateStablehloShapeFolderPatterns(patterns, context, foldFloat, benefit);
+  patterns->add<EvalIotaOpPattern>(context, benefit);
+  patterns->add<EvalTransposeOpPattern>(context, benefit);
 
   // TODO: Consolidate FoldOp patterns
   // One is used by Shape Refinement, the other is a generic folder.
@@ -914,27 +915,27 @@ void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
 }
 
 void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
-                                          MLIRContext* context,
-                                          bool foldFloat) {
-  patterns->add<EvalAddOpShapePattern>(context);
-  patterns->add<EvalAndOpPattern>(context);
-  patterns->add<EvalBroadcastInDimOpPattern>(context);
-  patterns->add<EvalClampOpPattern>(context);
-  patterns->add<EvalCompareOpPattern>(context);
-  patterns->add<EvalConcatenateOpPattern>(context);
-  patterns->add<EvalConvertOpPattern>(context, foldFloat);
-  patterns->add<EvalDivOpPattern>(context);
-  patterns->add<EvalGetDimensionSizeOpPattern>(context);
-  patterns->add<EvalMaxOpPattern>(context);
-  patterns->add<EvalMinOpPattern>(context);
-  patterns->add<EvalMulOpPattern>(context);
-  patterns->add<EvalOrOpPattern>(context);
-  patterns->add<EvalRemOpPattern>(context);
-  patterns->add<EvalReshapeOpPattern>(context);
-  patterns->add<EvalSelectOpPattern>(context);
-  patterns->add<EvalSignOpPattern>(context);
-  patterns->add<EvalSliceOpPattern>(context);
-  patterns->add<EvalSubtractOpPattern>(context);
+                                          MLIRContext* context, bool foldFloat,
+                                          PatternBenefit benefit) {
+  patterns->add<EvalAddOpShapePattern>(context, benefit);
+  patterns->add<EvalAndOpPattern>(context, benefit);
+  patterns->add<EvalBroadcastInDimOpPattern>(context, benefit);
+  patterns->add<EvalClampOpPattern>(context, benefit);
+  patterns->add<EvalCompareOpPattern>(context, benefit);
+  patterns->add<EvalConcatenateOpPattern>(context, benefit);
+  patterns->add<EvalConvertOpPattern>(context, benefit, foldFloat);
+  patterns->add<EvalDivOpPattern>(context, benefit);
+  patterns->add<EvalGetDimensionSizeOpPattern>(context, benefit);
+  patterns->add<EvalMaxOpPattern>(context, benefit);
+  patterns->add<EvalMinOpPattern>(context, benefit);
+  patterns->add<EvalMulOpPattern>(context, benefit);
+  patterns->add<EvalOrOpPattern>(context, benefit);
+  patterns->add<EvalRemOpPattern>(context, benefit);
+  patterns->add<EvalReshapeOpPattern>(context, benefit);
+  patterns->add<EvalSelectOpPattern>(context, benefit);
+  patterns->add<EvalSignOpPattern>(context, benefit);
+  patterns->add<EvalSliceOpPattern>(context, benefit);
+  patterns->add<EvalSubtractOpPattern>(context, benefit);
 }
 
 }  // namespace stablehlo
