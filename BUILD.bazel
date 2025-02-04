@@ -1219,7 +1219,6 @@ cc_library(
 
 gentbl_cc_library(
     name = "stablehlo_passes_optimization_inc_gen",
-    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     tbl_outs = [
         (
@@ -1228,6 +1227,12 @@ gentbl_cc_library(
                 "-name=Optimization",
             ],
             "stablehlo/transforms/optimization/Passes.h.inc",
+        ),
+        (
+            [
+                "-gen-pass-doc",
+            ],
+            "stablehlo/transforms/optimization/stablehlo_optimization_passes.md",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",

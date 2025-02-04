@@ -59,6 +59,8 @@ toc:
     path: /stablehlo/ide
   - title: StableHLO Passes
     path: /stablehlo/generated/stablehlo_passes
+  - title: StableHLO Optimization Passes
+    path: /stablehlo/generated/stablehlo_optimization_passes
   - title: StableHLO Interpreter Passes
     path: /stablehlo/generated/interpreter_passes
   - title: StableHLO Linalg Passes

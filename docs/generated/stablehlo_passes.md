@@ -13,21 +13,6 @@ An experimental pass that legalizes shape-related ops to StableHLO ops.
 Bringing shape and data computations together via an optional pass will
 make it possible for the StableHLO ecosystem to potentially leverage the
 compilation pipelines that use StableHLO operations to model dynamism.
-### `-stablehlo-aggressive-folder`
-
-_Folds StableHLO operations_
-
-
-
-#### Options
-```
--fold-float : Allow for potentially lossy computations using float type.
-```
-### `-stablehlo-aggressive-simplification`
-
-_Canonicalizes StableHLO operations_
-
-
 ### `-stablehlo-canonicalize-dynamism`
 
 _Canonicalizes dynamic StableHLO ops into static ops._
