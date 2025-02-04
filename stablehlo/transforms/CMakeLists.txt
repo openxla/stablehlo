@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+add_subdirectory(optimization)
+
 set(LLVM_TARGET_DEFINITIONS Passes.td)
 mlir_tablegen(Passes.h.inc -gen-pass-decls)
 add_public_tablegen_target(PassesIncGen)
@@ -19,10 +21,6 @@ add_public_tablegen_target(PassesIncGen)
 set(LLVM_TARGET_DEFINITIONS ChloDecompositionPatterns.td)
 mlir_tablegen(ChloDecompositionPatterns.h.inc --gen-rewriters)
 add_public_tablegen_target(ChloDecompositionPatternsIncGen)
-
-set(LLVM_TARGET_DEFINITIONS StablehloAggressiveSimplificationPatterns.td)
-mlir_tablegen(StablehloAggressiveSimplificationPatterns.h.inc --gen-rewriters)
-add_public_tablegen_target(StablehloAggressiveSimplificationPatternsIncGen)
 
 set(LLVM_TARGET_DEFINITIONS StablehloCompatibilityExpanderPatterns.td)
 mlir_tablegen(StablehloCompatibilityExpanderPatterns.h.inc --gen-rewriters)
@@ -93,6 +91,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloBroadcastUtils
   StablehloLinalgTransforms
   StablehloOps
+  StablehloOptimizationPasses
   StablehloTypeInference
   VhloOps
 )

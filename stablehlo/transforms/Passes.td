@@ -36,27 +36,6 @@ def ShapeLegalizeToStablehloPass : Pass<"shape-legalize-to-stablehlo", "func::Fu
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
 }
 
-def StablehloAggressiveFolderPass
-    : Pass<"stablehlo-aggressive-folder", "func::FuncOp"> {
-  let summary = "Folds StableHLO operations";
-  let dependentDialects = [
-    "mlir::stablehlo::StablehloDialect",
-    "mlir::tensor::TensorDialect",
-  ];
-  let options = [
-    Option<"foldFloat", "fold-float", "bool", /*default=*/"true",
-           "Allow for potentially lossy computations using float type.">,
-  ];
-}
-
-def StablehloAggressiveSimplificationPass
-    : Pass<"stablehlo-aggressive-simplification", "func::FuncOp"> {
-  let summary = "Canonicalizes StableHLO operations";
-  let dependentDialects = [
-    "mlir::stablehlo::StablehloDialect",
-  ];
-}
-
 def StablehloCanonicalizeDynamismPass : Pass<"stablehlo-canonicalize-dynamism", "func::FuncOp"> {
   let summary = "Canonicalizes dynamic StableHLO ops into static ops.";
   let description = [{

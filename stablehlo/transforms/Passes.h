@@ -72,11 +72,6 @@ void populateChloToStablehloPatterns(MLIRContext *context,
 void populateChloConstantLikePattern(MLIRContext *context,
                                      RewritePatternSet *patterns);
 
-/// Collection of folding patterns for StableHLO.
-void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
-                                               MLIRContext *context,
-                                               bool foldFloat);
-
 /// Collection of rewrite patterns for lowering quantized StableHLO operations
 /// using uniform dequantize/quantize operations.
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
@@ -87,17 +82,6 @@ void populateStablehloLegalizeQuantizedOpToQDQPatterns(
 /// using unform dequantize/quantize operations.
 void populateStablehloLegalizeQDQToQuantizedOpPatterns(
     RewritePatternSet *patterns, MLIRContext *context);
-
-/// A subset of folding patterns for StableHLO that is necessary for shape
-/// refinement.
-void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
-                                          MLIRContext *context,
-                                          bool foldFloat = false);
-
-/// Collection of canonicalization patterns for StableHLO.
-void populateStablehloCanonicalizationPatterns(MLIRContext *context,
-                                               RewritePatternSet *patterns,
-                                               PatternBenefit benefit = 1);
 
 /// Collection of patterns to upgrade deprecated ops to long-term supported ops.
 void populateStablehloLegalizeDeprecatedOpsPatterns(
