@@ -576,7 +576,7 @@ FailureOr<uint32_t> getBitWidthIfReferenceCopyable(Type elementType) {
   uint32_t bitWidth = isa<FloatType>(elementType)
                           ? cast<FloatType>(elementType).getWidth()
                           : cast<IntegerType>(elementType).getWidth();
-  if (bitWidth != 1 && bitWidth % 8 == 0) return failure();
+  if (bitWidth % 8 == 0) return failure();
   return bitWidth;
 }
 
@@ -596,6 +596,7 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
   if (isa<FloatType>(elementType)) {
     // Explicitly copy sub-byte float values
     std::vector<llvm::APFloat> values;
+    values.reserve(tensor.getNumElements());
     for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
       Element element = tensor.get(*it);
       values.push_back(element.getFloatValue());
@@ -613,6 +614,7 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
       return DenseElementsAttr::get(type, data);
     }
     std::vector<llvm::APInt> values;
+    values.reserve(tensor.getNumElements());
     for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
       Element element = tensor.get(*it);
       values.push_back(element.getIntegerValue());
