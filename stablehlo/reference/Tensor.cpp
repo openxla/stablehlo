@@ -567,34 +567,57 @@ Tensor makeTensor(DenseElementsAttr attr) {
       invalidArgument("Unsupported type: ", debugString(type).c_str()));
 }
 
+FailureOr<uint32_t> getBitWidthIfReferenceCopyable(Type elementType) {
+  // Can't copy complex types by reference.
+  if (!isa<FloatType>(elementType) || !isa<IntegerType>(elementType))
+    return failure();
+
+  // Can't copy bool or sub-byte types by reference.
+  uint32_t bitWidth = isa<FloatType>(elementType)
+                          ? cast<FloatType>(elementType).getWidth()
+                          : cast<IntegerType>(elementType).getWidth();
+  if (bitWidth != 1 && bitWidth % 8 == 0) return failure();
+  return bitWidth;
+}
+
 DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
   auto type = tensor.getType();
   auto elementType = type.getElementType();
 
-  if (auto floatType = dyn_cast<FloatType>(elementType)) {
-    // Build from tensor data ref
-    uint32_t bitWidth = floatType.getWidth();
-    bitWidth = bitWidth / 8;
-    auto size = tensor.getNumElements() * bitWidth;
-    auto floatValues = ArrayRef(tensor.getData(), size);
-    return DenseElementsAttr::getFromRawBuffer(type, floatValues);
+  // Optimization: Copy by reference when possible
+  auto bitWidth = getBitWidthIfReferenceCopyable(elementType);
+  if (succeeded(bitWidth)) {
+    auto numBytes = bitWidth.value() / 8;
+    auto sizeInBytes = tensor.getNumElements() * numBytes;
+    auto values = ArrayRef(tensor.getData(), sizeInBytes);
+    return DenseElementsAttr::getFromRawBuffer(type, values);
   }
-  if (auto intType = dyn_cast<IntegerType>(elementType)) {
-    uint32_t bitWidth = intType.getWidth();
-    if (bitWidth == 1) {
-      // Need to convert bool data to vector before dense elements creation.
+
+  if (isa<FloatType>(elementType)) {
+    // Explicitly copy sub-byte float values
+    std::vector<llvm::APFloat> values;
+    for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
+      Element element = tensor.get(*it);
+      values.push_back(element.getFloatValue());
+    }
+    return DenseFPElementsAttr::get(tensor.getType(), values);
+  }
+  if (isa<IntegerType>(elementType)) {
+    // Explicitly copy sub-byte or bool ints
+    if (isSupportedBooleanType(elementType)) {
       SmallVector<bool, 1> data;
       data.reserve(tensor.getNumElements());
       auto v = tensor.getData();
-      for (size_t i = 0; i < tensor.getNumElements(); ++i)
+      for (size_t i = 0; i < static_cast<size_t>(tensor.getNumElements()); ++i)
         data.push_back(v[i] ? 1 : 0);
       return DenseElementsAttr::get(type, data);
     }
-    // Build from tensor data ref
-    bitWidth = bitWidth / 8;
-    auto size = tensor.getNumElements() * bitWidth;
-    auto floatValues = ArrayRef(tensor.getData(), size);
-    return DenseElementsAttr::getFromRawBuffer(type, floatValues);
+    std::vector<llvm::APInt> values;
+    for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
+      Element element = tensor.get(*it);
+      values.push_back(element.getIntegerValue());
+    }
+    return DenseIntElementsAttr::get(tensor.getType(), values);
   }
   if (isa<ComplexType>(elementType)) {
     auto complexElemTy = cast<ComplexType>(elementType).getElementType();
