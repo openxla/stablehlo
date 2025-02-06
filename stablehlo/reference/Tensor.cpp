@@ -571,25 +571,30 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
   auto type = tensor.getType();
   auto elementType = type.getElementType();
 
-  if (isa<FloatType>(elementType)) {
-    std::vector<llvm::APFloat> values;
-    for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
-      Element element = tensor.get(*it);
-      values.push_back(element.getFloatValue());
-    }
-    return DenseFPElementsAttr::get(tensor.getType(), values);
+  if (auto floatType = dyn_cast<FloatType>(elementType)) {
+    // Build from tensor data ref
+    uint32_t bitWidth = floatType.getWidth();
+    bitWidth = bitWidth / 8;
+    auto size = tensor.getNumElements() * bitWidth;
+    auto floatValues = ArrayRef(tensor.getData(), size);
+    return DenseElementsAttr::getFromRawBuffer(type, floatValues);
   }
-  if (isa<IntegerType>(elementType)) {
-    std::vector<llvm::APInt> values;
-    for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
-      Element element = tensor.get(*it);
-      if (isSupportedBooleanType(elementType)) {
-        values.push_back(APInt(1, element.getBooleanValue() ? 1 : 0));
-      } else {
-        values.push_back(element.getIntegerValue());
-      }
+  if (auto intType = dyn_cast<IntegerType>(elementType)) {
+    uint32_t bitWidth = intType.getWidth();
+    if (bitWidth == 1) {
+      // Need to convert bool data to vector before dense elements creation.
+      SmallVector<bool, 1> data;
+      data.reserve(tensor.getNumElements());
+      auto v = tensor.getData();
+      for (size_t i = 0; i < tensor.getNumElements(); ++i)
+        data.push_back(v[i] ? 1 : 0);
+      return DenseElementsAttr::get(type, data);
     }
-    return DenseIntElementsAttr::get(tensor.getType(), values);
+    // Build from tensor data ref
+    bitWidth = bitWidth / 8;
+    auto size = tensor.getNumElements() * bitWidth;
+    auto floatValues = ArrayRef(tensor.getData(), size);
+    return DenseElementsAttr::getFromRawBuffer(type, floatValues);
   }
   if (isa<ComplexType>(elementType)) {
     auto complexElemTy = cast<ComplexType>(elementType).getElementType();
