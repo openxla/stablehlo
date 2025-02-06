@@ -48,7 +48,7 @@
 #include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/transforms/PassUtils.h"
-#include "stablehlo/transforms/Passes.h"
+#include "stablehlo/transforms/optimization/Passes.h"
 
 using llvm::SmallBitVector;
 
@@ -56,7 +56,7 @@ namespace mlir {
 namespace stablehlo {
 
 #define GEN_PASS_DEF_STABLEHLOAGGRESSIVESIMPLIFICATIONPASS
-#include "stablehlo/transforms/Passes.h.inc"
+#include "stablehlo/transforms/optimization/Passes.h.inc"
 
 namespace {
 // This is an upper limit on how many elements can be folded by an op folder.
@@ -1499,7 +1499,7 @@ struct StablehloAggressiveSimplificationPass final
   FrozenRewritePatternSet patterns;
 };
 
-#include "stablehlo/transforms/StablehloAggressiveSimplificationPatterns.h.inc"
+#include "stablehlo/transforms/optimization/StablehloAggressiveSimplificationPatterns.h.inc"
 }  // namespace
 
 void populateStablehloCanonicalizationPatterns(MLIRContext *context,

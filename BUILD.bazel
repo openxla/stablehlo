@@ -316,11 +316,11 @@ gentbl_cc_library(
     tbl_outs = [
         (
             ["--gen-rewriters"],
-            "stablehlo/transforms/StablehloAggressiveSimplificationPatterns.h.inc",
+            "stablehlo/transforms/optimization/StablehloAggressiveSimplificationPatterns.h.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/transforms/StablehloAggressiveSimplificationPatterns.td",
+    td_file = "stablehlo/transforms/optimization/StablehloAggressiveSimplificationPatterns.td",
     deps = [
         ":stablehlo_ops_td_files",
     ],
@@ -1173,14 +1173,32 @@ gentbl_cc_library(
 )
 
 cc_library(
+    name = "stablehlo_pass_utils",
+    srcs = [
+        "stablehlo/transforms/PassUtils.cpp",
+    ],
+    hdrs = [
+        "stablehlo/transforms/PassUtils.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":base",
+        ":chlo_ops",
+        ":stablehlo_ops",
+        ":stablehlo_pass_inc_gen",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:ComplexDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_library(
     name = "stablehlo_passes",
     srcs = [
         "stablehlo/transforms/ChloLegalizeToStablehlo.cpp",
         "stablehlo/transforms/PassPipelines.cpp",
-        "stablehlo/transforms/PassUtils.cpp",
         "stablehlo/transforms/ShapeLegalizeToStablehlo.cpp",
-        "stablehlo/transforms/StablehloAggressiveFolder.cpp",
-        "stablehlo/transforms/StablehloAggressiveSimplification.cpp",
         "stablehlo/transforms/StablehloCanonicalizeDynamism.cpp",
         "stablehlo/transforms/StablehloCompatibilityExpander.cpp",
         "stablehlo/transforms/StablehloComplexMathExpander.cpp",
@@ -1217,6 +1235,8 @@ cc_library(
         ":stablehlo_ops_inc_gen",
         ":stablehlo_pass_inc_gen",
         ":stablehlo_type_conversions",
+        ":stablehlo_pass_utils",
+        ":stablehlo_passes_optimization",
         ":stablehlo_type_inference",
         ":version",
         ":vhlo_ops",
@@ -1240,6 +1260,61 @@ cc_library(
         "@llvm-project//mlir:ShapeDialect",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TensorDialect",
+        "@llvm-project//mlir:TransformUtils",
+        "@llvm-project//mlir:Transforms",
+    ],
+)
+
+gentbl_cc_library(
+    name = "stablehlo_passes_optimization_inc_gen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (
+            [
+                "-gen-pass-decls",
+                "-name=Optimization",
+            ],
+            "stablehlo/transforms/optimization/Passes.h.inc",
+        ),
+        (
+            [
+                "-gen-pass-doc",
+            ],
+            "stablehlo/transforms/optimization/stablehlo_optimization_passes.md",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/transforms/optimization/Passes.td",
+    deps = ["@llvm-project//mlir:PassBaseTdFiles"],
+)
+
+cc_library(
+    name = "stablehlo_passes_optimization",
+    srcs = [
+        "stablehlo/transforms/optimization/StablehloAggressiveFolder.cpp",
+        "stablehlo/transforms/optimization/StablehloAggressiveSimplification.cpp",
+        "stablehlo/transforms/optimization/StablehloTargetIndependentOptimization.cpp",
+    ],
+    hdrs = [
+        "stablehlo/transforms/optimization/Passes.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":base",
+        ":stablehlo_aggressive_simplification_inc_gen",
+        ":stablehlo_ops",
+        ":stablehlo_pass_inc_gen",
+        ":stablehlo_pass_utils",
+        ":stablehlo_passes_optimization_inc_gen",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:ArithDialect",
+        "@llvm-project//mlir:CommonFolders",
+        "@llvm-project//mlir:DialectUtils",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:Rewrite",
+        "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TransformUtils",
         "@llvm-project//mlir:Transforms",
     ],
@@ -1428,6 +1503,7 @@ cc_binary(
         ":linalg_passes",
         ":register",
         ":stablehlo_passes",
+        ":stablehlo_passes_optimization",
         ":tosa_passes",
         "//stablehlo/tests:check_ops",
         "//stablehlo/tests:test_utils",

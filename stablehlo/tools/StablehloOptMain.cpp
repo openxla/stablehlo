@@ -26,12 +26,14 @@ limitations under the License.
 #include "stablehlo/tests/CheckOps.h"
 #include "stablehlo/tests/TestUtils.h"
 #include "stablehlo/transforms/Passes.h"
+#include "stablehlo/transforms/optimization/Passes.h"
 
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
   mlir::hlo::registerAllTestPasses();
   mlir::stablehlo::registerPassPipelines();
   mlir::stablehlo::registerPasses();
+  mlir::stablehlo::registerOptimizationPasses();
   mlir::stablehlo::registerStablehloLinalgTransformsPasses();
   mlir::stablehlo::registerInterpreterTransformsPasses();
   mlir::tosa::registerStablehloTOSATransformsPasses();
