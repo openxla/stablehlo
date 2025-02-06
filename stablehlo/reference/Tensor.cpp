@@ -567,12 +567,36 @@ Tensor makeTensor(DenseElementsAttr attr) {
       invalidArgument("Unsupported type: ", debugString(type).c_str()));
 }
 
+FailureOr<uint32_t> getBitWidthIfReferenceCopyable(Type elementType) {
+  // Can't copy complex types by reference.
+  if (!isa<FloatType>(elementType) || !isa<IntegerType>(elementType))
+    return failure();
+
+  // Can't copy bool or sub-byte types by reference.
+  uint32_t bitWidth = isa<FloatType>(elementType)
+                          ? cast<FloatType>(elementType).getWidth()
+                          : cast<IntegerType>(elementType).getWidth();
+  if (bitWidth % 8 == 0) return failure();
+  return bitWidth;
+}
+
 DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
   auto type = tensor.getType();
   auto elementType = type.getElementType();
 
+  // Optimization: Copy by reference when possible
+  auto bitWidth = getBitWidthIfReferenceCopyable(elementType);
+  if (succeeded(bitWidth)) {
+    auto numBytes = bitWidth.value() / 8;
+    auto sizeInBytes = tensor.getNumElements() * numBytes;
+    auto values = ArrayRef(tensor.getData(), sizeInBytes);
+    return DenseElementsAttr::getFromRawBuffer(type, values);
+  }
+
   if (isa<FloatType>(elementType)) {
+    // Explicitly copy sub-byte float values
     std::vector<llvm::APFloat> values;
+    values.reserve(tensor.getNumElements());
     for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
       Element element = tensor.get(*it);
       values.push_back(element.getFloatValue());
@@ -580,14 +604,20 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
     return DenseFPElementsAttr::get(tensor.getType(), values);
   }
   if (isa<IntegerType>(elementType)) {
+    // Explicitly copy sub-byte or bool ints
+    if (isSupportedBooleanType(elementType)) {
+      SmallVector<bool, 1> data;
+      data.reserve(tensor.getNumElements());
+      auto v = tensor.getData();
+      for (size_t i = 0; i < static_cast<size_t>(tensor.getNumElements()); ++i)
+        data.push_back(v[i] ? 1 : 0);
+      return DenseElementsAttr::get(type, data);
+    }
     std::vector<llvm::APInt> values;
+    values.reserve(tensor.getNumElements());
     for (auto it = tensor.index_begin(); it != tensor.index_end(); ++it) {
       Element element = tensor.get(*it);
-      if (isSupportedBooleanType(elementType)) {
-        values.push_back(APInt(1, element.getBooleanValue() ? 1 : 0));
-      } else {
-        values.push_back(element.getIntegerValue());
-      }
+      values.push_back(element.getIntegerValue());
     }
     return DenseIntElementsAttr::get(tensor.getType(), values);
   }

@@ -80,6 +80,11 @@ llvm::cl::opt<std::string> argsOption(
     "args", llvm::cl::desc("Arguments to pass to the interpreter"),
     llvm::cl::init(""));
 
+llvm::cl::opt<bool> interpreterPrintDense(
+    "interpreter-print-dense",
+    llvm::cl::desc("Print interpreter results as dense attributes"),
+    llvm::cl::init(false));
+
 namespace {
 
 stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
@@ -273,6 +278,15 @@ TranslateFromMLIRRegistration interpretRegistration(
 
       auto results = evalModule(module, inputs.value(), config);
       if (failed(results)) return failure();
+
+      if (interpreterPrintDense.getValue()) {
+        DenseElementsAttr denseResult;
+        for (auto &result : *results) {
+          denseResult = makeDenseElementsAttr(result.getTensor());
+          os << denseResult << '\n';
+        }
+        return success();
+      }
 
       for (auto &result : *results) {
         result.print(os);
