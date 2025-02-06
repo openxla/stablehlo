@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+add_subdirectory(conversions)
 add_subdirectory(optimization)
 
 set(LLVM_TARGET_DEFINITIONS Passes.td)

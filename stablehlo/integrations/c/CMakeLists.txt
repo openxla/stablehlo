@@ -32,11 +32,12 @@ add_mlir_public_c_api_library(ChloCAPI
 
 add_mlir_public_c_api_library(StablehloCAPI
   PARTIAL_SOURCES_INTENDED
-  StablehloApi.cpp
   StablehloAttributes.cpp
   StablehloDialect.cpp
   StablehloPasses.cpp
   StablehloTypes.cpp
+  StablehloDialectApi.cpp
+  StablehloUnifiedApi.cpp
 
   LINK_LIBS PUBLIC
   MLIRCAPIIR

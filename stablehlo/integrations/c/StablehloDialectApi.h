@@ -10,8 +10,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_INTEGRATIONS_C_STABLEHLOAPI_H_
-#define STABLEHLO_INTEGRATIONS_C_STABLEHLOAPI_H_
+#ifndef STABLEHLO_INTEGRATIONS_C_STABLEHLODIALECTAPI_H_
+#define STABLEHLO_INTEGRATIONS_C_STABLEHLODIALECTAPI_H_
 
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
@@ -115,16 +115,8 @@ MLIR_CAPI_EXPORTED MlirLogicalResult stablehloDeserializePortableArtifact(
 MLIR_CAPI_EXPORTED MlirModule stablehloDeserializePortableArtifactNoError(
     MlirStringRef artifactStr, MlirContext ctx);
 
-// Entrypoint for calling the StableHLO reference interpreter.
-// Returns an array attribute of dense element attributes for results.
-// Sets error code to non-zero on failure.
-MLIR_CAPI_EXPORTED MlirAttribute stablehloEvalModule(MlirModule module,
-                                                     int nArgs,
-                                                     MlirAttribute const* args,
-                                                     int* errorCode);
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // STABLEHLO_INTEGRATIONS_C_STABLEHLOAPI_H_
+#endif  // STABLEHLO_INTEGRATIONS_C_STABLEHLODIALECTAPI_H_
