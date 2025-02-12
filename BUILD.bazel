@@ -943,7 +943,6 @@ cc_library(
     ],
 )
 
-
 # Header-only target, used when using the C API from a separate shared library.
 cc_library(
     name = "stablehlo_dialect_capi_headers",
