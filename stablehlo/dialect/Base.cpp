@@ -776,7 +776,7 @@ bool isValidQuantizedDimension(Type type) {
   int64_t numScales =
       static_cast<int64_t>(quantizedPerAxisElementType.getScales().size());
   return quantDim < rankedType.getRank() &&
-         (!rankedType.isDynamicDim(quantDim) &&
+         (rankedType.isDynamicDim(quantDim) ||
           numScales == rankedType.getDimSize(quantDim));
 }
 

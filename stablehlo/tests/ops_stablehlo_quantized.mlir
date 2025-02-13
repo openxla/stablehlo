@@ -888,7 +888,7 @@ func.func @negative_select_and_scatter_quantization(%arg0: tensor<10x24x24x64x!q
 // -----
 
 func.func @illegal_storage_type_for_quantized_element_type(%arg0: tensor<4x!quant.uniform<si8:f32, 1.000000e+00>>) -> tensor<4xf32> {
-  // expected-error@+1 {{operand #0 must be tensor of 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<4x!quant.uniform<i8:f32, 1.000000e+00>>}}
+  // expected-error@+1 {{operand #0 must be ranked tensor of 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<4x!quant.uniform<i8:f32, 1.000000e+00>>}}
   %0 = "stablehlo.uniform_dequantize"(%arg0) : (tensor<4x!quant.uniform<si8:f32, 1.000000e+00>>) -> tensor<4xf32>
   func.return %0 : tensor<4xf32>
 }
@@ -1362,7 +1362,7 @@ func.func @quantized_element_type_c11(%arg0: tensor<1x5x2x!quant.uniform<i8<-128
 
 // -----
 
-func.func @quantized_element_type_c12(%arg0: tensor<1x5x2x!quant.uniform<i8<-128:127>:f32:10, {0.1:-30, 0.1:-30}>>) {
+func.func @quantized_element_type_on_non_quantized_op_c12(%arg0: tensor<1x5x2x!quant.uniform<i8<-128:127>:f32:10, {0.1:-30, 0.1:-30}>>) {
   // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}} 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x5x2x!quant.uniform<i8:f32:10, {1.000000e-01:-30,1.000000e-01:-30}>>'}}
   %0 = stablehlo.add %arg0,  %arg0 : tensor<1x5x2x!quant.uniform<i8<-128:127>:f32:10, {0.1:-30, 0.1:-30}>>
   func.return
@@ -1370,12 +1370,51 @@ func.func @quantized_element_type_c12(%arg0: tensor<1x5x2x!quant.uniform<i8<-128
 
 // -----
 
-func.func @quantized_element_type_c13(%arg0: tensor<1x5x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30,0.1:-30 }>>) {
+func.func @quantized_element_type_on_uniform_quantize_op_c12(%arg0: tensor<1x5x2xf32>) {
+  // expected-error-re@+1 {{op result #0 must be ranked tensor of 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x5x2x!quant.uniform<i8:f32:10, {1.000000e-01:-30,1.000000e-01:-30}>>}}
+  %0 = "stablehlo.uniform_quantize"(%arg0) : (tensor<1x5x2xf32>) -> tensor<1x5x2x!quant.uniform<i8:f32:10, {0.1:-30, 0.1:-30}>>
+  func.return
+}
+
+// -----
+
+func.func @quantized_element_type_on_uniform_dequantize_op_c12(%arg0: tensor<1x5x2x!quant.uniform<i8:f32:10, {0.1:-30, 0.1:-30}>>) {
+  // expected-error-re@+1 {{operand #0 must be ranked tensor of 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x5x2x!quant.uniform<i8:f32:10, {1.000000e-01:-30,1.000000e-01:-30}>>}}
+  %0 = "stablehlo.uniform_dequantize"(%arg0) : (tensor<1x5x2x!quant.uniform<i8:f32:10, {0.1:-30, 0.1:-30}>>) -> tensor<1x5x2xf32>
+  func.return
+}
+
+// -----
+
+func.func @quantized_element_type_on_non_quantized_op_c13(%arg0: tensor<1x5x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30,0.1:-30 }>>) {
   // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}} 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x5x2x!quant.uniform<i8:f32:1, {1.000000e-01:-30,1.000000e-01:-30}>>'}}
   %0 = stablehlo.add %arg0,  %arg0 : tensor<1x5x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30,0.1:-30 }>>
   func.return
 }
 
+// -----
+
+// CHECK-LABEL: @quantized_dimension_with_dynamic_size
+func.func @quantized_dimension_with_dynamic_size(%arg0: tensor<1x?x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30,0.1:-30 }>>) {
+  %0 = stablehlo.add %arg0,  %arg0 : tensor<1x?x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30,0.1:-30 }>>
+  func.return
+}
+
+// -----
+
+func.func @quantized_element_type_on_uniform_quantize_op_c13(%arg0: tensor<1x5x2xf32>) {
+  // expected-error-re@+1 {{op result #0 must be ranked tensor of 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x5x2x!quant.uniform<i8:f32:1, {1.000000e-01:-30,1.000000e-01:-30}>>}}
+  %0 = "stablehlo.uniform_quantize"(%arg0) : (tensor<1x5x2xf32>) -> tensor<1x5x2x!quant.uniform<i8:f32:1, {0.1:-30, 0.1:-30}>>
+  func.return
+}
+
+// -----
+
+func.func @quantized_element_type_on_uniform_dequantize_op_c13(%arg0: tensor<1x5x2x!quant.uniform<i8:f32:1, {0.1:-30, 0.1:-30}>>) {
+  // expected-error-re@+1 {{operand #0 must be ranked tensor of 2/4/8/16/32-bit uniform quantized signed integer or 2/4/8/16/32-bit uniform quantized unsigned integer or 2/4/8/16/32-bit uniform quantized per axis signed integer or 2/4/8/16/32-bit uniform quantized per axis unsigned integer values, but got 'tensor<1x5x2x!quant.uniform<i8:f32:1, {1.000000e-01:-30,1.000000e-01:-30}>>}}
+  %0 = "stablehlo.uniform_dequantize"(%arg0) : (tensor<1x5x2x!quant.uniform<i8:f32:1, {0.1:-30, 0.1:-30}>>) -> tensor<1x5x2xf32>
+  func.return
+}
 // -----
 
 func.func @uniform_quantized_c1(%arg0: tensor<2xf32>) {

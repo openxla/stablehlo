@@ -519,8 +519,6 @@ cc_library(
         "stablehlo/conversions/linalg/transforms/StablehloToLinalgRandom.cpp",
         "stablehlo/conversions/linalg/transforms/StablehloToLinalgReduce.cpp",
         "stablehlo/conversions/linalg/transforms/TypeConversion.cpp",
-        "stablehlo/transforms/conversions/TypeConversion.cpp",
-        "stablehlo/transforms/conversions/TypeConversion.h",
     ],
     hdrs = [
         "stablehlo/conversions/linalg/transforms/LegalizeToLinalgUtils.h",
@@ -531,6 +529,7 @@ cc_library(
     ],
     strip_include_prefix = ".",
     deps = [
+        "stablehlo_type_conversions",
         ":base",
         ":chlo_ops",
         ":linalg_pass_inc_gen",
@@ -995,7 +994,7 @@ cc_library(
         ":linalg_passes",
         ":reference_api",
         ":reference_configuration",
-        ":stablehlo_dialect_capi",
+        ":stablehlo_dialect_capi_objects",
         ":stablehlo_ops",
         ":stablehlo_passes",
         ":stablehlo_portable_api",
