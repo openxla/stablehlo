@@ -169,15 +169,15 @@ LogicalResult rewriteSimpleDotOp(DotOpTy op, PatternRewriter& rewriter) {
 
   auto lhsReshapeType =
       RankedTensorType::get(lhsReshape, lhsType.getElementType());
+  auto lhsReshapeValue = getTosaConstShape(rewriter, op->getLoc(), lhsReshape);
   auto lhsReshapeOp = rewriter.create<tosa::ReshapeOp>(
-      op->getLoc(), lhsReshapeType, op.getLhs(),
-      rewriter.getDenseI64ArrayAttr(lhsReshape));
+      op->getLoc(), lhsReshapeType, op.getLhs(), lhsReshapeValue);
 
   auto rhsReshapeType =
       RankedTensorType::get(rhsReshape, rhsType.getElementType());
+  auto rhsReshapeValue = getTosaConstShape(rewriter, op->getLoc(), rhsReshape);
   auto rhsReshapeOp = rewriter.create<tosa::ReshapeOp>(
-      op->getLoc(), rhsReshapeType, op.getRhs(),
-      rewriter.getDenseI64ArrayAttr(rhsReshape));
+      op->getLoc(), rhsReshapeType, op.getRhs(), rhsReshapeValue);
 
   auto matMulType =
       RankedTensorType::get(matMulShape, lhsType.getElementType());
@@ -185,8 +185,10 @@ LogicalResult rewriteSimpleDotOp(DotOpTy op, PatternRewriter& rewriter) {
                                                   lhsReshapeOp, rhsReshapeOp);
 
   // Reshape the matmul result back to the original result shape.
-  rewriter.replaceOpWithNewOp<tosa::ReshapeOp>(
-      op, resultType, matMulOp, rewriter.getDenseI64ArrayAttr(resultShape));
+  auto resultReshapeValue =
+      getTosaConstShape(rewriter, op->getLoc(), resultShape);
+  rewriter.replaceOpWithNewOp<tosa::ReshapeOp>(op, resultType, matMulOp,
+                                               resultReshapeValue);
   return success();
 }
 
@@ -383,9 +385,10 @@ struct ConvertStablehloReduceOp : public OpRewritePattern<stablehlo::ReduceOp> {
       }
     }
 
+    auto outputShapeValue =
+        getTosaConstShape(rewriter, op.getLoc(), outputShape);
     rewriter.replaceOpWithNewOp<tosa::ReshapeOp>(
-        op, op.getResultTypes().front(), reduceOpResult,
-        rewriter.getDenseI64ArrayAttr(outputShape));
+        op, op.getResultTypes().front(), reduceOpResult, outputShapeValue);
 
     return success();
   }

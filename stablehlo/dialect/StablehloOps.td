@@ -3374,8 +3374,8 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator",
 
 // TODO(b/230662142): Implement unknown scales/zero_point cases.
 def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize",
-      [], TensorOf<[HLO_Float, HLO_QuantizedInt, HLO_PerAxisQuantizedInt]> /*uniform_quantize_i1*/,
-      TensorOf<[HLO_QuantizedInt, HLO_PerAxisQuantizedInt]>> { /*uniform_quantize_c1*/
+      [], HLO_FloatOrQuantizedIntOrPerAxisQuantizedIntTensor /*uniform_quantize_i1*/,
+      HLO_QuantizedIntOrPerAxisQuantizedIntTensor> { /*uniform_quantize_c1*/
   let summary = "UniformQuantize operation";
   let description = [{
     Performs element-wise conversion of floating-point tensor or quantized
@@ -3395,7 +3395,7 @@ def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize
 }
 
 def StableHLO_UniformDequantizeOp : StableHLO_UnaryElementwiseOp<"uniform_dequantize",
-      [InferTensorType], TensorOf<[HLO_QuantizedInt, HLO_PerAxisQuantizedInt]> /*uniform_dequantize_i1*/,
+      [InferTensorType], HLO_QuantizedIntOrPerAxisQuantizedIntTensor /*uniform_dequantize_i1*/,
       HLO_FpTensor> { /*uniform_dequantize_c1, uniform_dequantize_c2*/
   let summary = "UniformDequantize operation";
   let description = [{

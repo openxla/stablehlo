@@ -188,6 +188,9 @@ def HLO_NonQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_C
 def HLO_TensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
     [IsValidQuantizedDimension]>;
 
+def HLO_FloatOrQuantizedIntOrPerAxisQuantizedIntTensor : RankedTensorOf<[HLO_Float, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
+    [IsValidQuantizedDimension]>;
+
 def HLO_ComplexTensor : RankedTensorOf<[HLO_Complex]>;
 
 def HLO_Tuple : NestedTupleOf<[HLO_Tensor, HLO_PerAxisQuantizedIntTensor, HLO_Token]>;
