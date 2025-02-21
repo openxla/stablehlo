@@ -530,7 +530,8 @@ LogicalResult checkRaggedDotConstraints(
 
     // Validate the actual shape, if it was passed as something other than [g].
     if (rankedGroupSizesType.getRank() != 1) {
-      if (rankedGroupSizesType.getRank() != expectedPrefix.size() + 1) {
+      if (rankedGroupSizesType.getRank() !=
+          static_cast<int64_t>(expectedPrefix.size()) + 1) {
         return emitOptionalError(location, "expected group_sizes to have rank ",
                                  expectedPrefix.size() + 1, ", got ",
                                  rankedGroupSizesType.getRank());
@@ -540,7 +541,7 @@ LogicalResult checkRaggedDotConstraints(
                       groupSizesShape.begin())) {
         auto nonEmptyShapeStr = [](ArrayRef<int64_t> shape) {
           std::string s = "";
-          for (int64_t i = 0; i < shape.size() - 1; ++i) {
+          for (size_t i = 0; i < shape.size() - 1; ++i) {
             s += std::to_string(shape[i]) + ", ";
           }
           return s + std::to_string(shape.back());

@@ -876,7 +876,7 @@ Value createDotLikeKernel<stablehlo::ConvolutionOp>(
     int64_t rank = cast<TensorType>(lhs.getType()).getRank();
     SmallVector<int64_t> paddingLow(rank, 0), paddingHigh(rank, 0),
         paddingInterior(rank, 0);
-    for (int64_t i = 0; i < dims.lhsSpatialDims.size(); ++i) {
+    for (size_t i = 0; i < dims.lhsSpatialDims.size(); ++i) {
       paddingLow[dims.lhsSpatialDims[i]] = originalPadding[i * 2];
       paddingHigh[dims.lhsSpatialDims[i]] = originalPadding[i * 2 + 1];
     }
