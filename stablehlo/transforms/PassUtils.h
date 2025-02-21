@@ -69,6 +69,13 @@ Value getConstantLike(OpBuilder &b, Location loc, const APFloat &constant,
 // Check if any of the given types are mlir::quant::QuantizedType.
 bool isAnyQuantizedTypes(TypeRange types);
 
+// Creates a quantized element type based on the given parameters.
+Type getQuantizedElementType(Location loc, Type storageType, Type expressedType,
+                             ArrayRef<double> scales,
+                             ArrayRef<int64_t> zeroPoints,
+                             int32_t quantizedDimension, int64_t storageTypeMin,
+                             int64_t storageTypeMax);
+
 }  // namespace stablehlo
 }  // namespace mlir
 

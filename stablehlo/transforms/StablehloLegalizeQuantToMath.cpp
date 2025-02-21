@@ -766,6 +766,7 @@ Value calculateZeroPointOffset(OpBuilder &builder, Location loc, Value lhs,
   Value outputDimsValue = nullptr;
   // Calculate LHS contribution when RHS zp is non-zero.
   if (rhsZp != 0) {
+    // Contributions from RHS_ZP * LHS.
     SmallVector<int64_t> reductionDims = to_vector(llvm::concat<const int64_t>(
         dims.lhsSpatialDims, dims.lhsContractingDims));
     Value lhsZpContribution =
@@ -778,15 +779,23 @@ Value calculateZeroPointOffset(OpBuilder &builder, Location loc, Value lhs,
   }
   // Calculate RHS contribution when LHS zp is non-zero.
   if (lhsZp != 0) {
+    // Contributions from LHS_ZP * RHS.
     SmallVector<int64_t> reductionDims = to_vector(llvm::concat<const int64_t>(
         dims.rhsSpatialDims, dims.rhsContractingDims));
     Value rhsZpContribution =
         createZeroPointPartialOffset(builder, loc, rhs, lhsZp, reductionDims);
+
+    int64_t nonBatchingStartingIdx =
+        lhsShape.getRank() - dims.lhsContractingDims.size();
+    if (!dims.lhsSpatialDims.empty() && !dims.rhsSpatialDims.empty()) {
+      // In case of convolution, identified via absence of spatial dims, the
+      // non-batching starting index is the lhs contracting dim.
+      nonBatchingStartingIdx = dims.lhsContractingDims[0];
+    }
     // Broadcast rhs ZP contribution to result tensor shape.
     rhsZpContribution = broadcastZpContribution(
         builder, loc, rhsZpContribution, reductionDims, dims.rhsBatchingDims,
-        lhsShape.getRank() - dims.lhsContractingDims.size(), output,
-        outputTensorType, outputDimsValue);
+        nonBatchingStartingIdx, output, outputTensorType, outputDimsValue);
     if (result) {
       result = builder.create<stablehlo::AddOp>(loc, result, rhsZpContribution);
     } else {
@@ -833,7 +842,8 @@ Value calculateZeroPointOffset(OpBuilder &builder, Location loc, Value lhs,
 template <typename DotLikeOp>
 Value createDotLikeKernel(OpBuilder &builder, Location loc, DotLikeOp,
                           Type resultType, Value &lhs, Value &rhs,
-                          ArrayRef<NamedAttribute> attrs) {
+                          ArrayRef<NamedAttribute> attrs,
+                          const DotLikeDimensionNumbers &dims) {
   return builder.create<stablehlo::DotGeneralOp>(
       loc, resultType, ArrayRef<Value>{lhs, rhs}, attrs);
 }
@@ -843,7 +853,8 @@ Value createDotLikeKernel(OpBuilder &builder, Location loc, DotLikeOp,
 template <>
 Value createDotLikeKernel<stablehlo::ConvolutionOp>(
     OpBuilder &builder, Location loc, stablehlo::ConvolutionOp op,
-    Type resultType, Value &lhs, Value &rhs, ArrayRef<NamedAttribute> attrs) {
+    Type resultType, Value &lhs, Value &rhs, ArrayRef<NamedAttribute> attrs,
+    const DotLikeDimensionNumbers &dims) {
   // We only handle the case where RHS zp is zero.
   // Explicitly pad LHS with zp and update LHS value.
   SmallVector<NamedAttribute> newAttrs(attrs);
@@ -865,9 +876,9 @@ Value createDotLikeKernel<stablehlo::ConvolutionOp>(
     int64_t rank = cast<TensorType>(lhs.getType()).getRank();
     SmallVector<int64_t> paddingLow(rank, 0), paddingHigh(rank, 0),
         paddingInterior(rank, 0);
-    for (int64_t i = 1; i < rank - 1; ++i) {
-      paddingLow[i] = originalPadding[i * 2 - 2];
-      paddingHigh[i] = originalPadding[i * 2 - 1];
+    for (size_t i = 0; i < dims.lhsSpatialDims.size(); ++i) {
+      paddingLow[dims.lhsSpatialDims[i]] = originalPadding[i * 2];
+      paddingHigh[dims.lhsSpatialDims[i]] = originalPadding[i * 2 + 1];
     }
     lhs = builder.create<stablehlo::PadOp>(loc, lhs, zp, paddingLow,
                                            paddingHigh, paddingInterior);
@@ -897,6 +908,8 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
   Value rhs = adaptor.getRhs();
   auto resInt32TensorType =
       op.getResult().getType().clone(rewriter.getI32Type());
+  auto resFloat32TensorType =
+      op.getResult().getType().clone(rewriter.getF32Type());
 
   // Dot result
   //   = dot((lhs - zp_l) * scale_l, (rhs - zp_r) * scale_r) / scale_res
@@ -908,7 +921,7 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
   //   combined_zp = res_zp - zp_offset * combined_scale
   //   zp_offset = zp_l*rhs + zp_r*lhs - zp_l*zp_r
   Value resI32 = createDotLikeKernel(rewriter, op->getLoc(), op,
-                                     resInt32TensorType, lhs, rhs, attrs);
+                                     resInt32TensorType, lhs, rhs, attrs, dims);
 
   auto lhsElementQuantType = getPerTensorType(op.getLhs().getType());
   auto rhsElementQuantType = dyn_cast<quant::UniformQuantizedType>(
@@ -945,8 +958,6 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
     Value combinedScale = rewriter.create<stablehlo::ConstantOp>(
         op->getLoc(), rewriter.getF32FloatAttr(combinedScaleFp));
 
-    auto resFloat32TensorType =
-        op.getResult().getType().clone(rewriter.getF32Type());
     Value resF32 = rewriter.create<stablehlo::ConvertOp>(
         op->getLoc(), resFloat32TensorType, resI32);
     resF32 = rewriter.create<chlo::BroadcastMulOp>(
@@ -1089,6 +1100,7 @@ class ConvertUniformQuantizedDotGeneralOp
 };
 
 bool isConvNhwc(const stablehlo::ConvDimensionNumbersAttr &dims) {
+  // lhs(b, 0, 1, f) x rhs(0, 1, i, o) -> res(b, 0, 1, f)
   return dims.getInputBatchDimension() == 0 &&
          dims.getInputFeatureDimension() == 3 &&
          dims.getInputSpatialDimensions().size() == 2 &&
@@ -1106,7 +1118,27 @@ bool isConvNhwc(const stablehlo::ConvDimensionNumbersAttr &dims) {
          dims.getOutputSpatialDimensions()[1] == 2;
 }
 
+bool isConvNchw(const stablehlo::ConvDimensionNumbersAttr &dims) {
+  // lhs(b, f, 0, 1) x rhs(o, i, 0, 1) -> res(b, f, 0, 1)
+  return dims.getInputBatchDimension() == 0 &&
+         dims.getInputFeatureDimension() == 1 &&
+         dims.getInputSpatialDimensions().size() == 2 &&
+         dims.getInputSpatialDimensions()[0] == 2 &&
+         dims.getInputSpatialDimensions()[1] == 3 &&
+         dims.getKernelInputFeatureDimension() == 1 &&
+         dims.getKernelOutputFeatureDimension() == 0 &&
+         dims.getKernelSpatialDimensions().size() == 2 &&
+         dims.getKernelSpatialDimensions()[0] == 2 &&
+         dims.getKernelSpatialDimensions()[1] == 3 &&
+         dims.getOutputBatchDimension() == 0 &&
+         dims.getOutputFeatureDimension() == 1 &&
+         dims.getOutputSpatialDimensions().size() == 2 &&
+         dims.getOutputSpatialDimensions()[0] == 2 &&
+         dims.getOutputSpatialDimensions()[1] == 3;
+}
+
 bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr &dims) {
+  // lhs(b, 0, 1, 2, f) x rhs(0, 1, 2, i, o) -> res(b, 0, 1, 2, f)
   return dims.getInputBatchDimension() == 0 &&
          dims.getInputFeatureDimension() == 4 &&
          dims.getInputSpatialDimensions().size() == 3 &&
@@ -1125,6 +1157,28 @@ bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr &dims) {
          dims.getOutputSpatialDimensions()[0] == 1 &&
          dims.getOutputSpatialDimensions()[1] == 2 &&
          dims.getOutputSpatialDimensions()[2] == 3;
+}
+
+bool isConvNCDHW(const stablehlo::ConvDimensionNumbersAttr &dims) {
+  // lhs(b, f, 0, 1, 2) x rhs(o, i, 0, 1, 2) -> res(b, f, 0, 1, 2)
+  return dims.getInputBatchDimension() == 0 &&
+         dims.getInputFeatureDimension() == 1 &&
+         dims.getInputSpatialDimensions().size() == 3 &&
+         dims.getInputSpatialDimensions()[0] == 2 &&
+         dims.getInputSpatialDimensions()[1] == 3 &&
+         dims.getInputSpatialDimensions()[2] == 4 &&
+         dims.getKernelInputFeatureDimension() == 0 &&
+         dims.getKernelOutputFeatureDimension() == 1 &&
+         dims.getKernelSpatialDimensions().size() == 3 &&
+         dims.getKernelSpatialDimensions()[0] == 2 &&
+         dims.getKernelSpatialDimensions()[1] == 3 &&
+         dims.getKernelSpatialDimensions()[2] == 4 &&
+         dims.getOutputBatchDimension() == 0 &&
+         dims.getOutputFeatureDimension() == 1 &&
+         dims.getOutputSpatialDimensions().size() == 3 &&
+         dims.getOutputSpatialDimensions()[0] == 2 &&
+         dims.getOutputSpatialDimensions()[1] == 3 &&
+         dims.getOutputSpatialDimensions()[2] == 4;
 }
 
 FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
@@ -1185,7 +1239,8 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
   // We only support NHWC Conv2D and NDHWC Conv3D.
   auto dims = op.getDimensionNumbers();
   if (isConvNhwc(dims)) {
-    // 2D Convolution.
+    // 2D Nhwc Convolution.
+    // lhs(b, 0, 1, f) x rhs(0, 1, i, o) -> res(b, 0, 1, f)
     return DotLikeDimensionNumbers{/*lhs_batching_dims=*/{0},
                                    /*lhs_spatial_dims=*/{1, 2},
                                    /*lhs_contracting_dims=*/{3},
@@ -1193,14 +1248,35 @@ FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
                                    /*rhs_spatial_dims=*/{0, 1},
                                    /*rhs_contracting_dims=*/{2}};
   }
+  if (isConvNchw(dims)) {
+    // 2D Nchw Convolution.
+    // lhs(b, f, 0, 1) x rhs(o, i, 0, 1) -> res(b, f, 0, 1)
+    return DotLikeDimensionNumbers{/*lhs_batching_dims=*/{0},
+                                   /*lhs_spatial_dims=*/{2, 3},
+                                   /*lhs_contracting_dims=*/{1},
+                                   /*rhs_batching_dims=*/{},
+                                   /*rhs_spatial_dims=*/{2, 3},
+                                   /*rhs_contracting_dims=*/{1}};
+  }
   if (isConvNDHWC(dims)) {
-    // 3D Convolution.
+    // 3D Ndhwc Convolution.
+    // lhs(b, 0, 1, 2, f) x rhs(0, 1, 2, i, o) -> res(b, 0, 1, 2, f)
     return DotLikeDimensionNumbers{/*lhs_batching_dims=*/{0},
                                    /*lhs_spatial_dims=*/{1, 2, 3},
                                    /*lhs_contracting_dims=*/{4},
                                    /*rhs_batching_dims=*/{},
                                    /*rhs_spatial_dims=*/{0, 1, 2},
                                    /*rhs_contracting_dims=*/{3}};
+  }
+  if (isConvNCDHW(dims)) {
+    // 3D Ncdhw Convolution.
+    // lhs(b, f, 0, 1, 2) x rhs(o, i, 0, 1, 2) -> res(b, f, 0, 1, 2)
+    return DotLikeDimensionNumbers{/*lhs_batching_dims=*/{0},
+                                   /*lhs_spatial_dims=*/{2, 3, 4},
+                                   /*lhs_contracting_dims=*/{1},
+                                   /*rhs_batching_dims=*/{},
+                                   /*rhs_spatial_dims=*/{2, 3, 4},
+                                   /*rhs_contracting_dims=*/{1}};
   }
   return rewriter.notifyMatchFailure(op,
                                      "Convolution data format must be NHWC.");
