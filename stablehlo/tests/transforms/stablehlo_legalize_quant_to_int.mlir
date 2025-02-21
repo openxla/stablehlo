@@ -2675,3 +2675,73 @@ func.func @convolution_with_i8_result_element_type(
     -> tensor<128x26x26x128x!quant.uniform<i8:f32, 1.000000e+00:5>>
   return %0 : tensor<128x26x26x128x!quant.uniform<i8:f32, 1.000000e+00:5>>
 }
+
+// -----
+
+// CHECK-LABEL: func.func public @conv2d_nchw
+// CHECK-SAME: %[[VAL_0:.*]]: tensor<1x3x224x224xi8>,
+// CHECK-SAME: %[[VAL_1:.*]]: tensor<64x3x7x7xi8>) -> tensor<1x64x112x112xi8> {
+func.func public @conv2d_nchw(
+  %arg0: tensor<1x3x224x224x!quant.uniform<i8:f32, 3.158280e-02:1>>,
+  %arg1: tensor<64x3x7x7x!quant.uniform<i8:f32, 3.101380e-03>>
+  ) -> tensor<1x64x112x112x!quant.uniform<i8:f32, 1.438440e-02:-128>> {
+// CHECK: stablehlo.convolution
+// CHECK-SAME: dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1]
+// CHECK-SAME: window = {
+// CHECK-SAME: stride = [2, 2]
+// CHECK-SAME{LITERAL}: pad = [[0, 0], [0, 0]]
+// CHECK-SAME: rhs_dilate = [1, 1]
+// CHECK-SAME: }
+// CHECK-SAME: {
+// CHECK-SAME: batch_group_count = 1 : i64
+// CHECK-SAME: feature_group_count = 1 : i64
+// CHECK-SAME: }
+// CHECK-SAME : (tensor<1x3x230x230xi8>, tensor<64x3x7x7xi8>) -> tensor<1x64x112x112xi32>
+  %0 = stablehlo.convolution(%arg0, %arg1)
+    dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1],
+    window = {
+      stride = [2, 2],
+      pad = [[3, 3], [3, 3]],
+      rhs_dilate = [1, 1]
+    } {
+      batch_group_count = 1 : i64,
+      feature_group_count = 1 : i64
+    } : (
+      tensor<1x3x224x224x!quant.uniform<i8:f32, 3.158280e-02:1>>,
+      tensor<64x3x7x7x!quant.uniform<i8:f32, 3.101380e-03>>
+  ) -> tensor<1x64x112x112x!quant.uniform<i8:f32, 1.438440e-02:-128>>
+  return %0 : tensor<1x64x112x112x!quant.uniform<i8:f32, 1.438440e-02:-128>>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @conv3d_ncdhw
+func.func @conv3d_ncdhw(
+    %arg0: tensor<128x1x28x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>,
+    %arg1: tensor<128x1x3x3x3x!quant.uniform<i8:f32, 3.000000e+00:0>>) {
+// CHECK: stablehlo.convolution
+// CHECK-SAME: dim_numbers = [b, f, 0, 1, 2]x[o, i, 0, 1, 2]->[b, f, 0, 1, 2],
+// CHECK-SAME: window = {
+// CHECK-SAME{LITERAL}: stride = [1, 1, 1], pad = [[0, 0], [0, 0], [0, 0]],
+// CHECK-SAME: lhs_dilate = [1, 1, 1],
+// CHECK-SAME: rhs_dilate = [1, 1, 1]
+// CHECK-SAME: }
+// CHECK-SAME: {
+// CHECK-SAME: batch_group_count = 1 : i64,
+// CHECK-SAME: feature_group_count = 1 : i64
+// CHECK-SAME: }
+// CHECK-SAME: : (tensor<128x1x28x28x28xf32>, tensor<128x1x3x3x3xf32>) -> tensor<128x128x26x26x26xf32>
+  %0 = stablehlo.convolution(%arg0, %arg1)
+    dim_numbers = [b, f, 0, 1, 2]x[o, i, 0, 1, 2]->[b, f, 0, 1, 2],
+    window = {
+      stride = [1, 1, 1], pad = [[0, 0], [0, 0], [0, 0]],
+      lhs_dilate = [1, 1, 1],
+      rhs_dilate = [1, 1, 1]
+    }
+    {
+      batch_group_count = 1 : i64,
+      feature_group_count = 1 : i64
+    } : (tensor<128x1x28x28x28x!quant.uniform<i8:f32, 2.000000e+00:4>>, tensor<128x1x3x3x3x!quant.uniform<i8:f32, 3.000000e+00:0>>)
+    -> tensor<128x128x26x26x26x!quant.uniform<i32:f32, 1.000000e+00:5>>
+  return
+}

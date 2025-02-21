@@ -994,7 +994,7 @@ cc_library(
         ":linalg_passes",
         ":reference_api",
         ":reference_configuration",
-        ":stablehlo_dialect_capi_objects",
+        ":stablehlo_dialect_capi",
         ":stablehlo_ops",
         ":stablehlo_passes",
         ":stablehlo_portable_api",

@@ -4,13 +4,15 @@ you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
     http://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
+distributed under the License is distributed on an "AS IS" BASIS,G
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
 #include "stablehlo/transforms/PassUtils.h"
+
+#include <cstdint>
 
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/IR/Builders.h"
@@ -63,6 +65,23 @@ bool isAnyQuantizedTypes(TypeRange types) {
   return llvm::any_of(types, [](Type type) {
     return isa<quant::QuantizedType>(getElementTypeOrSelf(type));
   });
+}
+
+Type getQuantizedElementType(Location loc, Type storageType, Type expressedType,
+                             ArrayRef<double> scales,
+                             ArrayRef<int64_t> zeroPoints,
+                             int32_t quantizedDimension, int64_t storageTypeMin,
+                             int64_t storageTypeMax) {
+  unsigned flags =
+      !storageType.isUnsignedInteger() ? quant::QuantizationFlags::Signed : 0;
+  if (quantizedDimension == -1) {
+    return quant::UniformQuantizedType::getChecked(
+        loc, flags, storageType, expressedType, scales[0], zeroPoints[0],
+        storageTypeMin, storageTypeMax);
+  }
+  return quant::UniformQuantizedPerAxisType::getChecked(
+      loc, flags, storageType, expressedType, scales, zeroPoints,
+      quantizedDimension, storageTypeMin, storageTypeMax);
 }
 
 }  // namespace stablehlo
