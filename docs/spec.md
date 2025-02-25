@@ -3793,8 +3793,7 @@ Extracts element at `index` position of the `operand` tuple and produces a
 
 ```mlir
 // %operand: ([1.0, 2.0], (3))
-  index = 0 : i32
-} : (tuple<tensor<2xf32>, tuple<tensor<i32>>>) -> tensor<2xf32>
+%result = "stablehlo.get_tuple_element"(%operand) <{index = 0 : i32}> : (tuple<tensor<2xf64>, tuple<tensor<i64>>>) -> tensor<2xf64>
 // %result: [1.0, 2.0]
 ```
 
