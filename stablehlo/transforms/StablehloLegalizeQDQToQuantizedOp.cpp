@@ -63,6 +63,10 @@ struct QuantizedStablehloQDQToQuantizedOpConversion
 
     // Collect quantized operands and result types to rewrite.
     // All operands and results must be quantized
+    if (computeOp->getNumOperands() == 0)
+      return rewriter.notifyMatchFailure(computeOp,
+                                         "requires non empty operands");
+
     llvm::SmallVector<Value> quantizedComputeOpOperands;
     for (const Value& operand : computeOp->getOperands()) {
       auto* definingOp = operand.getDefiningOp();

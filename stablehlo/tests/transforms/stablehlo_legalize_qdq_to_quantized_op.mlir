@@ -127,3 +127,15 @@ func.func @failed_to_match_defining_op_is_not_a_uniform_dequantized_op(%arg0: te
     %4 = stablehlo.uniform_quantize %3 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
     func.return %4: tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
 }
+
+// -----
+
+// CHECK-LABEL @failed_to_match_zero_defining_op
+// CHECK{LITERAL}: %cst = stablehlo.constant dense<0.000000e+00> : tensor<2xf32>
+// CHECK-NEXT: %0 = stablehlo.uniform_quantize %cst : (tensor<2xf32>) -> tensor<2x!quant.uniform<u8:f32, 3.400000e+01:16>>
+// CHECK-NEXT: return %0 : tensor<2x!quant.uniform<u8:f32, 3.400000e+01:16>>
+func.func @failed_to_match_zero_defining_op() -> tensor<2x!quant.uniform<u8:f32, 3.400000e+01:16>> {
+  %0 = stablehlo.constant dense<0.000000e+00> : tensor<2xf32>
+  %1 = stablehlo.uniform_quantize %0 : (tensor<2xf32>) -> tensor<2x!quant.uniform<u8:f32, 3.400000e+01:16>>
+  return %1 : tensor<2x!quant.uniform<u8:f32, 3.400000e+01:16>>
+}
