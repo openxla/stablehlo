@@ -283,19 +283,20 @@ struct FileLineColRangeToLoc : public OpRewritePattern<ModuleOp> {
                                 PatternRewriter &rewriter) const override {
     bool changed = false;
     mlir::AttrTypeReplacer replacer;
-    replacer.addReplacement([&](FileLineColLoc flcLoc)
-                                -> std::optional<Location> {
-      // Skip if it's actually a FileLineColLoc
-      if (isStrictFileLineColLoc(flcLoc)) return flcLoc;
+    replacer.addReplacement(
+        [&](FileLineColLoc flcLoc) -> std::optional<Location> {
+          // Skip if it's actually a FileLineColLoc
+          if (isStrictFileLineColLoc(flcLoc)) return flcLoc;
 
-      // Replace FileLineColRange with FileLineColLoc
-      changed = true;
-      auto newFlcLoc = FileLineColLoc::get(
-          flcLoc.getFilename(), flcLoc.getStartLine(), flcLoc.getStartColumn());
-      LLVM_DEBUG(llvm::dbgs()
-                 << "Rewriting FLC " << flcLoc << " -> " << newFlcLoc << "\n");
-      return newFlcLoc;
-    });
+          // Replace FileLineColRange with FileLineColLoc
+          changed = true;
+          auto newFlcLoc =
+              FileLineColLoc::get(flcLoc.getFilename(), flcLoc.getStartLine(),
+                                  flcLoc.getStartColumn());
+          LLVM_DEBUG(llvm::dbgs() << "Rewriting FLC " << flcLoc << " -> "
+                                  << newFlcLoc << "\n");
+          return newFlcLoc;
+        });
 
     // Call this on the module to update all locations in the module.
     // This should be safe since this pass is declared as a ModuleOp level pass
