@@ -11,33 +11,43 @@ limitations under the License.
 ==============================================================================*/
 
 #include <fcntl.h>
+#include <stdbool.h>
 
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <iterator>
+#include <optional>
 #include <utility>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/AttrTypeSubElements.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/IR/Location.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/Region.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Support/LLVM.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
-#include "stablehlo/transforms/PassUtils.h"
+#include "stablehlo/transforms/PassUtils.h"  // IWYU pragma: keep
 #include "stablehlo/transforms/Passes.h"
+
+#define DEBUG_TYPE "compat-passes"
 
 namespace mlir {
 namespace stablehlo {
@@ -167,7 +177,7 @@ Value createConcatIndices(Value indices, int64_t indexVectorDim,
 // Converts a `GatherOp` with batching dims to a `GatherOp` without batching
 // dims, such that each batching dim becomes a collapsed slice dim with a
 // corresponding `IotaOp` concatenated to the start indices.
-class GatherWithBatchingDimsExpander : public OpRewritePattern<GatherOp> {
+struct GatherWithBatchingDimsExpander : public OpRewritePattern<GatherOp> {
   using OpRewritePattern<GatherOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(GatherOp op,
@@ -213,7 +223,7 @@ class GatherWithBatchingDimsExpander : public OpRewritePattern<GatherOp> {
 // Converts a `ScatterOp` with batching dims to a `ScatterOp` without batching
 // dims, such that each batching dim becomes an inserted window dim with a
 // corresponding `IotaOp` concatenated to the scatter indices.
-class ScatterWithBatchingDimsExpander : public OpRewritePattern<ScatterOp> {
+struct ScatterWithBatchingDimsExpander : public OpRewritePattern<ScatterOp> {
   using OpRewritePattern<ScatterOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(ScatterOp op,
@@ -262,6 +272,44 @@ class ScatterWithBatchingDimsExpander : public OpRewritePattern<ScatterOp> {
   }
 };
 
+// FileLineColRange locations are a forward incompatibility in upstream MLIR.
+// This pattern removes the precise start/end range information and converts
+// all FileLineColRange locations to forward compatible FileLineColLoc
+// locations.
+struct FileLineColRangeToLoc : public OpRewritePattern<ModuleOp> {
+  using OpRewritePattern<ModuleOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(ModuleOp op,
+                                PatternRewriter &rewriter) const override {
+    bool changed = false;
+    mlir::AttrTypeReplacer replacer;
+    replacer.addReplacement(
+        [&](FileLineColLoc flcLoc) -> std::optional<Location> {
+          // Skip if it's actually a FileLineColLoc
+          if (isStrictFileLineColLoc(flcLoc)) return flcLoc;
+
+          // Replace FileLineColRange with FileLineColLoc
+          changed = true;
+          auto newFlcLoc =
+              FileLineColLoc::get(flcLoc.getFilename(), flcLoc.getStartLine(),
+                                  flcLoc.getStartColumn());
+          LLVM_DEBUG(llvm::dbgs() << "Rewriting FLC " << flcLoc << " -> "
+                                  << newFlcLoc << "\n");
+          return newFlcLoc;
+        });
+
+    // Call this on the module to update all locations in the module.
+    // This should be safe since this pass is declared as a ModuleOp level pass
+    // in the pass TD file, so no async issues.
+    replacer.recursivelyReplaceElementsIn(op,
+                                          /*replaceAttrs=*/false,
+                                          /*replaceLocs=*/true,
+                                          /*replaceTypes=*/false);
+
+    return success(changed);
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Pass
 //===----------------------------------------------------------------------===//
@@ -282,6 +330,7 @@ struct StablehloCompatibilityExpanderPass
     auto targetVersion = validateTargetVersion(targetVersionOption);
 
     config.useTopDownTraversal = true;
+
     RewritePatternSet patterns_(context);
     populateStablehloCompatibilityExpanderPatterns(&patterns_, context,
                                                    targetVersion);
@@ -290,9 +339,13 @@ struct StablehloCompatibilityExpanderPass
   }
 
   void runOnOperation() override {
-    auto func = getOperation();
-    if (failed(applyPatternsGreedily(func, patterns, config))) {
-      func.emitError(
+    auto module = getOperation();
+
+    // Apply to both the module and its children
+    if (failed(
+            applyOpPatternsGreedily(module.getOperation(), patterns, config)) ||
+        failed(applyPatternsGreedily(module, patterns, config))) {
+      module.emitError(
           "Failed to converge StableHLOCompatibilityExpanderPass in ")
           << config.maxIterations << " iterations";
       signalPassFailure();
@@ -321,6 +374,10 @@ void populateStablehloCompatibilityExpanderPatterns(
   if (targetVersion < vhlo::Version(1, 4, 0))
     patterns->add<TanOp_ComplexElementType_CompatiblityExpander,
                   TanOp_CompatiblityExpander>(context);
+
+  // MLIR Upstream FileLineColRange introduced just before v1.8.4.
+  if (targetVersion < vhlo::Version(1, 8, 4))
+    patterns->add<FileLineColRangeToLoc>(context);
 }
 
 }  // namespace stablehlo
