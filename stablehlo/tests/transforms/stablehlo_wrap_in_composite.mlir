@@ -52,7 +52,6 @@ func.func @wrap_in_composite(
 
 // -----
 
-<<<<<<< HEAD
 // CHECK-LABEL: func.func @wrap_in_composite_op_with_region
 // CHECK-SAME: %[[ARG_0:.*]]: tensor<4x3xf32>) -> tensor<4xf32>
 // CHECK: %[[CONST:.*]] = stablehlo.constant
@@ -78,8 +77,6 @@ func.func @wrap_in_composite_op_with_region(%x : tensor<4x3xf32>) -> tensor<4xf3
 
 // -----
 
-=======
->>>>>>> 21d6e25a (Pass to wrap stablehlo ops in composite)
 // CHECK-LABEL: func.func @cannot_be_wrapped_ops_does_not_match
 // CHECK-SAME: %[[ARG_0:.*]]: tensor<2xf32>,
 // CHECK-SAME: %[[ARG_1:.*]]: tensor<2xf32>) -> tensor<2xf32> {
