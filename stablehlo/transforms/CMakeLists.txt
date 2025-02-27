@@ -57,6 +57,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloLegalizeToVhlo.cpp
   StablehloRefineArguments.cpp
   StablehloRefineShapes.cpp
+  StablehloWrapInComposite.cpp
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp
   PassUtils.cpp

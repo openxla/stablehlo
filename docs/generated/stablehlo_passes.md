@@ -338,6 +338,59 @@ Modules valid for shape refinement must have the following properties:
   * All calls to a single function resolve to the same argument shapes, and no
     recursive / co-recursive function calls are made.
 
+### `-stablehlo-wrap-in-composite`
+
+_Wraps a non-composite StableHLO op in a composite op._
+
+Wraps StableHLO ops, as specified by the pass option flag, in a
+composite op. The composite op will inherit all attributes of the original
+op.
+
+For example, using the pass option `--stablehlo-wrap-in-composite=op-names='stablehlo.add'`,
+
+```mlir
+func.func @add(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+```
+
+will become:
+
+```mlir
+func.func @add(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+  %0 = stablehlo.composite "stablehlo.add" %arg0, %arg1 {
+    decomposition = @stablehlo.add.impl,
+  } : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+  return %0 : tensor<2xf32>
+}
+
+func.func private @stablehlo.add.impl(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+```
+
+The pass is also exposed as an API `createStablehloWrapInCompositePass` to
+allow for more flexible selection of ops to wrap.
+For example, the following will wrap all non-composite ops that are not
+`stablehlo.add` or `stablehlo.convolution`:
+
+```c++
+auto pass = createStablehloWrapInCompositePass(
+   (Operation *op) {
+      return (op->getName().getStringRef() == "stablehlo.add" ||
+              op->getName().getStringRef() == "stablehlo.convolution") &&
+             !isa<stablehlo::CompositeOp>(op);
+    });
+```
+
+#### Options
+
+```
+-op-names : The names of the ops to wrap.
+```
+
 ### `-vhlo-legalize-to-stablehlo`
 
 _Legalize VHLO to StableHLO._
