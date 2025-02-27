@@ -409,3 +409,59 @@ def VhloToVersionPass : Pass<"vhlo-to-version"> {
   ];
   let dependentDialects = ["mlir::vhlo::VhloDialect"];
 }
+
+def StablehloWrapInCompositePass : Pass<"stablehlo-wrap-in-composite", "ModuleOp"> {
+  let summary = "Wraps a non-composite StableHLO op in a composite op.";
+  let description = [{
+    Wraps StableHLO ops, as specified by the pass option flag, in a
+    composite op. The composite op will inherit all attributes of the original
+    op.
+
+    For example, using the pass option `--stablehlo-wrap-in-composite=op-names='stablehlo.add'`,
+
+    ```mlir
+    func.func @add(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+      %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+      func.return %0 : tensor<2xf32>
+    }
+    ```
+
+    will become:
+
+    ```mlir
+    func.func @add(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+      %0 = stablehlo.composite "stablehlo.add" %arg0, %arg1 {
+        decomposition = @stablehlo.add.impl,
+      } : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+      return %0 : tensor<2xf32>
+    }
+
+    func.func private @stablehlo.add.impl(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+      %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+      func.return %0 : tensor<2xf32>
+    }
+    ```
+
+    The pass is also exposed as an API `createStablehloWrapInCompositePass` to
+    allow for more flexible selection of ops to wrap.
+    For example, the following will wrap all non-composite ops that are not
+    `stablehlo.add` or `stablehlo.convolution`:
+
+    ```c++
+    auto pass = createStablehloWrapInCompositePass(
+       (Operation *op) {
+          return (op->getName().getStringRef() == "stablehlo.add" ||
+                  op->getName().getStringRef() == "stablehlo.convolution") &&
+                 !isa<stablehlo::CompositeOp>(op);
+        });
+    ```
+  }];
+  let options = [
+    ListOption<"opNamesOption", "op-names", "std::string",
+    "The names of the ops to wrap.">,
+  ];
+  let dependentDialects = [
+    "mlir::func::FuncDialect",
+    "mlir::stablehlo::StablehloDialect",
+  ];
+}
