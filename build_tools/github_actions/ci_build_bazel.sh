@@ -24,7 +24,7 @@ if [[ $# -ne 0 && $# -ne 3 ]] ; then
   echo
   echo "Example: Build all affected targets between current branch and main"
   echo "  $ curl -Lo bazel-diff.jar https://github.com/Tinder/bazel-diff/releases/latest/download/bazel-diff_deploy.jar"
-  echo "  $ ci_build_bazel.sh bazel-diff.jar $(git merge-base main HEAD) $(git rev-parse HEAD)"
+  echo "  $ ci_build_bazel.sh bazel-diff.jar main $(git rev-parse --abbrev-ref HEAD)"
   exit 1
 fi
 
@@ -72,7 +72,8 @@ bazel-test-diff() {
     exit 0
   fi
 
-  echo "Impacted Targets between $PREVIOUS_REV and $FINAL_REV:"
+  NUM_IMPACTED=$(echo $formatted_impacted_targets | wc -l)
+  echo "[$NUM_IMPACTED] Impacted Targets between $PREVIOUS_REV and $FINAL_REV:"
   echo "$formatted_impacted_targets"
   echo ""
 
