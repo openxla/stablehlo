@@ -30,6 +30,7 @@ NumPy-like API for writing high-performance ML models <img align="center" src="h
 to OpenXLA and StableHLO <img  align="center" src="https://img.shields.io/github/stars/pytorch/xla?style=social">
 - [TensorFlow](https://github.com/tensorflow/tensorflow) is a long-standing ML
 framework with a large ecosystem <img align="center" src="https://img.shields.io/github/stars/tensorflow/tensorflow?style=social">
+- [Reactant.jl](https://github.com/EnzymeAD/Reactant.jl) is a framework for optimizing and executing Julia code via OpenXLA, StableHLO, and MLIR.
 - [GoMLX](https://github.com/gomlx/gomlx) ML Framework for the Go Language
   <img align="center" src="https://img.shields.io/github/stars/gomlx/gomlx?style=social">
   - [gopjrt](https://github.com/gomlx/gopjrt) raw XlaBuilder+PJRT wrapper for Go:
