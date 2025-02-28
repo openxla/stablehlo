@@ -39,8 +39,11 @@ jobs:
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
 
     steps:
+    # Checkout StableHLO with all commits in the chain
     - name: Checkout StableHLO
       uses: actions/checkout@v4
+      with:
+        fetch-depth: $(( ${{ github.event_name == 'pull_request' && github.event.pull_request.commits || 0 }} + 1 ))
 
     - name: Validate LLVM Commit
       run: |
@@ -63,7 +66,18 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-stablehlo_bazelbuild-
 
-    - name: Build StableHLO
+    - name: Build and Test StableHLO (Diff Only)
+      if: ${{ github.event_name == 'pull_request' }}
+      shell: bash
+      run: |
+        START_HASH=${{ github.event.pull_request.base.sha }}
+        END_HASH=${{ github.event.pull_request.head.sha }}
+        BAZEL_DIFF=/tmp/bazel-diff.jar
+        curl -Lo "$BAZEL_DIFF" https://github.com/Tinder/bazel-diff/releases/latest/download/bazel-diff_deploy.jar
+        ./build_tools/github_actions/ci_build_bazel.sh "$BAZEL_DIFF" "$START_HASH" "$END_HASH"
+
+    - name: Build and Test StableHLO (All)
+      if: ${{ github.event_name != 'pull_request' }}
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_bazel.sh
