@@ -411,7 +411,7 @@ def : Pat<(StableHLO_TransposeOp $lhs, IotaDims:$dims),
 // GetTupleElementOp
 
 // Pattern: get_tuple_element(tuple(X_0, X_1, ...), i) -> X_i
-def : Pat<(StableHLO_GetTupleElementOp (StableHLO_TupleOp:$tuple $operands), $idx),
+def TupleIsUnpacked : Pat<(StableHLO_GetTupleElementOp (StableHLO_TupleOp:$tuple $operands), $idx),
           (GetOperandN $tuple, $idx)>;
 
 ////////

@@ -17,9 +17,9 @@ workspace(name = "stablehlo")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-LLVM_COMMIT = "d23da7d6300ec6732b462d475c331f289170cb83"
+LLVM_COMMIT = "fd9a882ce31cb0a53dba63528c15d76f088854b7"
 
-LLVM_SHA256 = "e9c22be167e2e58b585565efd5e38b7670e863571dd6f1d90ce718e21e293e38"
+LLVM_SHA256 = "99ab085087ea6a5f27f293a9f06c837eca57042bc6a7e11f3cd2d9d2168274b3"
 
 http_archive(
     name = "llvm-raw",
