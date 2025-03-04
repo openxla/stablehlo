@@ -375,8 +375,10 @@ void populateStablehloCompatibilityExpanderPatterns(
     patterns->add<TanOp_ComplexElementType_CompatiblityExpander,
                   TanOp_CompatiblityExpander>(context);
 
-  // MLIR Upstream FileLineColRange introduced just before v1.8.4.
-  if (targetVersion < vhlo::Version(1, 8, 4))
+  // MLIR Upstream FileLineColRange introduced ~v1.8.4
+  // Conservatively use 1.9.0 since StableHLO passes require major versions for
+  // incompats.
+  if (targetVersion < vhlo::Version(1, 9, 0))
     patterns->add<FileLineColRangeToLoc>(context);
 }
 

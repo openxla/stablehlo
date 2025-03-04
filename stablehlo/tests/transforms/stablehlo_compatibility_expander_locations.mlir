@@ -1,4 +1,5 @@
 // RUN: stablehlo-opt %s -stablehlo-compatibility-expander=target=1.8.0 --mlir-print-debuginfo | FileCheck %s
+// RUN: stablehlo-opt %s -stablehlo-compatibility-expander=target=1.8.0 --mlir-print-debuginfo | stablehlo-translate --serialize --target=1.8.0
 
 // Test that FileLineColRange locations are converted to FileLineColLoc
 // locations, including in nested location contexts, block args, module op, etc.
