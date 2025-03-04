@@ -88,5 +88,3 @@ if [[ $# -eq 0 ]] ; then
 else
   bazel-test-diff "$@"
 fi
-
-
