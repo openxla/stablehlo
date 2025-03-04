@@ -189,15 +189,18 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
 
 bool isLegalLocation(Location loc, const Version& targetVersion) {
   // FileLineColRange locations are a forward incompatibility in upstream MLIR
-  // just before v1.8.4 was tagged. Support for downgrading these locations
-  // exists in StablehloCompatibilityExpanderPass.
+  // just before v1.8.4 was tagged. Conservatively use 1.9.0 since StableHLO
+  // passes require major versions for incompats.
+  //
+  // Support for downgrading these locations exists in
+  // StablehloCompatibilityExpanderPass.
   bool isLegal = true;
   loc->walk([&](Location childLoc) -> WalkResult {
     if (auto fileLineColLoc = dyn_cast<FileLineColRange>(childLoc)) {
-      static const Version kFileLineColLocMinVersion = Version(1, 8, 4);
-      if (!isStrictFileLineColLoc(loc) &&
+      static const Version kFileLineColLocMinVersion = Version(1, 9, 0);
+      if (!isStrictFileLineColLoc(childLoc) &&
           targetVersion < kFileLineColLocMinVersion) {
-        LLVM_DEBUG(llvm::dbgs() << "failed to legalize location " << loc
+        LLVM_DEBUG(llvm::dbgs() << "failed to legalize location " << childLoc
                                 << " to version " << targetVersion << '\n');
         isLegal = false;
         return WalkResult::interrupt();
