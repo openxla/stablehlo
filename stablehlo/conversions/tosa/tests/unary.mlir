@@ -123,8 +123,7 @@ func.func @tanh(%arg : tensor<10xf32>) -> tensor<10xf32> {
 
 // CHECK-LABEL: @transpose
 func.func @transpose(%arg0: tensor<1x2x3xf32>) -> tensor<3x2x1xf32> {
-  // CHECK: %[[VAR0:.*]] = "tosa.const"() <{value = dense<[2, 1, 0]> : tensor<3xi32>}> : () -> tensor<3xi32>
-  // CHECK: %[[VAR1:.*]] = tosa.transpose %arg0, %[[VAR0]]
+  // CHECK: %[[VAR0:.*]] = tosa.transpose %arg0 {perms = array<i32: 2, 1, 0>}
   %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 2, 1, 0>} : (tensor<1x2x3xf32>) -> tensor<3x2x1xf32>
   return %0 : tensor<3x2x1xf32>
 }

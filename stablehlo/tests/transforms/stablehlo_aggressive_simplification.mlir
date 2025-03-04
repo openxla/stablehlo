@@ -926,6 +926,15 @@ func.func @pad_zero_length(%arg0: tensor<5x0xf32>, %arg1: tensor<f32>) -> tensor
   return %0 : tensor<7x2xf32>
 }
 
+// Can't do anything with the dynamic shape, but shouldn't crash.
+// CHECK-LABEL: @dynamic_pad
+func.func @dynamic_pad(%arg0: tensor<?x2x3xi1>, %arg1: tensor<i1>) -> tensor<?x2x1xi1> {
+  %0 = stablehlo.pad %arg0, %arg1, low = [0, 0, -1], high = [0, 0, -1], interior = [0, 0, 0] : (tensor<?x2x3xi1>, tensor<i1>) -> tensor<?x2x1xi1>
+  // CHECK-NEXT: %[[RES:.+]] = stablehlo.pad %arg0, %arg1, low = [0, 0, -1], high = [0, 0, -1], interior = [0, 0, 0] : (tensor<?x2x3xi1>, tensor<i1>) -> tensor<?x2x1xi1>
+  // CHECK-NEXT: return %[[RES]]
+  return %0 : tensor<?x2x1xi1>
+}
+
 // -----
 
 /////////
@@ -1904,6 +1913,19 @@ func.func public @while_zero_extent(%arg0: tensor<i32>, %arg1: tensor<3xf32>, %a
     stablehlo.return %44, %iterArg_2 : tensor<i32>, tensor<75x0xf32>
   }
   return %3#0, %3#1 : tensor<i32>, tensor<75x0xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @side_effecting_custom_call
+func.func @side_effecting_custom_call(%arg0: tensor<0xf32>) -> (tensor<0xf32>, tensor<0xf32>) {
+  // CHECK:      %[[CST:.*]] = stablehlo.constant dense<> : tensor<0xf32>
+  // CHECK-NEXT: %[[CC:.*]] = stablehlo.custom_call @foo(%arg0) {api_version = 0 : i32, has_side_effect = true} : (tensor<0xf32>) -> tensor<0xf32>
+  %0 = stablehlo.custom_call @foo(%arg0) {api_version = 0 : i32, has_side_effect = true} : (tensor<0xf32>) -> tensor<0xf32>
+  // CHECK-NOT:  stablehlo.custom_call{{.*}}has_side_effect = false
+  %1 = stablehlo.custom_call @foo(%arg0) {api_version = 0 : i32, has_side_effect = false} : (tensor<0xf32>) -> tensor<0xf32>
+  // CHECK: return %[[CC]], %[[CST]]
+  return %0, %1 : tensor<0xf32>, tensor<0xf32>
 }
 
 // -----

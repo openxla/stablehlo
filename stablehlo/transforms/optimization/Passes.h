@@ -50,6 +50,13 @@ void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
                                           MLIRContext *context,
                                           bool foldFloat = false,
                                           PatternBenefit benefit = 1);
+
+/// Some workloads in XLA import StableHLO from HLO. Since there are a few
+/// differences in HLO (no implicit captures, lots of tuples, etc.), this
+/// set of patterns brings the imported HLO back to a more canonical form
+/// without applying a full set of graph simplifications.
+void populateStablehloHloImportCanonicalizationPatterns(
+    MLIRContext *context, RewritePatternSet *patterns);
 }  // namespace stablehlo
 }  // namespace mlir
 
