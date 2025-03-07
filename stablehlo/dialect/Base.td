@@ -188,8 +188,9 @@ def HLO_NonQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_C
 def HLO_TensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
     [IsValidQuantizedDimension]>;
 
-def HLO_FloatOrQuantizedIntOrPerAxisQuantizedIntTensor : RankedTensorOf<[HLO_Float, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
-    [IsValidQuantizedDimension]>;
+def HLO_FloatOrQuantizedIntOrPerAxisQuantizedIntTensor
+  : RankedTensorOf<[HLO_Float, HLO_QuantizedInt, HLO_PerAxisQuantizedInt], [IsValidQuantizedDimension],
+                   "tensor of float or quantized int or per-axis quantized int">;
 
 def HLO_ComplexTensor : RankedTensorOf<[HLO_Complex]>;
 
@@ -215,7 +216,8 @@ def HLO_DimensionTensor : 1DTensorOf<[HLO_DimensionValue]>;
 //===----------------------------------------------------------------------===//
 
 def HLO_AnyTensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
-    [IsValidQuantizedDimension]>;
+    [IsValidQuantizedDimension],
+    "any tensor of float, int, bool, complex, per-tensor quantized, or per-axis quantized">;
 
 def HLO_AnyPredTensor : TensorOf<[HLO_Pred]>;
 
@@ -285,7 +287,8 @@ def HLO_StaticShapeTensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, H
     [IsValidQuantizedDimension, HasStaticShapePred], "statically shaped tensor">;
 
 def HLO_StaticShapeTensorPerAxisQuantizedTensorOrBoundedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
-    [IsValidQuantizedDimension, HLO_HasStaticOrSingleBoundedShapePred], "statically shaped or single bounded dimension tensor">;
+    [IsValidQuantizedDimension, HLO_HasStaticOrSingleBoundedShapePred],
+    "statically shaped or single bounded dimension tensor">;
 
 def HLO_StaticShapeTensorOrPerAxisQuantizedTensorOrToken : AnyTypeOf<[HLO_StaticShapeTensor, HLO_StaticShapeTensorOrPerAxisQuantizedTensor, HLO_Token]>;
 
