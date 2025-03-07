@@ -109,12 +109,10 @@ if(STABLEHLO_STANDALONE_BUILD)
   set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
   list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
   list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-  include(HandleLLVMOptions)
 endif()
 
 if(STABLEHLO_BUILD_EMBEDDED)
   message(STATUS "Building StableHLO embedded in another project")
-  include(HandleLLVMOptions)
 endif()
 
 include(TableGen)
@@ -167,14 +165,48 @@ if(STABLEHLO_ENABLE_SPLIT_DWARF)
     endif()
 endif()
 
-#TODO: Where should these be?
+# Remove these when LLVM and MLIR modernize their *Config.cmake files so that
+# compiler options are carried by target interface properties.
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
-add_definitions(${LLVM_DEFINITIONS})
 
+# Because of some subtle issues in how LLVM passes information on compilation
+# flags to downstream projects (see
+# https://github.com/llvm/llvm-project/issues/125779), there may not currently
+# be one perfect CMake incantation for setting compilation options here that
+# satisfies all potential downstream users who may depend on Stablehlo. Many
+# projects use the incantation, `find_package(LLVM...);
+# include(HandleLLVMOptions)` to try to set directory-scoped compiler flags to
+# match what was used to build LLVM. However, this is an imperfect mechanism for
+# replicating the compiler options applied to LLVM. Therefore, we should restrict
+# HandleLLVMOptions usage here to standalone mode solely for providing all the
+# `LLVM_*` CMake options which are familiar to LLVM's CMake users.
+
+# In this manner, it's always users's responsibility to ensure that Stablehlo is
+# being built with flags that are compatible with the LLVM package; e.g. both
+# projects must built with compatible flags related to RTTI and exceptions. This
+# applies regardless of whether user is building Stablehlo as the top-level
+# project or embedded within a larger build.
+if(STABLEHLO_STANDALONE_BUILD)
+  # LLVM_DEFINITIONS is a space-separated list; it must be pre-processed to use
+  # with 'add_definitions', see
+  # https://llvm.org/docs/CMake.html#embedding-llvm-in-your-project.
+
+  # This must be sequenced prior to HandleLLVMOptions, which overwrites
+  # LLVM_DEFINITIONS. If `LLVM_DEFINITIONS` is non-empty and provided by a
+  # pre-built LLVM package's LLVMConfig.cmake, then invoking `HandleLLVMOptions`
+  # here will also cause duplication of the definitions, since the components of
+  # LLVM_DEFINITIONS are synthesized and applied directly to the current
+  # directory's definitions list inside by HandleLLVMOptions. However, this
+  # won't be a problem unless the definitions are somehow incompatible, in which
+  # case the compiler will print a macro redefinition warning.
+  separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+  add_definitions(${LLVM_DEFINITIONS_LIST})
+  include(HandleLLVMOptions)
+endif()
 
 #-------------------------------------------------------------------------------
 # Sanitizer configuration
