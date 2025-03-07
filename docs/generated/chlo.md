@@ -53,13 +53,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of complex type with float32 or float64 elements values |
+| `operand` | tensor of complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of complex type with float32 or float64 elements values |
+| `result` | tensor of complex type with 32/64-bit float elements values |
 
 
 
@@ -90,13 +90,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -127,13 +127,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -163,13 +163,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -199,13 +199,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -235,13 +235,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -272,13 +272,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -304,13 +304,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -347,14 +347,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -391,14 +391,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of bool or integer values |
-| `rhs` | tensor of bool or integer values |
+| `lhs` | tensor of bool or 2/4/8/16/32/64-bit integer values |
+| `rhs` | tensor of bool or 2/4/8/16/32/64-bit integer values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -435,14 +435,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -484,8 +484,8 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
@@ -526,14 +526,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float values |
-| `rhs` | tensor of float values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of complex type with float32 or float64 elements values |
+| &laquo;unnamed&raquo; | tensor of complex type with 32/64-bit float elements values |
 
 
 
@@ -570,14 +570,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -614,14 +614,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -658,14 +658,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -702,14 +702,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -746,14 +746,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -790,14 +790,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of bool or integer values |
-| `rhs` | tensor of bool or integer values |
+| `lhs` | tensor of bool or 2/4/8/16/32/64-bit integer values |
+| `rhs` | tensor of bool or 2/4/8/16/32/64-bit integer values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -831,14 +831,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -875,14 +875,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -919,14 +919,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -957,14 +957,14 @@ Effects: `MemoryEffects::Effect{}`
 | Operand | Description |
 | :-----: | ----------- |
 | `pred` | ranked tensor of bool values |
-| `on_true` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `on_false` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `on_true` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `on_false` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -1001,14 +1001,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -1045,14 +1045,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -1089,14 +1089,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -1133,14 +1133,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -1177,14 +1177,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of bool or integer values |
-| `rhs` | tensor of bool or integer values |
+| `lhs` | tensor of bool or 2/4/8/16/32/64-bit integer values |
+| `rhs` | tensor of bool or 2/4/8/16/32/64-bit integer values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -1222,14 +1222,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float values |
-| `rhs` | tensor of float values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float values |
 
 
 
@@ -1259,13 +1259,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -1298,7 +1298,7 @@ Effects: `MemoryEffects::Effect{}`
 
 | Result | Description |
 | :----: | ----------- |
-| `output` | statically shaped tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized values |
+| `output` | statically shaped tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized values |
 
 
 
@@ -1325,13 +1325,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| &laquo;unnamed&raquo; | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| &laquo;unnamed&raquo; | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -1361,13 +1361,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -1393,13 +1393,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float values |
+| `result` | tensor of 4/6/8/16/32/64-bit float values |
 
 
 
@@ -1428,13 +1428,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float values |
+| `result` | tensor of 4/6/8/16/32/64-bit float values |
 
 
 
@@ -1460,13 +1460,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float values |
+| `result` | tensor of 4/6/8/16/32/64-bit float values |
 
 
 
@@ -1495,13 +1495,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float values |
+| `result` | tensor of 4/6/8/16/32/64-bit float values |
 
 
 
@@ -1527,7 +1527,7 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
@@ -1559,7 +1559,7 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
@@ -1591,7 +1591,7 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
@@ -1623,13 +1623,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float values |
+| `result` | tensor of 4/6/8/16/32/64-bit float values |
 
 
 
@@ -1658,14 +1658,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `x` | tensor of float values |
-| `y` | tensor of float values |
+| `x` | tensor of 4/6/8/16/32/64-bit float values |
+| `y` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float values |
+| `result` | tensor of 4/6/8/16/32/64-bit float values |
 
 
 
@@ -1691,14 +1691,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `n` | tensor of float values |
-| `x` | tensor of float values |
+| `n` | tensor of 4/6/8/16/32/64-bit float values |
+| `x` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float values |
+| `result` | tensor of 4/6/8/16/32/64-bit float values |
 
 
 
@@ -1727,7 +1727,7 @@ the ragged dimension is an lhs/rhs batch dimension (`b`).
 
 Traits: `AlwaysSpeculatableImplTrait`
 
-Interfaces: `ConditionallySpeculatable`, `NoMemoryEffect (MemoryEffectOpInterface)`
+Interfaces: `ConditionallySpeculatable`, `InferTypeOpInterface`, `NoMemoryEffect (MemoryEffectOpInterface)`
 
 Effects: `MemoryEffects::Effect{}`
 
@@ -1743,15 +1743,15 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `lhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `rhs` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `group_sizes` | ranked tensor of integer values |
+| `lhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `rhs` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `group_sizes` | ranked tensor of 2/4/8/16/32/64-bit integer values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -1782,13 +1782,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -1819,13 +1819,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -1855,13 +1855,13 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or complex type with float32 or float64 elements values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float or complex type with float32 or float64 elements values |
+| `result` | tensor of 4/6/8/16/32/64-bit float or complex type with 32/64-bit float elements values |
 
 
 
@@ -1906,14 +1906,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `operand` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `operand` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `values` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
-| `indices` | tensor of float or bool or integer or complex type with float32 or float64 elements or per-tensor integer quantized or per-axis integer quantized values |
+| `values` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `indices` | tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
 
 
 
@@ -1943,14 +1943,14 @@ Effects: `MemoryEffects::Effect{}`
 
 | Operand | Description |
 | :-----: | ----------- |
-| `x` | tensor of float values |
-| `q` | tensor of float values |
+| `x` | tensor of 4/6/8/16/32/64-bit float values |
+| `q` | tensor of 4/6/8/16/32/64-bit float values |
 
 #### Results:
 
 | Result | Description |
 | :----: | ----------- |
-| `result` | tensor of float values |
+| `result` | tensor of 4/6/8/16/32/64-bit float values |
 
 
 
