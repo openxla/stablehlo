@@ -216,35 +216,56 @@ def HLO_DimensionTensor : 1DTensorOf<[HLO_DimensionValue]>;
 //===----------------------------------------------------------------------===//
 
 def HLO_AnyTensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
-    [IsValidQuantizedDimension],
-    "any tensor of float, int, bool, complex, per-tensor quantized, or per-axis quantized">;
+    [IsValidQuantizedDimension]> {
+  let summary = "tensor of float, int, bool, complex, per-tensor quantized, or per-axis quantized";
+}
 
-def HLO_AnyPredTensor : TensorOf<[HLO_Pred]>;
+def HLO_AnyPredTensor : TensorOf<[HLO_Pred]> {
+  let summary = "tensor of bool";
+}
 
-def HLO_AnyFpTensor : TensorOf<[HLO_Float]>;
+def HLO_AnyFpTensor : TensorOf<[HLO_Float]> {
+  let summary = "tensor of float";
+}
 
-def HLO_AnyComplexTensor : TensorOf<[HLO_Complex]>;
+def HLO_AnyComplexTensor : TensorOf<[HLO_Complex]> {
+  let summary = "tensor of complex";
+}
 
-def HLO_AnyFpOrComplexTensor : TensorOf<[HLO_Float, HLO_Complex]>;
+def HLO_AnyFpOrComplexTensor : TensorOf<[HLO_Float, HLO_Complex]> {
+  let summary = "tensor of float or complex";
+}
 
-def HLO_AnyPredOrIntTensor : TensorOf<[HLO_Pred, HLO_Int]>;
+def HLO_AnyPredOrIntTensor : TensorOf<[HLO_Pred, HLO_Int]> {
+  let summary = "tensor of bool or int";
+}
 
-def HLO_AnyTuple : NestedTupleOf<[HLO_AnyTensor, HLO_Token]>;
+def HLO_AnyTuple : NestedTupleOf<[HLO_AnyTensor, HLO_Token]> {
+  let summary = "tuple of any tensor or token";
+}
 
-def HLO_CustomCallValue : AnyTypeOf<[HLO_AnyTensor, HLO_Token, HLO_AnyTuple]>;
+def HLO_CustomCallValue : AnyTypeOf<[HLO_AnyTensor, HLO_Token, HLO_AnyTuple]> {
+  let summary = "any tensor or token or tuple";
+}
 
 //===----------------------------------------------------------------------===//
 // HLO combined type definitions.
 //===----------------------------------------------------------------------===//
 
 // Any integer or floating-point tensor types
-def HLO_IntOrFpTensor : RankedTensorOf<[HLO_Int, HLO_Float]>;
+def HLO_IntOrFpTensor : RankedTensorOf<[HLO_Int, HLO_Float]> {
+  let summary = "tensor of int or float";
+}
 
 // Any integer or predicate tensor types
-def HLO_PredOrIntTensor : RankedTensorOf<[HLO_Pred, HLO_Int]>;
+def HLO_PredOrIntTensor : RankedTensorOf<[HLO_Pred, HLO_Int]> {
+  let summary = "tensor of bool or int";
+}
 
 // Any floating-point or complex tensor types
-def HLO_FpOrComplexTensor : RankedTensorOf<[HLO_Float, HLO_Complex]>;
+def HLO_FpOrComplexTensor : RankedTensorOf<[HLO_Float, HLO_Complex]> {
+  let summary = "tensor of float or complex";
+}
 
 // Any floating-point or quantized tensor types
 def HLO_FpOrQuantizedIntTensor : RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>;
