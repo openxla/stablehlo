@@ -77,9 +77,11 @@ bazel-test-diff() {
   echo "$formatted_impacted_targets"
   echo ""
 
+  # Remove external and duplicate targets.
+  cat /tmp/impacted_targets.txt | sort | uniq | grep -v '//external' > /tmp/filtered_targets.txt
   # Build and Test impacted targets
-  bazel build --target_pattern_file=/tmp/impacted_targets.txt
-  bazel test --target_pattern_file=/tmp/impacted_targets.txt
+  bazel build --target_pattern_file=/tmp/filtered_targets.txt
+  bazel test --target_pattern_file=/tmp/filtered_targets.txt
 }
 
 # Run bazel build and test
