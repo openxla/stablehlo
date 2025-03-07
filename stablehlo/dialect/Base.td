@@ -142,14 +142,14 @@ class StableHLO_UniformQuantizedPerAxisUnsignedIntOfWidths<list<int> widths> :
 def HLO_QuantizedSignedInt : StableHLO_UniformQuantizedSignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_QuantizedUnsignedInt : StableHLO_UniformQuantizedUnsignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_QuantizedInt :
-    AnyTypeOf<[HLO_QuantizedSignedInt, HLO_QuantizedUnsignedInt]>;
+    AnyTypeOf<[HLO_QuantizedSignedInt, HLO_QuantizedUnsignedInt], "per-tensor integer quantized">;
 
 // Integer-based uniform per-axis quantized types. The definitions can be used to specify
 // operand's tensor types.
 def HLO_PerAxisQuantizedSignedInt : StableHLO_UniformQuantizedPerAxisSignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_PerAxisQuantizedUnsignedInt : StableHLO_UniformQuantizedPerAxisUnsignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_PerAxisQuantizedInt :
-    AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt]>;
+    AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt], "per-axis integer quantized">;
 
 // Token type.
 def HLO_Token : Type<CPred<"isa<TokenType>($_self)">, "token">;
