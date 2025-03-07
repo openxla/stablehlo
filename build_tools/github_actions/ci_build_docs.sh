@@ -45,6 +45,7 @@ targets[":stablehlo_passes_optimization_inc_gen_filegroup"]="bazel-bin/stablehlo
 targets[":interpreter_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/reference/interpreter_passes.md"
 targets[":linalg_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/linalg/transforms/stablehlo_linalg_passes.md"
 targets[":tosa_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/tosa/transforms/stablehlo_tosa_passes.md"
+targets[":chlo_ops_inc_gen_filegroup"]="bazel-bin/stablehlo/dialect/chlo.md"
 
 bazel build "${!targets[@]}"
 
