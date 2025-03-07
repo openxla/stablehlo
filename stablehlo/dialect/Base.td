@@ -48,20 +48,20 @@ def HLO_HasStaticOrSingleBoundedShapePred
 // HLO type definitions.
 //===----------------------------------------------------------------------===//
 
-def HLO_Pred : TypeAlias<I1, "pred (AKA boolean or 1-bit integer)">;
+def HLO_Pred : TypeAlias<I1, "bool">;
 
 // TODO(hinsu): Use signed integers instead of signless integer which is being
 // used for legacy reasons.
 def HLO_SInt : SignlessIntOfWidths<[2, 4, 8, 16, 32, 64]>;
 def HLO_UInt : UnsignedIntOfWidths<[2, 4, 8, 16, 32, 64]>;
-def HLO_Int : AnyTypeOf<[HLO_SInt, HLO_UInt]>;
+def HLO_Int : AnyTypeOf<[HLO_SInt, HLO_UInt], "2/4/8/16/32/64-bit integer">;
 
 def HLO_Float : AnyTypeOf<[F4E2M1FN, F6E2M3FN, F6E3M2FN, F8E3M4, F8E4M3,
                            F8E4M3FN, F8E4M3FNUZ, F8E4M3B11FNUZ, F8E5M2,
-                           F8E5M2FNUZ, F8E8M0FNU, F16, F32, F64, BF16]>;
-def HLO_Float32Or64 : AnyTypeOf<[F32, F64]>;
+                           F8E5M2FNUZ, F8E8M0FNU, F16, F32, F64, BF16], "4/6/8/16/32/64-bit float">;
+def HLO_Float32Or64 : AnyTypeOf<[F32, F64], "32/64-bit float">;
 
-def HLO_Complex : Complex<AnyTypeOf<[F32, F64]>>;
+def HLO_Complex : Complex<HLO_Float32Or64>;
 
 //===----------------------------------------------------------------------===//
 // Quantized element type definitions.
@@ -142,14 +142,14 @@ class StableHLO_UniformQuantizedPerAxisUnsignedIntOfWidths<list<int> widths> :
 def HLO_QuantizedSignedInt : StableHLO_UniformQuantizedSignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_QuantizedUnsignedInt : StableHLO_UniformQuantizedUnsignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_QuantizedInt :
-    AnyTypeOf<[HLO_QuantizedSignedInt, HLO_QuantizedUnsignedInt]>;
+    AnyTypeOf<[HLO_QuantizedSignedInt, HLO_QuantizedUnsignedInt], "per-tensor integer quantized">;
 
 // Integer-based uniform per-axis quantized types. The definitions can be used to specify
 // operand's tensor types.
 def HLO_PerAxisQuantizedSignedInt : StableHLO_UniformQuantizedPerAxisSignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_PerAxisQuantizedUnsignedInt : StableHLO_UniformQuantizedPerAxisUnsignedIntOfWidths<[2, 4, 8, 16, 32]>;
 def HLO_PerAxisQuantizedInt :
-    AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt]>;
+    AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt], "per-axis integer quantized">;
 
 // Token type.
 def HLO_Token : Type<CPred<"isa<TokenType>($_self)">, "token">;
@@ -255,10 +255,6 @@ def HLO_IntFpOrComplexOrQuantizedIntTensor : RankedTensorOf<[HLO_Int, HLO_Float,
 
 // Any pred, int or floating-point tensor types
 def HLO_PredIntOrFpTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
-
-// Any pred, int or floating-point ranked tensor types
-// TODO: delete this type once ranked tensors are the default
-def HLO_PredIntOrFpRankedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
 
 // Any pred, int, floating-point or quantized tensor types
 def HLO_PredIntFpOrQuantizedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO_QuantizedInt]>;

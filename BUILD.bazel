@@ -202,6 +202,13 @@ gentbl_cc_library(
             ["-gen-op-defs"],
             "stablehlo/dialect/ChloOps.cpp.inc",
         ),
+        (
+            [
+                "-gen-dialect-doc",
+                "--dialect=chlo",
+            ],
+            "stablehlo/dialect/chlo.md",
+        ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/dialect/ChloOps.td",
@@ -1556,9 +1563,7 @@ gentbl_cc_library(
             "stablehlo/conversions/tosa/transforms/Passes.h.inc",
         ),
         (
-            [
-                "-gen-pass-doc",
-            ],
+            ["-gen-pass-doc"],
             "stablehlo/conversions/tosa/transforms/stablehlo_tosa_passes.md",
         ),
     ],

@@ -53,6 +53,8 @@ toc:
     path: /stablehlo/bytecode
   - title: Type inference
     path: /stablehlo/type_inference
+  - title: The CHLO dialect
+    path: /stablehlo/generated/chlo.md
   - title: The VHLO dialect
     path: /stablehlo/vhlo
   - title: IDE setup tips
