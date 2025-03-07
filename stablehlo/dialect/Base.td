@@ -188,9 +188,8 @@ def HLO_NonQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_C
 def HLO_TensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
     [IsValidQuantizedDimension]>;
 
-def HLO_FloatOrQuantizedIntOrPerAxisQuantizedIntTensor
-  : RankedTensorOf<[HLO_Float, HLO_QuantizedInt, HLO_PerAxisQuantizedInt], [IsValidQuantizedDimension],
-                   "tensor of float or quantized int or per-axis quantized int">;
+def HLO_FloatOrQuantizedIntOrPerAxisQuantizedIntTensor : RankedTensorOf<[HLO_Float, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
+    [IsValidQuantizedDimension]>;
 
 def HLO_ComplexTensor : RankedTensorOf<[HLO_Complex]>;
 
@@ -265,13 +264,13 @@ def HLO_PredIntFpOrQuantizedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Floa
 //===----------------------------------------------------------------------===//
 
 // Static representation of a shape vector as a tensor.
-def HLO_StaticDimensionTensor : RankedTensorOf<[HLO_DimensionValue], [HasStaticShapePred, HasAnyRankOfPred<[1]>]>;
+def HLO_StaticDimensionTensor : RankedTensorOf<[HLO_DimensionValue], [HasStaticShapePred, HasAnyRankOfPred<[1]>], "statically shaped 1-dimensional tensor">;
 
 // Static representation of a 1D tensor of int.
-def HLO_Static1DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[1]>]>;
+def HLO_Static1DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[1]>], "statically shaped 1-dimensional integer tensor">;
 
 // Static representation of a 2D tensor of int.
-def HLO_Static2DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[2]>]>;
+def HLO_Static2DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[2]>], "statically shaped 2-dimensional integer tensor">;
 
 // In general, static shaped tensor constraints should be avoided unless
 // it is for a legacy op which is only correct with static shapes.
@@ -282,8 +281,7 @@ def HLO_StaticShapeTensorOrPerAxisQuantizedTensor : RankedTensorOf<[HLO_Float, H
     [IsValidQuantizedDimension, HasStaticShapePred], "statically shaped tensor">;
 
 def HLO_StaticShapeTensorPerAxisQuantizedTensorOrBoundedTensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
-    [IsValidQuantizedDimension, HLO_HasStaticOrSingleBoundedShapePred],
-    "statically shaped or single bounded dimension tensor">;
+    [IsValidQuantizedDimension, HLO_HasStaticOrSingleBoundedShapePred], "statically shaped or single bounded dimension tensor">;
 
 def HLO_StaticShapeTensorOrPerAxisQuantizedTensorOrToken : AnyTypeOf<[HLO_StaticShapeTensor, HLO_StaticShapeTensorOrPerAxisQuantizedTensor, HLO_Token]>;
 
