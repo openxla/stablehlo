@@ -858,7 +858,8 @@ def CHLO_RaggedDotDimensionNumbers : AttrDef<CHLO_Dialect, "RaggedDotDimensionNu
   let hasCustomAssemblyFormat = 1;
 }
 
-def CHLO_RaggedDotOp : CHLO_Op<"ragged_dot", [Pure]> {
+def CHLO_RaggedDotOp : CHLO_Op<"ragged_dot",
+    [Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   string summary = "Computes a matmul over a single ragged dimension";
 
   string description = [{
