@@ -3325,7 +3325,7 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
     StableHLO_RngDistributionAttr:$rng_distribution
   );
 
-  let results = (outs HLO_PredIntOrFpRankedTensor:$result);
+  let results = (outs HLO_PredIntOrFpTensor:$result);
 
   let assemblyFormat = [{
     $a `,` $b `,` $shape `,` `distribution` `=` $rng_distribution

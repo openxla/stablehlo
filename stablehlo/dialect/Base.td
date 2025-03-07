@@ -48,20 +48,20 @@ def HLO_HasStaticOrSingleBoundedShapePred
 // HLO type definitions.
 //===----------------------------------------------------------------------===//
 
-def HLO_Pred : TypeAlias<I1, "pred (AKA boolean or 1-bit integer)">;
+def HLO_Pred : TypeAlias<I1, "bool">;
 
 // TODO(hinsu): Use signed integers instead of signless integer which is being
 // used for legacy reasons.
 def HLO_SInt : SignlessIntOfWidths<[2, 4, 8, 16, 32, 64]>;
 def HLO_UInt : UnsignedIntOfWidths<[2, 4, 8, 16, 32, 64]>;
-def HLO_Int : AnyTypeOf<[HLO_SInt, HLO_UInt]>;
+def HLO_Int : AnyTypeOf<[HLO_SInt, HLO_UInt], "integer">;
 
 def HLO_Float : AnyTypeOf<[F4E2M1FN, F6E2M3FN, F6E3M2FN, F8E3M4, F8E4M3,
                            F8E4M3FN, F8E4M3FNUZ, F8E4M3B11FNUZ, F8E5M2,
-                           F8E5M2FNUZ, F8E8M0FNU, F16, F32, F64, BF16]>;
-def HLO_Float32Or64 : AnyTypeOf<[F32, F64]>;
+                           F8E5M2FNUZ, F8E8M0FNU, F16, F32, F64, BF16], "float">;
+def HLO_Float32Or64 : AnyTypeOf<[F32, F64], "float32 or float64">;
 
-def HLO_Complex : Complex<AnyTypeOf<[F32, F64]>>;
+def HLO_Complex : Complex<HLO_Float32Or64>;
 
 //===----------------------------------------------------------------------===//
 // Quantized element type definitions.
@@ -216,56 +216,34 @@ def HLO_DimensionTensor : 1DTensorOf<[HLO_DimensionValue]>;
 //===----------------------------------------------------------------------===//
 
 def HLO_AnyTensor : TensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt, HLO_PerAxisQuantizedInt],
-    [IsValidQuantizedDimension]> {
-  let summary = "tensor of float, int, bool, complex, per-tensor quantized, or per-axis quantized";
-}
+    [IsValidQuantizedDimension]>;
 
-def HLO_AnyPredTensor : TensorOf<[HLO_Pred]> {
-  let summary = "tensor of bool";
-}
+def HLO_AnyPredTensor : TensorOf<[HLO_Pred]>;
 
-def HLO_AnyFpTensor : TensorOf<[HLO_Float]> {
-  let summary = "tensor of float";
-}
+def HLO_AnyFpTensor : TensorOf<[HLO_Float]>;
 
-def HLO_AnyComplexTensor : TensorOf<[HLO_Complex]> {
-  let summary = "tensor of complex";
-}
+def HLO_AnyComplexTensor : TensorOf<[HLO_Complex]>;
 
-def HLO_AnyFpOrComplexTensor : TensorOf<[HLO_Float, HLO_Complex]> {
-  let summary = "tensor of float or complex";
-}
+def HLO_AnyFpOrComplexTensor : TensorOf<[HLO_Float, HLO_Complex]>;
 
-def HLO_AnyPredOrIntTensor : TensorOf<[HLO_Pred, HLO_Int]> {
-  let summary = "tensor of bool or int";
-}
+def HLO_AnyPredOrIntTensor : TensorOf<[HLO_Pred, HLO_Int]>;
 
-def HLO_AnyTuple : NestedTupleOf<[HLO_AnyTensor, HLO_Token]> {
-  let summary = "tuple of any tensor or token";
-}
+def HLO_AnyTuple : NestedTupleOf<[HLO_AnyTensor, HLO_Token]>;
 
-def HLO_CustomCallValue : AnyTypeOf<[HLO_AnyTensor, HLO_Token, HLO_AnyTuple]> {
-  let summary = "any tensor or token or tuple";
-}
+def HLO_CustomCallValue : AnyTypeOf<[HLO_AnyTensor, HLO_Token, HLO_AnyTuple]>;
 
 //===----------------------------------------------------------------------===//
 // HLO combined type definitions.
 //===----------------------------------------------------------------------===//
 
 // Any integer or floating-point tensor types
-def HLO_IntOrFpTensor : RankedTensorOf<[HLO_Int, HLO_Float]> {
-  let summary = "tensor of int or float";
-}
+def HLO_IntOrFpTensor : RankedTensorOf<[HLO_Int, HLO_Float]>;
 
 // Any integer or predicate tensor types
-def HLO_PredOrIntTensor : RankedTensorOf<[HLO_Pred, HLO_Int]> {
-  let summary = "tensor of bool or int";
-}
+def HLO_PredOrIntTensor : RankedTensorOf<[HLO_Pred, HLO_Int]>;
 
 // Any floating-point or complex tensor types
-def HLO_FpOrComplexTensor : RankedTensorOf<[HLO_Float, HLO_Complex]> {
-  let summary = "tensor of float or complex";
-}
+def HLO_FpOrComplexTensor : RankedTensorOf<[HLO_Float, HLO_Complex]>;
 
 // Any floating-point or quantized tensor types
 def HLO_FpOrQuantizedIntTensor : RankedTensorOf<[HLO_Float, HLO_QuantizedInt]>;
@@ -279,10 +257,6 @@ def HLO_IntFpOrComplexOrQuantizedIntTensor : RankedTensorOf<[HLO_Int, HLO_Float,
 // Any pred, int or floating-point tensor types
 def HLO_PredIntOrFpTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
 
-// Any pred, int or floating-point ranked tensor types
-// TODO: delete this type once ranked tensors are the default
-def HLO_PredIntOrFpRankedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
-
 // Any pred, int, floating-point or quantized tensor types
 def HLO_PredIntFpOrQuantizedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO_QuantizedInt]>;
 
@@ -291,13 +265,13 @@ def HLO_PredIntFpOrQuantizedTensor : RankedTensorOf<[HLO_Pred, HLO_Int, HLO_Floa
 //===----------------------------------------------------------------------===//
 
 // Static representation of a shape vector as a tensor.
-def HLO_StaticDimensionTensor : RankedTensorOf<[HLO_DimensionValue], [HasStaticShapePred, HasAnyRankOfPred<[1]>], "statically shaped 1-dimensional tensor">;
+def HLO_StaticDimensionTensor : RankedTensorOf<[HLO_DimensionValue], [HasStaticShapePred, HasAnyRankOfPred<[1]>]>;
 
 // Static representation of a 1D tensor of int.
-def HLO_Static1DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[1]>], "statically shaped 1-dimensional integer tensor">;
+def HLO_Static1DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[1]>]>;
 
 // Static representation of a 2D tensor of int.
-def HLO_Static2DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[2]>], "statically shaped 2-dimensional integer tensor">;
+def HLO_Static2DIntTensor : RankedTensorOf<[HLO_Int], [HasStaticShapePred, HasAnyRankOfPred<[2]>]>;
 
 // In general, static shaped tensor constraints should be avoided unless
 // it is for a legacy op which is only correct with static shapes.
