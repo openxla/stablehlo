@@ -260,6 +260,7 @@ enum class KnownDotAlgorithm {
   TF32_TF32_F32_X3 = 10,
   F32_F32_F32 = 11,
   F64_F64_F64 = 12,
+  BF16_BF16_F32_X9 = 13,
 };
 
 FailureOr<KnownDotAlgorithm> getKnownDotAlgorithm(

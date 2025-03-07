@@ -27,7 +27,6 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
-#include "mlir/IR/Location.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Region.h"
 #include "mlir/IR/Types.h"
@@ -187,31 +186,6 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
   return success();
 }
 
-bool isLegalLocation(Location loc, const Version& targetVersion) {
-  // FileLineColRange locations are a forward incompatibility in upstream MLIR
-  // just before v1.8.4 was tagged. Conservatively use 1.9.0 since StableHLO
-  // passes require major versions for incompats.
-  //
-  // Support for downgrading these locations exists in
-  // StablehloCompatibilityExpanderPass.
-  bool isLegal = true;
-  loc->walk([&](Location childLoc) -> WalkResult {
-    if (auto fileLineColLoc = dyn_cast<FileLineColRange>(childLoc)) {
-      static const Version kFileLineColLocMinVersion = Version(1, 9, 0);
-      if (!isStrictFileLineColLoc(childLoc) &&
-          targetVersion < kFileLineColLocMinVersion) {
-        LLVM_DEBUG(llvm::dbgs() << "failed to legalize location " << childLoc
-                                << " to version " << targetVersion << '\n');
-        isLegal = false;
-        return WalkResult::interrupt();
-      }
-    }
-    return WalkResult::advance();
-  });
-
-  return isLegal;
-}
-
 bool isLegalOperation(Operation* op, const Version& targetVersion) {
   // Validate op
   auto opInterface = dyn_cast<VersionedOpInterface>(op);
@@ -234,7 +208,6 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
     return succeeded(isLegalAttribute(attr.getValue(), targetVersion));
   };
   if (!llvm::all_of(op->getAttrs(), isLegalAttrFn)) return false;
-  LLVM_DEBUG(llvm::dbgs() << "Legal op attributes for target. " << op << '\n');
 
   // Validate types
   auto isLegalTypeFn = [&](Type t) {
@@ -243,11 +216,6 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
   if (!llvm::all_of(op->getOperandTypes(), isLegalTypeFn) ||
       !llvm::all_of(op->getResultTypes(), isLegalTypeFn))
     return false;
-  LLVM_DEBUG(llvm::dbgs() << "Legal op types for target. " << op << '\n');
-
-  // Validate location
-  if (!isLegalLocation(op->getLoc(), targetVersion)) return false;
-  LLVM_DEBUG(llvm::dbgs() << "Legal op location for target. " << op << '\n');
 
   return true;
 }
