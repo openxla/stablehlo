@@ -203,7 +203,10 @@ gentbl_cc_library(
             "stablehlo/dialect/ChloOps.cpp.inc",
         ),
         (
-            ["-gen-dialect-doc", "--dialect=chlo"],
+            [
+                "-gen-dialect-doc",
+                "--dialect=chlo",
+            ],
             "stablehlo/dialect/chlo.md",
         ),
     ],
