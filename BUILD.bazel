@@ -1246,6 +1246,7 @@ cc_library(
         "stablehlo/transforms/StablehloLegalizeToVhlo.cpp",
         "stablehlo/transforms/StablehloRefineArguments.cpp",
         "stablehlo/transforms/StablehloRefineShapes.cpp",
+        "stablehlo/transforms/StablehloWrapInComposite.cpp",
         "stablehlo/transforms/VhloLegalizeToStablehlo.cpp",
         "stablehlo/transforms/VhloToVersion.cpp",
     ],
