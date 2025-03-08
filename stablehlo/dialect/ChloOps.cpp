@@ -710,31 +710,6 @@ LogicalResult RaggedDotOp::verify() {
   return success();
 }
 
-LogicalResult RaggedDotOp::inferReturnTypes(
-    MLIRContext*, std::optional<Location>, ValueRange operands,
-    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
-    SmallVectorImpl<Type>& inferredReturnTypes) {
-  RaggedDotOp::Adaptor op(operands, attributes, properties, regions);
-
-  auto rankedLhsType = cast<RankedTensorType>(op.getLhs().getType());
-  auto rankedRhsType = cast<RankedTensorType>(op.getRhs().getType());
-  auto rankedGroupSizesType =
-      cast<RankedTensorType>(op.getGroupSizes().getType());
-  auto raggedDotDimNums = op.getRaggedDotDimensionNumbers();
-
-  inferredReturnTypes.push_back(RankedTensorType::get(
-      inferRaggedDotOutputDimensions(
-          rankedLhsType, rankedRhsType, rankedGroupSizesType,
-          raggedDotDimNums.getLhsBatchingDimensions(),
-          raggedDotDimNums.getRhsBatchingDimensions(),
-          raggedDotDimNums.getLhsContractingDimensions(),
-          raggedDotDimNums.getRhsContractingDimensions(),
-          raggedDotDimNums.getLhsRaggedDimensions(),
-          raggedDotDimNums.getRhsGroupDimensions()),
-      rankedLhsType.getElementType()));
-  return success();
-}
-
 //===----------------------------------------------------------------------===//
 // TopKOp
 //===----------------------------------------------------------------------===//

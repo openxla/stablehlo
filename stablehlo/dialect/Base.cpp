@@ -680,6 +680,7 @@ FailureOr<KnownDotAlgorithm> getKnownDotAlgorithm(
           {{bf16, bf16, f32, 1}, KnownDotAlgorithm::BF16_BF16_F32},
           {{bf16, bf16, f32, 3}, KnownDotAlgorithm::BF16_BF16_F32_X3},
           {{bf16, bf16, f32, 6}, KnownDotAlgorithm::BF16_BF16_F32_X6},
+          {{bf16, bf16, f32, 9}, KnownDotAlgorithm::BF16_BF16_F32_X9},
           {{tf32, tf32, f32, 1}, KnownDotAlgorithm::TF32_TF32_F32},
           {{tf32, tf32, f32, 3}, KnownDotAlgorithm::TF32_TF32_F32_X3},
           {{f32, f32, f32, 1}, KnownDotAlgorithm::F32_F32_F32},

@@ -52,7 +52,9 @@ Value buildRescale(PatternRewriter &rewriter, Location loc,
       rewriter.getDenseI32ArrayAttr({multiplier}),
       rewriter.getDenseI8ArrayAttr({static_cast<int8_t>(shift)}),
       rewriter.getBoolAttr(scale32), rewriter.getBoolAttr(doubleRound),
-      rewriter.getBoolAttr(perChannel));
+      rewriter.getBoolAttr(perChannel),
+      /*input_unsigned=*/rewriter.getBoolAttr(false),
+      /*output_unsigned=*/rewriter.getBoolAttr(false));
 
   return rescale_op.getResult();
 }
