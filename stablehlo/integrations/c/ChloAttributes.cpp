@@ -66,3 +66,127 @@ MlirStringRef chloComparisonTypeAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::chlo::stringifyComparisonType(
       llvm::cast<mlir::chlo::ComparisonTypeAttr>(unwrap(attr)).getValue()));
 }
+
+//===----------------------------------------------------------------------===//
+// RaggedDotDimensionNumbers
+//===----------------------------------------------------------------------===//
+
+MlirAttribute chloRaggedDotDimensionNumbersGet(
+    MlirContext ctx, intptr_t nLhsBatchingDimensions,
+    const int64_t *lhsBatchingDimensions, intptr_t nRhsBatchingDimensions,
+    const int64_t *rhsBatchingDimensions, intptr_t nLhsContractingDimensions,
+    const int64_t *lhsContractingDimensions, intptr_t nRhsContractingDimensions,
+    const int64_t *rhsContractingDimensions, intptr_t nLhsRaggedDimensions,
+    const int64_t *lhsRaggedDimensions, intptr_t nRhsGroupDimensions,
+    const int64_t *rhsGroupDimensions) {
+  return wrap(mlir::chlo::RaggedDotDimensionNumbersAttr::get(
+      unwrap(ctx),
+      llvm::ArrayRef(lhsBatchingDimensions, nLhsBatchingDimensions),
+      llvm::ArrayRef(rhsBatchingDimensions, nRhsBatchingDimensions),
+      llvm::ArrayRef(lhsContractingDimensions, nLhsContractingDimensions),
+      llvm::ArrayRef(rhsContractingDimensions, nRhsContractingDimensions),
+      llvm::ArrayRef(lhsRaggedDimensions, nLhsRaggedDimensions),
+      llvm::ArrayRef(rhsGroupDimensions, nRhsGroupDimensions)));
+}
+
+bool chloAttributeIsARaggedDotDimensionNumbers(MlirAttribute attr) {
+  return llvm::isa<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr));
+}
+
+intptr_t chloRaggedDotDimensionNumbersGetLhsBatchingDimensionsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getLhsBatchingDimensions()
+      .size();
+}
+
+int64_t chloRaggedDotDimensionNumbersGetLhsBatchingDimensionsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getLhsBatchingDimensions()[pos];
+}
+
+intptr_t chloRaggedDotDimensionNumbersGetRhsBatchingDimensionsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getRhsBatchingDimensions()
+      .size();
+}
+
+int64_t chloRaggedDotDimensionNumbersGetRhsBatchingDimensionsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getRhsBatchingDimensions()[pos];
+}
+
+intptr_t chloRaggedDotDimensionNumbersGetLhsContractingDimensionsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getLhsContractingDimensions()
+      .size();
+}
+
+int64_t chloRaggedDotDimensionNumbersGetLhsContractingDimensionsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getLhsContractingDimensions()[pos];
+}
+
+intptr_t chloRaggedDotDimensionNumbersGetRhsContractingDimensionsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getRhsContractingDimensions()
+      .size();
+}
+
+int64_t chloRaggedDotDimensionNumbersGetRhsContractingDimensionsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getRhsContractingDimensions()[pos];
+}
+
+intptr_t chloRaggedDotDimensionNumbersGetLhsRaggedDimensionsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getLhsRaggedDimensions()
+      .size();
+}
+
+int64_t chloRaggedDotDimensionNumbersGetLhsRaggedDimensionsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getLhsRaggedDimensions()[pos];
+}
+
+intptr_t chloRaggedDotDimensionNumbersGetRhsGroupDimensionsSize(
+    MlirAttribute attr) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getRhsGroupDimensions()
+      .size();
+}
+
+int64_t chloRaggedDotDimensionNumbersGetRhsGroupDimensionsElem(
+    MlirAttribute attr, intptr_t pos) {
+  return llvm::cast<mlir::chlo::RaggedDotDimensionNumbersAttr>(unwrap(attr))
+      .getRhsGroupDimensions()[pos];
+}
+
+//===----------------------------------------------------------------------===//
+// PrecisionAttr
+//===----------------------------------------------------------------------===//
+
+MlirAttribute chloPrecisionAttrGet(MlirContext ctx, MlirStringRef value) {
+  std::optional<mlir::chlo::Precision> precision =
+      mlir::chlo::symbolizePrecision(unwrap(value));
+  if (!precision) llvm::report_fatal_error("Invalid value.");
+  return wrap(mlir::chlo::PrecisionAttr::get(unwrap(ctx), precision.value()));
+}
+
+bool chloAttributeIsAPrecisionAttr(MlirAttribute attr) {
+  return llvm::isa<mlir::chlo::PrecisionAttr>(unwrap(attr));
+}
+
+MlirStringRef chloPrecisionAttrGetValue(MlirAttribute attr) {
+  return wrap(mlir::chlo::stringifyPrecision(
+      llvm::cast<mlir::chlo::PrecisionAttr>(unwrap(attr)).getValue()));
+}
