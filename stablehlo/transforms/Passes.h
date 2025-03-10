@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLEHLO_TRANSFORMS_PASSES_H
 #define STABLEHLO_TRANSFORMS_PASSES_H
 
+#include <functional>
 #include <memory>
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -101,6 +102,14 @@ void populateStablehloCompatibilityExpanderPatterns(
 
 std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
     TypeRange refinedTypes);
+
+/// Creates a pass that wraps StableHLO ops in CompositeOp.
+///
+/// The pass will wrap the StableHLO ops that match the given opPredicate
+/// function in CompositeOp. The opPredicate function should return true if the
+/// op should be wrapped in CompositeOp.
+std::unique_ptr<OperationPass<ModuleOp>> createStablehloWrapInCompositePass(
+    std::function<bool(Operation *)> opPredicate);
 
 //// Pass pipelines ////
 
