@@ -27,7 +27,7 @@ git add .
 git commit -m "Integrate LLVM at llvm/llvm-project@b3134fa23383"
 ```
 
-### Integarte into OpenXLA Repositories
+### Integrate into OpenXLA Repositories
 
 The StableHLO oncall then integrates the change into the google monorepo, which
 propagates the new StableHLO features to XLA, Shardy, JAX, TF, etc, including
@@ -49,7 +49,7 @@ This step takes care of a few things:
 Usage: ./build_tools/integrate/stablehlo_tag_and_bump_version.sh [-t <COMMIT_TO_TAG>]
    -t  Specify a commit to tag, must be an integrated StableHLO commit
        available on https://github.com/search?q=repo%3Aopenxla%2Fxla+integrate+stablehlo&type=commits
-       If not specifed, will only bump the 4w and 12w versions.
+       If not specified, will only bump the 4w and 12w versions.
 
 $ ./build_tools/integrate/stablehlo_tag_and_bump_version.sh -t 37487a8e
 Bumping 4w and 12w compatibility window values
