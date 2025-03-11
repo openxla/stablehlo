@@ -42,3 +42,30 @@ def test_comparison_type_attr():
   assert attr is not None
   assert str(attr) == ("#chlo<comparison_type FLOAT>")
   assert attr.value == "FLOAT"
+
+
+@run
+def test_ragged_dot_dimension_numbers():
+  attr = chlo.RaggedDotDimensionNumbers.get(
+      lhs_batching_dimensions=[0],
+      rhs_batching_dimensions=[1],
+      lhs_contracting_dimensions=[2],
+      rhs_contracting_dimensions=[2],
+      lhs_ragged_dimensions=[1],
+      rhs_group_dimensions=[0],
+  )
+  assert attr is not None
+  assert str(attr) == (
+      "#chlo.ragged_dot<lhs_batching_dimensions = [0], "
+      "rhs_batching_dimensions = [1], "
+      "lhs_contracting_dimensions = [2], "
+      "rhs_contracting_dimensions = [2], >"
+      "lhs_ragged_dimensions = [1], "
+      "rhs_group_dimensions = [0]>"
+  )
+  assert attr.lhs_batching_dimensions == [0]
+  assert attr.rhs_batching_dimensions == [1]
+  assert attr.lhs_contracting_dimensions == [2]
+  assert attr.rhs_contracting_dimensions == [2]
+  assert attr.lhs_ragged_dimensions == [1]
+  assert attr.rhs_group_dimensions == [0]

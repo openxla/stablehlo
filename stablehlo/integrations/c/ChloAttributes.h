@@ -47,6 +47,70 @@ MLIR_CAPI_EXPORTED bool chloAttributeIsAComparisonTypeAttr(MlirAttribute attr);
 MLIR_CAPI_EXPORTED MlirStringRef
 chloComparisonTypeAttrGetValue(MlirAttribute attr);
 
+//===----------------------------------------------------------------------===//
+// RaggedDotDimensionNumbers
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute chloRaggedDotDimensionNumbersGet(
+    MlirContext ctx,                                                        //
+    intptr_t nLhsBatchingDimensions, const int64_t *lhsBatchingDimensions,  //
+    intptr_t nRhsBatchingDimensions, const int64_t *rhsBatchingDimensions,  //
+    intptr_t nLhsContractingDimensions,                                     //
+    const int64_t *lhsContractingDimensions,                                //
+    intptr_t nRhsContractingDimensions,                                     //
+    const int64_t *rhsContractingDimensions,                                //
+    intptr_t nLhsRaggedDimensions,                                          //
+    const int64_t *lhsRaggedDimensions,                                     //
+    intptr_t nRhsGroupDimensions,                                           //
+    const int64_t *rhsGroupDimensions);
+
+MLIR_CAPI_EXPORTED bool chloAttributeIsARaggedDotDimensionNumbers(
+    MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED intptr_t
+chloRaggedDotDimensionNumbersGetLhsBatchingDimensionsSize(MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+chloRaggedDotDimensionNumbersGetLhsBatchingDimensionsElem(MlirAttribute attr,
+                                                          intptr_t pos);
+MLIR_CAPI_EXPORTED intptr_t
+chloRaggedDotDimensionNumbersGetRhsBatchingDimensionsSize(MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+chloRaggedDotDimensionNumbersGetRhsBatchingDimensionsElem(MlirAttribute attr,
+                                                          intptr_t pos);
+MLIR_CAPI_EXPORTED intptr_t
+chloRaggedDotDimensionNumbersGetLhsContractingDimensionsSize(
+    MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+chloRaggedDotDimensionNumbersGetLhsContractingDimensionsElem(MlirAttribute attr,
+                                                             intptr_t pos);
+MLIR_CAPI_EXPORTED intptr_t
+chloRaggedDotDimensionNumbersGetRhsContractingDimensionsSize(
+    MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+chloRaggedDotDimensionNumbersGetRhsContractingDimensionsElem(MlirAttribute attr,
+                                                             intptr_t pos);
+MLIR_CAPI_EXPORTED intptr_t
+chloRaggedDotDimensionNumbersGetLhsRaggedDimensionsSize(MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+chloRaggedDotDimensionNumbersGetLhsRaggedDimensionsElem(MlirAttribute attr,
+                                                        intptr_t pos);
+MLIR_CAPI_EXPORTED intptr_t
+chloRaggedDotDimensionNumbersGetRhsGroupDimensionsSize(MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+chloRaggedDotDimensionNumbersGetRhsGroupDimensionsElem(MlirAttribute attr,
+                                                       intptr_t pos);
+
+//===----------------------------------------------------------------------===//
+// PrecisionAttr
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute chloPrecisionAttrGet(MlirContext ctx,
+                                                      MlirStringRef value);
+
+MLIR_CAPI_EXPORTED bool chloAttributeIsAPrecisionAttr(MlirAttribute attr);
+
+MLIR_CAPI_EXPORTED MlirStringRef chloPrecisionAttrGetValue(MlirAttribute attr);
+
 #ifdef __cplusplus
 }
 #endif
