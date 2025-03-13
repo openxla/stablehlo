@@ -426,8 +426,8 @@ func.func @simplify_dynamic_gather_i32(%arg0: tensor<375682x256xf16>, %arg1: ten
 /////////
 // DynamicIotaOp
 
-// CHECK-LABEL: @dynamic_iota_broadcast
-func.func @dynamic_iota_broadcast(%arg0 : tensor<2xindex>) -> tensor<5x?xi32> {
+// CHECK-LABEL: @dynamic_iota_broadcast_dim0_index
+func.func @dynamic_iota_broadcast_dim0_index(%arg0 : tensor<2xindex>) -> tensor<5x?xi32> {
   // CHECK: [[IOTA:%.+]] = stablehlo.iota dim = 0 : tensor<5xi32>
   // CHECK: [[BROADCAST:%.+]] = stablehlo.dynamic_broadcast_in_dim [[IOTA]], %arg0, dims = [0] : (tensor<5xi32>, tensor<2xindex>) -> tensor<5x?xi32>
   %0 = "stablehlo.dynamic_iota"(%arg0) <{iota_dimension = 0 : i64}> : (tensor<2xindex>) -> tensor<5x?xi32>
@@ -436,14 +436,56 @@ func.func @dynamic_iota_broadcast(%arg0 : tensor<2xindex>) -> tensor<5x?xi32> {
   func.return %0 : tensor<5x?xi32>
 }
 
-// CHECK-LABEL: @dynamic_iota_broadcast_second
-func.func @dynamic_iota_broadcast_second(%arg0 : tensor<2xindex>) -> tensor<5x?xi32> {
-  // CHECK-NEXT: [[CAST1:%.+]] = arith.index_cast %arg0 : tensor<2xindex> to tensor<2xi64>
-  // CHECK-NEXT: [[SLICE:%.+]] = stablehlo.slice [[CAST1]] [1:2] : (tensor<2xi64>) -> tensor<1xi64>
-  // CHECK-NEXT: [[CAST2:%.+]] = arith.index_cast [[SLICE]] : tensor<1xi64> to tensor<1xindex>
-  // CHECK-NEXT: [[IOTA:%.+]] = stablehlo.dynamic_iota [[CAST2]], dim = 0 : (tensor<1xindex>) -> tensor<?xi32>
+// CHECK-LABEL: @dynamic_iota_broadcast_dim0_i32
+func.func @dynamic_iota_broadcast_dim0_i32(%arg0 : tensor<2xi32>) -> tensor<5x?xi32> {
+  // CHECK: [[IOTA:%.+]] = stablehlo.iota dim = 0 : tensor<5xi32>
+  // CHECK: [[BROADCAST:%.+]] = stablehlo.dynamic_broadcast_in_dim [[IOTA]], %arg0, dims = [0] : (tensor<5xi32>, tensor<2xi32>) -> tensor<5x?xi32>
+  %0 = "stablehlo.dynamic_iota"(%arg0) <{iota_dimension = 0 : i64}> : (tensor<2xi32>) -> tensor<5x?xi32>
+
+  // CHECK: return [[BROADCAST]]
+  func.return %0 : tensor<5x?xi32>
+}
+
+// CHECK-LABEL: @dynamic_iota_broadcast_dim0_i64
+func.func @dynamic_iota_broadcast_dim0_i64(%arg0 : tensor<2xi64>) -> tensor<5x?xi32> {
+  // CHECK: [[IOTA:%.+]] = stablehlo.iota dim = 0 : tensor<5xi32>
+  // CHECK: [[BROADCAST:%.+]] = stablehlo.dynamic_broadcast_in_dim [[IOTA]], %arg0, dims = [0] : (tensor<5xi32>, tensor<2xi64>) -> tensor<5x?xi32>
+  %0 = "stablehlo.dynamic_iota"(%arg0) <{iota_dimension = 0 : i64}> : (tensor<2xi64>) -> tensor<5x?xi32>
+
+  // CHECK: return [[BROADCAST]]
+  func.return %0 : tensor<5x?xi32>
+}
+
+// CHECK-LABEL: @dynamic_iota_broadcast_dim1_index
+func.func @dynamic_iota_broadcast_dim1_index(%arg0 : tensor<2xindex>) -> tensor<5x?xi32> {
+  // CHECK-NEXT: [[CAST:%.+]] = arith.index_cast %arg0 : tensor<2xindex> to tensor<2xi64>
+  // CHECK-NEXT: [[SLICE:%.+]] = stablehlo.slice [[CAST]] [1:2] : (tensor<2xi64>) -> tensor<1xi64>
+  // CHECK-NEXT: [[IOTA:%.+]] = stablehlo.dynamic_iota [[SLICE]], dim = 0 : (tensor<1xi64>) -> tensor<?xi32>
   // CHECK-NEXT: [[BROADCAST:%.+]] = stablehlo.dynamic_broadcast_in_dim [[IOTA]], %arg0, dims = [1] : (tensor<?xi32>, tensor<2xindex>) -> tensor<5x?xi32>
   %0 = "stablehlo.dynamic_iota"(%arg0) <{iota_dimension = 1 : i64}> : (tensor<2xindex>) -> tensor<5x?xi32>
+
+  // CHECK: return [[BROADCAST]]
+  func.return %0 : tensor<5x?xi32>
+}
+
+// CHECK-LABEL: @dynamic_iota_broadcast_dim1_i32
+func.func @dynamic_iota_broadcast_dim1_i32(%arg0 : tensor<2xi32>) -> tensor<5x?xi32> {
+  // CHECK-NEXT: [[CAST:%.+]] = stablehlo.convert %arg0 : (tensor<2xi32>) -> tensor<2xi64>
+  // CHECK-NEXT: [[SLICE:%.+]] = stablehlo.slice [[CAST]] [1:2] : (tensor<2xi64>) -> tensor<1xi64>
+  // CHECK-NEXT: [[IOTA:%.+]] = stablehlo.dynamic_iota [[SLICE]], dim = 0 : (tensor<1xi64>) -> tensor<?xi32>
+  // CHECK-NEXT: [[BROADCAST:%.+]] = stablehlo.dynamic_broadcast_in_dim [[IOTA]], %arg0, dims = [1] : (tensor<?xi32>, tensor<2xi32>) -> tensor<5x?xi32>
+  %0 = "stablehlo.dynamic_iota"(%arg0) <{iota_dimension = 1 : i64}> : (tensor<2xi32>) -> tensor<5x?xi32>
+
+  // CHECK: return [[BROADCAST]]
+  func.return %0 : tensor<5x?xi32>
+}
+
+// CHECK-LABEL: @dynamic_iota_broadcast_dim1_i64
+func.func @dynamic_iota_broadcast_dim1_i64(%arg0 : tensor<2xi64>) -> tensor<5x?xi32> {
+  // CHECK-NEXT: [[SLICE:%.+]] = stablehlo.slice %arg0 [1:2] : (tensor<2xi64>) -> tensor<1xi64>
+  // CHECK-NEXT: [[IOTA:%.+]] = stablehlo.dynamic_iota [[SLICE]], dim = 0 : (tensor<1xi64>) -> tensor<?xi32>
+  // CHECK-NEXT: [[BROADCAST:%.+]] = stablehlo.dynamic_broadcast_in_dim [[IOTA]], %arg0, dims = [1] : (tensor<?xi32>, tensor<2xi64>) -> tensor<5x?xi32>
+  %0 = "stablehlo.dynamic_iota"(%arg0) <{iota_dimension = 1 : i64}> : (tensor<2xi64>) -> tensor<5x?xi32>
 
   // CHECK: return [[BROADCAST]]
   func.return %0 : tensor<5x?xi32>

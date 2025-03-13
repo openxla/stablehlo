@@ -388,43 +388,41 @@ struct DynamicIotaOpToBroadcast : public OpRewritePattern<DynamicIotaOp> {
 
   LogicalResult matchAndRewrite(DynamicIotaOp iota,
                                 PatternRewriter &rewriter) const override {
-    auto resultTy = cast<ShapedType>(iota.getType());
-    if (resultTy.getRank() < 2)
+    ShapedType resultType = cast<ShapedType>(iota.getType());
+    if (resultType.getRank() < 2)
       return rewriter.notifyMatchFailure(iota, "requires rank >= 2");
 
-    auto iotaDimension = static_cast<int64_t>(iota.getIotaDimension());
+    Location iotaLoc = iota.getLoc();
+    int64_t iotaDimension = static_cast<int64_t>(iota.getIotaDimension());
 
-    // Handle case where iota dimension is index, need to convert to/from i64
-    // to interop with slice. These canonicalize away if input is i64.
-    auto convertedShape = rewriter.create<arith::IndexCastOp>(
-        iota.getLoc(),
-        RankedTensorType::get(
-            cast<ShapedType>(iota.getOutputShape().getType()).getShape(),
-            rewriter.getI64Type()),
-        iota.getOutputShape());
+    Value iotaShape = iota.getOutputShape();
+    Value iotaShapeI64;
+    ShapedType iotaShapeType = cast<ShapedType>(iotaShape.getType());
+    ShapedType iotaShapeI64Type =
+        RankedTensorType::get(iotaShapeType.getShape(), rewriter.getI64Type());
 
-    auto slicedShape = rewriter.create<SliceOp>(
-        iota.getLoc(), convertedShape,
-        rewriter.getDenseI64ArrayAttr(iotaDimension),
+    if (iotaShapeType.getElementType().isIndex()) {
+      iotaShapeI64 = rewriter.create<arith::IndexCastOp>(
+          iotaLoc, iotaShapeI64Type, iotaShape);
+    } else {
+      iotaShapeI64 = rewriter.create<stablehlo::ConvertOp>(
+          iotaLoc, iotaShapeI64Type, iotaShape);
+    }
+
+    Value iotaDimensionSize = rewriter.create<SliceOp>(
+        iotaLoc, iotaShapeI64, rewriter.getDenseI64ArrayAttr(iotaDimension),
         rewriter.getDenseI64ArrayAttr(iotaDimension + 1),
         rewriter.getDenseI64ArrayAttr(1));
 
-    auto convertedSlicedShape = rewriter.create<arith::IndexCastOp>(
-        iota.getLoc(),
-        RankedTensorType::get(
-            {1},
-            cast<ShapedType>(iota.getOutputShape().getType()).getElementType()),
-        slicedShape);
+    ShapedType preBroadcastResultType = RankedTensorType::get(
+        {resultType.getDimSize(iotaDimension)}, resultType.getElementType());
 
-    auto iotaType = RankedTensorType::get({resultTy.getDimSize(iotaDimension)},
-                                          resultTy.getElementType());
-
-    auto newIota = rewriter.create<DynamicIotaOp>(
-        iota.getLoc(), iotaType, convertedSlicedShape,
+    Value preBroadcastResult = rewriter.create<DynamicIotaOp>(
+        iotaLoc, preBroadcastResultType, iotaDimensionSize,
         rewriter.getI64IntegerAttr(0));
 
     rewriter.replaceOpWithNewOp<DynamicBroadcastInDimOp>(
-        iota, resultTy, newIota, iota.getOutputShape(),
+        iota, resultType, preBroadcastResult, iotaShape,
         rewriter.getDenseI64ArrayAttr(iotaDimension));
     return success();
   }
@@ -726,12 +724,13 @@ struct ReduceOpUnusedResultCanon final : OpRewritePattern<ReduceOp> {
 
     const auto newNumOperandPairs = usedResults.size();
     const auto newNumOperands = newNumOperandPairs * pairSize;
-    if (newNumOperands != usedArgs.count())
+    if (newNumOperands != usedArgs.count()) {
       return rewriter.notifyMatchFailure(op, [&](Diagnostic &diag) {
         diag << "non-conservative case: " << newNumOperandPairs
              << " return results should be matched with " << newNumOperands
              << " operands, but got " << usedArgs.count();
       });
+    }
 
     SmallVector<Value> newInputs;
     SmallVector<Value> newInitVals;
