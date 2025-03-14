@@ -388,19 +388,18 @@ struct DynamicIotaOpToBroadcast : public OpRewritePattern<DynamicIotaOp> {
 
   LogicalResult matchAndRewrite(DynamicIotaOp iota,
                                 PatternRewriter &rewriter) const override {
-    ShapedType resultType = cast<ShapedType>(iota.getType());
+    auto resultType = cast<ShapedType>(iota.getType());
     if (resultType.getRank() < 2)
       return rewriter.notifyMatchFailure(iota, "requires rank >= 2");
 
     Location iotaLoc = iota.getLoc();
-    int64_t iotaDimension = static_cast<int64_t>(iota.getIotaDimension());
+    auto iotaDimension = static_cast<int64_t>(iota.getIotaDimension());
 
     Value iotaShape = iota.getOutputShape();
-    Value iotaShapeI64;
-    ShapedType iotaShapeType = cast<ShapedType>(iotaShape.getType());
-    ShapedType iotaShapeI64Type =
+    auto iotaShapeType = cast<ShapedType>(iotaShape.getType());
+    auto iotaShapeI64Type =
         RankedTensorType::get(iotaShapeType.getShape(), rewriter.getI64Type());
-
+    Value iotaShapeI64;
     if (iotaShapeType.getElementType().isIndex()) {
       iotaShapeI64 = rewriter.create<arith::IndexCastOp>(
           iotaLoc, iotaShapeI64Type, iotaShape);
@@ -409,15 +408,15 @@ struct DynamicIotaOpToBroadcast : public OpRewritePattern<DynamicIotaOp> {
           iotaLoc, iotaShapeI64Type, iotaShape);
     }
 
-    Value iotaDimensionSize = rewriter.create<SliceOp>(
+    auto iotaDimensionSize = rewriter.create<SliceOp>(
         iotaLoc, iotaShapeI64, rewriter.getDenseI64ArrayAttr(iotaDimension),
         rewriter.getDenseI64ArrayAttr(iotaDimension + 1),
         rewriter.getDenseI64ArrayAttr(1));
 
-    ShapedType preBroadcastResultType = RankedTensorType::get(
+    auto preBroadcastResultType = RankedTensorType::get(
         {resultType.getDimSize(iotaDimension)}, resultType.getElementType());
 
-    Value preBroadcastResult = rewriter.create<DynamicIotaOp>(
+    auto preBroadcastResult = rewriter.create<DynamicIotaOp>(
         iotaLoc, preBroadcastResultType, iotaDimensionSize,
         rewriter.getI64IntegerAttr(0));
 
