@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --stablehlo-wrap-in-composite=op-names='stablehlo.add,stablehlo.convolution,stablehlo.reduce' --split-input-file --verify-diagnostics %s | FileCheck %s
+// RUN: stablehlo-opt --stablehlo-wrap-in-composite='op-names=stablehlo.add,stablehlo.convolution,stablehlo.reduce version=1' --split-input-file --verify-diagnostics %s | FileCheck %s
 
 // CHECK-LABEL: func.func @wrap_in_composite
 // CHECK-SAME: %[[ARG_0:.*]]: tensor<64x8x8x8xi8>,
@@ -11,8 +11,11 @@
 // CHECK-SAME{LITERAL}: padding = dense<[[0, 1], [0, 1]]> : tensor<2x2xi64>,
 // CHECK-SAME{LITERAL}: rhs_dilation = array<i64: 2, 2>,
 // CHECK-SAME{LITERAL}: window_strides = array<i64: 1, 1>},
-// CHECK-SAME: decomposition = @stablehlo.convolution.impl} : (tensor<64x8x8x8xi8>, tensor<4x4x8x32xi8>) -> tensor<64x3x3x32xi32>
-// CHECK: %[[ADD:.*]] = stablehlo.composite "stablehlo.add" %[[CONV]], %[[ARG_2]] {decomposition = @stablehlo.add.impl} : (tensor<64x3x3x32xi32>, tensor<64x3x3x32xi32>) -> tensor<64x3x3x32xi32>
+// CHECK-SAME: decomposition = @stablehlo.convolution.impl,
+// CHECK-SAME: version = 1 : i32} : (tensor<64x8x8x8xi8>, tensor<4x4x8x32xi8>) -> tensor<64x3x3x32xi32>
+// CHECK: %[[ADD:.*]] = stablehlo.composite "stablehlo.add" %[[CONV]], %[[ARG_2]] {
+// CHECK-SAME: decomposition = @stablehlo.add.impl,
+// CHECK-SAME: version = 1 : i32} : (tensor<64x3x3x32xi32>, tensor<64x3x3x32xi32>) -> tensor<64x3x3x32xi32>
 // CHECK-NEXT: return %[[ADD]]
 
 // CHECK-LABEL: func.func private @stablehlo.add.impl
@@ -55,8 +58,8 @@ func.func @wrap_in_composite(
 // CHECK-NEXT: %[[COMPOSITE_REDUCE:.*]] = stablehlo.composite "stablehlo.reduce" %[[ARG_0]], %[[CONST]] {
 // CHECK-SAME: composite_attributes = {
 // CHECK-SAME: dimensions = array<i64: 1>},
-// CHECK-SAME: decomposition = @stablehlo.reduce.impl}
-// CHECK-SAME: (tensor<4x3xf32>, tensor<f32>) -> tensor<4xf32>
+// CHECK-SAME: decomposition = @stablehlo.reduce.impl,
+// CHECK-SAME: version = 1 : i32} : (tensor<4x3xf32>, tensor<f32>) -> tensor<4xf32>
 // CHECK-NEXT: return %[[COMPOSITE_REDUCE]]
 
 // CHECK-LABEL: func.func private @stablehlo.reduce.impl

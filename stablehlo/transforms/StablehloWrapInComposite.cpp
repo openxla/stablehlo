@@ -81,10 +81,12 @@ func::FuncOp buildFuncOpWrappingOperation(Operation* op, ModuleOp module) {
 }
 
 // Returns true if the given operation should be wrapped in a CompositeOp.
-bool shouldWrapInComposite(Operation* op,
-                           const AttributePredicateMap& attributePredicateMap) {
-  auto it = attributePredicateMap.find(op->getName().getTypeID());
-  return it != attributePredicateMap.end() && it->second(op) != std::nullopt;
+bool shouldWrapInComposite(
+    Operation* op,
+    const CompositeAttributeProviderMap& compositeAttributeProviderMap) {
+  auto it = compositeAttributeProviderMap.find(op->getName().getTypeID());
+  return it != compositeAttributeProviderMap.end() &&
+         it->second(op) != std::nullopt;
 }
 
 // A ConversionPattern that matches any operation and rewrites it as a
@@ -92,14 +94,17 @@ bool shouldWrapInComposite(Operation* op,
 // encapsulated within a newly created private function.
 class ConvertGenericOp : public RewritePattern {
  public:
-  explicit ConvertGenericOp(MLIRContext* context,
-                            AttributePredicateMap attributePredicateMap)
+  explicit ConvertGenericOp(
+      MLIRContext* context,
+      CompositeAttributeProviderMap compositeAttributeProviderMap,
+      int32_t compositeVersion)
       : RewritePattern(MatchAnyOpTypeTag(), /*benefit=*/1, context),
-        attributePredicateMap(attributePredicateMap) {}
+        compositeAttributeProviderMap(compositeAttributeProviderMap),
+        compositeVersion(compositeVersion) {}
 
   LogicalResult matchAndRewrite(Operation* op,
                                 PatternRewriter& rewriter) const override {
-    if (!shouldWrapInComposite(op, attributePredicateMap)) {
+    if (!shouldWrapInComposite(op, compositeAttributeProviderMap)) {
       return failure();
     }
 
@@ -111,28 +116,29 @@ class ConvertGenericOp : public RewritePattern {
     func::FuncOp decomposition = buildFuncOpWrappingOperation(op, module);
     auto compositeName = op->getName().getStringRef();
 
-    auto attributePredicate =
-        attributePredicateMap.at(op->getName().getTypeID());
-    auto namedAttributes = attributePredicate(op);
+    auto compositeAttributeProvider =
+        compositeAttributeProviderMap.at(op->getName().getTypeID());
+    auto namedAttributes = compositeAttributeProvider(op);
     auto compositeAttributes = rewriter.getDictionaryAttr(*namedAttributes);
 
     auto compositeOp = rewriter.create<stablehlo::CompositeOp>(
         op->getLoc(), op->getResultTypes(), op->getOperands(), compositeName,
-        compositeAttributes, decomposition.getSymName());
+        compositeAttributes, decomposition.getSymName(), compositeVersion);
     rewriter.replaceOp(op, compositeOp.getResults());
     return success();
   }
 
  private:
-  AttributePredicateMap attributePredicateMap;
+  CompositeAttributeProviderMap compositeAttributeProviderMap;
+  int32_t compositeVersion;
 };
 
 class StablehloWrapInCompositePass
     : public impl::StablehloWrapInCompositePassBase<
           StablehloWrapInCompositePass> {
  public:
-  void initializePredicateMap(MLIRContext* context,
-                              ArrayRef<std::string> opNames) {
+  void initializeAttributeProviderMap(MLIRContext* context,
+                                      ArrayRef<std::string> opNames) {
     for (const auto& opNameStr : opNames) {
       StringRef opName = StringRef(opNameStr).trim();
 
@@ -145,32 +151,32 @@ class StablehloWrapInCompositePass
 
       mlir::TypeID opTypeID = registeredOpName.getTypeID();
 
-      // Create a default predicate that returns an empty attribute list.
-      AttributePredicate predicate =
+      // Create a provider that returns the op's attributes.
+      CompositeAttributeProvider provider =
           [](Operation* op) -> std::optional<NamedAttrList> {
         return NamedAttrList(op->getAttrs());
       };
-      attributePredicateMap[opTypeID] = predicate;
+      compositeAttributeProviderMap[opTypeID] = provider;
     }
   }
 
   StablehloWrapInCompositePass()
-      : StablehloWrapInCompositePassBase<StablehloWrapInCompositePass>(),
-        compositeVersion(versionOption) {}
+      : StablehloWrapInCompositePassBase<StablehloWrapInCompositePass>() {}
   StablehloWrapInCompositePass(const StablehloWrapInCompositePassOptions& opts)
-      : StablehloWrapInCompositePassBase<StablehloWrapInCompositePass>(opts),
-        compositeVersion(versionOption) {}
+      : StablehloWrapInCompositePassBase<StablehloWrapInCompositePass>(opts) {}
   explicit StablehloWrapInCompositePass(
-      const AttributePredicateMap& attributePredicateMap,
+      const CompositeAttributeProviderMap& compositeAttributeProviderMap,
       int32_t compositeVersion)
       : StablehloWrapInCompositePassBase<StablehloWrapInCompositePass>(),
-        attributePredicateMap(attributePredicateMap),
+        compositeAttributeProviderMap(compositeAttributeProviderMap),
         compositeVersion(compositeVersion) {}
 
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    initializePredicateMap(context, opNamesOption);
-    patterns_.add<ConvertGenericOp>(context, attributePredicateMap);
+    initializeAttributeProviderMap(context, opNamesOption);
+    compositeVersion = versionOption;
+    patterns_.add<ConvertGenericOp>(context, compositeAttributeProviderMap,
+                                    compositeVersion);
     patterns = std::move(patterns_);
     return success();
   }
@@ -187,17 +193,17 @@ class StablehloWrapInCompositePass
 
  private:
   FrozenRewritePatternSet patterns;
-  AttributePredicateMap attributePredicateMap;
+  CompositeAttributeProviderMap compositeAttributeProviderMap;
   int32_t compositeVersion;
 };
 
 }  // namespace
 
 std::unique_ptr<OperationPass<ModuleOp>> createStablehloWrapInCompositePass(
-    const AttributePredicateMap& attributePredicateMap,
+    const CompositeAttributeProviderMap& compositeAttributeProviderMap,
     int32_t compositeVersion) {
-  return std::make_unique<StablehloWrapInCompositePass>(attributePredicateMap,
-                                                        compositeVersion);
+  return std::make_unique<StablehloWrapInCompositePass>(
+      compositeAttributeProviderMap, compositeVersion);
 }
 
 stablehlo::CompositeOp wrapOperationInComposite(OpBuilder& builder,
