@@ -2745,3 +2745,58 @@ func.func @conv3d_ncdhw(
     -> tensor<128x128x26x26x26x!quant.uniform<i32:f32, 1.000000e+00:5>>
   return
 }
+
+// -----
+
+// CHECK-LABEL: func.func @decompose_composite_ops
+// CHECK-SAME: %[[VAL_0:.*]]: tensor<2xf32>,
+// CHECK-SAME: %[[VAL_1:.*]]: tensor<2xf32>) -> tensor<2xf32> {
+func.func @decompose_composite_ops(%arg0 : tensor<2xf32>, %arg1 : tensor<2xf32>) -> tensor<2xf32> {
+// CHECK: %[[QUANT_0:.*]] = stablehlo.composite "stablehlo.uniform_quantize" %[[VAL_0]]
+// CHECK-SAME: : (tensor<2xf32>) -> tensor<2xi8>
+   %0 = stablehlo.composite "stablehlo.uniform_quantize" %arg0 {decomposition = @stablehlo.uniform_quantize.impl} : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>
+
+// CHECK: %[[QUANT_1:.*]] = stablehlo.composite "stablehlo.uniform_quantize" %[[VAL_1]]
+// CHECK-SAME: : (tensor<2xf32>) -> tensor<2xi8>
+   %1 = stablehlo.composite "stablehlo.uniform_quantize" %arg1 {decomposition = @stablehlo.uniform_quantize.impl1} : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>
+
+// CHECK: %[[ADD:.*]] = stablehlo.composite "stablehlo.add" %[[QUANT_0]], %[[QUANT_1]]
+// CHECK-SAME: : (tensor<2xi8>, tensor<2xi8>) -> tensor<2xi8>
+   %2 = stablehlo.composite "stablehlo.add" %0, %1 {decomposition = @stablehlo.add.impl} : (tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>, tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>) -> tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>
+
+// CHECK: %[[DEQUANT_0:.*]] = stablehlo.composite "stablehlo.uniform_dequantize" %[[ADD]]
+// CHECK-SAME: : (tensor<2xi8>) -> tensor<2xf32>
+   %3 = stablehlo.composite "stablehlo.uniform_dequantize" %2 {decomposition = @stablehlo.uniform_dequantize.impl} : (tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>) -> tensor<2xf32>
+
+// CHECK: return %[[DEQUANT_0]] : tensor<2xf32>
+   return %3 : tensor<2xf32>
+}
+
+// CHECK-LABEL: func.func private @stablehlo.uniform_quantize.impl
+// CHECK-SAME: %[[VAL_0:.*]]: tensor<2xf32>) -> tensor<2xi8> {
+func.func private @stablehlo.uniform_quantize.impl(%arg0 : tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32, 1.000000e-01>> {
+  %0 = stablehlo.uniform_quantize %arg0 : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>
+  return %0: tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>
+}
+
+// CHECK-LABEL: func.func private @stablehlo.uniform_quantize.impl1
+// CHECK-SAME: %[[VAL_0:.*]]: tensor<2xf32>) -> tensor<2xi8> {
+func.func private @stablehlo.uniform_quantize.impl1(%arg0 : tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32, 1.000000e-01>> {
+  %0 = stablehlo.uniform_quantize %arg0 : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>
+  return %0 : tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>
+}
+
+// CHECK-LABEL: func.func private @stablehlo.add.impl
+// CHECK-SAME: %[[VAL_0:.*]]: tensor<2xi8>,
+// CHECK-SAME: %[[VAL_1:.*]]: tensor<2xi8>) -> tensor<2xi8> {
+func.func private @stablehlo.add.impl(%arg0 : tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>, %arg1 : tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>) -> tensor<2x!quant.uniform<i8:f32, 1.000000e-01>> {
+  %0 = stablehlo.add %arg0, %arg1 : tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>
+  return %0 : tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>
+}
+
+// CHECK-LABEL: func.func private @stablehlo.uniform_dequantize.impl
+// CHECK-SAME: %[[VAL_0:.*]]: tensor<2xi8>) -> tensor<2xf32> {
+func.func private @stablehlo.uniform_dequantize.impl(%arg0 : tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>) -> tensor<2xf32> {
+  %0 = stablehlo.uniform_dequantize %arg0 : (tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>) -> tensor<2xf32>
+  return %0: tensor<2xf32>
+}

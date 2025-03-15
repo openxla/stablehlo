@@ -1318,13 +1318,14 @@ class ConvertGenericOp : public ConversionPattern {
       ConversionPatternRewriter &rewriter) const override {
     // This pattern only handle selected ops.
     if (!isa<stablehlo::BitcastConvertOp, stablehlo::BroadcastInDimOp,
-             stablehlo::ConcatenateOp, stablehlo::ConstantOp,
-             stablehlo::DynamicReshapeOp, stablehlo::DynamicSliceOp,
-             stablehlo::GatherOp, stablehlo::MaxOp, stablehlo::MinOp,
-             stablehlo::PadOp, stablehlo::ReduceWindowOp, stablehlo::ReshapeOp,
-             stablehlo::ReturnOp, stablehlo::SelectOp, stablehlo::SliceOp,
-             stablehlo::TransposeOp, stablehlo::GetDimensionSizeOp,
-             stablehlo::DynamicBroadcastInDimOp>(op)) {
+             stablehlo::CompositeOp, stablehlo::ConcatenateOp,
+             stablehlo::ConstantOp, stablehlo::DynamicReshapeOp,
+             stablehlo::DynamicSliceOp, stablehlo::GatherOp, stablehlo::MaxOp,
+             stablehlo::MinOp, stablehlo::PadOp, stablehlo::ReduceWindowOp,
+             stablehlo::ReshapeOp, stablehlo::ReturnOp, stablehlo::SelectOp,
+             stablehlo::SliceOp, stablehlo::TransposeOp,
+             stablehlo::GetDimensionSizeOp, stablehlo::DynamicBroadcastInDimOp>(
+            op)) {
       return rewriter.notifyMatchFailure(
           op, "Unsupported op for performing type change");
     }
