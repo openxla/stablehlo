@@ -112,14 +112,15 @@ std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
     TypeRange refinedTypes);
 
 /// Creates a pass that wraps StableHLO ops in CompositeOp.
-/// The pass takes in a map of op type to attribute predicate. The attribute
-/// predicate is a function that takes in an operation, of the given op type,
-/// and returns a list of attributes to be added to the CompositeOp.
-using AttributePredicate =
+/// The pass takes in a map from op's type id to a function that returns the
+/// attributes to be added to the CompositeOp. The pass also takes in a
+/// version number for the CompositeOp.
+using CompositeAttributeProvider =
     std::function<std::optional<NamedAttrList>(Operation *)>;
-using AttributePredicateMap = llvm::DenseMap<mlir::TypeID, AttributePredicate>;
+using CompositeAttributeProviderMap =
+    llvm::DenseMap<mlir::TypeID, CompositeAttributeProvider>;
 std::unique_ptr<OperationPass<ModuleOp>> createStablehloWrapInCompositePass(
-    const AttributePredicateMap &attributePredicateMap,
+    const CompositeAttributeProviderMap &compositeAttributeProviderMap,
     int32_t compositeVersion);
 
 /// Wraps the given operation in a CompositeOp with the specified NamedAttrs and

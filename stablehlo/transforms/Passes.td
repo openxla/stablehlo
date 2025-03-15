@@ -352,8 +352,8 @@ def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
     The flagship use case for this pass is specializing dynamically-shaped
     programs to static shapes. If a dynamically-shaped StableHLO program has the
     right structure, then updating its argument types from dynamic shapes to
-    static shapes and running this pass will propagate static shapes across
-    the program.
+    static shapes and running this pass will propagate static shapes across the
+    program.
 
     This pass removes `custom_call @shape_refinement_operand_wrapper` by
     replacing uses of the result with the operand directly, and propagates
@@ -418,24 +418,24 @@ def StablehloWrapInCompositePass : Pass<"stablehlo-wrap-in-composite", "ModuleOp
     For instance, consider a simple StableHLO program:
 
     ```mlir
-      func.func @main(%arg0 : tensor<2xf32>, %arg1 : tensor<2xf32>) -> tensor<2xf32> {
-        %0 = stablehlo.add %arg0, %arg1 : tensor<2xf32>
-        return %0 : tensor<2xf32>
-      }
+    func.func @main(%arg0 : tensor<2xf32>, %arg1 : tensor<2xf32>) -> tensor<2xf32> {
+      %0 = stablehlo.add %arg0, %arg1 : tensor<2xf32>
+      return %0 : tensor<2xf32>
+    }
     ```
 
     Applying this pass to wrap `stablehlo.add` operations will result in the
     following program:
 
     ```mlir
-      func.func @main(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
-        %0 = stablehlo.composite "stablehlo.add" %arg0, %arg1 {decomposition = @stablehlo.add.impl} : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
-        return %0 : tensor<2xf32>
-      }
-      func.func private @stablehlo.add.impl(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
-        %0 = stablehlo.add %arg0, %arg1 : tensor<2xf32>
-        return %0 : tensor<2xf32>
-      }
+    func.func @main(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+      %0 = stablehlo.composite "stablehlo.add" %arg0, %arg1 {decomposition = @stablehlo.add.impl} : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+      return %0 : tensor<2xf32>
+    }
+    func.func private @stablehlo.add.impl(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+      %0 = stablehlo.add %arg0, %arg1 : tensor<2xf32>
+      return %0 : tensor<2xf32>
+    }
     ```
 
     Notes:
@@ -476,28 +476,28 @@ def StablehloWrapInCompositePass : Pass<"stablehlo-wrap-in-composite", "ModuleOp
     **Example (C++):**
 
     ```cpp
-      // To wrap a specific stablehlo.add instance
+    // To wrap a specific stablehlo.add instance
 
-      mlir::stablehlo::AddOp addOp = ...; // The op instanced to be wrapped.
-      mlir::ModuleOp module = addOp->getParentOfType<mlir::ModuleOp>();
-      mlir::OpBuilder builder(addOp);
-      mlir::NamedAttrList attrs = ...; // Attributes to be set on the composite op.
-      int32_t version = 0; // Composite version.
+    mlir::stablehlo::AddOp addOp = ...; // The op instanced to be wrapped.
+    mlir::ModuleOp module = addOp->getParentOfType<mlir::ModuleOp>();
+    mlir::OpBuilder builder(addOp);
+    mlir::NamedAttrList attrs = ...; // Attributes to be set on the composite op.
+    int32_t version = 0; // Composite version.
 
-      mlir::stablehlo::CompositeOp compositeOp = mlir::stablehlo::wrapOperationInComposite(builder, addOp, attrs, version, module);
-      addOp.replaceAllUsesWith(compositeOp);
+    mlir::stablehlo::CompositeOp compositeOp = mlir::stablehlo::wrapOperationInComposite(builder, addOp, attrs, version, module);
+    addOp.replaceAllUsesWith(compositeOp);
     ```
 
-    **Mode 3: Programmatic Module-Wide Wrapping with Attribute Predicates**
+    **Mode 3: Programmatic Module-Wide Wrapping with customized Attribute Handling**
 
     This mode extends programmatic wrapping to the entire module, offering
     fine-grained control over which operations are wrapped and their attributes.
     This is achieved by using the `createStablehloWrapInCompositePass` API,
-    which takes an `AttributePredicateMap` as an argument.
+    which takes an `CompositeAttributeProviderMap` as an argument.
 
-    The `AttributePredicateMap` is a map that dictates which operations should
-    be considered for wrapping and how their attributes should be handled. Its
-    semantics are as follows:
+    The `CompositeAttributeProviderMap` is a map that dictates which operations
+    should be considered for wrapping and how their attributes should be
+    handled. Its semantics are as follows:
 
     - **Keys (mlir::TypeID):** `TypeID` of an MLIR operation. If an operation's
         `TypeID` matches a key in the map, it becomes a candidate for wrapping.
@@ -521,9 +521,9 @@ def StablehloWrapInCompositePass : Pass<"stablehlo-wrap-in-composite", "ModuleOp
 
     // ... inside a pass or function ...
 
-    stablehlo::AttributePredicateMap attributePredicateMap;
+    stablehlo::CompositeAttributeProviderMap compositeAttributeProviderMap;
 
-    attributePredicateMap[mlir::TypeID::get<mlir::stablehlo::AddOp>()] =
+    compositeAttributeProviderMap[mlir::TypeID::get<mlir::stablehlo::AddOp>()] =
       [](mlir::Operation* op) -> std::optional<mlir::NamedAttrList> {
       // Custom logic to determine if and how to wrap the operation.
       // Example: Only wrap if it's on a specific type.
@@ -533,7 +533,7 @@ def StablehloWrapInCompositePass : Pass<"stablehlo-wrap-in-composite", "ModuleOp
       return std::nullopt; // Do not wrap.
     };
 
-    pm.addPass(createStablehloWrapInCompositePass(attributePredicateMap, compositeVersion));
+    pm.addPass(createStablehloWrapInCompositePass(compositeAttributeProviderMap, compositeVersion));
     if (mlir::failed(pm.run(module))) {
       return;
     }
@@ -542,9 +542,8 @@ def StablehloWrapInCompositePass : Pass<"stablehlo-wrap-in-composite", "ModuleOp
   let options = [
     ListOption<"opNamesOption", "op-names", "std::string",
     "The names of the ops to wrap.">,
-    Option<"versionOption", "version", "int32_t", "0",
+    Option<"versionOption", "version", "int32_t", /*default=*/"0",
            "The version number of the composite op.">,
-
   ];
   let dependentDialects = [
     "mlir::func::FuncDialect",
