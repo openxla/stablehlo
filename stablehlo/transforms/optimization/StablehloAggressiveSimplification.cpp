@@ -1367,7 +1367,8 @@ struct WhileOpImplicitCapture : public OpRewritePattern<WhileOp> {
       bodyReturnOp->eraseOperand(idx);
 
     WhileOp newWhileOp = rewriter.create<WhileOp>(
-        whileOp.getLoc(), bodyReturnOp->getOperandTypes(), newOperands);
+        whileOp.getLoc(), bodyReturnOp->getOperandTypes(), newOperands,
+        whileOp->getAttrs());
     newWhileOp.getBodyRegion(0).takeBody(whileOp.getBodyRegion(0));
     newWhileOp.getBodyRegion(1).takeBody(whileOp.getBodyRegion(1));
     for (auto results : llvm::zip(resultsToReplace, newWhileOp->getResults()))
