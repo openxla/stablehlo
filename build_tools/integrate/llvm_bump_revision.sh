@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+usage_and_exit() {
+  echo "Usage:"
+  echo "  llvm_bump_revision.sh [-nopatch]"
+  echo "     -nopatch  Skip applying temporary.patch, used for manual patching"
+  exit 1
+}
+
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 GH_ACTIONS="$SCRIPT_DIR/../github_actions"
 REPO_ROOT="$SCRIPT_DIR/../.."
@@ -46,8 +53,22 @@ set -o errexit  # Exit immediately if any command returns a non-zero exit status
 set -o nounset  # Using uninitialized variables raises error and exits
 set -o pipefail # Ensures the script detects errors in any part of a pipeline.
 
+APPLY_PATCH=1
+if [[ -n "$1" ]]; then
+  if [[ "$1" == "-nopatch" ]]; then
+    APPLY_PATCH=0
+    echo "Skipping patch apply."
+  else
+    echo "Unknown flag: $1"
+    echo
+    usage_and_exit
+  fi
+fi
+
 bump_to_xla_llvm_version
-apply_xla_patch
+if [[ $APPLY_PATCH -eq 1 ]]; then
+  apply_xla_patch
+fi
 
 # Print the commit message
 echo "Commit changes with message:"

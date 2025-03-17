@@ -246,7 +246,11 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
   LLVM_DEBUG(llvm::dbgs() << "Legal op types for target. " << op << '\n');
 
   // Validate location
-  if (!isLegalLocation(op->getLoc(), targetVersion)) return false;
+  if (!isLegalLocation(op->getLoc(), targetVersion)) {
+    LLVM_DEBUG(llvm::dbgs()
+               << "Illegal op location for target. " << op << '\n');
+    // TODO: One integrated into ecosystem return an error in these cases.
+  }
   LLVM_DEBUG(llvm::dbgs() << "Legal op location for target. " << op << '\n');
 
   return true;
