@@ -59,7 +59,7 @@ def test_ragged_dot_dimension_numbers():
       "#chlo.ragged_dot<lhs_batching_dimensions = [0], "
       "rhs_batching_dimensions = [1], "
       "lhs_contracting_dimensions = [2], "
-      "rhs_contracting_dimensions = [2], >"
+      "rhs_contracting_dimensions = [2], "
       "lhs_ragged_dimensions = [1], "
       "rhs_group_dimensions = [0]>"
   )
