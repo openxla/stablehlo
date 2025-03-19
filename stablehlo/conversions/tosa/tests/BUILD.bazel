@@ -55,7 +55,18 @@ RUNFILES_DIR = LITE_CFG_PY.parents[4].absolute().as_posix()''',
         tags = ["stablehlo_tosa_tests"],
         deps = ["@rules_python//python/runfiles"],
     )
-    for src in glob(["**/*.mlir"])
+    # TODO: remove the following excludes once #2751 is fixed.
+    for src in glob(
+        ["**/*.mlir"],
+        exclude = [
+            "legalize_quant_ops_to_tosa_rescale.mlir",
+            "legalize_tosa_rescale_to_stablehlo.mlir",
+            "rescale_interpreter.mlir",
+            "binary.mlir",
+            "nullary.mlir",
+            "unary.mlir",
+        ],
+    )
 ]
 
 test_suite(

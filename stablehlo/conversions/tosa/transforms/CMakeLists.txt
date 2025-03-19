@@ -25,9 +25,11 @@ add_mlir_pdll_library(StablehloTOSAPDLLPatternsIncGen
 add_mlir_library(StablehloTOSATransforms
   StablehloLegalizeToTosa.cpp
   StablehloPrepareForTosa.cpp
-  StablehloQuantLegalizeToTosaRescale.cpp
-  TosaRescaleLegalizeToStablehlo.cpp
+  # TODO: un-comment the following once #2751 is fixed.
+  # StablehloQuantLegalizeToTosaRescale.cpp
+  # TosaRescaleLegalizeToStablehlo.cpp
 
+  PARTIAL_SOURCES_INTENDED
   DEPENDS
   StablehloTOSATransformsPassIncGen
   StablehloTOSAPDLLPatternsIncGen

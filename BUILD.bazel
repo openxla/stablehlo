@@ -1578,8 +1578,9 @@ cc_library(
     srcs = [
         "stablehlo/conversions/tosa/transforms/StablehloLegalizeToTosa.cpp",
         "stablehlo/conversions/tosa/transforms/StablehloPrepareForTosa.cpp",
-        "stablehlo/conversions/tosa/transforms/StablehloQuantLegalizeToTosaRescale.cpp",
-        "stablehlo/conversions/tosa/transforms/TosaRescaleLegalizeToStablehlo.cpp",
+        # TODO: un-comment the following once #2751 is fixed
+        # "stablehlo/conversions/tosa/transforms/StablehloQuantLegalizeToTosaRescale.cpp",
+        # "stablehlo/conversions/tosa/transforms/TosaRescaleLegalizeToStablehlo.cpp",
     ],
     hdrs = [
         "stablehlo/conversions/tosa/transforms/Passes.h",
