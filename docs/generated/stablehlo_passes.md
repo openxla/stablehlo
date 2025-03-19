@@ -301,8 +301,8 @@ _Refines shapes across a StableHLO program._
   The flagship use case for this pass is specializing dynamically-shaped
   programs to static shapes. If a dynamically-shaped StableHLO program has the
   right structure, then updating its argument types from dynamic shapes to
-  static shapes and running this pass will propagate static shapes across
-  the program.
+  static shapes and running this pass will propagate static shapes across the
+  program.
 
   This pass removes `custom_call @shape_refinement_operand_wrapper` by
   replacing uses of the result with the operand directly, and propagates
@@ -337,6 +337,121 @@ Modules valid for shape refinement must have the following properties:
     returning constant values after refinement. These functions are inlined.
   * All calls to a single function resolve to the same argument shapes, and no
     recursive / co-recursive function calls are made.
+
+### `-stablehlo-wrap-in-composite`
+
+_Wraps a non-composite  StableHLO op in a composite op._
+
+Wraps StableHLO operations in `stablehlo.composite` operations.
+
+For instance, consider a simple StableHLO program:
+
+```mlir
+func.func @main(%arg0 : tensor<2xf32>, %arg1 : tensor<2xf32>) -> tensor<2xf32> {
+  %0 = stablehlo.add %arg0, %arg1 : tensor<2xf32>
+  return %0 : tensor<2xf32>
+}
+```
+
+Applying this pass to wrap `stablehlo.add` operations will result in the
+following program:
+
+```mlir
+func.func @main(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+  %0 = stablehlo.composite "stablehlo.add" %arg0, %arg1 {decomposition = @stablehlo.add.impl} : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+  return %0 : tensor<2xf32>
+}
+func.func private @stablehlo.add.impl(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf32> {
+  %0 = stablehlo.add %arg0, %arg1 : tensor<2xf32>
+  return %0 : tensor<2xf32>
+}
+```
+
+Notes:
+
+  - The `name` attribute of the generated `stablehlo.composite` operation
+    will always be the same as the name of the original operation that was
+    wrapped (e.g., if you wrap a `stablehlo.add` operation, the composite
+    will also be named `"stablehlo.add"`).
+  - The private function that encapsulates the original operation
+    (referenced by the `decomposition` attribute of the
+    `stablehlo.composite` operation) will be named using the pattern
+    `<op_name>.impl[.N]`, where `<op_name>` is the name of the original
+    operation, and `N` is a unique integer identifier generated to prevent
+    naming conflicts within the module.
+
+This pass can be used in two distinct ways:
+
+**Mode 1: Command-line Usage**
+
+This mode is intended for debugging or testing, as it offers minimal control
+over the attributes of the generated `stablehlo.composite` operations.
+It wraps **all instances** of operations specified using the `op-names`
+(a comma-separated list of operation names) options. The attributes of the
+newly created `stablehlo.composite` operation will be the same as the
+attributes of the original operation.
+
+**Usage Example:**
+
+```bash
+stablehlo-opt input.mlir --stablehlo-wrap-in-composite=op-names='stablehlo.add,stablehlo.mul' -o output.mlir
+```
+
+**Mode 2: Programmatic Module-Wide Wrapping with customized Attribute Handling**
+
+This mode extends programmatic wrapping to the entire module, offering
+fine-grained control over which operations are wrapped and their attributes.
+This is achieved by using the `createStablehloWrapInCompositePass` API,
+which takes an `CompositeAttributeProviderMap` as an argument.
+
+The `CompositeAttributeProviderMap` is a map that dictates which operations
+should be considered for wrapping and how their attributes should be
+handled. Its semantics are as follows:
+
+- **Keys (mlir::TypeID):** `TypeID` of an MLIR operation. If an operation's
+    `TypeID` matches a key in the map, it becomes a candidate for wrapping.
+- **Values (Lambda Functions):** Lambda function of type
+    `std::function<std::optional<NamedAttrList>(Operation*)>`. This function
+    is applied to each candidate operation.
+    - **Input:** An `mlir::Operation*`, which is an instance of the
+      operation type corresponding to the `TypeID` key.
+    - **Return Value:** An `std::optional<NamedAttrList>`.
+      - If the lambda returns a `NamedAttrList` (wrapped in
+        `std::optional`), the operation is wrapped in a
+        `stablehlo::composite` operation, and the returned attributes are
+        used to set the composite's attributes.
+      - If the lambda returns `std::nullopt`, the operation is **not**
+        wrapped. This allows for selective wrapping based on custom
+        criteria.
+
+**Example (C++):**
+
+```cpp
+
+stablehlo::CompositeAttributeProviderMap compositeAttributeProviderMap;
+
+compositeAttributeProviderMap[mlir::TypeID::get<mlir::stablehlo::AddOp>()] =
+  [](mlir::Operation* op) -> std::optional<mlir::NamedAttrList> {
+  // Custom logic to determine if and how to wrap the operation.
+  // Example: Only wrap if it's on a specific type.
+  if (op->getOperand(0).getType().isa<mlir::Float32Type>()) {
+    return mlir::NamedAttrList(op->getAttrs());
+  }
+  return std::nullopt; // Do not wrap.
+};
+
+pm.addPass(createStablehloWrapInCompositePass(compositeAttributeProviderMap, compositeVersion));
+if (mlir::failed(pm.run(module))) {
+  return;
+}
+```
+
+#### Options
+
+```
+-op-names : The names of the ops to wrap.
+-version  : The version number of the composite op.
+```
 
 ### `-vhlo-legalize-to-stablehlo`
 

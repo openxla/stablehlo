@@ -16,16 +16,25 @@ limitations under the License.
 #ifndef STABLEHLO_TRANSFORMS_PASSES_H
 #define STABLEHLO_TRANSFORMS_PASSES_H
 
+#include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/Quant/IR/Quant.h"
-#include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"  // IWYU pragma: keep
+#include "mlir/Dialect/Quant/IR/Quant.h"   // IWYU pragma: keep
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/OperationSupport.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/TypeRange.h"
 #include "mlir/Pass/Pass.h"
-#include "mlir/Support/LogicalResult.h"
+#include "mlir/Pass/PassOptions.h"
+#include "mlir/Support/LLVM.h"
+#include "mlir/Support/TypeID.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
 
 namespace mlir {
@@ -102,6 +111,43 @@ void populateStablehloCompatibilityExpanderPatterns(
 std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
     TypeRange refinedTypes);
 
+/// Creates a pass that wraps StableHLO ops in CompositeOp.
+/// The pass takes in a map from op's type id to a function that returns the
+/// attributes to be added to the CompositeOp. The pass also takes in a
+/// version number for the CompositeOp.
+using CompositeAttributeProvider =
+    std::function<std::optional<NamedAttrList>(Operation *)>;
+using CompositeAttributeProviderMap =
+    llvm::DenseMap<mlir::TypeID, CompositeAttributeProvider>;
+std::unique_ptr<OperationPass<ModuleOp>> createStablehloWrapInCompositePass(
+    const CompositeAttributeProviderMap &compositeAttributeProviderMap,
+    int32_t compositeVersion);
+
+/// Wraps the given operation in a CompositeOp with the specified NamedAttrs and
+/// version and returns the CompositeOp.
+///
+/// **A typical usage **
+///
+/// ```cpp
+/// // To wrap a specific stablehlo.add instance
+///
+/// mlir::stablehlo::AddOp addOp = ...; // The op instanced to be wrapped.
+/// mlir::ModuleOp module = addOp->getParentOfType<mlir::ModuleOp>();
+/// mlir::OpBuilder builder(addOp);
+/// mlir::NamedAttrList attrs = ...; // Attributes to be set on the
+///                                  // composite op.
+/// int32_t version = 0; // Composite version.
+///
+/// mlir::stablehlo::CompositeOp compositeOp =
+///   mlir::stablehlo::wrapOperationInComposite(builder, addOp, attrs,
+///                                             version, module);
+/// addOp.replaceAllUsesWith(compositeOp);
+/// ```
+stablehlo::CompositeOp wrapOperationInComposite(OpBuilder &builder,
+                                                Operation *op,
+                                                const NamedAttrList &attrs,
+                                                int32_t compositeVersion,
+                                                ModuleOp module);
 //// Pass pipelines ////
 
 // StableHLO consumers can add this pipeline to convert portable artifacts to
