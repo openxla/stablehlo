@@ -41,6 +41,8 @@ def StableHLO_ConstantLikeNegInfValue : NativeCodeCall<
 def StableHLO_ConstantLikeSmallestNormalizedValue : NativeCodeCall<
     "::mlir::stablehlo::getConstantLikeSmallestNormalizedValue($_builder, $_loc, $0)">;
 
+def ConstDefaultResultAccuracyAttr :
+  ConstantAttr<StableHLO_ResultAccuracyAttr, "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">;
 
 //===----------------------------------------------------------------------===//
 // Unary op patterns.
@@ -68,9 +70,9 @@ def : Pat<(CHLO_AtanhOp NonComplexElementType:$input),
     (StableHLO_ConstantLike<"NAN"> $input),
     (StableHLO_MulOp
       (StableHLO_SubtractOp
-        (StableHLO_Log1pOp $input),
+        (StableHLO_Log1pOp $input, ConstDefaultResultAccuracyAttr),
         (StableHLO_Log1pOp
-          (StableHLO_NegOp $input)
+          (StableHLO_NegOp $input), ConstDefaultResultAccuracyAttr
         )
       ),
       (StableHLO_ConstantLike<"0.5"> $input)
@@ -111,7 +113,7 @@ def : Pat<(CHLO_IsNegInfOp NonComplexElementType:$input),
 
 
 def : Pat<(CHLO_TanOp $input),
-          (StableHLO_TanOp $input)>;
+          (StableHLO_TanOp $input, ConstDefaultResultAccuracyAttr)>;
 
 def : Pat<(CHLO_ConstantOp $v),
           (StableHLO_ConstantOp $v)>;

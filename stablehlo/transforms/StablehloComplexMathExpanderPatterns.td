@@ -36,6 +36,9 @@ def StableHLO_ConstantLikeMaxFiniteValue : NativeCodeCall<
 
 def StableHLO_ConstantLikePosInfValue : NativeCodeCall<
     "::mlir::stablehlo::getConstantLikeInfValue($_builder, $_loc, $0, /*negative=*/false)">;
+
+def ConstDefaultResultAccuracyAttr :
+  ConstantAttr<StableHLO_ResultAccuracyAttr, "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">;
 // Logarithm of 1 + z on complex input:
 //
 //       log1p(x + I * y) = 0.5 * log((x + 1) ** 2 + y ** 2) + I * arctan2(y, x + 1)
@@ -141,7 +144,8 @@ def StableHLO_ConstantLikePosInfValue : NativeCodeCall<
 //     the Case A method [verified numerically for float32 and float64].
 //
 //
-def Log1pOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_Log1pOp ComplexElementType:$z),
+
+def Log1pOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_Log1pOp ComplexElementType:$z, ConstDefaultResultAccuracyAttr),
   (StableHLO_ComplexOp
     (StableHLO_SelectOp
       (StableHLO_CompareOp
@@ -152,12 +156,12 @@ def Log1pOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_Log1pOp Compl
            (StableHLO_ImagOp:$y $z))),
        (StableHLO_MulOp
          (StableHLO_SqrtOp
-           (StableHLO_ConstantLikeMaxFiniteValue:$largest $x)),
+           (StableHLO_ConstantLikeMaxFiniteValue:$largest $x), ConstDefaultResultAccuracyAttr),
          (StableHLO_ConstantLike<"0.01"> $x)),
         StableHLO_ComparisonDirectionValue<"GT">,
         (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
       (StableHLO_AddOp
-        (StableHLO_LogOp $mx),
+        (StableHLO_LogOp $mx, ConstDefaultResultAccuracyAttr),
         (StableHLO_MulOp
           (StableHLO_ConstantLike<"0.5">:$half $x),
           (StableHLO_Log1pOp
@@ -170,7 +174,7 @@ def Log1pOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_Log1pOp Compl
               (StableHLO_ConstantLike<"1">:$one $x),
               (StableHLO_MulOp
                 (StableHLO_DivOp:$r $mn, $mx),
-                $r))))),
+                $r)), ConstDefaultResultAccuracyAttr))),
       (StableHLO_SelectOp
         (StableHLO_CompareOp
          (StableHLO_AddOp
@@ -185,7 +189,7 @@ def Log1pOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_Log1pOp Compl
           (StableHLO_LogOp
             (StableHLO_AddOp
               (StableHLO_MulOp $xp1, $xp1),
-              (StableHLO_MulOp:$square_dekker_high $y, $y)))),
+              (StableHLO_MulOp:$square_dekker_high $y, $y)), ConstDefaultResultAccuracyAttr)),
         (StableHLO_MulOp
           $half,
           (StableHLO_Log1pOp
@@ -273,7 +277,7 @@ def Log1pOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_Log1pOp Compl
                     (StableHLO_SubtractOp
                       $add_2sum_high,
                       (StableHLO_SubtractOp:$subtract_add_2sum_high__add_2sum_high_0_ $add_2sum_high, $_add_2sum_high_0_))),
-                  (StableHLO_SubtractOp $_square_dekker_low_0_, $subtract_add_2sum_high__add_2sum_high_0_)))))))),
+                  (StableHLO_SubtractOp $_square_dekker_low_0_, $subtract_add_2sum_high__add_2sum_high_0_)))), ConstDefaultResultAccuracyAttr)))),
     (StableHLO_Atan2Op $y, $xp1))>;
 
 // Square root on complex inputs:
@@ -328,7 +332,7 @@ def Log1pOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_Log1pOp Compl
 //       u_lt = sqrt(abs(y)) * sqrt((r + sqrt(1, r)) / 2)
 //       abs(y) / u = sqrt(abs(y)) / sqrt((r + sqrt(1, r)) / 2)
 //
-def SqrtOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_SqrtOp ComplexElementType:$z),
+def SqrtOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_SqrtOp ComplexElementType:$z, ConstDefaultResultAccuracyAttr),
   (StableHLO_ComplexOp
     (StableHLO_SelectOp
       (StableHLO_CompareOp
@@ -345,7 +349,7 @@ def SqrtOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_SqrtOp Complex
           (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
         (StableHLO_DivOp
           (StableHLO_MulOp
-            (StableHLO_SqrtOp:$sq_ax $ax),
+            (StableHLO_SqrtOp:$sq_ax $ax, ConstDefaultResultAccuracyAttr),
             (StableHLO_ConstantLike<"1.5537739740300374"> $x)),
           (StableHLO_ConstantLike<"1.4142135623730951">:$sq_2 $x)),
         (StableHLO_SelectOp
@@ -369,7 +373,7 @@ def SqrtOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_SqrtOp Complex
                               (StableHLO_ConstantLike<"1">:$one $x),
                               (StableHLO_MulOp:$r
                                 (StableHLO_DivOp:$mn_over_mx $mn, $mx),
-                                $mn_over_mx))),
+                                $mn_over_mx)), ConstDefaultResultAccuracyAttr),
                           $one,
                            StableHLO_ComparisonDirectionValue<"EQ">,
                            (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
@@ -385,7 +389,7 @@ def SqrtOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_SqrtOp Complex
                            (StableHLO_ConstantLike<"2">:$two $x))),
                        (StableHLO_MulOp $mx, $sqa))),
                    $two),
-                 (StableHLO_DivOp $ax, $two))),
+                 (StableHLO_DivOp $ax, $two)), ConstDefaultResultAccuracyAttr),
              $constant_0,
               StableHLO_ComparisonDirectionValue<"EQ">,
               (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
@@ -434,7 +438,7 @@ def SqrtOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_SqrtOp Complex
                                $one,
                                (StableHLO_MulOp:$_r_1_
                                  (StableHLO_DivOp:$_mn_over_mx_0_ $_mn_0_, $_mx_0_),
-                                 $_mn_over_mx_0_))),
+                                 $_mn_over_mx_0_)), ConstDefaultResultAccuracyAttr),
                            $one,
                             StableHLO_ComparisonDirectionValue<"EQ">,
                             (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
@@ -448,13 +452,13 @@ def SqrtOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_SqrtOp Complex
                           (StableHLO_DivOp
                             (StableHLO_MulOp $_mx_0_, $_r_1_),
                             $two)),
-                        (StableHLO_MulOp $_mx_0_, $_sqa_0_))))),
+                        (StableHLO_MulOp $_mx_0_, $_sqa_0_)))), ConstDefaultResultAccuracyAttr),
                 $sq_2)),
             (StableHLO_MulOp
-              (StableHLO_SqrtOp:$sq_ay $ay),
+              (StableHLO_SqrtOp:$sq_ay $ay, ConstDefaultResultAccuracyAttr),
               (StableHLO_DivOp
                 (StableHLO_SqrtOp:$sq_rh
-                  (StableHLO_AddOp $_r_0_, $h)),
+                  (StableHLO_AddOp $_r_0_, $h), ConstDefaultResultAccuracyAttr),
                 $sq_2))),
           $u_general)),
       (StableHLO_SelectOp:$ay_div_u
@@ -546,7 +550,7 @@ def SqrtOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_SqrtOp Complex
 //     For `mx == mn == inf` or `mx == mn == 0` case, we'll define `mn / mx == 1`.
 //
 //
-def LogOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_LogOp ComplexElementType:$z),
+def LogOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_LogOp ComplexElementType:$z, ConstDefaultResultAccuracyAttr),
   (StableHLO_ComplexOp
     (StableHLO_SelectOp
       (StableHLO_CompareOp
@@ -634,12 +638,12 @@ def LogOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_LogOp ComplexEl
         (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
       (StableHLO_MulOp
         $half,
-        (StableHLO_Log1pOp $sum_fast2sum_high)),
+        (StableHLO_Log1pOp $sum_fast2sum_high, ConstDefaultResultAccuracyAttr)),
       (StableHLO_AddOp
         (StableHLO_LogOp
           (StableHLO_MaxOp:$mx
             (StableHLO_AbsOp:$abs_x $x),
-            (StableHLO_AbsOp:$abs_y $y))),
+            (StableHLO_AbsOp:$abs_y $y)), ConstDefaultResultAccuracyAttr),
         (StableHLO_MulOp
           $half,
           (StableHLO_Log1pOp
@@ -652,7 +656,7 @@ def LogOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_LogOp ComplexEl
                   (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
                 (StableHLO_ConstantLike<"1.0"> $x),
                 (StableHLO_DivOp $mn, $mx)),
-              $mn_over_mx))))),
+              $mn_over_mx), ConstDefaultResultAccuracyAttr)))),
     (StableHLO_Atan2Op $y, $x))>;
 
 // Exponential on complex inputs:
@@ -683,8 +687,6 @@ def LogOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_LogOp ComplexEl
 //     Notice that for `y != 0`, neither `cos(y)` nor `sin(y)` is never
 //     zero on the set of floating point numbers.
 //
-def ConstDefaultResultAccuracyAttr :
-  ConstantAttr<StableHLO_ResultAccuracyAttr, "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">;
 
 def ExpOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_ExpOp ComplexElementType:$z, ConstDefaultResultAccuracyAttr),
   (StableHLO_ComplexOp
@@ -702,7 +704,7 @@ def ExpOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_ExpOp ComplexEl
               $x,
               (StableHLO_ConstantLike<"0.5"> $x)), ConstDefaultResultAccuracyAttr),
           (StableHLO_CosineOp:$cs
-            (StableHLO_ImagOp:$y $z))),
+            (StableHLO_ImagOp:$y $z), ConstDefaultResultAccuracyAttr)),
         $e2),
       (StableHLO_MulOp $e, $cs)),
     (StableHLO_SelectOp
@@ -717,6 +719,6 @@ def ExpOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_ExpOp ComplexEl
         (StableHLO_MulOp
           (StableHLO_MulOp
             $e2,
-            (StableHLO_SineOp:$sn $y)),
+            (StableHLO_SineOp:$sn $y, ConstDefaultResultAccuracyAttr)),
           $e2),
         (StableHLO_MulOp $e, $sn))))>;

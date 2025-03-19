@@ -48,6 +48,7 @@ def VHLO_Dialect : Dialect {
       1.7.0: Introduce `f8E4M3` and `f8E3M4` types.
       1.8.0: Introduce `f4E2M1FN`, `f6E2M3FN`, `f6E3M2FN` and `f8E8M0FNU` types.
       1.9.0: Add `ResultAccuracy` attribute to `exp` op.
+      1.10.0: Add `ResultAccuracy` attribute to `cbrt`, `cosine`, `exponential`, `exponential_minus_one`, `log`, `log_plus_one`, `logistic`, `rsqrt`, `sine`, `sqrt`, `tan` and `tanh` ops.
   }];
 
   let useDefaultAttributePrinterParser = 0;

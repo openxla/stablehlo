@@ -240,6 +240,16 @@ def StableHLO_CbrtOp: StableHLO_UnaryElementwiseOp<"cbrt",
     %result = stablehlo.cbrt %operand : tensor<4xf64>
     ```
   }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
+
 }
 
 def StableHLO_CeilOp: StableHLO_UnaryElementwiseOp<"ceil",
@@ -310,6 +320,15 @@ def StableHLO_CosineOp: StableHLO_UnaryElementwiseOp<"cosine",
     %result = stablehlo.cosine %operand : tensor<2xf32>
     ```
   }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
 }
 
 def StableHLO_ExpOp: StableHLO_UnaryElementwiseOp<"exponential",
@@ -329,17 +348,9 @@ def StableHLO_ExpOp: StableHLO_UnaryElementwiseOp<"exponential",
     ```
   }];
   let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
-  DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr, "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
   let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
-  let extraClassDeclaration = commonClassDeclaration # [{
-    LogicalResult reifyReturnTypeShapes(
-        OpBuilder& builder, ValueRange operands,
-        SmallVectorImpl<Value>& reifiedReturnShapes) {
-      return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
-                                                 operands.front(),
-                                                 &reifiedReturnShapes);
-    }
-  }];
   let hasVerifier = 1;
 
   let assemblyFormat = [{
@@ -362,6 +373,15 @@ def StableHLO_Expm1Op: StableHLO_UnaryElementwiseOp<"exponential_minus_one",
     ```mlir
     %result = stablehlo.exponential_minus_one %operand : tensor<2xf64>
     ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
   }];
 }
 
@@ -440,6 +460,15 @@ def StableHLO_LogOp: StableHLO_UnaryElementwiseOp<"log",
     %result = stablehlo.log %operand : tensor<2x2xf64>
     ```
   }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
 }
 
 def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
@@ -458,6 +487,15 @@ def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
     %result = stablehlo.log_plus_one %operand : tensor<5xf64>
     ```
   }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
 }
 
 def StableHLO_LogisticOp: StableHLO_UnaryElementwiseOp<"logistic",
@@ -475,6 +513,15 @@ def StableHLO_LogisticOp: StableHLO_UnaryElementwiseOp<"logistic",
     ```mlir
     %result = stablehlo.logistic %operand : tensor<2x2xf64>
     ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
   }];
 }
 
@@ -602,6 +649,15 @@ def StableHLO_RsqrtOp: StableHLO_UnaryElementwiseOp<"rsqrt",
     %result = stablehlo.rsqrt %operand : tensor<2x2xf32>
     ```
   }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
 }
 
 def StableHLO_SignOp: StableHLO_UnaryElementwiseOp<"sign",
@@ -637,6 +693,15 @@ def StableHLO_SineOp: StableHLO_UnaryElementwiseOp<"sine",
     %result = stablehlo.sine %operand : tensor<2xf32>
     ```
   }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
 }
 
 def StableHLO_SqrtOp: StableHLO_UnaryElementwiseOp<"sqrt",
@@ -654,6 +719,15 @@ def StableHLO_SqrtOp: StableHLO_UnaryElementwiseOp<"sqrt",
     ```mlir
     %result = stablehlo.sqrt %operand : tensor<2x2xf32>
     ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
   }];
 }
 
@@ -673,6 +747,15 @@ def StableHLO_TanOp: StableHLO_UnaryElementwiseOp<"tan",
     %result = stablehlo.tan %operand : tensor<2x2xf64>
     ```
   }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
 }
 
 def StableHLO_TanhOp: StableHLO_UnaryElementwiseOp<"tanh",
@@ -690,6 +773,15 @@ def StableHLO_TanhOp: StableHLO_UnaryElementwiseOp<"tanh",
     ```mlir
     %result = stablehlo.tanh %operand : tensor<2xf32>
     ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
   }];
 }
 

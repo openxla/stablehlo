@@ -27,21 +27,24 @@ def NonComplexElementType : Type<
 class StableHLO_ConstantLike<string value> : NativeCodeCall<
     "::mlir::stablehlo::getConstantLike($_builder, $_loc, " # value # ", $0)">;
 
+def ConstDefaultResultAccuracyAttr :
+  ConstantAttr<StableHLO_ResultAccuracyAttr, "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">;
+
 // Express `tan` as
 //   sine(x) / cosine(x)
-def TanOp_CompatiblityExpander : Pat<(StableHLO_TanOp NonComplexElementType:$input),
+def TanOp_CompatiblityExpander : Pat<(StableHLO_TanOp NonComplexElementType:$input, ConstDefaultResultAccuracyAttr),
   (StableHLO_DivOp
-    (StableHLO_SineOp $input),
-    (StableHLO_CosineOp $input)
+    (StableHLO_SineOp $input, ConstDefaultResultAccuracyAttr),
+    (StableHLO_CosineOp $input, ConstDefaultResultAccuracyAttr)
   )>;
 
 // Express `tan(a + bi)` as
 //   (tan(a) + i tanh(b)) / (1 - i tan(a) * tanh(b))
-def TanOp_ComplexElementType_CompatiblityExpander : Pat<(StableHLO_TanOp ComplexElementType:$input),
+def TanOp_ComplexElementType_CompatiblityExpander : Pat<(StableHLO_TanOp ComplexElementType:$input, ConstDefaultResultAccuracyAttr),
   (StableHLO_DivOp
     (StableHLO_ComplexOp
-      (StableHLO_TanOp:$tan (StableHLO_RealOp $input)),
-      (StableHLO_TanhOp:$tanh (StableHLO_ImagOp $input))),
+      (StableHLO_TanOp:$tan (StableHLO_RealOp $input), ConstDefaultResultAccuracyAttr),
+      (StableHLO_TanhOp:$tanh (StableHLO_ImagOp $input), ConstDefaultResultAccuracyAttr)),
     (StableHLO_ComplexOp
       (StableHLO_ConstantLike<"1.0"> $tan),
       (StableHLO_NegOp (StableHLO_MulOp $tan, $tanh)))

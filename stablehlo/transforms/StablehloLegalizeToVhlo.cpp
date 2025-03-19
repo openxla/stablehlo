@@ -826,7 +826,18 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
       }
     }
   }
-  if constexpr (std::is_same<StablehloOpTy, stablehlo::ExpOp>::value) {
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::CbrtOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::CosineOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::ExpOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::Expm1Op>::value ||
+                std::is_same<StablehloOpTy, stablehlo::LogOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::Log1pOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::LogisticOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::RsqrtOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::SineOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::SqrtOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::TanOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::TanhOp>::value) {
     if (!stablehloOp.getResultAccuracyAttr())
       addDefaultAttr("result_accuracy",
                      stablehlo::ResultAccuracyAttr::get(
