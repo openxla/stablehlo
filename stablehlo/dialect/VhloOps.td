@@ -254,8 +254,15 @@ def VHLO_CaseOpV1 : VHLO_Op<"case_v1", "0.9.0", "current"> {
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
-def VHLO_CbrtOpV1 : VHLO_Op<"cbrt_v1", "0.9.0", "current"> {
+def VHLO_CbrtOpV1 : VHLO_Op<"cbrt_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_CbrtOpV2 : VHLO_Op<"cbrt_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
   let results = (outs VHLO_AnyType:$result);
 }
 
@@ -373,8 +380,15 @@ def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_CosineOpV1 : VHLO_Op<"cosine_v1", "0.9.0", "current"> {
+def VHLO_CosineOpV1 : VHLO_Op<"cosine_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_CosineOpV2 : VHLO_Op<"cosine_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
   let results = (outs VHLO_AnyType:$result);
 }
 
@@ -613,8 +627,15 @@ def VHLO_EinsumOpV1 : VHLO_Op<"einsum_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_Expm1OpV1 : VHLO_Op<"exponential_minus_one_v1", "0.9.0", "current"> {
+def VHLO_Expm1OpV1 : VHLO_Op<"exponential_minus_one_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_Expm1OpV2 : VHLO_Op<"exponential_minus_one_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
   let results = (outs VHLO_AnyType:$result);
 }
 
@@ -740,18 +761,39 @@ def VHLO_IsFiniteOpV1 : VHLO_Op<"is_finite_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$y);
 }
 
-def VHLO_Log1pOpV1 : VHLO_Op<"log_plus_one_v1", "0.9.0", "current"> {
+def VHLO_Log1pOpV1 : VHLO_Op<"log_plus_one_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_LogisticOpV1 : VHLO_Op<"logistic_v1", "0.9.0", "current"> {
+def VHLO_Log1pOpV2 : VHLO_Op<"log_plus_one_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_LogisticOpV1 : VHLO_Op<"logistic_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_LogOpV1 : VHLO_Op<"log_v1", "0.9.0", "current"> {
+def VHLO_LogisticOpV2 : VHLO_Op<"logistic_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_LogOpV1 : VHLO_Op<"log_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_LogOpV2 : VHLO_Op<"log_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
   let results = (outs VHLO_AnyType:$result);
 }
 
@@ -972,8 +1014,15 @@ def VHLO_RoundOpV1 : VHLO_Op<"round_nearest_afz_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_RsqrtOpV1 : VHLO_Op<"rsqrt_v1", "0.9.0", "current"> {
+def VHLO_RsqrtOpV1 : VHLO_Op<"rsqrt_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_RsqrtOpV2 : VHLO_Op<"rsqrt_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
   let results = (outs VHLO_AnyType:$result);
 }
 
@@ -1076,8 +1125,15 @@ def VHLO_SignOpV1 : VHLO_Op<"sign_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_SineOpV1 : VHLO_Op<"sine_v1", "0.9.0", "current"> {
+def VHLO_SineOpV1 : VHLO_Op<"sine_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_SineOpV2 : VHLO_Op<"sine_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
   let results = (outs VHLO_AnyType:$result);
 }
 
@@ -1101,8 +1157,15 @@ def VHLO_SortOpV1 : VHLO_Op<"sort_v1", "0.9.0", "current"> {
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
 
-def VHLO_SqrtOpV1 : VHLO_Op<"sqrt_v1", "0.9.0", "current"> {
+def VHLO_SqrtOpV1 : VHLO_Op<"sqrt_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_SqrtOpV2 : VHLO_Op<"sqrt_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
   let results = (outs VHLO_AnyType:$result);
 }
 
@@ -1111,13 +1174,27 @@ def VHLO_SubtractOpV1 : VHLO_Op<"subtract_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_TanOpV1 : VHLO_Op<"tan_v1", "1.4.0", "current"> {
+def VHLO_TanOpV1 : VHLO_Op<"tan_v1", "1.4.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_TanhOpV1 : VHLO_Op<"tanh_v1", "0.9.0", "current"> {
+def VHLO_TanOpV2 : VHLO_Op<"tan_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_TanhOpV1 : VHLO_Op<"tanh_v1", "0.9.0", "1.9.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_TanhOpV2 : VHLO_Op<"tanh_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
   let results = (outs VHLO_AnyType:$result);
 }
 

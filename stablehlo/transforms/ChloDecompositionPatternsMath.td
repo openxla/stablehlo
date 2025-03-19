@@ -51,7 +51,7 @@ def : Pat<(CHLO_AsinAcosKernelOp ComplexElementType:$z),
            (StableHLO_ImagOp:$signed_y $z))),
        (StableHLO_DivOp:$safe_max
          (StableHLO_SqrtOp
-           (StableHLO_ConstantLikeMaxFiniteValue $signed_x)),
+           (StableHLO_ConstantLikeMaxFiniteValue $signed_x), ConstDefaultResultAccuracyAttr),
          (StableHLO_ConstantLike<"8"> $signed_x)),
         StableHLO_ComparisonDirectionValue<"GE">,
         (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
@@ -90,7 +90,7 @@ def : Pat<(CHLO_AsinAcosKernelOp ComplexElementType:$z),
                                $one,
                                (StableHLO_MulOp:$_r_0_
                                  (StableHLO_DivOp:$mn_over_mx $mn, $mx),
-                                 $mn_over_mx))),
+                                 $mn_over_mx)), ConstDefaultResultAccuracyAttr),
                            $one,
                             StableHLO_ComparisonDirectionValue<"EQ">,
                             (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
@@ -123,7 +123,7 @@ def : Pat<(CHLO_AsinAcosKernelOp ComplexElementType:$z),
                                $one,
                                (StableHLO_MulOp:$_r_1_
                                  (StableHLO_DivOp:$_mn_over_mx_0_ $_mn_0_, $_mx_0_),
-                                 $_mn_over_mx_0_))),
+                                 $_mn_over_mx_0_)), ConstDefaultResultAccuracyAttr),
                            $one,
                             StableHLO_ComparisonDirectionValue<"EQ">,
                             (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
@@ -143,7 +143,7 @@ def : Pat<(CHLO_AsinAcosKernelOp ComplexElementType:$z),
               (StableHLO_DivOp
                 (StableHLO_MulOp:$yy $y, $y),
                 (StableHLO_AddOp:$rpxp1 $r, $xp1)),
-              (StableHLO_SubtractOp:$smxm1 $s, $xm1)))),
+              (StableHLO_SubtractOp:$smxm1 $s, $xm1))), ConstDefaultResultAccuracyAttr),
         (StableHLO_MulOp
           $y,
           (StableHLO_SqrtOp
@@ -151,7 +151,7 @@ def : Pat<(CHLO_AsinAcosKernelOp ComplexElementType:$z),
               (StableHLO_DivOp $half_apx, $rpxp1),
               (StableHLO_DivOp
                 $half_apx,
-                (StableHLO_AddOp:$spxm1 $s, $xm1))))))),
+                (StableHLO_AddOp:$spxm1 $s, $xm1))), ConstDefaultResultAccuracyAttr)))),
     (StableHLO_SelectOp
       (StableHLO_CompareOp
        (StableHLO_SelectOp:$_mx_1_
@@ -180,8 +180,8 @@ def : Pat<(CHLO_AsinAcosKernelOp ComplexElementType:$z),
         (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
       (StableHLO_AddOp
         (StableHLO_AddOp
-          (StableHLO_LogOp $two),
-          (StableHLO_LogOp $_mx_1_)),
+          (StableHLO_LogOp $two, ConstDefaultResultAccuracyAttr),
+          (StableHLO_LogOp $_mx_1_, ConstDefaultResultAccuracyAttr)),
         (StableHLO_MulOp
           $half,
           (StableHLO_Log1pOp
@@ -197,14 +197,14 @@ def : Pat<(CHLO_AsinAcosKernelOp ComplexElementType:$z),
                       (STABLEHLO_DEFAULT_COMPARISON_TYPE)))),
                 (StableHLO_DivOp $x, $y),
                 $zero),
-              $xoy)))),
+              $xoy), ConstDefaultResultAccuracyAttr))),
       (StableHLO_SelectOp
         (StableHLO_AndOp:$logical_and_lt_y_safe_min_lt_x_one
           (StableHLO_CompareOp
            $y,
            (StableHLO_MulOp
              (StableHLO_SqrtOp
-               (StableHLO_ConstantLikeSmallestNormalizedValue $signed_x)),
+               (StableHLO_ConstantLikeSmallestNormalizedValue $signed_x), ConstDefaultResultAccuracyAttr),
              (StableHLO_ConstantLike<"4"> $signed_x)),
             StableHLO_ComparisonDirectionValue<"LT">,
             (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
@@ -244,9 +244,9 @@ def : Pat<(CHLO_AsinAcosKernelOp ComplexElementType:$z),
                       $divide_half_yy_rpxp1,
                       (StableHLO_DivOp $half_yy, $smxm1)),
                     (StableHLO_SubtractOp $a, $one)))),
-              $ap1))),
+              $ap1), ConstDefaultResultAccuracyAttr)),
         (StableHLO_Log1pOp
-          (StableHLO_AddOp $am1, $sq)))))>;
+          (StableHLO_AddOp $am1, $sq), ConstDefaultResultAccuracyAttr))))>;
 
 // Arcus sine on complex input.
 //
@@ -419,7 +419,7 @@ def : Pat<(CHLO_AsinOp NonComplexElementType:$x),
         (StableHLO_SqrtOp
           (StableHLO_MulOp
             (StableHLO_SubtractOp $one, $x),
-            (StableHLO_AddOp $one, $x))))),
+            (StableHLO_AddOp $one, $x)), ConstDefaultResultAccuracyAttr))),
     $ta)>;
 
 // Arcus cosine on complex input
@@ -494,7 +494,7 @@ def : Pat<(CHLO_AcosOp NonComplexElementType:$x),
         (StableHLO_SubtractOp
           (StableHLO_ConstantLike<"1">:$constant_1 $x),
           $x),
-        (StableHLO_AddOp $constant_1, $x))),
+        (StableHLO_AddOp $constant_1, $x)), ConstDefaultResultAccuracyAttr),
     $x)>;
 
 // Inverse hyperbolic cosine on complex input:
@@ -567,18 +567,18 @@ def : Pat<(CHLO_AcoshOp NonComplexElementType:$x),
       StableHLO_ComparisonDirectionValue<"GE">,
       (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
     (StableHLO_AddOp
-      (StableHLO_LogOp $constant_2),
-      (StableHLO_LogOp $x)),
+      (StableHLO_LogOp $constant_2, ConstDefaultResultAccuracyAttr),
+      (StableHLO_LogOp $x, ConstDefaultResultAccuracyAttr)),
     (StableHLO_Log1pOp
       (StableHLO_MulOp
         (StableHLO_SqrtOp:$sqrt_subtract_x_constant_1
           (StableHLO_SubtractOp
             $x,
-            (StableHLO_ConstantLike<"1">:$constant_1 $x))),
+            (StableHLO_ConstantLike<"1">:$constant_1 $x)), ConstDefaultResultAccuracyAttr),
         (StableHLO_AddOp
           (StableHLO_SqrtOp
-            (StableHLO_AddOp $x, $constant_1)),
-          $sqrt_subtract_x_constant_1))))>;
+            (StableHLO_AddOp $x, $constant_1), ConstDefaultResultAccuracyAttr),
+          $sqrt_subtract_x_constant_1)), ConstDefaultResultAccuracyAttr))>;
 
 // Inverse hyperbolic sine on complex input:
 //
@@ -661,13 +661,13 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$x),
       (StableHLO_CompareOp
        (StableHLO_AbsOp:$ax $x),
        (StableHLO_SqrtOp
-         (StableHLO_ConstantLikeMaxFiniteValue $x)),
+         (StableHLO_ConstantLikeMaxFiniteValue $x), ConstDefaultResultAccuracyAttr),
         StableHLO_ComparisonDirectionValue<"GE">,
         (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
       (StableHLO_AddOp
         (StableHLO_LogOp
-          (StableHLO_ConstantLike<"2"> $x)),
-        (StableHLO_LogOp $ax)),
+          (StableHLO_ConstantLike<"2"> $x), ConstDefaultResultAccuracyAttr),
+        (StableHLO_LogOp $ax, ConstDefaultResultAccuracyAttr)),
       (StableHLO_Log1pOp
         (StableHLO_AddOp
           $ax,
@@ -676,7 +676,7 @@ def : Pat<(CHLO_AsinhOp NonComplexElementType:$x),
             (StableHLO_AddOp
               (StableHLO_ConstantLike<"1">:$one $x),
               (StableHLO_SqrtOp
-                (StableHLO_AddOp $one, $ax2))))))))>;
+                (StableHLO_AddOp $one, $ax2), ConstDefaultResultAccuracyAttr)))), ConstDefaultResultAccuracyAttr)))>;
 
 // Arcus tangent on complex inputs:
 //
@@ -858,7 +858,7 @@ def : Pat<(CHLO_AtanhOp ComplexElementType:$z),
                       (StableHLO_AddOp
                         (StableHLO_DivOp $ax, $y),
                         (StableHLO_DivOp $y, $ax))),
-                    $y))))))),
+                    $y))))), ConstDefaultResultAccuracyAttr)),
       (StableHLO_ConstantLike<"0.25"> $x)),
     (StableHLO_MulOp
       (StableHLO_SelectOp

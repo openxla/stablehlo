@@ -92,10 +92,21 @@ def DotGeneralOpUpradeV1ToV2 :
       (VHLO_DotGeneralOpV2 $lhs, $rhs, $lhs_batching_dimensions, $rhs_batching_dimensions, $lhs_contracting_dimensions, $rhs_contracting_dimensions, $precision_config,
          (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType), (VHLO_GetNoneType))>;
 
-def ExpOpDowngradeV2ToV1 :
-  Pat<(VHLO_ExpOpV2 $operand, VHLO_DefaultResultAccuracy:$result_accuracy),
-      (VHLO_ExpOpV1 $operand)>;
-
-def ExpOpUpgradeV1ToV2 :
-  Pat<(VHLO_ExpOpV1 $operand),
-      (VHLO_ExpOpV2 $operand, (VHLO_GetDefaultResultAccuracyAttr))>;
+foreach resultAccuracyOpV1V2Pair = [
+  [VHLO_CbrtOpV1, VHLO_CbrtOpV2],
+  [VHLO_CosineOpV1, VHLO_CosineOpV2],
+  [VHLO_ExpOpV1, VHLO_ExpOpV2],
+  [VHLO_Expm1OpV1, VHLO_Expm1OpV2],
+  [VHLO_LogOpV1, VHLO_LogOpV2],
+  [VHLO_Log1pOpV1, VHLO_Log1pOpV2],
+  [VHLO_LogisticOpV1, VHLO_LogisticOpV2],
+  [VHLO_RsqrtOpV1, VHLO_RsqrtOpV2],
+  [VHLO_SineOpV1, VHLO_SineOpV2],
+  [VHLO_SqrtOpV1, VHLO_SqrtOpV2],
+  [VHLO_TanOpV1, VHLO_TanOpV2],
+  [VHLO_TanhOpV1, VHLO_TanhOpV2]] in {
+  def : Pat<(resultAccuracyOpV1V2Pair[0] $operand),
+            (resultAccuracyOpV1V2Pair[1] $operand, (VHLO_GetDefaultResultAccuracyAttr))>;
+  def : Pat<(resultAccuracyOpV1V2Pair[1] $operand, VHLO_DefaultResultAccuracy:$result_accuracy),
+            (resultAccuracyOpV1V2Pair[0] $operand)>;
+}

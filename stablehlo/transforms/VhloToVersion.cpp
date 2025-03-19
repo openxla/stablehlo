@@ -444,40 +444,6 @@ struct AllReduceOpV2ToV1 : public OpRewritePattern<AllReduceOpV2> {
   }
 };
 
-struct ExpOpV1ToV2 : public OpRewritePattern<ExpOpV1> {
-  using OpRewritePattern<ExpOpV1>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(ExpOpV1 op,
-                                PatternRewriter& rewriter) const override {
-    ResultAccuracyV1Attr defaultResultAccuracy = ResultAccuracyV1Attr::get(
-        rewriter.getContext(), APFloat(0.0), APFloat(0.0), 0,
-        ResultAccuracyModeV1Attr::get(rewriter.getContext(),
-                                      ResultAccuracyModeV1::DEFAULT));
-    rewriter.replaceOpWithNewOp<ExpOpV2>(
-        op, op->getResultTypes(), op.getOperand(), defaultResultAccuracy);
-    return success();
-  }
-};
-
-struct ExpOpV2ToV1 : public OpRewritePattern<ExpOpV2> {
-  using OpRewritePattern<ExpOpV2>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(ExpOpV2 op,
-                                PatternRewriter& rewriter) const override {
-    auto defaultResultAccuracy = ResultAccuracyV1Attr::get(
-        rewriter.getContext(), APFloat(0.0), APFloat(0.0), 0,
-        ResultAccuracyModeV1Attr::get(rewriter.getContext(),
-                                      ResultAccuracyModeV1::DEFAULT));
-    if (op.getResultAccuracy() != defaultResultAccuracy) {
-      return rewriter.notifyMatchFailure(op,
-                                         "non-default result accuracy attr");
-    }
-    rewriter.replaceOpWithNewOp<ExpOpV1>(op, op->getResultTypes(),
-                                         op.getOperand());
-    return success();
-  }
-};
-
 #include "stablehlo/transforms/VhloToVersionPatterns.h.inc"
 
 }  // namespace
@@ -490,7 +456,6 @@ void populateVhloToVersionPatterns(RewritePatternSet* patterns,
   vhlo::populateWithGenerated(*patterns);
   patterns->add<vhlo::ScatterOpV1ToV2, vhlo::ScatterOpV2ToV1>(context);
   patterns->add<vhlo::AllReduceOpV1ToV2, vhlo::AllReduceOpV2ToV1>(context);
-  patterns->add<vhlo::ExpOpV1ToV2, vhlo::ExpOpV2ToV1>(context);
 }
 
 }  // namespace stablehlo

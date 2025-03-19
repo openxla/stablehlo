@@ -766,9 +766,20 @@ func.func @test_unary_cbrt(%arg: tensor<3x4xf32>) -> tensor<3x4xf32> {
   func.return %0 : tensor<3x4xf32>
 }
 
-func.func @test_unary_result_accuracy(%arg0: tensor<2xf32>) -> tensor<2xf32> {
-  %exp = "stablehlo.exponential"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
-  func.return %exp : tensor<2xf32>
+func.func @test_unary_result_accuracy(%arg0: tensor<2xf32>) -> (tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) {
+  %cbrt = "stablehlo.cbrt"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %cosine = "stablehlo.cosine"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %exponential = "stablehlo.exponential"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %exponential_minus_one = "stablehlo.exponential_minus_one"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %log = "stablehlo.log"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %log_plus_one = "stablehlo.log_plus_one"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %logistic = "stablehlo.logistic"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %rsqrt = "stablehlo.rsqrt"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %sine = "stablehlo.sine"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %sqrt = "stablehlo.sqrt"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %tan = "stablehlo.tan"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  %tanh = "stablehlo.tanh"(%arg0) {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e+00, rtol = 1.000000e+00, ulps = 5, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : (tensor<2xf32>) -> tensor<2xf32>
+  func.return %cbrt, %cosine, %exponential, %exponential_minus_one, %log, %log_plus_one, %logistic, %rsqrt, %sine, %sqrt, %tan, %tanh : tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>
 }
 
 func.func @test_unary_round_nearest_even(%arg0: tensor<2xf32>) -> tensor<2xf32> {

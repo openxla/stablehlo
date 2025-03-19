@@ -917,7 +917,18 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     if (isBoolean(vhloOp.getIsStableAttr(), false))
       eraseAttrs(vhloAttrs, "is_stable");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::ExpOpV2>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::CbrtOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::CosineOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::ExpOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::Expm1OpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::LogOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::Log1pOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::LogisticOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::RsqrtOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::SineOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::SqrtOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::TanOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::TanhOpV2>::value) {
     if (isDefaultResultAccuracyAttribute(vhloOp.getResultAccuracyAttr())) {
       eraseAttrs(vhloAttrs, "result_accuracy");
     }

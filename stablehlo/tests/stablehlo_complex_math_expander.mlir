@@ -108,3 +108,19 @@ func.func @log_plus_one_complex_f32(%arg : tensor<complex<f32>>) -> tensor<compl
   %result = "stablehlo.log_plus_one"(%arg) : (tensor<complex<f32>>) -> tensor<complex<f32>>
   func.return %result : tensor<complex<f32>>
 }
+
+// -----
+
+// CHECK-LABEL:   func.func @log_plus_one_complex_result_accuracy_f32(
+// CHECK-SAME:      %[[VAL_0:.*]]: tensor<complex<f32>>) -> tensor<complex<f32>> {
+// CHECK:           %0 = stablehlo.log_plus_one %arg0 {result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e-05, ulps = 1, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>} : tensor<complex<f32>>
+// CHECK:    return %0 : tensor<complex<f32>>
+// CHECK:  }
+// CHECK: }
+func.func @log_plus_one_complex_result_accuracy_f32(%arg : tensor<complex<f32>>) -> tensor<complex<f32>> {
+  %result = "stablehlo.log_plus_one"(%arg) {
+    result_accuracy = #stablehlo.result_accuracy<atol = 1.000000e-05, rtol = 0.000000e+00, ulps = 1, mode = #stablehlo.result_accuracy_mode<TOLERANCE>>
+  } : (tensor<complex<f32>>) -> tensor<complex<f32>>
+  func.return %result : tensor<complex<f32>>
+}
+
