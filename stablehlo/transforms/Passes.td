@@ -451,15 +451,16 @@ def StablehloWrapInCompositePass : Pass<"stablehlo-wrap-in-composite", "ModuleOp
         operation, and `N` is a unique integer identifier generated to prevent
         naming conflicts within the module.
 
-    This pass can be used in three distinct ways:
+    This pass can be used in two distinct ways:
 
     **Mode 1: Command-line Usage**
 
-    This mode is the simplest, using the `stablehlo-opt` utility with the
-    `op-names` (a comma-separated list of operation names) and `version` (an
-    integer version number) options. It wraps **all instances** of specified
-    operations. The attributes of the newly created `stablehlo.composite`
-    operation will be the same as the attributes of the original operation.
+    This mode is intended for debugging or testing, as it offers minimal control
+    over the attributes of the generated `stablehlo.composite` operations.
+    It wraps **all instances** of operations specified using the `op-names`
+    (a comma-separated list of operation names) options. The attributes of the
+    newly created `stablehlo.composite` operation will be the same as the
+    attributes of the original operation.
 
     **Usage Example:**
 
@@ -467,28 +468,7 @@ def StablehloWrapInCompositePass : Pass<"stablehlo-wrap-in-composite", "ModuleOp
     stablehlo-opt input.mlir --stablehlo-wrap-in-composite=op-names='stablehlo.add,stablehlo.mul' -o output.mlir
     ```
 
-    **Mode 2: Programmatic Single-Op Wrapping**
-
-    This mode provides programmatic control to wrap
-    **a specific operation instance** and returns a pointer to the newly
-    created `stablehlo.composite` operation.
-
-    **Example (C++):**
-
-    ```cpp
-    // To wrap a specific stablehlo.add instance
-
-    mlir::stablehlo::AddOp addOp = ...; // The op instanced to be wrapped.
-    mlir::ModuleOp module = addOp->getParentOfType<mlir::ModuleOp>();
-    mlir::OpBuilder builder(addOp);
-    mlir::NamedAttrList attrs = ...; // Attributes to be set on the composite op.
-    int32_t version = 0; // Composite version.
-
-    mlir::stablehlo::CompositeOp compositeOp = mlir::stablehlo::wrapOperationInComposite(builder, addOp, attrs, version, module);
-    addOp.replaceAllUsesWith(compositeOp);
-    ```
-
-    **Mode 3: Programmatic Module-Wide Wrapping with customized Attribute Handling**
+    **Mode 2: Programmatic Module-Wide Wrapping with customized Attribute Handling**
 
     This mode extends programmatic wrapping to the entire module, offering
     fine-grained control over which operations are wrapped and their attributes.
@@ -518,8 +498,6 @@ def StablehloWrapInCompositePass : Pass<"stablehlo-wrap-in-composite", "ModuleOp
     **Example (C++):**
 
     ```cpp
-
-    // ... inside a pass or function ...
 
     stablehlo::CompositeAttributeProviderMap compositeAttributeProviderMap;
 

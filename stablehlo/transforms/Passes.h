@@ -125,6 +125,24 @@ std::unique_ptr<OperationPass<ModuleOp>> createStablehloWrapInCompositePass(
 
 /// Wraps the given operation in a CompositeOp with the specified NamedAttrs and
 /// version and returns the CompositeOp.
+///
+/// **A typical usage **
+///
+/// ```cpp
+/// // To wrap a specific stablehlo.add instance
+///
+/// mlir::stablehlo::AddOp addOp = ...; // The op instanced to be wrapped.
+/// mlir::ModuleOp module = addOp->getParentOfType<mlir::ModuleOp>();
+/// mlir::OpBuilder builder(addOp);
+/// mlir::NamedAttrList attrs = ...; // Attributes to be set on the
+///                                  // composite op.
+/// int32_t version = 0; // Composite version.
+///
+/// mlir::stablehlo::CompositeOp compositeOp =
+///   mlir::stablehlo::wrapOperationInComposite(builder, addOp, attrs,
+///                                             version, module);
+/// addOp.replaceAllUsesWith(compositeOp);
+/// ```
 stablehlo::CompositeOp wrapOperationInComposite(OpBuilder &builder,
                                                 Operation *op,
                                                 const NamedAttrList &attrs,
