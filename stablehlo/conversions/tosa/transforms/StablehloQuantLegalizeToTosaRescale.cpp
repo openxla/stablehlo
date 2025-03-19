@@ -13,8 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <cstdint>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/IR/Quant.h"
@@ -28,6 +30,7 @@ limitations under the License.
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/conversions/tosa/transforms/Passes.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/BuiltinAttributes.h"
 
 #define PASS_NAME "stablehlo-quant-legalize-to-tosa-rescale"
 #define DEBUG_TYPE PASS_NAME
@@ -45,13 +48,18 @@ Value buildRescale(PatternRewriter &rewriter, Location loc,
                    ShapedType outputType, Value inputVal, int32_t multiplier,
                    int32_t shift, int64_t inputZp, int64_t outputZp,
                    bool doubleRound, bool scale32, bool perChannel) {
+  auto multiplier_op = rewriter.create<stablehlo::ConstantOp>(
+      loc, rewriter.getI32TensorAttr({multiplier}));
+  auto shift_op = rewriter.create<stablehlo::ConstantOp>(
+      loc, DenseIntElementsAttr::get(
+               RankedTensorType::get({1}, rewriter.getI8Type()),
+               {static_cast<int8_t>(shift)}));
   auto rescale_op = rewriter.create<RescaleOp>(
-      loc, outputType, inputVal,
+      loc, outputType, inputVal, multiplier_op, shift_op,
       rewriter.getI32IntegerAttr(static_cast<int32_t>(inputZp)),
       rewriter.getI32IntegerAttr(static_cast<int32_t>(outputZp)),
-      rewriter.getDenseI32ArrayAttr({multiplier}),
-      rewriter.getDenseI8ArrayAttr({static_cast<int8_t>(shift)}),
-      rewriter.getBoolAttr(scale32), rewriter.getBoolAttr(doubleRound),
+      rewriter.getBoolAttr(scale32),
+      rewriter.getStringAttr(doubleRound ? "DOUBLE_ROUND" : "SINGLE_ROUND"),
       rewriter.getBoolAttr(perChannel),
       /*input_unsigned=*/rewriter.getBoolAttr(false),
       /*output_unsigned=*/rewriter.getBoolAttr(false));

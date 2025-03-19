@@ -65,7 +65,7 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
   }
 
   bool scale32 = op.getScale32();
-  bool doubleRound = op.getDoubleRound();
+  bool doubleRound = op.getRoundingMode() == "DOUBLE_ROUND";
   bool perChannel = op.getPerChannel();
 
   if (perChannel || doubleRound || !scale32) {
@@ -102,16 +102,13 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
         "integer types");
   }
 
-  auto i8Type = inputType.clone(rewriter.getI8Type());
   auto i32Type = inputType.clone(rewriter.getI32Type());
   auto i64Type = inputType.clone(rewriter.getI64Type());
 
   // construct multiplier, shift constant values from op attrs
   // for scale32, multiplier is tensor of i32
-  Value multiplier = getStablehloConstantOp(
-      rewriter, loc, DenseElementsAttr::get(i32Type, op.getMultiplier()));
-  Value shift = getStablehloConstantOp(
-      rewriter, loc, DenseElementsAttr::get(i8Type, op.getShift()));
+  Value multiplier = op.getMultiplier();
+  Value shift = op.getShift();
 
   // construct inputZp and outputZp from op attrs
   Value inputZpI32 = getStablehloConstantOp(
