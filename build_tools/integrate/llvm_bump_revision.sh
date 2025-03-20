@@ -22,6 +22,7 @@ usage_and_exit() {
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 GH_ACTIONS="$SCRIPT_DIR/../github_actions"
 REPO_ROOT="$SCRIPT_DIR/../.."
+PATCH_OPTION="${1:-}"
 
 # Update build files
 bump_to_xla_llvm_version() {
@@ -54,8 +55,8 @@ set -o nounset  # Using uninitialized variables raises error and exits
 set -o pipefail # Ensures the script detects errors in any part of a pipeline.
 
 APPLY_PATCH=1
-if [[ -n "$1" ]]; then
-  if [[ "$1" == "-nopatch" ]]; then
+if [[ -n "$PATCH_OPTION" ]]; then
+  if [[ "$PATCH_OPTION" == "-nopatch" ]]; then
     APPLY_PATCH=0
     echo "Skipping patch apply."
   else
