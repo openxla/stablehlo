@@ -12,9 +12,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <numeric>
+#include <optional>
 #include <utility>
 
 #include "llvm/ADT/APInt.h"
@@ -23,11 +26,14 @@ limitations under the License.
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/LogicalResult.h"
 #include "mlir/Dialect/CommonFolders.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -279,6 +285,28 @@ struct FoldAddOpPattern final : OpRewritePattern<mlir::stablehlo::AddOp> {
   }
 };
 
+// A base class to use for patterns that may be used for integer shape math,
+// but also may be used for general folding of floats.
+template <typename OpType>
+struct ShapeOpRewritePattern : public OpRewritePattern<OpType> {
+  ShapeOpRewritePattern(MLIRContext* context, PatternBenefit benefit,
+                        bool foldFloat_)
+      : OpRewritePattern<OpType>(context, benefit), foldFloat{foldFloat_} {}
+
+  using OpRewritePattern<OpType>::OpRewritePattern;
+  using OpRewritePattern<OpType>::matchAndRewrite;
+
+  LogicalResult validateShapeFold(PatternRewriter& rewriter, OpType op,
+                                  ShapedType resultType) {
+    if (!resultType.getElementType().isInteger()) {
+      return rewriter.notifyMatchFailure(
+          op, "skipping fold of non-integer result type");
+    }
+  }
+
+  bool foldFloat;
+};
+
 struct EvalAddOpShapePattern : public OpRewritePattern<AddOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(AddOp op,
@@ -460,12 +488,8 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
   }
 };
 
-struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
-  using OpRewritePattern::OpRewritePattern;
-
-  EvalConvertOpPattern(MLIRContext* context, PatternBenefit benefit,
-                       bool foldFloat_)
-      : OpRewritePattern<ConvertOp>(context, benefit), foldFloat{foldFloat_} {}
+struct EvalConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
+  using ShapeOpRewritePattern::ShapeOpRewritePattern;
 
   LogicalResult matchAndRewrite(ConvertOp op,
                                 PatternRewriter& rewriter) const override {
@@ -493,9 +517,6 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
 
     return evalConvert(rewriter, op, elements, resultType);
   }
-
- private:
-  bool foldFloat;
 };
 
 struct EvalDivOpPattern : public OpRewritePattern<DivOp> {
@@ -552,23 +573,11 @@ struct FoldMulOpPattern final : OpRewritePattern<mlir::stablehlo::MulOp> {
 
   LogicalResult matchAndRewrite(mlir::stablehlo::MulOp op,
                                 PatternRewriter& rewriter) const override {
-    auto elemType = op.getType().getElementType();
-    Value lhs = op.getLhs();
-    Value rhs = op.getRhs();
-
     TypedAttr lhsAttr;
-    matchPattern(lhs, m_Constant(&lhsAttr));
+    matchPattern(op.getLhs(), m_Constant(&lhsAttr));
 
     TypedAttr rhsAttr;
-    matchPattern(rhs, m_Constant(&rhsAttr));
-
-    // The canonical form has the constant operand as the RHS.
-    if (isa<IntegerType>(elemType) && lhsAttr && !rhsAttr) {
-      rewriter.modifyOpInPlace(op, [op, lhs, rhs] {
-        op->setOperands(ValueRange{rhs, lhs});
-      });
-      return success();
-    }
+    matchPattern(op.getRhs(), m_Constant(&rhsAttr));
 
     if (TypedAttr res;
         lhsAttr && rhsAttr &&
@@ -613,16 +622,20 @@ struct EvalRemOpPattern : public OpRewritePattern<RemOp> {
   }
 };
 
-struct EvalReshapeOpPattern : public OpRewritePattern<ReshapeOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalReshapeOpPattern : public ShapeOpRewritePattern<ReshapeOp> {
+  using ShapeOpRewritePattern::ShapeOpRewritePattern;
+
   LogicalResult matchAndRewrite(ReshapeOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
     if (failed(validateResultTypeForEval(rewriter, op, resultType)))
       return failure();
 
+    if (!foldFloat && !resultType.getElementType().isInteger())
+      return rewriter.notifyMatchFailure(op, "skipping float folding");
+
     // Pattern: reshape(cst, shape) -> cst
-    DenseIntElementsAttr attr;
+    DenseIntOrFPElementsAttr attr;
     if (!matchPattern(op.getOperand(), m_Constant(&attr)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
     rewriter.replaceOpWithNewOp<ConstantOp>(op, attr.reshape(resultType));
@@ -778,6 +791,37 @@ struct EvalSubtractOpPattern : public OpRewritePattern<SubtractOp> {
   }
 };
 
+struct FoldSqrtOpPattern : public OpRewritePattern<mlir::stablehlo::SqrtOp> {
+  using OpRewritePattern<mlir::stablehlo::SqrtOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::SqrtOp op,
+                                PatternRewriter& rewriter) const final {
+    TypedAttr lhsAttr;
+    matchPattern(op.getOperand(), m_Constant(&lhsAttr));
+
+    if (!lhsAttr)
+      return rewriter.notifyMatchFailure(op, "operand not constant");
+
+    if (auto res = constFoldUnaryOp<FloatAttr, FloatAttr::ValueType, void>(
+            lhsAttr, foldSqrt)) {
+      rewriter.replaceOpWithNewOp<stablehlo::ConstantOp>(
+          op, op.getType(), llvm::cast<ElementsAttr>(res));
+      return success();
+    }
+
+    return rewriter.notifyMatchFailure(op, "unable to fold sqrt");
+  }
+
+  static std::optional<APFloat> foldSqrt(const APFloat& a) {
+    if (a.getSizeInBits(a.getSemantics()) == 64)
+      return APFloat(std::sqrt(a.convertToDouble()));
+
+    if (a.getSizeInBits(a.getSemantics()) == 32)
+      return APFloat(std::sqrtf(a.convertToFloat()));
+    return {};
+  }
+};
+
 struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(IotaOp op,
@@ -916,10 +960,9 @@ void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
 
   // TODO: Consolidate FoldOp patterns
   // One is used by Shape Refinement, the other is a generic folder.
-  patterns
-      ->add<FoldAddOpPattern, FoldBroadcastInDimSplatPattern,
-            FoldConcatenateOpPattern, FoldMulOpPattern, FoldSubtractOpPattern>(
-          context);
+  patterns->add<FoldAddOpPattern, FoldBroadcastInDimSplatPattern,
+                FoldConcatenateOpPattern, FoldMulOpPattern,
+                FoldSubtractOpPattern, FoldSqrtOpPattern>(context);
 }
 
 void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
@@ -939,7 +982,7 @@ void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
   patterns->add<EvalMulOpPattern>(context, benefit);
   patterns->add<EvalOrOpPattern>(context, benefit);
   patterns->add<EvalRemOpPattern>(context, benefit);
-  patterns->add<EvalReshapeOpPattern>(context, benefit);
+  patterns->add<EvalReshapeOpPattern>(context, benefit, foldFloat);
   patterns->add<EvalSelectOpPattern>(context, benefit);
   patterns->add<EvalSignOpPattern>(context, benefit);
   patterns->add<EvalSliceOpPattern>(context, benefit);

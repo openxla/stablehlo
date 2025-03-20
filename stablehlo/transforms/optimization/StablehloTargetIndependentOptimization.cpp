@@ -45,7 +45,7 @@ struct StablehloTargetIndependentOptimizationPass
 
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    bool foldFloat = false;
+    bool foldFloat = true;
     populateStablehloCanonicalizationPatterns(context, &patterns_);
     populateStablehloAggressiveFolderPatterns(&patterns_, context, foldFloat,
                                               /*benefit=*/2);
