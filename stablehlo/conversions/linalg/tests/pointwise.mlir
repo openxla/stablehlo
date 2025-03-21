@@ -23,6 +23,29 @@ func.func @float_add(%lhs: tensor<2x2xf32>,
 
 // -----
 
+// CHECK: #map = affine_map<(d0, d1) -> (d0, d1)>
+// CHECK-LABEL: func @complex_add_const
+// CHECK-PRIMITIVE-LABEL: func @complex_add_const
+func.func @complex_add_const(%lhs: tensor<2x2xcomplex<f32>>,
+                             %rhs: tensor<2x2xcomplex<f32>>)
+                             -> tensor<2x2xcomplex<f32>> {
+
+  // CHECK: %[[CST:.+]] = complex.constant [1.000000e-01 : f32, 2.000000e-01 : f32] : complex<f32>
+  // CHECK: linalg.generic
+  // CHECK: ^bb0(%[[IN:.+]]: complex<f32>, %[[OUT:.+]]: complex<f32>)
+  // CHECK: %[[RESULT:[a-zA-Z0-9_]*]] = complex.add %[[IN]], %[[CST]]
+  // CHECK: linalg.yield %[[RESULT]]
+
+  // CHECK-PRIMITIVE: linalg.map
+  // CHECK-PRIMITIVE: complex.add
+  %cst = stablehlo.constant dense<(0.1, 0.2)> : tensor<2x2xcomplex<f32>>
+  %0 = "stablehlo.add"(%lhs, %cst) {someattr}
+      : (tensor<2x2xcomplex<f32>>, tensor<2x2xcomplex<f32>>) -> tensor<2x2xcomplex<f32>>
+  func.return %0 : tensor<2x2xcomplex<f32>>
+}
+
+// -----
+
 // CHECK-LABEL: func @float_add_dynamic_encoding
 // CHECK-PRIMITIVE-LABEL: func @float_add_dynamic_encoding
 func.func @float_add_dynamic_encoding(
