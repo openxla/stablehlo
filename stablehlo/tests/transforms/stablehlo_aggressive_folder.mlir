@@ -269,6 +269,17 @@ func.func @eval_convert_f64_precision_loss() -> (tensor<1xf32>, tensor<f32>) {
 
 // -----
 
+// CHECK-LABEL: func @fold_sqrt
+func.func @fold_sqrt() -> (tensor<f32>) {
+  // CHECK: [[RESULT0:%.*]] = stablehlo.constant dense<2.0{{.*}}> : tensor<f32>
+  // CHECK: return [[RESULT0]]
+  %0 = stablehlo.constant dense<4.0> : tensor<f32>
+  %1 = stablehlo.sqrt %0 : tensor<f32>
+  func.return %1 : tensor<f32>
+}
+
+// -----
+
 // CHECK-LABEL: func @eval_transpose
 func.func @eval_transpose() -> (tensor<2x3x2xi32>, tensor<2x4x3xi32>, tensor<4x3x2xi32>) {
   // CHECK: [[RESULT0:%.*]] = stablehlo.constant dense<

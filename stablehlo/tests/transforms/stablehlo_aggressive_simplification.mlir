@@ -899,6 +899,23 @@ func.func @multiply_by_one(%arg0: tensor<i32>) -> tensor<i32> {
   return %0 : tensor<i32>
 }
 
+// CHECK-LABEL: @multiply_by_zero_float
+func.func @multiply_by_zero_float(%arg0: tensor<f32>) -> tensor<f32> {
+  %cst = stablehlo.constant dense<0.0> : tensor<f32>
+  // CHECK: stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  %0 = stablehlo.multiply %cst, %arg0 : tensor<f32>
+  return %0 : tensor<f32>
+}
+
+// CHECK-LABEL: @multiply_by_one_float
+func.func @multiply_by_one_float(%arg0: tensor<f32>) -> tensor<f32> {
+  %cst = stablehlo.constant dense<1.0> : tensor<f32>
+  %0 = stablehlo.multiply %cst, %arg0 : tensor<f32>
+  // CHECK-NOT: stablehlo.constant
+  // CHECK: return %arg0 : tensor<f32>
+  return %0 : tensor<f32>
+}
+
 // -----
 
 /////////
