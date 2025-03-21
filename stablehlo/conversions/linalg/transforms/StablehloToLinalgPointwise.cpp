@@ -114,6 +114,28 @@ FailureOr<PointwiseConversionInfo> checkOperandsAndResults(
   return PointwiseConversionInfo{maxRank, resultTy};
 }
 
+/// If `input` is a splat constant value, materialize the scalar splat
+/// value. Otherwise, return nullopt.
+std::optional<Value> materializeSplatScalarConstant(RewriterBase &rewriter,
+                                                    Location loc, Value input) {
+  SplatElementsAttr attr;
+  Type elementType = mlir::getElementTypeOrSelf(input.getType());
+  if (!matchPattern(input, m_Constant(&attr))) return {};
+  if (isa<IntegerType, FloatType, IndexType>(elementType)) {
+    return rewriter
+        .create<arith::ConstantOp>(loc, elementType,
+                                   attr.getSplatValue<TypedAttr>())
+        .getResult();
+  }
+  if (isa<ComplexType>(elementType)) {
+    return rewriter
+        .create<complex::ConstantOp>(loc, elementType,
+                                     attr.getSplatValue<ArrayAttr>())
+        .getResult();
+  }
+  return {};
+}
+
 /// Converts a HLO operation to a linalg.map op that contains the corresponding
 /// scalar operations.
 template <typename OpTy>
@@ -160,11 +182,9 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
     SmallVector<Value> mappedInputs;
     SmallVector<Value> scalarInputs;
     for (Value input : adaptor.getOperands()) {
-      DenseElementsAttr attr;
-      if (matchPattern(input, m_Constant(&attr)) && attr.isSplat()) {
-        scalarInputs.push_back(rewriter.create<arith::ConstantOp>(
-            loc, cast<ShapedType>(input.getType()).getElementType(),
-            attr.getSplatValue<TypedAttr>()));
+      if (std::optional<Value> splatVal =
+              materializeSplatScalarConstant(rewriter, loc, input)) {
+        scalarInputs.push_back(*splatVal);
       } else if (getRank(input) == maxRank) {
         mappedInputs.push_back(coerceTensorShape(
             rewriter, loc, cast<TypedValue<ShapedType>>(input),
