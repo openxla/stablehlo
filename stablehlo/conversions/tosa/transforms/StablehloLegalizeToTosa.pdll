@@ -25,6 +25,11 @@ Rewrite getScalarInt8Tensor() -> Type [{
   return RankedTensorType::get({1}, rewriter.getI8Type());
 }];
 
+Rewrite getScalarTensor(type: Type) -> Type [{
+  auto elementType = llvm::cast<mlir::TensorType>(type).getElementType();
+  return RankedTensorType::get({1}, elementType);
+}];
+
 Rewrite zerosLike(op: Op, type: Type) -> Op [{
   auto elementType = llvm::cast<mlir::TensorType>(type).getElementType();
   llvm::SmallVector<mlir::Attribute, 4> outputValue;
@@ -75,7 +80,7 @@ Rewrite positiveFloatInfinityLike(op: Op, type: Type) -> Op [{
 // Nullary ops.
 Pattern =>
   replace op<stablehlo.constant> {value = input: Attr<_: Tosa_Tensor>}
-     with op<tosa.const> {value = input};
+     with op<tosa.const> {values = input};
 
 // Unary ops.
 Pattern =>
@@ -126,9 +131,15 @@ Pattern {
     replace root with logPlusOneResult;
   };
 }
-Pattern =>
-  replace op<stablehlo.negate>(input : Value<_: Tosa_Tensor>)
-     with op<tosa.negate>(input);
+Pattern {
+  let root = op<stablehlo.negate>(input : Value<inputType: Tosa_Tensor>);
+  rewrite root with {
+    let scalarType = getScalarTensor(inputType);
+    let zp = zerosLike(root, scalarType);
+    let negResult = op<tosa.negate>(input, zp, zp) -> (inputType);
+    replace root with negResult;
+  };
+}
 Pattern =>
   replace op<stablehlo.tanh>(input : Value<_: Tosa_Tensor>)
      with op<tosa.tanh>(input);
