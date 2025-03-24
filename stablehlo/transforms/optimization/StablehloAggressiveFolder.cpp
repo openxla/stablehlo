@@ -817,7 +817,7 @@ struct FoldSqrtOpPattern : public OpRewritePattern<mlir::stablehlo::SqrtOp> {
       return APFloat(std::sqrt(a.convertToDouble()));
 
     if (a.getSizeInBits(a.getSemantics()) == 32)
-      return APFloat(std::sqrtf(a.convertToFloat()));
+      return APFloat(sqrtf(a.convertToFloat()));
     return {};
   }
 };
