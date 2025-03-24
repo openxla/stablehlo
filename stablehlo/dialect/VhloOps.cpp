@@ -52,7 +52,7 @@ namespace {
 // Helper functions for VHLO verifiers
 template <typename TypeOrAttr>
 bool isFromVhlo(TypeOrAttr t) {
-  return t.getDialect().getNamespace() == VhloDialect::getDialectNamespace();
+  return llvm::isa<VhloDialect>(t.getDialect());
 }
 
 template <typename TypeOrAttr>

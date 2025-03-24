@@ -60,9 +60,7 @@ class VhloToVersionConverter : public TypeConverter {
  public:
   VhloToVersionConverter() : TypeConverter() {
     addConversion([](Type type) -> Type {
-      if (type.getDialect().getNamespace() ==
-          vhlo::VhloDialect::getDialectNamespace())
-        return type;
+      if (llvm::isa<vhlo::VhloDialect>(type.getDialect())) return type;
       LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
       return {};
     });

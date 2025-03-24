@@ -326,6 +326,7 @@ namespace {
 // Helper functions for VHLO verifiers
 template <typename TypeOrAttr>
 bool isFromVhlo(TypeOrAttr t) {
+  // Requires string comparison to avoid cyclic dependency with VhloOps.h.
   return t.getDialect().getNamespace() == "vhlo";
 }
 

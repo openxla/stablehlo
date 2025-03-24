@@ -55,10 +55,8 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
  public:
   StablehloToVhloTypeConverter() : vhlo::VhloTypeConverter() {
     addConversion([](Type type) -> Type {
-      if (type.getDialect().getNamespace() ==
-          vhlo::VhloDialect::getDialectNamespace()) {
-        return type;
-      }
+      if (llvm::isa<vhlo::VhloDialect>(type.getDialect())) return type;
+
       LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
       return {};
     });
@@ -71,9 +69,7 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
   Attribute convertEncoding(Attribute attr) const final {
     LLVM_DEBUG(llvm::dbgs() << "Converting encoding.\n" << attr << '\n');
     // Must be VHLO encoding, or convertible to VHLO encoding.
-    if (attr.getDialect().getNamespace() ==
-        vhlo::VhloDialect::getDialectNamespace())
-      return attr;
+    if (llvm::isa<vhlo::VhloDialect>(attr.getDialect())) return attr;
 
     if (auto stablehloAttr =
             dyn_cast_or_null<stablehlo::TypeExtensionsAttr>(attr)) {
@@ -141,8 +137,7 @@ Attribute convertGeneric(Attribute stablehloAttr,
                                            attr.getRtol(), attr.getUlps(),
                                            modeAttr);
   }
-  if (stablehloAttr.getDialect().getNamespace() ==
-      stablehlo::StablehloDialect::getDialectNamespace()) {
+  if (llvm::isa<stablehlo::StablehloDialect>(stablehloAttr.getDialect())) {
     // All StableHLO attributes must have counterparts in VHLO.
     return {};
   }

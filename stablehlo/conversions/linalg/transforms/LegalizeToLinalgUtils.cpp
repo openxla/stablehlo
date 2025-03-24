@@ -178,8 +178,7 @@ bool allOperandsAreScalarTensors(Operation *op) {
 
 bool isInBodyOfLinalgOps(Operation *op) {
   auto *parentOp = op->getParentRegion()->getParentOp();
-  return parentOp->getDialect() ==
-         parentOp->getContext()->getLoadedDialect<linalg::LinalgDialect>();
+  return llvm::isa<linalg::LinalgDialect>(parentOp->getDialect());
 }
 
 SmallVector<int64_t> extract1DVector(DenseIntElementsAttr elements) {
