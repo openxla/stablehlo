@@ -40,19 +40,42 @@ namespace tosa {
 
 namespace {
 
+Value buildRescaleMultiplier(bool scale32, OpBuilder &builder, Location loc,
+                             ArrayRef<int32_t> multipliers) {
+  if (scale32) {
+    return tosa::getConstTensorInt<int32_t>(builder, loc, multipliers);
+  } else {
+    SmallVector<int16_t> vec(multipliers.begin(), multipliers.end());
+    return tosa::getConstTensorInt<int16_t>(builder, loc, vec);
+  }
+}
+
 // create a tosa rescale op and return its result value
 Value buildRescale(PatternRewriter &rewriter, Location loc,
                    ShapedType outputType, Value inputVal, int32_t multiplier,
                    int32_t shift, int64_t inputZp, int64_t outputZp,
                    bool doubleRound, bool scale32, bool perChannel) {
+  auto multiplierVal =
+      buildRescaleMultiplier(scale32, rewriter, loc, {multiplier});
+  auto shiftVal = tosa::getConstTensorInt<int8_t>(rewriter, loc,
+                                                  {static_cast<int8_t>(shift)});
+  auto inputZpVal =
+      tosa::createZeroPointTensor(rewriter, loc, inputVal.getType(), inputZp);
+  assert(
+      inputZpVal.has_value() &&
+      "buildRescale: Failed to create input zero-point tensor for RescaleOp.");
+  auto outputZpVal =
+      tosa::createZeroPointTensor(rewriter, loc, outputType, outputZp);
+  assert(
+      outputZpVal.has_value() &&
+      "buildRescale: Failed to create output zero-point tensor for RescaleOp.");
+
+  std::string roundingMode = doubleRound ? "DOUBLE_ROUND" : "SINGLE_ROUND";
+
   auto rescale_op = rewriter.create<RescaleOp>(
-      loc, outputType, inputVal,
-      rewriter.getI32IntegerAttr(static_cast<int32_t>(inputZp)),
-      rewriter.getI32IntegerAttr(static_cast<int32_t>(outputZp)),
-      rewriter.getDenseI32ArrayAttr({multiplier}),
-      rewriter.getDenseI8ArrayAttr({static_cast<int8_t>(shift)}),
-      rewriter.getBoolAttr(scale32), rewriter.getBoolAttr(doubleRound),
-      rewriter.getBoolAttr(perChannel),
+      loc, outputType, inputVal, multiplierVal, shiftVal, inputZpVal.value(),
+      outputZpVal.value(), rewriter.getBoolAttr(scale32),
+      rewriter.getStringAttr(roundingMode), rewriter.getBoolAttr(perChannel),
       /*input_unsigned=*/rewriter.getBoolAttr(false),
       /*output_unsigned=*/rewriter.getBoolAttr(false));
 
@@ -277,6 +300,13 @@ LogicalResult matchAndRewriteBinaryOp(StablehloOp op, PatternRewriter &rewriter,
         op,
         "The conversion supports operands/results with per-tensor quantized "
         "types only");
+  }
+
+  if (!lhsQType.isSigned() || !rhsQType.isSigned() || !resultQType.isSigned()) {
+    return rewriter.notifyMatchFailure(
+        op,
+        "The conversion supports operands/results with signed storage types "
+        "only");
   }
 
   double lhsRescaleScale, rhsRescaleScale, resultRescaleScale;
