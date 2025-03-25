@@ -92,7 +92,7 @@ APSInt getAPSInt(Type type, uint64_t value) {
       /*isUnsigned=*/isUnsigned);
 }
 
-LogicalResult validateResultTypeForEval(PatternRewriter& rewriter,
+LogicalResult validateStaticShapeResult(PatternRewriter& rewriter,
                                         Operation* op, ShapedType resultType) {
   if (!resultType.hasStaticShape())
     return rewriter.notifyMatchFailure(
@@ -218,7 +218,7 @@ template <typename OpType, typename FuncType>
 LogicalResult evalElementwise(PatternRewriter& rewriter, OpType op,
                               FuncType fn) {
   auto resultType = op.getType();
-  if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+  if (failed(validateStaticShapeResult(rewriter, op, resultType)))
     return failure();
 
   if (!isa<IntegerType>(resultType.getElementType()))
@@ -296,12 +296,12 @@ struct ShapeOpRewritePattern : public OpRewritePattern<OpType> {
   using OpRewritePattern<OpType>::OpRewritePattern;
   using OpRewritePattern<OpType>::matchAndRewrite;
 
-  LogicalResult validateShapeFold(PatternRewriter& rewriter, OpType op,
-                                  ShapedType resultType) {
-    if (!resultType.getElementType().isInteger()) {
-      return rewriter.notifyMatchFailure(
-          op, "skipping fold of non-integer result type");
-    }
+  LogicalResult validateShapeFoldDtype(PatternRewriter& rewriter, OpType op,
+                                       ShapedType resultType) const {
+    if (resultType.getElementType().isInteger()) return success();
+    if (foldFloat && isa<FloatType>(resultType.getElementType()))
+      return success();
+    return rewriter.notifyMatchFailure(op, "skipping fold of shape op dtype");
   }
 
   bool foldFloat;
@@ -355,7 +355,7 @@ struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
   LogicalResult matchAndRewrite(BroadcastInDimOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)))
       return failure();
 
     auto operandType = op.getOperand().getType();
@@ -470,7 +470,7 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
   LogicalResult matchAndRewrite(ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)))
       return failure();
 
     if (op.getDimension() != 0)
@@ -496,19 +496,15 @@ struct EvalConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
     auto operand = op.getOperand();
     RankedTensorType resultType = op.getType();
 
-    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)) ||
+        failed(validateShapeFoldDtype(rewriter, op, resultType)))
       return failure();
 
     auto operandElemType = getElementTypeOrSelf(operand.getType());
     auto resultElemType = getElementTypeOrSelf(resultType);
-    if (!(operandElemType.isInteger() && resultElemType.isInteger()) &&
-        !foldFloat)
-      return rewriter.notifyMatchFailure(op,
-                                         "lossy computations are not allowed");
-
-    if (!resultElemType.isIntOrFloat())
-      return rewriter.notifyMatchFailure(
-          op, "expected integer or float result tensor type");
+    if (!foldFloat &&
+        (isa<FloatType>(operandElemType) || isa<FloatType>(resultElemType)))
+      return rewriter.notifyMatchFailure(op, "skipping fold of float convert");
 
     DenseIntOrFPElementsAttr elements;
     if (!matchPattern(operand, m_Constant(&elements)))
@@ -534,7 +530,7 @@ struct EvalGetDimensionSizeOpPattern
   LogicalResult matchAndRewrite(GetDimensionSizeOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)))
       return failure();
 
     auto operandType = op.getOperand().getType();
@@ -628,11 +624,9 @@ struct EvalReshapeOpPattern : public ShapeOpRewritePattern<ReshapeOp> {
   LogicalResult matchAndRewrite(ReshapeOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)) ||
+        failed(validateShapeFoldDtype(rewriter, op, resultType)))
       return failure();
-
-    if (!foldFloat && !resultType.getElementType().isInteger())
-      return rewriter.notifyMatchFailure(op, "skipping float folding");
 
     // Pattern: reshape(cst, shape) -> cst
     DenseIntOrFPElementsAttr attr;
@@ -648,7 +642,7 @@ struct EvalSelectOpPattern : public OpRewritePattern<SelectOp> {
   LogicalResult matchAndRewrite(SelectOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)))
       return failure();
 
     SmallVector<APSInt> pred, onTrue, onFalse;
@@ -730,7 +724,7 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
   LogicalResult matchAndRewrite(SliceOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)))
       return failure();
 
     auto operand = op.getOperand();
@@ -904,7 +898,7 @@ struct EvalTransposeOpPattern : public OpRewritePattern<TransposeOp> {
   LogicalResult matchAndRewrite(TransposeOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (failed(validateResultTypeForEval(rewriter, op, resultType)))
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)))
       return failure();
 
     ElementsAttr els;
