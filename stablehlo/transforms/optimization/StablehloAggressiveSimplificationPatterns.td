@@ -68,6 +68,10 @@ def EmptyI64Array : AttrConstraint<
     CPred<"cast<DenseI64ArrayAttr>($_self).empty()">,
     "is empty i64 array">;
 
+def AnyOne : AttrConstraint<
+    CPred<"::mlir::matchPattern($_self, m_AnyAttrOf(m_One(), m_OneFloat()))">,
+    "is integer one">;
+
 def IntOne : AttrConstraint<
     CPred<"::mlir::matchPattern($_self, m_One())">,
     "is integer one">;
@@ -303,11 +307,11 @@ def : CanonicalizeConstantToRhs<StableHLO_MulOp>;
 
 // Pattern: multiply(X, 0i) -> 0i
 // Multiplication by 0. This fold is not trivial for floats in presence of NaNs
-def : Pat<(StableHLO_MulOp $lhs, (StableHLO_ConstantOp:$zero IntZero:$value)),
+def : Pat<(StableHLO_MulOp $lhs, (StableHLO_ConstantOp:$zero AnyZero:$value)),
           (replaceWithValue $zero)>;
 
 // Pattern: multiply(X, 1i) -> X
-def : Pat<(StableHLO_MulOp $lhs, (StableHLO_ConstantOp IntOne:$value)),
+def : Pat<(StableHLO_MulOp $lhs, (StableHLO_ConstantOp AnyOne:$value)),
           (replaceWithValue $lhs)>;
 
 ////////
