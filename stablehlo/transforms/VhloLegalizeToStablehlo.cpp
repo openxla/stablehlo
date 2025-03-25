@@ -183,8 +183,7 @@ Attribute convertGeneric(Attribute vhloAttr,
   }
 
   // All VHLO Attributes must be converted by now.
-  if (vhloAttr.getDialect().getNamespace() ==
-      vhlo::VhloDialect::getDialectNamespace()) {
+  if (llvm::isa<vhlo::VhloDialect>(vhloAttr.getDialect())) {
     // All VHLO attributes must have counterparts in StableHLO.
     return {};
   }
