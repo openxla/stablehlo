@@ -104,7 +104,7 @@ jobs:
         path: ${{ github.sha }}
 
   upload-tarballs:
-    runs-on: ubuntu-20.04
+    runs-on: 'ubuntu-24.04'
     needs: cmake-build-wheel
     strategy:
       fail-fast: false
