@@ -79,8 +79,8 @@ func.func @negate(%arg : tensor<10xf32>) -> tensor<10xf32> {
 
 // CHECK-LABEL: @slice
 func.func @slice(%arg : tensor<4x3xf32>) -> tensor<2x2xf32> {
-  // CHECK: %[[SIZE:.*]] = tosa.const_shape {values = dense<[2, 1]> : tensor<2xindex>} : () -> !tosa.shape<2>
-  // CHECK: %[[START:.*]] = tosa.const_shape {values = dense<2> : tensor<2xindex>} : () -> !tosa.shape<2>
+  // CHECK-DAG: %[[SIZE:.*]] = tosa.const_shape {values = dense<[2, 1]> : tensor<2xindex>} : () -> !tosa.shape<2>
+  // CHECK-DAG: %[[START:.*]] = tosa.const_shape {values = dense<2> : tensor<2xindex>} : () -> !tosa.shape<2>
   // CHECK: tosa.slice %arg0, %[[SIZE]], %[[START]]
   %0 = "stablehlo.slice"(%arg) {
     start_indices = array<i64: 2, 1>,
