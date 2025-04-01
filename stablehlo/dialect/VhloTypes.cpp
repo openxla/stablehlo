@@ -323,6 +323,20 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
 }
 
 namespace {
+Value materializeIllegalCast(OpBuilder& builder, Type type, ValueRange inputs,
+                             Location loc) {
+  return builder.create<UnrealizedConversionCastOp>(loc, type, inputs)
+      ->getResult(0);
+}
+}  // namespace
+
+void VhloTypeConverter::addUnrealizedMaterializations() {
+  addTargetMaterialization(materializeIllegalCast);
+  addSourceMaterialization(materializeIllegalCast);
+  addArgumentMaterialization(materializeIllegalCast);
+}
+
+namespace {
 // Helper functions for VHLO verifiers
 template <typename TypeOrAttr>
 bool isFromVhlo(TypeOrAttr t) {

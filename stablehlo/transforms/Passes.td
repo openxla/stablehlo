@@ -308,7 +308,26 @@ def StablehloLegalizeQuantToMathPass : Pass<"stablehlo-legalize-quant-to-math", 
 
 def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp"> {
   let summary = "Legalize StableHLO to VHLO.";
+  let description = [{
+    Legalize StableHLO to the latest version of ops in VHLO. These ops can then
+    be downgraded to older versions of VHLO for forward compatibility using
+    `VhloToVersionPass`.
+
+    ```mlir
+    stablehlo.exponential %[[ARG0]] <{result_accuracy = DEFAULT}> : tensor<f32>
+    # ====>
+    "vhlo.exponential_v2"(%[[ARG0]]) <{result_accuracy = #vhlo.DEFAULT_v1}> : !vhlo.tensor_v1<!vhlo.f32_v1>
+    ```
+
+    See [vhlo.md > The VHLO dialect](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md)
+    for full details on how VHLO is used to preserve forward and backward
+    compatibility.
+  }];
   let dependentDialects = ["mlir::vhlo::VhloDialect"];
+  let options = [
+    Option<"allowOtherDialects", "allow-other-dialects", "bool", /*default=*/"false",
+           "Allow serialization to use other (potentially unstable) dialects, inserts unrealized casts between dialects.">,
+  ];
 }
 
 def StablehloRefineArgumentsPass : Pass<"stablehlo-refine-arguments", "ModuleOp"> {
@@ -330,6 +349,7 @@ def StablehloRefineArgumentsPass : Pass<"stablehlo-refine-arguments", "ModuleOp"
       %0 = stablehlo.custom_call @stablehlo.shape_refinement_operand_wrapper(%arg0, %c) {...}
         : (tensor<16xf32>, tensor<1xi64>) -> tensor<?xf32>
       ...
+    }
     ```
 
     The `refinedTypesOption` can be used to specify a list of refined types.
@@ -402,7 +422,23 @@ def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp">
 }
 
 def VhloToVersionPass : Pass<"vhlo-to-version"> {
-  let summary = "Convert between versions of VHLO.";
+  let summary = "Convert between versions of VHLO for compatibility.";
+  let description = [{
+    Converts between versions of VHLO for IR upgrading and downgrading to
+    preserve forward and backward compatibility.
+
+    ```mlir
+    "vhlo.exponential_v2"(%[[ARG0]]) <{result_accuracy = DEFAULT}>
+    # ==( -target=1.0.0 )==>
+    "vhlo.exponential_v1"(%[[ARG0]])
+    # ==( -target=1.9.0 )==>
+    "vhlo.exponential_v2"(%[[ARG0]]) <{result_accuracy = DEFAULT}>
+    ```
+
+    See [vhlo.md > The VHLO dialect](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md)
+    for full details on how VHLO is used to preserve forward and backward
+    compatibility.
+  }];
   let options = [
     Option<"targetVersionOption", "target", "std::string", "",
            "The target version. Must be a version of the form #.#.# .">,

@@ -40,7 +40,7 @@ limitations under the License.
 #include "stablehlo/dialect/VhloTypes.h"
 #include "stablehlo/transforms/Passes.h"
 
-#define DEBUG_TYPE "compat-passes"
+#define DEBUG_TYPE "stablehlo-compat"
 
 namespace mlir {
 namespace stablehlo {

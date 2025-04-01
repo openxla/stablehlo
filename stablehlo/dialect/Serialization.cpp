@@ -32,20 +32,25 @@ limitations under the License.
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
 
-#define DEBUG_TYPE "compat-passes"
+#define DEBUG_TYPE "stablehlo-compat"
 
 namespace mlir {
 namespace stablehlo {
 
 LogicalResult serializePortableArtifact(ModuleOp module,
                                         StringRef targetVersion,
-                                        raw_ostream& os) {
+                                        raw_ostream& os,
+                                        bool allowOtherDialects) {
   MLIRContext* context = module.getContext();
 
-  // Convert StableHLO --> VHLO. Will fail if entire program is not StableHLO.
+  // Convert StableHLO --> VHLO.
+  // If allowOtherDialects is true, we will allow other dialects to be present
+  // in the module, otherwise will fail if there are any other dialects present.
   {
     PassManager pm(context);
-    pm.addPass(stablehlo::createStablehloLegalizeToVhloPass());
+    StablehloLegalizeToVhloPassOptions options;
+    options.allowOtherDialects = allowOtherDialects;
+    pm.addPass(stablehlo::createStablehloLegalizeToVhloPass(options));
     if (!succeeded(pm.run(module))) {
       return failure();
     }
