@@ -1968,14 +1968,6 @@ Syntax:
 >
 ```
 
-Enum cases:
-* EQ (`EQ`)
-* NE (`NE`)
-* GE (`GE`)
-* GT (`GT`)
-* LE (`LE`)
-* LT (`LT`)
-
 #### Parameters:
 
 | Parameter | C++ type | Description |
@@ -1994,13 +1986,6 @@ Syntax:
 >
 ```
 
-Enum cases:
-* NOTYPE (`NOTYPE`)
-* FLOAT (`FLOAT`)
-* TOTALORDER (`TOTALORDER`)
-* SIGNED (`SIGNED`)
-* UNSIGNED (`UNSIGNED`)
-
 #### Parameters:
 
 | Parameter | C++ type | Description |
@@ -2018,11 +2003,6 @@ Syntax:
   ::mlir::chlo::Precision   # value
 >
 ```
-
-Enum cases:
-* DEFAULT (`DEFAULT`)
-* HIGH (`HIGH`)
-* HIGHEST (`HIGHEST`)
 
 #### Parameters:
 
