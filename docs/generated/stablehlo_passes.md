@@ -259,6 +259,26 @@ func.func @add(%arg0: tensor<!quant.uniform<i8:f32, 1.000000e+00>>, %arg1: tenso
 
 _Legalize StableHLO to VHLO._
 
+Legalize StableHLO to the latest version of ops in VHLO. These ops can then
+be downgraded to older versions of VHLO for forward compatibility using
+`VhloToVersionPass`.
+
+```mlir
+stablehlo.exponential %[[ARG0]] <{result_accuracy = DEFAULT}> : tensor<f32>
+# ====>
+"vhlo.exponential_v2"(%[[ARG0]]) <{result_accuracy = #vhlo.DEFAULT_v1}> : !vhlo.tensor_v1<!vhlo.f32_v1>
+```
+
+See [vhlo.md > The VHLO dialect](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md)
+for full details on how VHLO is used to preserve forward and backward
+compatibility.
+
+#### Options
+
+```
+-allow-other-dialects : Allow serialization to use other (potentially unstable) dialects, inserts unrealized casts between dialects.
+```
+
 ### `-stablehlo-refine-arguments`
 
 _Refines the argument shapes of the main function._
@@ -279,6 +299,7 @@ func.func public @main(%arg0: tensor<16xf32>) -> tensor<?xf32> {
   %0 = stablehlo.custom_call @stablehlo.shape_refinement_operand_wrapper(%arg0, %c) {...}
     : (tensor<16xf32>, tensor<1xi64>) -> tensor<?xf32>
   ...
+}
 ```
 
 The `refinedTypesOption` can be used to specify a list of refined types.
@@ -459,7 +480,22 @@ _Legalize VHLO to StableHLO._
 
 ### `-vhlo-to-version`
 
-_Convert between versions of VHLO._
+_Convert between versions of VHLO for compatibility._
+
+Converts between versions of VHLO for IR upgrading and downgrading to
+preserve forward and backward compatibility.
+
+```mlir
+"vhlo.exponential_v2"(%[[ARG0]]) <{result_accuracy = DEFAULT}>
+# ==( -target=1.0.0 )==>
+"vhlo.exponential_v1"(%[[ARG0]])
+# ==( -target=1.9.0 )==>
+"vhlo.exponential_v2"(%[[ARG0]]) <{result_accuracy = DEFAULT}>
+```
+
+See [vhlo.md > The VHLO dialect](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md)
+for full details on how VHLO is used to preserve forward and backward
+compatibility.
 
 #### Options
 

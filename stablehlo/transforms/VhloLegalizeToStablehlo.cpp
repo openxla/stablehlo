@@ -27,6 +27,7 @@ limitations under the License.
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/ValueRange.h"
@@ -40,7 +41,7 @@ limitations under the License.
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/transforms/Passes.h"
 
-#define DEBUG_TYPE "compat-passes"
+#define DEBUG_TYPE "stablehlo-compat"
 
 namespace mlir {
 namespace stablehlo {
@@ -63,6 +64,7 @@ class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
       return stablehlo::TokenType::get(token.getContext());
     });
     addVhloToBuiltinConversions();
+    addUnrealizedMaterializations();
   }
 
   Attribute convertEncoding(Attribute attr) const final {
@@ -1021,6 +1023,36 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
   }
 };
 
+// Fold unnecessary unrealized conversion casts.
+// unrealized_conversion(unrealized_conversion(X) : Y) : X -> X
+// Not as complicated at mlir::reconcileUnrealizedCasts because we know that the
+// types must be the same and shouldn't be in chains greater than 2.
+struct ReconcileUnrealizedConversionCasts
+    : public OpRewritePattern<UnrealizedConversionCastOp> {
+  using OpRewritePattern<UnrealizedConversionCastOp>::OpRewritePattern;
+  LogicalResult matchAndRewrite(UnrealizedConversionCastOp op,
+                                PatternRewriter& rewriter) const override {
+    SmallVector<UnrealizedConversionCastOp> unrealizedCasts(
+        op->getNumOperands() + 1);
+    unrealizedCasts.push_back(op);
+    for (auto operand : op.getOperands()) {
+      auto unrealizedOperand =
+          operand.getDefiningOp<UnrealizedConversionCastOp>();
+      if (!unrealizedOperand) {
+        LLVM_DEBUG(llvm::dbgs() << "Failed to reconcile unrealized conversion "
+                                   "casts: "
+                                << op.getOperationName() << "\n");
+        return success();
+      }
+      unrealizedCasts.push_back(unrealizedOperand);
+    }
+    LLVM_DEBUG(llvm::dbgs() << "Reconciling unrealized conversion casts: "
+                            << op.getOperationName() << "\n");
+    mlir::reconcileUnrealizedCasts(unrealizedCasts);
+    return success();
+  }
+};
+
 template <typename... StablehloOpTypes>
 void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
                                      TypeConverter* converter,
@@ -1043,6 +1075,7 @@ struct VhloLegalizeToStablehloPass
 
     RewritePatternSet patterns_(context);
     stablehlo::populateVhloToStablehloPatterns(&patterns_, &converter, context);
+    patterns_.add<ReconcileUnrealizedConversionCasts>(context);
     patterns = std::move(patterns_);
 
     return success();
@@ -1055,6 +1088,12 @@ struct VhloLegalizeToStablehloPass
     if (failed(applyPartialConversion(getOperation(), *target, patterns))) {
       return signalPassFailure();
     }
+
+    // Cleanup unrealized conversion casts (if any, in case of dialect mixing)
+    SmallVector<UnrealizedConversionCastOp> ops;
+    getOperation().walk(
+        [&ops](UnrealizedConversionCastOp op) { ops.push_back(op); });
+    reconcileUnrealizedCasts(ops);
   }
 
  private:

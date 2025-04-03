@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -24,6 +25,8 @@ limitations under the License.
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinDialect.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/ValueRange.h"
@@ -37,7 +40,7 @@ limitations under the License.
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/transforms/Passes.h"
 
-#define DEBUG_TYPE "compat-passes"
+#define DEBUG_TYPE "stablehlo-compat"
 
 namespace mlir {
 namespace stablehlo {
@@ -53,17 +56,33 @@ namespace {
 
 class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
  public:
-  StablehloToVhloTypeConverter() : vhlo::VhloTypeConverter() {
-    addConversion([](Type type) -> Type {
-      if (llvm::isa<vhlo::VhloDialect>(type.getDialect())) return type;
+  StablehloToVhloTypeConverter(bool allowOtherDialects)
+      : vhlo::VhloTypeConverter() {
+    LLVM_DEBUG(
+        llvm::dbgs()
+        << "[StablehloToVhloTypeConverter] Creating with allowOtherDialects: "
+        << allowOtherDialects << '\n');
 
-      LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
+    addConversion([&allowOtherDialects](Type type) -> Type {
+      if (isa<vhlo::VhloDialect>(type.getDialect())) return type;
+
+      if (allowOtherDialects &&
+          !isa<BuiltinDialect, StablehloDialect>(type.getDialect())) {
+        LLVM_DEBUG(llvm::dbgs()
+                   << "[StablehloToVhloTypeConverter] Valid non-VHLO type: "
+                   << type << '\n');
+        return type;
+      }
+
+      LLVM_DEBUG(llvm::dbgs() << "[StablehloToVhloTypeConverter] Invalid type: "
+                              << type << '\n');
       return {};
     });
     addConversion([](TokenType token) -> Type {
       return vhlo::TokenV1Type::get(token.getContext());
     });
     addBuiltinToVhloConversions();
+    if (allowOtherDialects) addUnrealizedMaterializations();
   }
 
   Attribute convertEncoding(Attribute attr) const final {
@@ -1021,14 +1040,27 @@ void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
 struct StablehloLegalizeToVhloPass
     : public impl::StablehloLegalizeToVhloPassBase<
           StablehloLegalizeToVhloPass> {
+  using StablehloLegalizeToVhloPassBase::StablehloLegalizeToVhloPassBase;
+
   LogicalResult initialize(MLIRContext* context) override {
     target = std::make_shared<ConversionTarget>(*context);
     target->addIllegalDialect<stablehlo::StablehloDialect>();
     target->addIllegalDialect<func::FuncDialect>();
     target->addLegalDialect<vhlo::VhloDialect>();
+    LLVM_DEBUG(llvm::dbgs()
+               << "allowOtherDialects: " << allowOtherDialects << "\n");
+
+    converter =
+        std::make_shared<StablehloToVhloTypeConverter>(allowOtherDialects);
+    if (allowOtherDialects) {
+      target->addLegalOp<UnrealizedConversionCastOp>();
+    } else {
+      target->addIllegalOp<UnrealizedConversionCastOp>();
+    }
 
     RewritePatternSet patterns_(context);
-    stablehlo::populateStablehloToVhloPatterns(&patterns_, &converter, context);
+    stablehlo::populateStablehloToVhloPatterns(&patterns_, converter.get(),
+                                               context);
     patterns = std::move(patterns_);
 
     return success();
@@ -1043,7 +1075,7 @@ struct StablehloLegalizeToVhloPass
   }
 
  private:
-  StablehloToVhloTypeConverter converter;
+  std::shared_ptr<StablehloToVhloTypeConverter> converter;
   FrozenRewritePatternSet patterns;
   std::shared_ptr<ConversionTarget> target;
 };
