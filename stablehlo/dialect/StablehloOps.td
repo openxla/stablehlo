@@ -2973,8 +2973,8 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
         %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
         stablehlo.return %0 : tensor<i64>
     }) {
-      window_dimensions = dense<[3, 1]> : tensor<2xi64>,
-      window_strides = dense<[2, 1]> : tensor<2xi64>,
+      window_dimensions = array<i64: [3, 1]>,
+      window_strides = array<i64: [2, 1]>,
       padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
     } : (tensor<4x2xi64>, tensor<2x2xi64>, tensor<i64>) -> tensor<4x2xi64>
     ```
