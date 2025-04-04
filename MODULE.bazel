@@ -18,6 +18,8 @@
 #
 # For more details, please check https://github.com/bazelbuild/bazel/issues/18958
 ###############################################################################
+module(name = "stablehlo")
+
 bazel_dep(name = "bazel_skylib", version = "1.3.0")
 bazel_dep(name = "rules_python", version = "0.30.0")
 
