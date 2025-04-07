@@ -209,7 +209,7 @@ func.func @constant() -> tensor<i32> {
 // CHECK: #[[MAP0:.+]] = affine_map<(d0, d1) -> (d1)>
 // CHECK: #[[MAP1:.+]] = affine_map<(d0, d1) -> (d0, d1)>
 
-// CHECK-LABEL: @dynamic_broadcast
+// CHECK: @dynamic_broadcast
 // CHECK-SAME:   %[[VAL_0:[a-zA-Z0-9_]*]]
 // CHECK: %[[C1:.+]] = arith.constant 1 : index
 // CHECK: %[[EXTRACT:.+]] = tensor.extract %arg1[%[[C1]]] : tensor<2xi32>
