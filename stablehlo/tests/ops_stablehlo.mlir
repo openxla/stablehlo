@@ -1,6 +1,8 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck %s
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect -emit-bytecode -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 
+// Test Test
+
 // CHECK-WARN-NOT: Not Implemented
 
 // Tests for types, ops with custom constraints, verifiers, printer or parser
