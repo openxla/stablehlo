@@ -16,7 +16,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     return %cst : tensor<14x15x0x17xf32>
   }
   func.func private @expected() -> (tensor<14x15x0x9xcomplex<f32>> {mhlo.layout_mode = "default"}) {
-    %cst = stablehlo.constant dense<> : tensor<14x15x0x9xcomplex<f32>>
+    %cst = stablehlo.constant dense<(0.0, 0.0)> : tensor<14x15x0x9xcomplex<f32>>
     return %cst : tensor<14x15x0x9xcomplex<f32>>
   }
 }

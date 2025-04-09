@@ -366,7 +366,8 @@ def : Pat<(StableHLO_ReshapeOp:$reshape (StableHLO_ReshapeOp $operand)),
           (StableHLO_ReshapeOpWithShape $reshape, $operand)>;
 
 // Pattern: reshape(X, [X.shape]) -> X
-def : Pat<(StableHLO_ReshapeOp:$reshape $operand),
+def ReshapeIsNoop
+    : Pat<(StableHLO_ReshapeOp:$reshape $operand),
           (replaceWithValue $operand),
           [(TypesEqual $reshape, $operand)]>;
 
