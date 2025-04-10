@@ -7,7 +7,8 @@ _Folds StableHLO operations_
 #### Options
 
 ```
--fold-float : Allow for potentially lossy computations using float type.
+-fold-float            : Allow for potentially lossy computations using float type.
+-fold-op-element-limit : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as when adding 0, multiplying by 1, or operating on splats in some ways.
 ```
 
 ### `-stablehlo-aggressive-simplification`
@@ -110,3 +111,10 @@ folding to be performed in the same pattern set, often leading to better
 results.
 
 Users should prefer this pass to calling the others directly.
+
+#### Options
+
+```
+-fold-float            : Allow for potentially lossy computations using float type.
+-fold-op-element-limit : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as when adding 0, multiplying by 1, or operating on splats in some ways.
+```
