@@ -65,11 +65,6 @@ namespace stablehlo {
 
 namespace {
 
-// This is an upper limit on how many elements can be folded by an op folder.
-// This limit doesn't apply to some special cases like adding a zero,
-// multiplying by one, doing many operations with splats.
-constexpr int64_t kFoldOpEltLimit = 65536;
-
 // DenseElementsAttr can be constructed from ArrayRef<APInt> but not from
 // ArrayRef<APSInt>. This helper bridges the gap.
 DenseIntElementsAttr getTensorAttr(ShapedType type, ArrayRef<APSInt> values) {
@@ -425,7 +420,11 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
 
 struct FoldConcatenateOpPattern final
     : OpRewritePattern<mlir::stablehlo::ConcatenateOp> {
-  using OpRewritePattern::OpRewritePattern;
+  FoldConcatenateOpPattern(MLIRContext* context, int64_t foldOpElementLimit,
+                           PatternBenefit benefit = 1,
+                           ArrayRef<StringRef> generatedNames = {})
+      : OpRewritePattern(context, benefit, generatedNames),
+        foldOpElementLimit(foldOpElementLimit) {}
 
   LogicalResult matchAndRewrite(mlir::stablehlo::ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
@@ -433,7 +432,7 @@ struct FoldConcatenateOpPattern final
     if (!type.hasStaticShape()) return failure();
 
     size_t numElems = type.getNumElements();
-    if (numElems > kFoldOpEltLimit) return failure();
+    if (numElems > foldOpElementLimit) return failure();
 
     // Fold concatenate when all inputs are constants.
     OperandRange inputs = op.getInputs();
@@ -463,6 +462,8 @@ struct FoldConcatenateOpPattern final
         op, DenseElementsAttr::get(op.getType(), newElems));
     return success();
   }
+
+  int64_t foldOpElementLimit;
 };
 
 struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
@@ -817,13 +818,18 @@ struct FoldSqrtOpPattern : public OpRewritePattern<mlir::stablehlo::SqrtOp> {
 };
 
 struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
-  using OpRewritePattern::OpRewritePattern;
+  EvalIotaOpPattern(MLIRContext* context, int64_t foldOpElementLimit,
+                    PatternBenefit benefit,
+                    ArrayRef<StringRef> generatedNames = {})
+      : OpRewritePattern(context, benefit, generatedNames),
+        foldOpElementLimit(foldOpElementLimit) {}
+
   LogicalResult matchAndRewrite(IotaOp op,
                                 PatternRewriter& rewriter) const override {
     LLVM_DEBUG(llvm::dbgs() << "EvalIotaOpPattern folding: " << op << '\n');
     auto resultType = cast<RankedTensorType>(op.getType());
     size_t numElems = resultType.getNumElements();
-    if (numElems > kFoldOpEltLimit)
+    if (numElems > foldOpElementLimit)
       return rewriter.notifyMatchFailure(op, "too many elements to fold");
 
     auto elementType = resultType.getElementType();
@@ -864,6 +870,8 @@ struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
         op, DenseIntElementsAttr::get(resultType, values));
     return success();
   }
+
+  int64_t foldOpElementLimit;
 };
 
 template <typename RangeType>
@@ -927,7 +935,8 @@ struct StablehloAggressiveFolderPass
 
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    populateStablehloAggressiveFolderPatterns(&patterns_, context, foldFloat);
+    populateStablehloAggressiveFolderPatterns(&patterns_, context, foldFloat,
+                                              foldOpElementLimit);
     patterns = std::move(patterns_);
 
     return success();
@@ -947,16 +956,18 @@ struct StablehloAggressiveFolderPass
 void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
                                                MLIRContext* context,
                                                bool foldFloat,
+                                               int64_t foldOpElementLimit,
                                                PatternBenefit benefit) {
   populateStablehloShapeFolderPatterns(patterns, context, foldFloat, benefit);
-  patterns->add<EvalIotaOpPattern>(context, benefit);
+  patterns->add<EvalIotaOpPattern>(context, foldOpElementLimit, benefit);
   patterns->add<EvalTransposeOpPattern>(context, benefit);
 
   // TODO: Consolidate FoldOp patterns
   // One is used by Shape Refinement, the other is a generic folder.
   patterns->add<FoldAddOpPattern, FoldBroadcastInDimSplatPattern,
-                FoldConcatenateOpPattern, FoldMulOpPattern,
-                FoldSubtractOpPattern, FoldSqrtOpPattern>(context);
+                FoldMulOpPattern, FoldSubtractOpPattern, FoldSqrtOpPattern>(
+      context);
+  patterns->add<FoldConcatenateOpPattern>(context, foldOpElementLimit);
 }
 
 void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,

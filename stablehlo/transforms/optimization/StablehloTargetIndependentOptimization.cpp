@@ -32,11 +32,6 @@ namespace stablehlo {
 #define GEN_PASS_DEF_STABLEHLOTARGETINDEPENDENTOPTIMIZATIONPASS
 #include "stablehlo/transforms/optimization/Passes.h.inc"
 
-// This is an upper limit on how many elements can be folded by an op folder.
-// This limit doesn't apply to some special cases like adding a zero,
-// multiplying by one, doing many operations with splats.
-constexpr int64_t kFoldOpEltLimit = 65536;
-
 struct StablehloTargetIndependentOptimizationPass
     : public impl::StablehloTargetIndependentOptimizationPassBase<
           StablehloTargetIndependentOptimizationPass> {
@@ -45,9 +40,9 @@ struct StablehloTargetIndependentOptimizationPass
 
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    bool foldFloat = true;
     populateStablehloCanonicalizationPatterns(context, &patterns_);
     populateStablehloAggressiveFolderPatterns(&patterns_, context, foldFloat,
+                                              foldOpElementLimit,
                                               /*benefit=*/2);
     patterns = std::move(patterns_);
 
@@ -58,7 +53,7 @@ struct StablehloTargetIndependentOptimizationPass
     GreedyRewriteConfig config;
     config.fold = true;
     config.cseConstants = true;
-    config.maxIterations = kFoldOpEltLimit;
+    config.maxIterations = foldOpElementLimit;
     config.useTopDownTraversal = false;
     if (failed(applyPatternsGreedily(getOperation(), patterns, config)))
       signalPassFailure();

@@ -15,16 +15,23 @@ limitations under the License.
 
 include "mlir/Pass/PassBase.td"
 
+defvar stablehlo_aggressive_folder_options = [
+  Option<"foldFloat", "fold-float", "bool", /*default=*/"true",
+          "Allow for potentially lossy computations using float type.">,
+  Option<"foldOpElementLimit", "fold-op-element-limit", "int64_t",
+          /*default=*/"65536",
+          "Upper limit on how many elements may be folded by an op folder. "
+          "This limit doesn't apply in certain special cases such as when "
+          "adding 0, multiplying by 1, or operating on splats in some ways.">,
+];
+
 def StablehloAggressiveFolderPass
     : Pass<"stablehlo-aggressive-folder", "func::FuncOp"> {
   let summary = "Folds StableHLO operations";
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
   ];
-  let options = [
-    Option<"foldFloat", "fold-float", "bool", /*default=*/"true",
-           "Allow for potentially lossy computations using float type.">,
-  ];
+  let options = stablehlo_aggressive_folder_options;
 }
 
 def StablehloAggressiveSimplificationPass
@@ -138,4 +145,5 @@ def StablehloTargetIndependentOptimizationPass
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
   ];
+  let options = stablehlo_aggressive_folder_options;
 }
