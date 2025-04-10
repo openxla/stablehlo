@@ -432,7 +432,7 @@ struct FoldConcatenateOpPattern final
     if (!type.hasStaticShape()) return failure();
 
     size_t numElems = type.getNumElements();
-    if (numElems > foldOpElementLimit) return failure();
+    if (numElems > static_cast<size_t>(foldOpElementLimit)) return failure();
 
     // Fold concatenate when all inputs are constants.
     OperandRange inputs = op.getInputs();
@@ -829,7 +829,7 @@ struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
     LLVM_DEBUG(llvm::dbgs() << "EvalIotaOpPattern folding: " << op << '\n');
     auto resultType = cast<RankedTensorType>(op.getType());
     size_t numElems = resultType.getNumElements();
-    if (numElems > foldOpElementLimit)
+    if (numElems > static_cast<size_t>(foldOpElementLimit))
       return rewriter.notifyMatchFailure(op, "too many elements to fold");
 
     auto elementType = resultType.getElementType();
