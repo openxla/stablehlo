@@ -982,6 +982,10 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                              " parameters, but takes ",
                              block.getArguments().size(), " parameter(s)");
 
+  if (!block.mightHaveTerminator())
+    return emitOptionalError(
+        loc, "The reduction-region expected to have a terminator");
+
   // all_reduce_c5, reduce_c6, reduce_scatter_c7, reduce_window_c13,
   // scatter_c23, select_and_scatter_c10
   if (block.getTerminator()->getOperands().empty())
