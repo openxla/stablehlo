@@ -36,7 +36,7 @@ jobs:
   cmake-build:
     # Only run scheduled CI on main repo
     if: (github.repository == 'openxla/stablehlo' || github.event_name != 'schedule')
-    name: "cmake-build${{ github.event_name == 'schedule' && '(llvm-project@HEAD)' || ''}}"
+    name: "cmake-build${{ github.event_name == 'schedule' && ' (llvm-project@HEAD)' || ''}}"
     env:
       LLVM_PROJECT_DIR: "llvm-project"
       LLVM_BUILD_DIR: "llvm-build"
