@@ -1539,8 +1539,8 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
 
 void populateStablehloHloImportCanonicalizationPatterns(
     MLIRContext *context, RewritePatternSet *patterns) {
-  patterns->add<ReshapeIsNoop, TupleIsRepacking, TupleIsUnpacked,
-                WhileOpImplicitCapture>(context);
+  patterns->add<ReshapeOp_RemoveNoop, GetTupleElementOp_UnpackTuple,
+                TupleIsRepacking, WhileOpImplicitCapture>(context);
 }
 
 std::unique_ptr<Pass> createStablehloAggressiveSimplificationPass(
