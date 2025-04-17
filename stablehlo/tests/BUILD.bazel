@@ -168,7 +168,7 @@ RUNFILES_DIR = LITE_CFG_PY.parents[2].absolute().as_posix()''',
             "//:stablehlo-translate",
             "@llvm-project//llvm:FileCheck",
             "@llvm-project//llvm:not",
-        ] + glob(["%s.bc" % src]),
+        ] + glob(["%s.bc" % src], allow_empty=True),
         tags = ["stablehlo_tests"],
         deps = ["@rules_python//python/runfiles"],
     )
