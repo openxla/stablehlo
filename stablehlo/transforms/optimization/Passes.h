@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLEHLO_TRANSFORMS_OPTIMIZATION_PASSES_H
 #define STABLEHLO_TRANSFORMS_OPTIMIZATION_PASSES_H
 
+#include <cstdint>
 #include <memory>
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -42,6 +43,7 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
 void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
                                                MLIRContext *context,
                                                bool foldFloat,
+                                               int64_t foldOpElementLimit,
                                                PatternBenefit benefit = 1);
 
 /// A subset of folding patterns for StableHLO that is necessary for shape
