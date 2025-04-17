@@ -56,10 +56,10 @@ jobs:
         echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
 
     - name: Setup Bazelisk
-      uses: bazelbuild/setup-bazelisk@v2
+      uses: bazelbuild/setup-bazelisk@v3
 
     - name: Mount Bazel Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: "~/.cache/bazel"
         key: ${{ runner.os }}-stablehlo_bazelbuild-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
