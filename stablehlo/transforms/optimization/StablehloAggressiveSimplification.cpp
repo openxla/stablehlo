@@ -1558,7 +1558,6 @@ void populateStablehloCanonicalizationPatterns(
     const StablehloAggressiveSimplificationPassOptions &options,
     PatternBenefit benefit) {
   populateWithGenerated(*patterns);
-  patterns->add<ReorderElementwiseAndShapeOp>(context, options);
   patterns->add<
       CompareOpCanon, CompareSelectIntoMinMax, ConcatenateOpFlatten,
       ConcatenateOpNoop, ConcatenateOpRemoveEmpty, DynamicIotaOpToBroadcast,
@@ -1572,7 +1571,7 @@ void populateStablehloCanonicalizationPatterns(
 
   // Generic patterns
   patterns->add<ReorderElementwiseAndShapeOp, ZeroExtentToEmptyConstant>(
-      context, benefit);
+      context, options, benefit);
 
   // TODO: Dynamism Refinements, consider merging with canonicalize dynamism
   patterns
