@@ -105,7 +105,7 @@ class StablehloLegalizeQDQToQuantizedOpPass
  public:
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    populateStablehloLegalizeQDQToQuantizedOpPatterns(&patterns_, context);
+    populateStablehloLegalizeQDQToQuantizedOpPatterns(context, &patterns_);
     patterns = std::move(patterns_);
     return success();
   }
@@ -128,7 +128,7 @@ class StablehloLegalizeQDQToQuantizedOpPass
 }  // namespace
 
 void populateStablehloLegalizeQDQToQuantizedOpPatterns(
-    RewritePatternSet* patterns, MLIRContext* context) {
+    MLIRContext* context, RewritePatternSet* patterns) {
   patterns->add<QuantizedStablehloQDQToQuantizedOpConversion>(context);
 }
 

@@ -10,6 +10,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <utility>
+
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/transforms/PassUtils.h"
@@ -51,7 +53,7 @@ struct StablehloComplexMathExpanderPass
   LogicalResult initialize(MLIRContext *context) override {
     config.useTopDownTraversal = true;
     RewritePatternSet patterns_(context);
-    populateStablehloComplexMathExpanderPatterns(&patterns_, context);
+    populateStablehloComplexMathExpanderPatterns(context, &patterns_);
     patterns = std::move(patterns_);
     return success();
   }
@@ -74,8 +76,8 @@ struct StablehloComplexMathExpanderPass
 
 }  // namespace
 
-void populateStablehloComplexMathExpanderPatterns(RewritePatternSet *patterns,
-                                                  MLIRContext *context) {
+void populateStablehloComplexMathExpanderPatterns(MLIRContext *context,
+                                                  RewritePatternSet *patterns) {
   populateWithGenerated(*patterns);
 }
 

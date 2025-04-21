@@ -15,15 +15,20 @@ limitations under the License.
 
 include "mlir/Pass/PassBase.td"
 
-defvar stablehlo_aggressive_folder_options = [
-  Option<"foldFloat", "fold-float", "bool", /*default=*/"true",
-          "Allow for potentially lossy computations using float type.">,
+defvar stablehlo_target_independent_optimization_common_options = [
   Option<"foldOpElementLimit", "fold-op-element-limit", "int64_t",
           /*default=*/"65536",
           "Upper limit on how many elements may be folded by an op folder. "
           "This limit doesn't apply in certain special cases such as when "
           "adding 0, multiplying by 1, or operating on splats in some ways.">,
-];
+]<Option>;
+
+defvar stablehlo_aggressive_folder_options = [
+  Option<"foldFloat", "fold-float", "bool", /*default=*/"true",
+          "Allow for potentially lossy computations using float type.">,
+]<Option>;
+
+defvar stablehlo_aggressive_simplification_options = []<Option>;
 
 def StablehloAggressiveFolderPass
     : Pass<"stablehlo-aggressive-folder", "func::FuncOp"> {
@@ -31,7 +36,8 @@ def StablehloAggressiveFolderPass
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
   ];
-  let options = stablehlo_aggressive_folder_options;
+  let options = stablehlo_target_independent_optimization_common_options #
+                stablehlo_aggressive_folder_options;
 }
 
 def StablehloAggressiveSimplificationPass
@@ -129,6 +135,8 @@ def StablehloAggressiveSimplificationPass
     "mlir::stablehlo::StablehloDialect",
     "mlir::arith::ArithDialect",
   ];
+  let options = stablehlo_target_independent_optimization_common_options #
+                stablehlo_aggressive_simplification_options;
 }
 
 def StablehloTargetIndependentOptimizationPass
@@ -145,5 +153,7 @@ def StablehloTargetIndependentOptimizationPass
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
   ];
-  let options = stablehlo_aggressive_folder_options;
+  let options = stablehlo_target_independent_optimization_common_options #
+                stablehlo_aggressive_simplification_options #
+                stablehlo_aggressive_folder_options;
 }

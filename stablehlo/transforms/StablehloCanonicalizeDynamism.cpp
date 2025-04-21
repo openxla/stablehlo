@@ -315,7 +315,7 @@ struct StablehloCanonicalizeDynamismPass
     config.strictMode = GreedyRewriteStrictness::AnyOp;
 
     RewritePatternSet patterns_(context);
-    populateStablehloCanonicalizeDynamismPatterns(&patterns_, context);
+    populateStablehloCanonicalizeDynamismPatterns(context, &patterns_);
     patterns = std::move(patterns_);
 
     return success();
@@ -336,8 +336,8 @@ struct StablehloCanonicalizeDynamismPass
 
 }  // namespace
 
-void populateStablehloCanonicalizeDynamismPatterns(RewritePatternSet* patterns,
-                                                   MLIRContext* context) {
+void populateStablehloCanonicalizeDynamismPatterns(
+    MLIRContext* context, RewritePatternSet* patterns) {
   patterns->add<CanonicalizeCustomCallOpPattern>(context);
   patterns->add<CanonicalizeDynamicBroadcastInDimOpPattern>(context);
   patterns->add<CanonicalizeDynamicConvOpPattern>(context);
