@@ -52,7 +52,8 @@
 
 using llvm::SmallBitVector;
 
-namespace mlir::stablehlo {
+namespace mlir {
+namespace stablehlo {
 
 #define GEN_PASS_DEF_STABLEHLOAGGRESSIVESIMPLIFICATIONPASS
 #include "stablehlo/transforms/optimization/Passes.h.inc"
@@ -1606,4 +1607,5 @@ std::unique_ptr<::mlir::Pass> createStablehloAggressiveSimplificationPass(
                                                                  rewriteConfig);
 }
 
-}  // namespace mlir::stablehlo
+}  // namespace stablehlo
+}  // namespace mlir
