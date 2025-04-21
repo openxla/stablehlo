@@ -52,8 +52,8 @@ gentbl_cc_library(
     name = "check_ops_inc_gen",
     strip_include_prefix = ".",
     tbl_outs = {
-        "CheckOps.h.inc": ["-gen-op-decls"],
         "CheckOps.cpp.inc": ["-gen-op-defs"],
+        "CheckOps.h.inc": ["-gen-op-decls"],
     },
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "CheckOps.td",
