@@ -45,7 +45,7 @@ func.func @concatenate(%arg0 : tensor<3x3xf32>, %arg1 : tensor<3x3xf32>) -> tens
 
 // CHECK-LABEL: @divide
 func.func @divide(%arg0 : tensor<10xi32>, %arg1 : tensor<10xi32>) -> tensor<10xi32> {
-  // CHECK: tosa.int_div
+  // CHECK: tosa.intdiv
   %0 = "stablehlo.divide"(%arg0, %arg1) : (tensor<10xi32>, tensor<10xi32>) -> tensor<10xi32>
   return %0 : tensor<10xi32>
 }

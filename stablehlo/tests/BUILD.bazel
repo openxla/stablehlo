@@ -51,16 +51,10 @@ cc_library(
 gentbl_cc_library(
     name = "check_ops_inc_gen",
     strip_include_prefix = ".",
-    tbl_outs = [
-        (
-            ["-gen-op-decls"],
-            "CheckOps.h.inc",
-        ),
-        (
-            ["-gen-op-defs"],
-            "CheckOps.cpp.inc",
-        ),
-    ],
+    tbl_outs = {
+        "CheckOps.h.inc": ["-gen-op-decls"],
+        "CheckOps.cpp.inc": ["-gen-op-defs"],
+    },
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "CheckOps.td",
     deps = [
@@ -108,15 +102,10 @@ cc_library(
 gentbl_cc_library(
     name = "test_utils_inc_gen",
     strip_include_prefix = ".",
-    tbl_outs = [
-        (
-            [
-                "-gen-pass-decls",
-                "-name=HloTest",
-            ],
-            "TestUtils.h.inc",
-        ),
-    ],
+    tbl_outs = {"TestUtils.h.inc": [
+        "-gen-pass-decls",
+        "-name=HloTest",
+    ]},
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "TestUtils.td",
     deps = [
