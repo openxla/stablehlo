@@ -2087,3 +2087,121 @@ func.func @generic_op(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf3
   %0 = "test_dialect.op"(%arg0, %arg1) : (tensor<2xf32>, tensor<2xf32>) -> (tensor<2xf32>)
   return %0 : tensor<2xf32>
 }
+
+
+// -----
+
+/////////
+// BatchNormInferenceOp
+
+// CHECK-LABEL: @fuse_conv_bninf
+func.func @fuse_conv_bninf() -> (tensor<1x8x5x5xf32>) {
+  %input = stablehlo.constant dense<33.0> : tensor<1x3x8x8xf32>
+  %kernel = stablehlo.constant dense<0.1> : tensor<8x3x4x4xf32>
+  %conv = stablehlo.convolution(%input, %kernel)
+      dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1],
+      window = {}
+      {batch_group_count = 1 : i64, feature_group_count = 1 : i64}
+      : (tensor<1x3x8x8xf32>, tensor<8x3x4x4xf32>) -> tensor<1x8x5x5xf32>
+
+  %dummy = stablehlo.constant dense<1.0> : tensor<8xf32>
+  %out = "stablehlo.batch_norm_inference"(%conv, %dummy, %dummy, %dummy, %dummy)
+    <{epsilon = 1.0E-6 : f32, feature_index = 1 : i64}>
+    : (tensor<1x8x5x5xf32>, tensor<8xf32>, tensor<8xf32>, tensor<8xf32>, tensor<8xf32>)
+    -> tensor<1x8x5x5xf32>
+
+  // CHECK-DAG: [[C0:%.+]] = stablehlo.convolution
+  // CHECK-DAG: [[C1:%.+]] = stablehlo.broadcast_in_dim
+  // CHECK-NOT: stablehlo.batch_norm_inference
+  // CHECK: [[C2:%.+]] = stablehlo.add [[C0]], [[C1]]
+  // CHECK: return [[C2]]
+  return %out : tensor<1x8x5x5xf32>
+}
+
+// CHECK-LABEL: @fuse_conv_bninf_unsupported_group
+func.func @fuse_conv_bninf_unsupported_group()
+  -> (tensor<1x8x5x5xf32>, tensor<1x8x5x5xf32>) {
+  %input1 = stablehlo.constant dense<33.0> : tensor<2x3x8x8xf32>
+  %kernel1 = stablehlo.constant dense<0.1> : tensor<8x3x4x4xf32>
+  %conv1 = stablehlo.convolution(%input1, %kernel1)
+      dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1], window = {}
+      {batch_group_count = 2 : i64, feature_group_count = 1 : i64}
+      : (tensor<2x3x8x8xf32>, tensor<8x3x4x4xf32>) -> tensor<1x8x5x5xf32>
+
+  %input2 = stablehlo.constant dense<33.0> : tensor<1x6x8x8xf32>
+  %kernel2 = stablehlo.constant dense<0.1> : tensor<8x3x4x4xf32>
+  %conv2 = stablehlo.convolution(%input2, %kernel2)
+      dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1], window = {}
+      {batch_group_count = 1 : i64, feature_group_count = 2 : i64}
+      : (tensor<1x6x8x8xf32>, tensor<8x3x4x4xf32>) -> tensor<1x8x5x5xf32>
+
+  %cst = stablehlo.constant dense<1.0> : tensor<8xf32>
+  %out1 = "stablehlo.batch_norm_inference"(%conv1, %cst, %cst, %cst, %cst)
+    <{epsilon = 1.0E-6 : f32, feature_index = 1 : i64}>
+    : (tensor<1x8x5x5xf32>, tensor<8xf32>, tensor<8xf32>, tensor<8xf32>, tensor<8xf32>)
+    -> tensor<1x8x5x5xf32>
+
+  %out2 = "stablehlo.batch_norm_inference"(%conv2, %cst, %cst, %cst, %cst)
+    <{epsilon = 1.0E-6 : f32, feature_index = 1 : i64}>
+    : (tensor<1x8x5x5xf32>, tensor<8xf32>, tensor<8xf32>, tensor<8xf32>, tensor<8xf32>)
+    -> tensor<1x8x5x5xf32>
+
+  // CHECK: [[C0:%.+]] = "stablehlo.batch_norm_inference"
+  // CHECK: [[C1:%.+]] = "stablehlo.batch_norm_inference"
+  // CHECK: return [[C0]], [[C1]]
+  return %out1, %out2 : tensor<1x8x5x5xf32>, tensor<1x8x5x5xf32>
+}
+
+// CHECK-LABEL: @fuse_conv_bninf_unsupported_configuration
+func.func @fuse_conv_bninf_unsupported_configuration()
+  -> (tensor<1x1x1x1xf32>, tensor<1x1x1x1xf32>, tensor<1x1x1x1xf32>, tensor<1x1x1x1xf32>) {
+  %input = stablehlo.constant dense<33.0> : tensor<1x1x1x1xf32>
+  %kernel = stablehlo.constant dense<0.1> : tensor<1x1x1x1xf32>
+
+  %conv1 = stablehlo.convolution(%input, %kernel)
+      dim_numbers = [f, b, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1], window = {}
+      {batch_group_count = 1 : i64, feature_group_count = 1 : i64}
+      : (tensor<1x1x1x1xf32>, tensor<1x1x1x1xf32>) -> tensor<1x1x1x1xf32>
+
+  %conv2 = stablehlo.convolution(%input, %kernel)
+      dim_numbers = [0, 1, f, b]x[o, i, 0, 1]->[b, f, 0, 1], window = {}
+      {batch_group_count = 1 : i64, feature_group_count = 1 : i64}
+      : (tensor<1x1x1x1xf32>, tensor<1x1x1x1xf32>) -> tensor<1x1x1x1xf32>
+
+  %conv3 = stablehlo.convolution(%input, %kernel)
+      dim_numbers = [b, f, 0, 1]x[i, o, 0, 1]->[b, f, 0, 1], window = {}
+      {batch_group_count = 1 : i64, feature_group_count = 1 : i64}
+      : (tensor<1x1x1x1xf32>, tensor<1x1x1x1xf32>) -> tensor<1x1x1x1xf32>
+
+  %conv4 = stablehlo.convolution(%input, %kernel)
+      dim_numbers = [b, f, 0, 1]x[0, 1, o, i]->[b, f, 0, 1], window = {}
+      {batch_group_count = 1 : i64, feature_group_count = 1 : i64}
+      : (tensor<1x1x1x1xf32>, tensor<1x1x1x1xf32>) -> tensor<1x1x1x1xf32>
+
+  %cst = stablehlo.constant dense<1.0> : tensor<1xf32>
+
+  %out1 = "stablehlo.batch_norm_inference"(%conv1, %cst, %cst, %cst, %cst)
+    <{epsilon = 1.0E-6 : f32, feature_index = 1 : i64}>
+    : (tensor<1x1x1x1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>)
+    -> tensor<1x1x1x1xf32>
+  %out2 = "stablehlo.batch_norm_inference"(%conv2, %cst, %cst, %cst, %cst)
+    <{epsilon = 1.0E-6 : f32, feature_index = 1 : i64}>
+    : (tensor<1x1x1x1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>)
+    -> tensor<1x1x1x1xf32>
+  %out3 = "stablehlo.batch_norm_inference"(%conv3, %cst, %cst, %cst, %cst)
+    <{epsilon = 1.0E-6 : f32, feature_index = 1 : i64}>
+    : (tensor<1x1x1x1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>)
+    -> tensor<1x1x1x1xf32>
+  %out4 = "stablehlo.batch_norm_inference"(%conv4, %cst, %cst, %cst, %cst)
+    <{epsilon = 1.0E-6 : f32, feature_index = 1 : i64}>
+    : (tensor<1x1x1x1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>)
+    -> tensor<1x1x1x1xf32>
+
+  // CHECK: [[C0:%.+]] = "stablehlo.batch_norm_inference"
+  // CHECK: [[C1:%.+]] = "stablehlo.batch_norm_inference"
+  // CHECK: [[C2:%.+]] = "stablehlo.batch_norm_inference"
+  // CHECK: [[C3:%.+]] = "stablehlo.batch_norm_inference"
+  // CHECK: return [[C0]], [[C1]], [[C2]], [[C3]]
+  return %out1, %out2, %out3, %out4 : tensor<1x1x1x1xf32>, tensor<1x1x1x1xf32>,
+                                      tensor<1x1x1x1xf32>, tensor<1x1x1x1xf32>
+}
