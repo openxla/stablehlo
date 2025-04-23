@@ -52,23 +52,39 @@
 
 using llvm::SmallBitVector;
 
-namespace mlir {
-namespace stablehlo {
+namespace mlir::stablehlo {
 
 #define GEN_PASS_DEF_STABLEHLOAGGRESSIVESIMPLIFICATIONPASS
 #include "stablehlo/transforms/optimization/Passes.h.inc"
 
 namespace {
-// This is an upper limit on how many elements can be folded by an op folder.
-// This limit doesn't apply to some special cases like adding a zero,
-// multiplying by one, doing many operations with splats.
-constexpr int64_t kFoldOpEltLimit = 65536;
+
+static constexpr StablehloAggressiveSimplificationPassOptions kDefaultOptions;
 
 static bool isIotaRange(ArrayRef<int64_t> dims) {
   return llvm::all_of(llvm::enumerate(dims), [](const auto &it) {
     return static_cast<int64_t>(it.index()) == it.value();
   });
 }
+
+template <typename OpType>
+struct SimplifyOpRewritePattern : OpRewritePattern<OpType> {
+  SimplifyOpRewritePattern(
+      MLIRContext *context,
+      const StablehloAggressiveSimplificationPassOptions &options,
+      PatternBenefit benefit = 1, ArrayRef<StringRef> generatedNames = {})
+      : OpRewritePattern<OpType>(context, benefit, generatedNames),
+        options(options) {}
+
+  // Prevent `options` from binding to a temporary.
+  SimplifyOpRewritePattern(
+      MLIRContext *context,
+      StablehloAggressiveSimplificationPassOptions &&options,
+      PatternBenefit benefit = 1,
+      ArrayRef<StringRef> generatedNames = {}) = delete;
+
+  const StablehloAggressiveSimplificationPassOptions &options;
+};
 
 /// Matches when either of the submatchers match.
 template <typename MatcherA, typename MatcherB>
@@ -122,8 +138,8 @@ static ComparisonDirection invertDirection(ComparisonDirection direction) {
   llvm::report_fatal_error("Unhandled case");
 }
 
-struct CompareOpCanon final : OpRewritePattern<CompareOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct CompareOpCanon final : SimplifyOpRewritePattern<CompareOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(CompareOp op,
                                 PatternRewriter &rewriter) const override {
@@ -187,9 +203,9 @@ struct CompareOpCanon final : OpRewritePattern<CompareOp> {
 /////////////////////////////////
 
 // Pattern: concatenate(X) -> X
-class ConcatenateOpNoop : public OpRewritePattern<ConcatenateOp> {
+class ConcatenateOpNoop : public SimplifyOpRewritePattern<ConcatenateOp> {
  public:
-  using OpRewritePattern::OpRewritePattern;
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
                                 PatternRewriter &rewriter) const override {
     if (op.getInputs().size() != 1 ||
@@ -202,9 +218,10 @@ class ConcatenateOpNoop : public OpRewritePattern<ConcatenateOp> {
 };
 
 // Pattern: concatenate(X, Y, []) -> concatenate(X, Y)
-class ConcatenateOpRemoveEmpty : public OpRewritePattern<ConcatenateOp> {
+class ConcatenateOpRemoveEmpty
+    : public SimplifyOpRewritePattern<ConcatenateOp> {
  public:
-  using OpRewritePattern::OpRewritePattern;
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
                                 PatternRewriter &rewriter) const override {
     auto axis = op.getDimension();
@@ -225,8 +242,8 @@ class ConcatenateOpRemoveEmpty : public OpRewritePattern<ConcatenateOp> {
 };
 
 // Pattern: concatenate(concatenate(X, Y), Z) -> concatenate(X, Y, Z)
-class ConcatenateOpFlatten : public OpRewritePattern<ConcatenateOp> {
-  using OpRewritePattern::OpRewritePattern;
+class ConcatenateOpFlatten : public SimplifyOpRewritePattern<ConcatenateOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
                                 PatternRewriter &rewriter) const override {
     auto getFlattenedOperands = [&](const Value &val) -> ValueRange {
@@ -316,8 +333,8 @@ static OpTy refineOpWithNewOp(PatternRewriter &rewriter, Operation *op,
 /// If a DynamicBroadCastInDimOp is not actually dynamic, use an ordinary
 /// BroadcastInDimOp.
 struct DynamicBroadcastInDimOpNotActuallyDynamic final
-    : OpRewritePattern<DynamicBroadcastInDimOp> {
-  using OpRewritePattern::OpRewritePattern;
+    : SimplifyOpRewritePattern<DynamicBroadcastInDimOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicBroadcastInDimOp op,
                                 PatternRewriter &rewriter) const override {
@@ -364,8 +381,8 @@ DenseI64ArrayAttr convertToI64Array(OpBuilder &b, Attribute attr) {
 // DynamicIotaOp
 /////////////////////////////////
 
-struct DynamicIotaIsStatic : public OpRewritePattern<DynamicIotaOp> {
-  using OpRewritePattern<DynamicIotaOp>::OpRewritePattern;
+struct DynamicIotaIsStatic : public SimplifyOpRewritePattern<DynamicIotaOp> {
+  using SimplifyOpRewritePattern<DynamicIotaOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicIotaOp iota,
                                 PatternRewriter &rewriter) const override {
@@ -383,8 +400,9 @@ struct DynamicIotaIsStatic : public OpRewritePattern<DynamicIotaOp> {
 // and a ranked broadcast.
 // Pattern: dynamic_iota(shape, dim) ->
 //   dynamic_broadcast_in_dim(dynamic_iota(slice(shape), dim), shape)
-struct DynamicIotaOpToBroadcast : public OpRewritePattern<DynamicIotaOp> {
-  using OpRewritePattern<DynamicIotaOp>::OpRewritePattern;
+struct DynamicIotaOpToBroadcast
+    : public SimplifyOpRewritePattern<DynamicIotaOp> {
+  using SimplifyOpRewritePattern<DynamicIotaOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicIotaOp iota,
                                 PatternRewriter &rewriter) const override {
@@ -431,8 +449,9 @@ struct DynamicIotaOpToBroadcast : public OpRewritePattern<DynamicIotaOp> {
 // DynamicReshapeOp
 /////////////////////////////////
 
-struct DynamicReshapeOpIsStatic final : OpRewritePattern<DynamicReshapeOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct DynamicReshapeOpIsStatic final
+    : SimplifyOpRewritePattern<DynamicReshapeOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicReshapeOp op,
                                 PatternRewriter &rewriter) const override {
@@ -450,9 +469,9 @@ struct DynamicReshapeOpIsStatic final : OpRewritePattern<DynamicReshapeOp> {
 //            -> op(dynamic_reshape(X, shape))
 //            [if op has same operand and result shape]
 class DynamicReshapeOpSameOperandAndResultShape
-    : public OpRewritePattern<DynamicReshapeOp> {
+    : public SimplifyOpRewritePattern<DynamicReshapeOp> {
  public:
-  using OpRewritePattern::OpRewritePattern;
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicReshapeOp op,
                                 PatternRewriter &rewriter) const override {
@@ -484,8 +503,8 @@ class DynamicReshapeOpSameOperandAndResultShape
 // compile time constants and thus can be made into a tensor.
 //
 // Pattern: dynamic_slice(X, begin, slice_sizes) -> slice(X, begin, slice_sizes)
-struct DynamicSliceOpToSlice : public OpRewritePattern<DynamicSliceOp> {
-  using OpRewritePattern<DynamicSliceOp>::OpRewritePattern;
+struct DynamicSliceOpToSlice : public SimplifyOpRewritePattern<DynamicSliceOp> {
+  using SimplifyOpRewritePattern<DynamicSliceOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicSliceOp dynamicSlice,
                                 PatternRewriter &rewriter) const override {
@@ -540,8 +559,8 @@ struct DynamicSliceOpToSlice : public OpRewritePattern<DynamicSliceOp> {
 //            -> dynamic_slice(X, start, limit, strides)
 //            [if strides, start are constants, limit = start + constant]
 struct RealDynamicSliceOpToDynamicSlice
-    : public OpRewritePattern<RealDynamicSliceOp> {
-  using OpRewritePattern<RealDynamicSliceOp>::OpRewritePattern;
+    : public SimplifyOpRewritePattern<RealDynamicSliceOp> {
+  using SimplifyOpRewritePattern<RealDynamicSliceOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(RealDynamicSliceOp op,
                                 PatternRewriter &rewriter) const override {
@@ -605,8 +624,8 @@ struct RealDynamicSliceOpToDynamicSlice
 /////////////////////////////////
 
 // Pattern: reduce[A](_, _, fn:return A) -> A...
-struct ReduceOpNoopVariableReturn final : OpRewritePattern<ReduceOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct ReduceOpNoopVariableReturn final : SimplifyOpRewritePattern<ReduceOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter &rewriter) const override {
@@ -628,8 +647,8 @@ struct ReduceOpNoopVariableReturn final : OpRewritePattern<ReduceOp> {
 };
 
 // Pattern: reduce(empty_0, empty_1, ...) -> [broadcast_in_dim(empty_i)...]
-struct ReduceOpEmptyCanon final : OpRewritePattern<ReduceOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct ReduceOpEmptyCanon final : SimplifyOpRewritePattern<ReduceOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter &rewriter) const override {
@@ -668,8 +687,8 @@ struct ReduceOpEmptyCanon final : OpRewritePattern<ReduceOp> {
 };
 
 // Pattern: reduce(in_1, in_2, _, _) -> reduce(in_1, _, _) [if unused(in_2)]
-struct ReduceOpUnusedResultCanon final : OpRewritePattern<ReduceOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter &rewriter) const override {
@@ -785,8 +804,9 @@ struct ReduceOpUnusedResultCanon final : OpRewritePattern<ReduceOp> {
 // TODO: This is duplicated with a pattern in shape refinement, consider
 // consolidating.
 // Pattern: get_dimension_size(X, i) -> X.shape[i]
-struct GetDimensionSizeOpCanon final : OpRewritePattern<GetDimensionSizeOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct GetDimensionSizeOpCanon final
+    : SimplifyOpRewritePattern<GetDimensionSizeOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(GetDimensionSizeOp op,
                                 PatternRewriter &rewriter) const override {
@@ -811,8 +831,8 @@ struct GetDimensionSizeOpCanon final : OpRewritePattern<GetDimensionSizeOp> {
 /// Converts gather ops to slice ops in case we have a single set of constant
 /// indices.
 // Pattern: gather(X, cst_start_indices) -> slice(X, slice_start, slice_end)
-struct GatherOpCanon final : OpRewritePattern<GatherOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct GatherOpCanon final : SimplifyOpRewritePattern<GatherOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(GatherOp gather,
                                 PatternRewriter &rewriter) const override {
@@ -886,8 +906,8 @@ struct GatherOpCanon final : OpRewritePattern<GatherOp> {
 // ranked broadcast.
 // Pattern: iota(dim) : multi_rank
 //            -> broadcast_in_dim(iota(dim) : array, multi_rank)
-struct IotaOpBroadcast : public OpRewritePattern<IotaOp> {
-  using OpRewritePattern<IotaOp>::OpRewritePattern;
+struct IotaOpBroadcast : public SimplifyOpRewritePattern<IotaOp> {
+  using SimplifyOpRewritePattern<IotaOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(IotaOp iota,
                                 PatternRewriter &rewriter) const override {
@@ -923,8 +943,8 @@ struct IotaOpBroadcast : public OpRewritePattern<IotaOp> {
 // than pad the input tensor.
 
 // Pattern: pad(empty_tensor, _) -> broadcast_in_dim(empty_tensor, _)
-struct PadOpBroadcastEmptyTensor : public OpRewritePattern<PadOp> {
-  using OpRewritePattern<PadOp>::OpRewritePattern;
+struct PadOpBroadcastEmptyTensor : public SimplifyOpRewritePattern<PadOp> {
+  using SimplifyOpRewritePattern<PadOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(PadOp op,
                                 PatternRewriter &rewriter) const override {
@@ -962,8 +982,8 @@ struct PadOpBroadcastEmptyTensor : public OpRewritePattern<PadOp> {
 // SelectOp
 /////////////////////////////////
 
-struct SelectOpCanon final : OpRewritePattern<SelectOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct SelectOpCanon final : SimplifyOpRewritePattern<SelectOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SelectOp op,
                                 PatternRewriter &rewriter) const override {
@@ -991,7 +1011,7 @@ struct SelectOpCanon final : OpRewritePattern<SelectOp> {
 
     // Handle elementwise selection when both outcomes are also constants. This
     // will create a new, likely non-splat constant.
-    if (cond.getNumElements() > kFoldOpEltLimit) return failure();
+    if (cond.getNumElements() > options.foldOpElementLimit) return failure();
 
     ElementsAttr trueAttr;
     if (!matchPattern(trueVal, m_Constant(&trueAttr))) return failure();
@@ -1013,8 +1033,8 @@ struct SelectOpCanon final : OpRewritePattern<SelectOp> {
   }
 };
 
-struct CompareSelectIntoMinMax final : OpRewritePattern<SelectOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct CompareSelectIntoMinMax final : SimplifyOpRewritePattern<SelectOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SelectOp op,
                                 PatternRewriter &rewriter) const override {
@@ -1067,8 +1087,8 @@ struct CompareSelectIntoMinMax final : OpRewritePattern<SelectOp> {
 // used by the slice, either reducing the number of concatenated values or
 // entirely removes the concat.
 // Pattern: slice(concat(X,Y,Z,...),...) -> concat(slice(X),slice(Y),slice(Z))
-struct SliceOpConcatSimplify : public OpRewritePattern<SliceOp> {
-  using OpRewritePattern<SliceOp>::OpRewritePattern;
+struct SliceOpConcatSimplify : public SimplifyOpRewritePattern<SliceOp> {
+  using SimplifyOpRewritePattern<SliceOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SliceOp slice,
                                 PatternRewriter &rewriter) const override {
@@ -1162,8 +1182,8 @@ struct SliceOpConcatSimplify : public OpRewritePattern<SliceOp> {
 /// op.comparator().
 
 // Pattern: sort(X,Y) -> sort(X) [if Y unused and unused in comparator]
-struct SortOpDropUnusedArgs : public OpRewritePattern<SortOp> {
-  using OpRewritePattern<SortOp>::OpRewritePattern;
+struct SortOpDropUnusedArgs : public SimplifyOpRewritePattern<SortOp> {
+  using SimplifyOpRewritePattern<SortOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SortOp op,
                                 PatternRewriter &rewriter) const override {
@@ -1212,8 +1232,8 @@ struct SortOpDropUnusedArgs : public OpRewritePattern<SortOp> {
 /// Set the sorting dimension to the last dimension if it's not set and the rank
 /// is known.
 // Pattern: sort(X) -> sort(X, dim = N) [when dim can be inferred]
-struct SortOpSetDimension : public OpRewritePattern<SortOp> {
-  using OpRewritePattern<SortOp>::OpRewritePattern;
+struct SortOpSetDimension : public SimplifyOpRewritePattern<SortOp> {
+  using SimplifyOpRewritePattern<SortOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SortOp op,
                                 PatternRewriter &rewriter) const override {
@@ -1238,8 +1258,8 @@ struct SortOpSetDimension : public OpRewritePattern<SortOp> {
 /////////////////////////////////
 
 // Pattern: transpose(X, [no_mem_layout_change...]) -> reshape(X)
-struct TransposeIsReshape final : OpRewritePattern<TransposeOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct TransposeIsReshape final : SimplifyOpRewritePattern<TransposeOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(TransposeOp op,
                                 PatternRewriter &rewriter) const override {
@@ -1274,8 +1294,8 @@ struct TransposeIsReshape final : OpRewritePattern<TransposeOp> {
 /////////////////////////////////
 
 // Pattern: tuple(get_tuple_element(X, 0), get_tuple_element(X, 1), ...) -> X
-struct TupleIsRepacking : public OpRewritePattern<TupleOp> {
-  using OpRewritePattern<TupleOp>::OpRewritePattern;
+struct TupleIsRepacking : public SimplifyOpRewritePattern<TupleOp> {
+  using SimplifyOpRewritePattern<TupleOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(TupleOp op,
                                 PatternRewriter &rewriter) const override {
@@ -1319,8 +1339,8 @@ struct TupleIsRepacking : public OpRewritePattern<TupleOp> {
 // Otherwise there is nothing to do here.
 
 // Pattern: while -> while (loop invariants as implicit captures)
-struct WhileOpImplicitCapture : public OpRewritePattern<WhileOp> {
-  using OpRewritePattern<WhileOp>::OpRewritePattern;
+struct WhileOpImplicitCapture : public SimplifyOpRewritePattern<WhileOp> {
+  using SimplifyOpRewritePattern<WhileOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(WhileOp whileOp,
                                 PatternRewriter &rewriter) const override {
@@ -1392,8 +1412,13 @@ static std::optional<RankedTensorType> getMaybeZeroExtentType(Type t) {
 // Replace instances of zero extent tensors with empty tensors
 // Pattern: op(X : zero_extent_tensor) -> constant([])
 struct ZeroExtentToEmptyConstant final : RewritePattern {
-  ZeroExtentToEmptyConstant(MLIRContext *context, PatternBenefit benefit)
-      : RewritePattern(MatchAnyOpTypeTag(), benefit, context) {}
+  explicit ZeroExtentToEmptyConstant(
+      MLIRContext *context,
+      StablehloAggressiveSimplificationPassOptions options,
+      PatternBenefit benefit = 1)
+      : RewritePattern(MatchAnyOpTypeTag(), benefit, context),
+        options(options) {}
+
   LogicalResult matchAndRewrite(Operation *op,
                                 PatternRewriter &rewriter) const override {
     auto loc = op->getLoc();
@@ -1439,11 +1464,18 @@ struct ZeroExtentToEmptyConstant final : RewritePattern {
     }
     return success(didUpdate);
   }
+
+ private:
+  StablehloAggressiveSimplificationPassOptions options;
 };
 
 struct ReorderElementwiseAndShapeOp final
     : OpTraitRewritePattern<OpTrait::Elementwise> {
-  using OpTraitRewritePattern::OpTraitRewritePattern;
+  explicit ReorderElementwiseAndShapeOp(
+      MLIRContext *context,
+      StablehloAggressiveSimplificationPassOptions options,
+      PatternBenefit benefit = 1)
+      : OpTraitRewritePattern(context, benefit), options(options) {}
 
   LogicalResult matchAndRewrite(Operation *op,
                                 PatternRewriter &rewriter) const override {
@@ -1483,39 +1515,49 @@ struct ReorderElementwiseAndShapeOp final
     definingOp->setOperands(result);
     return success();
   }
+
+ private:
+  StablehloAggressiveSimplificationPassOptions options;
 };
 
-struct StablehloAggressiveSimplificationPass final
+struct StablehloAggressiveSimplificationPass
     : impl::StablehloAggressiveSimplificationPassBase<
           StablehloAggressiveSimplificationPass> {
-  StablehloAggressiveSimplificationPass() = default;
-  StablehloAggressiveSimplificationPass(GreedyRewriteConfig config)
-      : config(config) {}
-  LogicalResult initialize(MLIRContext *context) override {
-    RewritePatternSet patterns_(context);
-    populateStablehloCanonicalizationPatterns(context, &patterns_);
-    patterns = std::move(patterns_);
-    return success();
-  }
+  using Options = StablehloAggressiveSimplificationPassOptions;
+
+  explicit StablehloAggressiveSimplificationPass(
+      Options options, GreedyRewriteConfig rewriteConfig = {})
+      : StablehloAggressiveSimplificationPassBase(Options(options)),
+        options(options),
+        rewriteConfig(rewriteConfig) {}
+
+  explicit StablehloAggressiveSimplificationPass()
+      : StablehloAggressiveSimplificationPassBase() {}
 
   void runOnOperation() override {
-    if (failed(applyPatternsGreedily(getOperation(), patterns, config)))
+    MLIRContext *context = &getContext();
+    RewritePatternSet patterns(context);
+
+    populateStablehloCanonicalizationPatterns(context, &patterns, options);
+
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns),
+                                     rewriteConfig)))
       signalPassFailure();
   }
 
  private:
-  GreedyRewriteConfig config;
-  FrozenRewritePatternSet patterns;
+  Options options;
+  GreedyRewriteConfig rewriteConfig;
 };
 
 #include "stablehlo/transforms/optimization/StablehloAggressiveSimplificationPatterns.h.inc"
 }  // namespace
 
-void populateStablehloCanonicalizationPatterns(MLIRContext *context,
-                                               RewritePatternSet *patterns,
-                                               PatternBenefit benefit) {
+void populateStablehloCanonicalizationPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    const StablehloAggressiveSimplificationPassOptions &options,
+    PatternBenefit benefit) {
   populateWithGenerated(*patterns);
-  patterns->add<ReorderElementwiseAndShapeOp>(context);
   patterns->add<
       CompareOpCanon, CompareSelectIntoMinMax, ConcatenateOpFlatten,
       ConcatenateOpNoop, ConcatenateOpRemoveEmpty, DynamicIotaOpToBroadcast,
@@ -1524,29 +1566,44 @@ void populateStablehloCanonicalizationPatterns(MLIRContext *context,
       RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
       ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon, SelectOpCanon,
       SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
-      TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(context,
-                                                                    benefit);
+      TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
+      context, options, benefit);
 
   // Generic patterns
   patterns->add<ReorderElementwiseAndShapeOp, ZeroExtentToEmptyConstant>(
-      context, benefit);
+      context, options, benefit);
 
   // TODO: Dynamism Refinements, consider merging with canonicalize dynamism
   patterns
       ->add<GetDimensionSizeOpCanon, DynamicBroadcastInDimOpNotActuallyDynamic,
-            DynamicReshapeOpIsStatic, DynamicIotaIsStatic>(context);
+            DynamicReshapeOpIsStatic, DynamicIotaIsStatic>(context, options);
+}
+
+void populateStablehloCanonicalizationPatterns(MLIRContext *context,
+                                               RewritePatternSet *patterns,
+                                               PatternBenefit benefit) {
+  populateStablehloCanonicalizationPatterns(context, patterns, kDefaultOptions,
+                                            benefit);
+}
+
+void populateStablehloHloImportCanonicalizationPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    const StablehloAggressiveSimplificationPassOptions &options) {
+  patterns->add<ReshapeOp_RemoveNoop, GetTupleElementOp_UnpackTuple>(context);
+  patterns->add<TupleIsRepacking, WhileOpImplicitCapture>(context, options);
 }
 
 void populateStablehloHloImportCanonicalizationPatterns(
     MLIRContext *context, RewritePatternSet *patterns) {
-  patterns->add<ReshapeOp_RemoveNoop, GetTupleElementOp_UnpackTuple,
-                TupleIsRepacking, WhileOpImplicitCapture>(context);
+  populateStablehloHloImportCanonicalizationPatterns(context, patterns,
+                                                     kDefaultOptions);
 }
 
-std::unique_ptr<Pass> createStablehloAggressiveSimplificationPass(
-    GreedyRewriteConfig config) {
-  return std::make_unique<StablehloAggressiveSimplificationPass>(config);
+std::unique_ptr<::mlir::Pass> createStablehloAggressiveSimplificationPass(
+    StablehloAggressiveSimplificationPassOptions options,
+    GreedyRewriteConfig rewriteConfig) {
+  return std::make_unique<StablehloAggressiveSimplificationPass>(options,
+                                                                 rewriteConfig);
 }
 
-}  // namespace stablehlo
-}  // namespace mlir
+}  // namespace mlir::stablehlo

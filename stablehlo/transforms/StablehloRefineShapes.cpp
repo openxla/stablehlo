@@ -1032,17 +1032,20 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
   config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
   config.strictMode = GreedyRewriteStrictness::AnyOp;
 
-  populateStablehloRefineShapesPatterns(&patterns, context);
+  populateStablehloRefineShapesPatterns(context, &patterns);
   patterns.add<RefineCallOpPattern>(context, state);
 
   // Populate additional patterns for StableHLO extensions.
   state.addAdditionalPatterns(patterns);
 
+  StablehloAggressiveFolderPassOptions folderOptions;
+  folderOptions.foldFloat = false;
+
   // The folding patterns implement partial evaluation of shape computations
   // which is a critical part of implementing type refinement for ops like
   // dynamic_broadcast_in_dim, dynamic_iota and dynamic_reshape whose shape
   // depends on the value of their shape operands.
-  populateStablehloShapeFolderPatterns(&patterns, context);
+  populateStablehloShapeFolderPatterns(context, &patterns, folderOptions);
 
   if (failed(applyPatternsGreedily(func, std::move(patterns), config)))
     func.emitError("Failed to converge StablehloRefineShapes in ")
@@ -1177,8 +1180,8 @@ func::FuncOp getStablehloRefineShapesTarget(ModuleOp module) {
   return result;
 }
 
-void populateStablehloRefineShapesPatterns(RewritePatternSet* patterns,
-                                           MLIRContext* context) {
+void populateStablehloRefineShapesPatterns(MLIRContext* context,
+                                           RewritePatternSet* patterns) {
   patterns->add<RefineAllGatherOpPattern>(context);
   patterns->add<RefineBitcastConvertOpPattern>(context);
   // patterns->add<RefineCallOpPattern>(context); // Populate requires inline

@@ -16,6 +16,7 @@ limitations under the License.
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <numeric>
 #include <optional>
 #include <utility>
@@ -57,18 +58,14 @@ limitations under the License.
 
 #define DEBUG_TYPE "stablehlo-optimization"
 
-namespace mlir {
-namespace stablehlo {
+namespace mlir::stablehlo {
 
 #define GEN_PASS_DEF_STABLEHLOAGGRESSIVEFOLDERPASS
 #include "stablehlo/transforms/optimization/Passes.h.inc"
 
 namespace {
 
-// This is an upper limit on how many elements can be folded by an op folder.
-// This limit doesn't apply to some special cases like adding a zero,
-// multiplying by one, doing many operations with splats.
-constexpr int64_t kFoldOpEltLimit = 65536;
+static constexpr StablehloAggressiveFolderPassOptions kDefaultOptions;
 
 // DenseElementsAttr can be constructed from ArrayRef<APInt> but not from
 // ArrayRef<APSInt>. This helper bridges the gap.
@@ -261,8 +258,26 @@ LogicalResult evalElementwise(PatternRewriter& rewriter, OpType op,
   return success();
 }
 
-struct FoldAddOpPattern final : OpRewritePattern<mlir::stablehlo::AddOp> {
-  using OpRewritePattern::OpRewritePattern;
+template <typename OpType>
+struct FoldOpRewritePattern : OpRewritePattern<OpType> {
+  FoldOpRewritePattern(MLIRContext* context,
+                       const StablehloAggressiveFolderPassOptions& options,
+                       PatternBenefit benefit = 1,
+                       ArrayRef<StringRef> generatedNames = {})
+      : OpRewritePattern<OpType>(context, benefit, generatedNames),
+        options(options) {}
+
+  // Prevent `options` from binding to a temporary.
+  FoldOpRewritePattern(MLIRContext* context,
+                       StablehloAggressiveFolderPassOptions&& options,
+                       PatternBenefit benefit = 1,
+                       ArrayRef<StringRef> generatedNames = {}) = delete;
+
+  const StablehloAggressiveFolderPassOptions& options;
+};
+
+struct FoldAddOpPattern final : FoldOpRewritePattern<mlir::stablehlo::AddOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(mlir::stablehlo::AddOp op,
                                 PatternRewriter& rewriter) const override {
@@ -288,27 +303,23 @@ struct FoldAddOpPattern final : OpRewritePattern<mlir::stablehlo::AddOp> {
 // A base class to use for patterns that may be used for integer shape math,
 // but also may be used for general folding of floats.
 template <typename OpType>
-struct ShapeOpRewritePattern : public OpRewritePattern<OpType> {
-  ShapeOpRewritePattern(MLIRContext* context, PatternBenefit benefit,
-                        bool foldFloat_)
-      : OpRewritePattern<OpType>(context, benefit), foldFloat{foldFloat_} {}
-
-  using OpRewritePattern<OpType>::OpRewritePattern;
-  using OpRewritePattern<OpType>::matchAndRewrite;
+struct ShapeOpRewritePattern : public FoldOpRewritePattern<OpType> {
+  using FoldOpRewritePattern<OpType>::FoldOpRewritePattern;
+  using FoldOpRewritePattern<OpType>::matchAndRewrite;
+  using FoldOpRewritePattern<OpType>::options;
 
   LogicalResult validateShapeFoldDtype(PatternRewriter& rewriter, OpType op,
                                        ShapedType resultType) const {
     if (resultType.getElementType().isInteger()) return success();
-    if (foldFloat && isa<FloatType>(resultType.getElementType()))
+    if (options.foldFloat && isa<FloatType>(resultType.getElementType()))
       return success();
     return rewriter.notifyMatchFailure(op, "skipping fold of shape op dtype");
   }
-
-  bool foldFloat;
 };
 
-struct EvalAddOpShapePattern : public OpRewritePattern<AddOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalAddOpShapePattern : public FoldOpRewritePattern<AddOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(AddOp op,
                                 PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
@@ -316,8 +327,9 @@ struct EvalAddOpShapePattern : public OpRewritePattern<AddOp> {
   }
 };
 
-struct EvalAndOpPattern : public OpRewritePattern<AndOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalAndOpPattern : public FoldOpRewritePattern<AndOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(AndOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -332,8 +344,8 @@ struct EvalAndOpPattern : public OpRewritePattern<AndOp> {
 
 // Pattern: broadcast_in_dim(splat, _) -> constant(splat)
 struct FoldBroadcastInDimSplatPattern final
-    : OpRewritePattern<mlir::stablehlo::BroadcastInDimOp> {
-  using OpRewritePattern::OpRewritePattern;
+    : FoldOpRewritePattern<mlir::stablehlo::BroadcastInDimOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(mlir::stablehlo::BroadcastInDimOp op,
                                 PatternRewriter& rewriter) const override {
@@ -350,8 +362,10 @@ struct FoldBroadcastInDimSplatPattern final
   }
 };
 
-struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalBroadcastInDimOpPattern
+    : public FoldOpRewritePattern<BroadcastInDimOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(BroadcastInDimOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -373,8 +387,9 @@ struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
   }
 };
 
-struct EvalClampOpPattern : public OpRewritePattern<ClampOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalClampOpPattern : public FoldOpRewritePattern<ClampOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(ClampOp op,
                                 PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
@@ -386,8 +401,9 @@ struct EvalClampOpPattern : public OpRewritePattern<ClampOp> {
   }
 };
 
-struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalCompareOpPattern : public FoldOpRewritePattern<CompareOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(CompareOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -424,8 +440,8 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
 /////////////////////////////////
 
 struct FoldConcatenateOpPattern final
-    : OpRewritePattern<mlir::stablehlo::ConcatenateOp> {
-  using OpRewritePattern::OpRewritePattern;
+    : FoldOpRewritePattern<mlir::stablehlo::ConcatenateOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(mlir::stablehlo::ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
@@ -433,7 +449,8 @@ struct FoldConcatenateOpPattern final
     if (!type.hasStaticShape()) return failure();
 
     size_t numElems = type.getNumElements();
-    if (numElems > kFoldOpEltLimit) return failure();
+    if (numElems > static_cast<size_t>(options.foldOpElementLimit))
+      return failure();
 
     // Fold concatenate when all inputs are constants.
     OperandRange inputs = op.getInputs();
@@ -463,10 +480,13 @@ struct FoldConcatenateOpPattern final
         op, DenseElementsAttr::get(op.getType(), newElems));
     return success();
   }
+
+  int64_t foldOpElementLimit;
 };
 
-struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalConcatenateOpPattern : public FoldOpRewritePattern<ConcatenateOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -502,7 +522,7 @@ struct EvalConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
 
     auto operandElemType = getElementTypeOrSelf(operand.getType());
     auto resultElemType = getElementTypeOrSelf(resultType);
-    if (!foldFloat &&
+    if (!options.foldFloat &&
         (isa<FloatType>(operandElemType) || isa<FloatType>(resultElemType)))
       return rewriter.notifyMatchFailure(op, "skipping fold of float convert");
 
@@ -515,8 +535,9 @@ struct EvalConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
   }
 };
 
-struct EvalDivOpPattern : public OpRewritePattern<DivOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalDivOpPattern : public FoldOpRewritePattern<DivOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(DivOp op,
                                 PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
@@ -525,8 +546,9 @@ struct EvalDivOpPattern : public OpRewritePattern<DivOp> {
 };
 
 struct EvalGetDimensionSizeOpPattern
-    : public OpRewritePattern<GetDimensionSizeOp> {
-  using OpRewritePattern::OpRewritePattern;
+    : public FoldOpRewritePattern<GetDimensionSizeOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(GetDimensionSizeOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -544,8 +566,9 @@ struct EvalGetDimensionSizeOpPattern
   }
 };
 
-struct EvalMaxOpPattern : public OpRewritePattern<MaxOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalMaxOpPattern : public FoldOpRewritePattern<MaxOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(MaxOp op,
                                 PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
@@ -554,8 +577,9 @@ struct EvalMaxOpPattern : public OpRewritePattern<MaxOp> {
   }
 };
 
-struct EvalMinOpPattern : public OpRewritePattern<MinOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalMinOpPattern : public FoldOpRewritePattern<MinOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(MinOp op,
                                 PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
@@ -564,8 +588,8 @@ struct EvalMinOpPattern : public OpRewritePattern<MinOp> {
   }
 };
 
-struct FoldMulOpPattern final : OpRewritePattern<mlir::stablehlo::MulOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct FoldMulOpPattern final : FoldOpRewritePattern<mlir::stablehlo::MulOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(mlir::stablehlo::MulOp op,
                                 PatternRewriter& rewriter) const override {
@@ -586,8 +610,9 @@ struct FoldMulOpPattern final : OpRewritePattern<mlir::stablehlo::MulOp> {
   }
 };
 
-struct EvalMulOpPattern : public OpRewritePattern<MulOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalMulOpPattern : public FoldOpRewritePattern<MulOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(MulOp op,
                                 PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
@@ -595,8 +620,9 @@ struct EvalMulOpPattern : public OpRewritePattern<MulOp> {
   }
 };
 
-struct EvalOrOpPattern : public OpRewritePattern<OrOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalOrOpPattern : public FoldOpRewritePattern<OrOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(OrOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -609,8 +635,9 @@ struct EvalOrOpPattern : public OpRewritePattern<OrOp> {
   }
 };
 
-struct EvalRemOpPattern : public OpRewritePattern<RemOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalRemOpPattern : public FoldOpRewritePattern<RemOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(RemOp op,
                                 PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
@@ -637,8 +664,9 @@ struct EvalReshapeOpPattern : public ShapeOpRewritePattern<ReshapeOp> {
   }
 };
 
-struct EvalSelectOpPattern : public OpRewritePattern<SelectOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalSelectOpPattern : public FoldOpRewritePattern<SelectOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(SelectOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -663,8 +691,9 @@ struct EvalSelectOpPattern : public OpRewritePattern<SelectOp> {
   }
 };
 
-struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalSignOpPattern : public FoldOpRewritePattern<SignOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(SignOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -719,8 +748,9 @@ DenseElementsAttr sliceType(SliceOp& op, const RangeType& data) {
                                 ArrayRef<ElementType>(result));
 }
 
-struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalSliceOpPattern : public FoldOpRewritePattern<SliceOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(SliceOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -753,8 +783,8 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
 };
 
 struct FoldSubtractOpPattern final
-    : OpRewritePattern<mlir::stablehlo::SubtractOp> {
-  using OpRewritePattern::OpRewritePattern;
+    : FoldOpRewritePattern<mlir::stablehlo::SubtractOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(mlir::stablehlo::SubtractOp op,
                                 PatternRewriter& rewriter) const override {
@@ -776,8 +806,9 @@ struct FoldSubtractOpPattern final
   }
 };
 
-struct EvalSubtractOpPattern : public OpRewritePattern<SubtractOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalSubtractOpPattern : public FoldOpRewritePattern<SubtractOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(SubtractOp op,
                                 PatternRewriter& rewriter) const override {
     return evalElementwise(rewriter, op,
@@ -785,8 +816,9 @@ struct EvalSubtractOpPattern : public OpRewritePattern<SubtractOp> {
   }
 };
 
-struct FoldSqrtOpPattern : public OpRewritePattern<mlir::stablehlo::SqrtOp> {
-  using OpRewritePattern<mlir::stablehlo::SqrtOp>::OpRewritePattern;
+struct FoldSqrtOpPattern
+    : public FoldOpRewritePattern<mlir::stablehlo::SqrtOp> {
+  using FoldOpRewritePattern<mlir::stablehlo::SqrtOp>::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(mlir::stablehlo::SqrtOp op,
                                 PatternRewriter& rewriter) const final {
@@ -816,14 +848,15 @@ struct FoldSqrtOpPattern : public OpRewritePattern<mlir::stablehlo::SqrtOp> {
   }
 };
 
-struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalIotaOpPattern : public FoldOpRewritePattern<IotaOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(IotaOp op,
                                 PatternRewriter& rewriter) const override {
     LLVM_DEBUG(llvm::dbgs() << "EvalIotaOpPattern folding: " << op << '\n');
     auto resultType = cast<RankedTensorType>(op.getType());
     size_t numElems = resultType.getNumElements();
-    if (numElems > kFoldOpEltLimit)
+    if (numElems > static_cast<size_t>(options.foldOpElementLimit))
       return rewriter.notifyMatchFailure(op, "too many elements to fold");
 
     auto elementType = resultType.getElementType();
@@ -864,6 +897,8 @@ struct EvalIotaOpPattern : public OpRewritePattern<IotaOp> {
         op, DenseIntElementsAttr::get(resultType, values));
     return success();
   }
+
+  int64_t foldOpElementLimit;
 };
 
 template <typename RangeType>
@@ -893,8 +928,9 @@ DenseElementsAttr transposeType(TransposeOp& op, const RangeType& data) {
 // transpose(constant) => constant with permuted dimensions
 // This covers ranked tensor types with 0 dimensions(zero elements) and 0
 // rank(scalar), as well as splat values.
-struct EvalTransposeOpPattern : public OpRewritePattern<TransposeOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct EvalTransposeOpPattern : public FoldOpRewritePattern<TransposeOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
   LogicalResult matchAndRewrite(TransposeOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
@@ -923,65 +959,97 @@ struct EvalTransposeOpPattern : public OpRewritePattern<TransposeOp> {
 struct StablehloAggressiveFolderPass
     : public impl::StablehloAggressiveFolderPassBase<
           StablehloAggressiveFolderPass> {
-  using StablehloAggressiveFolderPassBase::StablehloAggressiveFolderPassBase;
+  using Options = StablehloAggressiveFolderPassOptions;
 
-  LogicalResult initialize(MLIRContext* context) override {
-    RewritePatternSet patterns_(context);
-    populateStablehloAggressiveFolderPatterns(&patterns_, context, foldFloat);
-    patterns = std::move(patterns_);
+  explicit StablehloAggressiveFolderPass(Options options,
+                                         GreedyRewriteConfig rewriteConfig = {})
+      : StablehloAggressiveFolderPassBase(Options(options)),
+        options(options),
+        rewriteConfig(rewriteConfig) {}
 
-    return success();
-  }
+  explicit StablehloAggressiveFolderPass()
+      : StablehloAggressiveFolderPassBase() {}
 
   void runOnOperation() override {
-    if (failed(applyPatternsGreedily(getOperation(), patterns)))
+    MLIRContext* context = &getContext();
+    RewritePatternSet patterns(context);
+
+    populateStablehloAggressiveFolderPatterns(context, &patterns, options);
+
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns),
+                                     rewriteConfig)))
       signalPassFailure();
   }
 
  private:
-  FrozenRewritePatternSet patterns;
+  Options options;
+  GreedyRewriteConfig rewriteConfig;
 };
 
 }  // namespace
 
-void populateStablehloAggressiveFolderPatterns(RewritePatternSet* patterns,
-                                               MLIRContext* context,
-                                               bool foldFloat,
-                                               PatternBenefit benefit) {
-  populateStablehloShapeFolderPatterns(patterns, context, foldFloat, benefit);
-  patterns->add<EvalIotaOpPattern>(context, benefit);
-  patterns->add<EvalTransposeOpPattern>(context, benefit);
+void populateStablehloAggressiveFolderPatterns(
+    MLIRContext* context, RewritePatternSet* patterns,
+    const StablehloAggressiveFolderPassOptions& options,
+    PatternBenefit benefit) {
+  populateStablehloShapeFolderPatterns(context, patterns, options, benefit);
+  patterns->add<EvalIotaOpPattern>(context, options, benefit);
+  patterns->add<EvalTransposeOpPattern>(context, options, benefit);
 
   // TODO: Consolidate FoldOp patterns
   // One is used by Shape Refinement, the other is a generic folder.
   patterns->add<FoldAddOpPattern, FoldBroadcastInDimSplatPattern,
                 FoldConcatenateOpPattern, FoldMulOpPattern,
-                FoldSubtractOpPattern, FoldSqrtOpPattern>(context);
+                FoldSubtractOpPattern, FoldSqrtOpPattern>(context, options);
 }
 
-void populateStablehloShapeFolderPatterns(RewritePatternSet* patterns,
-                                          MLIRContext* context, bool foldFloat,
+class StablehloTargetIndependentOptimizationPass {
+ private:
+  StablehloTargetIndependentOptimizationPassOptions options;
+};
+
+class StablehloIndependentOptimizationPass {
+ private:
+  StablehloTargetIndependentOptimizationPassOptions options;
+};
+
+void populateStablehloShapeFolderPatterns(
+    MLIRContext* context, RewritePatternSet* patterns,
+    const StablehloAggressiveFolderPassOptions& options,
+    PatternBenefit benefit) {
+  patterns->add<EvalAddOpShapePattern>(context, options, benefit);
+  patterns->add<EvalAndOpPattern>(context, options, benefit);
+  patterns->add<EvalBroadcastInDimOpPattern>(context, options, benefit);
+  patterns->add<EvalClampOpPattern>(context, options, benefit);
+  patterns->add<EvalCompareOpPattern>(context, options, benefit);
+  patterns->add<EvalConcatenateOpPattern>(context, options, benefit);
+  patterns->add<EvalConvertOpPattern>(context, options, benefit);
+  patterns->add<EvalDivOpPattern>(context, options, benefit);
+  patterns->add<EvalGetDimensionSizeOpPattern>(context, options, benefit);
+  patterns->add<EvalMaxOpPattern>(context, options, benefit);
+  patterns->add<EvalMinOpPattern>(context, options, benefit);
+  patterns->add<EvalMulOpPattern>(context, options, benefit);
+  patterns->add<EvalOrOpPattern>(context, options, benefit);
+  patterns->add<EvalRemOpPattern>(context, options, benefit);
+  patterns->add<EvalReshapeOpPattern>(context, options, benefit);
+  patterns->add<EvalSelectOpPattern>(context, options, benefit);
+  patterns->add<EvalSignOpPattern>(context, options, benefit);
+  patterns->add<EvalSliceOpPattern>(context, options, benefit);
+  patterns->add<EvalSubtractOpPattern>(context, options, benefit);
+}
+
+void populateStablehloShapeFolderPatterns(MLIRContext* context,
+                                          RewritePatternSet* patterns,
                                           PatternBenefit benefit) {
-  patterns->add<EvalAddOpShapePattern>(context, benefit);
-  patterns->add<EvalAndOpPattern>(context, benefit);
-  patterns->add<EvalBroadcastInDimOpPattern>(context, benefit);
-  patterns->add<EvalClampOpPattern>(context, benefit);
-  patterns->add<EvalCompareOpPattern>(context, benefit);
-  patterns->add<EvalConcatenateOpPattern>(context, benefit);
-  patterns->add<EvalConvertOpPattern>(context, benefit, foldFloat);
-  patterns->add<EvalDivOpPattern>(context, benefit);
-  patterns->add<EvalGetDimensionSizeOpPattern>(context, benefit);
-  patterns->add<EvalMaxOpPattern>(context, benefit);
-  patterns->add<EvalMinOpPattern>(context, benefit);
-  patterns->add<EvalMulOpPattern>(context, benefit);
-  patterns->add<EvalOrOpPattern>(context, benefit);
-  patterns->add<EvalRemOpPattern>(context, benefit);
-  patterns->add<EvalReshapeOpPattern>(context, benefit, foldFloat);
-  patterns->add<EvalSelectOpPattern>(context, benefit);
-  patterns->add<EvalSignOpPattern>(context, benefit);
-  patterns->add<EvalSliceOpPattern>(context, benefit);
-  patterns->add<EvalSubtractOpPattern>(context, benefit);
+  populateStablehloShapeFolderPatterns(context, patterns, kDefaultOptions,
+                                       benefit);
 }
 
-}  // namespace stablehlo
-}  // namespace mlir
+std::unique_ptr<::mlir::Pass> createStablehloAggressiveFolderPass(
+    StablehloAggressiveFolderPassOptions options,
+    GreedyRewriteConfig rewriteConfig) {
+  return std::make_unique<StablehloAggressiveFolderPass>(options,
+                                                         rewriteConfig);
+}
+
+}  // namespace mlir::stablehlo

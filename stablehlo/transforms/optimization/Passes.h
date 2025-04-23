@@ -16,10 +16,11 @@ limitations under the License.
 #ifndef STABLEHLO_TRANSFORMS_OPTIMIZATION_PASSES_H
 #define STABLEHLO_TRANSFORMS_OPTIMIZATION_PASSES_H
 
-#include <memory>
+#include <utility>
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -33,22 +34,40 @@ namespace stablehlo {
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/transforms/optimization/Passes.h.inc"
 
+std::pair<StablehloAggressiveFolderPassOptions,
+          StablehloAggressiveSimplificationPassOptions>
+splitTargetIndependentOptimizationOptions(
+    const StablehloTargetIndependentOptimizationPassOptions &options);
+
 /// Collection of canonicalization patterns for StableHLO.
+void populateStablehloCanonicalizationPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    const StablehloAggressiveSimplificationPassOptions &options,
+    PatternBenefit benefit = 1);
+
 void populateStablehloCanonicalizationPatterns(MLIRContext *context,
                                                RewritePatternSet *patterns,
                                                PatternBenefit benefit = 1);
 
 /// Collection of folding patterns for StableHLO.
-void populateStablehloAggressiveFolderPatterns(RewritePatternSet *patterns,
-                                               MLIRContext *context,
-                                               bool foldFloat,
+void populateStablehloAggressiveFolderPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    const StablehloAggressiveFolderPassOptions &options,
+    PatternBenefit benefit = 1);
+
+void populateStablehloAggressiveFolderPatterns(MLIRContext *context,
+                                               RewritePatternSet *patterns,
                                                PatternBenefit benefit = 1);
 
 /// A subset of folding patterns for StableHLO that is necessary for shape
 /// refinement.
-void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
-                                          MLIRContext *context,
-                                          bool foldFloat = false,
+void populateStablehloShapeFolderPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    const StablehloAggressiveFolderPassOptions &options,
+    PatternBenefit benefit = 1);
+
+void populateStablehloShapeFolderPatterns(MLIRContext *context,
+                                          RewritePatternSet *patterns,
                                           PatternBenefit benefit = 1);
 
 /// Some workloads in XLA import StableHLO from HLO. Since there are a few
@@ -56,7 +75,29 @@ void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
 /// set of patterns brings the imported HLO back to a more canonical form
 /// without applying a full set of graph simplifications.
 void populateStablehloHloImportCanonicalizationPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    const StablehloAggressiveSimplificationPassOptions &options);
+
+void populateStablehloHloImportCanonicalizationPatterns(
     MLIRContext *context, RewritePatternSet *patterns);
+
+// If the `options` argument is provided, ensure it's not a temporary.
+void populateStablehloCanonicalizationPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    StablehloAggressiveSimplificationPassOptions &&options,
+    PatternBenefit benefit = 1) = delete;
+void populateStablehloShapeFolderPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    StablehloAggressiveFolderPassOptions &&options,
+    PatternBenefit benefit = 1) = delete;
+void populateStablehloAggressiveFolderPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    StablehloAggressiveFolderPassOptions &&options,
+    PatternBenefit benefit = 1) = delete;
+void populateStablehloHloImportCanonicalizationPatterns(
+    MLIRContext *context, RewritePatternSet *patterns,
+    StablehloAggressiveSimplificationPassOptions &&options) = delete;
+
 }  // namespace stablehlo
 }  // namespace mlir
 

@@ -98,7 +98,7 @@ def SortedDims : AttrConstraint<
     "is sorted dimensions">;
 
 def ZeroExtent : AttrConstraint<
-    CPred<"cast<DenseIntElementsAttr>($_self).getNumElements() == 0">,
+    CPred<"cast<DenseElementsAttr>($_self).getNumElements() == 0">,
     "is zero extent">;
 
 ///////////

@@ -13,60 +13,80 @@ limitations under the License.
 ==============================================================================*/
 
 #include <cassert>
-#include <cstdint>
+#include <memory>
 #include <utility>
 
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/transforms/optimization/Passes.h"
 
-namespace mlir {
-namespace stablehlo {
+namespace mlir::stablehlo {
 
 #define GEN_PASS_DEF_STABLEHLOTARGETINDEPENDENTOPTIMIZATIONPASS
 #include "stablehlo/transforms/optimization/Passes.h.inc"
 
-// This is an upper limit on how many elements can be folded by an op folder.
-// This limit doesn't apply to some special cases like adding a zero,
-// multiplying by one, doing many operations with splats.
-constexpr int64_t kFoldOpEltLimit = 65536;
-
 struct StablehloTargetIndependentOptimizationPass
     : public impl::StablehloTargetIndependentOptimizationPassBase<
           StablehloTargetIndependentOptimizationPass> {
-  using StablehloTargetIndependentOptimizationPassBase::
-      StablehloTargetIndependentOptimizationPassBase;
+  using Options = StablehloTargetIndependentOptimizationPassOptions;
 
-  LogicalResult initialize(MLIRContext* context) override {
-    RewritePatternSet patterns_(context);
-    bool foldFloat = true;
-    populateStablehloCanonicalizationPatterns(context, &patterns_);
-    populateStablehloAggressiveFolderPatterns(&patterns_, context, foldFloat,
-                                              /*benefit=*/2);
-    patterns = std::move(patterns_);
+  explicit StablehloTargetIndependentOptimizationPass(
+      Options options, GreedyRewriteConfig rewriteConfig = {})
+      : StablehloTargetIndependentOptimizationPassBase(),
+        options(options),
+        rewriteConfig(rewriteConfig) {}
 
-    return success();
-  }
+  explicit StablehloTargetIndependentOptimizationPass()
+      : StablehloTargetIndependentOptimizationPassBase() {}
 
   void runOnOperation() override {
-    GreedyRewriteConfig config;
-    config.fold = true;
-    config.cseConstants = true;
-    config.maxIterations = kFoldOpEltLimit;
-    config.useTopDownTraversal = false;
-    if (failed(applyPatternsGreedily(getOperation(), patterns, config)))
+    MLIRContext* context = &getContext();
+    RewritePatternSet patterns(context);
+    auto [folderOptions, simplificationOptions] =
+        splitTargetIndependentOptimizationOptions(options);
+
+    populateStablehloAggressiveFolderPatterns(context, &patterns, folderOptions,
+                                              /*benefit=*/2);
+    populateStablehloCanonicalizationPatterns(context, &patterns,
+                                              simplificationOptions);
+
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns),
+                                     rewriteConfig)))
       signalPassFailure();
   }
 
  private:
-  FrozenRewritePatternSet patterns;
+  Options options;
+  GreedyRewriteConfig rewriteConfig;
 };
 
-}  // namespace stablehlo
-}  // namespace mlir
+std::pair<StablehloAggressiveFolderPassOptions,
+          StablehloAggressiveSimplificationPassOptions>
+splitTargetIndependentOptimizationOptions(
+    const StablehloTargetIndependentOptimizationPassOptions& options) {
+  return {
+      StablehloAggressiveFolderPassOptions{
+          /*foldOpElementLimit=*/options.foldOpElementLimit,
+          /*foldFloat=*/options.foldFloat,
+      },
+      StablehloAggressiveSimplificationPassOptions{
+          /*foldOpElementLimit=*/options.foldOpElementLimit,
+      },
+  };
+}
+
+std::unique_ptr<::mlir::Pass> createStablehloTargetIndependentOptimizationPass(
+    StablehloTargetIndependentOptimizationPassOptions options,
+    GreedyRewriteConfig rewriteConfig) {
+  return std::make_unique<StablehloTargetIndependentOptimizationPass>(
+      options, rewriteConfig);
+}
+
+}  // namespace mlir::stablehlo
