@@ -15,20 +15,47 @@ limitations under the License.
 
 include "mlir/Pass/PassBase.td"
 
-defvar stablehlo_target_independent_optimization_common_options = [
+defvar kAllStablehloOptimizationPassFlags = [
   Option<"foldOpElementLimit", "fold-op-element-limit", "int64_t",
           /*default=*/"65536",
           "Upper limit on how many elements may be folded by an op folder. "
-          "This limit doesn't apply in certain special cases such as when "
-          "adding 0, multiplying by 1, or operating on splats in some ways.">,
-]<Option>;
-
-defvar stablehlo_aggressive_folder_options = [
+          "This limit doesn't apply in certain special cases such as "
+          "addition of 0, multiplication by 1, and some splat operations.">,
   Option<"foldFloat", "fold-float", "bool", /*default=*/"true",
           "Allow for potentially lossy computations using float type.">,
 ]<Option>;
 
-defvar stablehlo_aggressive_simplification_options = []<Option>;
+class EnableStablehloOptimizationPassFlags<list<string> enabledFlags> {
+  // Contains the `Option` corresponding to each `string` in `enabledFlags`.
+  list<Option> enabledOptions = !filter(
+      option,
+      kAllStablehloOptimizationPassFlags,
+      !foldl(
+          /*init=*/false,
+          /*list=*/enabledFlags,
+          /*acc=*/accumulatedOrExpr,
+          /*var=*/flagString,
+          /*expr=*/!or(accumulatedOrExpr, !eq(flagString, option.argument))
+      )
+  );
+
+  // Make sure all flags matched known options; if not, call out the bad flags.
+  // If this assertion fails, either fix the flag name or, in the case of a new
+  // option, add it to `kAllStablehloOptimizationPassFlags`.
+  assert !eq(!size(enabledFlags), !size(enabledOptions)),
+      "Unknown option(s) for a StableHLO optimization pass: " #
+      !interleave(!filter(
+          flagString,
+          enabledFlags,
+          !not(!foldl(
+              /*init=*/false,
+              /*list=*/enabledOptions,
+              /*acc=*/accumulatedOrExpr,
+              /*var=*/option,
+              /*expr=*/!or(accumulatedOrExpr, !eq(flagString, option.argument))
+          ))
+      ), ", ");
+}
 
 def StablehloAggressiveFolderPass
     : Pass<"stablehlo-aggressive-folder", "func::FuncOp"> {
@@ -36,8 +63,10 @@ def StablehloAggressiveFolderPass
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
   ];
-  let options = stablehlo_target_independent_optimization_common_options #
-                stablehlo_aggressive_folder_options;
+  let options = EnableStablehloOptimizationPassFlags<[
+    "fold-op-element-limit",
+    "fold-float",
+  ]>.enabledOptions;
 }
 
 def StablehloAggressiveSimplificationPass
@@ -135,8 +164,9 @@ def StablehloAggressiveSimplificationPass
     "mlir::stablehlo::StablehloDialect",
     "mlir::arith::ArithDialect",
   ];
-  let options = stablehlo_target_independent_optimization_common_options #
-                stablehlo_aggressive_simplification_options;
+  let options = EnableStablehloOptimizationPassFlags<[
+    "fold-op-element-limit",
+  ]>.enabledOptions;
 }
 
 def StablehloTargetIndependentOptimizationPass
@@ -153,7 +183,8 @@ def StablehloTargetIndependentOptimizationPass
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
   ];
-  let options = stablehlo_target_independent_optimization_common_options #
-                stablehlo_aggressive_simplification_options #
-                stablehlo_aggressive_folder_options;
+  let options = EnableStablehloOptimizationPassFlags<[
+    "fold-op-element-limit",
+    "fold-float",
+  ]>.enabledOptions;
 }

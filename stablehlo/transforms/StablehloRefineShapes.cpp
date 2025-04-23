@@ -1038,13 +1038,14 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
   // Populate additional patterns for StableHLO extensions.
   state.addAdditionalPatterns(patterns);
 
-  StablehloAggressiveFolderPassOptions folder_options;
+  StablehloAggressiveFolderPassOptions folderOptions;
+  folderOptions.foldFloat = false;
 
   // The folding patterns implement partial evaluation of shape computations
   // which is a critical part of implementing type refinement for ops like
   // dynamic_broadcast_in_dim, dynamic_iota and dynamic_reshape whose shape
   // depends on the value of their shape operands.
-  populateStablehloShapeFolderPatterns(context, &patterns, folder_options);
+  populateStablehloShapeFolderPatterns(context, &patterns, folderOptions);
 
   if (failed(applyPatternsGreedily(func, std::move(patterns), config)))
     func.emitError("Failed to converge StablehloRefineShapes in ")
