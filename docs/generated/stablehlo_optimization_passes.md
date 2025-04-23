@@ -7,8 +7,8 @@ _Folds StableHLO operations_
 #### Options
 
 ```
+-fold-op-element-limit : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as addition of 0, multiplication by 1, and some splat operations.
 -fold-float            : Allow for potentially lossy computations using float type.
--fold-op-element-limit : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as when adding 0, multiplying by 1, or operating on splats in some ways.
 ```
 
 ### `-stablehlo-aggressive-simplification`
@@ -101,6 +101,12 @@ Performs graph simplifications, including:
 This list is pulled from code comments so is not fully exhaustive, but has
 high coverage of the pass today.
 
+#### Options
+
+```
+-fold-op-element-limit : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as addition of 0, multiplication by 1, and some splat operations.
+```
+
 ### `-stablehlo-target-independent-optimization`
 
 _Runs canonicalizers, folders, and other target-independent optimizations._
@@ -115,6 +121,6 @@ Users should prefer this pass to calling the others directly.
 #### Options
 
 ```
+-fold-op-element-limit : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as addition of 0, multiplication by 1, and some splat operations.
 -fold-float            : Allow for potentially lossy computations using float type.
--fold-op-element-limit : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as when adding 0, multiplying by 1, or operating on splats in some ways.
 ```
