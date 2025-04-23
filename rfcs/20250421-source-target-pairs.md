@@ -21,7 +21,8 @@ XLA to decompose these into send/recv operations, which are then pipelined
 separately, allowing for the staggering that is unique to pipeline parallelism.
 The limitation of this approach is that it encapsulates the latency hiding
 mechanism in the compiler and allows for little control by the user. When this
-mechanism fails, the user has little choice but to debug XLA itself. This RFC is proposed in conjunction with exposing send/recv operations through the JAX
+mechanism fails, the user has little choice but to debug XLA itself. This RFC is
+proposed in conjunction with exposing send/recv operations through the JAX
 `shard_map` API.
 
 ## Proposed Specification
