@@ -7,11 +7,22 @@ Discussion thread: N/A
 
 ## Overview
 
-This RFC proposes adding a new attribute `source_target_pairs` to `send` and `recv` ops. `source_target_pairs` allows users to specify peer-to-peer communication patterns using global device IDs (zero-indexed integers). Currently this feature is only available on GPUs.
+This RFC proposes adding a new attribute `source_target_pairs` to `send` and
+`recv` ops. `source_target_pairs` allows users to specify peer-to-peer
+communication patterns using global device IDs (zero-indexed integers).
+Currently this feature is only available on GPUs.
 
 ## Background
 
-SPMD-based pipeline parallelism relies on optimizations in XLA to pipeline send/recv operations in such a way that compute and communication are overlapped. The user expresses this through collective permutes and relies on XLA to decompose these into send/recv operations, which are then pipelined separately, allowing for the staggering that is unique to pipeline parallelism. The limitation of this approach is that it encapsulates the latency hiding mechanism in the compiler and allows for little control by the user. When this mechanism fails, the user has little choice but to debug XLA itself. This RFC is proposed in conjunction with exposing send/recv operations through the JAX `shard_map` API.
+SPMD-based pipeline parallelism relies on optimizations in XLA to pipeline
+send/recv operations in such a way that compute and communication are
+overlapped. The user expresses this through collective permutes and relies on
+XLA to decompose these into send/recv operations, which are then pipelined
+separately, allowing for the staggering that is unique to pipeline parallelism.
+The limitation of this approach is that it encapsulates the latency hiding
+mechanism in the compiler and allows for little control by the user. When this
+mechanism fails, the user has little choice but to debug XLA itself. This RFC is proposed in conjunction with exposing send/recv operations through the JAX
+`shard_map` API.
 
 ## Proposed Specification
 
