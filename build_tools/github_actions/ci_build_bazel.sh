@@ -45,6 +45,7 @@ bazel-test-diff() {
   STARTING_HASHES_JSON="/tmp/starting_hashes.json"
   FINAL_HASHES_JSON="/tmp/final_hashes.json"
   IMPACTED_TARGETS_PATH="/tmp/impacted_targets.txt"
+  FILTERED_TARGETS_PATH="/tmp/filtered_targets.txt"
 
   bazel-diff() {
     java -jar "$BAZEL_DIFF_JAR" "$@"
@@ -78,10 +79,16 @@ bazel-test-diff() {
   echo ""
 
   # Remove external and duplicate targets.
-  sort /tmp/impacted_targets.txt | uniq | grep -v '//external' > /tmp/filtered_targets.txt
+  sort "$IMPACTED_TARGETS_PATH" | uniq | grep -v '//external' > "$FILTERED_TARGETS_PATH" || true
+
   # Build and Test impacted targets
-  bazel build --target_pattern_file=/tmp/filtered_targets.txt
-  bazel test --target_pattern_file=/tmp/filtered_targets.txt
+  if [[ -s "$FILTERED_TARGETS_PATH" ]]; then
+    echo "Building and Testing Impacted (Non-External) Targets..."
+    bazel build --target_pattern_file="$FILTERED_TARGETS_PATH"
+    bazel test --target_pattern_file="$FILTERED_TARGETS_PATH"
+  else
+    echo "No non-external impacted targets to build and test."
+  fi
 }
 
 # Run bazel build and test
