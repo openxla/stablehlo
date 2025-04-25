@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Quant/IR/Quant.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -29,13 +29,13 @@ int main() {
       mlir::ModuleOp::create(mlir::UnknownLoc::get(&context));
   module->getContext()->loadDialect<mlir::func::FuncDialect>();
   module->getContext()->loadDialect<mlir::stablehlo::StablehloDialect>();
-  module->getContext()->loadDialect<mlir::quant::QuantizationDialect>();
+  module->getContext()->loadDialect<mlir::quant::QuantDialect>();
   module->setName("test_module");
 
   /** create function **/
   // create function argument and result types.
   auto tensorType =
-      mlir::RankedTensorType::get({3, 4}, mlir::FloatType::getF32(&context));
+      mlir::RankedTensorType::get({3, 4}, mlir::Float32Type::get(&context));
   auto func_type =
       mlir::FunctionType::get(&context, {tensorType, tensorType}, {tensorType});
 

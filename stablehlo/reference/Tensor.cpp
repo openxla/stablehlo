@@ -102,27 +102,27 @@ Element Tensor::get(const Index &index) const {
       getSizeInBytes(elementType) * flattenIndex(getShape(), index);
 
   // Handle floating-point types.
-  if (elementType.isFloat8E4M3B11FNUZ()) {
+  if (llvm::isa<Float8E4M3B11FNUZType>(elementType)) {
     auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::Float8E4M3B11FNUZ(),
                                         APInt(8, *elementData)));
   }
-  if (elementType.isFloat8E4M3FN()) {
+  if (llvm::isa<Float8E4M3FNType>(elementType)) {
     auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::Float8E4M3FN(),
                                         APInt(8, *elementData)));
   }
-  if (elementType.isFloat8E4M3FNUZ()) {
+  if (llvm::isa<Float8E4M3FNUZType>(elementType)) {
     auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::Float8E4M3FNUZ(),
                                         APInt(8, *elementData)));
   }
-  if (elementType.isFloat8E5M2()) {
+  if (llvm::isa<Float8E5M2Type>(elementType)) {
     auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::Float8E5M2(),
                                         APInt(8, *elementData)));
   }
-  if (elementType.isFloat8E5M2FNUZ()) {
+  if (llvm::isa<Float8E5M2FNUZType>(elementType)) {
     auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::Float8E5M2FNUZ(),
                                         APInt(8, *elementData)));
@@ -234,9 +234,9 @@ void Tensor::set(const Index &index, const Element &element) {
       getSizeInBytes(elementType) * flattenIndex(getShape(), index);
 
   // Handle floating-point types.
-  if (elementType.isFloat8E4M3B11FNUZ() || elementType.isFloat8E4M3FN() ||
-      elementType.isFloat8E4M3FNUZ() || elementType.isFloat8E5M2() ||
-      elementType.isFloat8E5M2FNUZ()) {
+  if (llvm::isa<Float8E4M3B11FNUZType>(elementType) || llvm::isa<Float8E4M3FNType>(elementType) ||
+      llvm::isa<Float8E4M3FNUZType>(elementType) || llvm::isa<Float8E5M2Type>(elementType) ||
+      llvm::isa<Float8E5M2FNUZType>(elementType)) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
     auto value = element.getFloatValue();
     *elementData = (uint8_t)value.bitcastToAPInt().getZExtValue();
@@ -382,9 +382,11 @@ Tensor makeTensor(DenseElementsAttr attr) {
   auto elementType = type.getElementType();
 
   // Handle floating-point types.
-  if (elementType.isFloat8E4M3B11FNUZ() || elementType.isFloat8E4M3FN() ||
-      elementType.isFloat8E4M3FNUZ() || elementType.isFloat8E5M2() ||
-      elementType.isFloat8E5M2FNUZ()) {
+  if (llvm::isa<Float8E4M3B11FNUZType>(elementType) ||
+      llvm::isa<Float8E4M3FNType>(elementType) ||
+      llvm::isa<Float8E4M3FNUZType>(elementType) ||
+      llvm::isa<Float8E5M2Type>(elementType) ||
+      llvm::isa<Float8E5M2FNUZType>(elementType)) {
     auto floatValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APFloat>(), [&](APFloat value) -> uint8_t {
           return value.bitcastToAPInt().getZExtValue();

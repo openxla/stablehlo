@@ -49,7 +49,7 @@ FailureOr<func::FuncOp> getMainFunction(ModuleOp module, StringRef mainName) {
   auto functions = module.getOps<func::FuncOp>();
 
   for (auto funcOp : functions)
-    if (funcOp.getSymName().equals(mainName)) return funcOp;
+    if (funcOp.getSymName().equals_insensitive(mainName)) return funcOp;
 
   bool isSingleFunction =
       std::distance(functions.begin(), functions.end()) == 1;

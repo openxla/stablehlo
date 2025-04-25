@@ -260,7 +260,7 @@ bool isCommutativeNoRegionMatchingDialect(OperationName innerOp,
                                           StringRef reduceOpDialect) {
   auto innerOpDialect = innerOp.getDialect();
   return innerOpDialect &&
-         innerOpDialect->getNamespace().equals(reduceOpDialect) &&
+         innerOpDialect->getNamespace().equals_insensitive(reduceOpDialect) &&
          innerOp.hasTrait<mlir::OpTrait::NOperands<2>::Impl>() &&
          innerOp.hasTrait<mlir::OpTrait::OneResult>() &&
          (innerOp.hasTrait<mlir::hlo::OpTrait::IsCommutative>() ||
@@ -313,7 +313,7 @@ static bool isReduceEligibleForCompactPrint(Operation* op, ValueRange inputs,
   // Check E5.
   LLVM_DEBUG(llvm::dbgs() << "Checking ReduceOp compact print E5\n");
   auto retOp = block.getTerminator();
-  if (!retOp->getName().stripDialect().equals("return")) return false;
+  if (!retOp->getName().stripDialect().equals_insensitive("return")) return false;
 
   return llvm::equal(innerOp.getResults(), retOp->getOperands());
 }

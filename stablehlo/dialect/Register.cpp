@@ -17,7 +17,7 @@ limitations under the License.
 #include "stablehlo/dialect/Register.h"
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Quant/IR/Quant.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
@@ -31,7 +31,7 @@ namespace stablehlo {
 void registerAllDialects(mlir::DialectRegistry &registry) {
   // clang-format off
   registry.insert<mlir::func::FuncDialect,
-                  mlir::quant::QuantizationDialect,
+                  mlir::quant::QuantDialect,
                   mlir::sparse_tensor::SparseTensorDialect>();
   registry.insert<mlir::chlo::ChloDialect,
                   mlir::stablehlo::StablehloDialect,

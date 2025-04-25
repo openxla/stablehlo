@@ -16,7 +16,7 @@ limitations under the License.
 #include "stablehlo/dialect/VhloTypes.h"
 
 #include "llvm/ADT/TypeSwitch.h"
-#include "mlir/Dialect/Quant/QuantTypes.h"
+#include "mlir/Dialect/Quant/IR/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/DialectImplementation.h"

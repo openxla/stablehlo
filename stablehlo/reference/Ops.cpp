@@ -1433,14 +1433,14 @@ Tensor evalConvolutionOp(
                        extractElements(rhs.getShape(), kernelSpatialDimensions),
                        lhs.getShape()[inputFeatureDimension], lhsPermutation);
 
-  auto lhsWindowStrides =
-      concatAndPermute(1L, llvm::to_vector(windowStrides), 1L, lhsPermutation);
+  auto lhsWindowStrides = concatAndPermute<int64_t>(
+      1, llvm::to_vector(windowStrides), 1, lhsPermutation);
 
   auto lhsBaseDilations =
-      concatAndPermute(0L, Sizes(lhsDilation) - 1, 0L, lhsPermutation);
+      concatAndPermute<int64_t>(0, Sizes(lhsDilation) - 1, 0, lhsPermutation);
 
-  auto lhsWindowDilations =
-      concatAndPermute(1L, llvm::to_vector(rhsDilation), 1L, lhsPermutation);
+  auto lhsWindowDilations = concatAndPermute<int64_t>(
+      1, llvm::to_vector(rhsDilation), 1, lhsPermutation);
 
   Sizes lhsPaddingLow, lhsPaddingHigh;
   for (auto paddingPair : concatAndPermute({0, 0}, llvm::to_vector(padding),
@@ -1461,8 +1461,8 @@ Tensor evalConvolutionOp(
   for (; outputSpatialIndexIt != outputSpatialIndexItEnd;
        ++outputSpatialIndexIt) {
     Sizes lhsWindowStart;
-    for (auto [i, offset] : llvm::enumerate(
-             concatAndPermute(0L, *outputSpatialIndexIt, 0L, lhsPermutation)))
+    for (auto [i, offset] : llvm::enumerate(concatAndPermute<int64_t>(
+             0, *outputSpatialIndexIt, 0, lhsPermutation)))
       lhsWindowStart.push_back(lhsWindowStrides[i] * offset);
 
     Sizes limitIndices;

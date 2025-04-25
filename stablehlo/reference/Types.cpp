@@ -44,9 +44,11 @@ bool isSupportedIntegerType(Type type) {
 }
 
 bool isSupportedFloatType(Type type) {
-  return type.isFloat8E4M3B11FNUZ() || type.isFloat8E4M3FN() ||
-         type.isFloat8E4M3FNUZ() || type.isFloat8E5M2() ||
-         type.isFloat8E5M2FNUZ() || type.isF16() || type.isBF16() ||
+  return llvm::isa<Float8E4M3B11FNUZType>(type) ||
+         llvm::isa<Float8E4M3FNType>(type) ||
+         llvm::isa<Float8E4M3FNUZType>(type) ||
+         llvm::isa<Float8E5M2Type>(type) ||
+         llvm::isa<Float8E5M2FNUZType>(type) || type.isF16() || type.isBF16() ||
          type.isF32() || type.isF64();
 }
 
