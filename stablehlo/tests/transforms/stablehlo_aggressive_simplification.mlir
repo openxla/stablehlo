@@ -994,6 +994,14 @@ func.func @dynamic_pad(%arg0: tensor<?x2x3xi1>, %arg1: tensor<i1>) -> tensor<?x2
   return %0 : tensor<?x2x1xi1>
 }
 
+// CHECK-LABEL: @pad_noop
+func.func @pad_noop(%arg0: tensor<256x1024xbf16>, %arg1: tensor<i32>) -> tensor<256x1024xbf16> {
+  %0 = stablehlo.convert %arg1 : (tensor<i32>) -> tensor<bf16>
+  // CHECK-NOT: stablehlo.pad
+  %1 = stablehlo.pad %arg0, %0, low = [0, 0], high = [0, 0], interior = [0, 0] : (tensor<256x1024xbf16>, tensor<bf16>) -> tensor<256x1024xbf16>
+  return %1 : tensor<256x1024xbf16>
+}
+
 // -----
 
 /////////
