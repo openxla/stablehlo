@@ -61,7 +61,6 @@ Value scalarToTensor(OpBuilder &builder, Type type, ValueRange inputs,
 }  // namespace
 
 LinalgTypeConverter::LinalgTypeConverter() : RemoveSignTypeConverter() {
-  addArgumentMaterialization(scalarToTensor);
   addSourceMaterialization(scalarToTensor);
   addTargetMaterialization(scalarToTensor);
 }

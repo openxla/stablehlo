@@ -102,7 +102,7 @@ def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1", "0.9.0", "current"> {
 // Corresponds to IntegerConstant from the StableHLO spec.
 def VHLO_IntegerAttrV1 : VHLO_AttrDef<"IntegerV1", "0.9.0", "current"> {
   let mnemonic = "integer_v1";
-  let parameters = (ins "mlir::Type":$type, "APInt":$value);
+  let parameters = (ins "mlir::Type":$type, APIntParameter<"">:$value);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult IntegerV1Attr::verify(
