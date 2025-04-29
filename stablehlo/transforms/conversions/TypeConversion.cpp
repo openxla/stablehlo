@@ -77,7 +77,6 @@ RemoveSignTypeConverter::RemoveSignTypeConverter() {
   addConversion(convertInteger);
   addConversion(convertShapedType);
 
-  addArgumentMaterialization(materializeCastFromIllegal);
   addSourceMaterialization(materializeCastToIllegal);
   addTargetMaterialization(materializeCastFromIllegal);
 }

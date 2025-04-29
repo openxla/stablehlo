@@ -333,7 +333,6 @@ Value materializeIllegalCast(OpBuilder& builder, Type type, ValueRange inputs,
 void VhloTypeConverter::addUnrealizedMaterializations() {
   addTargetMaterialization(materializeIllegalCast);
   addSourceMaterialization(materializeIllegalCast);
-  addArgumentMaterialization(materializeIllegalCast);
 }
 
 namespace {

@@ -221,7 +221,7 @@ def StableHLO_ResultAccuracyAttr : AttrDef<StableHLO_Dialect, "ResultAccuracy"> 
   );
   let hasCustomAssemblyFormat = 1;
   let genVerifyDecl = 1;
-  let constBuilderCall = "ResultAccuracyAttr::get($_builder.getContext(), APFloat(0.0), APFloat(0.0), 0, ResultAccuracyModeAttr::get($_builder.getContext(), $0))";
+  let constBuilderCall = "::mlir::stablehlo::ResultAccuracyAttr::get($_builder.getContext(), APFloat(0.0), APFloat(0.0), 0, ::mlir::stablehlo::ResultAccuracyModeAttr::get($_builder.getContext(), $0))";
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_ATTRS
