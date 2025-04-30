@@ -31,9 +31,7 @@ proposed in conjunction with exposing send/recv operations through the JAX
 
 #### Semantics
 
-Sends `inputs` to a channel `channel_id`. Inputs are then sent to other devices
-in the order specified by `source_target_pairs`. The operation produces a
-`result` token.
+Sends `inputs` to a channel `channel_id` and produces a `result` token.
 
 If `is_host_transfer` is `true`, then the operation transfers data to the
 host. Otherwise, it transfers data to another device based on the values of
@@ -131,6 +129,6 @@ separate outputs to improve clarity
 %results0, %results1 = "stablehlo.recv"(%token) {
   source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
   channel_handle = #stablehlo.channel_handle<handle = 1, type = 3>,
-  is_host_transfer = true
+  is_host_transfer = false
 } : (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
 ```
