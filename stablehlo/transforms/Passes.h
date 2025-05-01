@@ -33,7 +33,6 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/TypeID.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
 
@@ -41,10 +40,6 @@ namespace mlir {
 namespace stablehlo {
 
 #define GEN_PASS_DECL
-
-std::unique_ptr<::mlir::Pass> createStablehloAggressiveSimplificationPass(
-    GreedyRewriteConfig config);
-
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/transforms/Passes.h.inc"
 

@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLEHLO_TRANSFORMS_OPTIMIZATION_PASSES_H
 #define STABLEHLO_TRANSFORMS_OPTIMIZATION_PASSES_H
 
+#include <memory>
 #include <utility>
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -33,6 +34,10 @@ namespace stablehlo {
 #define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/transforms/optimization/Passes.h.inc"
+
+std::unique_ptr<::mlir::Pass> createStablehloAggressiveSimplificationPass(
+    StablehloAggressiveSimplificationPassOptions options,
+    GreedyRewriteConfig rewriteConfig);
 
 std::pair<StablehloAggressiveFolderPassOptions,
           StablehloAggressiveSimplificationPassOptions>
