@@ -47,6 +47,7 @@ limitations under the License.
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Support/LLVM.h"
@@ -956,6 +957,43 @@ struct EvalTransposeOpPattern : public FoldOpRewritePattern<TransposeOp> {
   }
 };
 
+struct FoldWhileOpPattern : public FoldOpRewritePattern<WhileOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
+  LogicalResult matchAndRewrite(WhileOp op,
+                                PatternRewriter& rewriter) const override {
+    // It is, unfortunately, possible for code to depend on the very existence
+    // of a side effect even if that side effect is unreachable. We'd ideally
+    // like to fix this, but that's not as simple as it sounds. For now, we need
+    // to make sure we don't DCE code with side effects in case something else
+    // depends on it.
+    if (op->use_empty() && !isOpTriviallyDead(op))
+      return rewriter.notifyMatchFailure(
+          op,
+          "The op is already unused but can't be removed due to side effects.");
+
+    auto condReturnOp = dyn_cast<ReturnOp>(op.getCond().front().back());
+    if (!condReturnOp)
+      return rewriter.notifyMatchFailure(
+          op, "Condition region is missing a return statement.");
+
+    DenseIntElementsAttr condValue;
+    if (!matchPattern(condReturnOp.getOperand(0), m_Constant(&condValue)))
+      return rewriter.notifyMatchFailure(
+          op, "Condition block does not return a constant.");
+    if (condValue.getSplatValue<BoolAttr>().getValue())
+      return rewriter.notifyMatchFailure(
+          op, "Condition value is not a splat of the bool `false`.");
+
+    // Replace uses of the op's result, but don't remove the op itself; let
+    // dedicated DCE logic handle that step if appropriate. (This is because of
+    // the aforementioned issue where ops with side effects might need to remain
+    // in the IR even if unreachable.)
+    rewriter.replaceAllOpUsesWith(op, op.getOperand());
+    return success();
+  }
+};
+
 struct StablehloAggressiveFolderPass
     : public impl::StablehloAggressiveFolderPassBase<
           StablehloAggressiveFolderPass> {
@@ -993,14 +1031,18 @@ void populateStablehloAggressiveFolderPatterns(
     const StablehloAggressiveFolderPassOptions& options,
     PatternBenefit benefit) {
   populateStablehloShapeFolderPatterns(context, patterns, options, benefit);
-  patterns->add<EvalIotaOpPattern>(context, options, benefit);
-  patterns->add<EvalTransposeOpPattern>(context, options, benefit);
+  patterns->add<EvalIotaOpPattern,       //
+                EvalTransposeOpPattern,  //
+                FoldWhileOpPattern>(context, options, benefit);
 
   // TODO: Consolidate FoldOp patterns
   // One is used by Shape Refinement, the other is a generic folder.
-  patterns->add<FoldAddOpPattern, FoldBroadcastInDimSplatPattern,
-                FoldConcatenateOpPattern, FoldMulOpPattern,
-                FoldSubtractOpPattern, FoldSqrtOpPattern>(context, options);
+  patterns->add<FoldAddOpPattern,                //
+                FoldBroadcastInDimSplatPattern,  //
+                FoldConcatenateOpPattern,        //
+                FoldMulOpPattern,                //
+                FoldSqrtOpPattern,               //
+                FoldSubtractOpPattern>(context, options);
 }
 
 class StablehloTargetIndependentOptimizationPass {
