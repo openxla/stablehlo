@@ -1164,7 +1164,8 @@ void populateStablehloAggressiveFolderPatterns(
                 FoldReduceOpToConstantInitializer,  //
                 FoldReduceOpWithRedundantResults,   //
                 FoldWhileOpPattern,                 //
-                LowerBoolSplatConstantsIntoReduceOpRegion>(context, benefit);
+                LowerBoolSplatConstantsIntoReduceOpRegion>(context, options,
+                                                           benefit);
 
   // TODO: Consolidate FoldOp patterns
   // One is used by Shape Refinement, the other is a generic folder.
