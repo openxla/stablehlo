@@ -13,6 +13,7 @@
 #include <iterator>
 #include <memory>
 #include <optional>
+#include <type_traits>
 #include <utility>
 
 #include "llvm/ADT/APInt.h"
@@ -22,6 +23,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FormatVariadic.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
@@ -135,7 +137,9 @@ static ComparisonDirection invertDirection(ComparisonDirection direction) {
       return ComparisonDirection::GT;
   }
 
-  llvm::report_fatal_error("Unhandled case");
+  llvm::report_fatal_error(llvm::formatv(
+      "Undefined enum value for `ComparisonDirection`: {0}",
+      static_cast<std::underlying_type_t<ComparisonDirection>>(direction)));
 }
 
 struct CompareOpCanon final : SimplifyOpRewritePattern<CompareOp> {
