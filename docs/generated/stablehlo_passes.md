@@ -455,7 +455,7 @@ compositeAttributeProviderMap[mlir::TypeID::get<mlir::stablehlo::AddOp>()] =
   [](mlir::Operation* op) -> std::optional<mlir::NamedAttrList> {
   // Custom logic to determine if and how to wrap the operation.
   // Example: Only wrap if it's on a specific type.
-  if (op->getOperand(0).getType().isa<mlir::Float32Type>()) {
+  if (mlir::isa<mlir::Float32Type>(op->getOperand(0).getType())) {
     return mlir::NamedAttrList(op->getAttrs());
   }
   return std::nullopt; // Do not wrap.
