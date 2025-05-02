@@ -70,3 +70,6 @@ test --nobuild_runfile_links
 # https://bazel.build/reference/command-line-reference#flag--legacy_external_runfiles
 build --nolegacy_external_runfiles
 test --nolegacy_external_runfiles
+
+# Disallow empty globs unless explicitly declared using `allow_empty=True`
+common --incompatible_disallow_empty_glob
