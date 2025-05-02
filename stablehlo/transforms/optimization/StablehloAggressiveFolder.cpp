@@ -958,8 +958,8 @@ struct EvalTransposeOpPattern : public FoldOpRewritePattern<TransposeOp> {
 };
 
 struct LowerBoolSplatConstantsIntoReduceOpRegion
-    : public OpRewritePattern<ReduceOp> {
-  using OpRewritePattern::OpRewritePattern;
+    : public FoldOpRewritePattern<ReduceOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
@@ -999,8 +999,8 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
   }
 };
 
-struct FoldReduceOpReducingZeroDims : public OpRewritePattern<ReduceOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct FoldReduceOpReducingZeroDims : public FoldOpRewritePattern<ReduceOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
@@ -1017,8 +1017,9 @@ struct FoldReduceOpReducingZeroDims : public OpRewritePattern<ReduceOp> {
   }
 };
 
-struct FoldReduceOpToConstantInitializer : public OpRewritePattern<ReduceOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct FoldReduceOpToConstantInitializer
+    : public FoldOpRewritePattern<ReduceOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
@@ -1058,8 +1059,9 @@ struct FoldReduceOpToConstantInitializer : public OpRewritePattern<ReduceOp> {
   }
 };
 
-struct FoldReduceOpWithRedundantResults : public OpRewritePattern<ReduceOp> {
-  using OpRewritePattern::OpRewritePattern;
+struct FoldReduceOpWithRedundantResults
+    : public FoldOpRewritePattern<ReduceOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
