@@ -29,6 +29,7 @@ add_mlir_dialect_library(StablehloOptimizationPasses
   DEPENDS
   OptimizationPassesIncGen
   StablehloAggressiveSimplificationPatternsIncGen
+  StablehloPassUtils
 
   LINK_LIBS PUBLIC
   ChloOps
@@ -42,4 +43,5 @@ add_mlir_dialect_library(StablehloOptimizationPasses
   StablehloBase
   StablehloOps
   StablehloTypeInference
+  StablehloPassUtils
 )
