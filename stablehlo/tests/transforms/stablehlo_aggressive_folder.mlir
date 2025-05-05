@@ -180,9 +180,23 @@ func.func @eval_iota_zero_dimension() -> (tensor<0xi32>, tensor<5x0x2xi32>) {
 // -----
 
 ////////
+// ReduceOp
+
+// CHECK-LABEL: func @reduce_op_fold
+func.func @reduce_op_fold(%arg0: tensor<i64>) -> tensor<i1> {
+  %c = stablehlo.constant dense<false> : tensor<4x32xi1>
+  %c_0 = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-NOT: stablehlo.reduce
+  %0 = stablehlo.reduce(%c init: %c_0) applies stablehlo.or across dimensions = [0, 1] : (tensor<4x32xi1>, tensor<i1>) -> tensor<i1>
+  return %0 : tensor<i1>
+}
+
+// -----
+
+////////
 // ReshapeOp
 
-// CHECK-LABEL: func @reshape
+// CHECK-LABEL: func @reshape_fold
 func.func @reshape_fold() -> (tensor<1xi32>, tensor<2x2xi32>) {
   %c0 = stablehlo.constant dense<2> : tensor<i32>
   %c1 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi32>

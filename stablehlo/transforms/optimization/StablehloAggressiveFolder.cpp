@@ -957,6 +957,150 @@ struct EvalTransposeOpPattern : public FoldOpRewritePattern<TransposeOp> {
   }
 };
 
+struct LowerBoolSplatConstantsIntoReduceOpRegion
+    : public FoldOpRewritePattern<ReduceOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ReduceOp op,
+                                PatternRewriter& rewriter) const override {
+    Block& body = op.getBody().front();
+
+    if (body.getOperations().size() != 2)
+      return rewriter.notifyMatchFailure(op, "Incompatible op count in body.");
+    if (!isa<AndOp, OrOp>(body.front()))
+      return rewriter.notifyMatchFailure(op, "Only match AND and OR ops.");
+
+    SmallVector<DenseElementsAttr, 4> bodyArgConstantAttrs;
+
+    for (auto [inputValue, bodyArg] :
+         llvm::zip_equal(op.getOperands(), body.getArguments())) {
+      auto inputConstantOp = inputValue.getDefiningOp<ConstantOp>();
+      if (!inputConstantOp)
+        return rewriter.notifyMatchFailure(op, "Input must be a constant.");
+
+      auto inputConstantAttr =
+          dyn_cast_or_null<DenseElementsAttr>(inputConstantOp.getValue());
+      if (!inputConstantAttr)
+        return rewriter.notifyMatchFailure(op,
+                                           "Input must be a splat constant.");
+
+      auto bodyArgShapedType = dyn_cast<ShapedType>(bodyArg.getType());
+      if (!bodyArgShapedType)
+        return rewriter.notifyMatchFailure(
+            op, "Could not get the shape of the body argument.");
+
+      bodyArgConstantAttrs.push_back(DenseElementsAttr::get(
+          bodyArgShapedType, inputConstantAttr.getSplatValue<Attribute>()));
+    }
+
+    for (BlockArgument bodyArg : body.getArguments()) {
+      rewriter.replaceAllUsesWith(
+          bodyArg, rewriter.create<ConstantOp>(
+                       body.front().getLoc(), bodyArg.getType(),
+                       bodyArgConstantAttrs[bodyArg.getArgNumber()]));
+    }
+
+    return success();
+  }
+};
+
+struct FoldReduceOpReducingZeroDims : public FoldOpRewritePattern<ReduceOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ReduceOp op,
+                                PatternRewriter& rewriter) const override {
+    // Fail to match if the reduce op operates on any dimensions.
+    if (!op.getDimensions().empty())
+      return rewriter.notifyMatchFailure(
+          op, "The reduce op reduces a nonzero number of dimensions.");
+
+    // Check that input and output types match.
+    for (auto [in, out] : llvm::zip_equal(op.getInputs(), op.getResults())) {
+      if (in.getType() != out.getType())
+        return rewriter.notifyMatchFailure(
+            op, "Input and output types do not match.");
+    }
+
+    rewriter.replaceOp(op, op.getInputs());
+    return success();
+  }
+};
+
+struct FoldReduceOpToConstantInitializer
+    : public FoldOpRewritePattern<ReduceOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ReduceOp op,
+                                PatternRewriter& rewriter) const override {
+    Block& body = op.getBody().front();
+    if (body.getOperations().size() != 1)
+      return rewriter.notifyMatchFailure(op,
+                                         "Body must contain exactly one op.");
+
+    auto returnOp = dyn_cast<ReturnOp>(body.back());
+    if (!returnOp)
+      return rewriter.notifyMatchFailure(op, "Body must end with a return op.");
+
+    SmallVector<DenseElementsAttr> resultAttrs;
+    for (auto [bodyResult, opResult] :
+         llvm::zip_equal(returnOp.getResults(), op.getResults())) {
+      auto* sourceOfBlockResult = bodyResult.getDefiningOp();
+      if (!sourceOfBlockResult ||
+          !sourceOfBlockResult->hasTrait<OpTrait::ConstantLike>())
+        return rewriter.notifyMatchFailure(op,
+                                           "Body result must be a constant.");
+
+      DenseElementsAttr constantAttr;
+      if (!matchPattern(sourceOfBlockResult, m_Constant(&constantAttr)))
+        return rewriter.notifyMatchFailure(
+            op, "Could not extract constant attribute from body result.");
+
+      auto resultShapedType = dyn_cast<ShapedType>(opResult.getType());
+      if (!resultShapedType)
+        return rewriter.notifyMatchFailure(
+            op, "Could not get the shape of the reduce op's result.");
+
+      resultAttrs.push_back(DenseElementsAttr::get(
+          resultShapedType, {constantAttr.getSplatValue<Attribute>()}));
+    }
+
+    SmallVector<Value> resultValues;
+    for (auto resultAttr : resultAttrs) {
+      resultValues.push_back(rewriter.create<ConstantOp>(
+          op.getLoc(), resultAttr.getType(), resultAttr));
+    }
+
+    rewriter.replaceOp(op, resultValues);
+    return success();
+  }
+};
+
+struct FoldReduceOpWithRedundantResults
+    : public FoldOpRewritePattern<ReduceOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ReduceOp op,
+                                PatternRewriter& rewriter) const override {
+    Block& body = op.getBody().front();
+    auto returnOp = dyn_cast<ReturnOp>(body.back());
+    if (!returnOp)
+      return rewriter.notifyMatchFailure(op, "Body must end with a return op.");
+
+    Region* returnOpParentRegion = returnOp->getParentRegion();
+
+    for (auto [reduceOpResult, returnOpResult] :
+         llvm::zip_equal(op.getResults(), returnOp.getResults())) {
+      if (returnOpResult.getParentRegion() == returnOpParentRegion ||
+          returnOpResult.getType() != reduceOpResult.getType()) {
+        return rewriter.notifyMatchFailure(
+            op, "The reduce op's result isn't redundant.");
+      }
+    }
+    rewriter.replaceOp(op, returnOp.getResults());
+    return success();
+  }
+};
+
 struct FoldWhileOpPattern : public FoldOpRewritePattern<WhileOp> {
   using FoldOpRewritePattern::FoldOpRewritePattern;
 
@@ -1031,9 +1175,15 @@ void populateStablehloAggressiveFolderPatterns(
     const StablehloAggressiveFolderPassOptions& options,
     PatternBenefit benefit) {
   populateStablehloShapeFolderPatterns(context, patterns, options, benefit);
-  patterns->add<EvalIotaOpPattern,       //
-                EvalTransposeOpPattern,  //
-                FoldWhileOpPattern>(context, options, benefit);
+
+  patterns->add<EvalIotaOpPattern,                  //
+                EvalTransposeOpPattern,             //
+                FoldReduceOpReducingZeroDims,       //
+                FoldReduceOpToConstantInitializer,  //
+                FoldReduceOpWithRedundantResults,   //
+                FoldWhileOpPattern,                 //
+                LowerBoolSplatConstantsIntoReduceOpRegion>(context, options,
+                                                           benefit);
 
   // TODO: Consolidate FoldOp patterns
   // One is used by Shape Refinement, the other is a generic folder.
