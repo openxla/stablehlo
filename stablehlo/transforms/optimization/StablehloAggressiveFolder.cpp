@@ -965,15 +965,18 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
                                 PatternRewriter& rewriter) const override {
     Block& body = op.getBody().front();
 
-    if (body.getOperations().size() != 2) return failure();
-    if (!isa<AndOp, OrOp>(body.front())) return failure();
+    if (body.getOperations().size() != 2)
+      return rewriter.notifyMatchFailure(op, "Incompatible op count in body.");
+    if (!isa<AndOp, OrOp>(body.front()))
+      return rewriter.notifyMatchFailure(op, "Only match AND and OR ops.");
 
     SmallVector<DenseElementsAttr, 4> bodyArgConstantAttrs;
 
     for (auto [inputValue, bodyArg] :
          llvm::zip_equal(op.getOperands(), body.getArguments())) {
       auto inputConstantOp = inputValue.getDefiningOp<ConstantOp>();
-      if (!inputConstantOp) return failure();
+      if (!inputConstantOp)
+        return rewriter.notifyMatchFailure(op, "Input must be a constant.");
 
       auto inputConstantAttr =
           dyn_cast_or_null<DenseElementsAttr>(inputConstantOp.getValue());
@@ -982,7 +985,9 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
                                            "Input must be a splat constant.");
 
       auto bodyArgShapedType = dyn_cast<ShapedType>(bodyArg.getType());
-      if (!bodyArgShapedType) return failure();
+      if (!bodyArgShapedType)
+        return rewriter.notifyMatchFailure(
+            op, "Could not get the shape of the body argument.");
 
       bodyArgConstantAttrs.push_back(DenseElementsAttr::get(
           bodyArgShapedType, inputConstantAttr.getSplatValue<Attribute>()));
@@ -1005,11 +1010,15 @@ struct FoldReduceOpReducingZeroDims : public FoldOpRewritePattern<ReduceOp> {
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
     // Fail to match if the reduce op operates on any dimensions.
-    if (!op.getDimensions().empty()) return failure();
+    if (!op.getDimensions().empty())
+      return rewriter.notifyMatchFailure(
+          op, "The reduce op reduces a nonzero number of dimensions.");
 
     // Check that input and output types match.
     for (auto [in, out] : llvm::zip_equal(op.getInputs(), op.getResults())) {
-      if (in.getType() != out.getType()) return failure();
+      if (in.getType() != out.getType())
+        return rewriter.notifyMatchFailure(
+            op, "Input and output types do not match.");
     }
 
     rewriter.replaceOp(op, op.getInputs());
@@ -1024,10 +1033,13 @@ struct FoldReduceOpToConstantInitializer
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
     Block& body = op.getBody().front();
-    if (body.getOperations().size() != 1) return failure();
+    if (body.getOperations().size() != 1)
+      return rewriter.notifyMatchFailure(op,
+                                         "Body must contain exactly one op.");
 
     auto returnOp = dyn_cast<ReturnOp>(body.back());
-    if (!returnOp) return failure();
+    if (!returnOp)
+      return rewriter.notifyMatchFailure(op, "Body must end with a return op.");
 
     SmallVector<DenseElementsAttr> resultAttrs;
     for (auto [bodyResult, opResult] :
@@ -1035,14 +1047,18 @@ struct FoldReduceOpToConstantInitializer
       auto* sourceOfBlockResult = bodyResult.getDefiningOp();
       if (!sourceOfBlockResult ||
           !sourceOfBlockResult->hasTrait<OpTrait::ConstantLike>())
-        return failure();
+        return rewriter.notifyMatchFailure(op,
+                                           "Body result must be a constant.");
 
       DenseElementsAttr constantAttr;
       if (!matchPattern(sourceOfBlockResult, m_Constant(&constantAttr)))
-        return failure();
+        return rewriter.notifyMatchFailure(
+            op, "Could not extract constant attribute from body result.");
 
-      auto resultShapedType = dyn_cast_or_null<ShapedType>(opResult.getType());
-      if (!resultShapedType) return failure();
+      auto resultShapedType = dyn_cast<ShapedType>(opResult.getType());
+      if (!resultShapedType)
+        return rewriter.notifyMatchFailure(
+            op, "Could not get the shape of the reduce op's result.");
 
       resultAttrs.push_back(DenseElementsAttr::get(
           resultShapedType, {constantAttr.getSplatValue<Attribute>()}));
@@ -1067,7 +1083,8 @@ struct FoldReduceOpWithRedundantResults
                                 PatternRewriter& rewriter) const override {
     Block& body = op.getBody().front();
     auto returnOp = dyn_cast<ReturnOp>(body.back());
-    if (!returnOp) return failure();
+    if (!returnOp)
+      return rewriter.notifyMatchFailure(op, "Body must end with a return op.");
 
     Region* returnOpParentRegion = returnOp->getParentRegion();
 
@@ -1075,7 +1092,8 @@ struct FoldReduceOpWithRedundantResults
          llvm::zip_equal(op.getResults(), returnOp.getResults())) {
       if (returnOpResult.getParentRegion() == returnOpParentRegion ||
           returnOpResult.getType() != reduceOpResult.getType()) {
-        return failure();
+        return rewriter.notifyMatchFailure(
+            op, "The reduce op's result isn't redundant.");
       }
     }
     rewriter.replaceOp(op, returnOp.getResults());
