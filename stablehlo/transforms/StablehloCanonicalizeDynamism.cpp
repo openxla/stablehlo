@@ -308,11 +308,11 @@ struct StablehloCanonicalizeDynamismPass
       StablehloCanonicalizeDynamismPassBase;
 
   LogicalResult initialize(MLIRContext* context) override {
-    config.useTopDownTraversal = true;
-    config.enableRegionSimplification = GreedySimplifyRegionLevel::Aggressive;
-    config.maxIterations = 2;
-    config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
-    config.strictMode = GreedyRewriteStrictness::AnyOp;
+    config.setUseTopDownTraversal(true)
+        .setRegionSimplificationLevel(GreedySimplifyRegionLevel::Aggressive)
+        .setMaxIterations(2)
+        .setMaxNumRewrites(GreedyRewriteConfig::kNoLimit)
+        .setStrictness(GreedyRewriteStrictness::AnyOp);
 
     RewritePatternSet patterns_(context);
     populateStablehloCanonicalizeDynamismPatterns(context, &patterns_);
@@ -325,7 +325,7 @@ struct StablehloCanonicalizeDynamismPass
     auto func = getOperation();
     if (failed(applyPatternsGreedily(func, patterns, config))) {
       func.emitError("Failed to converge StablehloCanonicalizeDynamism in ")
-          << config.maxIterations << " iterations";
+          << config.getMaxIterations() << " iterations";
     }
   }
 

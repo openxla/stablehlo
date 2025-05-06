@@ -1233,6 +1233,7 @@ func.func @torch_index_select(%arg0: tensor<5x1x5xi32>,
 //      CHECK: func @torch_index_select
 // CHECK-SAME:   %[[INPUT:[a-zA-Z0-9_]*]]
 // CHECK-SAME:   %[[INDEX:[a-zA-Z0-9_]*]]
+//      CHECK: %[[C0:.+]] = arith.constant 0 : index
 //      CHECK: %[[INIT1:.+]] = tensor.empty() :
 //      CHECK: %[[INIT2:.+]] = tensor.empty() :
 //      CHECK: linalg.generic {
@@ -1244,9 +1245,8 @@ func.func @torch_index_select(%arg0: tensor<5x1x5xi32>,
 // CHECK-SAME: {someattr}
 //      CHECK: ^{{.+}}(%[[VAL:.+]]: i32, %{{.+}}: i32, %{{.+}}: i32):
 //      CHECK:   %[[CAST:.+]] = arith.index_cast %[[VAL]] : i32 to index
-//      CHECK:   %[[J:.+]] = linalg.index 1
 //      CHECK:   %[[K:.+]] = linalg.index 2
-//      CHECK:   %[[VAL2:.+]] = tensor.extract %[[INPUT]][%[[CAST]], %[[J]], %[[K]]] : tensor<5x1x5xi32>
+//      CHECK:   %[[VAL2:.+]] = tensor.extract %[[INPUT]][%[[CAST]], %[[C0]], %[[K]]] : tensor<5x1x5xi32>
 //      CHECK:   linalg.yield %[[VAL2]] : i32
 
 // -----
@@ -1265,6 +1265,7 @@ func.func @torch_index_select_unsigned(%arg0: tensor<5x1x5xui32>,
   } : (tensor<5x1x5xui32>, tensor<2xi32>) -> tensor<2x1x5xui32>
   func.return %0 : tensor<2x1x5xui32>
 }
+//      CHECK:   %[[C0:.+]] = arith.constant 0 : index
 //      CHECK:   %[[INPUT_SIGNLESS:.*]] = builtin.unrealized_conversion_cast %[[INPUT]] : tensor<5x1x5xui32> to tensor<5x1x5xi32>
 //      CHECK:   %[[INIT:.*]] = tensor.empty() : tensor<1x5xi32>
 //      CHECK:   %[[RES:.+]] = linalg.generic {
@@ -1274,9 +1275,8 @@ func.func @torch_index_select_unsigned(%arg0: tensor<5x1x5xui32>,
 // CHECK-SAME:   ins(%[[INDEX]], %[[INIT]] : tensor<2xi32>, tensor<1x5xi32>)
 //      CHECK:   ^{{.+}}(%[[VAL:.+]]: i32, %{{.+}}: i32, %{{.+}}: i32):
 //      CHECK:     %[[CAST:.+]] = arith.index_cast %[[VAL]] : i32 to index
-//      CHECK:     %[[J:.+]] = linalg.index 1
 //      CHECK:     %[[K:.+]] = linalg.index 2
-//      CHECK:     %[[VAL2:.+]] = tensor.extract %[[INPUT_SIGNLESS]][%[[CAST]], %[[J]], %[[K]]] : tensor<5x1x5xi32>
+//      CHECK:     %[[VAL2:.+]] = tensor.extract %[[INPUT_SIGNLESS]][%[[CAST]], %[[C0]], %[[K]]] : tensor<5x1x5xi32>
 //      CHECK:     linalg.yield %[[VAL2]] : i32
 //      CHECK:   %[[RES_UNSIGNED:.+]] = builtin.unrealized_conversion_cast %[[RES]] : tensor<2x1x5xi32> to tensor<2x1x5xui32>
 //      CHECK:   return %[[RES_UNSIGNED]]

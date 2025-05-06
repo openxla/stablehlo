@@ -56,10 +56,23 @@ void populateStablehloToVhloPatterns(MLIRContext *context,
                                      RewritePatternSet *patterns,
                                      TypeConverter *converter);
 
+inline void populateStablehloToVhloPatterns(RewritePatternSet *patterns,
+                                            MLIRContext *context,
+                                            TypeConverter *converter) {
+  populateStablehloToVhloPatterns(context, patterns, converter);
+}
+
 // Populates VHLO ops to StableHLO ops rewriting patterns.
+
 void populateVhloToStablehloPatterns(MLIRContext *context,
-                                     RewritePatternSet *patterns,
-                                     TypeConverter *converter);
+  RewritePatternSet *patterns,
+  TypeConverter *converter);
+
+inline void populateVhloToStablehloPatterns(RewritePatternSet *patterns,
+                                            TypeConverter *converter,
+                                            MLIRContext *context) {
+  populateVhloToStablehloPatterns(context, patterns, converter);
+}
 
 // Populates VHLO downgrade rewriting patterns.
 void populateVhloToVersionPatterns(MLIRContext *context,

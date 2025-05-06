@@ -30,12 +30,11 @@ func.func @gather(%operand : tensor<1x4x8xi32>, %start_indices : tensor<1x8x2xi3
 // CHECK-SAME:           outs(%[[INIT]] : tensor<1x8x8xi32>)
 // CHECK-SAME:           {someattr}
 // CHECK:           ^bb0
-// CHECK-DAG:         %[[IDX0:.+]] = linalg.index 0
 // CHECK-DAG:         %[[IDX1:.+]] = linalg.index 1
 // CHECK-DAG:         %[[IDX2:.+]] = linalg.index 2
-// CHECK-DAG:         %[[S0_INT:.+]] = tensor.extract %[[START_INDICES]][%[[IDX0]], %[[IDX1]], %[[C0]]] : tensor<1x8x2xi32>
+// CHECK-DAG:         %[[S0_INT:.+]] = tensor.extract %[[START_INDICES]][%[[C0]], %[[IDX1]], %[[C0]]] : tensor<1x8x2xi32>
 // CHECK-DAG:         %[[S0:.+]] = arith.index_cast %[[S0_INT]] : i32 to index
-// CHECK-DAG:         %[[S1_INT:.+]] = tensor.extract %[[START_INDICES]][%[[IDX0]], %[[IDX1]], %[[C1]]] : tensor<1x8x2xi32>
+// CHECK-DAG:         %[[S1_INT:.+]] = tensor.extract %[[START_INDICES]][%[[C0]], %[[IDX1]], %[[C1]]] : tensor<1x8x2xi32>
 // CHECK-DAG:         %[[S1:.+]] = arith.index_cast %[[S1_INT]] : i32 to index
 // CHECK-DAG:         %[[CLAMP0:.+]] = arith.maxsi %[[S0]], %[[C0]]  : index
 // CHECK-DAG:         %[[IN0:.+]] = arith.minsi %[[CLAMP0]], %[[C0]]

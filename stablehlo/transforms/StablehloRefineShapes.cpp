@@ -1023,14 +1023,14 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
   // The algorithm behind this pass consists of a single traversal of the
   // function. This is sufficient because we only support one function per
   // program at the moment.
-  // TODO(#1048): Find out why .maxIterations = 1 no longer works.
+  // TODO(#1048): Find out why .setMaxIterations(1) no longer works.
   // There have been recent refactors to applyPatternsGreedily
   // upstream, and that might be the reason.
-  config.useTopDownTraversal = true;
-  config.enableRegionSimplification = GreedySimplifyRegionLevel::Aggressive;
-  config.maxIterations = 2;
-  config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
-  config.strictMode = GreedyRewriteStrictness::AnyOp;
+  config.setUseTopDownTraversal(true)
+      .setRegionSimplificationLevel(GreedySimplifyRegionLevel::Aggressive)
+      .setMaxIterations(2)
+      .setMaxNumRewrites(GreedyRewriteConfig::kNoLimit)
+      .setStrictness(GreedyRewriteStrictness::AnyOp);
 
   populateStablehloRefineShapesPatterns(context, &patterns);
   patterns.add<RefineCallOpPattern>(context, state);
@@ -1049,7 +1049,7 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
 
   if (failed(applyPatternsGreedily(func, std::move(patterns), config)))
     func.emitError("Failed to converge StablehloRefineShapes in ")
-        << config.maxIterations << " iterations";
+        << config.getMaxIterations() << " iterations";
 
   return success();
 }
@@ -1097,7 +1097,7 @@ LogicalResult refineFunction(MLIRContext& context, RefineShapeState& state,
   size_t firstFunctionalArgument =
       leadingTokenOperands + key.getGlobalConstants().size();
   argIndices.set(leadingTokenOperands, firstFunctionalArgument);
-  func.eraseArguments(argIndices);
+  if (failed(func.eraseArguments(argIndices))) return failure();
 
   // Refine the remaining argument types, wrap with shape buffer custom calls.
   SmallVector<Type> refinedTypes =
