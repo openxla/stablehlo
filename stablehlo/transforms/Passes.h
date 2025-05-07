@@ -57,7 +57,6 @@ void populateStablehloToVhloPatterns(MLIRContext *context,
                                      TypeConverter *converter);
 
 // Populates VHLO ops to StableHLO ops rewriting patterns.
-
 void populateVhloToStablehloPatterns(MLIRContext *context,
                                      RewritePatternSet *patterns,
                                      TypeConverter *converter);

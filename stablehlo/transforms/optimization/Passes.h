@@ -95,10 +95,6 @@ void populateStablehloShapeFolderPatterns(
     MLIRContext *context, RewritePatternSet *patterns,
     StablehloAggressiveFolderPassOptions &&options,
     PatternBenefit benefit = 1) = delete;
-void populateStablehloShapeFolderPatterns(
-    RewritePatternSet *patterns, MLIRContext *context,
-    StablehloAggressiveFolderPassOptions &&options,
-    PatternBenefit benefit = 1) = delete;
 void populateStablehloAggressiveFolderPatterns(
     MLIRContext *context, RewritePatternSet *patterns,
     StablehloAggressiveFolderPassOptions &&options,
