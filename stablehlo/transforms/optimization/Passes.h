@@ -75,13 +75,6 @@ void populateStablehloShapeFolderPatterns(MLIRContext *context,
                                           RewritePatternSet *patterns,
                                           PatternBenefit benefit = 1);
 
-// TODO(gunhyun): To be deleted in the next integrate.
-inline void populateStablehloShapeFolderPatterns(RewritePatternSet *patterns,
-                                          MLIRContext *context,
-                                          PatternBenefit benefit = 1) {
-  populateStablehloShapeFolderPatterns(context, patterns, benefit);
-}
-
 /// Some workloads in XLA import StableHLO from HLO. Since there are a few
 /// differences in HLO (no implicit captures, lots of tuples, etc.), this
 /// set of patterns brings the imported HLO back to a more canonical form
@@ -113,7 +106,6 @@ void populateStablehloAggressiveFolderPatterns(
 void populateStablehloHloImportCanonicalizationPatterns(
     MLIRContext *context, RewritePatternSet *patterns,
     StablehloAggressiveSimplificationPassOptions &&options) = delete;
-
 
 }  // namespace stablehlo
 }  // namespace mlir
