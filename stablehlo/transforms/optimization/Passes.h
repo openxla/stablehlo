@@ -38,11 +38,12 @@ namespace stablehlo {
 std::unique_ptr<::mlir::Pass> createStablehloAggressiveSimplificationPass(
     StablehloAggressiveSimplificationPassOptions options,
     GreedyRewriteConfig rewriteConfig);
-
-std::pair<StablehloAggressiveFolderPassOptions,
-          StablehloAggressiveSimplificationPassOptions>
-splitTargetIndependentOptimizationOptions(
-    const StablehloTargetIndependentOptimizationPassOptions &options);
+std::unique_ptr<::mlir::Pass> createStablehloAggressiveFolderPass(
+    StablehloAggressiveFolderPassOptions options,
+    GreedyRewriteConfig rewriteConfig);
+std::unique_ptr<::mlir::Pass> createStablehloTargetIndependentOptimizationPass(
+    StablehloTargetIndependentOptimizationPassOptions options,
+    GreedyRewriteConfig rewriteConfig);
 
 /// Collection of canonicalization patterns for StableHLO.
 void populateStablehloCanonicalizationPatterns(

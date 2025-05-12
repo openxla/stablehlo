@@ -16,13 +16,24 @@ limitations under the License.
 include "mlir/Pass/PassBase.td"
 
 defvar kAllStablehloOptimizationPassFlags = [
+  // go/keep-sorted start
+  Option<"assumeNoUndeclaredSideEffects", "assume-no-undeclared-side-effects",
+         "bool", /*default=*/"false",
+         "Allow dead code to be eliminated in some situations (e.g. dead while "
+         "loops) under the assumption that ops are pure unless declared with "
+         "explicit MLIR `MemoryEffects`. Notably, this means `func.call` ops "
+         "will be assumed pure.">,
   Option<"foldOpElementLimit", "fold-op-element-limit", "int64_t",
-          /*default=*/"65536",
-          "Upper limit on how many elements may be folded by an op folder. "
-          "This limit doesn't apply in certain special cases such as "
-          "addition of 0, multiplication by 1, and some splat operations.">,
-  Option<"foldFloat", "fold-float", "bool", /*default=*/"true",
-          "Allow for potentially lossy computations using float type.">,
+         /*default=*/"65536",
+         "Upper limit on how many elements may be folded by an op folder. "
+         "This limit doesn't apply in certain special cases such as "
+         "addition with 0, multiplication by 1, and some splat operations.">,
+  Option<"optimizeFloat", "optimize-float", "bool", /*default=*/"true",
+         "Allow float optimizations that, though mathematically equivalent, "
+         "may result in slightly different quantization of floating-point "
+         "values (e.g. `log(sqrt(x))` -> `0.5 * log(x)`). Float optimizations "
+         "that can't affect numerical results are always enabled.">,
+  // go/keep-sorted end
 ]<Option>;
 
 class EnableStablehloOptimizationPassFlags<list<string> enabledFlags> {
@@ -64,8 +75,11 @@ def StablehloAggressiveFolderPass
     "mlir::stablehlo::StablehloDialect",
   ];
   let options = EnableStablehloOptimizationPassFlags<[
+    // go/keep-sorted start
+    "assume-no-undeclared-side-effects",
     "fold-op-element-limit",
-    "fold-float",
+    "optimize-float",
+    // go/keep-sorted end
   ]>.enabledOptions;
 }
 
@@ -165,7 +179,9 @@ def StablehloAggressiveSimplificationPass
     "mlir::arith::ArithDialect",
   ];
   let options = EnableStablehloOptimizationPassFlags<[
+    // go/keep-sorted start
     "fold-op-element-limit",
+    // go/keep-sorted end
   ]>.enabledOptions;
 }
 
@@ -184,7 +200,10 @@ def StablehloTargetIndependentOptimizationPass
     "mlir::stablehlo::StablehloDialect",
   ];
   let options = EnableStablehloOptimizationPassFlags<[
+    // go/keep-sorted start
+    "assume-no-undeclared-side-effects",
     "fold-op-element-limit",
-    "fold-float",
+    "optimize-float",
+    // go/keep-sorted end
   ]>.enabledOptions;
 }

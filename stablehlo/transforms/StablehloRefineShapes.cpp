@@ -1039,7 +1039,7 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
   state.addAdditionalPatterns(patterns);
 
   StablehloAggressiveFolderPassOptions folderOptions;
-  folderOptions.foldFloat = false;
+  folderOptions.optimizeFloat = false;
 
   // The folding patterns implement partial evaluation of shape computations
   // which is a critical part of implementing type refinement for ops like
@@ -1097,7 +1097,7 @@ LogicalResult refineFunction(MLIRContext& context, RefineShapeState& state,
   size_t firstFunctionalArgument =
       leadingTokenOperands + key.getGlobalConstants().size();
   argIndices.set(leadingTokenOperands, firstFunctionalArgument);
-  if (failed(func.eraseArguments(argIndices))) return failure();
+  func.eraseArguments(argIndices);
 
   // Refine the remaining argument types, wrap with shape buffer custom calls.
   SmallVector<Type> refinedTypes =

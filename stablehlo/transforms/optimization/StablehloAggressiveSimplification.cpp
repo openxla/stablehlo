@@ -1527,12 +1527,10 @@ struct ReorderElementwiseAndShapeOp final
 struct StablehloAggressiveSimplificationPass
     : impl::StablehloAggressiveSimplificationPassBase<
           StablehloAggressiveSimplificationPass> {
-  using Options = StablehloAggressiveSimplificationPassOptions;
-
   explicit StablehloAggressiveSimplificationPass(
-      Options options, GreedyRewriteConfig rewriteConfig = {})
-      : StablehloAggressiveSimplificationPassBase(Options(options)),
-        options(options),
+      StablehloAggressiveSimplificationPassOptions options,
+      GreedyRewriteConfig rewriteConfig = {})
+      : StablehloAggressiveSimplificationPassBase(options),
         rewriteConfig(rewriteConfig) {}
 
   explicit StablehloAggressiveSimplificationPass()
@@ -1542,6 +1540,10 @@ struct StablehloAggressiveSimplificationPass
     MLIRContext *context = &getContext();
     RewritePatternSet patterns(context);
 
+    StablehloAggressiveSimplificationPassOptions options{
+        /*foldOpElementLimit=*/foldOpElementLimit,
+    };
+
     populateStablehloCanonicalizationPatterns(context, &patterns, options);
 
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns),
@@ -1550,7 +1552,6 @@ struct StablehloAggressiveSimplificationPass
   }
 
  private:
-  Options options;
   GreedyRewriteConfig rewriteConfig;
 };
 
