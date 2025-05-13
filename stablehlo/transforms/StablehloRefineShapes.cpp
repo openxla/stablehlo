@@ -1039,7 +1039,7 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
   state.addAdditionalPatterns(patterns);
 
   StablehloAggressiveFolderPassOptions folderOptions;
-  folderOptions.foldFloat = false;
+  folderOptions.optimizeFloat = false;
 
   // The folding patterns implement partial evaluation of shape computations
   // which is a critical part of implementing type refinement for ops like

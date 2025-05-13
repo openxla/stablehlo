@@ -35,12 +35,10 @@ namespace mlir::stablehlo {
 struct StablehloTargetIndependentOptimizationPass
     : public impl::StablehloTargetIndependentOptimizationPassBase<
           StablehloTargetIndependentOptimizationPass> {
-  using Options = StablehloTargetIndependentOptimizationPassOptions;
-
   explicit StablehloTargetIndependentOptimizationPass(
-      Options options, GreedyRewriteConfig rewriteConfig = {})
-      : StablehloTargetIndependentOptimizationPassBase(),
-        options(options),
+      StablehloTargetIndependentOptimizationPassOptions options,
+      GreedyRewriteConfig rewriteConfig = {})
+      : StablehloTargetIndependentOptimizationPassBase(options),
         rewriteConfig(rewriteConfig) {}
 
   explicit StablehloTargetIndependentOptimizationPass()
@@ -49,8 +47,15 @@ struct StablehloTargetIndependentOptimizationPass
   void runOnOperation() override {
     MLIRContext* context = &getContext();
     RewritePatternSet patterns(context);
-    auto [folderOptions, simplificationOptions] =
-        splitTargetIndependentOptimizationOptions(options);
+
+    StablehloAggressiveFolderPassOptions folderOptions{
+        /*assumeNoUndeclaredSideEffects=*/assumeNoUndeclaredSideEffects,
+        /*foldOpElementLimit=*/foldOpElementLimit,
+        /*optimizeFloat=*/optimizeFloat,
+    };
+    StablehloAggressiveSimplificationPassOptions simplificationOptions{
+        /*foldOpElementLimit=*/foldOpElementLimit,
+    };
 
     populateStablehloAggressiveFolderPatterns(context, &patterns, folderOptions,
                                               /*benefit=*/2);
@@ -63,24 +68,8 @@ struct StablehloTargetIndependentOptimizationPass
   }
 
  private:
-  Options options;
   GreedyRewriteConfig rewriteConfig;
 };
-
-std::pair<StablehloAggressiveFolderPassOptions,
-          StablehloAggressiveSimplificationPassOptions>
-splitTargetIndependentOptimizationOptions(
-    const StablehloTargetIndependentOptimizationPassOptions& options) {
-  return {
-      StablehloAggressiveFolderPassOptions{
-          /*foldOpElementLimit=*/options.foldOpElementLimit,
-          /*foldFloat=*/options.foldFloat,
-      },
-      StablehloAggressiveSimplificationPassOptions{
-          /*foldOpElementLimit=*/options.foldOpElementLimit,
-      },
-  };
-}
 
 std::unique_ptr<::mlir::Pass> createStablehloTargetIndependentOptimizationPass(
     StablehloTargetIndependentOptimizationPassOptions options,

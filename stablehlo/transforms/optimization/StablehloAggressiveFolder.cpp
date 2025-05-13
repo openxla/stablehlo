@@ -312,7 +312,7 @@ struct ShapeOpRewritePattern : public FoldOpRewritePattern<OpType> {
   LogicalResult validateShapeFoldDtype(PatternRewriter& rewriter, OpType op,
                                        ShapedType resultType) const {
     if (resultType.getElementType().isInteger()) return success();
-    if (options.foldFloat && isa<FloatType>(resultType.getElementType()))
+    if (options.optimizeFloat && isa<FloatType>(resultType.getElementType()))
       return success();
     return rewriter.notifyMatchFailure(op, "skipping fold of shape op dtype");
   }
@@ -523,7 +523,7 @@ struct EvalConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
 
     auto operandElemType = getElementTypeOrSelf(operand.getType());
     auto resultElemType = getElementTypeOrSelf(resultType);
-    if (!options.foldFloat &&
+    if (!options.optimizeFloat &&
         (isa<FloatType>(operandElemType) || isa<FloatType>(resultElemType)))
       return rewriter.notifyMatchFailure(op, "skipping fold of float convert");
 
@@ -1113,8 +1113,7 @@ struct FoldWhileOpPattern : public FoldOpRewritePattern<WhileOp> {
     // depends on it.
     if (op->use_empty() && !isOpTriviallyDead(op))
       return rewriter.notifyMatchFailure(
-          op,
-          "The op is already unused but can't be removed due to side effects.");
+          op, "Keeping dead while op due to known or potential side effects.");
 
     auto condReturnOp = dyn_cast<ReturnOp>(op.getCond().front().back());
     if (!condReturnOp)
@@ -1138,15 +1137,68 @@ struct FoldWhileOpPattern : public FoldOpRewritePattern<WhileOp> {
   }
 };
 
+bool hasNoDeclaredSideEffects(Operation* op) {
+  if (auto memInterface = dyn_cast<MemoryEffectOpInterface>(op)) {
+    // Return false if the op has memory effects of its own.
+    if (!memInterface.hasNoEffect()) return false;
+    // The op has no direct memory effects. Return true if it has no recursive
+    // memory effects, either.
+    if (!op->hasTrait<OpTrait::HasRecursiveMemoryEffects>()) return true;
+  } else {
+    // The op doesn't implement the memory-effect interface. This function is
+    // only interested in explicitly declared side effects, so we treat it as
+    // having none and move on to checking its regions in case they have any.
+  }
+
+  // The op doesn't declare any side effects of its own, but its regions could
+  // still contain ops that do declare side effects. Recursively check them.
+  for (Region& region : op->getRegions()) {
+    for (Operation& op : region.getOps()) {
+      if (!hasNoDeclaredSideEffects(&op)) return false;
+    }
+  }
+  return true;
+}
+
+struct RemoveDeadWhileOpWithNoSideEffects
+    : public FoldOpRewritePattern<WhileOp> {
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
+  LogicalResult matchAndRewrite(WhileOp op,
+                                PatternRewriter& rewriter) const override {
+    if (!op->use_empty()) {
+      return rewriter.notifyMatchFailure(op, "The op's result is in use.");
+    }
+
+    if (options.assumeNoUndeclaredSideEffects) {
+      if (!hasNoDeclaredSideEffects(op)) {
+        return rewriter.notifyMatchFailure(
+            op,
+            "The op, or another op within its region, explicitly declares side "
+            "effects.");
+      }
+    } else {
+      if (!isMemoryEffectFree(op)) {
+        return rewriter.notifyMatchFailure(
+            op, "Not removing the op due to potential side effects.");
+      }
+    }
+
+    // Neither this op nor any in its regions have any declared side effects (or
+    // any potential side effects if `assumeNoUndeclaredSideEffects` is false),
+    // and the op's result is unused. Erase the op.
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 struct StablehloAggressiveFolderPass
     : public impl::StablehloAggressiveFolderPassBase<
           StablehloAggressiveFolderPass> {
-  using Options = StablehloAggressiveFolderPassOptions;
-
-  explicit StablehloAggressiveFolderPass(Options options,
-                                         GreedyRewriteConfig rewriteConfig = {})
-      : StablehloAggressiveFolderPassBase(Options(options)),
-        options(options),
+  explicit StablehloAggressiveFolderPass(
+      StablehloAggressiveFolderPassOptions options,
+      GreedyRewriteConfig rewriteConfig = {})
+      : StablehloAggressiveFolderPassBase(options),
         rewriteConfig(rewriteConfig) {}
 
   explicit StablehloAggressiveFolderPass()
@@ -1156,6 +1208,12 @@ struct StablehloAggressiveFolderPass
     MLIRContext* context = &getContext();
     RewritePatternSet patterns(context);
 
+    StablehloAggressiveFolderPassOptions options{
+        /*assumeNoUndeclaredSideEffects=*/assumeNoUndeclaredSideEffects,
+        /*foldOpElementLimit=*/foldOpElementLimit,
+        /*optimizeFloat=*/optimizeFloat,
+    };
+
     populateStablehloAggressiveFolderPatterns(context, &patterns, options);
 
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns),
@@ -1164,7 +1222,6 @@ struct StablehloAggressiveFolderPass
   }
 
  private:
-  Options options;
   GreedyRewriteConfig rewriteConfig;
 };
 
@@ -1176,14 +1233,14 @@ void populateStablehloAggressiveFolderPatterns(
     PatternBenefit benefit) {
   populateStablehloShapeFolderPatterns(context, patterns, options, benefit);
 
-  patterns->add<EvalIotaOpPattern,                  //
-                EvalTransposeOpPattern,             //
-                FoldReduceOpReducingZeroDims,       //
-                FoldReduceOpToConstantInitializer,  //
-                FoldReduceOpWithRedundantResults,   //
-                FoldWhileOpPattern,                 //
-                LowerBoolSplatConstantsIntoReduceOpRegion>(context, options,
-                                                           benefit);
+  patterns->add<EvalIotaOpPattern,                          //
+                EvalTransposeOpPattern,                     //
+                FoldReduceOpReducingZeroDims,               //
+                FoldReduceOpToConstantInitializer,          //
+                FoldReduceOpWithRedundantResults,           //
+                FoldWhileOpPattern,                         //
+                LowerBoolSplatConstantsIntoReduceOpRegion,  //
+                RemoveDeadWhileOpWithNoSideEffects>(context, options, benefit);
 
   // TODO: Consolidate FoldOp patterns
   // One is used by Shape Refinement, the other is a generic folder.

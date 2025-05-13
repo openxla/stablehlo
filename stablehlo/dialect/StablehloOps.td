@@ -60,6 +60,14 @@ class StableHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits> :
     StableHLO_Op<mnemonic, traits # [DeclareOpInterfaceMethods<InferShapedTypeOpInterface,
     ["reifyReturnTypeShapes"]>]> {}
 
+class StableHLO_ResourceBase<string resourceKind> :
+    Resource<!strconcat("::mlir::stablehlo::side_effects::", resourceKind)> {}
+
+def StableHLO_SendResource : StableHLO_ResourceBase<"SendResource">;
+def StableHLO_RecvResource : StableHLO_ResourceBase<"RecvResource">;
+def StableHLO_InfeedResource : StableHLO_ResourceBase<"InfeedResource">;
+def StableHLO_OutfeedResource : StableHLO_ResourceBase<"OutfeedResource">;
+
 //===----------------------------------------------------------------------===//
 // StableHLO nullary op definitions.
 //===----------------------------------------------------------------------===//
@@ -1152,7 +1160,9 @@ def StableHLO_XorOp : StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"xor"> {
 // StableHLO communication op definitions.
 //===----------------------------------------------------------------------===//
 
-def StableHLO_InfeedOp : StableHLO_Op<"infeed"> {
+def StableHLO_InfeedOp : StableHLO_Op<"infeed", [
+      MemoryEffects<[MemRead<StableHLO_InfeedResource>]>,
+    ]> {
   let summary = "Infeed operation";
   let description = [{
     Reads data from the infeed and produces `results`.
@@ -1176,8 +1186,10 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed"> {
   let hasVerifier = 1;
 }
 
-def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
-    [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", [
+      DeclareOpInterfaceMethods<InferTypeOpInterface>,
+      MemoryEffects<[MemWrite<StableHLO_OutfeedResource>]>,
+    ]> {
   let summary = "Outfeed operation";
   let description = [{
     Writes `inputs` to the outfeed and produces a `result` token.
@@ -1200,8 +1212,10 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
   let results = (outs HLO_Token);
 }
 
-def StableHLO_SendOp : StableHLO_Op<"send",
-    [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+def StableHLO_SendOp : StableHLO_Op<"send", [
+      DeclareOpInterfaceMethods<InferTypeOpInterface>,
+      MemoryEffects<[MemWrite<StableHLO_SendResource>]>,
+    ]> {
   let summary = "Send operation";
   let description = [{
     Sends `inputs` to a channel `channel_id` and produces a `result` token.
@@ -1228,7 +1242,9 @@ def StableHLO_SendOp : StableHLO_Op<"send",
   let results = (outs HLO_Token);
 }
 
-def StableHLO_RecvOp : StableHLO_Op<"recv"> {
+def StableHLO_RecvOp : StableHLO_Op<"recv", [
+      MemoryEffects<[MemRead<StableHLO_RecvResource>]>
+    ]> {
   let summary = "Recv operation";
   let description = [{
     Receives data from a channel with `channel_id` and produces `results`.
@@ -1301,8 +1317,10 @@ def StableHLO_PartitionIdOp : StableHLO_Op<"partition_id", [Pure,
 // StableHLO control flow op definitions.
 //===----------------------------------------------------------------------===//
 
-def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [Pure,
-    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [
+      Pure,
+      DeclareOpInterfaceMethods<InferTypeOpInterface>,
+    ]> {
   let summary = "AfterAll operation";
   let description = [{
     Ensures that the operations producing the `inputs` are executed before any
@@ -1392,7 +1410,6 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
   );
 
   let regions = (region VariadicRegion<SizedRegion<1>>:$branches /*case_i2*/);
-
   let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>);
 }
 

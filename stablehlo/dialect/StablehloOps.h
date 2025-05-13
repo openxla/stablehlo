@@ -134,6 +134,23 @@ ParseResult parseWindowAttributes(OpAsmParser &parser,
                                   DenseI64ArrayAttr &rhsDilation,
                                   DenseBoolArrayAttr &windowReversal);
 
+namespace side_effects {
+
+struct SendResource : ::mlir::SideEffects::Resource::Base<SendResource> {
+  StringRef getName() final { return "SendResource"; }
+};
+struct RecvResource : ::mlir::SideEffects::Resource::Base<RecvResource> {
+  StringRef getName() final { return "RecvResource"; }
+};
+struct InfeedResource : ::mlir::SideEffects::Resource::Base<InfeedResource> {
+  StringRef getName() final { return "OutfeedResource"; }
+};
+struct OutfeedResource : ::mlir::SideEffects::Resource::Base<OutfeedResource> {
+  StringRef getName() final { return "OutfeedResource"; }
+};
+
+}  // end namespace side_effects
+
 }  // end namespace stablehlo
 }  // end namespace mlir
 

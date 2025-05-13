@@ -510,10 +510,12 @@ LogicalResult CustomCallOp::verify() {
 void CustomCallOp::getEffects(
     SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>&
         effects) {
-  // CustomCall has "all possible effects" unless the has_side_effect is present
-  // and set to false.
-  auto hasSideEffect = getHasSideEffectAttr();
-  if (hasSideEffect && !hasSideEffect.getValue()) return;
+  // Note: `has_side_effect` "defaults" to `false` but isn't required to exist.
+  // This semantic contradiction means, in practical terms, that the attribute
+  // won't exist by default but should be *treated* as `false` if missing.
+  // `getHasSideEffect()` abstracts this nuance away and returns `false` by
+  // default, whereas `getHasSideEffectAttr()` may return a null attribute.
+  if (!getHasSideEffect()) return;
   effects.emplace_back(MemoryEffects::Allocate::get());
   effects.emplace_back(MemoryEffects::Free::get());
   effects.emplace_back(MemoryEffects::Write::get());
