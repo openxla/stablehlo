@@ -16,7 +16,6 @@ limitations under the License.
 include "mlir/Pass/PassBase.td"
 
 defvar kAllStablehloOptimizationPassFlags = [
-  // go/keep-sorted start
   Option<"assumeNoUndeclaredSideEffects", "assume-no-undeclared-side-effects",
          "bool", /*default=*/"false",
          "Allow dead code to be eliminated in some situations (e.g. dead while "
@@ -33,7 +32,6 @@ defvar kAllStablehloOptimizationPassFlags = [
          "may result in slightly different quantization of floating-point "
          "values (e.g. `log(sqrt(x))` -> `0.5 * log(x)`). Float optimizations "
          "that can't affect numerical results are always enabled.">,
-  // go/keep-sorted end
 ]<Option>;
 
 class EnableStablehloOptimizationPassFlags<list<string> enabledFlags> {
@@ -75,11 +73,9 @@ def StablehloAggressiveFolderPass
     "mlir::stablehlo::StablehloDialect",
   ];
   let options = EnableStablehloOptimizationPassFlags<[
-    // go/keep-sorted start
     "assume-no-undeclared-side-effects",
     "fold-op-element-limit",
     "optimize-float",
-    // go/keep-sorted end
   ]>.enabledOptions;
 }
 
@@ -179,9 +175,7 @@ def StablehloAggressiveSimplificationPass
     "mlir::arith::ArithDialect",
   ];
   let options = EnableStablehloOptimizationPassFlags<[
-    // go/keep-sorted start
     "fold-op-element-limit",
-    // go/keep-sorted end
   ]>.enabledOptions;
 }
 
@@ -200,10 +194,8 @@ def StablehloTargetIndependentOptimizationPass
     "mlir::stablehlo::StablehloDialect",
   ];
   let options = EnableStablehloOptimizationPassFlags<[
-    // go/keep-sorted start
     "assume-no-undeclared-side-effects",
     "fold-op-element-limit",
     "optimize-float",
-    // go/keep-sorted end
   ]>.enabledOptions;
 }
