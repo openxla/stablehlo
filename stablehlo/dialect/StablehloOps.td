@@ -1214,7 +1214,7 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", [
 
 def StableHLO_SendOp : StableHLO_Op<"send", [
       DeclareOpInterfaceMethods<InferTypeOpInterface>,
-      MemoryEffects<[MemRead<StableHLO_SendResource>]>,
+      MemoryEffects<[MemWrite<StableHLO_SendResource>]>,
     ]> {
   let summary = "Send operation";
   let description = [{
@@ -1243,7 +1243,7 @@ def StableHLO_SendOp : StableHLO_Op<"send", [
 }
 
 def StableHLO_RecvOp : StableHLO_Op<"recv", [
-      MemoryEffects<[MemWrite<StableHLO_RecvResource>]>
+      MemoryEffects<[MemRead<StableHLO_RecvResource>]>
     ]> {
   let summary = "Recv operation";
   let description = [{
