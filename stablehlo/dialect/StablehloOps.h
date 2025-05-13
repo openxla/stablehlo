@@ -143,7 +143,7 @@ struct RecvResource : ::mlir::SideEffects::Resource::Base<RecvResource> {
   StringRef getName() final { return "RecvResource"; }
 };
 struct InfeedResource : ::mlir::SideEffects::Resource::Base<InfeedResource> {
-  StringRef getName() final { return "OutfeedResource"; }
+  StringRef getName() final { return "InfeedResource"; }
 };
 struct OutfeedResource : ::mlir::SideEffects::Resource::Base<OutfeedResource> {
   StringRef getName() final { return "OutfeedResource"; }
