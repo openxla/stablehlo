@@ -1166,10 +1166,6 @@ struct RemoveDeadWhileOpWithNoSideEffects
 
   LogicalResult matchAndRewrite(WhileOp op,
                                 PatternRewriter& rewriter) const override {
-    LLVM_DEBUG(llvm::dbgs()
-               << "Assume no undeclared side effects: "
-               << (options.assumeNoUndeclaredSideEffects ? "true" : "false")
-               << '\n');
     if (!op->use_empty()) {
       return rewriter.notifyMatchFailure(op, "The op's result is in use.");
     }
