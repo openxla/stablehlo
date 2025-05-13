@@ -1,7 +1,5 @@
 // RUN: stablehlo-opt --stablehlo-aggressive-folder=assume-no-undeclared-side-effects=true --split-input-file --verify-diagnostics %s | FileCheck %s
 
-// stablehlo-opt --stablehlo-aggressive-folder=assume-no-undeclared-side-effects=false --split-input-file --verify-diagnostics %s | FileCheck %s
-
 func.func @foo() -> tensor<i64> {
   %1 = stablehlo.custom_call @something() : () -> tensor<i64>
   return %1 : tensor<i64>
