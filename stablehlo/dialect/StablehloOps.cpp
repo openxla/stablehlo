@@ -2651,16 +2651,16 @@ class FoldConstantCaseOp : public OpRewritePattern<CaseOp> {
       return failure();
     }
 
-    Block &block = op.getBranches()[index].back();
+    Block& block = op.getBranches()[index].back();
     IRMapping mapping;
-    for (auto &block_op : block.without_terminator()) {
+    for (auto& block_op : block.without_terminator()) {
       rewriter.clone(block_op, mapping);
     }
     rewriter.replaceOp(
         op, llvm::to_vector(llvm::map_range(
-            block.getTerminator()->getOperands(),
-            [&](Value v) { return mapping.lookupOrDefault(v); })));
-      return success();
+                block.getTerminator()->getOperands(),
+                [&](Value v) { return mapping.lookupOrDefault(v); })));
+    return success();
   }
 };
 
