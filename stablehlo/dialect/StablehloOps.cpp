@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <iterator>
@@ -2647,7 +2648,7 @@ class FoldConstantCaseOp : public OpRewritePattern<CaseOp> {
     if (!matchPattern(op.getIndex(), m_Constant(&branch))) return failure();
 
     int index = *branch.getValues<int>().begin();
-    if (index >= op.getBranches().size() || index < 0) {
+    if (static_cast<size_t>(index) >= op.getBranches().size() || index < 0) {
       return failure();
     }
 
