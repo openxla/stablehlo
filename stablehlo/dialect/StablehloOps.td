@@ -1410,6 +1410,9 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
   );
 
   let regions = (region VariadicRegion<SizedRegion<1>>:$branches /*case_i2*/);
+
+  let hasCanonicalizer = 1;
+
   let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>);
 }
 
