@@ -1161,7 +1161,8 @@ def StableHLO_XorOp : StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"xor"> {
 //===----------------------------------------------------------------------===//
 
 def StableHLO_InfeedOp : StableHLO_Op<"infeed", [
-      MemoryEffects<[MemRead<StableHLO_InfeedResource>]>,
+      MemoryEffects<[MemRead<StableHLO_InfeedResource>,
+                     MemWrite<StableHLO_InfeedResource>]>,
     ]> {
   let summary = "Infeed operation";
   let description = [{
@@ -1188,7 +1189,8 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", [
 
 def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", [
       DeclareOpInterfaceMethods<InferTypeOpInterface>,
-      MemoryEffects<[MemWrite<StableHLO_OutfeedResource>]>,
+      MemoryEffects<[MemRead<StableHLO_OutfeedResource>,
+                     MemWrite<StableHLO_OutfeedResource>]>,
     ]> {
   let summary = "Outfeed operation";
   let description = [{
@@ -1214,7 +1216,8 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", [
 
 def StableHLO_SendOp : StableHLO_Op<"send", [
       DeclareOpInterfaceMethods<InferTypeOpInterface>,
-      MemoryEffects<[MemWrite<StableHLO_SendResource>]>,
+      MemoryEffects<[MemRead<StableHLO_SendResource>,
+                     MemWrite<StableHLO_SendResource>]>,
     ]> {
   let summary = "Send operation";
   let description = [{
@@ -1243,7 +1246,8 @@ def StableHLO_SendOp : StableHLO_Op<"send", [
 }
 
 def StableHLO_RecvOp : StableHLO_Op<"recv", [
-      MemoryEffects<[MemRead<StableHLO_RecvResource>]>
+      MemoryEffects<[MemRead<StableHLO_RecvResource>,
+                     MemWrite<StableHLO_RecvResource>]>,
     ]> {
   let summary = "Recv operation";
   let description = [{
