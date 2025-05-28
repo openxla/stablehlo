@@ -305,7 +305,12 @@ struct CustomCallUnregisteredBackendConfigToFfi final
       return rewriter.notifyMatchFailure(
           op, "No `mhlo.backend_config` attribute to fix.");
 
-    if (!dyn_cast<StringAttr>(op.getBackendConfigOrDefault()).empty())
+    auto oldBackendConfig =
+        dyn_cast<StringAttr>(op.getBackendConfigOrDefault());
+    if (!oldBackendConfig)
+      return rewriter.notifyMatchFailure(
+          op, "`op.getBackendConfigOrDefault()` didn't return a `StringAttr`.");
+    if (!oldBackendConfig.empty())
       return rewriter.notifyMatchFailure(
           op, "Non-empty `backend_config` attribute shouldn't be overwritten.");
 
