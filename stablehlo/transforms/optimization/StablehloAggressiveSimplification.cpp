@@ -288,17 +288,19 @@ class ConcatenateOpFlatten : public SimplifyOpRewritePattern<ConcatenateOp> {
 // CustomCallOp
 /////////////////////////////////
 
-struct FixMhloBackendConfigAttribute final
+struct CustomCallUnregisteredBackendConfigToFfi final
     : SimplifyOpRewritePattern<CustomCallOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(CustomCallOp op,
                                 PatternRewriter &rewriter) const override {
+    constexpr StringRef kMhloBackendConfigAttrName = "mhlo.backend_config";
+
     if (op.getApiVersion() != CustomCallApiVersion::API_VERSION_ORIGINAL)
       return rewriter.notifyMatchFailure(
           op, "Only match `custom_call` ops with `API_VERSION_ORIGINAL`.");
 
-    auto mhloBackendConfigAttr = op->getAttr("mhlo.backend_config");
+    auto mhloBackendConfigAttr = op->getAttr(kMhloBackendConfigAttrName);
     if (!mhloBackendConfigAttr)
       return rewriter.notifyMatchFailure(
           op, "No `mhlo.backend_config` attribute to fix.");
@@ -309,7 +311,7 @@ struct FixMhloBackendConfigAttribute final
 
     op.setBackendConfigAttr(mhloBackendConfigAttr);
     op.setApiVersion(CustomCallApiVersion::API_VERSION_TYPED_FFI);
-    op->removeAttr("mhlo.backend_config");
+    op->removeAttr(kMhloBackendConfigAttrName);
 
     return success();
   }
@@ -1596,14 +1598,15 @@ void populateStablehloCanonicalizationPatterns(
   populateWithGenerated(*patterns);
   patterns->add<
       CompareOpCanon, CompareSelectIntoMinMax, ConcatenateOpFlatten,
-      ConcatenateOpNoop, ConcatenateOpRemoveEmpty, DynamicIotaOpToBroadcast,
+      ConcatenateOpNoop, ConcatenateOpRemoveEmpty,
+      CustomCallUnregisteredBackendConfigToFfi, DynamicIotaOpToBroadcast,
       DynamicReshapeOpSameOperandAndResultShape, DynamicSliceOpToSlice,
-      FixMhloBackendConfigAttribute, GatherOpCanon, IotaOpBroadcast,
-      PadOpBroadcastEmptyTensor, RealDynamicSliceOpToDynamicSlice,
-      ReduceOpEmptyCanon, ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon,
-      SelectOpCanon, SliceOpConcatSimplify, SortOpDropUnusedArgs,
-      SortOpSetDimension, TransposeIsReshape, TupleIsRepacking,
-      WhileOpImplicitCapture>(context, options, benefit);
+      GatherOpCanon, IotaOpBroadcast, PadOpBroadcastEmptyTensor,
+      RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
+      ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon, SelectOpCanon,
+      SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
+      TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
+      context, options, benefit);
 
   // Generic patterns
   patterns->add<ReorderElementwiseAndShapeOp, ZeroExtentToEmptyConstant>(
