@@ -299,6 +299,19 @@ func.func @convert(%arg0: tensor<2xf32>) -> tensor<2xf32> {
 // -----
 
 /////////
+// CustomCallOp
+
+// CHECK-LABEL: @fix_mhlo_backend_config_attribute
+func.func @fix_mhlo_backend_config_attribute(%arg0: tensor<1xf32>) -> (tensor<1xf32>) {
+  // CHECK-NEXT: %[[CC:.*]] = stablehlo.custom_call @foo(%arg0) {api_version = 4 : i32, backend_config = {bar = 1 : i32}} : (tensor<1xf32>) -> tensor<1xf32>
+  %0 = stablehlo.custom_call @foo(%arg0) {api_version = 1 : i32, mhlo.backend_config = {bar = 1: i32}} : (tensor<1xf32>) -> tensor<1xf32>
+  // CHECK-NEXT: return %[[CC]]
+  return %0 : tensor<1xf32>
+}
+
+// -----
+
+/////////
 // DynamicBroadcastInDimOp
 
 // CHECK-LABEL: func @dynamic_broadcast_in_dim_all_dims_non_expanding

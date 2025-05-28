@@ -284,6 +284,37 @@ class ConcatenateOpFlatten : public SimplifyOpRewritePattern<ConcatenateOp> {
   }
 };
 
+/////////////////////////////////
+// CustomCallOp
+/////////////////////////////////
+
+struct FixMhloBackendConfigAttribute final
+    : SimplifyOpRewritePattern<CustomCallOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
+
+  LogicalResult matchAndRewrite(CustomCallOp op,
+                                PatternRewriter &rewriter) const override {
+    if (op.getApiVersion() != CustomCallApiVersion::API_VERSION_ORIGINAL)
+      return rewriter.notifyMatchFailure(
+          op, "Only match `custom_call` ops with `API_VERSION_ORIGINAL`.");
+
+    auto mhloBackendConfigAttr = op->getAttr("mhlo.backend_config");
+    if (!mhloBackendConfigAttr)
+      return rewriter.notifyMatchFailure(
+          op, "No `mhlo.backend_config` attribute to fix.");
+
+    if (!dyn_cast<StringAttr>(op.getBackendConfigOrDefault()).empty())
+      return rewriter.notifyMatchFailure(
+          op, "Non-empty `backend_config` attribute shouldn't be overwritten.");
+
+    op.setBackendConfigAttr(mhloBackendConfigAttr);
+    op.setApiVersion(CustomCallApiVersion::API_VERSION_TYPED_FFI);
+    op->removeAttr("mhlo.backend_config");
+
+    return success();
+  }
+};
+
 //////////////////////////////////
 // BroadcastInDimOp
 /////////////////////////////////
@@ -1567,12 +1598,12 @@ void populateStablehloCanonicalizationPatterns(
       CompareOpCanon, CompareSelectIntoMinMax, ConcatenateOpFlatten,
       ConcatenateOpNoop, ConcatenateOpRemoveEmpty, DynamicIotaOpToBroadcast,
       DynamicReshapeOpSameOperandAndResultShape, DynamicSliceOpToSlice,
-      GatherOpCanon, IotaOpBroadcast, PadOpBroadcastEmptyTensor,
-      RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
-      ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon, SelectOpCanon,
-      SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
-      TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
-      context, options, benefit);
+      FixMhloBackendConfigAttribute, GatherOpCanon, IotaOpBroadcast,
+      PadOpBroadcastEmptyTensor, RealDynamicSliceOpToDynamicSlice,
+      ReduceOpEmptyCanon, ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon,
+      SelectOpCanon, SliceOpConcatSimplify, SortOpDropUnusedArgs,
+      SortOpSetDimension, TransposeIsReshape, TupleIsRepacking,
+      WhileOpImplicitCapture>(context, options, benefit);
 
   // Generic patterns
   patterns->add<ReorderElementwiseAndShapeOp, ZeroExtentToEmptyConstant>(
