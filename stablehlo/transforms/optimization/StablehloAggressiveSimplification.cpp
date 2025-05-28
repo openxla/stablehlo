@@ -309,7 +309,7 @@ struct CustomCallUnregisteredBackendConfigToFfi final
         dyn_cast<StringAttr>(op.getBackendConfigOrDefault());
     if (!oldBackendConfig)
       return rewriter.notifyMatchFailure(
-          op, "`op.getBackendConfigOrDefault()` returned a null attribute.");
+          op, "`op.getBackendConfigOrDefault()` didn't return a `StringAttr`.");
     if (!oldBackendConfig.empty())
       return rewriter.notifyMatchFailure(
           op, "Non-empty `backend_config` attribute shouldn't be overwritten.");
