@@ -678,8 +678,7 @@ struct HloDynamicBroadcastInDimConverter final
     // Use static type info.
     auto bcastDims = op.getBroadcastDimensions();
     for (auto [idx, dim] : llvm::enumerate(operandType.getShape())) {
-      if (ShapedType::isDynamic(dim)) continue;
-
+      // We can assume if the input is dynamic it is not expanding.
       bool isExpanding = dim == 1;
       dimExprs[idx] = isExpanding ? rewriter.getAffineConstantExpr(0)
                                   : rewriter.getAffineDimExpr(bcastDims[idx]);
