@@ -134,6 +134,7 @@ separate outputs to improve clarity
 ```
 
 ## A Note On Backward Compatibility
+
 The feature introduced in this RFC technically makes the semantics more strict
 for `send` and `recv`, given that any instances of
 `send(is_host_transfer=false)` that are serialized will no longer be
