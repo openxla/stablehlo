@@ -1023,30 +1023,33 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
   // The algorithm behind this pass consists of a single traversal of the
   // function. This is sufficient because we only support one function per
   // program at the moment.
-  // TODO(#1048): Find out why .maxIterations = 1 no longer works.
+  // TODO(#1048): Find out why .setMaxIterations(1) no longer works.
   // There have been recent refactors to applyPatternsGreedily
   // upstream, and that might be the reason.
-  config.useTopDownTraversal = true;
-  config.enableRegionSimplification = GreedySimplifyRegionLevel::Aggressive;
-  config.maxIterations = 2;
-  config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
-  config.strictMode = GreedyRewriteStrictness::AnyOp;
+  config.setUseTopDownTraversal(true)
+      .setRegionSimplificationLevel(GreedySimplifyRegionLevel::Aggressive)
+      .setMaxIterations(2)
+      .setMaxNumRewrites(GreedyRewriteConfig::kNoLimit)
+      .setStrictness(GreedyRewriteStrictness::AnyOp);
 
-  populateStablehloRefineShapesPatterns(&patterns, context);
+  populateStablehloRefineShapesPatterns(context, &patterns);
   patterns.add<RefineCallOpPattern>(context, state);
 
   // Populate additional patterns for StableHLO extensions.
   state.addAdditionalPatterns(patterns);
 
+  StablehloAggressiveFolderPassOptions folderOptions;
+  folderOptions.optimizeFloat = false;
+
   // The folding patterns implement partial evaluation of shape computations
   // which is a critical part of implementing type refinement for ops like
   // dynamic_broadcast_in_dim, dynamic_iota and dynamic_reshape whose shape
   // depends on the value of their shape operands.
-  populateStablehloShapeFolderPatterns(&patterns, context);
+  populateStablehloShapeFolderPatterns(context, &patterns, folderOptions);
 
   if (failed(applyPatternsGreedily(func, std::move(patterns), config)))
     func.emitError("Failed to converge StablehloRefineShapes in ")
-        << config.maxIterations << " iterations";
+        << config.getMaxIterations() << " iterations";
 
   return success();
 }
@@ -1094,7 +1097,7 @@ LogicalResult refineFunction(MLIRContext& context, RefineShapeState& state,
   size_t firstFunctionalArgument =
       leadingTokenOperands + key.getGlobalConstants().size();
   argIndices.set(leadingTokenOperands, firstFunctionalArgument);
-  func.eraseArguments(argIndices);
+  if (failed(func.eraseArguments(argIndices))) return failure();
 
   // Refine the remaining argument types, wrap with shape buffer custom calls.
   SmallVector<Type> refinedTypes =
@@ -1177,8 +1180,8 @@ func::FuncOp getStablehloRefineShapesTarget(ModuleOp module) {
   return result;
 }
 
-void populateStablehloRefineShapesPatterns(RewritePatternSet* patterns,
-                                           MLIRContext* context) {
+void populateStablehloRefineShapesPatterns(MLIRContext* context,
+                                           RewritePatternSet* patterns) {
   patterns->add<RefineAllGatherOpPattern>(context);
   patterns->add<RefineBitcastConvertOpPattern>(context);
   // patterns->add<RefineCallOpPattern>(context); // Populate requires inline

@@ -123,5 +123,5 @@ build/bin/stablehlo-opt --stablehlo-complex-math-expander --split-input-file --v
     - remove the specified `max_ulp_difference=0` from
       `generate_tests.py` and re-generate tests with
       `size=default_size`,
-    - update `chlo_legalize_to_stablehlo.mlir`, see previos section
+    - update `chlo_legalize_to_stablehlo.mlir`, see previous section
       for instructions.

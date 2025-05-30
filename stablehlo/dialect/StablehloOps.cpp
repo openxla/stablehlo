@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <iterator>
@@ -510,10 +511,12 @@ LogicalResult CustomCallOp::verify() {
 void CustomCallOp::getEffects(
     SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>&
         effects) {
-  // CustomCall has "all possible effects" unless the has_side_effect is present
-  // and set to false.
-  auto hasSideEffect = getHasSideEffectAttr();
-  if (hasSideEffect && !hasSideEffect.getValue()) return;
+  // Note: `has_side_effect` "defaults" to `false` but isn't required to exist.
+  // This semantic contradiction means, in practical terms, that the attribute
+  // won't exist by default but should be *treated* as `false` if missing.
+  // `getHasSideEffect()` abstracts this nuance away and returns `false` by
+  // default, whereas `getHasSideEffectAttr()` may return a null attribute.
+  if (!getHasSideEffect()) return;
   effects.emplace_back(MemoryEffects::Allocate::get());
   effects.emplace_back(MemoryEffects::Free::get());
   effects.emplace_back(MemoryEffects::Write::get());
@@ -2633,6 +2636,38 @@ LogicalResult CaseOp::inferReturnTypes(
   CaseOp::Adaptor adaptor(operands, attributes, properties, regions);
   return hlo::inferCaseOp(location, adaptor.getIndex(), adaptor.getRegions(),
                           inferredReturnTypes);
+}
+
+class FoldConstantCaseOp : public OpRewritePattern<CaseOp> {
+ public:
+  explicit FoldConstantCaseOp(MLIRContext* context)
+      : OpRewritePattern<CaseOp>(context) {}
+  LogicalResult matchAndRewrite(CaseOp op,
+                                PatternRewriter& rewriter) const override {
+    DenseIntElementsAttr branch;
+    if (!matchPattern(op.getIndex(), m_Constant(&branch))) return failure();
+
+    int index = *branch.getValues<int>().begin();
+    if (static_cast<size_t>(index) >= op.getBranches().size() || index < 0) {
+      return failure();
+    }
+
+    Block& block = op.getBranches()[index].back();
+    IRMapping mapping;
+    for (auto& block_op : block.without_terminator()) {
+      rewriter.clone(block_op, mapping);
+    }
+    rewriter.replaceOp(
+        op, llvm::to_vector(llvm::map_range(
+                block.getTerminator()->getOperands(),
+                [&](Value v) { return mapping.lookupOrDefault(v); })));
+    return success();
+  }
+};
+
+void CaseOp::getCanonicalizationPatterns(RewritePatternSet& results,
+                                         MLIRContext* context) {
+  results.add<FoldConstantCaseOp>(context);
 }
 
 //===----------------------------------------------------------------------===//

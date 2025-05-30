@@ -299,6 +299,19 @@ func.func @convert(%arg0: tensor<2xf32>) -> tensor<2xf32> {
 // -----
 
 /////////
+// CustomCallOp
+
+// CHECK-LABEL: @custom_call_unregistered_backend_config_to_ffi
+func.func @custom_call_unregistered_backend_config_to_ffi(%arg0: tensor<1xf32>) -> (tensor<1xf32>) {
+  // CHECK-NEXT: %[[CC:.*]] = stablehlo.custom_call @foo(%arg0) {api_version = 4 : i32, backend_config = {bar = 1 : i32}} : (tensor<1xf32>) -> tensor<1xf32>
+  %0 = stablehlo.custom_call @foo(%arg0) {api_version = 1 : i32, mhlo.backend_config = {bar = 1: i32}} : (tensor<1xf32>) -> tensor<1xf32>
+  // CHECK-NEXT: return %[[CC]]
+  return %0 : tensor<1xf32>
+}
+
+// -----
+
+/////////
 // DynamicBroadcastInDimOp
 
 // CHECK-LABEL: func @dynamic_broadcast_in_dim_all_dims_non_expanding
@@ -992,6 +1005,14 @@ func.func @dynamic_pad(%arg0: tensor<?x2x3xi1>, %arg1: tensor<i1>) -> tensor<?x2
   // CHECK-NEXT: %[[RES:.+]] = stablehlo.pad %arg0, %arg1, low = [0, 0, -1], high = [0, 0, -1], interior = [0, 0, 0] : (tensor<?x2x3xi1>, tensor<i1>) -> tensor<?x2x1xi1>
   // CHECK-NEXT: return %[[RES]]
   return %0 : tensor<?x2x1xi1>
+}
+
+// CHECK-LABEL: @pad_noop
+func.func @pad_noop(%arg0: tensor<256x1024xbf16>, %arg1: tensor<i32>) -> tensor<256x1024xbf16> {
+  %0 = stablehlo.convert %arg1 : (tensor<i32>) -> tensor<bf16>
+  // CHECK-NOT: stablehlo.pad
+  %1 = stablehlo.pad %arg0, %0, low = [0, 0], high = [0, 0], interior = [0, 0] : (tensor<256x1024xbf16>, tensor<bf16>) -> tensor<256x1024xbf16>
+  return %1 : tensor<256x1024xbf16>
 }
 
 // -----

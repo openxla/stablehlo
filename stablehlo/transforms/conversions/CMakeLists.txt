@@ -18,7 +18,6 @@ add_mlir_library(StablehloTypeConversion
   TypeConversion.cpp
 
   LINK_LIBS PUBLIC
-  LLVMSupport
   MLIRIR
   MLIRSupport
   MLIRTransformUtils

@@ -24,6 +24,7 @@ limitations under the License.
 #include "mlir/Dialect/Quant/IR/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/Block.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -33,6 +34,7 @@ limitations under the License.
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/IR/Region.h"
 #include "mlir/IR/TensorEncoding.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Types.h"
@@ -134,6 +136,23 @@ ParseResult parseWindowAttributes(OpAsmParser &parser,
                                   DenseI64ArrayAttr &rhsDilation,
                                   DenseBoolArrayAttr &windowReversal);
 
+namespace side_effects {
+
+struct SendResource : ::mlir::SideEffects::Resource::Base<SendResource> {
+  StringRef getName() final { return "SendResource"; }
+};
+struct RecvResource : ::mlir::SideEffects::Resource::Base<RecvResource> {
+  StringRef getName() final { return "RecvResource"; }
+};
+struct InfeedResource : ::mlir::SideEffects::Resource::Base<InfeedResource> {
+  StringRef getName() final { return "InfeedResource"; }
+};
+struct OutfeedResource : ::mlir::SideEffects::Resource::Base<OutfeedResource> {
+  StringRef getName() final { return "OutfeedResource"; }
+};
+
+}  // end namespace side_effects
+
 }  // end namespace stablehlo
 }  // end namespace mlir
 
@@ -156,6 +175,21 @@ SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
                     const llvm::ArrayRef<Value> &operands,
                     const llvm::ArrayRef<Type> &elementTypes, int64_t dimension,
                     bool isStable, ComparisonDirection direction);
+
+template <typename OpTy>
+void buildReduceBody(Type elementType, Region &body, OpBuilder &builder) {
+  OpBuilder::InsertionGuard guard(builder);
+  Block *block = builder.createBlock(&body);
+
+  // Block arguments are scalars of the given element type.
+  Type type = RankedTensorType::get(/*shape=*/{}, elementType);
+  Location loc = body.getLoc();
+  block->addArguments({type, type}, {loc, loc});
+
+  auto reducer =
+      builder.create<OpTy>(loc, block->getArgument(0), block->getArgument(1));
+  builder.create<stablehlo::ReturnOp>(loc, reducer.getResult());
+}
 
 }  // end namespace stablehlo
 }  // end namespace mlir

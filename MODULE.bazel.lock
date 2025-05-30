@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 3,
-  "moduleFileHash": "9e42fa15fdae2a59a51ea764fd71c5e9f785b0fcb894b4e6007c56956b0082af",
+  "moduleFileHash": "7d7242dc1d15217a8af40c80c5f91829a0f3fb0a5216b1c07a374b7cb24dfdfd",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -17,10 +17,10 @@
   },
   "moduleDepGraph": {
     "<root>": {
-      "name": "",
+      "name": "stablehlo",
       "version": "",
       "key": "<root>",
-      "repoName": "",
+      "repoName": "stablehlo",
       "executionPlatformsToRegister": [],
       "toolchainsToRegister": [],
       "extensionUsages": [
@@ -30,7 +30,7 @@
           "usingModule": "<root>",
           "location": {
             "file": "@@//:MODULE.bazel",
-            "line": 24,
+            "line": 26,
             "column": 23
           },
           "imports": {},
@@ -45,7 +45,7 @@
               "devDependency": false,
               "location": {
                 "file": "@@//:MODULE.bazel",
-                "line": 30,
+                "line": 32,
                 "column": 17
               }
             }

@@ -308,14 +308,14 @@ struct StablehloCanonicalizeDynamismPass
       StablehloCanonicalizeDynamismPassBase;
 
   LogicalResult initialize(MLIRContext* context) override {
-    config.useTopDownTraversal = true;
-    config.enableRegionSimplification = GreedySimplifyRegionLevel::Aggressive;
-    config.maxIterations = 2;
-    config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
-    config.strictMode = GreedyRewriteStrictness::AnyOp;
+    config.setUseTopDownTraversal(true)
+        .setRegionSimplificationLevel(GreedySimplifyRegionLevel::Aggressive)
+        .setMaxIterations(2)
+        .setMaxNumRewrites(GreedyRewriteConfig::kNoLimit)
+        .setStrictness(GreedyRewriteStrictness::AnyOp);
 
     RewritePatternSet patterns_(context);
-    populateStablehloCanonicalizeDynamismPatterns(&patterns_, context);
+    populateStablehloCanonicalizeDynamismPatterns(context, &patterns_);
     patterns = std::move(patterns_);
 
     return success();
@@ -325,7 +325,7 @@ struct StablehloCanonicalizeDynamismPass
     auto func = getOperation();
     if (failed(applyPatternsGreedily(func, patterns, config))) {
       func.emitError("Failed to converge StablehloCanonicalizeDynamism in ")
-          << config.maxIterations << " iterations";
+          << config.getMaxIterations() << " iterations";
     }
   }
 
@@ -336,8 +336,8 @@ struct StablehloCanonicalizeDynamismPass
 
 }  // namespace
 
-void populateStablehloCanonicalizeDynamismPatterns(RewritePatternSet* patterns,
-                                                   MLIRContext* context) {
+void populateStablehloCanonicalizeDynamismPatterns(
+    MLIRContext* context, RewritePatternSet* patterns) {
   patterns->add<CanonicalizeCustomCallOpPattern>(context);
   patterns->add<CanonicalizeDynamicBroadcastInDimOpPattern>(context);
   patterns->add<CanonicalizeDynamicConvOpPattern>(context);

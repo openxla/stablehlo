@@ -1054,9 +1054,9 @@ struct ReconcileUnrealizedConversionCasts
 };
 
 template <typename... StablehloOpTypes>
-void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
-                                     TypeConverter* converter,
-                                     MLIRContext* context) {
+void populateVhloToStablehloPatterns(MLIRContext* context,
+                                     RewritePatternSet* patterns,
+                                     TypeConverter* converter) {
   patterns
       ->add<VhloToStablehloOpConverter<StablehloToVhloOp<StablehloOpTypes>>...>(
           *converter, context);
@@ -1074,7 +1074,7 @@ struct VhloLegalizeToStablehloPass
     target->addLegalDialect<func::FuncDialect>();
 
     RewritePatternSet patterns_(context);
-    stablehlo::populateVhloToStablehloPatterns(&patterns_, &converter, context);
+    stablehlo::populateVhloToStablehloPatterns(context, &patterns_, &converter);
     patterns_.add<ReconcileUnrealizedConversionCasts>(context);
     patterns = std::move(patterns_);
 
@@ -1102,13 +1102,13 @@ struct VhloLegalizeToStablehloPass
   std::shared_ptr<ConversionTarget> target;
 };
 
-void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
-                                     TypeConverter* converter,
-                                     MLIRContext* context) {
+void populateVhloToStablehloPatterns(MLIRContext* context,
+                                     RewritePatternSet* patterns,
+                                     TypeConverter* converter) {
   populateVhloToStablehloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
-      , func::CallOp, func::FuncOp>(patterns, converter, context);
+      , func::CallOp, func::FuncOp>(context, patterns, converter);
   // Omit ReturnOp since it is handled during conversion of vhlo::ReturnOp
 }
 

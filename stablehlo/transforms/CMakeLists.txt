@@ -39,6 +39,21 @@ set(LLVM_TARGET_DEFINITIONS VhloToVersionPatterns.td)
 mlir_tablegen(VhloToVersionPatterns.h.inc --gen-rewriters)
 add_public_tablegen_target(VhloToVersionPatterns)
 
+add_mlir_dialect_library(StablehloPassUtils
+  PARTIAL_SOURCES_INTENDED
+  PassUtils.cpp
+
+  DEPENDS
+  PassesIncGen
+
+  LINK_LIBS PUBLIC
+  ChloOps
+  StablehloBase
+  StablehloOps
+  MLIRSupport
+  MLIRComplexDialect
+  MLIRIR
+)
 
 add_mlir_dialect_library(StablehloPasses
   PARTIAL_SOURCES_INTENDED
@@ -60,7 +75,6 @@ add_mlir_dialect_library(StablehloPasses
   StablehloWrapInComposite.cpp
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp
-  PassUtils.cpp
 
   DEPENDS
   ChloDecompositionPatternsIncGen
@@ -69,6 +83,7 @@ add_mlir_dialect_library(StablehloPasses
   StablehloComplexMathExpanderPatternsIncGen
   StablehloLegalizeDeprecatedOpsPatternsIncGen
   VhloToVersionPatterns
+  StablehloPassUtils
 
   LINK_LIBS PUBLIC
   ChloOps
@@ -93,4 +108,5 @@ add_mlir_dialect_library(StablehloPasses
   StablehloOptimizationPasses
   StablehloTypeInference
   VhloOps
+  StablehloPassUtils
 )

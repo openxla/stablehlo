@@ -98,7 +98,7 @@ def SortedDims : AttrConstraint<
     "is sorted dimensions">;
 
 def ZeroExtent : AttrConstraint<
-    CPred<"cast<DenseIntElementsAttr>($_self).getNumElements() == 0">,
+    CPred<"cast<DenseElementsAttr>($_self).getNumElements() == 0">,
     "is zero extent">;
 
 ///////////
@@ -410,17 +410,33 @@ def OrOp_RemoveNoop
         (replaceWithValue $lhs)>;
 
 ////////
+// PadOp
+
+// Pattern: pad(X, [no_padding...]) -> X
+def PadOp_RemoveNoop
+  : Pat<(StableHLO_PadOp:$pad
+            $operand,
+            $padding_value,
+            $edge_padding_low,
+            $edge_padding_high,
+            $interior_padding),
+        (replaceWithValue $operand),
+        [(TypesEqual $pad, $operand)]>;
+
+////////
 // RealDynamicSliceOp
 
 // Pattern: real_dynamic_slice(X, start, limit, strides)
 //       -> slice(X, start, limit, strides)
 //          [if start, limit, strides are all constants]
 def RealDynamicSliceOp_ReplaceWithSlice
-  : Pat<(StableHLO_RealDynamicSliceOp $operand,
+  : Pat<(StableHLO_RealDynamicSliceOp
+            $operand,
             (ConstantLikeMatcher DenseIntElementsAttr:$start_indices),
             (ConstantLikeMatcher DenseIntElementsAttr:$limit_indices),
             (ConstantLikeMatcher DenseIntElementsAttr:$strides)),
-        (StableHLO_SliceOp $operand,
+        (StableHLO_SliceOp
+            $operand,
             (ConvertToI64Array $start_indices),
             (ConvertToI64Array $limit_indices),
             (ConvertToI64Array $strides))>;

@@ -105,7 +105,7 @@ class StablehloLegalizeQDQToQuantizedOpPass
  public:
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    populateStablehloLegalizeQDQToQuantizedOpPatterns(&patterns_, context);
+    populateStablehloLegalizeQDQToQuantizedOpPatterns(context, &patterns_);
     patterns = std::move(patterns_);
     return success();
   }
@@ -115,7 +115,7 @@ class StablehloLegalizeQDQToQuantizedOpPass
     if (failed(applyPatternsGreedily(func, patterns, config))) {
       func.emitError(
           "Failed to converge StablehloLegalizeQDQToQuantizedOpPass in ")
-          << config.maxIterations << " iterations";
+          << config.getMaxIterations() << " iterations";
       signalPassFailure();
     }
   }
@@ -128,7 +128,7 @@ class StablehloLegalizeQDQToQuantizedOpPass
 }  // namespace
 
 void populateStablehloLegalizeQDQToQuantizedOpPatterns(
-    RewritePatternSet* patterns, MLIRContext* context) {
+    MLIRContext* context, RewritePatternSet* patterns) {
   patterns->add<QuantizedStablehloQDQToQuantizedOpConversion>(context);
 }
 

@@ -7,7 +7,9 @@ _Folds StableHLO operations_
 #### Options
 
 ```
--fold-float : Allow for potentially lossy computations using float type.
+-assume-no-undeclared-side-effects : Allow dead code to be eliminated in some situations (e.g. dead while loops) under the assumption that ops are pure unless declared with explicit MLIR `MemoryEffects`. Notably, this means `func.call` ops will be assumed pure.
+-fold-op-element-limit             : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as addition with 0, multiplication by 1, and some splat operations.
+-optimize-float                    : Allow float optimizations that, though mathematically equivalent, may result in slightly different quantization of floating-point values (e.g. `log(sqrt(x))` -> `0.5 * log(x)`). Float optimizations that can't affect numerical results are always enabled.
 ```
 
 ### `-stablehlo-aggressive-simplification`
@@ -100,6 +102,12 @@ Performs graph simplifications, including:
 This list is pulled from code comments so is not fully exhaustive, but has
 high coverage of the pass today.
 
+#### Options
+
+```
+-fold-op-element-limit : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as addition with 0, multiplication by 1, and some splat operations.
+```
+
 ### `-stablehlo-target-independent-optimization`
 
 _Runs canonicalizers, folders, and other target-independent optimizations._
@@ -110,3 +118,11 @@ folding to be performed in the same pattern set, often leading to better
 results.
 
 Users should prefer this pass to calling the others directly.
+
+#### Options
+
+```
+-assume-no-undeclared-side-effects : Allow dead code to be eliminated in some situations (e.g. dead while loops) under the assumption that ops are pure unless declared with explicit MLIR `MemoryEffects`. Notably, this means `func.call` ops will be assumed pure.
+-fold-op-element-limit             : Upper limit on how many elements may be folded by an op folder. This limit doesn't apply in certain special cases such as addition with 0, multiplication by 1, and some splat operations.
+-optimize-float                    : Allow float optimizations that, though mathematically equivalent, may result in slightly different quantization of floating-point values (e.g. `log(sqrt(x))` -> `0.5 * log(x)`). Float optimizations that can't affect numerical results are always enabled.
+```

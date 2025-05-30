@@ -1028,9 +1028,9 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
 };
 
 template <typename... StablehloOpTypes>
-void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
-                                     TypeConverter* converter,
-                                     MLIRContext* context) {
+void populateStablehloToVhloPatterns(MLIRContext* context,
+                                     RewritePatternSet* patterns,
+                                     TypeConverter* converter) {
   patterns->add<StablehloToVhloOpConverter<StablehloOpTypes>...>(*converter,
                                                                  context);
 }
@@ -1059,8 +1059,8 @@ struct StablehloLegalizeToVhloPass
     }
 
     RewritePatternSet patterns_(context);
-    stablehlo::populateStablehloToVhloPatterns(&patterns_, converter.get(),
-                                               context);
+    stablehlo::populateStablehloToVhloPatterns(context, &patterns_,
+                                               converter.get());
     patterns = std::move(patterns_);
 
     return success();
@@ -1080,14 +1080,14 @@ struct StablehloLegalizeToVhloPass
   std::shared_ptr<ConversionTarget> target;
 };
 
-void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
-                                     TypeConverter* converter,
-                                     MLIRContext* context) {
+void populateStablehloToVhloPatterns(MLIRContext* context,
+                                     RewritePatternSet* patterns,
+                                     TypeConverter* converter) {
   populateStablehloToVhloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
-      , func::CallOp, func::FuncOp, func::ReturnOp>(patterns, converter,
-                                                    context);
+      , func::CallOp, func::FuncOp, func::ReturnOp>(context, patterns,
+                                                    converter);
 }
 }  // namespace stablehlo
 }  // namespace mlir

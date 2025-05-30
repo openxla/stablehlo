@@ -879,7 +879,8 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
 
   auto replicaIds = replicaGroups.getValues<int64_t>();
 
-  llvm::SmallSet<int64_t, 8> replicaIdsSeen;
+  // Large programs can have many replicas, use a set with efficient lookup.
+  llvm::DenseSet<int64_t> replicaIdsSeen;
   for (int64_t replicaId : replicaIds) {
     // Replica groups are stored in a 2D tensor. If the op supports non-uniform
     // groups, null replica IDs are stored as -1.
@@ -1841,6 +1842,7 @@ LogicalResult inferAllToAllOp(
                                  /*allGroupsMustHaveSameSize=*/true,
                                  /*useGlobalDeviceIds=*/false, splitCount)))
     return failure();
+
   for (const Value& operand : operands) {
     auto operandType = cast<RankedTensorType>(operand.getType());
 
@@ -3562,6 +3564,19 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location,
                                 DenseIntElementsAttr replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
                                 ValueRange results) {
+  // all_gather_i3, all_gather_c2, all_gather_c4
+  if (failed(verifyReplicaGroups(location, replicaGroups,
+                                 /*allGroupsMustHaveSameSize=*/true,
+                                 useGlobalDeviceIds,
+                                 /*expectedGroupSize=*/std::nullopt)))
+    return failure();
+
+  // all_gather_c5
+  if (useGlobalDeviceIds && channelId < 0)
+    return emitOptionalError(
+        location,
+        "channel_id cannot be negative when useGlobalDeviceIds is set");
+
   for (const auto& [operand, result] : llvm::zip(operands, results)) {
     auto operandType = cast<RankedTensorType>(operand.getType());
     auto resultType = cast<RankedTensorType>(result.getType());
@@ -3576,19 +3591,6 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location,
       return emitOptionalError(
           location,
           "dimension size of operand at 'all_gather_dim' cannot be zero");
-
-    // all_gather_i3, all_gather_c2, all_gather_c4
-    if (failed(verifyReplicaGroups(location, replicaGroups,
-                                   /*allGroupsMustHaveSameSize=*/true,
-                                   useGlobalDeviceIds,
-                                   /*expectedGroupSize=*/std::nullopt)))
-      return failure();
-
-    // all_gather_c5
-    if (useGlobalDeviceIds && channelId < 0)
-      return emitOptionalError(
-          location,
-          "channel_id cannot be negative when useGlobalDeviceIds is set");
 
     // all_gather_c6
     if (resultType.getRank() != operandType.getRank())
@@ -3788,7 +3790,7 @@ LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
         "but instead it is of rank ", replicaGroupType.getRank());
 
   auto replicaIds = replicaGroups.getValues<int64_t>();
-  llvm::SmallSet<int64_t, 8> replicaIdsSeen;
+  llvm::DenseSet<int64_t> replicaIdsSeen;
   for (int64_t replicaId : replicaIds) {
     // collective_broadcast_c2
     // We only check that is is not negative, as it is impossible

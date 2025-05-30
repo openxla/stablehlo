@@ -116,7 +116,7 @@ class StablehloLegalizeQuantizedOpToQDQPass
  public:
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    populateStablehloLegalizeQuantizedOpToQDQPatterns(&patterns_, context);
+    populateStablehloLegalizeQuantizedOpToQDQPatterns(context, &patterns_);
     patterns = std::move(patterns_);
     return success();
   }
@@ -125,7 +125,7 @@ class StablehloLegalizeQuantizedOpToQDQPass
     auto func = getOperation();
     if (failed(applyPatternsGreedily(func, patterns, config))) {
       func.emitError("Failed to converge StablehloLegalizeQuantizedOpToQDQ in ")
-          << config.maxIterations << " iterations";
+          << config.getMaxIterations() << " iterations";
       signalPassFailure();
     }
   }
@@ -137,7 +137,7 @@ class StablehloLegalizeQuantizedOpToQDQPass
 
 template <typename... StablehloOpTypes>
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    RewritePatternSet* patterns, MLIRContext* context, PatternBenefit benefit) {
+    MLIRContext* context, RewritePatternSet* patterns, PatternBenefit benefit) {
   patterns->add<QuantizedStablehloOpConversion<StablehloOpTypes>...>(context,
                                                                      benefit);
 }
@@ -145,7 +145,7 @@ void populateStablehloLegalizeQuantizedOpToQDQPatterns(
 }  // namespace
 
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    RewritePatternSet* patterns, MLIRContext* context, PatternBenefit benefit) {
+    MLIRContext* context, RewritePatternSet* patterns, PatternBenefit benefit) {
   populateStablehloLegalizeQuantizedOpToQDQPatterns<
       AbsOp, AddOp, Atan2Op, BatchNormGradOp, BatchNormInferenceOp,
       BatchNormTrainingOp, CbrtOp, CeilOp, CholeskyOp, ClampOp, CompareOp,
@@ -153,7 +153,7 @@ void populateStablehloLegalizeQuantizedOpToQDQPatterns(
       FloorOp, Log1pOp, LogisticOp, LogOp, MaxOp, MinOp, MulOp, NegOp, PowOp,
       ReducePrecisionOp, RemOp, RoundOp, RoundNearestEvenOp, RsqrtOp, SelectOp,
       SignOp, SineOp, SqrtOp, SubtractOp, TanhOp, TanOp, TriangularSolveOp>(
-      patterns, context, benefit);
+      context, patterns, benefit);
 }
 
 }  // namespace stablehlo

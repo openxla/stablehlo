@@ -102,20 +102,22 @@ void AddStablehloApi(nb::module_ &m) {
   //
   m.def(
       "serialize_portable_artifact",
-      [](MlirModule module, std::string_view target) -> nb::bytes {
+      [](MlirModule module, std::string_view target,
+         bool allowOtherDialects) -> nb::bytes {
         StringWriterHelper accumulator;
         if (mlirLogicalResultIsFailure(
                 stablehloSerializePortableArtifactFromModule(
                     module, toMlirStringRef(target),
                     accumulator.getMlirStringCallback(),
-                    accumulator.getUserData()))) {
+                    accumulator.getUserData(), allowOtherDialects))) {
           throw nb::value_error("failed to serialize module");
         }
 
         std::string serialized = accumulator.toString();
         return nb::bytes(serialized.data(), serialized.size());
       },
-      nb::arg("module"), nb::arg("target"));
+      nb::arg("module"), nb::arg("target"),
+      nb::arg("allow_other_dialects") = false);
 
   m.def(
       "deserialize_portable_artifact",

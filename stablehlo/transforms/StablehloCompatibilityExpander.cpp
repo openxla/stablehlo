@@ -329,10 +329,10 @@ struct StablehloCompatibilityExpanderPass
   LogicalResult initialize(MLIRContext *context) override {
     auto targetVersion = validateTargetVersion(targetVersionOption);
 
-    config.useTopDownTraversal = true;
+    config.setUseTopDownTraversal(true);
 
     RewritePatternSet patterns_(context);
-    populateStablehloCompatibilityExpanderPatterns(&patterns_, context,
+    populateStablehloCompatibilityExpanderPatterns(context, &patterns_,
                                                    targetVersion);
     patterns = std::move(patterns_);
     return success();
@@ -347,7 +347,7 @@ struct StablehloCompatibilityExpanderPass
         failed(applyPatternsGreedily(module, patterns, config))) {
       module.emitError(
           "Failed to converge StableHLOCompatibilityExpanderPass in ")
-          << config.maxIterations << " iterations";
+          << config.getMaxIterations() << " iterations";
       signalPassFailure();
     }
   }
@@ -362,7 +362,7 @@ struct StablehloCompatibilityExpanderPass
 }  // namespace
 
 void populateStablehloCompatibilityExpanderPatterns(
-    RewritePatternSet *patterns, MLIRContext *context,
+    MLIRContext *context, RewritePatternSet *patterns,
     vhlo::Version targetVersion) {
   // StableHLO GatherOp/ScatterOp with batching dims is introduced in v1.1.0.
   if (targetVersion < vhlo::Version(1, 1, 0))

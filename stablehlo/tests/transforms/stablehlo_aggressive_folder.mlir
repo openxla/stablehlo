@@ -180,9 +180,23 @@ func.func @eval_iota_zero_dimension() -> (tensor<0xi32>, tensor<5x0x2xi32>) {
 // -----
 
 ////////
+// ReduceOp
+
+// CHECK-LABEL: func @reduce_op_fold
+func.func @reduce_op_fold(%arg0: tensor<i64>) -> tensor<i1> {
+  %c = stablehlo.constant dense<false> : tensor<4x32xi1>
+  %c_0 = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-NOT: stablehlo.reduce
+  %0 = stablehlo.reduce(%c init: %c_0) applies stablehlo.or across dimensions = [0, 1] : (tensor<4x32xi1>, tensor<i1>) -> tensor<i1>
+  return %0 : tensor<i1>
+}
+
+// -----
+
+////////
 // ReshapeOp
 
-// CHECK-LABEL: func @reshape
+// CHECK-LABEL: func @reshape_fold
 func.func @reshape_fold() -> (tensor<1xi32>, tensor<2x2xi32>) {
   %c0 = stablehlo.constant dense<2> : tensor<i32>
   %c1 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi32>
@@ -340,4 +354,24 @@ func.func @eval_transpose_splat() -> (tensor<10x3x1xi32>) {
   %0 = stablehlo.constant dense<1> : tensor<3x1x10xi32>
   %1 = stablehlo.transpose %0, dims = [2, 0, 1] : (tensor<3x1x10xi32>) -> tensor<10x3x1xi32>
   func.return %1 : tensor<10x3x1xi32>
+}
+
+// -----
+
+////////
+// WhileOp
+
+// CHECK-LABEL: dce_while_false_condition
+func.func @dce_while_false_condition() -> tensor<i64> {
+  %0 = stablehlo.constant dense<0> : tensor<i64>
+  // CHECK-NOT: stablehlo.while
+  %1 = stablehlo.while(%iterArg = %0) : tensor<i64>
+    cond {
+    %2 = stablehlo.compare LT, %0, %0, SIGNED : (tensor<i64>, tensor<i64>) -> tensor<i1>
+    stablehlo.return %2 : tensor<i1>
+  } do {
+    %2 = stablehlo.custom_call @something(%iterArg) {has_side_effect = false} : (tensor<i64>) -> tensor<i64>
+    stablehlo.return %2 : tensor<i64>
+  }
+  return %1 : tensor<i64>
 }

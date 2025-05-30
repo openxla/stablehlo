@@ -1397,7 +1397,7 @@ class StablehloLegalizeQuantToMathPass
                  ConvertUniformQuantizedConvolutionOp>(context, /*benefit=*/10);
 
     // Populate stablehlo quant-op to dq-op-q patterns as fallback.
-    populateStablehloLegalizeQuantizedOpToQDQPatterns(&patterns, context,
+    populateStablehloLegalizeQuantizedOpToQDQPatterns(context, &patterns,
                                                       /*benefit=*/1);
 
     // uq->int convert patterns for func.func, func.return and generic ops.

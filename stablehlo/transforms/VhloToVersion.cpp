@@ -263,7 +263,7 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
 
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns_(context);
-    stablehlo::populateVhloToVersionPatterns(&patterns_, &converter, context);
+    stablehlo::populateVhloToVersionPatterns(context, &patterns_, &converter);
     patterns = std::move(patterns_);
 
     return success();
@@ -452,9 +452,9 @@ struct AllReduceOpV2ToV1 : public OpRewritePattern<AllReduceOpV2> {
 }  // namespace vhlo
 
 namespace stablehlo {
-void populateVhloToVersionPatterns(RewritePatternSet* patterns,
-                                   TypeConverter* converter,
-                                   MLIRContext* context) {
+void populateVhloToVersionPatterns(MLIRContext* context,
+                                   RewritePatternSet* patterns,
+                                   TypeConverter* converter) {
   vhlo::populateWithGenerated(*patterns);
   patterns->add<vhlo::ScatterOpV1ToV2, vhlo::ScatterOpV2ToV1>(context);
   patterns->add<vhlo::AllReduceOpV1ToV2, vhlo::AllReduceOpV2ToV1>(context);

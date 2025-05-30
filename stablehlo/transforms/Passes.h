@@ -33,7 +33,6 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/TypeID.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
 
@@ -41,35 +40,31 @@ namespace mlir {
 namespace stablehlo {
 
 #define GEN_PASS_DECL
-
-std::unique_ptr<::mlir::Pass> createStablehloAggressiveSimplificationPass(
-    GreedyRewriteConfig config);
-
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/transforms/Passes.h.inc"
 
 // Populates --stablehlo-canonicalize-dynamism patterns.
-void populateStablehloCanonicalizeDynamismPatterns(RewritePatternSet *patterns,
-                                                   MLIRContext *context);
+void populateStablehloCanonicalizeDynamismPatterns(MLIRContext *context,
+                                                   RewritePatternSet *patterns);
 
 // Populates --stablehlo-refine-shapes patterns.
-void populateStablehloRefineShapesPatterns(RewritePatternSet *patterns,
-                                           MLIRContext *context);
+void populateStablehloRefineShapesPatterns(MLIRContext *context,
+                                           RewritePatternSet *patterns);
 
 // Populates StableHLO ops to VHLO ops rewriting patterns.
-void populateStablehloToVhloPatterns(RewritePatternSet *patterns,
-                                     TypeConverter *converter,
-                                     MLIRContext *context);
+void populateStablehloToVhloPatterns(MLIRContext *context,
+                                     RewritePatternSet *patterns,
+                                     TypeConverter *converter);
 
 // Populates VHLO ops to StableHLO ops rewriting patterns.
-void populateVhloToStablehloPatterns(RewritePatternSet *patterns,
-                                     TypeConverter *converter,
-                                     MLIRContext *context);
+void populateVhloToStablehloPatterns(MLIRContext *context,
+                                     RewritePatternSet *patterns,
+                                     TypeConverter *converter);
 
 // Populates VHLO downgrade rewriting patterns.
-void populateVhloToVersionPatterns(RewritePatternSet *patterns,
-                                   TypeConverter *converter,
-                                   MLIRContext *contexts);
+void populateVhloToVersionPatterns(MLIRContext *context,
+                                   RewritePatternSet *patterns,
+                                   TypeConverter *converter);
 
 /// Collection of rewrite patterns for lowering of CHLO ops to StableHLO and
 /// Shape ops.
@@ -84,13 +79,13 @@ void populateChloConstantLikePattern(MLIRContext *context,
 /// Collection of rewrite patterns for lowering quantized StableHLO operations
 /// using uniform dequantize/quantize operations.
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    RewritePatternSet *patterns, MLIRContext *context,
+    MLIRContext *context, RewritePatternSet *patterns,
     PatternBenefit benefit = 1);
 
 /// Collection of rewrite patterns for composing quantized StableHLO operations
 /// using unform dequantize/quantize operations.
 void populateStablehloLegalizeQDQToQuantizedOpPatterns(
-    RewritePatternSet *patterns, MLIRContext *context);
+    MLIRContext *context, RewritePatternSet *patterns);
 
 /// Collection of patterns to upgrade deprecated ops to long-term supported ops.
 void populateStablehloLegalizeDeprecatedOpsPatterns(
@@ -103,7 +98,7 @@ void populateShapeToStablehloPatterns(MLIRContext *context,
 /// Collection of patterns to create compatibility expander for StableHLO
 /// operations.
 void populateStablehloCompatibilityExpanderPatterns(
-    RewritePatternSet *patterns, MLIRContext *context,
+    MLIRContext *context, RewritePatternSet *patterns,
     vhlo::Version targetVersion);
 
 //// Additional pass constructors ////
@@ -181,8 +176,8 @@ void createStablehloLowerQuantPipeline(OpPassManager &pm);
 
 /// Collection of patterns to create expander for StableHLO complex
 /// math operations.
-void populateStablehloComplexMathExpanderPatterns(RewritePatternSet *patterns,
-                                                  MLIRContext *context);
+void populateStablehloComplexMathExpanderPatterns(MLIRContext *context,
+                                                  RewritePatternSet *patterns);
 
 // Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
 // for opt tools.
