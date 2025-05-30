@@ -132,3 +132,10 @@ separate outputs to improve clarity
   is_host_transfer = false
 } : (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
 ```
+
+## A Note On Backward Compatibility
+The feature introduced in this RFC technically makes the semantics more strict
+for `send` and `recv`, given that any instances of
+`send(is_host_transfer=false)` that are serialized will no longer be
+deserializable. However, this is unlikely to impact existing users as this
+would have been undefined behavior as it is.
