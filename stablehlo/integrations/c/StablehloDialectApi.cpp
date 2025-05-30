@@ -78,10 +78,11 @@ MlirLogicalResult stablehloGetSmallerVersion(MlirStringRef version1,
 
 MlirLogicalResult stablehloSerializePortableArtifactFromModule(
     MlirModule moduleStr, MlirStringRef targetVersion,
-    MlirStringCallback callback, void *userData) {
+    MlirStringCallback callback, void *userData, bool allowOtherDialects) {
   mlir::detail::CallbackOstream stream(callback, userData);
   if (failed(mlir::stablehlo::serializePortableArtifact(
-          unwrap(moduleStr), unwrap(targetVersion), stream)))
+          unwrap(moduleStr), unwrap(targetVersion), stream,
+          allowOtherDialects)))
     return mlirLogicalResultFailure();
   return mlirLogicalResultSuccess();
 }
