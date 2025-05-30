@@ -92,7 +92,8 @@ MLIR_CAPI_EXPORTED MlirLogicalResult
 stablehloSerializePortableArtifactFromModule(MlirModule moduleStr,
                                              MlirStringRef targetVersion,
                                              MlirStringCallback callback,
-                                             void* userData);
+                                             void* userData,
+                                             bool allowOtherDialects = false);
 
 // Read a StableHLO program from a portable artifact, returning the module as
 // MLIR bytecode. Note, this bytecode returned is not a portable artifact,
