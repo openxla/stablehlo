@@ -113,7 +113,7 @@ static TypedAttr foldUnaryOpIntOrFloat(Type resultType, TypedAttr operand,
 /// ints and floats.
 template <typename Fn>
 FailureOr<TypedAttr> foldUnaryOpIntOrFloat(PatternRewriter& rewriter,
-                                            Operation* op, Fn&& folder) {
+                                           Operation* op, Fn&& folder) {
   if (op->getNumOperands() != 1 || op->getNumResults() != 1)
     return rewriter.notifyMatchFailure(op, "expected unary op");
 
@@ -597,7 +597,6 @@ struct FoldMin {
   }
 };
 
-
 struct FoldMaxOpPattern : public ShapeOpRewritePattern<MaxOp> {
   using ShapeOpRewritePattern::ShapeOpRewritePattern;
 
@@ -958,9 +957,7 @@ struct FoldSqrtOpPattern
     }
 
     // TODO: Enable int folding.
-    std::optional<APInt> operator()(APInt operand) {
-      return std::nullopt;
-    }
+    std::optional<APInt> operator()(APInt operand) { return std::nullopt; }
   };
 };
 
@@ -1276,8 +1273,7 @@ bool hasNoDeclaredSideEffects(Operation* op) {
   return true;
 }
 
-struct FoldWhileOpDeadWithNoSideEffects
-    : public FoldOpRewritePattern<WhileOp> {
+struct FoldWhileOpDeadWithNoSideEffects : public FoldOpRewritePattern<WhileOp> {
   using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(WhileOp op,
