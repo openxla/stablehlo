@@ -49,6 +49,8 @@ def RankEqual : Constraint<
     CPred<"llvm::cast<ShapedType>($0.getType()).getRank() == llvm::cast<ShapedType>($1.getType()).getRank()">,
     "same rank">;
 
+def TensorDimsAllOne : Constraint<CPred<"tensorDimsAllOne($0, $1)">, "all tensor dims are 1">;
+
 def TypesEqual : Constraint<CPred<"$0.getType() == $1.getType()">, "operands are equal">;
 
 ///////////
@@ -100,6 +102,8 @@ def SortedDims : AttrConstraint<
 def ZeroExtent : AttrConstraint<
     CPred<"cast<DenseElementsAttr>($_self).getNumElements() == 0">,
     "is zero extent">;
+
+def AnyStaticShapeIntTensor : StaticShapeTensorOf<[HLO_Int]>;
 
 ///////////
 //// Native Code Call Utilities
@@ -503,7 +507,7 @@ def SelectOp_InvertBroadcastPredicateAndSwap
 // Must be static shape, otherwise would require broadcasting via
 // CHLO_ConstantLike.
 def SubtractOp_FoldToZero
-  : Pat<(StableHLO_SubtractOp AnyStaticShapeTensor:$operand, $operand),
+  : Pat<(StableHLO_SubtractOp AnyStaticShapeIntTensor:$operand, $operand),
         (StableHLO_ConstantLike<"0"> $operand)>;
 
 // Pattern: subtract(X, 0) -> X

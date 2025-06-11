@@ -16,6 +16,7 @@ limitations under the License.
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <tuple>
 #include <utility>
 
@@ -1038,8 +1039,11 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
   // Populate additional patterns for StableHLO extensions.
   state.addAdditionalPatterns(patterns);
 
+  // No float folding and fold as much as possible. Shape refinement will fail
+  // if int shape computations are unable to be folded.
   StablehloAggressiveFolderPassOptions folderOptions;
   folderOptions.optimizeFloat = false;
+  folderOptions.foldOpElementLimit = std::numeric_limits<int64_t>::max();
 
   // The folding patterns implement partial evaluation of shape computations
   // which is a critical part of implementing type refinement for ops like
