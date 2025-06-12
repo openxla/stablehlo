@@ -57,7 +57,7 @@ namespace {
 class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
  public:
   StablehloToVhloTypeConverter(bool allowOtherDialects)
-      : vhlo::VhloTypeConverter() {
+      : vhlo::VhloTypeConverter(allowOtherDialects) {
     LLVM_DEBUG(
         llvm::dbgs()
         << "[StablehloToVhloTypeConverter] Creating with allowOtherDialects: "
@@ -82,7 +82,15 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
       return vhlo::TokenV1Type::get(token.getContext());
     });
     addBuiltinToVhloConversions();
-    if (allowOtherDialects) addUnrealizedMaterializations();
+    if (allowOtherDialects) {
+      addUnrealizedMaterializations();
+
+      // Attribute conversion fallback uses the type converter.
+      addTypeAttributeConversion(
+          [](Type, Attribute attr) -> TypeConverter::AttributeConversionResult {
+            return attr;
+          });
+    }
   }
 
   Attribute convertEncoding(Attribute attr) const final {
@@ -114,7 +122,7 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
   return vhlo::Name##Version##Attr::get(attr.getContext(), vhloValue.value())
 
 Attribute convertGeneric(Attribute stablehloAttr,
-                         const TypeConverter* typeConverter) {
+                         const vhlo::VhloTypeConverter* typeConverter) {
   LLVM_DEBUG(llvm::dbgs() << "Convert generic: " << stablehloAttr << '\n');
 
   // Handle StableHLO attributes.
@@ -241,6 +249,10 @@ Attribute convertGeneric(Attribute stablehloAttr,
     return vhlo::TypeV1Attr::get(attr.getContext(), vhloType);
   }
 
+  // Fall back to type converter for unknown attributes.
+  auto unknownAttr = typeConverter->convertUnknownAttribute(stablehloAttr);
+  if (unknownAttr) return unknownAttr;
+
   LLVM_DEBUG(llvm::dbgs() << "Failed to convert: " << stablehloAttr << '\n');
   return {};  // Failed to convert attribute.
 }
@@ -268,13 +280,15 @@ SpecialResult notSpecial() { return SpecialResult::NOT_SPECIAL; }
 Attribute convertBool(const ConversionPattern& pattern, int64_t stablehloDim) {
   auto stablehloType = IntegerType::get(pattern.getContext(), 1);
   auto stablehloAttr = IntegerAttr::get(stablehloType, stablehloDim);
-  return convertGeneric(stablehloAttr, pattern.getTypeConverter());
+  return convertGeneric(stablehloAttr,
+                        pattern.getTypeConverter<vhlo::VhloTypeConverter>());
 }
 
 Attribute convertInt(const ConversionPattern& pattern, int64_t stablehloDim) {
   auto stablehloType = IntegerType::get(pattern.getContext(), 64);
   auto stablehloAttr = IntegerAttr::get(stablehloType, stablehloDim);
-  return convertGeneric(stablehloAttr, pattern.getTypeConverter());
+  return convertGeneric(stablehloAttr,
+                        pattern.getTypeConverter<vhlo::VhloTypeConverter>());
 }
 
 Attribute convertInts(const ConversionPattern& pattern,
@@ -282,7 +296,8 @@ Attribute convertInts(const ConversionPattern& pattern,
   auto stablehloType = RankedTensorType::get(
       stablehloDims.size(), IntegerType::get(pattern.getContext(), 64));
   auto stablehloAttr = DenseIntElementsAttr::get(stablehloType, stablehloDims);
-  return convertGeneric(stablehloAttr, pattern.getTypeConverter());
+  return convertGeneric(stablehloAttr,
+                        pattern.getTypeConverter<vhlo::VhloTypeConverter>());
 }
 
 Attribute convertSymbol(const ConversionPattern& pattern,
@@ -290,7 +305,7 @@ Attribute convertSymbol(const ConversionPattern& pattern,
   auto stablehloSymbolAttr = dyn_cast<FlatSymbolRefAttr>(stablehloAttr);
   if (!stablehloSymbolAttr) return {};
   return convertGeneric(stablehloSymbolAttr.getAttr(),
-                        pattern.getTypeConverter());
+                        pattern.getTypeConverter<vhlo::VhloTypeConverter>());
 }
 
 SpecialResult convertChannelHandle(const ConversionPattern& pattern,
@@ -445,15 +460,15 @@ SpecialResult convertDotAlgorithm(const ConversionPattern& pattern,
   vhloAttrs.emplace_back(
       StringAttr::get(pattern.getContext(), "lhs_precision_type"),
       convertGeneric(TypeAttr::get(attr.getLhsPrecisionType()),
-                     pattern.getTypeConverter()));
+                     pattern.getTypeConverter<vhlo::VhloTypeConverter>()));
   vhloAttrs.emplace_back(
       StringAttr::get(pattern.getContext(), "rhs_precision_type"),
       convertGeneric(TypeAttr::get(attr.getRhsPrecisionType()),
-                     pattern.getTypeConverter()));
+                     pattern.getTypeConverter<vhlo::VhloTypeConverter>()));
   vhloAttrs.emplace_back(
       StringAttr::get(pattern.getContext(), "accumulation_type"),
       convertGeneric(TypeAttr::get(attr.getAccumulationType()),
-                     pattern.getTypeConverter()));
+                     pattern.getTypeConverter<vhlo::VhloTypeConverter>()));
 
   // Components
   auto vhloLhsComponentCount = convertInt(pattern, attr.getLhsComponentCount());
@@ -712,7 +727,9 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
   auto addDefaultAttr = [&](StringRef vhloName, Attribute stablehloAttr) {
     vhloAttrs.emplace_back(
         StringAttr::get(pattern.getContext(), vhloName),
-        convertGeneric(stablehloAttr, pattern.getTypeConverter()));
+        convertGeneric(
+            stablehloAttr,
+            pattern.template getTypeConverter<vhlo::VhloTypeConverter>()));
   };
   if constexpr (std::is_same<StablehloOpTy, func::FuncOp>::value) {
     if (!stablehloOp.getSymVisibilityAttr())
@@ -987,8 +1004,9 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
         case SpecialResult::SPECIAL_FAILURE:
           return failure();
         case SpecialResult::NOT_SPECIAL:
-          auto vhloAttr = convertGeneric(stablehloAttr.getValue(),
-                                         this->getTypeConverter());
+          auto vhloAttr = convertGeneric(
+              stablehloAttr.getValue(),
+              this->template getTypeConverter<vhlo::VhloTypeConverter>());
           if (!vhloAttr) return failure();
           vhloAttrs.push_back({stablehloAttr.getName(), vhloAttr});
           break;
@@ -1075,14 +1093,14 @@ struct StablehloLegalizeToVhloPass
   }
 
  private:
-  std::shared_ptr<StablehloToVhloTypeConverter> converter;
+  std::shared_ptr<vhlo::VhloTypeConverter> converter;
   FrozenRewritePatternSet patterns;
   std::shared_ptr<ConversionTarget> target;
 };
 
 void populateStablehloToVhloPatterns(MLIRContext* context,
                                      RewritePatternSet* patterns,
-                                     TypeConverter* converter) {
+                                     vhlo::VhloTypeConverter* converter) {
   populateStablehloToVhloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"

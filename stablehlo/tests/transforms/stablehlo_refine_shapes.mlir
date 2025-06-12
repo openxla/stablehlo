@@ -521,16 +521,16 @@ func.func @eval_slice_zerodim() -> tensor<0x2x1xi64> {
 // -----
 
 // CHECK-LABEL: func @eval_slice_zerorank
-func.func @eval_slice_zerorank() -> tensor<f32> {
-  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<3.300000e+01> : tensor<f32>
+func.func @eval_slice_zerorank() -> tensor<i32> {
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<33> : tensor<i32>
   // CHECK: return [[RESULT]]
-  %0 = stablehlo.constant dense<33.0> : tensor<f32>
+  %0 = stablehlo.constant dense<33> : tensor<i32>
   %1 = "stablehlo.slice"(%0) {
     start_indices = array<i64>,
     limit_indices = array<i64>,
     strides = array<i64>
-  } : (tensor<f32>) -> tensor<f32>
-  func.return %1 : tensor<f32>
+  } : (tensor<i32>) -> tensor<i32>
+  func.return %1 : tensor<i32>
 }
 
 // -----

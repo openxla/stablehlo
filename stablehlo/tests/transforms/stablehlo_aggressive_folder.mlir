@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --stablehlo-aggressive-folder --split-input-file --verify-diagnostics %s | FileCheck %s
+// RUN: stablehlo-opt --stablehlo-aggressive-folder=fold-op-element-limit=100 --split-input-file --verify-diagnostics %s | FileCheck %s
 
 ////////
 // AddOp
@@ -37,6 +37,21 @@ func.func @broadcast_in_dim_fold_splat(%arg0: tensor<3x3xi32>)
 
   // CHECK-NEXT: return [[R0]], [[R1]], [[R2]]
   return %0, %1, %2 : tensor<6xi32>, tensor<3xf32>, tensor<3x3xi32>
+}
+
+// -----
+
+////////
+// ClampOp
+
+// CHECK-LABEL: func.func @clamp_fold
+func.func @clamp_fold(%arg0: tensor<3xi32>) -> tensor<3xi32> {
+  %min = stablehlo.constant dense<[1, 5, 10]> : tensor<3xi32>
+  %max = stablehlo.constant dense<[10, 25, 12]> : tensor<3xi32>
+  %operand = stablehlo.constant dense<[0, 30, 11]> : tensor<3xi32>
+  // CHECK: stablehlo.constant dense<[1, 25, 11]> : tensor<3xi32>
+  %0 = "stablehlo.clamp"(%min, %operand, %max) : (tensor<3xi32>, tensor<3xi32>, tensor<3xi32>) -> tensor<3xi32>
+  func.return %0: tensor<3xi32>
 }
 
 // -----
@@ -98,6 +113,26 @@ func.func @concatenate_fold() -> (tensor<6xi32>, tensor<3xi32>, tensor<3x3xi32>,
   // CHECK-DAG:  [[R3:%.+]] = stablehlo.constant dense<{{\[\[0, 1, 2, 11, 12\], \[3, 4, 5, 13, 14\]\]}}> : tensor<2x5xi32>
   // CHECK-NEXT: return [[R0]], [[R1]], [[R2]], [[R3]]
   return %0, %1, %2, %3 : tensor<6xi32>, tensor<3xi32>, tensor<3x3xi32>, tensor<2x5xi32>
+}
+
+// -----
+
+////////
+// DivOp
+
+// CHECK-LABEL: @div_fold_cst
+func.func @div_fold_cst() -> (tensor<i32>, tensor<ui32>, tensor<f32>) {
+  %cst = stablehlo.constant dense<2> : tensor<i32>
+  %cst_1 = stablehlo.constant dense<2> : tensor<ui32>
+  %cst_2 = stablehlo.constant dense<2.0> : tensor<f32>
+  // CHECK: stablehlo.constant dense<1> : tensor<i32>
+  // CHECK: stablehlo.constant dense<1> : tensor<ui32>
+  // CHECK: stablehlo.divide{{.*}} : tensor<f32>
+  // DISABLED-CHECK: stablehlo.constant dense<1.0{{.*}}> : tensor<f32>
+  %0 = stablehlo.divide %cst, %cst : tensor<i32>
+  %1 = stablehlo.divide %cst_1, %cst_1 : tensor<ui32>
+  %2 = stablehlo.divide %cst_2, %cst_2 : tensor<f32>
+  return %0, %1, %2 : tensor<i32>, tensor<ui32>, tensor<f32>
 }
 
 // -----

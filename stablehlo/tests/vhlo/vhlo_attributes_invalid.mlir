@@ -1,17 +1,8 @@
 // RUN: stablehlo-opt --vhlo-to-version=target=1.9.0 -verify-diagnostics --split-input-file %s
 
-func.func @invalid_array_element() -> () attributes {
-  // expected-error @+1 {{expected array of VHLO attriutes}}
-  vhlo.attr = #vhlo.array_v1<[#stablehlo<precision DEFAULT>]>
-} {
-  return
-}
-
-// -----
-
 func.func @invalid_dict_element_value() -> () attributes {
-  // expected-error @+1 {{expected VHLO attribute}}
-  vhlo.attr = #vhlo.dict_v1<{#vhlo.string_v1<"attr1"> = 3 : i32}>
+  // expected-error @+1 {{expected VHLO key attribute}}
+  vhlo.attr = #vhlo.dict_v1<{"attr1" = #vhlo.array_v1<[]>}>
 } {
   return
 }

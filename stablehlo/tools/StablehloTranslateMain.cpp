@@ -76,6 +76,11 @@ llvm::cl::opt<std::string> targetOption(
     "target", llvm::cl::desc("Target version for serialization"),
     llvm::cl::init(""));
 
+llvm::cl::opt<bool> allowOtherDialectsOption(
+    "allow-other-dialects",
+    llvm::cl::desc("Allow mixed dialect in serialization"),
+    llvm::cl::init(false));
+
 llvm::cl::opt<std::string> argsOption(
     "args", llvm::cl::desc("Arguments to pass to the interpreter"),
     llvm::cl::init(""));
@@ -317,7 +322,8 @@ TranslateFromMLIRRegistration serializeRegistration(
           return module.emitError("failed to strip debuginfo");
       }
 
-      return stablehlo::serializePortableArtifact(module, targetVersion, os);
+      return stablehlo::serializePortableArtifact(
+          module, targetVersion, os, allowOtherDialectsOption.getValue());
     },
     [](DialectRegistry &registry) {
       mlir::registerAllDialects(registry);
