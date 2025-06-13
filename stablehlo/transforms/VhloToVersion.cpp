@@ -56,15 +56,23 @@ namespace {
 
 // Currently there are no type-to-version conversions so this class
 // simply validates that all types are from the VHLO dialect.
-class VhloToVersionConverter : public TypeConverter {
+class VhloToVersionConverter : public VhloTypeConverter {
  public:
-  VhloToVersionConverter() : TypeConverter() {
-    addConversion([](Type type) -> Type {
-      if (llvm::isa<vhlo::VhloDialect>(type.getDialect())) return type;
-      LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
-      return {};
+  // Safe to allow other dialects since the StableHLO->VHLO conversion guards
+  // the legality of types / attributes.
+  VhloToVersionConverter() : VhloTypeConverter(/*allowOtherDialects=*/true) {
+    addConversion([&](Type type) -> Type {
+      if (llvm::isa<vhlo::VhloDialect>(type.getDialect())) {
+        // Once a type becomes versioned we will check the version here.
+        return type;
+      }
+
+      LLVM_DEBUG(llvm::dbgs() << "Not VHLO type, allowed: " << type << '\n');
+      return type;
     });
   }
+
+  Attribute convertEncoding(Attribute attr) const override { return attr; };
 };
 
 // Check user-specified target version. Emit error if invalid.
@@ -111,6 +119,10 @@ bool isLegalVersion(VersionedInterface& interface, const Version& target) {
 LogicalResult isLegalType(Type type, const Version& targetVersion);
 
 LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
+  // StableHLO->VHLO conversion guards the legality of types / attributes.
+  // Other dialect types that make it past that step are valid here.
+  if (!mlir::isa<vhlo::VhloDialect>(attr.getDialect())) return success();
+
   auto attrInterface = dyn_cast<VersionedAttrInterface>(attr);
   if (!attrInterface || !isLegalVersion(attrInterface, targetVersion)) {
     LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr
@@ -119,10 +131,11 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   }
 
   // Recursively check attrs if VHLO attr is a container
-  if (auto arrAttr = dyn_cast<ArrayV1Attr>(attr))
+  if (auto arrAttr = dyn_cast<ArrayV1Attr>(attr)) {
     return success(llvm::all_of(arrAttr.getValue(), [&](Attribute ele) {
       return succeeded(isLegalAttribute(ele, targetVersion));
     }));
+  }
   if (auto arrAttr = dyn_cast<DictionaryV1Attr>(attr)) {
     return success(llvm::all_of(
         arrAttr.getValue(), [&](std::pair<Attribute, Attribute> entry) {
@@ -146,6 +159,10 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
 }
 
 LogicalResult isLegalType(Type type, const Version& targetVersion) {
+  // StableHLO->VHLO conversion guards the legality of types / attributes.
+  // Other dialect types that make it past that step are valid here.
+  if (!mlir::isa<vhlo::VhloDialect>(type.getDialect())) return success();
+
   // All valid VHLO types must have versioned type interface.
   auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
   if (!typeInterface || !isLegalVersion(typeInterface, targetVersion)) {
@@ -170,10 +187,11 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
       return failure();
     return isLegalType(ranked.getElementType(), targetVersion);
   }
-  if (auto tuple = dyn_cast<TupleV1Type>(type))
+  if (auto tuple = dyn_cast<TupleV1Type>(type)) {
     return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
       return succeeded(isLegalType(ele, targetVersion));
     }));
+  }
   if (auto quant = dyn_cast<UniformQuantizedV1Type>(type))
     return success(
         succeeded(isLegalType(quant.getStorageType(), targetVersion)) &&
@@ -213,7 +231,7 @@ bool isLegalLocation(Location loc, const Version& targetVersion) {
 bool isLegalOperation(Operation* op, const Version& targetVersion) {
   // Validate op
   auto opInterface = dyn_cast<VersionedOpInterface>(op);
-  if (!opInterface) return false;
+  if (!opInterface) return true;
   if (!isLegalVersion(opInterface, targetVersion)) return false;
   LLVM_DEBUG(llvm::dbgs() << "Legal op version for target. " << op << '\n');
 
@@ -454,7 +472,7 @@ struct AllReduceOpV2ToV1 : public OpRewritePattern<AllReduceOpV2> {
 namespace stablehlo {
 void populateVhloToVersionPatterns(MLIRContext* context,
                                    RewritePatternSet* patterns,
-                                   TypeConverter* converter) {
+                                   vhlo::VhloTypeConverter* converter) {
   vhlo::populateWithGenerated(*patterns);
   patterns->add<vhlo::ScatterOpV1ToV2, vhlo::ScatterOpV2ToV1>(context);
   patterns->add<vhlo::AllReduceOpV1ToV2, vhlo::AllReduceOpV2ToV1>(context);

@@ -45,14 +45,6 @@ class VHLO_AttrDef<string name, string minVersion, string maxVersion>
 def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.9.0", "current"> {
   let mnemonic = "array_v1";
   let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
-  let genVerifyDecl = 1;
-  let extraClassDefinition = [{
-    LogicalResult ArrayV1Attr::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, ArrayRef<mlir::Attribute> value) {
-      if (!allFromVhlo(value)) return errFn() << "expected array of VHLO attriutes";
-      return success();
-    }
-  }];
   let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
 }
 
@@ -75,9 +67,9 @@ def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.9.0", "current"> {
     LogicalResult DictionaryV1Attr::verify(
         llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
         ArrayRef<std::pair<mlir::Attribute, mlir::Attribute>> value) {
-      for (auto & entry : value)
-        if (!isFromVhlo(entry.first) || !isFromVhlo(entry.second))
-          errFn() << "expected VHLO attribute";
+      for (auto & entry : value) {
+        if (!isFromVhlo(entry.first)) errFn() << "expected VHLO key attribute";
+      }
       return success();
     }
   }];

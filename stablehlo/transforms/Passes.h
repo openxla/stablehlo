@@ -35,6 +35,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
+#include "stablehlo/dialect/VhloTypes.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -54,17 +55,17 @@ void populateStablehloRefineShapesPatterns(MLIRContext *context,
 // Populates StableHLO ops to VHLO ops rewriting patterns.
 void populateStablehloToVhloPatterns(MLIRContext *context,
                                      RewritePatternSet *patterns,
-                                     TypeConverter *converter);
+                                     vhlo::VhloTypeConverter *converter);
 
 // Populates VHLO ops to StableHLO ops rewriting patterns.
 void populateVhloToStablehloPatterns(MLIRContext *context,
                                      RewritePatternSet *patterns,
-                                     TypeConverter *converter);
+                                     vhlo::VhloTypeConverter *converter);
 
 // Populates VHLO downgrade rewriting patterns.
 void populateVhloToVersionPatterns(MLIRContext *context,
                                    RewritePatternSet *patterns,
-                                   TypeConverter *converter);
+                                   vhlo::VhloTypeConverter *converter);
 
 /// Collection of rewrite patterns for lowering of CHLO ops to StableHLO and
 /// Shape ops.
