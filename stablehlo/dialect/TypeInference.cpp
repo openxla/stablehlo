@@ -5042,7 +5042,7 @@ LogicalResult verifyWhileOp(std::optional<Location> location,
 
   if (!body.front().mightHaveTerminator())
     return emitOptionalError(
-        loc, "The while body-region expected to have a terminator");
+        locaction, "The while body-region expected to have a terminator");
 
   // while_c2
   auto bodyReturnTypes = body.front().getTerminator()->getOperandTypes();
