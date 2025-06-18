@@ -5039,6 +5039,11 @@ LogicalResult verifyWhileOp(std::optional<Location> location,
         location,
         "expect operands to be compatible with body block arguments but got ",
         operandTypes, " vs ", bodyArgsTypes);
+
+  if (!body.front().mightHaveTerminator())
+    return emitOptionalError(
+        location, "The while body-region expected to have a terminator");
+
   // while_c2
   auto bodyReturnTypes = body.front().getTerminator()->getOperandTypes();
   if (!isCompatibleForHloTypeInference(operandTypes, bodyReturnTypes))
