@@ -30,8 +30,8 @@ limitations under the License.
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/SmallVectorExtras.h"
-#include "llvm/Support/Debug.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Arith/Utils/Utils.h"
 #include "mlir/Dialect/Bufferization/IR/Bufferization.h"
@@ -1163,7 +1163,7 @@ struct ReshapeOpConverter final
             reshapeOp, resultType, operand, *reassociationMap);
       } else {
         // Generate expand operation.
-          // For scalar expands must pass an empty reassociation map.
+        // For scalar expands must pass an empty reassociation map.
         if (operandType.getRank() == 0) reassociationMap->clear();
         rewriter.replaceOpWithNewOp<tensor::ExpandShapeOp>(
             reshapeOp, resultType, operand, *reassociationMap);

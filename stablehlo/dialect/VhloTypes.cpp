@@ -402,10 +402,10 @@ ParseResult parseTypeArray(AsmParser& parser, SmallVector<Type>& typeArray) {
 
 // RankedTensorV1Type implement ShapedTypeInterface
 mlir::ShapedType RankedTensorV1Type::cloneWith(
-  std::optional<llvm::ArrayRef<int64_t>> values, Type elementType) const {
-ArrayRef<int64_t> shape = values.value_or(getShape());
-return RankedTensorV1Type::get(getContext(), shape, elementType,
-                               getEncoding());
+    std::optional<llvm::ArrayRef<int64_t>> values, Type elementType) const {
+  ArrayRef<int64_t> shape = values.value_or(getShape());
+  return RankedTensorV1Type::get(getContext(), shape, elementType,
+                                 getEncoding());
 }
 
 bool RankedTensorV1Type::hasRank() const { return true; }
