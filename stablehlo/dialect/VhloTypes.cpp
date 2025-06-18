@@ -16,6 +16,7 @@ limitations under the License.
 #include "stablehlo/dialect/VhloTypes.h"
 
 #include <cstdint>
+#include <optional>
 
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/ADT/StringRef.h"
@@ -23,6 +24,7 @@ limitations under the License.
 #include "mlir/Dialect/Quant/IR/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
@@ -31,6 +33,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
+#include "stablehlo/dialect/VhloTypes.h"
 
 namespace mlir {
 namespace vhlo {
@@ -396,6 +399,16 @@ ParseResult parseTypeArray(AsmParser& parser, SmallVector<Type>& typeArray) {
   }
   return success();
 }
+
+// RankedTensorV1Type implement ShapedTypeInterface
+mlir::ShapedType RankedTensorV1Type::cloneWith(
+    std::optional<llvm::ArrayRef<int64_t>> values, Type elementType) const {
+  ArrayRef<int64_t> shape = values.value_or(getShape());
+  return RankedTensorV1Type::get(getContext(), shape, elementType,
+                                 getEncoding());
+}
+
+bool RankedTensorV1Type::hasRank() const { return true; }
 
 }  // namespace vhlo
 }  // namespace mlir

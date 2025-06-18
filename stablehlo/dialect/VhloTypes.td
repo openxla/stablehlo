@@ -18,6 +18,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_VHLO_TYPES
 
 include "mlir/IR/AttrTypeBase.td"
+include "mlir/IR/BuiltinTypeInterfaces.td"
 include "stablehlo/dialect/VhloBase.td"
 include "stablehlo/dialect/VhloDialect.td"
 
@@ -33,8 +34,8 @@ def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
   ];
 }
 
-class VHLO_TypeDef<string cppName, string name, string minVersion, string maxVersion>
-  : TypeDef<VHLO_Dialect, cppName, [VHLO_VersionedTypeInterface]> {
+class VHLO_TypeDef<string cppName, string name, string minVersion, string maxVersion, list<Trait> traits = []>
+  : TypeDef<VHLO_Dialect, cppName, [VHLO_VersionedTypeInterface] # traits> {
   let mnemonic = name;
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
@@ -186,7 +187,8 @@ def VHLO_NoneTypeV1 : VHLO_TypeDef<"NoneV1", "none_v1", "1.6.0", "current">;
 // At the moment, it is used to represent dimension bounds to support bounded
 // dynamism, and we're planning to look into it as part of the work on the
 // dynamism RFC.
-def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor_v1", "0.9.0", "current"> {
+def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor_v1", "0.9.0", "current",
+                                       [DeclareTypeInterfaceMethods<ShapedTypeInterface>]> {
   let parameters = (ins
     VHLO_Dims:$shape,
     "::mlir::Type":$elementType,
