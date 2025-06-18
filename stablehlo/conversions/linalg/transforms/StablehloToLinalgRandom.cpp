@@ -319,6 +319,7 @@ Value reshapeToTarget(OpBuilder &builder, Location loc, ShapedType destTy,
   auto reassociationIndices =
       getReassociationIndicesForCollapse(destTy.getShape(), srcTy.getShape());
   if (reassociationIndices.has_value()) {
+    if (srcTy.getRank() == 0) reassociationIndices->clear();
     src = builder.create<tensor::ExpandShapeOp>(loc, destTy, src,
                                                 reassociationIndices.value());
   }
@@ -328,6 +329,7 @@ Value reshapeToTarget(OpBuilder &builder, Location loc, ShapedType destTy,
   reassociationIndices =
       getReassociationIndicesForCollapse(srcTy.getShape(), destTy.getShape());
   if (reassociationIndices.has_value()) {
+    if (destTy.getRank() == 0) reassociationIndices->clear();
     src = builder.create<tensor::CollapseShapeOp>(loc, destTy, src,
                                                   reassociationIndices.value());
   }

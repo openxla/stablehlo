@@ -30,6 +30,7 @@ limitations under the License.
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/SmallVectorExtras.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/Casting.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Arith/Utils/Utils.h"
@@ -71,6 +72,8 @@ limitations under the License.
 #include "stablehlo/conversions/linalg/transforms/Rewriters.h"
 #include "stablehlo/conversions/linalg/transforms/TypeConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
+
+#define DEBUG_TYPE "stablehlo-legalize-to-linalg"
 
 namespace mlir::stablehlo {
 
@@ -1127,6 +1130,10 @@ struct ReshapeOpConverter final
     // collapse_shape.
     if (std::optional<SmallVector<ReassociationIndices>> reassociationMap =
             getReassociationIndicesForReshape(operandType, resultType)) {
+      LLVM_DEBUG(llvm::dbgs() << "ReshapeOp: " << operandType << " -> "
+                              << resultType << " \n"
+                              << "  using reassociation map: "
+                              << reassociationMap.value().size() << "\n");
       if (resultType.getRank() < operandType.getRank()) {
         // We have found a working reassociation map. If the operand is dynamic,
         // we first need to cast all unknown dimensions in the input that get
@@ -1134,9 +1141,10 @@ struct ReshapeOpConverter final
         SmallVector<int64_t> shape(operandType.getShape().begin(),
                                    operandType.getShape().end());
         for (auto [idx, dims] : llvm::enumerate(*reassociationMap)) {
-          // If the result dim is dynamic, we do not mind dynamic entries in the
-          // source.
-          if (resultType.isDynamicDim(idx)) continue;
+          // If the result dim is dynamic or scalar, we do not mind dynamic
+          // entries in the source.
+          if (resultType.getRank() == 0 || resultType.isDynamicDim(idx))
+            continue;
           for (auto targetDim : dims) {
             if (shape[targetDim] == ShapedType::kDynamic) shape[targetDim] = 1;
           }
@@ -1149,10 +1157,14 @@ struct ReshapeOpConverter final
                                                     newOperandType, operand);
         }
         // Generate collapse operation.
+        // For scalar collapses must pass an empty reassociation map.
+        if (resultType.getRank() == 0) reassociationMap->clear();
         rewriter.replaceOpWithNewOp<tensor::CollapseShapeOp>(
             reshapeOp, resultType, operand, *reassociationMap);
       } else {
         // Generate expand operation.
+          // For scalar expands must pass an empty reassociation map.
+        if (operandType.getRank() == 0) reassociationMap->clear();
         rewriter.replaceOpWithNewOp<tensor::ExpandShapeOp>(
             reshapeOp, resultType, operand, *reassociationMap);
       }
