@@ -179,7 +179,8 @@ SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
 template <typename OpTy>
 void buildReduceBody(Type elementType, Region &body, OpBuilder &builder) {
   OpBuilder::InsertionGuard guard(builder);
-  Block *block = builder.createBlock(&body);
+  if (body.getBlocks().empty()) builder.createBlock(&body);
+  Block *block = &body.getBlocks().front();
 
   // Block arguments are scalars of the given element type.
   Type type = RankedTensorType::get(/*shape=*/{}, elementType);
