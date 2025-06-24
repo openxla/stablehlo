@@ -336,11 +336,11 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
 
-void copyDiscardableAttrs(Operation* src, Operation* dst){
+void copyDiscardableAttrs(Operation* src, Operation* dst) {
   dst->setDiscardableAttrs(src->getDiscardableAttrDictionary());
 }
 
-void copyDiscardableAttrs(Value src, Value dst){
+void copyDiscardableAttrs(Value src, Value dst) {
   copyDiscardableAttrs(src.getDefiningOp(), dst.getDefiningOp());
 }
 
