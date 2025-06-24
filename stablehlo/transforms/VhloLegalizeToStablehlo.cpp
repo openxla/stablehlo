@@ -529,8 +529,8 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                "input_batching_dims", "scatter_indices_batching_dims",
                "scatter_dims_to_operand_dims", "index_vector_dim");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::SendOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::SendOpV2>::value) {
     auto stablehloAttr = convertChannelHandle(vhloOp, typeConverter);
     if (!stablehloAttr) return failure();
     stablehloAttrs.emplace_back(
@@ -890,10 +890,12 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     if (isEmptyString(vhloOp.getOutfeedConfig()))
       eraseAttrs(vhloAttrs, "outfeed_config");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::SendOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::SendOpV2>::value) {
     if (isBoolean(vhloOp.getIsHostTransferAttr(), false))
       eraseAttrs(vhloAttrs, "is_host_transfer");
+    if (isEmptyTensor(vhloOp.getSourceTargetPairs()))
+      eraseAttrs(vhloAttrs, "source_target_pairs");
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::ReduceWindowOpV1>::value) {
     if (isSplatTensor(pattern, vhloOp.getWindowStridesAttr(), 1ll))

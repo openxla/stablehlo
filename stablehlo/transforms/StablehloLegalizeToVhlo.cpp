@@ -910,6 +910,8 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                 std::is_same<StablehloOpTy, stablehlo::SendOp>::value) {
     if (!stablehloOp.getIsHostTransferAttr())
       addDefaultAttr("is_host_transfer", builder.getBoolAttr(false));
+    if (!stablehloOp.getSourceTargetPairsAttr())
+      addDefaultAttr("source_target_pairs", builder.getDenseI64ArrayAttr({}));
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ReduceWindowOp>::value) {
     auto numWindowDimensions =

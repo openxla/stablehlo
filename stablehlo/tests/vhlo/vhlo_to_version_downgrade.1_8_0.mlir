@@ -22,3 +22,14 @@ func.func @exp_op_default(%arg0: tensor<f32>) -> tensor<f32> {
   } : (tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
+
+// CHECK-LABEL: vhlo.func_v1 @exp_op_default_unregistered_attrs
+func.func @exp_op_default_unregistered_attrs(%arg0: tensor<f32>) -> tensor<f32> {
+  %0 = "stablehlo.exponential"(%arg0) {
+    // CHECK: vhlo.exponential_v1
+    // CHECK-SAME: some.unregistered_attr
+    result_accuracy = #stablehlo.result_accuracy<atol = 0.000000e+00, rtol = 0.000000e+00, ulps = 0, mode = #stablehlo.result_accuracy_mode<DEFAULT>>,
+    some.unregistered_attr = 1 : i32
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}

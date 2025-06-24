@@ -50,6 +50,7 @@ def VHLO_Dialect : Dialect {
       1.9.0: Add `ResultAccuracy` attribute to `exp` op.
       1.10.0: Add `ResultAccuracy` attribute to `cbrt`, `cosine`, `exponential`, `exponential_minus_one`, `log`, `log_plus_one`, `logistic`, `rsqrt`, `sine`, `sqrt`, `tan` and `tanh` ops.
       1.11.0: Allow (de)serializing VHLO programs mixed with potentially unstable dialects.
+      1.12.0: Add `source_target_pairs` attribute to `send` and `recv` ops.
   }];
 
   let useDefaultAttributePrinterParser = 0;

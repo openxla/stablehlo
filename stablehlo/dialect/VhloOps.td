@@ -896,12 +896,23 @@ def VHLO_RealOpV1 : VHLO_Op<"real_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_RecvOpV1 : VHLO_Op<"recv_v1", "0.9.0", "current"> {
+def VHLO_RecvOpV1 : VHLO_Op<"recv_v1", "0.9.0", "1.11.0"> {
   let arguments = (ins
     VHLO_AnyType:$token,
     VHLO_AnyAttr:$channel_id,
     VHLO_AnyAttr:$channel_type,
     VHLO_AnyAttr:$is_host_transfer
+  );
+  let results = (outs Variadic<VHLO_AnyType>:$results);
+}
+
+def VHLO_RecvOpV2 : VHLO_Op<"recv_v2", "1.12.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$token,
+    VHLO_AnyAttr:$channel_id,
+    VHLO_AnyAttr:$channel_type,
+    VHLO_AnyAttr:$is_host_transfer,
+    VHLO_AnyAttr:$source_target_pairs
   );
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
@@ -1085,13 +1096,25 @@ def VHLO_SelectOpV1 : VHLO_Op<"select_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_SendOpV1 : VHLO_Op<"send_v1", "0.9.0", "current"> {
+def VHLO_SendOpV1 : VHLO_Op<"send_v1", "0.9.0", "1.11.0"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyType:$token,
     VHLO_AnyAttr:$channel_id,
     VHLO_AnyAttr:$channel_type,
     VHLO_AnyAttr:$is_host_transfer
+  );
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_SendOpV2 : VHLO_Op<"send_v2", "1.12.0", "current"> {
+  let arguments = (ins
+    Variadic<VHLO_AnyType>:$inputs,
+    VHLO_AnyType:$token,
+    VHLO_AnyAttr:$channel_id,
+    VHLO_AnyAttr:$channel_type,
+    VHLO_AnyAttr:$is_host_transfer,
+    VHLO_AnyAttr:$source_target_pairs
   );
   let results = (outs VHLO_AnyType:$result);
 }

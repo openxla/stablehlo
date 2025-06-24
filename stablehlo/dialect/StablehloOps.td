@@ -1229,8 +1229,9 @@ def StableHLO_SendOp : StableHLO_Op<"send", [
     Example:
     ```mlir
     %result = "stablehlo.send"(%operand, %token) {
-      channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>,
-      is_host_transfer = true
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 1>,
+      is_host_transfer = false,
+      source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>
     } : (tensor<2x2xi64>, !stablehlo.token) -> !stablehlo.token
     ```
   }];
@@ -1239,10 +1240,16 @@ def StableHLO_SendOp : StableHLO_Op<"send", [
     Variadic<HLO_TensorOrPerAxisQuantizedTensor>:$inputs, /*send_i1*/
     HLO_Token:$token, /*send_i2*/
     StableHLO_ChannelHandle:$channel_handle, /*send_i3_i4*/
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer /*send_i5*/
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer, /*send_i5*/
+    OptionalAttr<I64ElementsAttr>:$source_target_pairs /*send_i6*/
   );
 
   let results = (outs HLO_Token);
+  let builders = [
+    OpBuilder<(ins
+      "::mlir::Type":$result_type, "::mlir::Value":$operand,
+      "::mlir::DenseIntElementsAttr":$source_target_pairs,
+      "::mlir::stablehlo::ChannelHandleAttr":$channel_handle)>];
 }
 
 def StableHLO_RecvOp : StableHLO_Op<"recv", [
@@ -1259,8 +1266,9 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", [
     Example:
     ```mlir
     %results:2 = "stablehlo.recv"(%token) {
-      channel_handle = #stablehlo.channel_handle<handle = 1, type = 3>,
-      is_host_transfer = true
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 1>,
+      is_host_transfer = false,
+      source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>
     } : (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
     ```
   }];
@@ -1268,8 +1276,14 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", [
   let arguments = (ins
     HLO_Token:$token, /*recv_i1*/
     StableHLO_ChannelHandle:$channel_handle, /*recv_i2_i3*/
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer /*recv_i4*/
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer, /*recv_i4*/
+    OptionalAttr<I64ElementsAttr>:$source_target_pairs /*recv_i5*/
   );
+  let builders = [
+    OpBuilder<(ins
+      "::mlir::Type":$result_type, "::mlir::Value":$operand,
+      "::mlir::DenseIntElementsAttr":$source_target_pairs,
+      "::mlir::stablehlo::ChannelHandleAttr":$channel_handle)>];
 
   let results = (outs Variadic<HLO_StaticShapeTensorOrPerAxisQuantizedTensorOrToken>);
   let hasVerifier = 1;
