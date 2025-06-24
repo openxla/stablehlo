@@ -4733,10 +4733,12 @@ tensor. More formally, for each element `x`:
 Receives data from a channel with `channel_id` and produces `results`.
 
 If `is_host_transfer` is `true`, then the operation transfers data from the
-host. Otherwise, it transfers data from another device. What this means is
-implementation-defined. This flag duplicates the information provided in
+host. Otherwise, it transfers data from another device based on the values of
+`source_target_pairs`. This flag duplicates the information provided in
 `channel_type`, so in the future we are planning to only keep one of them
-([#666](https://github.com/openxla/stablehlo/issues/666)).
+([#666](https://github.com/openxla/stablehlo/issues/666)). If `is_host_transfer`
+= `false` and `source_target_pairs` is `None` or empty, it is considered
+undefined behavior.
 
 `results` consist of payload values which come first and a token which comes
 last. In the future, we are planning to split the payload and the token into two
@@ -4745,12 +4747,13 @@ separate outputs to improve clarity
 
 #### Inputs
 
-| Label | Name               | Type                                            | Constraints |
-|-------|--------------------|-------------------------------------------------|-------------|
-| (I1)  | `token`            | `token`                                         | (C4)        |
-| (I2)  | `channel_id`       | constant of type `si64`                         |             |
-| (I3)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `HOST_TO_DEVICE` | (C1)        |
-| (I4)  | `is_host_transfer` | constant of type `i1`                           | (C1)        |
+| Label | Name                  | Type                                            | Constraints   |
+|-------|-----------------------|-------------------------------------------------|---------------|
+| (I1)  | `token`               | `token`                                         |               |
+| (I2)  | `channel_id`          | constant of type `si64`                         |               |
+| (I3)  | `channel_type`        | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C5)          |
+| (I4)  | `is_host_transfer`    | constant of type `i1`                           | (C5-C6)       |
+| (I5)  | `source_target_pairs` | 2-dimensional tensor constant of type `si64`    | (C1-C4), (C6)       |
 
 #### Outputs
 
@@ -4760,19 +4763,23 @@ separate outputs to improve clarity
 
 #### Constraints
 
-* (C1) `channel_type` is defined as:
-  * `HOST_TO_DEVICE` if `is_host_transfer = true`,
+* (C1) `dim(source_target_pairs, 1) = 2`.
+* (C2) `is_unique(source_target_pairs[:, 0])`.
+* (C3) `is_unique(source_target_pairs[:, 1])`.
+* (C4) `0 <= source_target_pairs < N`, where `N` is defined as:
+  * `num_replicas` if `cross_replica` is used.
+  * `num_partitions` if `cross_partition` is used.
+* (C5) `channel_type` is defined as:
+  * `DEVICE_TO_HOST` if `is_host_transfer = true`,
   * `DEVICE_TO_DEVICE` otherwise.
-* (C2) `0 < size(results)`.
-* (C3) `is_empty(result[:-1])` or `is_tensor(type(results[:-1]))`.
-* (C4) `is_token(type(results[-1]))`.
 
 #### Examples
 
 ```mlir
 %results0, %results1 = "stablehlo.recv"(%token) {
-  channel_handle = #stablehlo.channel_handle<handle = 1, type = 3>,
-  is_host_transfer = true
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 1>,
+  is_host_transfer = false,
+  source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>
 } : (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
 ```
 
@@ -5855,23 +5862,28 @@ More formally:
 
 #### Semantics
 
-Sends `inputs` to a channel `channel_id` and produces a `result` token.
+Sends `inputs` to a channel `channel_id`. Inputs are then sent to other devices
+in the order specified by `source_target_pairs`. The operation produces a
+`result` token.
 
 If `is_host_transfer` is `true`, then the operation transfers data to the
-host. Otherwise, it transfers data to another device. What this means is
-implementation-defined. This flag duplicates the information provided in
+host. Otherwise, it transfers data to another device based on the values of
+`source_target_pairs`. This flag duplicates the information provided in
 `channel_type`, so in the future we are planning to only keep one of them
-([#666](https://github.com/openxla/stablehlo/issues/666)).
+([#666](https://github.com/openxla/stablehlo/issues/666)). If `is_host_transfer`
+= `false` and `source_target_pairs` is `None` or empty, it is considered
+undefined behavior.
 
 #### Inputs
 
-| Label | Name               | Type                                            | Constraints |
-|-------|--------------------|-------------------------------------------------|-------------|
-| (I1)  | `inputs`           | variadic number of tensors or quantized tensors |             |
-| (I2)  | `token`            | `token`                                         |             |
-| (I3)  | `channel_id`       | constant of type `si64`                         |             |
-| (I4)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C1)        |
-| (I5)  | `is_host_transfer` | constant of type `i1`                           | (C1)        |
+| Label | Name                  | Type                                            | Constraints   |
+|-------|-----------------------|-------------------------------------------------|---------------|
+| (I1)  | `inputs`              | variadic number of tensors or quantized tensors |               |
+| (I2)  | `token`               | `token`                                         |               |
+| (I3)  | `channel_id`          | constant of type `si64`                         |               |
+| (I4)  | `channel_type`        | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C5)          |
+| (I5)  | `is_host_transfer`    | constant of type `i1`                           | (C5-C6)       |
+| (I6)  | `source_target_pairs` | 2-dimensional tensor constant of type `si64`    | (C1-C4), (C6) |
 
 #### Outputs
 
@@ -5881,7 +5893,13 @@ implementation-defined. This flag duplicates the information provided in
 
 #### Constraints
 
-* (C1) `channel_type` is defined as:
+* (C1) `dim(source_target_pairs, 1) = 2`.
+* (C2) `is_unique(source_target_pairs[:, 0])`.
+* (C3) `is_unique(source_target_pairs[:, 1])`.
+* (C4) `0 <= source_target_pairs < N`, where `N` is defined as:
+  * `num_replicas` if `cross_replica` is used.
+  * `num_partitions` if `cross_partition` is used.
+* (C5) `channel_type` is defined as:
   * `DEVICE_TO_HOST` if `is_host_transfer = true`,
   * `DEVICE_TO_DEVICE` otherwise.
 
@@ -5889,8 +5907,9 @@ implementation-defined. This flag duplicates the information provided in
 
 ```mlir
 %result = "stablehlo.send"(%operand, %token) {
-  channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>,
-  is_host_transfer = true
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 1>,
+  is_host_transfer = false,
+  source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>
 } : (tensor<2x2xi64>, !stablehlo.token) -> !stablehlo.token
 ```
 

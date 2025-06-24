@@ -336,6 +336,14 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
 
+void copyDiscardableAttrs(Operation* src, Operation* dst){
+  dst->setDiscardableAttrs(src->getDiscardableAttrDictionary());
+}
+
+void copyDiscardableAttrs(Value src, Value dst){
+  copyDiscardableAttrs(src.getDefiningOp(), dst.getDefiningOp());
+}
+
 TensorV1Attr getEmptyI64Tensor(OpBuilder& builder) {
   auto shape = vhlo::RankedTensorV1Type::get(
       builder.getContext(), {0},
@@ -412,6 +420,7 @@ struct ScatterOpV2ToV1 : public OpRewritePattern<ScatterOpV2> {
         op.getIndicesAreSorted(), op.getUniqueIndices());
     Region& body = newOp.getUpdateComputation();
     rewriter.inlineRegionBefore(op.getUpdateComputation(), body, body.begin());
+    copyDiscardableAttrs(op, newOp);
     return success();
   }
 };
@@ -429,6 +438,7 @@ struct ScatterOpV1ToV2 : public OpRewritePattern<ScatterOpV1> {
         op.getIndicesAreSorted(), op.getUniqueIndices());
     Region& body = newOp.getUpdateComputation();
     rewriter.inlineRegionBefore(op.getUpdateComputation(), body, body.begin());
+    copyDiscardableAttrs(op, newOp);
     return success();
   }
 };
@@ -443,6 +453,7 @@ struct AllReduceOpV1ToV2 : public OpRewritePattern<AllReduceOpV1> {
         op.getChannelId(), op.getUseGlobalDeviceIds());
     Region& body = newOp.getComputation();
     rewriter.inlineRegionBefore(op.getComputation(), body, body.begin());
+    copyDiscardableAttrs(op, newOp);
     return success();
   }
 };
@@ -460,6 +471,7 @@ struct AllReduceOpV2ToV1 : public OpRewritePattern<AllReduceOpV2> {
         op.getReplicaGroups(), op.getChannelId(), op.getUseGlobalDeviceIds());
     Region& body = newOp.getComputation();
     rewriter.inlineRegionBefore(op.getComputation(), body, body.begin());
+    copyDiscardableAttrs(op, newOp);
     return success();
   }
 };

@@ -36,6 +36,16 @@ func.func public @cosine_op(%arg0: tensor<f32>) -> tensor<f32> {
 
 // -----
 
+// CHECK-LABEL: vhlo.func_v1 @cosine_op_unregistered_attrs
+func.func public @cosine_op_unregistered_attrs(%arg0: tensor<f32>) -> tensor<f32> {
+  // CHECK: vhlo.cosine_v1
+  // CHECK-SAME: some.unregistered_attr
+  %0 = "stablehlo.cosine"(%arg0) { some.unregistered_attr = 1 : i32 } : (tensor<f32>) -> tensor<f32>
+  return %0 : tensor<f32>
+}
+
+// -----
+
 // CHECK-LABEL: vhlo.func_v1 @cosine_default
 func.func @cosine_default(%arg0: tensor<f32>) -> tensor<f32> {
   %0 = "stablehlo.cosine"(%arg0) {
