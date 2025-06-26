@@ -499,7 +499,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ReducePrecisionOp>(
   expBitsMask = ((expBitsMask << srcExponentBits) - 1) << srcMantissaBits;
 
   auto createConstant = [&](const APInt &v) {
-    return b.create<arith::ConstantIntOp>(v.getZExtValue(), intType)
+    return b.create<arith::ConstantIntOp>(intType, v.getZExtValue())
         .getResult();
   };
 
@@ -520,7 +520,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ReducePrecisionOp>(
     APInt baseRoundingBias = lastMantissaBitMask.lshr(1) - 1;
 
     Value mantissaDiff = b.create<arith::ConstantIntOp>(
-        srcMantissaBits - destMantissaBits, intType);
+        intType, srcMantissaBits - destMantissaBits);
     Value highestMantissaMaskVal = createConstant(lastMantissaBitMask);
     Value baseRoundingBiasVal = createConstant(baseRoundingBias);
     Value xLastMantissaBit = b.create<arith::ShRUIOp>(
