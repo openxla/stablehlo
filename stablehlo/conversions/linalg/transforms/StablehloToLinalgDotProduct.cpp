@@ -299,7 +299,8 @@ struct DotGeneralOpConversion final
             /*nReduction=*/numContracting),
         [](OpBuilder &b, Location loc, ValueRange) {
           ImplicitLocOpBuilder builder(loc, b);
-          linalg::MatmulOp::regionBuilder(builder, *b.getInsertionBlock(), {});
+          linalg::MatmulOp::regionBuilder(builder, *b.getInsertionBlock(), {},
+                                          /*emitError=*/{});
         },
         linalg::getPrunedAttributeList(op));
 

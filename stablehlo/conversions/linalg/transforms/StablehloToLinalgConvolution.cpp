@@ -579,8 +579,9 @@ struct ConvolutionOpGeneralConversion final
                 /*bodyBuild=*/
                 [&](OpBuilder &nestedBuilder, Location nestedLoc, ValueRange) {
                   ImplicitLocOpBuilder builder(nestedLoc, nestedBuilder);
-                  linalg::Conv2DOp::regionBuilder(
-                      builder, *builder.getInsertionBlock(), {});
+                  linalg::Conv2DOp::regionBuilder(builder,
+                                                  *builder.getInsertionBlock(),
+                                                  {}, /*emitError=*/{});
                 },
                 linalg::getPrunedAttributeList(op))
             .getResult(0);
