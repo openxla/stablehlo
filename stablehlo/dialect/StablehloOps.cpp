@@ -129,6 +129,36 @@ LogicalResult TypeExtensionsAttr::verifyEncoding(
       getBounds(), RankedTensorType::get(shape, elementType), emitError);
 }
 
+ArrayAttr PrecisionConfigAttr::get(MLIRContext* context,
+                                   ArrayRef<Precision> precisions) {
+  SmallVector<Attribute> precisionAttrs =
+      llvm::map_to_vector(precisions, [&](Precision precision) -> Attribute {
+        return PrecisionAttr::get(context, precision);
+      });
+  return ArrayAttr::get(context, precisionAttrs);
+}
+
+//===----------------------------------------------------------------------===//
+// Attributes
+//===----------------------------------------------------------------------===//
+
+ResultAccuracyAttr ResultAccuracyAttr::get(MLIRContext* context) {
+  return get(context, ResultAccuracyMode::DEFAULT);
+}
+
+ResultAccuracyAttr ResultAccuracyAttr::get(MLIRContext* context,
+                                           ResultAccuracyMode mode) {
+  auto modeAttr = ResultAccuracyModeAttr::get(context, mode);
+  return get(context, APFloat(0.0), APFloat(0.0), 0, modeAttr);
+}
+
+ResultAccuracyAttr ResultAccuracyAttr::get(MLIRContext* context, APFloat atol,
+                                           APFloat rtol, int64_t ulps) {
+  auto modeAttr =
+      ResultAccuracyModeAttr::get(context, ResultAccuracyMode::TOLERANCE);
+  return get(context, atol, rtol, ulps, modeAttr);
+}
+
 //===----------------------------------------------------------------------===//
 // ReduceScatterOp
 //===----------------------------------------------------------------------===//
