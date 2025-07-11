@@ -55,17 +55,17 @@ Here's how to build the StableHLO repo on Linux or macOS:
    recommend setting it to `ON` on Linux and to `OFF` on macOS.
 
    ```sh
-   [[ "$(uname)" != "Darwin" ]] && LLVM_ENABLE_LLD="ON" || LLVM_ENABLE_LLD="OFF"
+   [ "$(uname)" != 'Darwin' ] && LLVM_ENABLE_LLD='ON' || LLVM_ENABLE_LLD='OFF'
    ```
 
 3. Clone the StableHLO repo and the LLVM repository:
 
    ```sh
-   git clone https://github.com/openxla/stablehlo
+   git clone --depth=1 --single-branch https://github.com/openxla/stablehlo
    ```
 
    ```sh
-   cd stablehlo && git clone https://github.com/llvm/llvm-project.git
+   cd stablehlo && git clone --depth=1 --single-branch https://github.com/llvm/llvm-project.git
    ```
 
    Cloning the LLVM repository may take a few minutes.
@@ -73,7 +73,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
 4. Make sure you check out the correct commit in the LLVM repository:
 
    ```sh
-   (cd llvm-project && git fetch && git checkout $(cat ../build_tools/llvm_version.txt))
+   (hash="$(cat ../build_tools/llvm_version.txt)"; cd llvm-project && git fetch "$hash" && git checkout "$hash")
    ```
 
    You need to do this every time `llvm_version.txt` changes.
@@ -81,7 +81,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
 5. Configure and build MLIR:
 
    ```sh
-   MLIR_ENABLE_BINDINGS_PYTHON=OFF build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build
+   MLIR_ENABLE_BINDINGS_PYTHON=OFF build_tools/build_mlir.sh "${PWD}"/llvm-project/ "${PWD}"/llvm-build
    ```
 
    This will take a considerable amount of time. For example, on a MacBook Pro
@@ -97,10 +97,10 @@ Here's how to build the StableHLO repo on Linux or macOS:
 
    cmake .. -GNinja \
      -DLLVM_ENABLE_LLD="$LLVM_ENABLE_LLD" \
-     -DCMAKE_BUILD_TYPE=Release \
-     -DLLVM_ENABLE_ASSERTIONS=ON \
-     -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=OFF \
-     -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
+     -DCMAKE_BUILD_TYPE='Release' \
+     -DLLVM_ENABLE_ASSERTIONS='ON' \
+     -DSTABLEHLO_ENABLE_BINDINGS_PYTHON='OFF' \
+     -DMLIR_DIR="${PWD}"/../llvm-build/lib/cmake/mlir
 
    cmake --build .
    ```
@@ -119,7 +119,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
      -DCMAKE_C_COMPILER_LAUNCHER=ccache \
      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
      -DSTABLEHLO_ENABLE_SANITIZER=address \
-     -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
+     -DMLIR_DIR="${PWD}"/../llvm-build/lib/cmake/mlir
 
    cmake --build .
    ```
@@ -159,14 +159,14 @@ pip install -r ./llvm-project/mlir/python/requirements.txt
 Then build StableHLO with python bindings enabled:
 
 ```sh
-STABLEHLO_ENABLE_BINDINGS_PYTHON=ON ./build_tools/github_actions/ci_build_cmake.sh ${PWD}/llvm-build ${PWD}/build
+STABLEHLO_ENABLE_BINDINGS_PYTHON=ON ./build_tools/github_actions/ci_build_cmake.sh "${PWD}"/llvm-build "${PWD}"/build
 ```
 
 After you have built the project you can import the Python bindings to begin
 by modifying your Python path variable
 
 ```shell
-$ PYTHONPATH="./build/python_packages/stablehlo" python3
+$ PYTHONPATH='./build/python_packages/stablehlo' python3
 Python 3.11.6 (main, Oct  8 2023, 05:06:43) [GCC 13.2.0] on linux
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import mlir.dialects.stablehlo
