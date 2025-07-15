@@ -1147,7 +1147,7 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
       *paddingOrErr,
       /*lhsDilation=*/baseDilations.value_or(SmallVector<int64_t, 0>{}),
       /*rhsDilation=*/windowDilations.value_or(SmallVector<int64_t, 0>{}),
-      /*windowReversal=*/std::nullopt, location);
+      /*windowReversal=*/{}, location);
   if (failed(windowOrErr)) return failure();
 
   windowDims.append(windowDimensions.begin(), windowDimensions.end());
