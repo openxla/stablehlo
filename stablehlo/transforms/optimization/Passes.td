@@ -23,10 +23,14 @@ defvar kAllStablehloOptimizationPassFlags = [
          "explicit MLIR `MemoryEffects`. Notably, this means `func.call` ops "
          "will be assumed pure.">,
   Option<"foldOpElementLimit", "fold-op-element-limit", "int64_t",
-         /*default=*/"65536",
-         "Upper limit on how many elements may be folded by an op folder. "
-         "This limit doesn't apply in certain special cases such as "
-         "addition with 0, multiplication by 1, and some splat operations.">,
+         /*default=*/"1",
+         "Folding an op into a constant can sometimes come at the cost of "
+         "memory overhead. (This occurs if the op's inputs are reused, meaning "
+         "that they can't be deleted after the op is folded to a constant, or "
+         "when folding operations like `iota` whose outputs take up more "
+         "memory than their inputs.) In such cases, this config option sets an "
+         "upper limit on how many elements an op's result may have before the "
+         "op is no longer folded.">,
   Option<"optimizeFloat", "optimize-float", "bool", /*default=*/"true",
          "Allow float optimizations that, though mathematically equivalent, "
          "may result in slightly different quantization of floating-point "
