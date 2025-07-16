@@ -2201,14 +2201,12 @@ void ReduceWindowOp::build(
   locs.reserve(numValues);
   for (auto i : inputs) {
     auto iType = cast<ShapedType>(i.getType());
-    blockArgTypes.push_back(
-        iType.cloneWith({}, iType.getElementType()));
+    blockArgTypes.push_back(iType.cloneWith({}, iType.getElementType()));
     locs.push_back(i.getLoc());
   }
   for (auto i : init_values) {
     auto iType = cast<ShapedType>(i.getType());
-    blockArgTypes.push_back(
-        iType.cloneWith({}, iType.getElementType()));
+    blockArgTypes.push_back(iType.cloneWith({}, iType.getElementType()));
     locs.push_back(i.getLoc());
   }
 
