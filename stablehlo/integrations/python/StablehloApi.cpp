@@ -146,8 +146,9 @@ void AddStablehloApi(nb::module_ &m) {
   //
   m.def(
       "eval_module",
-      [](MlirModule module,
-         std::vector<MlirAttribute> &args) -> std::vector<MlirAttribute> {
+      [](MlirModule module, std::vector<MlirAttribute> &args,
+         const std::string &probe_instrumentation_dir)
+          -> std::vector<MlirAttribute> {
         for (auto arg : args) {
           if (!mlirAttributeIsADenseElements(arg)) {
             throw nb::value_error("input args must be DenseElementsAttr");
@@ -156,7 +157,8 @@ void AddStablehloApi(nb::module_ &m) {
 
         int errorCode(0);
         MlirAttribute resultArrayAttr =
-            stablehloEvalModule(module, args.size(), args.data(), &errorCode);
+            stablehloEvalModule(module, args.size(), args.data(),
+                                probe_instrumentation_dir.c_str(), &errorCode);
 
         if (errorCode != 0) {
           throw nb::value_error("interpreter failed");
@@ -168,7 +170,8 @@ void AddStablehloApi(nb::module_ &m) {
         }
         return pyResults;
       },
-      nb::arg("module"), nb::arg("args"));
+      nb::arg("module"), nb::arg("args"),
+      nb::arg("probe_instrumentation_dir") = "");
 }
 
 void AddPortableApi(nb::module_ &m) {

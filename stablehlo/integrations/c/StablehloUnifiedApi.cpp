@@ -32,13 +32,16 @@ limitations under the License.
 #include "stablehlo/reference/Configuration.h"
 
 MlirAttribute stablehloEvalModule(MlirModule module, int nArgs,
-                                  MlirAttribute const *args, int *errorCode) {
+                                  MlirAttribute const *args,
+                                  const char *const probeInstrumentationDir,
+                                  int *errorCode) {
   std::vector<mlir::DenseElementsAttr> inputs;
   inputs.reserve(nArgs);
   for (int i = 0; i < nArgs; ++i) {
     inputs.push_back(llvm::cast<mlir::DenseElementsAttr>(unwrap(args[i])));
   }
   mlir::stablehlo::InterpreterConfiguration config;
+  config.probeInstrumentationDir = probeInstrumentationDir;
   mlir::FailureOr<llvm::SmallVector<mlir::DenseElementsAttr>> results =
       mlir::stablehlo::evalModule(unwrap(module), inputs, config);
   if (mlir::failed(results)) {

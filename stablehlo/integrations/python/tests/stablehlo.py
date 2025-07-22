@@ -18,7 +18,9 @@
 # pylint: disable=wildcard-import,undefined-variable
 
 import io
+import os
 import re
+import tempfile
 from mlir import ir
 from mlir import passmanager as pm
 from mlir.dialects import stablehlo
@@ -28,6 +30,7 @@ import numpy as np
 def run(f):
   with ir.Context() as context:
     stablehlo.register_dialect(context)
+    stablehlo.register_interpreter_dialect(context)
     f()
   return f
 
@@ -44,7 +47,7 @@ def test_channel_handle():
 def test_comparison_direction_attr():
   attr = stablehlo.ComparisonDirectionAttr.get("EQ")
   assert attr is not None
-  assert str(attr) == ("#stablehlo<comparison_direction EQ>")
+  assert str(attr) == "#stablehlo<comparison_direction EQ>"
   assert attr.value == "EQ"
 
 
@@ -52,7 +55,7 @@ def test_comparison_direction_attr():
 def test_comparison_type_attr():
   attr = stablehlo.ComparisonTypeAttr.get("FLOAT")
   assert attr is not None
-  assert str(attr) == ("#stablehlo<comparison_type FLOAT>")
+  assert str(attr) == "#stablehlo<comparison_type FLOAT>"
   assert attr.value == "FLOAT"
 
 
@@ -67,9 +70,11 @@ def test_conv_dimension_numbers():
       kernel_spatial_dimensions=[2, 3],
       output_batch_dimension=0,
       output_feature_dimension=1,
-      output_spatial_dimensions=[2, 3])
-  assert str(attr) == ("#stablehlo.conv<[b, f, 0, 1, 2]x[i, o, 0, 1]->"
-                       "[b, f, 0, 1]>")
+      output_spatial_dimensions=[2, 3],
+  )
+  assert str(attr) == (
+      "#stablehlo.conv<[b, f, 0, 1, 2]x[i, o, 0, 1]->[b, f, 0, 1]>"
+  )
   assert attr is not None
   assert attr.input_batch_dimension == 0
   assert attr.input_feature_dimension == 1
@@ -92,13 +97,16 @@ def test_dot_algorithm():
       lhs_component_count=1,
       rhs_component_count=1,
       num_primitive_operations=3,
-      allow_imprecise_accumulation=False)
+      allow_imprecise_accumulation=False,
+  )
   assert attr is not None
-  assert str(attr) == ("#stablehlo.dot_algorithm<lhs_precision_type = bf16, "
-                       "rhs_precision_type = bf16, accumulation_type = f32, "
-                       "lhs_component_count = 1, rhs_component_count = 1, "
-                       "num_primitive_operations = 3, "
-                       "allow_imprecise_accumulation = false>")
+  assert str(attr) == (
+      "#stablehlo.dot_algorithm<lhs_precision_type = bf16, "
+      "rhs_precision_type = bf16, accumulation_type = f32, "
+      "lhs_component_count = 1, rhs_component_count = 1, "
+      "num_primitive_operations = 3, "
+      "allow_imprecise_accumulation = false>"
+  )
   assert isinstance(attr.lhs_precision_type, ir.BF16Type)
   assert isinstance(attr.rhs_precision_type, ir.BF16Type)
   assert isinstance(attr.accumulation_type, ir.F32Type)
@@ -114,12 +122,15 @@ def test_dot_dimension_numbers():
       lhs_batching_dimensions=[0, 1],
       rhs_batching_dimensions=[2, 3],
       lhs_contracting_dimensions=[4, 5],
-      rhs_contracting_dimensions=[6, 7])
+      rhs_contracting_dimensions=[6, 7],
+  )
   assert attr is not None
-  assert str(attr) == ("#stablehlo.dot<lhs_batching_dimensions = [0, 1], "
-                       "rhs_batching_dimensions = [2, 3], "
-                       "lhs_contracting_dimensions = [4, 5], "
-                       "rhs_contracting_dimensions = [6, 7]>")
+  assert str(attr) == (
+      "#stablehlo.dot<lhs_batching_dimensions = [0, 1], "
+      "rhs_batching_dimensions = [2, 3], "
+      "lhs_contracting_dimensions = [4, 5], "
+      "rhs_contracting_dimensions = [6, 7]>"
+  )
   assert attr.lhs_batching_dimensions == [0, 1]
   assert attr.rhs_batching_dimensions == [2, 3]
   assert attr.lhs_contracting_dimensions == [4, 5]
@@ -130,7 +141,7 @@ def test_dot_dimension_numbers():
 def test_fft_type_attr():
   attr = stablehlo.FftTypeAttr.get("FFT")
   assert attr is not None
-  assert str(attr) == ("#stablehlo<fft_type FFT>")
+  assert str(attr) == "#stablehlo<fft_type FFT>"
   assert attr.value == "FFT"
 
 
@@ -164,13 +175,14 @@ def test_gather_dimension_numbers():
 @run
 def test_output_operand_alias():
   attr = stablehlo.OutputOperandAlias.get(
-      output_tuple_indices=[0],
-      operand_index=0,
-      operand_tuple_indices=[1])
+      output_tuple_indices=[0], operand_index=0, operand_tuple_indices=[1]
+  )
   assert attr is not None
-  assert str(attr) == ("#stablehlo.output_operand_alias<output_tuple_indices = [0], "
-                       "operand_index = 0, "
-                       "operand_tuple_indices = [1]>")
+  assert str(attr) == (
+      "#stablehlo.output_operand_alias<output_tuple_indices = [0], "
+      "operand_index = 0, "
+      "operand_tuple_indices = [1]>"
+  )
   assert attr.output_tuple_indices == [0]
   assert attr.operand_index == 0
   assert attr.operand_tuple_indices == [1]
@@ -180,7 +192,7 @@ def test_output_operand_alias():
 def test_precision_attr():
   attr = stablehlo.PrecisionAttr.get("DEFAULT")
   assert attr is not None
-  assert str(attr) == ("#stablehlo<precision DEFAULT>")
+  assert str(attr) == "#stablehlo<precision DEFAULT>"
   assert attr.value == "DEFAULT"
 
 
@@ -188,7 +200,7 @@ def test_precision_attr():
 def test_rng_algorithm_attr():
   attr = stablehlo.RngAlgorithmAttr.get("DEFAULT")
   assert attr is not None
-  assert str(attr) == ("#stablehlo<rng_algorithm DEFAULT>")
+  assert str(attr) == "#stablehlo<rng_algorithm DEFAULT>"
   assert attr.value == "DEFAULT"
 
 
@@ -196,7 +208,7 @@ def test_rng_algorithm_attr():
 def test_rng_distribution_attr():
   attr = stablehlo.RngDistributionAttr.get("UNIFORM")
   assert attr is not None
-  assert str(attr) == ("#stablehlo<rng_distribution UNIFORM>")
+  assert str(attr) == "#stablehlo<rng_distribution UNIFORM>"
   assert attr.value == "UNIFORM"
 
 
@@ -231,7 +243,7 @@ def test_scatter_dimension_numbers():
 def test_transpose_attr():
   attr = stablehlo.TransposeAttr.get("TRANSPOSE")
   assert attr is not None
-  assert str(attr) == ("#stablehlo<transpose TRANSPOSE>")
+  assert str(attr) == "#stablehlo<transpose TRANSPOSE>"
   assert attr.value == "TRANSPOSE"
 
 
@@ -293,24 +305,32 @@ func.func @test(%arg0: tensor<{0}>) -> tensor<{0}> {{
 }}
 """
 
+_ASM_FORMAT_WITH_PROBE = r"""
+func.func @test(%arg0: tensor<{0}>) -> tensor<{0}> {{
+  %0 = stablehlo.add %arg0, %arg0 : (tensor<{0}>, tensor<{0}>) -> tensor<{0}>
+  %1 = interpreter.probe %0, probe_id = "probe0" : tensor<{0}>
+  func.return %1 : tensor<{0}>
+}}
+"""
+
 
 @run
 def test_reference_api():
   # Formatted as (tensor_type, np_value)
   # Program runs arg + arg, which is used for expected value
   tests = [
-    # No numpy types for f8 - skipping fp8 tests
-    ("f16", np.asarray(1, np.float16)),
-    ("f32", np.asarray(2, np.float32)),
-    ("f64", np.asarray(3, np.double)),
-    ("1xi8", np.asarray([4], np.int8)),
-    ("1xi16", np.asarray([5], np.int16)),
-    ("1xi32", np.asarray([-6], np.int32)),
-    # Numpy's uint treated as int by DenseElementsAttr, skipping np.uint tests
-    ("2x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,2)),
-    ("2x1x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,1,2)),
-    ("?x?xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,2)),
-    ("?x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2,2)),
+      # No numpy types for f8 - skipping fp8 tests
+      ("f16", np.asarray(1, np.float16)),
+      ("f32", np.asarray(2, np.float32)),
+      ("f64", np.asarray(3, np.double)),
+      ("1xi8", np.asarray([4], np.int8)),
+      ("1xi16", np.asarray([5], np.int16)),
+      ("1xi32", np.asarray([-6], np.int32)),
+      # Numpy's uint treated as int by DenseElementsAttr, skipping np.uint tests
+      ("2x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2, 2)),
+      ("2x1x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2, 1, 2)),
+      ("?x?xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2, 2)),
+      ("?x2xf16", np.asarray([1, 2, 3, 4], np.float16).reshape(2, 2)),
   ]
   for test in tests:
     tensor_type, arg = test
@@ -390,20 +410,45 @@ def test_register_passes():
 
 @run
 def test_result_accuracy_attr_default():
-  attr = stablehlo.ResultAccuracyAttr.get(atol=0, rtol=0, ulps=0, mode="DEFAULT")
+  attr = stablehlo.ResultAccuracyAttr.get(
+      atol=0, rtol=0, ulps=0, mode="DEFAULT"
+  )
   assert attr is not None
   assert attr.mode == "DEFAULT"
   assert attr.atol == 0
   assert attr.rtol == 0
   assert attr.ulps == 0
 
+
 @run
 def test_result_accuracy_attr_tolerance():
-  attr = stablehlo.ResultAccuracyAttr.get(atol=1e-5, rtol=1.0,
-                                          ulps=2, mode="TOLERANCE")
+  attr = stablehlo.ResultAccuracyAttr.get(
+      atol=1e-5, rtol=1.0, ulps=2, mode="TOLERANCE"
+  )
   assert attr is not None
   assert attr.mode == "TOLERANCE"
   assert attr.atol == 1e-5
   assert attr.rtol == 1.0
   assert attr.ulps == 2
 
+
+@run
+def test_reference_api_with_probe():
+  """Tests that probe files are created in the specified directory."""
+  test_tmpdir_base = os.environ.get("TEST_TMPDIR")
+  with tempfile.TemporaryDirectory(dir=test_tmpdir_base) as tmpdir:
+    tensor_type = "f32"
+    arg = np.asarray(2, np.float32)
+    m = ir.Module.parse(_ASM_FORMAT_WITH_PROBE.format(tensor_type))
+    args = [ir.DenseElementsAttr.get(arg)]
+
+    # Call eval_module, directing probe outputs to the temporary directory.
+    stablehlo.eval_module(m, args, probe_instrumentation_dir=tmpdir)
+
+    # Verify that the expected probe files were created.
+    probe_file = os.path.join(tmpdir, "probe1.npy")
+    metadata_file = os.path.join(tmpdir, "index.csv")
+    assert os.path.exists(probe_file), f"Probe file not found: {probe_file}"
+    assert os.path.exists(
+        metadata_file
+    ), f"Metadata file not found: {metadata_file}"

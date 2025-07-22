@@ -1,4 +1,5 @@
-/* Copyright 2024 The StableHLO Authors.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+   Copyright 2022 The StableHLO Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -10,28 +11,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_INTEGRATIONS_C_STABLEHLOREFERENCEAPI_H_
-#define STABLEHLO_INTEGRATIONS_C_STABLEHLOREFERENCEAPI_H_
+#ifndef STABLEHLO_INTEGRATIONS_C_INTERPRETER_DIALECT_H
+#define STABLEHLO_INTEGRATIONS_C_INTERPRETER_DIALECT_H
 
 #include "mlir-c/IR.h"
-#include "mlir-c/Support.h"
-
-// Re-exports dialect capi
-#include "stablehlo/integrations/c/StablehloDialectApi.h"
+#include "mlir-c/RegisterEverything.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Entrypoint for calling the StableHLO reference interpreter.
-// Returns an array attribute of dense element attributes for results.
-// Sets error code to non-zero on failure.
-MLIR_CAPI_EXPORTED MlirAttribute
-stablehloEvalModule(MlirModule module, int nArgs, MlirAttribute const* args,
-                    const char* probeInstrumentationDir, int* errorCode);
+MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(Interpreter, interpreter);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // STABLEHLO_INTEGRATIONS_C_STABLEHLOREFERENCEAPI_H_
+#endif  // STABLEHLO_INTEGRATIONS_C_INTERPRETER_DIALECT_H
