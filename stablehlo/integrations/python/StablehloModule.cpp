@@ -19,6 +19,7 @@ limitations under the License.
 #include "nanobind/nanobind.h"
 #include "nanobind/stl/string.h"
 #include "nanobind/stl/vector.h"
+#include "stablehlo/integrations/c/InterpreterDialect.h"
 #include "stablehlo/integrations/c/StablehloAttributes.h"
 #include "stablehlo/integrations/c/StablehloDialect.h"
 #include "stablehlo/integrations/c/StablehloPasses.h"
@@ -59,6 +60,17 @@ NB_MODULE(_stablehlo, m) {
       "register_dialect",
       [](MlirContext context, bool load) {
         MlirDialectHandle dialect = mlirGetDialectHandle__stablehlo__();
+        mlirDialectHandleRegisterDialect(dialect, context);
+        if (load) {
+          mlirDialectHandleLoadDialect(dialect, context);
+        }
+      },
+      nb::arg("context"), nb::arg("load") = true);
+
+  m.def(
+      "register_interpreter_dialect",
+      [](MlirContext context, bool load) {
+        MlirDialectHandle dialect = mlirGetDialectHandle__interpreter__();
         mlirDialectHandleRegisterDialect(dialect, context);
         if (load) {
           mlirDialectHandleLoadDialect(dialect, context);

@@ -2248,6 +2248,22 @@ LogicalResult inferCreateTokenOp(HloDialectInterface* dialect,
   return success();
 }
 
+namespace {
+
+// Infer dim sizes with bounds accounted for
+void pushDimensionAndBoundSize(SmallVector<int64_t>& inferredSizes,
+                               SmallVector<int64_t>& inferredBounds,
+                               int64_t dimension, ShapedType type,
+                               ArrayRef<int64_t> bounds) {
+  inferredSizes.push_back(type.getDimSize(dimension));
+
+  // Has bounds and is bounded
+  auto bound = bounds.empty() ? ShapedType::kDynamic : bounds[dimension];
+  inferredBounds.push_back(bound);
+}
+
+}  // namespace
+
 LogicalResult inferDotOp(
     std::optional<Location> location, RankedTensorType lhsType,
     RankedTensorType rhsType, std::optional<ArrayAttr> precisionConfig,
@@ -2256,6 +2272,9 @@ LogicalResult inferDotOp(
     return failure();
 
   SmallVector<int64_t> dimensions;
+  SmallVector<int64_t> bounds;
+  auto lhsBounds = to_vector(encodingToBounds(lhsType.getEncoding()));
+  auto rhsBounds = to_vector(encodingToBounds(rhsType.getEncoding()));
   if (1 == lhsType.getRank() && 1 == rhsType.getRank() &&
       // vector dot vector
       verifyCompatibleDims(lhsType.getDimSize(0), rhsType.getDimSize(0))) {
@@ -2263,25 +2282,29 @@ LogicalResult inferDotOp(
              verifyCompatibleDims(lhsType.getDimSize(1),
                                   rhsType.getDimSize(0))) {
     // matrix dot vector
-    dimensions.push_back(lhsType.getDimSize(0));
+    pushDimensionAndBoundSize(dimensions, bounds, 0, lhsType, lhsBounds);
   } else if (1 == lhsType.getRank() && 2 == rhsType.getRank() &&
              verifyCompatibleDims(lhsType.getDimSize(0),
                                   rhsType.getDimSize(0))) {
     // vector dot matrix
-    dimensions.push_back(rhsType.getDimSize(1));
+    pushDimensionAndBoundSize(dimensions, bounds, 1, rhsType, rhsBounds);
   } else if (2 == lhsType.getRank() && 2 == rhsType.getRank() &&
              verifyCompatibleDims(lhsType.getDimSize(1),
                                   rhsType.getDimSize(0))) {
     // matrix dot matrix
-    dimensions.push_back(lhsType.getDimSize(0));
-    dimensions.push_back(rhsType.getDimSize(1));
+    pushDimensionAndBoundSize(dimensions, bounds, 0, lhsType, lhsBounds);
+    pushDimensionAndBoundSize(dimensions, bounds, 1, rhsType, rhsBounds);
   } else {
     return emitOptionalError(location,
                              "expected both lhs/rhs ranks to be "
                              "either 1 or 2");
   }
 
-  inferredReturnShapes.emplace_back(dimensions);
+  auto encoding =
+      lhsType.getEncoding() ? lhsType.getEncoding() : rhsType.getEncoding();
+  auto boundsAttr = boundsToEncoding(encoding, bounds);
+  inferredReturnShapes.emplace_back(dimensions, /*elementType=*/nullptr,
+                                    boundsAttr);
   return success();
 }
 

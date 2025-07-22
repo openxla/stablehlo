@@ -1804,6 +1804,15 @@ func.func @real_dynamic_slice(%arg0: tensor<?xf32>, %arg1: tensor<1xindex>, %arg
 
 // -----
 
+// CHECK-LABEL: func @dot_bounds
+func.func @dot_bounds(%arg0: tensor<?x12xf32, #stablehlo.bounds<64, ?>>, %arg1: tensor<12x?xf32, #stablehlo.bounds<?, 64>>) -> tensor<?x?xf32, #stablehlo.bounds<64, 64>> {
+  %0 = stablehlo.dot %arg0, %arg1, precision = [HIGHEST, HIGHEST] : (tensor<?x12xf32, #stablehlo.bounds<64, ?>>, tensor<12x?xf32, #stablehlo.bounds<?, 64>>) -> tensor<?x?xf32, #stablehlo.bounds<64, 64>>
+  // CHECK: return {{.*}} : tensor<?x?xf32, #stablehlo.bounds<64, 64>>
+  return %0 : tensor<?x?xf32, #stablehlo.bounds<64, 64>>
+}
+
+// -----
+
 // CHECK-LABEL: func @dot_general_c12
 // CHECK-SAME: (%[[ARG0:.*]]: tensor<?x?x?xf32>, %[[ARG1:.*]]: tensor<?x?x?xf32>
 func.func @dot_general_c12(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<3xindex> {
