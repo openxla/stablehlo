@@ -38,7 +38,7 @@ add_mlir_public_c_api_library(StablehloCAPI
   StablehloTypes.cpp
   StablehloDialectApi.cpp
   StablehloUnifiedApi.cpp
-  InterpretDialect.cpp
+  InterpreterDialect.cpp
 
   LINK_LIBS PUBLIC
   MLIRCAPIIR
