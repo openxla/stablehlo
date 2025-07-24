@@ -655,7 +655,7 @@ void printWhileOp(OpAsmPrinter& p, Operation* op, Region& cond, Region& body) {
   }
   p.printOptionalAttrDictWithKeyword(op->getAttrs());
   p.printNewline();
-  p << " cond ";
+  p << "cond ";
   p.printRegion(cond, /*printEntryBlockArgs=*/false);
   p << " do ";
   p.printRegion(body, /*printEntryBlockArgs=*/false);
