@@ -2264,7 +2264,6 @@ void pushDimensionAndBoundSize(SmallVector<int64_t>& inferredSizes,
 
 }  // namespace
 
-
 LogicalResult inferDotOp(
     std::optional<Location> location, RankedTensorType lhsType,
     RankedTensorType rhsType, std::optional<ArrayAttr> precisionConfig,

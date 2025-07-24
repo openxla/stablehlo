@@ -33,7 +33,7 @@ limitations under the License.
 
 MlirAttribute stablehloEvalModule(MlirModule module, int nArgs,
                                   MlirAttribute const *args,
-                                  const char* const probeInstrumentationDir,
+                                  const char *const probeInstrumentationDir,
                                   int *errorCode) {
   std::vector<mlir::DenseElementsAttr> inputs;
   inputs.reserve(nArgs);
