@@ -35,7 +35,13 @@ namespace stablehlo {
 LogicalResult serializePortableArtifact(ModuleOp module,
                                         StringRef targetVersion,
                                         raw_ostream& os,
-                                        bool allowOtherDialects = false);
+                                        bool allowOtherDialects);
+
+// Write a StableHLO program to a portable artifact (convenience overload)
+// Same as above but defaults allowOtherDialects to false.
+LogicalResult serializePortableArtifact(ModuleOp module,
+                                        StringRef targetVersion,
+                                        raw_ostream& os);
 
 // Read StableHLO portable artifact
 //

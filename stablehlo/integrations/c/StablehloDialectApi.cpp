@@ -87,6 +87,13 @@ MlirLogicalResult stablehloSerializePortableArtifactFromModule(
   return mlirLogicalResultSuccess();
 }
 
+MlirLogicalResult stablehloSerializePortableArtifactFromModuleDefaultDialects(
+    MlirModule moduleStr, MlirStringRef targetVersion,
+    MlirStringCallback callback, void *userData) {
+  return stablehloSerializePortableArtifactFromModule(
+      moduleStr, targetVersion, callback, userData, false);
+}
+
 MlirLogicalResult stablehloSerializePortableArtifactFromStringRef(
     MlirStringRef moduleStr, MlirStringRef targetVersion,
     MlirStringCallback callback, void *userData) {

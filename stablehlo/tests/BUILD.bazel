@@ -48,6 +48,24 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "c_compliance_test",
+    size = "small",
+    srcs = [":test_c_compliance.c"],
+    copts = [
+        "-xc",
+        "-std=c99",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-unused-parameter",
+    ],
+    deps = [
+        "//:stablehlo_unified_capi",
+    ],
+)
+
+
 gentbl_cc_library(
     name = "check_ops_inc_gen",
     strip_include_prefix = ".",
