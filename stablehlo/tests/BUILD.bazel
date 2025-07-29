@@ -14,7 +14,7 @@
 load("@bazel_skylib//rules:expand_template.bzl", "expand_template")
 load("@llvm-project//llvm:lit_test.bzl", "lit_test")
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 package(
     default_visibility = ["//visibility:public"],
