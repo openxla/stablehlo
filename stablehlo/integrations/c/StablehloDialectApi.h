@@ -95,17 +95,6 @@ stablehloSerializePortableArtifactFromModule(MlirModule moduleStr,
                                              void* userData,
                                              bool allowOtherDialects);
 
-// Write a StableHLO program expressed as a module to a portable artifact.
-// Convenience function that sets allowOtherDialects to false.
-// Can fail if the module cannot be expressed in the `targetVersion` version of
-// StableHLO, e.g. if it's using new or removed features, or if it involves
-// unsupported dialects.
-// Returns false on failure.
-MLIR_CAPI_EXPORTED MlirLogicalResult
-stablehloSerializePortableArtifactFromModuleDefaultDialects(
-    MlirModule moduleStr, MlirStringRef targetVersion,
-    MlirStringCallback callback, void* userData);
-
 // Read a StableHLO program from a portable artifact, returning the module as
 // MLIR bytecode. Note, this bytecode returned is not a portable artifact,
 // and has the stability of returning textual assembly format. Bytecode is

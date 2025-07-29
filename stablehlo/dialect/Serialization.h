@@ -37,12 +37,6 @@ LogicalResult serializePortableArtifact(ModuleOp module,
                                         raw_ostream& os,
                                         bool allowOtherDialects);
 
-// Write a StableHLO program to a portable artifact (convenience overload)
-// Same as above but defaults allowOtherDialects to false.
-LogicalResult serializePortableArtifact(ModuleOp module,
-                                        StringRef targetVersion,
-                                        raw_ostream& os);
-
 // Read StableHLO portable artifact
 //
 // Can fail if `sourceStr` cannot be expressed in the current version of

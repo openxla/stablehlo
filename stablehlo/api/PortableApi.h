@@ -20,7 +20,6 @@ limitations under the License.
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
-#include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
 
 namespace mlir {
@@ -64,22 +63,6 @@ std::string getMinimumVersion();
 // `targetVersion` version of StableHLO, e.g. if it's using new or removed
 // features, or if it involves unsupported dialects.
 LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
-                                        llvm::StringRef targetVersion,
-                                        llvm::raw_ostream& os);
-
-// Write a StableHLO program expressed as a module to a portable artifact.
-// Can fail if `module` cannot be expressed in the `targetVersion` version of
-// StableHLO, e.g. if it's using new or removed features, or if it involves
-// unsupported dialects.
-LogicalResult serializePortableArtifact(ModuleOp module,
-                                        llvm::StringRef targetVersion,
-                                        llvm::raw_ostream& os,
-                                        bool allowOtherDialects);
-
-// Write a StableHLO program expressed as a module to a portable artifact
-// (convenience overload)
-// Same as above but defaults allowOtherDialects to false.
-LogicalResult serializePortableArtifact(ModuleOp module,
                                         llvm::StringRef targetVersion,
                                         llvm::raw_ostream& os);
 
