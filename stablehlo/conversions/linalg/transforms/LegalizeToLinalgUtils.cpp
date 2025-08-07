@@ -72,16 +72,16 @@ SmallVector<utils::IteratorType, 3> getNParallelLoopsAttrs(
 
 Value getEmptySparseTensor(OpBuilder &b, Location loc, ShapedType type,
                            ArrayRef<Value> dynSizes) {
-  return b.create<bufferization::AllocTensorOp>(
-      loc, llvm::cast<TensorType>(type), dynSizes,
+  return bufferization::AllocTensorOp::create(
+      b, loc, llvm::cast<TensorType>(type), dynSizes,
       /*copy=*/Value(),
       /*memory_space=*/IntegerAttr());
 }
 
 Value getEmptyTensor(OpBuilder &b, Location loc, ShapedType type,
                      ArrayRef<Value> dynSizes) {
-  return b.create<tensor::EmptyOp>(
-      loc, type.getShape(), type.getElementType(), dynSizes,
+  return tensor::EmptyOp::create(
+      b, loc, type.getShape(), type.getElementType(), dynSizes,
       llvm::cast<RankedTensorType>(type).getEncoding());
 }
 
@@ -103,8 +103,8 @@ Value getEmptyTensorFor(OpBuilder &b, Location loc, ShapedType resultType,
     // Construct sizes for the required dimensions.
     for (const auto &en : llvm::enumerate(resultType.getShape())) {
       if (en.value() != ShapedType::kDynamic) continue;
-      sizes.push_back(b.create<tensor::ExtractOp>(
-          loc, reifiedShapes[0],
+      sizes.push_back(tensor::ExtractOp::create(
+          b, loc, reifiedShapes[0],
           ValueRange{b.create<arith::ConstantIndexOp>(loc, en.index())}));
     }
   }
@@ -126,12 +126,12 @@ Value fillTensorWithZeros(OpBuilder &builder, Location loc, Value tensor) {
   if (auto complexType = llvm::dyn_cast<ComplexType>(type.getElementType())) {
     auto zeroElement = builder.getZeroAttr(complexType.getElementType());
     auto zeroAttr = builder.getArrayAttr({zeroElement, zeroElement});
-    zero = builder.create<complex::ConstantOp>(loc, complexType, zeroAttr);
+    zero = complex::ConstantOp::create(builder, loc, complexType, zeroAttr);
   } else {
     auto zeroAttr = builder.getZeroAttr(type.getElementType());
-    zero = builder.create<arith::ConstantOp>(loc, zeroAttr);
+    zero = arith::ConstantOp::create(builder, loc, zeroAttr);
   }
-  return builder.create<linalg::FillOp>(loc, zero, tensor).result();
+  return linalg::FillOp::create(builder, loc, zero, tensor).result();
 }
 
 Value preSparsify(Operation *op, llvm::SmallVector<Value, 2> &values, Type rtp,

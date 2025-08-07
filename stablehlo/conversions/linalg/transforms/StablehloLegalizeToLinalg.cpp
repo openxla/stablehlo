@@ -93,7 +93,8 @@ ShapedType getHloOpResultType(Operation *op) {
 Value extractIndexFromTensor(OpBuilder &builder, Location loc, Value tensor,
                              ShapedType originalType,
                              ArrayRef<Value> tensorIndex = {}) {
-  Value extracted = builder.create<tensor::ExtractOp>(loc, tensor, tensorIndex);
+  Value extracted =
+      tensor::ExtractOp::create(builder, loc, tensor, tensorIndex);
   if (extracted.getType().isIndex()) return extracted;
   return originalType.getElementType().isUnsignedInteger()
              ? builder.createOrFold<arith::IndexCastUIOp>(
@@ -137,14 +138,14 @@ SmallVector<Value, 2> extractDynamicEinsumSizes(
       auto dimIndPos = dimIndIt - lhsLoopVec.begin();
       auto lhsShape = llvm::cast<RankedTensorType>(lhs.getType()).getShape();
       if (lhsShape[dimIndPos] != ShapedType::kDynamic) continue;
-      dimSize = b.create<tensor::DimOp>(loc, lhs, dimIndPos);
+      dimSize = tensor::DimOp::create(b, loc, lhs, dimIndPos);
     } else {
       // query from rhs vars.
       dimIndIt = std::find(rhsLoopVec.begin(), rhsLoopVec.end(), dimInd);
       auto dimIndPos = dimIndIt - rhsLoopVec.begin();
       auto rhsShape = llvm::cast<RankedTensorType>(rhs.getType()).getShape();
       if (rhsShape[dimIndPos] != ShapedType::kDynamic) continue;
-      dimSize = b.create<tensor::DimOp>(loc, rhs, dimIndPos);
+      dimSize = tensor::DimOp::create(b, loc, rhs, dimIndPos);
     }
     dynSizes.push_back(dimSize);
   }
@@ -290,9 +291,9 @@ struct EinsumToLinalgConverter final
       maps.push_back(AffineMap::get(nloops, 0, exprs, rewriter.getContext()));
     }
 
-    auto linalgOp = rewriter.create<linalg::GenericOp>(
-        loc, resultTy ? resultTy : TypeRange{}, adaptor.getOperands(), output,
-        maps, getEinsumLoopsAttrs(inputInd, reductionAxe),
+    auto linalgOp = linalg::GenericOp::create(
+        rewriter, loc, resultTy ? resultTy : TypeRange{}, adaptor.getOperands(),
+        output, maps, getEinsumLoopsAttrs(inputInd, reductionAxe),
         [reductionAxe](OpBuilder &b, Location nestedLoc, ValueRange args) {
           Value resultVal =
               b.create<mlir::arith::MulFOp>(nestedLoc, args[0], args[1]);
@@ -404,8 +405,8 @@ struct DataMovementOpConverter : OpConversionPattern<OpTy> {
 
     int64_t nloops = resultType.getRank();
     Location loc = op.getLoc();
-    auto linalgOp = rewriter.create<linalg::GenericOp>(
-        loc,
+    auto linalgOp = linalg::GenericOp::create(
+        rewriter, loc,
         /*resultTensorTypes=*/resultType,
         /*inputs=*/adaptor.getOperands().front(),
         /*outputBuffers=*/
@@ -567,8 +568,8 @@ Value collapseExpandingDims(PatternRewriter &rewriter, Location loc,
 
     auto newOperandType =
         RankedTensorType::get(newOperandShape, operandTy.getElementType());
-    operand = rewriter.create<tensor::CollapseShapeOp>(
-        loc, newOperandType, operand, reassociationMap);
+    operand = tensor::CollapseShapeOp::create(rewriter, loc, newOperandType,
+                                              operand, reassociationMap);
   }
   return operand;
 }
@@ -598,8 +599,8 @@ Value transposeBroadcastOperand(PatternRewriter &rewriter, Location loc,
   }
   dimensions = transposedDimensions;
 
-  return rewriter.create<mlir::stablehlo::TransposeOp>(
-      loc,
+  return mlir::stablehlo::TransposeOp::create(
+      rewriter, loc,
       RankedTensorType::get(transposedOperandShape, operandTy.getElementType()),
       operand, rewriter.getDenseI64ArrayAttr(permutation));
 }
@@ -718,7 +719,7 @@ struct HloDynamicBroadcastInDimConverter final
         getNParallelLoopsAttrs(nloops),
         [&](OpBuilder &nestedBuilder, Location /*nested_loc*/,
             ValueRange args) {
-          nestedBuilder.create<linalg::YieldOp>(loc, *args.begin());
+          linalg::YieldOp::create(nestedBuilder, loc, *args.begin());
         },
         linalg::getPrunedAttributeList(op));
     return success();
@@ -791,14 +792,13 @@ struct DynamicBroadcastInDimOpToBroadcastConverter final
         addedDimensions.push_back(dim);
     }
 
-    Value result = rewriter
-                       .create<linalg::BroadcastOp>(
-                           loc, operand, emptyTensor, addedDimensions,
-                           linalg::getPrunedAttributeList(op))
+    Value result = linalg::BroadcastOp::create(
+                       rewriter, loc, operand, emptyTensor, addedDimensions,
+                       linalg::getPrunedAttributeList(op))
                        .getResults()[0];
 
     if (resultTy != broadcastResultTy) {
-      result = rewriter.create<tensor::CastOp>(loc, resultTy, result);
+      result = tensor::CastOp::create(rewriter, loc, resultTy, result);
     }
 
     rewriter.replaceOp(op, result);
@@ -821,7 +821,8 @@ struct DynamicBroadcastInDimOpToBroadcastConverter final
         RankedTensorType::get(updatedOperandShape, operandTy.getElementType());
 
     if (updatedOperandTy != operandTy) {
-      operand = rewriter.create<tensor::CastOp>(loc, updatedOperandTy, operand);
+      operand =
+          tensor::CastOp::create(rewriter, loc, updatedOperandTy, operand);
     }
 
     return operand;
@@ -943,47 +944,49 @@ struct BitcastConvertConverter final
           if (isExpansion) {
             // Expand a big value into multiple small values with shifts.
             auto iotaIndex =
-                nestedBuilder.create<linalg::IndexOp>(nestedLoc, maxRank - 1);
-            auto iota = nestedBuilder.create<arith::IndexCastOp>(
-                nestedLoc, inIntType, iotaIndex);
+                linalg::IndexOp::create(nestedBuilder, nestedLoc, maxRank - 1);
+            auto iota = arith::IndexCastOp::create(nestedBuilder, nestedLoc,
+                                                   inIntType, iotaIndex);
 
-            auto width = nestedBuilder.create<arith::ConstantOp>(
-                nestedLoc,
+            auto width = arith::ConstantOp::create(
+                nestedBuilder, nestedLoc,
                 nestedBuilder.getIntegerAttr(inIntType, outputBitWidth));
             auto shiftWidth =
-                nestedBuilder.create<arith::MulIOp>(nestedLoc, iota, width);
-            Value inputCasted = nestedBuilder.create<arith::BitcastOp>(
-                nestedLoc, inIntType, args.front());
-            Value shifted = nestedBuilder.create<arith::ShRUIOp>(
-                nestedLoc, inputCasted, shiftWidth);
-            innerResult = nestedBuilder.create<arith::TruncIOp>(
-                nestedLoc, outIntType, shifted);
+                arith::MulIOp::create(nestedBuilder, nestedLoc, iota, width);
+            Value inputCasted = arith::BitcastOp::create(
+                nestedBuilder, nestedLoc, inIntType, args.front());
+            Value shifted = arith::ShRUIOp::create(nestedBuilder, nestedLoc,
+                                                   inputCasted, shiftWidth);
+            innerResult = arith::TruncIOp::create(nestedBuilder, nestedLoc,
+                                                  outIntType, shifted);
           } else if (isContraction) {
             // Combine multiple small values into one big value.
             auto iotaIndex =
-                nestedBuilder.create<linalg::IndexOp>(nestedLoc, maxRank - 1);
-            auto iota = nestedBuilder.create<arith::IndexCastOp>(
-                nestedLoc, outIntType, iotaIndex);
+                linalg::IndexOp::create(nestedBuilder, nestedLoc, maxRank - 1);
+            auto iota = arith::IndexCastOp::create(nestedBuilder, nestedLoc,
+                                                   outIntType, iotaIndex);
 
-            auto width = nestedBuilder.create<arith::ConstantOp>(
-                nestedLoc,
+            auto width = arith::ConstantOp::create(
+                nestedBuilder, nestedLoc,
                 nestedBuilder.getIntegerAttr(outIntType, inputBitWidth));
             auto shiftWidth =
-                nestedBuilder.create<arith::MulIOp>(nestedLoc, iota, width);
-            Value inputCasted = nestedBuilder.create<arith::BitcastOp>(
-                nestedLoc, inIntType, args.front());
-            Value inputExt = nestedBuilder.create<arith::ExtUIOp>(
-                nestedLoc, outIntType, inputCasted);
-            Value shifted = nestedBuilder.create<arith::ShLIOp>(
-                nestedLoc, inputExt, shiftWidth);
-            Value accumulatorCasted = nestedBuilder.create<arith::BitcastOp>(
-                nestedLoc, outIntType, args.back());
-            innerResult = nestedBuilder.create<arith::OrIOp>(
-                nestedLoc, outIntType, shifted, accumulatorCasted);
+                arith::MulIOp::create(nestedBuilder, nestedLoc, iota, width);
+            Value inputCasted = arith::BitcastOp::create(
+                nestedBuilder, nestedLoc, inIntType, args.front());
+            Value inputExt = arith::ExtUIOp::create(nestedBuilder, nestedLoc,
+                                                    outIntType, inputCasted);
+            Value shifted = arith::ShLIOp::create(nestedBuilder, nestedLoc,
+                                                  inputExt, shiftWidth);
+            Value accumulatorCasted = arith::BitcastOp::create(
+                nestedBuilder, nestedLoc, outIntType, args.back());
+            innerResult =
+                arith::OrIOp::create(nestedBuilder, nestedLoc, outIntType,
+                                     shifted, accumulatorCasted);
           }
-          innerResult = nestedBuilder.create<arith::BitcastOp>(
-              nestedLoc, outputType.getElementType(), innerResult);
-          nestedBuilder.create<linalg::YieldOp>(nestedLoc, innerResult);
+          innerResult = arith::BitcastOp::create(nestedBuilder, nestedLoc,
+                                                 outputType.getElementType(),
+                                                 innerResult);
+          linalg::YieldOp::create(nestedBuilder, nestedLoc, innerResult);
         },
         linalg::getPrunedAttributeList(op));
     return success();
@@ -1000,10 +1003,10 @@ struct RealDynamicSliceConverter final
   //   size = ceil((limit - start)/stride)
   static Value computeSize(Location loc, Value start, Value limit, Value stride,
                            ConversionPatternRewriter &b) {
-    Value delta = b.create<arith::SubIOp>(loc, limit, start);
-    Value ret = b.create<arith::CeilDivUIOp>(loc, delta, stride);
+    Value delta = arith::SubIOp::create(b, loc, limit, start);
+    Value ret = arith::CeilDivUIOp::create(b, loc, delta, stride);
     if (ret.getType().isIndex()) return ret;
-    return b.create<arith::IndexCastOp>(loc, b.getIndexType(), ret);
+    return arith::IndexCastOp::create(b, loc, b.getIndexType(), ret);
   }
 
   LogicalResult matchAndRewrite(
@@ -1025,17 +1028,17 @@ struct RealDynamicSliceConverter final
 
     auto resultType = llvm::cast<RankedTensorType>(
         this->typeConverter->convertType(realDynamicSliceOp.getType()));
-    Value zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+    Value zero = arith::ConstantIndexOp::create(rewriter, loc, 0);
     SmallVector<OpFoldResult> offsets, sizes, strides;
     SmallVector<Type, 3> clampType(3, arithType);
     for (auto i : llvm::seq<unsigned>(0, argType.getRank())) {
-      Value dim = rewriter.create<arith::ConstantIndexOp>(loc, i);
-      Value start = rewriter.create<tensor::ExtractOp>(
-          loc, adaptor.getStartIndices(), dim);
-      Value limit = rewriter.create<tensor::ExtractOp>(
-          loc, adaptor.getLimitIndices(), dim);
+      Value dim = arith::ConstantIndexOp::create(rewriter, loc, i);
+      Value start = tensor::ExtractOp::create(rewriter, loc,
+                                              adaptor.getStartIndices(), dim);
+      Value limit = tensor::ExtractOp::create(rewriter, loc,
+                                              adaptor.getLimitIndices(), dim);
       Value stride =
-          rewriter.create<tensor::ExtractOp>(loc, adaptor.getStrides(), dim);
+          tensor::ExtractOp::create(rewriter, loc, adaptor.getStrides(), dim);
 
       // Compute i-th dimension size of the result : size[i].
       // If the i-th dimension of the result type is known, we go ahead with it
@@ -1044,12 +1047,12 @@ struct RealDynamicSliceConverter final
       Value size =
           ShapedType::isDynamic(resultDimSize)
               ? computeSize(loc, start, limit, stride, rewriter)
-              : rewriter.create<arith::ConstantIndexOp>(loc, resultDimSize);
+              : arith::ConstantIndexOp::create(rewriter, loc, resultDimSize);
 
       // We can now convert start to index.
       if (!start.getType().isIndex())
-        start = rewriter.create<arith::IndexCastOp>(
-            loc, rewriter.getIndexType(), start);
+        start = arith::IndexCastOp::create(rewriter, loc,
+                                           rewriter.getIndexType(), start);
 
       // Fetch i-th dimension size of the operand and calculate upper bound as
       //   ub = operand_dim[i] - size[i]
@@ -1061,8 +1064,8 @@ struct RealDynamicSliceConverter final
       // We clamp the start_index to keep it bounded as
       //   0 <= start_index[i] <= ub
       // Clamp does not support index type, so cast to integer type.
-      start = rewriter.create<arith::MaxSIOp>(loc, start, zero);
-      start = rewriter.create<arith::MinSIOp>(loc, start, upperBound);
+      start = arith::MaxSIOp::create(rewriter, loc, start, zero);
+      start = arith::MinSIOp::create(rewriter, loc, start, upperBound);
 
       offsets.push_back(start);
       if (ShapedType::isDynamic(resultDimSize))
@@ -1118,8 +1121,8 @@ struct ReshapeOpConverter final
       // cast the dynamic dimensions to 1.
       auto staticType = RankedTensorType::get(
           llvm::SmallVector<int64_t>(operandType.getRank(), 1), elemType);
-      operand = rewriter.create<tensor::CastOp>(reshapeOp.getLoc(), staticType,
-                                                operand);
+      operand = tensor::CastOp::create(rewriter, reshapeOp.getLoc(), staticType,
+                                       operand);
       rewriter.replaceOpWithNewOp<tensor::CollapseShapeOp>(
           reshapeOp, resultType, operand, ArrayRef<ReassociationIndices>{});
       return success();
@@ -1153,8 +1156,8 @@ struct ReshapeOpConverter final
         auto enc = sparse_tensor::getSparseTensorEncoding(operandType);
         auto newOperandType = RankedTensorType::get(shape, elemType, enc);
         if (newOperandType != operandType) {
-          operand = rewriter.create<tensor::CastOp>(reshapeOp.getLoc(),
-                                                    newOperandType, operand);
+          operand = tensor::CastOp::create(rewriter, reshapeOp.getLoc(),
+                                           newOperandType, operand);
         }
         // Generate collapse operation.
         // For scalar collapses must pass an empty reassociation map.
@@ -1188,14 +1191,14 @@ struct ReshapeOpConverter final
           // dimensions.
           getIdentityExprs(operandType.getRank())};
 
-      collapsedOp =
-          rewriter.create<tensor::CollapseShapeOp>(loc, operand, collapsingMap);
+      collapsedOp = tensor::CollapseShapeOp::create(rewriter, loc, operand,
+                                                    collapsingMap);
     }
     // Cast to a known static type if the input has dynamic dimensions.
     int64_t totalElems = resultType.getNumElements();
     auto collapsedType = RankedTensorType::get({totalElems}, elemType);
     collapsedOp =
-        rewriter.create<tensor::CastOp>(loc, collapsedType, collapsedOp);
+        tensor::CastOp::create(rewriter, loc, collapsedType, collapsedOp);
     if (resultType.getRank() == 1) {
       rewriter.replaceOp(reshapeOp, collapsedOp);
     } else {
@@ -1233,8 +1236,8 @@ struct IotaConverter final : OpConversionPattern<OpTy> {
     unsigned nloops = resultShapedType.getRank();
 
     Location loc = iotaOp.getLoc();
-    auto linalgOp = rewriter.create<linalg::GenericOp>(
-        loc,
+    auto linalgOp = linalg::GenericOp::create(
+        rewriter, loc,
         /*resultTensorTypes=*/
         ArrayRef<Type>{resultShapedType},
         /*inputs=*/ValueRange{},
@@ -1288,8 +1291,8 @@ struct IotaToMapConverter final : OpConversionPattern<OpTy> {
     Value empty = getEmptyTensorFor(rewriter, loc, resultTy, iotaOp,
                                     adaptor.getOperands());
 
-    auto linalgOp = rewriter.create<linalg::MapOp>(
-        loc, ValueRange{}, empty,
+    auto linalgOp = linalg::MapOp::create(
+        rewriter, loc, ValueRange{}, empty,
         [&](OpBuilder &nestedBuilder, Location nestedLoc, ValueRange /*args*/) {
           Value index = nestedBuilder.create<linalg::IndexOp>(
               nestedLoc, iotaOp.getIotaDimension());
@@ -1345,11 +1348,11 @@ struct ConcatenateConverter final
 
     if (enablePrimitiveOps) {
       auto concatOp =
-          rewriter.create<tensor::ConcatOp>(loc, dim, adaptor.getOperands());
+          tensor::ConcatOp::create(rewriter, loc, dim, adaptor.getOperands());
       rewriter.replaceOp(op, concatOp);
       return success();
     }
-    Value zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+    Value zero = arith::ConstantIndexOp::create(rewriter, loc, 0);
 
     // Allocate the output tensor with tensor.empty.
     Value result =
@@ -1372,25 +1375,26 @@ struct ConcatenateConverter final
           SmallVector<Value> extractIndices;
           extractIndices.reserve(nloops);
           for (int64_t i = 0; i < nloops; i++) {
-            extractIndices.push_back(b.create<linalg::IndexOp>(loc, i));
+            extractIndices.push_back(linalg::IndexOp::create(b, loc, i));
           }
 
-          Value indexOp = b.create<linalg::IndexOp>(loc, dim);
+          Value indexOp = linalg::IndexOp::create(b, loc, dim);
           for (auto [idx, arg] : llvm::enumerate(adaptor.getOperands())) {
             Value newConcatDimSize;
             scf::IfOp ifOp;
             if (idx + 1 != adaptor.getOperands().size()) {
               // Calculate how far along we have iterated along the concatenate
               // dimension. That way we can tell which input to select.
-              newConcatDimSize = b.create<arith::AddIOp>(
-                  loc, concatDimSize, b.create<tensor::DimOp>(loc, arg, dim));
-              Value cmp = b.create<arith::CmpIOp>(loc, rewriter.getI1Type(),
-                                                  arith::CmpIPredicate::ult,
-                                                  indexOp, newConcatDimSize);
-              ifOp = b.create<scf::IfOp>(loc, resultType.getElementType(), cmp,
-                                         true);
+              newConcatDimSize =
+                  arith::AddIOp::create(b, loc, concatDimSize,
+                                        b.create<tensor::DimOp>(loc, arg, dim));
+              Value cmp = arith::CmpIOp::create(b, loc, rewriter.getI1Type(),
+                                                arith::CmpIPredicate::ult,
+                                                indexOp, newConcatDimSize);
+              ifOp = scf::IfOp::create(b, loc, resultType.getElementType(), cmp,
+                                       true);
               if (result) {
-                b.create<scf::YieldOp>(loc, ifOp->getResults()[0]);
+                scf::YieldOp::create(b, loc, ifOp->getResults()[0]);
               } else {
                 result = ifOp->getResults()[0];
               }
@@ -1401,17 +1405,17 @@ struct ConcatenateConverter final
             // Now adjust the index for the concatenated dimension to fit into
             // the selected tensor and do an extract at that position.
             extractIndices[dim] =
-                b.create<arith::SubIOp>(loc, indexOp, concatDimSize);
+                arith::SubIOp::create(b, loc, indexOp, concatDimSize);
             Value extract =
-                b.create<tensor::ExtractOp>(loc, arg, extractIndices);
-            b.create<scf::YieldOp>(loc, extract);
+                tensor::ExtractOp::create(b, loc, arg, extractIndices);
+            scf::YieldOp::create(b, loc, extract);
 
             if (ifOp) {
               b = ifOp.getElseBodyBuilder(b.getListener());
               concatDimSize = newConcatDimSize;
             }
           }
-          nestedBuilder.create<linalg::YieldOp>(loc, result);
+          linalg::YieldOp::create(nestedBuilder, loc, result);
         },
         linalg::getPrunedAttributeList(op));
     return success();
@@ -1566,15 +1570,15 @@ struct DynamicSliceConverter final
       Value startIndex =
           extractIndexFromTensor(rewriter, loc, start, originalStartIndexType);
 
-      Value mn = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+      Value mn = arith::ConstantIndexOp::create(rewriter, loc, 0);
 
       Value mx =
           rewriter.createOrFold<tensor::DimOp>(loc, adaptor.getOperand(), idx);
       mx = rewriter.createOrFold<arith::SubIOp>(
-          loc, mx, rewriter.create<arith::ConstantIndexOp>(loc, size));
+          loc, mx, arith::ConstantIndexOp::create(rewriter, loc, size));
 
-      startIndex = rewriter.create<arith::MaxSIOp>(loc, startIndex, mn);
-      startIndex = rewriter.create<arith::MinSIOp>(loc, startIndex, mx);
+      startIndex = arith::MaxSIOp::create(rewriter, loc, startIndex, mn);
+      startIndex = arith::MinSIOp::create(rewriter, loc, startIndex, mx);
 
       startIndices.push_back(startIndex);
     }
@@ -1620,7 +1624,7 @@ struct DynamicUpdateSliceConverter final
     }
 
     SmallVector<OpFoldResult, 3> startIndices;
-    Value zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+    Value zero = arith::ConstantIndexOp::create(rewriter, loc, 0);
     for (auto [idx, start] : llvm::enumerate(adaptor.getStartIndices())) {
       // By stablehlo.DynamicUpdateSlice definition:
       //   `start_indices[i] = clamp(start_indices[i],
@@ -1628,11 +1632,12 @@ struct DynamicUpdateSliceConverter final
       Value startIndex = extractIndexFromTensor(
           rewriter, loc, start,
           cast<ShapedType>(op.getStartIndices()[idx].getType()));
-      Value ub = rewriter.create<arith::ConstantIndexOp>(
-          loc, operandType.getDimSize(idx) - updateType.getDimSize(idx));
+      Value ub = arith::ConstantIndexOp::create(
+          rewriter, loc,
+          operandType.getDimSize(idx) - updateType.getDimSize(idx));
 
-      startIndex = rewriter.create<arith::MaxSIOp>(loc, startIndex, zero);
-      startIndex = rewriter.create<arith::MinSIOp>(loc, startIndex, ub);
+      startIndex = arith::MaxSIOp::create(rewriter, loc, startIndex, zero);
+      startIndex = arith::MinSIOp::create(rewriter, loc, startIndex, ub);
       startIndices.push_back(startIndex);
     }
 
@@ -1667,8 +1672,8 @@ struct MapOpToGenericConverter final
         op.getNumOperands() + 1,
         rewriter.getMultiDimIdentityMap(resultType.getRank()));
 
-    auto linalgOp = rewriter.create<linalg::GenericOp>(
-        loc, resultType, adaptor.getOperands(), output, indexingMaps,
+    auto linalgOp = linalg::GenericOp::create(
+        rewriter, loc, resultType, adaptor.getOperands(), output, indexingMaps,
         getNParallelLoopsAttrs(resultType.getRank()),
         /*bodyBuild=*/nullptr, linalg::getPrunedAttributeList(op));
 
@@ -1718,12 +1723,12 @@ struct MapOpToMapConverter final : OpConversionPattern<mlir::stablehlo::MapOp> {
           rewriter, loc, cast<TypedValue<ShapedType>>(operand),
           cast<ShapedType>(operand0.getType())));
     }
-    Value output = rewriter.create<tensor::EmptyOp>(
-        loc, tensor::getMixedSizes(rewriter, loc, operand0),
+    Value output = tensor::EmptyOp::create(
+        rewriter, loc, tensor::getMixedSizes(rewriter, loc, operand0),
         resultType.getElementType());
 
-    auto linalgOp = rewriter.create<linalg::MapOp>(
-        loc, coercedOperands, output,
+    auto linalgOp = linalg::MapOp::create(
+        rewriter, loc, coercedOperands, output,
         /*bodyBuild=*/nullptr, linalg::getPrunedAttributeList(op));
 
     // Convert the signature of the body. We scalarize the operands and add a
@@ -1798,7 +1803,7 @@ struct GatherConversion final : OpConversionPattern<mlir::stablehlo::GatherOp> {
     for (int64_t i = 0, e = std::max({resultRank, operandRank, int64_t{2}});
          i < e; ++i) {
       constants.push_back(
-          rewriter.create<arith::ConstantOp>(loc, rewriter.getIndexAttr(i)));
+          arith::ConstantOp::create(rewriter, loc, rewriter.getIndexAttr(i)));
     }
 
     Value emptyOp = getEmptyTensorFor(rewriter, loc, resultType, gatherOp,
@@ -1807,8 +1812,8 @@ struct GatherConversion final : OpConversionPattern<mlir::stablehlo::GatherOp> {
     ValueRange ins;
     SmallVector<AffineMap, 1> indexingMaps(
         {rewriter.getMultiDimIdentityMap(resultRank)});
-    auto linalgOp = rewriter.create<linalg::GenericOp>(
-        loc, /*resultTensorTypes=*/resultType,
+    auto linalgOp = linalg::GenericOp::create(
+        rewriter, loc, /*resultTensorTypes=*/resultType,
         /*inputs=*/ins,
         /*outputs=*/emptyOp, indexingMaps, getNParallelLoopsAttrs(resultRank),
         /*bodyBuild=*/nullptr, linalg::getPrunedAttributeList(gatherOp));
@@ -1832,7 +1837,7 @@ struct GatherConversion final : OpConversionPattern<mlir::stablehlo::GatherOp> {
     // potentially getting duplicates later.
     SmallVector<Value> linalgIndices;
     for (int64_t i = 0; i < resultRank; ++i) {
-      linalgIndices.push_back(rewriter.create<linalg::IndexOp>(loc, i));
+      linalgIndices.push_back(linalg::IndexOp::create(rewriter, loc, i));
     }
 
     // Now the complicated part. For a given output dimension we build up an
@@ -1921,8 +1926,8 @@ struct GatherConversion final : OpConversionPattern<mlir::stablehlo::GatherOp> {
           loc, operandDimSize, outputDimSize);
 
       // Clamp indices to [0, i, operand_dim-output_dim].
-      Value clamp = rewriter.create<arith::MinSIOp>(
-          loc,
+      Value clamp = arith::MinSIOp::create(
+          rewriter, loc,
           rewriter.create<arith::MaxSIOp>(loc, constants[0],
                                           remappedIndexFromIndices[i]),
           largestValidIndex);
@@ -1957,11 +1962,11 @@ struct GatherConversion final : OpConversionPattern<mlir::stablehlo::GatherOp> {
       SmallVector<int64_t> dims(operandRank, ShapedType::kDynamic);
       auto type = RankedTensorType::get(
           dims, cast<TensorType>(operand.getType()).getElementType());
-      extractOperand = rewriter.create<tensor::CastOp>(loc, type, operand);
+      extractOperand = tensor::CastOp::create(rewriter, loc, type, operand);
     }
     Value element =
-        rewriter.create<tensor::ExtractOp>(loc, extractOperand, combinedIndex);
-    rewriter.create<linalg::YieldOp>(loc, element);
+        tensor::ExtractOp::create(rewriter, loc, extractOperand, combinedIndex);
+    linalg::YieldOp::create(rewriter, loc, element);
 
     rewriter.replaceOp(gatherOp, linalgOp.getResults());
 
@@ -2083,24 +2088,25 @@ struct SelectAndScatterNoOverlapConverter final
     SmallVector<Value> reduceDynSizes;
     for (int i = 0, s = rank; i < s; ++i)
       if (sourceTy.isDynamicDim(i))
-        reduceDynSizes.push_back(b.create<tensor::DimOp>(source, i));
+        reduceDynSizes.push_back(tensor::DimOp::create(b, source, i));
 
-    Value reduceValueEmpty =
-        b.create<tensor::EmptyOp>(sourceTy.getShape(), destETy, reduceDynSizes);
-    Value reduceIndexEmpty = b.create<tensor::EmptyOp>(
-        sourceTy.getShape(), indexETy, reduceDynSizes);
+    Value reduceValueEmpty = tensor::EmptyOp::create(b, sourceTy.getShape(),
+                                                     destETy, reduceDynSizes);
+    Value reduceIndexEmpty = tensor::EmptyOp::create(b, sourceTy.getShape(),
+                                                     indexETy, reduceDynSizes);
 
     // We initialize indices to -1 which indicates no matching destination.
-    Value negativeOne = b.create<arith::ConstantOp>(b.getI32IntegerAttr(-1));
+    Value negativeOne = arith::ConstantOp::create(b, b.getI32IntegerAttr(-1));
     reduceIndexEmpty =
-        b.create<linalg::FillOp>(negativeOne, reduceIndexEmpty).getResult(0);
+        linalg::FillOp::create(b, negativeOne, reduceIndexEmpty).getResult(0);
 
     // We only care to match the reduction dimensions.
-    Value windowEmpty = b.create<tensor::EmptyOp>(filteredWindows, srcETy);
+    Value windowEmpty = tensor::EmptyOp::create(b, filteredWindows, srcETy);
 
-    auto reduceGeneric = b.create<linalg::GenericOp>(
-        /*resultTensors=*/ArrayRef<Type>{reduceValueEmpty.getType(),
-                                         reduceIndexEmpty.getType()},
+    auto reduceGeneric = linalg::GenericOp::create(
+        b,
+        /*resultTensors=*/
+        ArrayRef<Type>{reduceValueEmpty.getType(), reduceIndexEmpty.getType()},
         /*inputs=*/ValueRange{operand, windowEmpty},
         /*outputs=*/ValueRange{reduceValueEmpty, reduceIndexEmpty},
         reduceIndexingMaps,
@@ -2137,32 +2143,32 @@ struct SelectAndScatterNoOverlapConverter final
     // The predicate operates on scalar-tensors, so we need to extract the
     // value for `linalg` operations. Tensor-ops are cleaned up by other
     // rewriters.
-    selectPred = b.create<tensor::ExtractOp>(rewriter.getI1Type(), selectPred,
-                                             ValueRange{});
+    selectPred = tensor::ExtractOp::create(b, rewriter.getI1Type(), selectPred,
+                                           ValueRange{});
 
     // We select if either the selection function returns `true` or the
     // current reduction index is `-1`, e.g. no index has been selected yet.
-    Value selectNegOne = b.create<arith::CmpIOp>(arith::CmpIPredicate::eq,
-                                                 selectOutIdx, negativeOne);
-    selectPred = b.create<arith::OrIOp>(selectPred, selectNegOne);
+    Value selectNegOne = arith::CmpIOp::create(b, arith::CmpIPredicate::eq,
+                                               selectOutIdx, negativeOne);
+    selectPred = arith::OrIOp::create(b, selectPred, selectNegOne);
 
     // We compute a unique idx for each element in the window.
-    Value computedIdx = b.create<linalg::IndexOp>(rank);
+    Value computedIdx = linalg::IndexOp::create(b, rank);
     for (int i = 1, s = filteredStrides.size(); i < s; ++i) {
-      Value width = b.create<arith::ConstantIndexOp>(filteredStrides[i]);
-      Value idx = b.create<linalg::IndexOp>(rank + i);
-      computedIdx = b.create<arith::MulIOp>(width, computedIdx);
-      computedIdx = b.create<arith::AddIOp>(computedIdx, idx);
+      Value width = arith::ConstantIndexOp::create(b, filteredStrides[i]);
+      Value idx = linalg::IndexOp::create(b, rank + i);
+      computedIdx = arith::MulIOp::create(b, width, computedIdx);
+      computedIdx = arith::AddIOp::create(b, computedIdx, idx);
     }
-    computedIdx = b.create<arith::IndexCastOp>(indexETy, computedIdx);
+    computedIdx = arith::IndexCastOp::create(b, indexETy, computedIdx);
 
     // Using the selection predicate track the value and selected
     // identifier for the future scattering.
     Value selectedIdx =
-        b.create<arith::SelectOp>(selectPred, computedIdx, selectOutIdx);
+        arith::SelectOp::create(b, selectPred, computedIdx, selectOutIdx);
     Value selectedValue =
-        b.create<arith::SelectOp>(selectPred, selectInVal, selectOutVal);
-    b.create<linalg::YieldOp>(ValueRange{selectedValue, selectedIdx});
+        arith::SelectOp::create(b, selectPred, selectInVal, selectOutVal);
+    linalg::YieldOp::create(b, ValueRange{selectedValue, selectedIdx});
 
     // Original terminator is an stablehlo.return we no longer need.
     rewriter.eraseOp(reduceTerminator);
@@ -2181,7 +2187,7 @@ struct SelectAndScatterNoOverlapConverter final
     for (int i = 0, s = reduceIndexTy.getRank(); i < s; ++i) {
       int64_t broadcast = strides[i];
       if (sourceTy.isDynamicDim(i))
-        broadcastDynDims.push_back(b.create<tensor::DimOp>(source, i));
+        broadcastDynDims.push_back(tensor::DimOp::create(b, source, i));
 
       broadcastExprs.push_back(b.getAffineDimExpr(broadcastShape.size()));
       broadcastShape.push_back(sourceTy.getDimSize(i));
@@ -2192,12 +2198,12 @@ struct SelectAndScatterNoOverlapConverter final
 
     // We broadcast the values of our input tensors across the stride-tiling
     // size.
-    Value scatterEmpty = b.create<tensor::EmptyOp>(
-        broadcastShape, resultTy.getElementType(), broadcastDynDims);
-    Value initScalar = b.create<tensor::ExtractOp>(initTy.getElementType(),
-                                                   init, ValueRange{});
+    Value scatterEmpty = tensor::EmptyOp::create(
+        b, broadcastShape, resultTy.getElementType(), broadcastDynDims);
+    Value initScalar = tensor::ExtractOp::create(b, initTy.getElementType(),
+                                                 init, ValueRange{});
     Value scatterFill =
-        b.create<linalg::FillOp>(initScalar, scatterEmpty).getResult(0);
+        linalg::FillOp::create(b, initScalar, scatterEmpty).getResult(0);
 
     // Both the indices and values are broadcasted using the same indexing map.
     // Output fully parallel.
@@ -2210,7 +2216,8 @@ struct SelectAndScatterNoOverlapConverter final
     scatterIndexingMaps.push_back(
         b.getMultiDimIdentityMap(broadcastShape.size()));
 
-    auto scatterGeneric = b.create<linalg::GenericOp>(
+    auto scatterGeneric = linalg::GenericOp::create(
+        b,
         /*resultTensors=*/ArrayRef<Type>{scatterFill.getType()},
         /*inputs=*/ValueRange{reduceIndex, source},
         /*outputs=*/ValueRange{scatterFill}, scatterIndexingMaps,
@@ -2237,32 +2244,32 @@ struct SelectAndScatterNoOverlapConverter final
 
     Value scatterInputIdx = scatterBlock.getArgument(0);
     Value scatterOutputVal = scatterBlock.getArgument(2);
-    Value scatterUpdate = b.create<tensor::ExtractOp>(
-        sourceTy.getElementType(), scatterTerminator->getOperand(0),
+    Value scatterUpdate = tensor::ExtractOp::create(
+        b, sourceTy.getElementType(), scatterTerminator->getOperand(0),
         ValueRange{});
 
     // Compute the index of the tiled region to determine if it was selected.
-    Value id = b.create<arith::ConstantIndexOp>(0);
+    Value id = arith::ConstantIndexOp::create(b, 0);
     int64_t dim = 0;
     for (int i = 0, s = strides.size(); i < s; ++i) {
       if (strides[i] > 1) {
-        Value idx = b.create<linalg::IndexOp>(++dim);
-        Value tileSz = b.create<arith::ConstantIndexOp>(strides[i]);
-        id = b.create<arith::MulIOp>(id, tileSz);
-        id = b.create<arith::AddIOp>(id, idx);
+        Value idx = linalg::IndexOp::create(b, ++dim);
+        Value tileSz = arith::ConstantIndexOp::create(b, strides[i]);
+        id = arith::MulIOp::create(b, id, tileSz);
+        id = arith::AddIOp::create(b, id, idx);
       }
       ++dim;
     }
 
     // Check whether the computed id matches the to-scatter id, then select and
     // yield.
-    id = b.create<arith::IndexCastOp>(indexETy, id);
-    auto scatterPred = b.create<arith::CmpIOp>(
-        b.getI1Type(), arith::CmpIPredicate::eq, id, scatterInputIdx);
-    scatterUpdate =
-        b.create<arith::SelectOp>(scatterPred, scatterUpdate, scatterOutputVal);
+    id = arith::IndexCastOp::create(b, indexETy, id);
+    auto scatterPred = arith::CmpIOp::create(
+        b, b.getI1Type(), arith::CmpIPredicate::eq, id, scatterInputIdx);
+    scatterUpdate = arith::SelectOp::create(b, scatterPred, scatterUpdate,
+                                            scatterOutputVal);
 
-    b.create<linalg::YieldOp>(scatterUpdate);
+    linalg::YieldOp::create(b, scatterUpdate);
     rewriter.eraseOp(scatterTerminator);
     b.setInsertionPoint(op);
 
@@ -2278,8 +2285,8 @@ struct SelectAndScatterNoOverlapConverter final
       collapseDim += dims.size();
     }
 
-    Value collapse = b.create<tensor::CollapseShapeOp>(
-        scatterGeneric.getResult(0), reassociationMap);
+    Value collapse = tensor::CollapseShapeOp::create(
+        b, scatterGeneric.getResult(0), reassociationMap);
     auto collapseTy = llvm::cast<ShapedType>(collapse.getType());
 
     // After collapsing it it possible that the target may need to be padded.
@@ -2294,15 +2301,15 @@ struct SelectAndScatterNoOverlapConverter final
         size = ShapedType::kDynamic;
       padShape.push_back(size);
 
-      Value in = b.create<tensor::DimOp>(collapse, i);
-      Value out = b.create<tensor::DimOp>(operand, i);
-      Value diff = b.create<arith::SubIOp>(out, in);
+      Value in = tensor::DimOp::create(b, collapse, i);
+      Value out = tensor::DimOp::create(b, operand, i);
+      Value diff = arith::SubIOp::create(b, out, in);
       Value pad = b.createOrFold<arith::MaxSIOp>(diff, zero);
       padHigh.push_back(pad);
     }
 
-    Value padded = b.create<tensor::PadOp>(collapseTy.clone(padShape), collapse,
-                                           padLow, padHigh, initScalar);
+    Value padded = tensor::PadOp::create(b, collapseTy.clone(padShape),
+                                         collapse, padLow, padHigh, initScalar);
 
     // The result may exceed the target size, slice if necessary.
     SmallVector<OpFoldResult> sliceSizes;
@@ -2363,9 +2370,9 @@ struct PadOpNegativePaddingConversion final
     if (!hasNegativePadding) return failure();
 
     // Create a new pad op with the positive values.
-    Value pad = rewriter.create<mlir::stablehlo::PadOp>(
-        op.getLoc(), adaptor.getOperand(), adaptor.getPaddingValue(), padLow,
-        padHigh, op.getInteriorPadding());
+    Value pad = mlir::stablehlo::PadOp::create(
+        rewriter, op.getLoc(), adaptor.getOperand(), adaptor.getPaddingValue(),
+        padLow, padHigh, op.getInteriorPadding());
 
     // Then slice according to the negative edge padding. Static shapes only for
     // now.
@@ -2410,8 +2417,8 @@ struct PadOpConversion final : OpConversionPattern<mlir::stablehlo::PadOp> {
     // If there is no interior padding lower to tensor.pad directly.
     if (llvm::all_of(op.getInteriorPadding(),
                      [](const int64_t &i) { return i == 0; })) {
-      auto padTensorOp = rewriter.create<tensor::PadOp>(
-          loc, resultType, adaptor.getOperand(),
+      auto padTensorOp = tensor::PadOp::create(
+          rewriter, loc, resultType, adaptor.getOperand(),
           llvm::map_to_vector(op.getEdgePaddingLow(), i64ToFoldResult),
           llvm::map_to_vector(op.getEdgePaddingHigh(), i64ToFoldResult),
           paddingVal);
@@ -2424,7 +2431,7 @@ struct PadOpConversion final : OpConversionPattern<mlir::stablehlo::PadOp> {
     auto emptyTensor =
         getEmptyTensorFor(rewriter, loc, resultType, op, adaptor.getOperands());
     auto fill =
-        rewriter.create<linalg::FillOp>(loc, paddingVal, emptyTensor).result();
+        linalg::FillOp::create(rewriter, loc, paddingVal, emptyTensor).result();
 
     // Get sizes of the original operand.
     auto operandType = llvm::cast<ShapedType>(adaptor.getOperand().getType());
@@ -2433,7 +2440,7 @@ struct PadOpConversion final : OpConversionPattern<mlir::stablehlo::PadOp> {
         [&](int64_t dim) -> OpFoldResult {
           if (!operandType.isDynamicDim(dim))
             return rewriter.getIndexAttr(operandType.getDimSize(dim));
-          return rewriter.create<tensor::DimOp>(loc, adaptor.getOperand(), dim)
+          return tensor::DimOp::create(rewriter, loc, adaptor.getOperand(), dim)
               .getResult();
         });
     // Map interior padding to strides.
@@ -2481,15 +2488,15 @@ struct TorchIndexSelectOpConversion final
       if (!resultType.isDynamicDim(i)) continue;
       if (i < axis) {
         dynSizes.push_back(
-            rewriter.create<tensor::DimOp>(loc, adaptor.getOperand(), i));
+            tensor::DimOp::create(rewriter, loc, adaptor.getOperand(), i));
       } else if (i < (axis + numIndices - batch)) {
         int idx = i - axis + batch;
         dynSizes.push_back(
-            rewriter.create<tensor::DimOp>(loc, adaptor.getIndex(), idx));
+            tensor::DimOp::create(rewriter, loc, adaptor.getIndex(), idx));
       } else {
         int idx = i - (axis + numIndices - batch) + axis + 1;
         dynSizes.push_back(
-            rewriter.create<tensor::DimOp>(loc, adaptor.getOperand(), idx));
+            tensor::DimOp::create(rewriter, loc, adaptor.getOperand(), idx));
       }
     }
 
@@ -2503,7 +2510,7 @@ struct TorchIndexSelectOpConversion final
       sliceShape.push_back(resultShape[i]);
       if (!resultType.isDynamicDim(i)) continue;
       dynSliceSizes.push_back(
-          rewriter.create<tensor::DimOp>(loc, adaptor.getOperand(), i));
+          tensor::DimOp::create(rewriter, loc, adaptor.getOperand(), i));
     }
     for (int i = axis + numIndices - batch; i < rank; ++i) {
       sliceExprs.push_back(rewriter.getAffineDimExpr(i));
@@ -2511,7 +2518,7 @@ struct TorchIndexSelectOpConversion final
       if (!resultType.isDynamicDim(i)) continue;
       int idx = i - (axis + numIndices - batch) + axis + 1;
       dynSliceSizes.push_back(
-          rewriter.create<tensor::DimOp>(loc, adaptor.getOperand(), idx));
+          tensor::DimOp::create(rewriter, loc, adaptor.getOperand(), idx));
     }
 
     // Setup AffineMap for operand tensor.
@@ -2530,13 +2537,14 @@ struct TorchIndexSelectOpConversion final
         rank, /*symbolCount=*/0, sliceExprs, rewriter.getContext()));
     indexingMaps.emplace_back(rewriter.getMultiDimIdentityMap(rank));
 
-    Value sliceOp = rewriter.create<tensor::EmptyOp>(
-        loc, sliceShape, resultType.getElementType(), dynSliceSizes);
+    Value sliceOp = tensor::EmptyOp::create(
+        rewriter, loc, sliceShape, resultType.getElementType(), dynSliceSizes);
 
-    Value emptyOp = rewriter.create<tensor::EmptyOp>(
-        loc, resultType.getShape(), resultType.getElementType(), dynSizes);
-    auto linalgOp = rewriter.create<linalg::GenericOp>(
-        loc, /*resultTensors=*/ArrayRef<Type>{resultType},
+    Value emptyOp =
+        tensor::EmptyOp::create(rewriter, loc, resultType.getShape(),
+                                resultType.getElementType(), dynSizes);
+    auto linalgOp = linalg::GenericOp::create(
+        rewriter, loc, /*resultTensors=*/ArrayRef<Type>{resultType},
         /*inputs=*/ValueRange{adaptor.getIndex(), sliceOp},
         /*outputs=*/emptyOp, indexingMaps, getNParallelLoopsAttrs(rank),
         /*bodyBuild=*/nullptr, linalg::getPrunedAttributeList(op));
@@ -2556,20 +2564,20 @@ struct TorchIndexSelectOpConversion final
     OpBuilder::InsertionGuard guard(rewriter);
     rewriter.setInsertionPointToEnd(block);
 
-    Value castedValue = rewriter.create<arith::IndexCastOp>(
-        loc, rewriter.getIndexType(), block->getArgument(0));
+    Value castedValue = arith::IndexCastOp::create(
+        rewriter, loc, rewriter.getIndexType(), block->getArgument(0));
 
     SmallVector<Value> indices;
     for (int i = 0; i < axis; ++i) {
-      indices.push_back(rewriter.create<linalg::IndexOp>(loc, i));
+      indices.push_back(linalg::IndexOp::create(rewriter, loc, i));
     }
     indices.push_back(castedValue);
     for (int i = axis + numIndices - batch; i < rank; ++i) {
-      indices.push_back(rewriter.create<linalg::IndexOp>(loc, i));
+      indices.push_back(linalg::IndexOp::create(rewriter, loc, i));
     }
     Value res =
-        rewriter.create<tensor::ExtractOp>(loc, adaptor.getOperand(), indices);
-    rewriter.create<linalg::YieldOp>(loc, res);
+        tensor::ExtractOp::create(rewriter, loc, adaptor.getOperand(), indices);
+    linalg::YieldOp::create(rewriter, loc, res);
 
     rewriter.replaceOp(op, linalgOp.getResults());
     return success();
@@ -2598,11 +2606,10 @@ struct SetDimensionSizeConverter final
                                        return rewriter.getIndexAttr(dim);
                                      });
     Value dimensionSize =
-        rewriter.create<tensor::ExtractOp>(loc, setDimensionSizeOp.getSize());
+        tensor::ExtractOp::create(rewriter, loc, setDimensionSizeOp.getSize());
     sizes[setDimensionSizeOp.getDimension()] =
-        rewriter
-            .create<arith::IndexCastOp>(loc, rewriter.getIndexType(),
-                                        dimensionSize)
+        arith::IndexCastOp::create(rewriter, loc, rewriter.getIndexType(),
+                                   dimensionSize)
             .getResult();
 
     rewriter.replaceOpWithNewOp<tensor::ExtractSliceOp>(

@@ -200,8 +200,11 @@ LogicalResult foldConvert(PatternRewriter& rewriter, OpType op,
   auto newType = getElementTypeOrSelf(resultType);
   size_t newBitWidth = newType.getIntOrFloatBitWidth();
 
-  bool isOldTypeUnsigned = oldType.isInteger(1) || oldType.isUnsignedInteger();
-  bool isNewTypeUnsigned = newType.isInteger(1) || newType.isUnsignedInteger();
+  bool isOldTypeUnsigned =
+      oldType.isSignlessInteger(1) || oldType.isUnsignedInteger();
+  bool isNewTypeUnsigned =
+      newType.isSignlessInteger(1) || newType.isUnsignedInteger();
+  bool isNewTypeBoolean = newType.isSignlessInteger(1);
 
   if (isa<FloatType>(oldType)) {
     if (auto newFloatType = dyn_cast<FloatType>(newType)) {
@@ -217,6 +220,16 @@ LogicalResult foldConvert(PatternRewriter& rewriter, OpType op,
                                           llvm::RoundingMode::NearestTiesToEven,
                                           &losesInfo);
             return newValue;
+          });
+    }
+
+    // Float -> Boolean
+    if (isNewTypeBoolean) {
+      return foldConvertHelper<FloatAttr, IntegerAttr>(
+          rewriter, op, elements, resultType,
+          [newBitWidth](const APFloat& operand, bool& /*castStatus*/) {
+            APInt resVal(1, operand.isZero() ? 0 : 1);
+            return resVal.sextOrTrunc(newBitWidth);
           });
     }
 
@@ -249,6 +262,16 @@ LogicalResult foldConvert(PatternRewriter& rewriter, OpType op,
           apf.convertFromAPInt(operand, !isOldTypeUnsigned,
                                APFloat::rmNearestTiesToEven);
           return apf;
+        });
+  }
+
+  // Int -> Boolean
+  if (isNewTypeBoolean) {
+    return foldConvertHelper<IntegerAttr, IntegerAttr>(
+        rewriter, op, elements, resultType,
+        [newBitWidth](const APInt& operand, bool& /*castStatus*/) {
+          APInt resVal(1, operand.isZero() ? 0 : 1);
+          return resVal.sextOrTrunc(newBitWidth);
         });
   }
 
@@ -811,6 +834,36 @@ struct FoldSelectOpPattern : public ShapeOpRewritePattern<SelectOp> {
       return pred != 0 ? onTrue : onFalse;
     }
   };
+};
+
+// Pattern: set_dim_size(op, size, dim) -> op [op[dim] == size]
+struct FoldSetDimensionSizeOpPattern
+    : public ShapeOpRewritePattern<SetDimensionSizeOp> {
+  using ShapeOpRewritePattern::ShapeOpRewritePattern;
+
+  LogicalResult matchAndRewrite(SetDimensionSizeOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    // No need to verify static shape or dtype here since we aren't evaluating
+    // dtype, just folding set_dim_size ops with no semantic meaning.
+
+    SplatElementsAttr cstSplatAttr;
+    matchPattern(op.getSize(), m_Constant(&cstSplatAttr));
+    if (!cstSplatAttr)
+      return rewriter.notifyMatchFailure(op, "size operand not constant");
+
+    // Compare to the dimension size, not the bound size.
+    // We can't fold and change shapes, but we do want to fold meaningless
+    // set_dim_size ops that use a constant to set a static dimension size
+    // like `set_dim_size(X, 2, dim=0) : (tensor<2xf32>) -> tensor<2xf32>`
+    if (cstSplatAttr.getSplatValue<APInt>() !=
+        resultType.getDimSize(op.getDimension()))
+      return rewriter.notifyMatchFailure(op,
+                                         "dim size does not match result type");
+
+    rewriter.replaceAllOpUsesWith(op, op.getOperand());
+    return success();
+  }
 };
 
 struct FoldSignOpPattern : public ShapeOpRewritePattern<SignOp> {
@@ -1388,6 +1441,7 @@ void populateStablehloShapeFolderPatterns(
   patterns->add<FoldRemOpPattern>(context, options, benefit);
   patterns->add<FoldReshapeOpPattern>(context, options, benefit);
   patterns->add<FoldSelectOpPattern>(context, options, benefit);
+  patterns->add<FoldSetDimensionSizeOpPattern>(context, options, benefit);
   patterns->add<FoldSignOpPattern>(context, options, benefit);
   patterns->add<FoldSliceOpPattern>(context, options, benefit);
   patterns->add<FoldSubtractOpPattern>(context, options, benefit);

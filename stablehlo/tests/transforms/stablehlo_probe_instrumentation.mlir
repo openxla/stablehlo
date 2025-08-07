@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --interpreter-instrument-with-probe="useDebugInfo=true" --split-input-file --verify-diagnostics %s | FileCheck %s
+// RUN: stablehlo-opt --allow-unregistered-dialect --interpreter-instrument-with-probe="useDebugInfo=true" --split-input-file --verify-diagnostics %s | FileCheck %s
 
 // CHECK-LABEL: func @instrument_basic_no_location
 func.func @instrument_basic_no_location(%arg0: tensor<1x2xi32>, %arg1: tensor<1x2xi32>) -> tensor<1x2xi32> {
@@ -97,4 +97,15 @@ func.func @instrument_loop() -> tensor<i64> {
   }
 
   func.return %results1 : tensor<i64>
+}
+
+// -----
+
+// CHECK-LABEL: func @test_string_type
+func.func @test_string_type() -> tensor<!tf_type.string> {
+  // CHECK: "tf.Const"
+  // CHECK-NOT: interpreter.probe
+  // CHECK-NEXT: return
+  %0 = "tf.Const"() {value = dense<"hello"> : tensor<!tf_type.string>} : () -> tensor<!tf_type.string>
+  return %0 : tensor<!tf_type.string>
 }

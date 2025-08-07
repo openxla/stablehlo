@@ -43,7 +43,7 @@ class InterpreterInstrumentWithProbePass
   InterpreterInstrumentWithProbePass(
       const InterpreterInstrumentWithProbePassOptions& opts)
       : InterpreterInstrumentWithProbePassBase<
-            InterpreterInstrumentWithProbePass>(opts){};
+            InterpreterInstrumentWithProbePass>(opts) {};
   void runOnOperation() override;
 
  private:
@@ -122,7 +122,16 @@ bool InterpreterInstrumentWithProbePass::shouldProbeOp(Operation& op) const {
 }
 
 bool InterpreterInstrumentWithProbePass::shouldProbeValue(Value value) const {
-  return isa<TensorType>(value.getType());
+  // Check if the value's type is a RankedTensorType.
+  auto tensorType = dyn_cast<RankedTensorType>(value.getType());
+  if (!tensorType) return false;
+
+  // Check if the RankedTensorType has a static shape.
+  if (!tensorType.hasStaticShape()) return false;
+
+  Type elementType = tensorType.getElementType();
+
+  return elementType.isIntOrFloat() || isa<ComplexType>(elementType);
 }
 
 }  // namespace

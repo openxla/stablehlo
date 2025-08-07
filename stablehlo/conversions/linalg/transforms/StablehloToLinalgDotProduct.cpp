@@ -89,9 +89,9 @@ SmallVector<Value, 2> getDotOpEmptyTensorDynSizes(OpBuilder &b, Location loc,
   }
 
   if (lhsIsMatrix && lhsType.isDynamicDim(0))
-    dynShape.push_back(b.create<tensor::DimOp>(loc, lhs, 0));
+    dynShape.push_back(tensor::DimOp::create(b, loc, lhs, 0));
   if (rhsIsMatrix && rhsType.isDynamicDim(1))
-    dynShape.push_back(b.create<tensor::DimOp>(loc, rhs, 1));
+    dynShape.push_back(tensor::DimOp::create(b, loc, rhs, 1));
   return dynShape;
 }
 
@@ -182,8 +182,8 @@ struct DotGeneralBatchMatMulOpConversion final
     Value emptyTensor =
         getEmptyTensorFor(rewriter, loc, outputType, op, adaptor.getOperands());
     Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
-    Operation *linalgOp = rewriter.create<linalg::BatchMatmulOp>(
-        loc, /*resultTensorTypes=*/TypeRange{outputType},
+    Operation *linalgOp = linalg::BatchMatmulOp::create(
+        rewriter, loc, /*resultTensorTypes=*/TypeRange{outputType},
         /*inputs=*/ValueRange{adaptor.getLhs(), adaptor.getRhs()},
         /*outputBuffers=*/ValueRange{zeroTensor},
         linalg::getPrunedAttributeList(op));
@@ -290,8 +290,8 @@ struct DotGeneralOpConversion final
                                             op.getContext()));
     }
 
-    Operation *linalgOp = rewriter.create<linalg::GenericOp>(
-        loc, /*resultTensorTypes=*/TypeRange{outputType},
+    Operation *linalgOp = linalg::GenericOp::create(
+        rewriter, loc, /*resultTensorTypes=*/TypeRange{outputType},
         /*inputs=*/ValueRange{adaptor.getLhs(), adaptor.getRhs()},
         /*outputBuffers=*/ValueRange{zeroTensor}, indexingMaps,
         getParallelAndReductionIterators(
