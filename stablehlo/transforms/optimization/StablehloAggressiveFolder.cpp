@@ -284,7 +284,6 @@ bool hasAnyDeclaredSideEffects(Operation* op) {
   return false;
 }
 
-
 template <typename OpType>
 struct FoldOpRewritePattern : OpRewritePattern<OpType> {
   FoldOpRewritePattern(MLIRContext* context,
