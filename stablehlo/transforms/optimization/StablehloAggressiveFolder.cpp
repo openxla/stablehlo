@@ -268,10 +268,6 @@ bool hasAnyDeclaredSideEffects(Operation* op) {
     // The op has no direct memory effects. Return false if it has no recursive
     // memory effects, either.
     if (!op->hasTrait<OpTrait::HasRecursiveMemoryEffects>()) return false;
-  } else {
-    // The op doesn't implement the memory-effect interface. This function is
-    // only interested in explicitly declared side effects, so we treat it as
-    // having none of its own; proceed with a recursive check of its regions.
   }
 
   // The op doesn't declare any side effects of its own, but its regions could
