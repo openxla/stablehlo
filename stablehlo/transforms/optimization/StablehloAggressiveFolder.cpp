@@ -449,6 +449,64 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
 };
 
 //////////////////////////////////
+// CaseOp
+/////////////////////////////////
+
+class InlineCaseOpWithConstantBranchIndex
+    : public FoldOpRewritePattern<CaseOp> {
+ public:
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
+  LogicalResult matchAndRewrite(CaseOp op,
+                                PatternRewriter& rewriter) const override {
+    Value branchIndexArgument = op.getIndex();
+    DenseIntElementsAttr indexAttr;
+    if (!matchPattern(branchIndexArgument, m_Constant(&indexAttr)))
+      return rewriter.notifyMatchFailure(op, "Branch index is not a constant.");
+
+    int64_t selectedBranchIndex =
+        indexAttr.getSplatValue<IntegerAttr>().getValue().getSExtValue();
+    // If the branch index is OOB, the last branch is executed by default:
+    // https://openxla.org/xla/operation_semantics#conditional
+    if (selectedBranchIndex < 0 || selectedBranchIndex >= op.getNumRegions())
+      selectedBranchIndex = op.getNumRegions() - 1;
+
+    bool allBranchesArePure = options.assumeNoUndeclaredSideEffects
+                                  ? !hasAnyDeclaredSideEffects(op)
+                                  : isMemoryEffectFree(op);
+
+    if (!allBranchesArePure && op->use_empty())
+      return rewriter.notifyMatchFailure(op, "Case op is non-trivially dead.");
+
+    Region& region = op.getRegion(selectedBranchIndex);
+
+    if (!llvm::hasSingleElement(region))
+      return rewriter.notifyMatchFailure(op, "Expected a single-block region.");
+
+    Block* block = &region.front();
+    ValueRange blockArgs = {};
+    Operation* terminator = block->getTerminator();
+    ValueRange results = terminator->getOperands();
+
+    rewriter.inlineBlockBefore(block, op, blockArgs);
+
+    if (allBranchesArePure) {
+      rewriter.replaceOp(op, results);
+    } else {
+      rewriter.replaceAllOpUsesWith(op, results);
+      Block& noopBlock = region.emplaceBlock();
+      rewriter.setInsertionPointToEnd(&noopBlock);
+      rewriter.create<stablehlo::ReturnOp>(region.getLoc(),
+                                           branchIndexArgument);
+    }
+
+    rewriter.eraseOp(terminator);
+
+    return success();
+  }
+};
+
+//////////////////////////////////
 // ConcatenateOp
 /////////////////////////////////
 
@@ -1361,14 +1419,15 @@ void populateStablehloAggressiveFolderPatterns(
     PatternBenefit benefit) {
   populateStablehloShapeFolderPatterns(context, patterns, options, benefit);
 
-  patterns->add<FoldIotaOpPattern,                  //
-                FoldReduceOpReducingZeroDims,       //
-                FoldReduceOpToConstantInitializer,  //
-                FoldReduceOpWithRedundantResults,   //
-                FoldSqrtOpPattern,                  //
-                FoldTransposeOpPattern,             //
-                FoldWhileOpIfDeadAndPresumedPure,   //
-                FoldWhileOpPattern,                 //
+  patterns->add<FoldIotaOpPattern,                    //
+                FoldReduceOpReducingZeroDims,         //
+                FoldReduceOpToConstantInitializer,    //
+                FoldReduceOpWithRedundantResults,     //
+                FoldSqrtOpPattern,                    //
+                FoldTransposeOpPattern,               //
+                FoldWhileOpIfDeadAndPresumedPure,     //
+                FoldWhileOpPattern,                   //
+                InlineCaseOpWithConstantBranchIndex,  //
                 LowerBoolSplatConstantsIntoReduceOpRegion>(context, options,
                                                            benefit);
 }
