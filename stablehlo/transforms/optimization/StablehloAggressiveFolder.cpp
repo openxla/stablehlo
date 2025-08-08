@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -459,26 +460,27 @@ class InlineCaseOpWithConstantBranchIndex
 
   LogicalResult matchAndRewrite(CaseOp op,
                                 PatternRewriter& rewriter) const override {
+    // Fail to match dead `case` ops. Dead-code elimination should already erase
+    // such ops whenever it's safe to do so; if we find a dead `case` op that
+    // can't be erased, we need to signal match failure or else the pattern will
+    // be reapplied ad infinitum.
+    if (op->use_empty())
+      return rewriter.notifyMatchFailure(op, "The case op's result is unused.");
+
     Value branchIndexArgument = op.getIndex();
-    DenseIntElementsAttr indexAttr;
+    SplatElementsAttr indexAttr;
     if (!matchPattern(branchIndexArgument, m_Constant(&indexAttr)))
       return rewriter.notifyMatchFailure(op, "Branch index is not a constant.");
 
     int64_t selectedBranchIndex =
         indexAttr.getSplatValue<IntegerAttr>().getValue().getSExtValue();
     // If the branch index is OOB, the last branch is executed by default:
-    // https://openxla.org/xla/operation_semantics#conditional
+    // https://openxla.org/stablehlo/spec#case
     if (selectedBranchIndex < 0 || selectedBranchIndex >= op.getNumRegions())
       selectedBranchIndex = op.getNumRegions() - 1;
 
-    if (op->use_empty())
-      return rewriter.notifyMatchFailure(op, "The case op's result is unused.");
-
     Region& region = op.getRegion(selectedBranchIndex);
-
-    if (!llvm::hasSingleElement(region))
-      return rewriter.notifyMatchFailure(op, "Expected a single-block region.");
-
+    assert(llvm::hasSingleElement(region));
     Block* block = &region.front();
     ValueRange blockArgs = {};
     Operation* terminator = block->getTerminator();
