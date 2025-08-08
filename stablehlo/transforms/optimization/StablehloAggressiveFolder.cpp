@@ -471,12 +471,8 @@ class InlineCaseOpWithConstantBranchIndex
     if (selectedBranchIndex < 0 || selectedBranchIndex >= op.getNumRegions())
       selectedBranchIndex = op.getNumRegions() - 1;
 
-    bool allBranchesArePure = options.assumeNoUndeclaredSideEffects
-                                  ? !hasAnyDeclaredSideEffects(op)
-                                  : isMemoryEffectFree(op);
-
-    if (!allBranchesArePure && op->use_empty())
-      return rewriter.notifyMatchFailure(op, "Case op is non-trivially dead.");
+    if (op->use_empty())
+      return rewriter.notifyMatchFailure(op, "The case op's result is unused.");
 
     Region& region = op.getRegion(selectedBranchIndex);
 
@@ -488,19 +484,18 @@ class InlineCaseOpWithConstantBranchIndex
     Operation* terminator = block->getTerminator();
     ValueRange results = terminator->getOperands();
 
+    // Inline the active branch of the `case` op.
     rewriter.inlineBlockBefore(block, op, blockArgs);
-
-    if (allBranchesArePure) {
-      rewriter.replaceOp(op, results);
-    } else {
-      rewriter.replaceAllOpUsesWith(op, results);
-      Block& noopBlock = region.emplaceBlock();
-      rewriter.setInsertionPointToEnd(&noopBlock);
-      rewriter.create<stablehlo::ReturnOp>(region.getLoc(),
-                                           branchIndexArgument);
-    }
-
+    rewriter.replaceAllOpUsesWith(op, results);
     rewriter.eraseOp(terminator);
+
+    // Make sure the now-dead `case` op is still syntactically valid in case it
+    // can't be safely deleted (e.g. due to side effects). Specifically, we left
+    // one region of the `case` op empty when we inlined that block; it expects
+    // a block with a terminator op, so we just make it return the branch index.
+    Block& noopBlock = region.emplaceBlock();
+    rewriter.setInsertionPointToEnd(&noopBlock);
+    rewriter.create<stablehlo::ReturnOp>(region.getLoc(), branchIndexArgument);
 
     return success();
   }
