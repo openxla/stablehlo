@@ -1411,7 +1411,7 @@ cc_binary(
         "//stablehlo/tests:check_ops",
         "//stablehlo/tests:test_utils",
         "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:AllPassesAndDialects",
+        "@llvm-project//mlir:RegisterAllDialects",
         "@llvm-project//mlir:AsmParser",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
