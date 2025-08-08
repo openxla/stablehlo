@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -446,6 +447,60 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
       return APInt(/*bitwidth=*/1, result);
     }
   };
+};
+
+//////////////////////////////////
+// CaseOp
+/////////////////////////////////
+
+class InlineCaseOpWithConstantBranchIndex
+    : public FoldOpRewritePattern<CaseOp> {
+ public:
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
+  LogicalResult matchAndRewrite(CaseOp op,
+                                PatternRewriter& rewriter) const override {
+    // Fail to match dead `case` ops. Dead-code elimination should already erase
+    // such ops whenever it's safe to do so; if we find a dead `case` op that
+    // can't be erased, we need to signal match failure or else the pattern will
+    // be reapplied ad infinitum.
+    if (op->use_empty())
+      return rewriter.notifyMatchFailure(op, "The case op's result is unused.");
+
+    Value branchIndexArgument = op.getIndex();
+    SplatElementsAttr indexAttr;
+    if (!matchPattern(branchIndexArgument, m_Constant(&indexAttr)))
+      return rewriter.notifyMatchFailure(op, "Branch index is not a constant.");
+
+    int64_t selectedBranchIndex =
+        indexAttr.getSplatValue<IntegerAttr>().getValue().getSExtValue();
+    // If the branch index is OOB, the last branch is executed by default:
+    // https://openxla.org/stablehlo/spec#case
+    if (selectedBranchIndex < 0 || selectedBranchIndex >= op.getNumRegions())
+      selectedBranchIndex = op.getNumRegions() - 1;
+
+    Region& region = op.getRegion(selectedBranchIndex);
+    assert(llvm::hasSingleElement(region));
+    Block* block = &region.front();
+    ValueRange blockArgs = {};
+    Operation* terminator = block->getTerminator();
+    ValueRange results = terminator->getOperands();
+
+    // Inline the active branch of the `case` op.
+    rewriter.inlineBlockBefore(block, op, blockArgs);
+    rewriter.replaceAllOpUsesWith(op, results);
+    rewriter.eraseOp(terminator);
+
+    // Make sure the now-dead `case` op is still syntactically valid in case it
+    // can't be safely deleted (e.g. due to side effects). Specifically, we left
+    // one region of the `case` op empty when we inlined that block; it expects
+    // a block with a terminator op, so we just make it return the branch index.
+    Block& noopBlock = region.emplaceBlock();
+    rewriter.setInsertionPointToEnd(&noopBlock);
+    rewriter.create<stablehlo::ReturnOp>(region.getLoc(), branchIndexArgument);
+
+    return success();
+  }
 };
 
 //////////////////////////////////
@@ -1361,14 +1416,15 @@ void populateStablehloAggressiveFolderPatterns(
     PatternBenefit benefit) {
   populateStablehloShapeFolderPatterns(context, patterns, options, benefit);
 
-  patterns->add<FoldIotaOpPattern,                  //
-                FoldReduceOpReducingZeroDims,       //
-                FoldReduceOpToConstantInitializer,  //
-                FoldReduceOpWithRedundantResults,   //
-                FoldSqrtOpPattern,                  //
-                FoldTransposeOpPattern,             //
-                FoldWhileOpIfDeadAndPresumedPure,   //
-                FoldWhileOpPattern,                 //
+  patterns->add<FoldIotaOpPattern,                    //
+                FoldReduceOpReducingZeroDims,         //
+                FoldReduceOpToConstantInitializer,    //
+                FoldReduceOpWithRedundantResults,     //
+                FoldSqrtOpPattern,                    //
+                FoldTransposeOpPattern,               //
+                FoldWhileOpIfDeadAndPresumedPure,     //
+                FoldWhileOpPattern,                   //
+                InlineCaseOpWithConstantBranchIndex,  //
                 LowerBoolSplatConstantsIntoReduceOpRegion>(context, options,
                                                            benefit);
 }
