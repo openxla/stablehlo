@@ -46,7 +46,6 @@ func.func @broadcast_in_dim_fold_splat(%arg0: tensor<3x3xi32>)
 
 // CHECK-LABEL: func.func @case_fold_constant_branch_index
 func.func @case_fold_constant_branch_index(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>) -> tensor<i32> {
-  // CHECK-NOT:  stablehlo.case
   // CHECK-NEXT: {{(^ *|func\.)}}return %arg1
   // CHECK-NOT:  stablehlo.case
   %branch_index = stablehlo.constant dense<1> : tensor<i32>
@@ -97,6 +96,29 @@ func.func @case_fold_preserve_side_effects(%arg0: tensor<i32>, %arg1: tensor<i32
     stablehlo.return %baz : tensor<i32>
   }) : (tensor<i32>) -> tensor<i32>
   func.return %result: tensor<i32>
+}
+
+// -----
+
+// TODO: Allow non-trivially dead `case` ops to be simplified.
+
+// CHECK-LABEL: func.func @case_fold_non_trivially_dead
+func.func @case_fold_non_trivially_dead(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>) -> tensor<i32> {
+  // DISABLED-CHECK-NEXT: [[UNUSED:%.+]] = stablehlo.custom_call @bar(%arg1) {has_side_effect = true}
+  // DISABLED-CHECK-NEXT: {{(^ *|func\.)}}return %arg1
+  // DISABLED-CHECK-NOT:  stablehlo.case
+  %branch_index = stablehlo.constant dense<1> : tensor<i32>
+  %unused_case = "stablehlo.case"(%branch_index) ({
+    %unused_foo = stablehlo.custom_call @foo(%arg0) {has_side_effect = false} : (tensor<i32>) -> tensor<i32>
+    stablehlo.return %arg0 : tensor<i32>
+  }, {
+    %unused_bar = stablehlo.custom_call @bar(%arg1) {has_side_effect = true} : (tensor<i32>) -> tensor<i32>
+    stablehlo.return %arg1 : tensor<i32>
+  }, {
+    %unused_baz = stablehlo.custom_call @baz(%arg2) {has_side_effect = false} : (tensor<i32>) -> tensor<i32>
+    stablehlo.return %arg2 : tensor<i32>
+  }) : (tensor<i32>) -> tensor<i32>
+  func.return %arg1: tensor<i32>
 }
 
 // -----
