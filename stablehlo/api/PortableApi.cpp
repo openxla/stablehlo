@@ -55,12 +55,6 @@ std::string getMinimumVersion() {
   return mlir::vhlo::Version::getMinimumVersion().toString();
 }
 
-LogicalResult serializePortableArtifact(ModuleOp module,
-                                        StringRef targetVersion,
-                                        raw_ostream& os) {
-  return serializePortableArtifact(module, targetVersion, os, false);
-}
-
 LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
                                         llvm::StringRef targetVersion,
                                         llvm::raw_ostream& os) {
@@ -69,7 +63,7 @@ LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
   auto module = mlir::parseSourceString<mlir::ModuleOp>(moduleStr, &context);
   if (!module || failed(module->verifyInvariants())) return failure();
 
-  return serializePortableArtifact(*module, targetVersion, os);
+  return serializePortableArtifact(*module, targetVersion, os, false);
 }
 
 LogicalResult deserializePortableArtifact(llvm::StringRef artifactStr,

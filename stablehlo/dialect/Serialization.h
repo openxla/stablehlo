@@ -35,7 +35,7 @@ namespace stablehlo {
 LogicalResult serializePortableArtifact(ModuleOp module,
                                         StringRef targetVersion,
                                         raw_ostream& os,
-                                        bool allowOtherDialects);
+                                        bool allowOtherDialects = false);
 
 // Read StableHLO portable artifact
 //
