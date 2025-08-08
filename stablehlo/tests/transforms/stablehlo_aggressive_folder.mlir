@@ -46,8 +46,9 @@ func.func @broadcast_in_dim_fold_splat(%arg0: tensor<3x3xi32>)
 
 // CHECK-LABEL: func.func @case_fold_constant_branch_index
 func.func @case_fold_constant_branch_index(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>) -> tensor<i32> {
-  // CHECK-NOT: stablehlo.case
-  // CHECK-DAG: {{(^ *|func\.)}}return %arg1
+  // CHECK-NOT:  stablehlo.case
+  // CHECK-NEXT: {{(^ *|func\.)}}return %arg1
+  // CHECK-NOT:  stablehlo.case
   %branch_index = stablehlo.constant dense<1> : tensor<i32>
   %result = "stablehlo.case"(%branch_index) ({
     stablehlo.return %arg0 : tensor<i32>
