@@ -1245,11 +1245,6 @@ def StableHLO_SendOp : StableHLO_Op<"send", [
   );
 
   let results = (outs HLO_Token);
-  let builders = [
-    OpBuilder<(ins
-      "::mlir::Type":$result_type, "::mlir::Value":$operand,
-      "::mlir::DenseIntElementsAttr":$source_target_pairs,
-      "::mlir::stablehlo::ChannelHandleAttr":$channel_handle)>];
 }
 
 def StableHLO_RecvOp : StableHLO_Op<"recv", [
@@ -1279,11 +1274,6 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", [
     DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer, /*recv_i4*/
     OptionalAttr<I64ElementsAttr>:$source_target_pairs /*recv_i5*/
   );
-  let builders = [
-    OpBuilder<(ins
-      "::mlir::Type":$result_type, "::mlir::Value":$operand,
-      "::mlir::DenseIntElementsAttr":$source_target_pairs,
-      "::mlir::stablehlo::ChannelHandleAttr":$channel_handle)>];
 
   let results = (outs Variadic<HLO_StaticShapeTensorOrPerAxisQuantizedTensorOrToken>);
   let hasVerifier = 1;

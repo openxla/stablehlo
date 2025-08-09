@@ -48,6 +48,17 @@ func.func @probe_f64() {
 
 // -----
 
+func.func @probe_bf16() {
+  %0 = stablehlo.constant dense<[1.0, 2.5, -3.0]> : tensor<3xbf16>
+  %1 = stablehlo.constant dense<[0.5, 1.5, 0.0]> : tensor<3xbf16>
+  %2 = stablehlo.add %0, %1 : tensor<3xbf16>
+  %3 = interpreter.probe %2, probe_id = "probe_bf16" : tensor<3xbf16>
+  check.expect_serialized_eq %3, probe_id = "probe_bf16" : tensor<3xbf16>
+  func.return
+}
+
+// -----
+
 func.func @probe_c32() {
   %0 = stablehlo.constant dense<[(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)]> : tensor<3xcomplex<f32>>
   %1 = stablehlo.constant dense<[(1.0, 1.0), (1.0, 1.0), (1.0, 1.0)]> : tensor<3xcomplex<f32>>

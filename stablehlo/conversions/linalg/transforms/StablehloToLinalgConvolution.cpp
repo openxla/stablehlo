@@ -97,17 +97,17 @@ Value applyConvolutionPadding(Location loc, Value input,
   if (auto complexType = dyn_cast<ComplexType>(inputType.getElementType())) {
     auto zeroElement = rewriter.getZeroAttr(complexType.getElementType());
     auto zeroAttr = rewriter.getArrayAttr({zeroElement, zeroElement});
-    zero = rewriter.create<complex::ConstantOp>(loc, complexType, zeroAttr);
-    zero = rewriter.create<tensor::FromElementsOp>(
-        loc, RankedTensorType::get({}, complexType), zero);
+    zero = complex::ConstantOp::create(rewriter, loc, complexType, zeroAttr);
+    zero = tensor::FromElementsOp::create(
+        rewriter, loc, RankedTensorType::get({}, complexType), zero);
   } else {
-    zero = rewriter.create<arith::ConstantOp>(
-        loc, rewriter.getZeroAttr(
-                 RankedTensorType::get({}, inputType.getElementType())));
+    zero = arith::ConstantOp::create(rewriter, loc,
+                                     rewriter.getZeroAttr(RankedTensorType::get(
+                                         {}, inputType.getElementType())));
   }
 
-  return rewriter.create<mlir::stablehlo::PadOp>(loc, input, zero, padLow,
-                                                 padHigh, padInterior);
+  return mlir::stablehlo::PadOp::create(rewriter, loc, input, zero, padLow,
+                                        padHigh, padInterior);
 }
 
 /// If the ConvolutionOp has a window reversal, applies it to the filter.
@@ -126,8 +126,8 @@ Value applyConvolutionReversal(Location loc, OpBuilder &b,
     }
   }
 
-  return b.create<mlir::stablehlo::ReverseOp>(
-      loc, filter, b.getDenseI64ArrayAttr(reversedDims));
+  return mlir::stablehlo::ReverseOp::create(
+      b, loc, filter, b.getDenseI64ArrayAttr(reversedDims));
 }
 
 /// Returns true if the given `dimensionNumbers` from a stablehlo.convolution op
@@ -231,7 +231,7 @@ struct NormalConvolutionOpConversion final
     // The output shape is N spatial_dims F.
     SmallVector<Value, 8> dynSizes;
     if (resultType.isDynamicDim(0)) {
-      dynSizes.push_back(rewriter.create<tensor::DimOp>(loc, input, 0));
+      dynSizes.push_back(tensor::DimOp::create(rewriter, loc, input, 0));
     }
     for (int64_t i = 1, e = rank - 1; i < e; ++i) {
       if (resultType.isDynamicDim(i)) {
@@ -240,10 +240,12 @@ struct NormalConvolutionOpConversion final
       }
     }
     if (resultType.isDynamicDim(rank - 1)) {
-      dynSizes.push_back(rewriter.create<tensor::DimOp>(loc, filter, rank - 1));
+      dynSizes.push_back(
+          tensor::DimOp::create(rewriter, loc, filter, rank - 1));
     }
-    Value emptyTensor = rewriter.create<tensor::EmptyOp>(
-        loc, resultType.getShape(), resultType.getElementType(), dynSizes);
+    Value emptyTensor =
+        tensor::EmptyOp::create(rewriter, loc, resultType.getShape(),
+                                resultType.getElementType(), dynSizes);
     Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
     linalg::LinalgOp res;
     Attribute strides;
@@ -260,27 +262,30 @@ struct NormalConvolutionOpConversion final
 
     switch (rank) {
       case 2: {
-        res = rewriter.create<linalg::MatmulOp>(
-            loc, resultType, ValueRange{input, filter}, ValueRange{zeroTensor},
-            linalg::getPrunedAttributeList(op));
+        res = linalg::MatmulOp::create(
+            rewriter, loc, resultType, ValueRange{input, filter},
+            ValueRange{zeroTensor}, linalg::getPrunedAttributeList(op));
         break;
       }
       case 3: {
-        res = rewriter.create<linalg::Conv1DNwcWcfOp>(
-            loc, resultType, ValueRange{input, filter}, ValueRange{zeroTensor},
-            strides, dilations, linalg::getPrunedAttributeList(op));
+        res = linalg::Conv1DNwcWcfOp::create(
+            rewriter, loc, resultType, ValueRange{input, filter},
+            ValueRange{zeroTensor}, strides, dilations,
+            linalg::getPrunedAttributeList(op));
         break;
       }
       case 4: {
-        res = rewriter.create<linalg::Conv2DNhwcHwcfOp>(
-            loc, resultType, ValueRange{input, filter}, ValueRange{zeroTensor},
-            strides, dilations, linalg::getPrunedAttributeList(op));
+        res = linalg::Conv2DNhwcHwcfOp::create(
+            rewriter, loc, resultType, ValueRange{input, filter},
+            ValueRange{zeroTensor}, strides, dilations,
+            linalg::getPrunedAttributeList(op));
         break;
       }
       case 5: {
-        res = rewriter.create<linalg::Conv3DNdhwcDhwcfOp>(
-            loc, resultType, ValueRange{input, filter}, ValueRange{zeroTensor},
-            strides, dilations, linalg::getPrunedAttributeList(op));
+        res = linalg::Conv3DNdhwcDhwcfOp::create(
+            rewriter, loc, resultType, ValueRange{input, filter},
+            ValueRange{zeroTensor}, strides, dilations,
+            linalg::getPrunedAttributeList(op));
         break;
       }
       default: {
@@ -438,8 +443,8 @@ struct ConvolutionOpGeneralConversion final
         reshapeShapeVector(prevDimsRef, newShape, inputFeatureDimension,
                            featureGroupCount);
         updateDimMappingFromOffset(lhsIndexMapping, inputFeatureDimension);
-        modifiedLhs = rewriter.create<mlir::stablehlo::ReshapeOp>(
-            loc,
+        modifiedLhs = mlir::stablehlo::ReshapeOp::create(
+            rewriter, loc,
             RankedTensorType::get(newShape, paddedLhsType.getElementType()),
             modifiedLhs);
       }
@@ -454,8 +459,8 @@ struct ConvolutionOpGeneralConversion final
                            featureGroupCount);
         updateDimMappingFromOffset(rhsIndexMapping,
                                    kernelOutputFeatureDimension);
-        modifiedRhs = rewriter.create<mlir::stablehlo::ReshapeOp>(
-            loc,
+        modifiedRhs = mlir::stablehlo::ReshapeOp::create(
+            rewriter, loc,
             RankedTensorType::get(newShape, paddedRhsType.getElementType()),
             modifiedRhs);
       }
@@ -481,8 +486,8 @@ struct ConvolutionOpGeneralConversion final
         reshapeShapeVector(prevDimsRef, newShape, inputBatchDimension,
                            batchGroupCount);
         updateDimMappingFromOffset(lhsIndexMapping, inputBatchDimension);
-        modifiedLhs = rewriter.create<mlir::stablehlo::ReshapeOp>(
-            op.getLoc(),
+        modifiedLhs = mlir::stablehlo::ReshapeOp::create(
+            rewriter, op.getLoc(),
             RankedTensorType::get(newShape, paddedLhsType.getElementType()),
             modifiedLhs);
       }
@@ -497,8 +502,8 @@ struct ConvolutionOpGeneralConversion final
                            batchGroupCount);
         updateDimMappingFromOffset(rhsIndexMapping,
                                    kernelOutputFeatureDimension);
-        modifiedRhs = rewriter.create<mlir::stablehlo::ReshapeOp>(
-            op.getLoc(),
+        modifiedRhs = mlir::stablehlo::ReshapeOp::create(
+            rewriter, op.getLoc(),
             RankedTensorType::get(newShape, paddedRhsType.getElementType()),
             modifiedRhs);
       }
@@ -562,28 +567,26 @@ struct ConvolutionOpGeneralConversion final
     auto inferredMaps =
         AffineMap::inferFromExprList({srcExprs, windowExprs, dstExprs}, ctx);
 
-    Value emptyTensor = rewriter.create<tensor::EmptyOp>(
-        loc, reshapedResultShape, resultType.getElementType());
+    Value emptyTensor = tensor::EmptyOp::create(
+        rewriter, loc, reshapedResultShape, resultType.getElementType());
     Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
 
     Value convolved =
-        rewriter
-            .create<linalg::GenericOp>(
-                loc,
-                /*resultTensors=*/
-                llvm::ArrayRef<Type>(zeroTensor.getType()),
-                /*inputs=*/
-                llvm::ArrayRef<Value>({modifiedLhs, modifiedRhs}),
-                /*outputs=*/llvm::ArrayRef<Value>(zeroTensor), inferredMaps,
-                iterationLoops,
-                /*bodyBuild=*/
-                [&](OpBuilder &nestedBuilder, Location nestedLoc, ValueRange) {
-                  ImplicitLocOpBuilder builder(nestedLoc, nestedBuilder);
-                  linalg::Conv2DOp::regionBuilder(builder,
-                                                  *builder.getInsertionBlock(),
-                                                  {}, /*emitError=*/{});
-                },
-                linalg::getPrunedAttributeList(op))
+        linalg::GenericOp::create(
+            rewriter, loc,
+            /*resultTensors=*/
+            llvm::ArrayRef<Type>(zeroTensor.getType()),
+            /*inputs=*/
+            llvm::ArrayRef<Value>({modifiedLhs, modifiedRhs}),
+            /*outputs=*/llvm::ArrayRef<Value>(zeroTensor), inferredMaps,
+            iterationLoops,
+            /*bodyBuild=*/
+            [&](OpBuilder &nestedBuilder, Location nestedLoc, ValueRange) {
+              ImplicitLocOpBuilder builder(nestedLoc, nestedBuilder);
+              linalg::Conv2DOp::regionBuilder(
+                  builder, *builder.getInsertionBlock(), {}, /*emitError=*/{});
+            },
+            linalg::getPrunedAttributeList(op))
             .getResult(0);
     rewriter.replaceOpWithNewOp<mlir::stablehlo::ReshapeOp>(op, resultType,
                                                             convolved);
@@ -709,8 +712,8 @@ struct DepthwiseConvolutionOpConversion final
             reshapedFilterDims,
             cast<ShapedType>(op.getRhs().getType()).getElementType());
 
-        reshapedFilter = rewriter.create<mlir::stablehlo::ReshapeOp>(
-            loc, reshapedFilterType, filter);
+        reshapedFilter = mlir::stablehlo::ReshapeOp::create(
+            rewriter, loc, reshapedFilterType, filter);
       }
 
       ArrayRef<int64_t> outputDims = resultType.getShape();
@@ -720,8 +723,8 @@ struct DepthwiseConvolutionOpConversion final
       reshapedOutputDims.push_back(channelMultiplier);
       reshapedOutputDims[reshapedOutputDims.size() - 2] /= channelMultiplier;
 
-      Value emptyTensor = rewriter.create<tensor::EmptyOp>(
-          loc, reshapedOutputDims, resultType.getElementType());
+      Value emptyTensor = tensor::EmptyOp::create(
+          rewriter, loc, reshapedOutputDims, resultType.getElementType());
       Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
 
       auto reshapedOutputType = RankedTensorType::get(
@@ -729,32 +732,29 @@ struct DepthwiseConvolutionOpConversion final
       Value conv;
       switch (spatialRank) {
         case 1: {
-          conv = rewriter
-                     .create<linalg::DepthwiseConv1DNwcWcmOp>(
-                         loc, reshapedOutputType,
-                         ValueRange{input, reshapedFilter},
-                         ValueRange{zeroTensor}, windowStrides, rhsDilation,
-                         linalg::getPrunedAttributeList(op))
+          conv = linalg::DepthwiseConv1DNwcWcmOp::create(
+                     rewriter, loc, reshapedOutputType,
+                     ValueRange{input, reshapedFilter}, ValueRange{zeroTensor},
+                     windowStrides, rhsDilation,
+                     linalg::getPrunedAttributeList(op))
                      .getResult(0);
           break;
         }
         case 2: {
-          conv = rewriter
-                     .create<linalg::DepthwiseConv2DNhwcHwcmOp>(
-                         loc, reshapedOutputType,
-                         ValueRange{input, reshapedFilter},
-                         ValueRange{zeroTensor}, windowStrides, rhsDilation,
-                         linalg::getPrunedAttributeList(op))
+          conv = linalg::DepthwiseConv2DNhwcHwcmOp::create(
+                     rewriter, loc, reshapedOutputType,
+                     ValueRange{input, reshapedFilter}, ValueRange{zeroTensor},
+                     windowStrides, rhsDilation,
+                     linalg::getPrunedAttributeList(op))
                      .getResult(0);
           break;
         }
         case 3: {
-          conv = rewriter
-                     .create<linalg::DepthwiseConv3DNdhwcDhwcmOp>(
-                         loc, reshapedOutputType,
-                         ValueRange{input, reshapedFilter},
-                         ValueRange{zeroTensor}, windowStrides, rhsDilation,
-                         linalg::getPrunedAttributeList(op))
+          conv = linalg::DepthwiseConv3DNdhwcDhwcmOp::create(
+                     rewriter, loc, reshapedOutputType,
+                     ValueRange{input, reshapedFilter}, ValueRange{zeroTensor},
+                     windowStrides, rhsDilation,
+                     linalg::getPrunedAttributeList(op))
                      .getResult(0);
           break;
         }
@@ -771,8 +771,8 @@ struct DepthwiseConvolutionOpConversion final
           getReassociationIndicesToCollapseLastTwoDims(conv));
     } else {
       // For cases where channel multiplier == 1
-      Value emptyTensor = rewriter.create<tensor::EmptyOp>(
-          loc, resultType.getShape(), resultType.getElementType());
+      Value emptyTensor = tensor::EmptyOp::create(
+          rewriter, loc, resultType.getShape(), resultType.getElementType());
       Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
 
       // Create a Linalg reshape op that converts the filter from 4 dimensions
@@ -787,8 +787,8 @@ struct DepthwiseConvolutionOpConversion final
       RankedTensorType filterShape =
           RankedTensorType::get(filterDims, op.getType().getElementType());
 
-      Value reshapedFilter = rewriter.create<tensor::CollapseShapeOp>(
-          loc, filterShape, filter,
+      Value reshapedFilter = tensor::CollapseShapeOp::create(
+          rewriter, loc, filterShape, filter,
           getReassociationIndicesToCollapseLastTwoDims(filter));
 
       switch (spatialRank) {

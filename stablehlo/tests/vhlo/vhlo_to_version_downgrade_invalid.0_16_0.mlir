@@ -1,6 +1,7 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.16.0' --verify-diagnostics --split-input-file %s
 
-// expected-error @-3 {{failed to convert VHLO to v0.16.0}}
+// expected-error @+1 {{failed to convert VHLO to v0.16.0}}
+module {
 func.func @reduce_with_promotable_types(%arg0: tensor<4x4xf32>, %arg1 : tensor<f32>)
     -> (tensor<4xf64>) {
 
@@ -15,10 +16,12 @@ func.func @reduce_with_promotable_types(%arg0: tensor<4x4xf32>, %arg1 : tensor<f
 
   func.return %0: tensor<4xf64>
 }
+}
 
 // -----
 
-// expected-error @-3 {{failed to convert VHLO to v0.16.0}}
+// expected-error @+1 {{failed to convert VHLO to v0.16.0}}
+module {
 func.func @all_reduce_with_promotable_types(%operand: tensor<f32>) -> tensor<f64> {
 
   // expected-error @+1 {{failed to legalize operation 'vhlo.all_reduce_v2' that was explicitly marked illegal}}
@@ -33,10 +36,12 @@ func.func @all_reduce_with_promotable_types(%operand: tensor<f32>) -> tensor<f64
 
   func.return %result : tensor<f64>
 }
+}
 
 // -----
 
-// expected-error @-3 {{failed to convert VHLO to v0.16.0}}
+// expected-error @+1 {{failed to convert VHLO to v0.16.0}}
+module {
 func.func @reduce_scatter_with_promotable_types(%data: tensor<4x16xf32>) -> tensor<4x4xf64> {
 
   // expected-error @+1 {{failed to legalize operation 'vhlo.reduce_scatter_v1' that was explicitly marked illegal}}
@@ -50,10 +55,12 @@ func.func @reduce_scatter_with_promotable_types(%data: tensor<4x16xf32>) -> tens
       use_global_device_ids} : (tensor<4x16xf32>) -> tensor<4x4xf64>
   func.return %0 : tensor<4x4xf64>
 }
+}
 
 // -----
 
-// expected-error @-3 {{failed to convert VHLO to v0.16.0}}
+// expected-error @+1 {{failed to convert VHLO to v0.16.0}}
+module {
 func.func @reduce_window_with_promotable_types(%arg0: tensor<4x2xf32>,
     %arg1: tensor<4x2xf32>, %init0: tensor<f32>, %init1: tensor<f32>) ->
     (tensor<2x2xf64>, tensor<2x2xf32>) {
@@ -73,10 +80,12 @@ func.func @reduce_window_with_promotable_types(%arg0: tensor<4x2xf32>,
               (tensor<2x2xf64>, tensor<2x2xf32>)
   func.return %0#0, %0#1 : tensor<2x2xf64>, tensor<2x2xf32>
 }
+}
 
 // -----
 
-// expected-error @-3 {{failed to convert VHLO to v0.16.0}}
+// expected-error @+1 {{failed to convert VHLO to v0.16.0}}
+module {
 func.func @scatter_with_promotable_types(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<200x100x300xf64> {
@@ -99,10 +108,12 @@ func.func @scatter_with_promotable_types(%input_tensor: tensor<200x100x300xf32>,
       tensor<200x100x300xf64>
   func.return %0 : tensor<200x100x300xf64>
 }
+}
 
 // -----
 
-// expected-error @-3 {{failed to convert VHLO to v0.16.0}}
+// expected-error @+1 {{failed to convert VHLO to v0.16.0}}
+module {
 func.func @select_and_scatter_with_promotable_types(
     %arg0: tensor<10x24x24x64xf32>,
     %arg1: tensor<10x12x12x64xf32>) -> () {
@@ -126,4 +137,5 @@ func.func @select_and_scatter_with_promotable_types(
   } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
         tensor<10x24x24x64xf64>
   func.return
+}
 }
