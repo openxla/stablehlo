@@ -1382,6 +1382,7 @@ cc_binary(
     deps = [
         ":register",
         "@llvm-project//mlir:AllExtensions",
+        "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:MlirLspServerLib",
         "@llvm-project//mlir:RegisterAllDialects",
         "@llvm-project//mlir:RegisterAllPasses",
@@ -1412,6 +1413,7 @@ cc_binary(
         "//stablehlo/tests:check_ops",
         "//stablehlo/tests:test_utils",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:AsmParser",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
@@ -1442,6 +1444,7 @@ cc_binary(
         "//stablehlo/tests:test_utils",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AllExtensions",
+        "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:RegisterAllDialects",
