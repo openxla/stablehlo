@@ -40,6 +40,7 @@ class InterpreterInstrumentWithProbePass
   InterpreterInstrumentWithProbePass()
       : InterpreterInstrumentWithProbePassBase<
             InterpreterInstrumentWithProbePass>() {}
+
   InterpreterInstrumentWithProbePass(
       const InterpreterInstrumentWithProbePassOptions& opts)
       : InterpreterInstrumentWithProbePassBase<
