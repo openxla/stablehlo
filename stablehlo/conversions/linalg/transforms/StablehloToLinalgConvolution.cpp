@@ -57,7 +57,7 @@ Value applyConvolutionPadding(Location loc, Value input,
                               DenseIntElementsAttr padding,
                               std::optional<ArrayRef<int64_t>> lhsDilation,
                               llvm::ArrayRef<int64_t> dimMappings,
-                              OpBuilder &rewriter) {
+                              OpBuilder& rewriter) {
   SmallVector<int64_t> lhsDilationValues;
   if (lhsDilation.has_value())
     lhsDilationValues = llvm::to_vector(lhsDilation.value());
@@ -111,7 +111,7 @@ Value applyConvolutionPadding(Location loc, Value input,
 }
 
 /// If the ConvolutionOp has a window reversal, applies it to the filter.
-Value applyConvolutionReversal(Location loc, OpBuilder &b,
+Value applyConvolutionReversal(Location loc, OpBuilder& b,
                                mlir::stablehlo::ConvolutionOp op,
                                Value filter) {
   std::optional reversals = op.getWindowReversal();
@@ -174,11 +174,11 @@ bool hasCanonicalDimensionNumbers(
     return false;
   }
 
-  const int64_t *inputSpatialDim =
+  const int64_t* inputSpatialDim =
       dimensionNumbers.getInputSpatialDimensions().data();
-  const int64_t *kernelSpatialDim =
+  const int64_t* kernelSpatialDim =
       dimensionNumbers.getKernelSpatialDimensions().data();
-  const int64_t *outputSpatialDim =
+  const int64_t* outputSpatialDim =
       dimensionNumbers.getOutputSpatialDimensions().data();
   // Check spatial dims are ordered correctly.
   for (int64_t i = 0; i < inputSpatialRank; ++i) {
@@ -202,7 +202,7 @@ struct NormalConvolutionOpConversion final
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ConvolutionOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     if (!hasCanonicalDimensionNumbers(op.getDimensionNumbers())) {
       return failure();
     }
@@ -329,9 +329,9 @@ struct ConvolutionOpGeneralConversion final
   ///    feature or group count attributes.
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ConvolutionOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     Location loc = op.getLoc();
-    MLIRContext *ctx = op.getContext();
+    MLIRContext* ctx = op.getContext();
 
     auto resultType = dyn_cast_or_null<ShapedType>(
         getTypeConverter()->convertType(op.getType()));
@@ -399,8 +399,8 @@ struct ConvolutionOpGeneralConversion final
     SmallVector<int64_t> resultIndexMapping(resultType.getRank());
     std::iota(resultIndexMapping.begin(), resultIndexMapping.end(), 0);
     auto updateDimMappingFromOffset =
-        [](llvm::SmallVectorImpl<int64_t> &mapping, int64_t offset) {
-          for (auto &mappingElt : llvm::drop_begin(mapping, offset)) {
+        [](llvm::SmallVectorImpl<int64_t>& mapping, int64_t offset) {
+          for (auto& mappingElt : llvm::drop_begin(mapping, offset)) {
             mappingElt += 1;
           }
         };
@@ -415,7 +415,7 @@ struct ConvolutionOpGeneralConversion final
     int64_t rank = resultType.getRank();
 
     auto reshapeShapeVector = [](llvm::ArrayRef<int64_t> oldShape,
-                                 llvm::SmallVectorImpl<int64_t> &newShape,
+                                 llvm::SmallVectorImpl<int64_t>& newShape,
                                  int64_t reshapedDim, int64_t factor) {
       newShape.reserve(oldShape.size() + 1);
       for (int64_t i : llvm::seq<int64_t>(0, oldShape.size())) {
@@ -581,7 +581,7 @@ struct ConvolutionOpGeneralConversion final
             /*outputs=*/llvm::ArrayRef<Value>(zeroTensor), inferredMaps,
             iterationLoops,
             /*bodyBuild=*/
-            [&](OpBuilder &nestedBuilder, Location nestedLoc, ValueRange) {
+            [&](OpBuilder& nestedBuilder, Location nestedLoc, ValueRange) {
               ImplicitLocOpBuilder builder(nestedLoc, nestedBuilder);
               linalg::Conv2DOp::regionBuilder(
                   builder, *builder.getInsertionBlock(), {}, /*emitError=*/{});
@@ -604,12 +604,12 @@ struct DepthwiseConvolutionOpConversion final
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ConvolutionOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     if (op.getBatchGroupCount() != 1) return failure();
     // Fall into the normal convolution cases.
     if (op.getFeatureGroupCount() == 1) return failure();
 
-    const mlir::stablehlo::ConvDimensionNumbersAttr &dimensionNumbers =
+    const mlir::stablehlo::ConvDimensionNumbersAttr& dimensionNumbers =
         op.getDimensionNumbers();
     const int64_t spatialRank =
         dimensionNumbers.getInputSpatialDimensions().size();
@@ -821,8 +821,8 @@ struct DepthwiseConvolutionOpConversion final
 
 namespace detail {
 void populateStablehloConvolutionToLinalgConversionPatterns(
-    MLIRContext *context, TypeConverter &typeConverter,
-    RewritePatternSet *patterns) {
+    MLIRContext* context, TypeConverter& typeConverter,
+    RewritePatternSet* patterns) {
   // Ensure specialized patterns are higher priority than their generic
   // versions.
   patterns
