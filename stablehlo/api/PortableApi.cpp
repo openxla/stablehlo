@@ -63,7 +63,7 @@ LogicalResult serializePortableArtifact(llvm::StringRef moduleStr,
   auto module = mlir::parseSourceString<mlir::ModuleOp>(moduleStr, &context);
   if (!module || failed(module->verifyInvariants())) return failure();
 
-  return serializePortableArtifact(*module, targetVersion, os);
+  return serializePortableArtifact(*module, targetVersion, os, false);
 }
 
 LogicalResult deserializePortableArtifact(llvm::StringRef artifactStr,

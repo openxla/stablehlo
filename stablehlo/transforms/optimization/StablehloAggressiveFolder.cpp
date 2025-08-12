@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -261,6 +262,25 @@ LogicalResult foldConvert(PatternRewriter& rewriter, OpType op,
       });
 }
 
+bool hasAnyDeclaredSideEffects(Operation* op) {
+  if (auto memInterface = dyn_cast<MemoryEffectOpInterface>(op)) {
+    // Return true if the op explicitly declares any memory effects of its own.
+    if (!memInterface.hasNoEffect()) return true;
+    // The op has no direct memory effects. Return false if it has no recursive
+    // memory effects, either.
+    if (!op->hasTrait<OpTrait::HasRecursiveMemoryEffects>()) return false;
+  }
+
+  // The op doesn't declare any side effects of its own, but its regions could
+  // still contain ops that do declare side effects. Recursively check them.
+  for (Region& region : op->getRegions()) {
+    for (Operation& nestedOp : region.getOps()) {
+      if (hasAnyDeclaredSideEffects(&nestedOp)) return true;
+    }
+  }
+  return false;
+}
+
 template <typename OpType>
 struct FoldOpRewritePattern : OpRewritePattern<OpType> {
   FoldOpRewritePattern(MLIRContext* context,
@@ -427,6 +447,60 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
       return APInt(/*bitwidth=*/1, result);
     }
   };
+};
+
+//////////////////////////////////
+// CaseOp
+/////////////////////////////////
+
+class InlineCaseOpWithConstantBranchIndex
+    : public FoldOpRewritePattern<CaseOp> {
+ public:
+  using FoldOpRewritePattern::FoldOpRewritePattern;
+
+  LogicalResult matchAndRewrite(CaseOp op,
+                                PatternRewriter& rewriter) const override {
+    // Fail to match dead `case` ops. Dead-code elimination should already erase
+    // such ops whenever it's safe to do so; if we find a dead `case` op that
+    // can't be erased, we need to signal match failure or else the pattern will
+    // be reapplied ad infinitum.
+    if (op->use_empty())
+      return rewriter.notifyMatchFailure(op, "The case op's result is unused.");
+
+    Value branchIndexArgument = op.getIndex();
+    SplatElementsAttr indexAttr;
+    if (!matchPattern(branchIndexArgument, m_Constant(&indexAttr)))
+      return rewriter.notifyMatchFailure(op, "Branch index is not a constant.");
+
+    int64_t selectedBranchIndex =
+        indexAttr.getSplatValue<IntegerAttr>().getValue().getSExtValue();
+    // If the branch index is OOB, the last branch is executed by default:
+    // https://openxla.org/stablehlo/spec#case
+    if (selectedBranchIndex < 0 || selectedBranchIndex >= op.getNumRegions())
+      selectedBranchIndex = op.getNumRegions() - 1;
+
+    Region& region = op.getRegion(selectedBranchIndex);
+    assert(llvm::hasSingleElement(region));
+    Block* block = &region.front();
+    ValueRange blockArgs = {};
+    Operation* terminator = block->getTerminator();
+    ValueRange results = terminator->getOperands();
+
+    // Inline the active branch of the `case` op.
+    rewriter.inlineBlockBefore(block, op, blockArgs);
+    rewriter.replaceAllOpUsesWith(op, results);
+    rewriter.eraseOp(terminator);
+
+    // Make sure the now-dead `case` op is still syntactically valid in case it
+    // can't be safely deleted (e.g. due to side effects). Specifically, we left
+    // one region of the `case` op empty when we inlined that block; it expects
+    // a block with a terminator op, so we just make it return the branch index.
+    Block& noopBlock = region.emplaceBlock();
+    rewriter.setInsertionPointToEnd(&noopBlock);
+    rewriter.create<stablehlo::ReturnOp>(region.getLoc(), branchIndexArgument);
+
+    return success();
+  }
 };
 
 //////////////////////////////////
@@ -1215,6 +1289,27 @@ struct FoldReduceOpWithRedundantResults
   }
 };
 
+// Return success if the while condition is always false.
+LogicalResult whileCondIsFalse(WhileOp op, PatternRewriter& rewriter) {
+  auto condReturnOp = dyn_cast<ReturnOp>(op.getCond().front().back());
+  if (!condReturnOp)
+    return rewriter.notifyMatchFailure(
+        op, "Condition region is missing a return statement.");
+
+  DenseIntElementsAttr condValue;
+  if (!matchPattern(condReturnOp.getOperand(0), m_Constant(&condValue)))
+    return rewriter.notifyMatchFailure(
+        op, "Condition block does not return a constant.");
+  if (condValue.getSplatValue<BoolAttr>().getValue())
+    return rewriter.notifyMatchFailure(
+        op, "Condition value is not a splat of the bool `false`.");
+
+  return success();
+}
+
+// Pattern: while(operands, cond=false) -> operands
+// Replace a while loop's uses with its operands if the condition is always
+// false.
 struct FoldWhileOpPattern : public FoldOpRewritePattern<WhileOp> {
   using FoldOpRewritePattern::FoldOpRewritePattern;
 
@@ -1229,18 +1324,8 @@ struct FoldWhileOpPattern : public FoldOpRewritePattern<WhileOp> {
       return rewriter.notifyMatchFailure(
           op, "Keeping dead while op due to known or potential side effects.");
 
-    auto condReturnOp = dyn_cast<ReturnOp>(op.getCond().front().back());
-    if (!condReturnOp)
-      return rewriter.notifyMatchFailure(
-          op, "Condition region is missing a return statement.");
-
-    DenseIntElementsAttr condValue;
-    if (!matchPattern(condReturnOp.getOperand(0), m_Constant(&condValue)))
-      return rewriter.notifyMatchFailure(
-          op, "Condition block does not return a constant.");
-    if (condValue.getSplatValue<BoolAttr>().getValue())
-      return rewriter.notifyMatchFailure(
-          op, "Condition value is not a splat of the bool `false`.");
+    // Check if the while condition is always false, i.e. body never executed.
+    if (failed(whileCondIsFalse(op, rewriter))) return failure();
 
     // Replace uses of the op's result, but don't remove the op itself; let
     // dedicated DCE logic handle that step if appropriate. (This is because of
@@ -1251,55 +1336,40 @@ struct FoldWhileOpPattern : public FoldOpRewritePattern<WhileOp> {
   }
 };
 
-bool hasNoDeclaredSideEffects(Operation* op) {
-  if (auto memInterface = dyn_cast<MemoryEffectOpInterface>(op)) {
-    // Return false if the op has memory effects of its own.
-    if (!memInterface.hasNoEffect()) return false;
-    // The op has no direct memory effects. Return true if it has no recursive
-    // memory effects, either.
-    if (!op->hasTrait<OpTrait::HasRecursiveMemoryEffects>()) return true;
-  } else {
-    // The op doesn't implement the memory-effect interface. This function is
-    // only interested in explicitly declared side effects, so we treat it as
-    // having none and move on to checking its regions in case they have any.
-  }
-
-  // The op doesn't declare any side effects of its own, but its regions could
-  // still contain ops that do declare side effects. Recursively check them.
-  for (Region& region : op->getRegions()) {
-    for (Operation& op : region.getOps()) {
-      if (!hasNoDeclaredSideEffects(&op)) return false;
-    }
-  }
-  return true;
-}
-
-struct FoldWhileOpDeadWithNoSideEffects : public FoldOpRewritePattern<WhileOp> {
+// Pattern: while(cond=false) { call @fn } -> ()
+// `CallOp`s are considered to have side effects by default, but we may want to
+// DCE a `WhileOp` that will never execute its body regardless of `CallOp` side
+// effects. This is because dead while loops containing large kernels can cause
+// massive increases in program size that can in turn cause OOMs in compilation.
+//
+// TODO: Add a pre-processing pass to annotate call ops that are safe to
+// DCE and a pattern to remove dead call ops; then we won't need this check.
+struct FoldWhileOpIfDeadAndPresumedPure : public FoldOpRewritePattern<WhileOp> {
   using FoldOpRewritePattern::FoldOpRewritePattern;
 
   LogicalResult matchAndRewrite(WhileOp op,
                                 PatternRewriter& rewriter) const override {
-    if (!op->use_empty()) {
-      return rewriter.notifyMatchFailure(op, "The op's result is in use.");
-    }
+    if (!options.assumeNoUndeclaredSideEffects)
+      return rewriter.notifyMatchFailure(
+          op,
+          "Pattern skipped: only applicable if `assumeNoUndeclaredSideEffects` "
+          "is enabled.");
 
-    if (options.assumeNoUndeclaredSideEffects) {
-      if (!hasNoDeclaredSideEffects(op)) {
-        return rewriter.notifyMatchFailure(
-            op,
-            "The op, or another op within its region, explicitly declares side "
-            "effects.");
-      }
-    } else {
-      if (!isMemoryEffectFree(op)) {
-        return rewriter.notifyMatchFailure(
-            op, "Not removing the op due to potential side effects.");
-      }
-    }
+    // Only delete while ops that are dead and cannot be executed. We should
+    // preserve any `WhileOp` that may be executed, e.g. in case its body
+    // contains debug prints.
+    if (!op->use_empty() || failed(whileCondIsFalse(op, rewriter)))
+      return rewriter.notifyMatchFailure(op, "The while body may run.");
 
-    // Neither this op nor any in its regions have any declared side effects (or
-    // any potential side effects if `assumeNoUndeclaredSideEffects` is false),
-    // and the op's result is unused. Erase the op.
+    if (hasAnyDeclaredSideEffects(op))
+      return rewriter.notifyMatchFailure(
+          op,
+          "The op, or another op within its region, explicitly declares side "
+          "effects.");
+
+    // Neither this op nor any in its regions have any declared side effects,
+    // `assumeNoUndeclaredSideEffects` is true, and the op's result is unused.
+    // Erase the op.
     rewriter.eraseOp(op);
     return success();
   }
@@ -1346,14 +1416,15 @@ void populateStablehloAggressiveFolderPatterns(
     PatternBenefit benefit) {
   populateStablehloShapeFolderPatterns(context, patterns, options, benefit);
 
-  patterns->add<FoldIotaOpPattern,                  //
-                FoldReduceOpReducingZeroDims,       //
-                FoldReduceOpToConstantInitializer,  //
-                FoldReduceOpWithRedundantResults,   //
-                FoldSqrtOpPattern,                  //
-                FoldTransposeOpPattern,             //
-                FoldWhileOpPattern,                 //
-                FoldWhileOpDeadWithNoSideEffects,   //
+  patterns->add<FoldIotaOpPattern,                    //
+                FoldReduceOpReducingZeroDims,         //
+                FoldReduceOpToConstantInitializer,    //
+                FoldReduceOpWithRedundantResults,     //
+                FoldSqrtOpPattern,                    //
+                FoldTransposeOpPattern,               //
+                FoldWhileOpIfDeadAndPresumedPure,     //
+                FoldWhileOpPattern,                   //
+                InlineCaseOpWithConstantBranchIndex,  //
                 LowerBoolSplatConstantsIntoReduceOpRegion>(context, options,
                                                            benefit);
 }

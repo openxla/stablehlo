@@ -42,6 +42,88 @@ func.func @broadcast_in_dim_fold_splat(%arg0: tensor<3x3xi32>)
 // -----
 
 ////////
+// CaseOp
+
+// CHECK-LABEL: func.func @case_fold_constant_branch_index
+func.func @case_fold_constant_branch_index(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>) -> tensor<i32> {
+  // CHECK-NEXT: {{(^ *|func\.)}}return %arg1
+  // CHECK-NOT:  stablehlo.case
+  %branch_index = stablehlo.constant dense<1> : tensor<i32>
+  %result = "stablehlo.case"(%branch_index) ({
+    stablehlo.return %arg0 : tensor<i32>
+  }, {
+    stablehlo.return %arg1 : tensor<i32>
+  }, {
+    stablehlo.return %arg2 : tensor<i32>
+  }) : (tensor<i32>) -> tensor<i32>
+  func.return %result: tensor<i32>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @case_fold_preserve_side_effects
+func.func @case_fold_preserve_side_effects(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>) -> tensor<i32> {
+  // COM:       // Inline the executed branch of the `case` op:
+  // CHECK-DAG: [[RESULT:%.+]] = stablehlo.custom_call @bar(%arg1) {has_side_effect = true}
+
+  // COM:       // Keep the rest of the `case` op if it's non-trivially dead:
+  // CHECK-DAG: [[BRANCH_INDEX:%.+]] = stablehlo.constant
+  // CHECK-DAG: [[NON_TRIVIALLY_DEAD_CASE_OP:%.+]] = {{"?}}stablehlo.case{{"?}}([[BRANCH_INDEX]]) ({
+  // COM:         // Non-trivially dead branches are preserved but unused.
+  // CHECK-DAG:   [[FOO:%.+]] = stablehlo.custom_call @foo(%arg0) {has_side_effect = true}
+  // CHECK-DAG:   stablehlo.return [[FOO]]
+  // COM:       }, {
+  // COM:         // The executed branch is now just a trivial placeholder; its
+  // COM:         // original logic has been inlined outside of the `case` op.
+  // CHECK-DAG:   stablehlo.return [[BRANCH_INDEX]]
+  // COM:       }, {
+  // COM:         // Non-trivially dead branches are preserved but unused.
+  // CHECK-DAG:   [[BAZ:%.+]] = stablehlo.custom_call @baz(%arg2) {has_side_effect = true}
+  // CHECK-DAG:   stablehlo.return [[BAZ]]
+  // COM:       })
+
+  // COM:       // Return the result of the inlined branch.
+  // CHECK-DAG: {{(^ *|func\.)}}return [[RESULT]]
+  %branch_index = stablehlo.constant dense<1> : tensor<i32>
+  %result = "stablehlo.case"(%branch_index) ({
+    %foo = stablehlo.custom_call @foo(%arg0) {has_side_effect = true} : (tensor<i32>) -> tensor<i32>
+    stablehlo.return %foo : tensor<i32>
+  }, {
+    %bar = stablehlo.custom_call @bar(%arg1) {has_side_effect = true} : (tensor<i32>) -> tensor<i32>
+    stablehlo.return %bar : tensor<i32>
+  }, {
+    %baz = stablehlo.custom_call @baz(%arg2) {has_side_effect = true} : (tensor<i32>) -> tensor<i32>
+    stablehlo.return %baz : tensor<i32>
+  }) : (tensor<i32>) -> tensor<i32>
+  func.return %result: tensor<i32>
+}
+
+// -----
+
+// TODO: Allow non-trivially dead `case` ops to be simplified.
+
+// CHECK-LABEL: func.func @case_fold_non_trivially_dead
+func.func @case_fold_non_trivially_dead(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>) -> tensor<i32> {
+  // DISABLED-CHECK-NEXT: [[UNUSED:%.+]] = stablehlo.custom_call @bar(%arg1) {has_side_effect = true}
+  // DISABLED-CHECK-NEXT: {{(^ *|func\.)}}return %arg1
+  // DISABLED-CHECK-NOT:  stablehlo.case
+  %branch_index = stablehlo.constant dense<1> : tensor<i32>
+  %unused_case = "stablehlo.case"(%branch_index) ({
+    %unused_foo = stablehlo.custom_call @foo(%arg0) {has_side_effect = false} : (tensor<i32>) -> tensor<i32>
+    stablehlo.return %arg0 : tensor<i32>
+  }, {
+    %unused_bar = stablehlo.custom_call @bar(%arg1) {has_side_effect = true} : (tensor<i32>) -> tensor<i32>
+    stablehlo.return %arg1 : tensor<i32>
+  }, {
+    %unused_baz = stablehlo.custom_call @baz(%arg2) {has_side_effect = false} : (tensor<i32>) -> tensor<i32>
+    stablehlo.return %arg2 : tensor<i32>
+  }) : (tensor<i32>) -> tensor<i32>
+  func.return %arg1: tensor<i32>
+}
+
+// -----
+
+////////
 // ClampOp
 
 // CHECK-LABEL: func.func @clamp_fold
