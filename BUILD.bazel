@@ -1382,8 +1382,8 @@ cc_binary(
     deps = [
         ":register",
         "@llvm-project//mlir:AllExtensions",
-        "@llvm-project//mlir:RegisterAllDialects",
         "@llvm-project//mlir:MlirLspServerLib",
+        "@llvm-project//mlir:RegisterAllDialects",
     ],
 )
 
@@ -1440,9 +1440,9 @@ cc_binary(
         "//stablehlo/tests:test_utils",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AllExtensions",
-        "@llvm-project//mlir:RegisterAllDialects",
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:QuantOps",
+        "@llvm-project//mlir:RegisterAllDialects",
         "@llvm-project//mlir:TosaDialect",
     ],
 )
