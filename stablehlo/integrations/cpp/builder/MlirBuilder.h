@@ -85,20 +85,20 @@ class MlirBuilder {
   template <typename OpTy, typename... Args>
   MlirOp create(Args&&... args) {
     return MlirOp(*this,
-                  builder_.create<OpTy>(loc_, std::forward<Args>(args)...));
+                  OpTy::create(builder_, loc_, std::forward<Args>(args)...));
   }
 
   // Forward to generated op builder with no results using existing location /
   // context.
   template <typename OpTy, typename... Args>
   void create0(Args&&... args) {
-    builder_.create<OpTy>(loc_, std::forward<Args>(args)...);
+    OpTy::create(builder_, loc_, std::forward<Args>(args)...);
   }
 
   template <typename OpTy, typename... Args>
   SmallVector<MlirOp> createVariadic(Args&&... args) {
     ValueRange values =
-        builder_.create<OpTy>(loc_, std::forward<Args>(args)...).getResults();
+        OpTy::create(builder_, loc_, std::forward<Args>(args)...).getResults();
     SmallVector<MlirOp> ret;
     for (Value value : values) {
       ret.emplace_back(*this, value);
@@ -122,7 +122,7 @@ class MlirBuilder {
   // context.
   template <typename OpTy, typename... Args>
   OpTy createUnwrapped(Args&&... args) {
-    return builder_.create<OpTy>(loc_, std::forward<Args>(args)...);
+    return OpTy::create(builder_, loc_, std::forward<Args>(args)...);
   }
 
   Type getTensorOfShape();
