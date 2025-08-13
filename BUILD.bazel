@@ -1781,3 +1781,209 @@ test_suite(
         "//stablehlo/tests:stablehlo_tests",
     ],
 )
+
+### Builder APIs
+
+#####
+# TableGen
+#####
+
+cc_binary(
+    name = "mlir_builder_tblgen",
+    srcs = ["stablehlo/integrations/cpp/builder/MlirBuilderTblgen.cpp"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:TableGen",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:TableGen",
+    ],
+)
+
+####
+## MlirBuilder base class
+####
+
+cc_library(
+    name = "mlir_builder",
+    srcs = ["stablehlo/integrations/cpp/builder/MlirBuilder.cpp"],
+    hdrs = ["stablehlo/integrations/cpp/builder/MlirBuilder.h"],
+    strip_include_prefix = ".",
+    deps = [
+        ":attr_type_builder_util",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_test(
+    name = "mlir_builder_test",
+    srcs = ["stablehlo/integrations/cpp/builder/MlirBuilderTest.cpp"],
+    deps = [
+        ":attr_type_builder_util",
+        ":chlo_builder",
+        ":func_builder",
+        ":mlir_builder",
+        ":register",
+        ":stablehlo_builder",
+        ":stablehlo_ops",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:TosaDialect",
+        "@llvm-project//third-party/unittest:gmock",
+        "@llvm-project//third-party/unittest:gtest",
+    ],
+)
+
+####
+## Attr / Type Builder Helpers
+####
+
+cc_library(
+    name = "attr_type_builder_util",
+    srcs = ["stablehlo/integrations/cpp/builder/AttrTypeBuilderUtil.cpp"],
+    hdrs = ["stablehlo/integrations/cpp/builder/AttrTypeBuilderUtil.h"],
+    strip_include_prefix = ".",
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_test(
+    name = "attr_type_builder_util_test",
+    srcs = ["stablehlo/integrations/cpp/builder/AttrTypeBuilderUtilTest.cpp"],
+    deps = [
+        ":attr_type_builder_util",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//third-party/unittest:gmock",
+        "@llvm-project//third-party/unittest:gtest",
+    ],
+)
+
+#####
+## Dialect-specific builders
+####
+
+gentbl_cc_library(
+    name = "chlo_builder_inc",
+    tbl_outs = {
+        "stablehlo/integrations/cpp/builder/ChloBuilder.h.inc": ["-gen-builder-decls"],
+        "stablehlo/integrations/cpp/builder/ChloBuilder.cpp.inc": ["-gen-builder-defs"],
+        "stablehlo/integrations/cpp/builder/ChloBuilder.md": ["-gen-builder-docs"],
+    },
+    tblgen = ":mlir_builder_tblgen",
+    td_file = ":stablehlo/dialect/ChloOps.td",
+    deps = [
+        ":chlo_ops_td_files",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
+    ],
+)
+
+cc_library(
+    name = "chlo_builder",
+    srcs = ["stablehlo/integrations/cpp/builder/ChloBuilder.cpp"],
+    hdrs = ["stablehlo/integrations/cpp/builder/ChloBuilder.h"],
+    strip_include_prefix = ".",
+    deps = [
+        ":chlo_builder_inc",
+        ":chlo_ops",
+        ":mlir_builder",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+gentbl_cc_library(
+    name = "func_builder_inc",
+    tbl_outs = {
+        "stablehlo/integrations/cpp/builder/FuncBuilder.h.inc": ["-gen-builder-decls"],
+        "stablehlo/integrations/cpp/builder/FuncBuilder.cpp.inc": ["-gen-builder-defs"],
+        "stablehlo/integrations/cpp/builder/FuncBuilder.md": ["-gen-builder-docs"],
+    },
+    tblgen = ":mlir_builder_tblgen",
+    td_file = "@llvm-project//mlir:include/mlir/Dialect/Func/IR/FuncOps.td",
+    deps = [
+        "@llvm-project//mlir:FuncTdFiles",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
+    ],
+)
+
+cc_library(
+    name = "func_builder",
+    srcs = ["stablehlo/integrations/cpp/builder/FuncBuilder.cpp"],
+    hdrs = ["stablehlo/integrations/cpp/builder/FuncBuilder.h"],
+    strip_include_prefix = ".",
+    deps = [
+        ":func_builder_inc",
+        ":mlir_builder",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+gentbl_cc_library(
+    name = "stablehlo_builder_inc",
+    tbl_outs = {
+        "stablehlo/integrations/cpp/builder/StablehloBuilder.h.inc": ["-gen-builder-decls"],
+        "stablehlo/integrations/cpp/builder/StablehloBuilder.cpp.inc": ["-gen-builder-defs"],
+        "stablehlo/integrations/cpp/builder/StablehloBuilder.md": ["-gen-builder-docs"],
+    },
+    tblgen = ":mlir_builder_tblgen",
+    td_file = ":stablehlo/dialect/StablehloOps.td",
+    deps = [
+        ":base_td_files",
+        ":stablehlo_ops_td_filegroup",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:ShapeOpsTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
+    ],
+)
+
+cc_library(
+    name = "stablehlo_builder",
+    srcs = ["stablehlo/integrations/cpp/builder/StablehloBuilder.cpp"],
+    hdrs = ["stablehlo/integrations/cpp/builder/StablehloBuilder.h"],
+    strip_include_prefix = ".",
+    deps = [
+        ":attr_type_builder_util",
+        ":mlir_builder",
+        ":stablehlo_builder_inc",
+        ":stablehlo_ops",
+        ":stablehlo_type_inference",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:InferTypeOpInterface",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_test(
+    name = "stablehlo_builder_test",
+    srcs = ["stablehlo/integrations/cpp/builder/StablehloBuilderTest.cpp"],
+    deps = [
+        ":attr_type_builder_util",
+        ":func_builder",
+        ":mlir_builder",
+        ":register",
+        ":stablehlo_builder",
+        ":stablehlo_ops",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//third-party/unittest:gmock",
+        "@llvm-project//third-party/unittest:gtest",
+    ],
+)
