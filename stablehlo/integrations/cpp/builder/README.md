@@ -47,7 +47,7 @@ Build rule requires opset tablegen file -
 [stablehlo_builder](stablehlo/integrations/cpp/builder/BUILD)
 example:
 
-```
+```bazel
 gentbl_cc_library(
     name = "stablehlo_builder_inc",
     tbl_outs = {
@@ -69,7 +69,7 @@ gentbl_cc_library(
 This will generate `StablehloBuilder.h.inc` and `StablehloBuilder.cpp.inc` files
 that can be used in a cc_library target:
 
-```
+```cpp
 $ bazel build -- //stablehlo/integrations/cpp/builder:stablehlo_builder_inc_filegroup
 MlirOp Abs(MlirOp &operand);
 MlirOp Add(MlirOp &lhs, MlirOp &rhs);
@@ -80,11 +80,11 @@ MlirOp BroadcastInDim(Type resultType, MlirOp &operand, ::llvm::ArrayRef<int64_t
 ...
 ```
 
-### 2. Make a cc_library target for generated files.
+### 2. Make a cc_library target for generated files
 
 Add a [Builder.h][header] declaration file and [Builder.cpp][impl] impl file:
 
-```
+```cpp
 // MyBuilder.h
 #include "stablehlo/integrations/cpp/builder/StablehloBuilder.h.inc"
 
@@ -103,7 +103,7 @@ important construct that doesn't capture its semantics well statically in ODS
 declarations to the cc_library to improve UX. These methods should be kept to
 a minimum, we should aim to generate as much as possible.
 
-```
+```cpp
 // Builder for stablehlo.constant : tensor<i64> scalar
 MlirOp Constant(MlirBuilder& builder, int64_t value);
 
@@ -126,16 +126,15 @@ custom builders, and we should design them in a future-codegenable way.
 
 Some positive outcomes to these APIs:
 
--   All dialects own their own APIs and can interop pretty easily by abstracting
-    away source location and insertion point behind an abstract type.
--   Provides *pretty good* out of the box builder methods (tried with TOSA and
-    generated reasonable methods for 73 ops).
--   We can likely make the surface level of builder APIs MLIR-free for g3
-    building without visibility.
--   This is extensible to arbitrary types so long as the opsets support type
-    inference or accept explicit types as references.
--   Uses the simpler Attribute forms, i.e. int64_t instead of IntegerAttr(64)
-
++ All dialects own their own APIs and can interop pretty easily by abstracting
+  away source location and insertion point behind an abstract type.
++ Provides *pretty good* out of the box builder methods (tried with TOSA and
+  generated reasonable methods for 73 ops).
++ We can likely make the surface level of builder APIs MLIR-free for g3
+  building without visibility.
++ This is extensible to arbitrary types so long as the opsets support type
+  inference or accept explicit types as references.
++ Uses the simpler Attribute forms, i.e. int64_t instead of IntegerAttr(64)
 
 ### Opset Coverage
 
@@ -143,13 +142,13 @@ When we can't generate a viable interface yet, we skip the op.
 
 With generated build rules, today we are generating:
 
-- 112/114 StableHLO Ops
-- 48/48 CHLO ops
-- 75/76 TOSA ops
-- 15/16 Shardy ops
-- 3/5 Func ops
++ 112/114 StableHLO Ops
++ 48/48 CHLO ops
++ 75/76 TOSA ops
++ 15/16 Shardy ops
++ 3/5 Func ops
 
-```
+```txt
 Skipping CaseOp: Variadic regions not supported
 Skipping ConstantLikeOp: Attributes must be after operands
 Skipping CustomOp: Attributes must be after operands
@@ -164,7 +163,7 @@ Skipping VariableWriteOp: Attributes must be after operands
 There are some limitations to the current codegen, and we should add support.
 These restrictions are captured in a code comment in `MlirBuilderTblgen.cpp`:
 
-```
+```txt
 // Some supported patterns:
 // - [X] Op has one or more Value operands.
 // - [X] Op has one or more results.
@@ -191,13 +190,13 @@ In general most of these work items are not massive, O(hours) not days.
 
 The potentially trickier design points are:
 
-- How to build Types?
++ How to build Types?
   + A builder for common upstream types would probably suffice.
   + We probably want our own `MakeShape` method for StableHLO types.
-- How to build ops with regions.
++ How to build ops with regions.
   + Can likely take some hints from FunctionBuilder.
 
-## The rough edges:
+## The rough edges
 
 ### Should RegionBuilders come before attributes?
 
@@ -235,12 +234,12 @@ XlaBuilder crashes on failure as well, so maybe not an issue. But XlaBuilder
 also tries to implicitly broadcast for many of its implementations, which we
 probably should avoid.
 
-### Generated Func API is tricky, may need a way to filter this.
+### Generated Func API is tricky, may need a way to filter this
 
 Currently we filter FunctionOpInterface ops, they tend to require more custom
 logic to update type signatures and register things outside of just creating a
 region.
 
--   Requires overloaded `func::Return` to update the function signature when
-    value is returned.
--   Currently requires specifying the FuncType up front which is bad UX.
++ Requires overloaded `func::Return` to update the function signature when
+  value is returned.
++ Currently requires specifying the FuncType up front which is bad UX.

@@ -1873,8 +1873,8 @@ cc_test(
 gentbl_cc_library(
     name = "chlo_builder_inc",
     tbl_outs = {
-        "stablehlo/integrations/cpp/builder/ChloBuilder.h.inc": ["-gen-builder-decls"],
         "stablehlo/integrations/cpp/builder/ChloBuilder.cpp.inc": ["-gen-builder-defs"],
+        "stablehlo/integrations/cpp/builder/ChloBuilder.h.inc": ["-gen-builder-decls"],
         "stablehlo/integrations/cpp/builder/ChloBuilder.md": ["-gen-builder-docs"],
     },
     tblgen = ":mlir_builder_tblgen",
@@ -1905,8 +1905,8 @@ cc_library(
 gentbl_cc_library(
     name = "func_builder_inc",
     tbl_outs = {
-        "stablehlo/integrations/cpp/builder/FuncBuilder.h.inc": ["-gen-builder-decls"],
         "stablehlo/integrations/cpp/builder/FuncBuilder.cpp.inc": ["-gen-builder-defs"],
+        "stablehlo/integrations/cpp/builder/FuncBuilder.h.inc": ["-gen-builder-decls"],
         "stablehlo/integrations/cpp/builder/FuncBuilder.md": ["-gen-builder-docs"],
     },
     tblgen = ":mlir_builder_tblgen",
@@ -1936,8 +1936,8 @@ cc_library(
 gentbl_cc_library(
     name = "stablehlo_builder_inc",
     tbl_outs = {
-        "stablehlo/integrations/cpp/builder/StablehloBuilder.h.inc": ["-gen-builder-decls"],
         "stablehlo/integrations/cpp/builder/StablehloBuilder.cpp.inc": ["-gen-builder-defs"],
+        "stablehlo/integrations/cpp/builder/StablehloBuilder.h.inc": ["-gen-builder-decls"],
         "stablehlo/integrations/cpp/builder/StablehloBuilder.md": ["-gen-builder-docs"],
     },
     tblgen = ":mlir_builder_tblgen",
