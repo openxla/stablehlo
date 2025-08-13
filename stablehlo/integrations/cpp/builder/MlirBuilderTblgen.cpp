@@ -50,8 +50,8 @@ using mlir::tblgen::Method;
 using mlir::tblgen::MethodBody;
 using mlir::tblgen::MethodParameter;
 using mlir::tblgen::NamedAttribute;
-using mlir::tblgen::Operator;
 using mlir::tblgen::NamedRegion;
+using mlir::tblgen::Operator;
 
 namespace mlir {
 
@@ -74,10 +74,9 @@ LogicalResult skipOperation(const Operator& op, StringRef reason) {
 
 // Helpers
 
-
 /// Returns true if the SameArgumentAndResultTypes trait can be used to infer
 /// result types of the given operation.
-static bool hasSameArgumentAndResultTypes(const Operator &op) {
+static bool hasSameArgumentAndResultTypes(const Operator& op) {
   return op.getTrait("::mlir::OpTrait::SameOperandsAndResultType") &&
          op.getNumVariableLengthResults() == 0;
 }
@@ -91,13 +90,13 @@ static bool hasSameArgumentAndResultTypes(const Operator &op) {
 
 /// Returns true if the InferTypeOpInterface can be used to infer result types
 /// of the given operation.
-static bool hasInferTypeInterface(const Operator &op) {
+static bool hasInferTypeInterface(const Operator& op) {
   return op.getTrait("::mlir::InferTypeOpInterface::Trait");
 }
 
 /// Returns true if there is a trait or interface that can be used to infer
 /// result types of the given operation.
-static bool canInferType(const Operator &op) {
+static bool canInferType(const Operator& op) {
   // TODO: Support hasFirstAttrDerivedResultTypes(op)
   bool hasOutputType = op.getNumResults() > 0;
   return !hasOutputType || hasSameArgumentAndResultTypes(op) ||
@@ -126,7 +125,7 @@ static bool isTerminator(const Operator& op) {
 }
 
 // Returns true if we can use unwrapped value for the given `attr` in builders.
-static bool canUseUnwrappedRawValue(const tblgen::Attribute &attr) {
+static bool canUseUnwrappedRawValue(const tblgen::Attribute& attr) {
   return attr.getReturnType() != attr.getStorageType() &&
          // We need to wrap the raw value into an attribute in the builder impl
          // so we need to make sure that the attribute specifies how to do that.

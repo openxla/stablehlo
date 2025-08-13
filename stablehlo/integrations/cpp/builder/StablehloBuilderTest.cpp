@@ -1517,7 +1517,6 @@ TEST(MlirBuilderTest, EmptyConstantMismatchedTypeAPIntF64) {
   EXPECT_EQ(expected, debugString(*module));
 }
 
-
 ////////
 // Custom Attribute Tests
 ////////

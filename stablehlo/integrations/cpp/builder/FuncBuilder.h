@@ -78,7 +78,6 @@ SmallVector<MlirOp> Call(MlirBuilder& builder, func::FuncOp func,
 
 // GENERATED CODE
 
-
 }  // namespace func
 
 }  // namespace mlir
