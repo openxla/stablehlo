@@ -75,7 +75,7 @@ bool opMatchesLinalgTarget(StablehloOpTy op) {
 }
 
 template <typename LinalgOp>
-SmallVector<Value, 2> getDotOpEmptyTensorDynSizes(OpBuilder &b, Location loc,
+SmallVector<Value, 2> getDotOpEmptyTensorDynSizes(OpBuilder& b, Location loc,
                                                   Value lhs, Value rhs) {
   SmallVector<Value, 2> dynShape;
 
@@ -89,15 +89,15 @@ SmallVector<Value, 2> getDotOpEmptyTensorDynSizes(OpBuilder &b, Location loc,
   }
 
   if (lhsIsMatrix && lhsType.isDynamicDim(0))
-    dynShape.push_back(b.create<tensor::DimOp>(loc, lhs, 0));
+    dynShape.push_back(tensor::DimOp::create(b, loc, lhs, 0));
   if (rhsIsMatrix && rhsType.isDynamicDim(1))
-    dynShape.push_back(b.create<tensor::DimOp>(loc, rhs, 1));
+    dynShape.push_back(tensor::DimOp::create(b, loc, rhs, 1));
   return dynShape;
 }
 
 template <typename OpTy, typename LinalgOpTy>
-LogicalResult lowerDotOp(ConversionPatternRewriter &rewriter,
-                         const TypeConverter *typeConverter, OpTy op,
+LogicalResult lowerDotOp(ConversionPatternRewriter& rewriter,
+                         const TypeConverter* typeConverter, OpTy op,
                          typename OpTy::Adaptor adaptor) {
   if (!opMatchesLinalgTarget<LinalgOpTy>(op)) return failure();
 
@@ -129,7 +129,7 @@ struct DotOpConversion final : OpConversionPattern<mlir::stablehlo::DotOp> {
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const final {
+      ConversionPatternRewriter& rewriter) const final {
     return lowerDotOp<DotOp, LinalgOpTy>(rewriter, getTypeConverter(), op,
                                          adaptor);
   }
@@ -141,7 +141,7 @@ struct DotGeneralBatchMatMulOpConversion final
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotGeneralOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const final {
+      ConversionPatternRewriter& rewriter) const final {
     if (op.getType().getRank() != 3)
       return rewriter.notifyMatchFailure(op, "expected a batch matmul");
 
@@ -182,8 +182,8 @@ struct DotGeneralBatchMatMulOpConversion final
     Value emptyTensor =
         getEmptyTensorFor(rewriter, loc, outputType, op, adaptor.getOperands());
     Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
-    Operation *linalgOp = rewriter.create<linalg::BatchMatmulOp>(
-        loc, /*resultTensorTypes=*/TypeRange{outputType},
+    Operation* linalgOp = linalg::BatchMatmulOp::create(
+        rewriter, loc, /*resultTensorTypes=*/TypeRange{outputType},
         /*inputs=*/ValueRange{adaptor.getLhs(), adaptor.getRhs()},
         /*outputBuffers=*/ValueRange{zeroTensor},
         linalg::getPrunedAttributeList(op));
@@ -198,7 +198,7 @@ struct DotGeneralOpConversion final
   using OpConversionPattern::OpConversionPattern;
   LogicalResult matchAndRewrite(
       mlir::stablehlo::DotGeneralOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const final {
+      ConversionPatternRewriter& rewriter) const final {
     if (op.getAlgorithm().has_value())
       return rewriter.notifyMatchFailure(
           op, "dot algorithms not yet supported in linalg conversion");
@@ -260,10 +260,10 @@ struct DotGeneralOpConversion final
     auto getMap = [&](int64_t rank, ArrayRef<int64_t> batchingDims,
                       ArrayRef<int64_t> contractingDims, size_t extraDims) {
       llvm::SmallVector<AffineExpr> indices(rank);
-      for (const auto &i : llvm::enumerate(batchingDims)) {
+      for (const auto& i : llvm::enumerate(batchingDims)) {
         indices[i.value()] = rewriter.getAffineDimExpr(i.index());
       }
-      for (const auto &i : llvm::enumerate(contractingDims)) {
+      for (const auto& i : llvm::enumerate(contractingDims)) {
         indices[i.value()] = rewriter.getAffineDimExpr(i.index() + targetRank);
       }
       for (int i = 0; i < rank; ++i) {
@@ -290,14 +290,14 @@ struct DotGeneralOpConversion final
                                             op.getContext()));
     }
 
-    Operation *linalgOp = rewriter.create<linalg::GenericOp>(
-        loc, /*resultTensorTypes=*/TypeRange{outputType},
+    Operation* linalgOp = linalg::GenericOp::create(
+        rewriter, loc, /*resultTensorTypes=*/TypeRange{outputType},
         /*inputs=*/ValueRange{adaptor.getLhs(), adaptor.getRhs()},
         /*outputBuffers=*/ValueRange{zeroTensor}, indexingMaps,
         getParallelAndReductionIterators(
             /*nLoops=*/totalLoopCount,
             /*nReduction=*/numContracting),
-        [](OpBuilder &b, Location loc, ValueRange) {
+        [](OpBuilder& b, Location loc, ValueRange) {
           ImplicitLocOpBuilder builder(loc, b);
           linalg::MatmulOp::regionBuilder(builder, *b.getInsertionBlock(), {},
                                           /*emitError=*/{});
@@ -313,8 +313,8 @@ struct DotGeneralOpConversion final
 
 namespace detail {
 void populateStablehloDotProdToLinalgConversionPatterns(
-    MLIRContext *context, TypeConverter &typeConverter,
-    RewritePatternSet *patterns) {
+    MLIRContext* context, TypeConverter& typeConverter,
+    RewritePatternSet* patterns) {
   // Ensure specialized patterns are higher priority than their generic
   // versions.
   patterns->add<

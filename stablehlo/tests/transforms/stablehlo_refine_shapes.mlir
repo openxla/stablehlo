@@ -19,7 +19,8 @@ func.func @error_too_many_blocks(%arg0: tensor<f32>) -> tensor<f32> {
 
 // -----
 
-// expected-error@-3{{must have no more than one function or a `main` function to clearly identify which function will be refined}}
+// expected-error@+1{{must have no more than one function or a `main` function to clearly identify which function will be refined}}
+module {
 func.func @error_too_many_functions(%arg0: tensor<f32>) -> tensor<f32> {
   %0 = func.call @helper(%arg0) : (tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
@@ -27,6 +28,7 @@ func.func @error_too_many_functions(%arg0: tensor<f32>) -> tensor<f32> {
 
 func.func private @helper(%arg0: tensor<f32>) -> tensor<f32> {
   return %arg0 : tensor<f32>
+}
 }
 
 // -----

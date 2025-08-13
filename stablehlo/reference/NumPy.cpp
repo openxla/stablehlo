@@ -319,6 +319,7 @@ static decltype(auto) dispatchType(Type type, Args&&... args) {
   if (type.isF16()) return Functor<uint16_t>()(std::forward<Args>(args)...);
   if (type.isF32()) return Functor<float>()(std::forward<Args>(args)...);
   if (type.isF64()) return Functor<double>()(std::forward<Args>(args)...);
+  if (type.isBF16()) return Functor<uint16_t>()(std::forward<Args>(args)...);
   if (auto complexTy = dyn_cast<ComplexType>(type)) {
     auto complexElemTy = complexTy.getElementType();
 

@@ -328,6 +328,9 @@ func.func @reshape_fold() -> (tensor<1xi32>, tensor<2x2xi32>) {
 
 // -----
 
+////////
+// ConvertOp
+
 // CHECK-LABEL: func @eval_convert_f32_to_i64
 func.func @eval_convert_f32_to_i64() -> tensor<2xi64> {
   // CHECK-NOT: stablehlo.convert
@@ -336,6 +339,42 @@ func.func @eval_convert_f32_to_i64() -> tensor<2xi64> {
   %0 = stablehlo.constant dense<[1.0, 2.0]> : tensor<2xf32>
   %1 = stablehlo.convert %0 : (tensor<2xf32>) -> tensor<2xi64>
   func.return %1 : tensor<2xi64>
+}
+
+// CHECK-LABEL: func @eval_convert_bool_f32
+func.func @eval_convert_bool_f32() -> tensor<2xf32> {
+  // CHECK-NEXT: [[CST:%.+]] = stablehlo.constant dense<[0.000000e+00, 1.000000e+00]> : tensor<2xf32>
+  %cst = stablehlo.constant dense<[0, 1]> : tensor<2xi1>
+  %0 = stablehlo.convert %cst : (tensor<2xi1>) -> tensor<2xf32>
+  // CHECK-NEXT: return [[CST]]
+  func.return %0 : tensor<2xf32>
+}
+
+// CHECK-LABEL: func @eval_convert_bool_i32
+func.func @eval_convert_bool_i32() -> tensor<2xi32> {
+  // CHECK-NEXT: [[CST:%.+]] = stablehlo.constant dense<[0, 1]> : tensor<2xi32>
+  %cst = stablehlo.constant dense<[0, 1]> : tensor<2xi1>
+  %0 = stablehlo.convert %cst : (tensor<2xi1>) -> tensor<2xi32>
+  // CHECK-NEXT: return [[CST]]
+  func.return %0 : tensor<2xi32>
+}
+
+// CHECK-LABEL: func @eval_convert_i32_bool
+func.func @eval_convert_i32_bool() -> tensor<3xi1> {
+  // CHECK-NEXT: [[CST:%.+]] = stablehlo.constant dense<[false, true, true]> : tensor<3xi1>
+  %cst = stablehlo.constant dense<[0, 1, 10]> : tensor<3xi32>
+  %0 = stablehlo.convert %cst : (tensor<3xi32>) -> tensor<3xi1>
+  // CHECK-NEXT: return [[CST]]
+  func.return %0 : tensor<3xi1>
+}
+
+// CHECK-LABEL: func @eval_convert_f32_bool
+func.func @eval_convert_f32_bool() -> tensor<4xi1> {
+  // CHECK-NEXT: [[CST:%.+]] = stablehlo.constant dense<[true, false, true, true]> : tensor<4xi1>
+  %cst = stablehlo.constant dense<[-1.0, 0.0, 1.0, 10.0]> : tensor<4xf32>
+  %0 = stablehlo.convert %cst : (tensor<4xf32>) -> tensor<4xi1>
+  // CHECK-NEXT: return [[CST]]
+  func.return %0 : tensor<4xi1>
 }
 
 // -----
@@ -400,6 +439,9 @@ func.func @eval_convert_f64_precision_loss() -> (tensor<1xf32>, tensor<f32>) {
 
 // -----
 
+////////
+// SqrtOp
+
 // CHECK-LABEL: func @fold_sqrt
 func.func @fold_sqrt() -> (tensor<f32>) {
   // CHECK: [[RESULT0:%.*]] = stablehlo.constant dense<2.0{{.*}}> : tensor<f32>
@@ -409,7 +451,37 @@ func.func @fold_sqrt() -> (tensor<f32>) {
   func.return %1 : tensor<f32>
 }
 
+//
+
+////////
+// SetDimensionSizeOp
+
+// CHECK-LABEL: func.func @fold_set_dimension_size
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<10xf32>)
+func.func @fold_set_dimension_size(%arg0: tensor<10xf32>) -> tensor<10xf32> {
+  // CHECK-NOT: stablehlo.set_dimension_size
+  // CHECK: return [[ARG0]]
+  %c = stablehlo.constant dense<10> : tensor<i32>
+  %0 = stablehlo.set_dimension_size %arg0, %c, dim = 0 : (tensor<10xf32>, tensor<i32>) -> tensor<10xf32>
+  return %0 : tensor<10xf32>
+}
+
 // -----
+
+// Don't fold when set_dimension_size result is bounded.
+// CHECK-LABEL: func.func @no_fold_set_dimension_size
+func.func @no_fold_set_dimension_size(%arg0: tensor<10xf32>) -> tensor<?xf32, #stablehlo.bounds<10>> {
+  %c = stablehlo.constant dense<10> : tensor<i32>
+  // CHECK: [[RESULT0:%.+]] = stablehlo.set_dimension_size
+  // CHECK-NEXT: return [[RESULT0]]
+  %0 = stablehlo.set_dimension_size %arg0, %c, dim = 0 : (tensor<10xf32>, tensor<i32>) -> tensor<?xf32, #stablehlo.bounds<10>>
+  return %0 : tensor<?xf32, #stablehlo.bounds<10>>
+}
+
+// -----
+
+////////
+// TransposeOp
 
 // CHECK-LABEL: func @eval_transpose
 func.func @eval_transpose() -> (tensor<2x3x2xi32>, tensor<2x4x3xi32>, tensor<4x3x2xi32>) {
