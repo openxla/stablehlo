@@ -22,8 +22,6 @@ import os
 import re
 import tempfile
 
-from jax.interpreters import mlir
-import jax.numpy as jnp
 from mlir import ir
 from mlir import passmanager as pm
 from mlir.dialects import stablehlo
@@ -464,14 +462,18 @@ def _run_probe_test(tensor_type, arg):
         metadata_file
     ), f"Metadata file not found: {metadata_file}"
 
+# Disabling to avoid jax dependency.
+#@run
+#def test_reference_api_with_probe():
+#  from jax.interpreters import mlir
+#  import jax.numpy as jnp
+#  """Tests that probe files are created in the specified directory."""
+#  _run_probe_test("f32", np.asarray(2, np.float32))
 
-@run
-def test_reference_api_with_probe():
-  """Tests that probe files are created in the specified directory."""
-  _run_probe_test("f32", np.asarray(2, np.float32))
-
-
-@run
-def test_reference_api_with_probe_bf16():
-  """Tests that probe files are created for bf16 tensors."""
-  _run_probe_test("bf16", np.asarray(2, jnp.bfloat16))
+# Disabling to avoid jax dependency.
+#@run
+#def test_reference_api_with_probe_bf16():
+#  from jax.interpreters import mlir
+#  import jax.numpy as jnp
+#  """Tests that probe files are created for bf16 tensors."""
+#  _run_probe_test("bf16", np.asarray(2, jnp.bfloat16))
