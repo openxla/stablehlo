@@ -29,6 +29,9 @@ set(LIBS
         ${conversion_libs}
         ${extension_libs}
         MLIROptLib
+        MLIRRegisterAllDialects
+        MLIRRegisterAllExtensions
+        MLIRRegisterAllPasses
         StablehloRegister
         StablehloTestUtils
         StablehloPasses
@@ -55,6 +58,9 @@ target_link_libraries(stablehlo-translate PRIVATE
   MLIRSupport
   MLIRTransforms
   MLIRTranslateLib
+  MLIRRegisterAllDialects
+  MLIRRegisterAllExtensions
+  MLIRRegisterAllPasses
   CheckOps
   InterpreterOps
   StablehloOps
@@ -79,6 +85,9 @@ set(LIBS
         ${extension_libs}
         MLIRLspServerLib
         StablehloRegister
+        MLIRRegisterAllDialects
+        MLIRRegisterAllExtensions
+        MLIRRegisterAllPasses
         )
 add_llvm_executable(stablehlo-lsp-server StablehloLspServerMain.cpp)
 llvm_update_compile_flags(stablehlo-lsp-server)
