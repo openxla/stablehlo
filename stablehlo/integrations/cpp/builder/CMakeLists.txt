@@ -50,19 +50,6 @@ add_mlir_library(AttrTypeBuilderUtil
   MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
 )
 
-# cc_test(
-#     name = "attr_type_builder_util_test",
-#     srcs = ["stablehlo/integrations/cpp/builder/AttrTypeBuilderUtilTest.cpp"],
-#     deps = [
-#         ":attr_type_builder_util",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:IR",
-#         "@llvm-project//mlir:Support",
-#         "@llvm-project//third-party/unittest:gmock",
-#         "@llvm-project//third-party/unittest:gtest",
-#     ],
-# )
-
 ####
 ## MlirBuilder base class
 ####
@@ -77,47 +64,9 @@ add_mlir_library(MlirBuilder
   MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
 )
 
-# cc_test(
-#     name = "mlir_builder_test",
-#     srcs = ["stablehlo/integrations/cpp/builder/MlirBuilderTest.cpp"],
-#     deps = [
-#         ":attr_type_builder_util",
-#         ":chlo_builder",
-#         ":func_builder",
-#         ":mlir_builder",
-#         ":register",
-#         ":stablehlo_builder",
-#         ":stablehlo_ops",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:FuncDialect",
-#         "@llvm-project//mlir:IR",
-#         "@llvm-project//mlir:Support",
-#         "@llvm-project//mlir:TosaDialect",
-#         "@llvm-project//third-party/unittest:gmock",
-#         "@llvm-project//third-party/unittest:gtest",
-#     ],
-# )
-
 #####
 ## Dialect-specific builders
 ####
-
-# gentbl_cc_library(
-#     name = "chlo_builder_inc",
-#     tbl_outs = {
-#         "stablehlo/integrations/cpp/builder/ChloBuilder.h.inc": ["-gen-builder-decls"],
-#         "stablehlo/integrations/cpp/builder/ChloBuilder.cpp.inc": ["-gen-builder-defs"],
-#         "stablehlo/integrations/cpp/builder/ChloBuilder.md": ["-gen-builder-docs"],
-#     },
-#     tblgen = ":mlir_builder_tblgen",
-#     td_file = ":stablehlo/dialect/ChloOps.td",
-#     deps = [
-#         ":chlo_ops_td_files",
-#         "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
-#         "@llvm-project//mlir:OpBaseTdFiles",
-#         "@llvm-project//mlir:SideEffectInterfacesTdFiles",
-#     ],
-# )
 
 set(LLVM_TARGET_DEFINITIONS "../../../dialect/ChloOps.td")
 mlir_builder_tblgen(ChloBuilder.h.inc -gen-builder-decls)
@@ -139,8 +88,8 @@ add_mlir_library(ChloBuilder
   MLIRSupport  # LLVMSupport is automatically added in AddLLVM.cmake.
 )
 
-set(TODO_MLIR_PATH "/usr/local/google/home/gleasonk/Coding/llvm-project/mlir")
-set(LLVM_TARGET_DEFINITIONS "${TODO_MLIR_PATH}/include/mlir/Dialect/Func/IR/FuncOps.td")
+list(GET MLIR_INCLUDE_DIRS 0 mlir_includes)
+set(LLVM_TARGET_DEFINITIONS "${mlir_includes}/mlir/Dialect/Func/IR/FuncOps.td")
 mlir_builder_tblgen(FuncBuilder.h.inc -gen-builder-decls)
 mlir_builder_tblgen(FuncBuilder.cpp.inc -gen-builder-defs)
 add_public_tablegen_target(FuncBuilderIncGen)
