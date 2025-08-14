@@ -519,15 +519,13 @@ class InlineCaseOpWithConstantBranchIndex
     // one region of the `case` op empty when we inlined that block; it expects
     // a block with a terminator op, so we need to make it return something.
     Block& noopBlock = region.emplaceBlock();
-    Location noopBlockLoc = rewriter.getFusedLoc({op.getLoc()});
     SmallVector<Value> placeholderResults;
     rewriter.setInsertionPointToEnd(&noopBlock);
     for (auto result : op.getResults()) {
       placeholderResults.push_back(rewriter.create<ConstantOp>(
-          noopBlockLoc, rewriter.getZeroAttr(result.getType())));
+          region.getLoc(), rewriter.getZeroAttr(result.getType())));
     }
-    rewriter.create<stablehlo::ReturnOp>(noopBlockLoc, placeholderResults);
-
+    rewriter.create<stablehlo::ReturnOp>(region.getLoc(), placeholderResults);
 
     return success();
   }
