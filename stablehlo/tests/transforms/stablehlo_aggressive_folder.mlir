@@ -62,40 +62,49 @@ func.func @case_fold_constant_branch_index(%arg0: tensor<i32>, %arg1: tensor<i32
 // -----
 
 // CHECK-LABEL: func.func @case_fold_preserve_side_effects
-func.func @case_fold_preserve_side_effects(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>) -> tensor<i32> {
+func.func @case_fold_preserve_side_effects(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<f32>) -> (tensor<3x2xi32>, tensor<f32>) {
   // COM:       // Inline the executed branch of the `case` op:
-  // CHECK-DAG: [[RESULT:%.+]] = stablehlo.custom_call @bar(%arg1) {has_side_effect = true}
+  // CHECK-DAG: [[BAR:%.+]] = stablehlo.custom_call @bar(%arg1) {has_side_effect = true}
+
+  // COM:       // Replace the inlined branch with a trivial placeholder that
+  // COM:       // just returns arbitrary constants matching the original type
+  // COM:       // signature.
+  // CHECK-DAG: [[PLACEHOLDER_INT_TENSOR:%.+]] = stablehlo.constant dense<0> : tensor<3x2xi32>
+  // CHECK-DAG: [[PLACEHOLDER_FLOAT:%.+]] = stablehlo.constant dense<0.000000e+00> : tensor<f32>
 
   // COM:       // Keep the rest of the `case` op if it's non-trivially dead:
-  // CHECK-DAG: [[BRANCH_INDEX:%.+]] = stablehlo.constant
+  // CHECK-DAG: [[BRANCH_INDEX:%.+]] = stablehlo.constant dense<1> : tensor<i32>
+
   // CHECK-DAG: [[NON_TRIVIALLY_DEAD_CASE_OP:%.+]] = {{"?}}stablehlo.case{{"?}}([[BRANCH_INDEX]]) ({
   // COM:         // Non-trivially dead branches are preserved but unused.
   // CHECK-DAG:   [[FOO:%.+]] = stablehlo.custom_call @foo(%arg0) {has_side_effect = true}
-  // CHECK-DAG:   stablehlo.return [[FOO]]
+  // CHECK-DAG:   stablehlo.return [[FOO]], %arg0
   // COM:       }, {
   // COM:         // The executed branch is now just a trivial placeholder; its
-  // COM:         // original logic has been inlined outside of the `case` op.
-  // CHECK-DAG:   stablehlo.return [[BRANCH_INDEX]]
+  // COM:         // original logic has been inlined outside of the `case` op,
+  // COM:         // and the replacement logic just returns arbitrary constants
+  // COM:         // matching the original type signature.
+  // CHECK-DAG:   stablehlo.return [[PLACEHOLDER_INT_TENSOR]], [[PLACEHOLDER_FLOAT]]
   // COM:       }, {
   // COM:         // Non-trivially dead branches are preserved but unused.
   // CHECK-DAG:   [[BAZ:%.+]] = stablehlo.custom_call @baz(%arg2) {has_side_effect = true}
-  // CHECK-DAG:   stablehlo.return [[BAZ]]
+  // CHECK-DAG:   stablehlo.return [[BAZ]], %arg2
   // COM:       })
 
   // COM:       // Return the result of the inlined branch.
-  // CHECK-DAG: {{(^ *|func\.)}}return [[RESULT]]
+  // CHECK-DAG: {{(^ *|func\.)}}return [[BAR]], %arg1
   %branch_index = stablehlo.constant dense<1> : tensor<i32>
-  %result = "stablehlo.case"(%branch_index) ({
-    %foo = stablehlo.custom_call @foo(%arg0) {has_side_effect = true} : (tensor<i32>) -> tensor<i32>
-    stablehlo.return %foo : tensor<i32>
+  %result:2 = "stablehlo.case"(%branch_index) ({
+    %foo = stablehlo.custom_call @foo(%arg0) {has_side_effect = true} : (tensor<f32>) -> tensor<3x2xi32>
+    stablehlo.return %foo, %arg0 : tensor<3x2xi32>, tensor<f32>
   }, {
-    %bar = stablehlo.custom_call @bar(%arg1) {has_side_effect = true} : (tensor<i32>) -> tensor<i32>
-    stablehlo.return %bar : tensor<i32>
+    %bar = stablehlo.custom_call @bar(%arg1) {has_side_effect = true} : (tensor<f32>) -> tensor<3x2xi32>
+    stablehlo.return %bar, %arg1 : tensor<3x2xi32>, tensor<f32>
   }, {
-    %baz = stablehlo.custom_call @baz(%arg2) {has_side_effect = true} : (tensor<i32>) -> tensor<i32>
-    stablehlo.return %baz : tensor<i32>
-  }) : (tensor<i32>) -> tensor<i32>
-  func.return %result: tensor<i32>
+    %baz = stablehlo.custom_call @baz(%arg2) {has_side_effect = true} : (tensor<f32>) -> tensor<3x2xi32>
+    stablehlo.return %baz, %arg2 : tensor<3x2xi32>, tensor<f32>
+  }) : (tensor<i32>) -> (tensor<3x2xi32>, tensor<f32>)
+  func.return %result#0, %result#1 : tensor<3x2xi32>, tensor<f32>
 }
 
 // -----

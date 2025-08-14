@@ -503,24 +503,31 @@ class InlineCaseOpWithConstantBranchIndex
       selectedBranchIndex = op.getNumRegions() - 1;
 
     Region& region = op.getRegion(selectedBranchIndex);
-    assert(llvm::hasSingleElement(region));
-    Block* block = &region.front();
+    assert(region.hasOneBlock());
+    Block* blockToInline = &region.front();
     ValueRange blockArgs = {};
-    Operation* terminator = block->getTerminator();
+    Operation* terminator = blockToInline->getTerminator();
     ValueRange results = terminator->getOperands();
 
     // Inline the active branch of the `case` op.
-    rewriter.inlineBlockBefore(block, op, blockArgs);
+    rewriter.inlineBlockBefore(blockToInline, op, blockArgs);
     rewriter.replaceAllOpUsesWith(op, results);
     rewriter.eraseOp(terminator);
 
     // Make sure the now-dead `case` op is still syntactically valid in case it
     // can't be safely deleted (e.g. due to side effects). Specifically, we left
     // one region of the `case` op empty when we inlined that block; it expects
-    // a block with a terminator op, so we just make it return the branch index.
+    // a block with a terminator op, so we need to make it return something.
     Block& noopBlock = region.emplaceBlock();
+    Location noopBlockLoc = rewriter.getFusedLoc({op.getLoc()});
+    SmallVector<Value> placeholderResults;
     rewriter.setInsertionPointToEnd(&noopBlock);
-    rewriter.create<stablehlo::ReturnOp>(region.getLoc(), branchIndexArgument);
+    for (auto result : op.getResults()) {
+      placeholderResults.push_back(rewriter.create<ConstantOp>(
+          noopBlockLoc, rewriter.getZeroAttr(result.getType())));
+    }
+    rewriter.create<stablehlo::ReturnOp>(noopBlockLoc, placeholderResults);
+
 
     return success();
   }
