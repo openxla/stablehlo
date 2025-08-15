@@ -45,10 +45,10 @@ Here's how to build the StableHLO repo on Linux or macOS:
 
    ```sh
    # On Linux
-   sudo apt install cmake ninja-build lld
+   sudo apt install cmake ninja-build lld ccache
 
    # On macOS
-   brew install cmake ninja
+   brew install cmake ninja ccache
    ```
 
 2. Set the `LLVM_ENABLE_LLD` shell variable depending on your preferences. We
@@ -73,7 +73,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
 4. Make sure you check out the correct commit in the LLVM repository:
 
    ```sh
-   (hash="$(cat ../build_tools/llvm_version.txt)"; cd llvm-project && git fetch "$hash" && git checkout "$hash")
+   (hash="$(cat ./build_tools/llvm_version.txt)"; cd llvm-project && git fetch origin "$hash" && git checkout "$hash")
    ```
 
    You need to do this every time `llvm_version.txt` changes.
@@ -141,8 +141,10 @@ Here's how to build the StableHLO repo on Linux or macOS:
    You should see results like this:
 
    ```txt
-   Testing Time: 5.99s
-     Passed: 47
+   Testing Time: 6.60s
+
+   Total Discovered Tests: 246
+   Passed: 246 (100.00%)
    ```
 
    This runs all the tests in `stablehlo/tests/`.
