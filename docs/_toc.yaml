@@ -57,6 +57,14 @@ toc:
     path: /stablehlo/generated/chlo.md
   - title: The VHLO dialect
     path: /stablehlo/vhlo
+  - title: C++ Builder APIs
+    section:
+      - title: StableHLO Builders
+        path: /stablehlo/generated/StablehloBuilder.md
+      - title: CHLO Builders
+        path: /stablehlo/generated/ChloBuilder.md
+      - title: Func Builders
+        path: /stablehlo/generated/FuncBuilder.md
   - title: IDE setup tips
     path: /stablehlo/ide
   - title: StableHLO Passes
