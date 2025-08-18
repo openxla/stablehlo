@@ -535,6 +535,140 @@ LogicalResult CustomCallOp::verify() {
     }
   }
 
+  return verifyKnownCustomCalls();
+}
+
+// A few custom calls are used throughout the ecosystem, this verification aims
+// to allow erroring in StableHLO for these custom calls.
+LogicalResult CustomCallOp::verifyKnownCustomCalls() {
+  // We have already verified that the output_operand_aliases have consistent
+  // types and valid indices. Here we verify buffer releated special custom_call
+  // targets, and also verify that buffer operands used non-special custom_call
+  // ops meet this requirements:
+  //   A result with a buffer type should be mentioned in one pair of
+  //   output-operand-aliasing and an operand with a buffer type can only appear
+  //   at most once in output-operand-aliasing.
+  if (getCallTargetName() == kCreateBufferCustomCallTarget) {
+    if (!getInputs().empty()) {
+      return emitOpError()
+             << "CreateBuffer custom_call shouldn't have any inputs";
+    }
+    if (getNumResults() != 1) {
+      return emitOpError() << "CreateBuffer custom_call should have one result";
+    }
+    if (!isa<MemRefType>(getResult(0).getType())) {
+      return emitOpError()
+             << "CreateBuffer custom_call should have a memref result";
+    }
+    return success();
+  }
+
+  if (getCallTargetName() == kPinCustomCallTarget) {
+    if (getInputs().size() != 1) {
+      return emitOpError() << "Pin custom_call should have one input";
+    }
+    Type inputType = getInputs()[0].getType();
+    if (!isa<TensorType>(inputType)) {
+      return emitOpError() << "Pin custom_call should have a tensor input";
+    }
+    if (getNumResults() != 1) {
+      return emitOpError() << "Pin custom_call should have one output";
+    }
+    Type outputType = getResult(0).getType();
+    if (!isa<MemRefType>(outputType)) {
+      return emitOpError() << "Pin custom_call should have a memref output";
+    }
+
+    if (failed(verifyCompatibleShape(inputType, outputType)) ||
+        getElementTypeOrSelf(inputType) != getElementTypeOrSelf(outputType)) {
+      return emitOpError()
+             << "Pin custom_call should have compatible input and output types";
+    }
+
+    return success();
+  }
+
+  if (getCallTargetName() == kUnpinCustomCallTarget) {
+    if (getInputs().size() != 1) {
+      return emitOpError() << "Unpin custom_call should have one input";
+    }
+    Type inputType = getInputs()[0].getType();
+    if (!isa<MemRefType>(inputType)) {
+      return emitOpError() << "Unpin custom_call should have a memref input";
+    }
+    if (getNumResults() != 1) {
+      return emitOpError() << "Unpin custom_call should have one output";
+    }
+    Type outputType = getResult(0).getType();
+    if (!isa<TensorType>(outputType)) {
+      return emitOpError() << "Unpin custom_call should have a tensor output";
+    }
+
+    if (failed(verifyCompatibleShape(inputType, outputType)) ||
+        getElementTypeOrSelf(inputType) != getElementTypeOrSelf(outputType)) {
+      return emitOpError() << "Unpin custom_call should have compatible input "
+                              "and output types";
+    }
+
+    return success();
+  }
+
+  auto getOperandPartType = [&](int64_t operandIndex,
+                                ::llvm::ArrayRef<int64_t> operandTupleIndices) {
+    Type operandPart = getOperand(operandIndex).getType();
+    for (auto i : operandTupleIndices) {
+      operandPart = cast<TupleType>(operandPart).getType(i);
+    }
+    return operandPart;
+  };
+  auto printIndices = [](ArrayRef<int64_t> indices) {
+    std::vector<std::string> stringIndices;
+    llvm::transform(indices, std::back_inserter(stringIndices),
+                    [](int v) { return llvm::Twine(v).str(); });
+    return "[" + llvm::join(stringIndices, ", ") + "]";
+  };
+
+  auto aliasArrayAttr = getOutputOperandAliases();
+  std::set<std::pair<int64_t, std::vector<int64_t>>> operandParts;
+  std::set<std::vector<int64_t>> outputParts;
+  for (auto attr : aliasArrayAttr) {
+    auto alias = cast<OutputOperandAliasAttr>(attr);
+    auto outputTupleIndices = alias.getOutputTupleIndices();
+    auto operandIndex = alias.getOperandIndex();
+    auto operandTupleIndices = alias.getOperandTupleIndices();
+    Type operandPartType =
+        getOperandPartType(operandIndex, operandTupleIndices);
+    if (!isa<MemRefType>(operandPartType)) continue;
+
+    if (!outputParts.insert(outputTupleIndices).second) {
+      emitOpError() << "buffer output " + printIndices(outputTupleIndices) +
+                           " is used in output_operand_alias more than once";
+    }
+    if (!operandParts.insert(std::make_pair(operandIndex, operandTupleIndices))
+             .second) {
+      emitOpError() << "buffer operand " + std::to_string(operandIndex) +
+                           printIndices(operandTupleIndices) +
+                           " is used in output_operand_alias more than once";
+    }
+  }
+
+  Type resultType = getNumResults() == 1
+                        ? getResult(0).getType()
+                        : TupleType::get(getContext(), getResultTypes());
+  if (failed(hlo::mapOverLeafTypes(
+          resultType,
+          [&](Type type, ArrayRef<int64_t> indices) -> LogicalResult {
+            if (!isa<MemRefType>(type)) return success();
+            if (outputParts.find(indices) == outputParts.end()) {
+              return emitOpError()
+                     << "buffer output " + printIndices(indices) +
+                            " is not used in output_operand_alias";
+            }
+            return success();
+          }))) {
+    return failure();
+  }
+
   return success();
 }
 
@@ -3850,16 +3984,21 @@ ParseResult parseWindowAttributes(OpAsmParser& parser,
 // `element_types`, create two block arguments, one for lhs and one for rhs, and
 // generates stablehlo.compare op to compare them with the given `direction`.
 //
-// Note that this right now only does comparision on the first pair of block
+// Note that this right now only does comparison on the first pair of block
 // arguments.
-static void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
-                                    ComparisonDirection direction,
-                                    std::optional<StringRef> compareType,
-                                    Region* body, OpBuilder* builder) {
+void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
+                             ComparisonDirection direction,
+                             std::optional<StringRef> compareType, Region* body,
+                             OpBuilder* builder) {
   OpBuilder::InsertionGuard insertionPointGuard(*builder);
 
   Location loc = body->getLoc();
-  Block* block = builder->createBlock(body);
+  Block* block;
+  if (body->empty()) {
+    block = builder->createBlock(body);
+  } else {
+    block = &body->front();
+  }
   // Add two arguments for each element type.
   for (Type elementType : elementTypes) {
     ShapedType shapedType = RankedTensorType::get({}, elementType);

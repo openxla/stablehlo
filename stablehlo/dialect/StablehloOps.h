@@ -177,6 +177,16 @@ SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
                     const llvm::ArrayRef<Type> &elementTypes, int64_t dimension,
                     bool isStable, ComparisonDirection direction);
 
+// Builds the region `body` for stablehlo.sort's comparator: for each type in
+// `element_types`, create two block arguments, one for lhs and one for rhs, and
+// generates stablehlo.compare op to compare them with the given `direction`.
+// Note that this right now only does comparision on the first pair of block
+// arguments.
+void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
+                             ComparisonDirection direction,
+                             std::optional<StringRef> compareType, Region *body,
+                             OpBuilder *builder);
+
 template <typename OpTy>
 void buildReduceBody(Type elementType, Region &body, OpBuilder &builder) {
   OpBuilder::InsertionGuard guard(builder);
@@ -200,6 +210,9 @@ struct PrecisionConfigAttr : public ArrayAttr {
   static ArrayAttr get(MLIRContext *context, ArrayRef<Precision> precisions);
 };
 
+constexpr StringRef kCreateBufferCustomCallTarget = "CreateBuffer";
+constexpr StringRef kPinCustomCallTarget = "Pin";
+constexpr StringRef kUnpinCustomCallTarget = "Unpin";
 }  // end namespace stablehlo
 }  // end namespace mlir
 

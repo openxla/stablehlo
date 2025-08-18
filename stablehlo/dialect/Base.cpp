@@ -798,5 +798,35 @@ bool hasSingleBoundedDimension(Type type) {
   return numBoundedDims == 1 && numDynamicDims == 1;
 }
 
+//===----------------------------------------------------------------------===//
+// Utils for type traversal.
+//===----------------------------------------------------------------------===//
+
+namespace {
+LogicalResult mapOverLeafTypesImpl(
+    Type type, function_ref<LogicalResult(Type type, ArrayRef<int64_t>)> fn,
+    std::vector<int64_t>& indices) {
+  if (!isa<TupleType>(type)) {
+    return fn(type, indices);
+  }
+
+  auto tupleType = cast<TupleType>(type);
+  for (size_t i = 0; i < tupleType.size(); ++i) {
+    indices.push_back(i);
+    if (failed(mapOverLeafTypesImpl(tupleType.getType(i), fn, indices)))
+      return failure();
+    indices.pop_back();
+  }
+
+  return success();
+}
+}  // namespace
+
+LogicalResult mapOverLeafTypes(
+    Type type, function_ref<LogicalResult(Type, ArrayRef<int64_t>)> fn) {
+  std::vector<int64_t> indices;
+  return mapOverLeafTypesImpl(type, fn, indices);
+}
+
 }  // namespace hlo
 }  // namespace mlir

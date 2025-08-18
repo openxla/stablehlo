@@ -1453,14 +1453,14 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
     }
     ```
   }];
-  let arguments = (ins Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>:$operand /*while_i1*/);
+  let arguments = (ins Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrBuffer>:$operand /*while_i1*/);
 
   let regions = (region
     SizedRegion<1>:$cond /*while_i2*/,
     SizedRegion<1>:$body /*while_i3*/
   );
 
-  let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>);
+  let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrBuffer>);
 
   let hasVerifier = 1;
 
@@ -1726,7 +1726,7 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,
     ConfinedAttr<I32Attr, [IntNonNegative]>:$index /*get_tuple_element_c1, get_tuple_element_i2*/
   );
 
-  let results = (outs HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple);
+  let results = (outs HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTupleOrBuffer);
 
   let assemblyFormat = [{
     $operand `[` $index `]` attr-dict `:` functional-type(operands, results)
@@ -1748,7 +1748,7 @@ def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
     ```
    }];
 
-  let arguments = (ins Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple>:$val /*tuple_i1*/);
+  let arguments = (ins Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTupleOrBuffer>:$val /*tuple_i1*/);
   let results = (outs HLO_Tuple:$result);
 
   let assemblyFormat = [{
@@ -2553,6 +2553,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   let extraClassDeclaration = commonClassDeclaration # [{
     mlir::Attribute getBackendConfigOrDefault();
     bool hasEmptyBackendConfig();
+    LogicalResult verifyKnownCustomCalls();
   }];
 }
 
@@ -3346,7 +3347,7 @@ def StableHLO_ReturnOp : StableHLO_Op<"return", [Pure, Terminator]> {
   }];
 
   let arguments = (ins
-    Variadic<HLO_TensorOrPerAxisQuantizedTensorOrToken>:$results
+    Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrBuffer>:$results
   );
 
   let assemblyFormat = "$results attr-dict (`:` type($results)^)?";

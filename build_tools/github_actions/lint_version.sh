@@ -43,7 +43,7 @@ VERSIONED_COMPAT_TEST="$COMPAT_TEST_BASE.$TEST_VERSION.mlir"
 VERSIONED_COMPAT_TEST_BC="$COMPAT_TEST_BASE.$TEST_VERSION.mlir.bc"
 
 show_help() {
-  HELP_URL="https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md#add-versioned-serialization-test"
+  HELP_URL="https://github.com/openxla/stablehlo/blob/main/docs/vhlo_checklist.md#4-add-versioned-serialization-test"
   echo "For details on creating versioned tests for a new minor version of"
   echo "StableHLO, see the instructions on:"
   echo "$HELP_URL"

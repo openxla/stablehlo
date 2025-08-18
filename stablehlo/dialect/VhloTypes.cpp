@@ -179,6 +179,12 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
   addConversion([&](shape::WitnessType type) -> Type {
     return vhlo::WitnessV1Type::get(type.getContext());
   });
+  addConversion([&](MemRefType type) -> Type {
+    auto convertedElementType = convertType(type.getElementType());
+    if (!convertedElementType) return {};
+    return RankedBufferV1Type::get(type.getContext(), type.getShape(),
+                                   convertedElementType);
+  });
 }
 
 void VhloTypeConverter::addVhloToBuiltinConversions() {
@@ -322,6 +328,11 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
   });
   addConversion([&](WitnessV1Type type) -> Type {
     return shape::WitnessType::get(type.getContext());
+  });
+  addConversion([&](RankedBufferV1Type type) -> Type {
+    auto convertedElementType = convertType(type.getElementType());
+    if (!convertedElementType) return {};
+    return MemRefType::get(type.getShape(), convertedElementType);
   });
 }
 

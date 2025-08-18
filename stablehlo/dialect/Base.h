@@ -314,6 +314,11 @@ void writeEnumAttribute(EnumTypeAttr val, DialectBytecodeWriter &writer) {
 mlir::Speculation::Speculatability getShapedSpeculatability(Operation *op,
                                                             int64_t shapeCount);
 
+// Applies `fn` to `type` if it is not a `tuple` type. Otherwise, applies `fn`
+// to each leaf type in the `tuple` type tree or until a `fn` returns failure.
+LogicalResult mapOverLeafTypes(
+    Type type, function_ref<LogicalResult(Type, ArrayRef<int64_t>)> fn);
+
 namespace OpTrait {
 
 template <typename ConcreteType>

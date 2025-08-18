@@ -199,6 +199,10 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
   if (auto unranked = dyn_cast<UnrankedTensorV1Type>(type))
     return isLegalType(unranked.getElementType(), targetVersion);
 
+  if (auto buffer = dyn_cast<RankedBufferV1Type>(type)) {
+    return isLegalType(buffer.getElementType(), targetVersion);
+  }
+
   // Is VHLO and valid version, success.
   return success();
 }
