@@ -326,4 +326,21 @@ def VHLO_UnrankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor_v1
 // and we're planning to look into it as part of the work on the dynamism RFC.
 def VHLO_WitnessV1 : VHLO_TypeDef<"WitnessV1", "witness_v1", "0.9.0", "current">;
 
+def VHLO_RankedBufferV1 : VHLO_TypeDef<"RankedBufferV1", "buffer_v1", "1.13.0", "current"> {
+  let parameters = (ins
+    VHLO_Dims:$shape,
+    "::mlir::Type":$elementType
+  );
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult RankedBufferV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
+        ArrayRef<int64_t> shape, ::mlir::Type elementType) {
+      if (!isFromVhlo(elementType)) return errFn() << "expected VHLO types";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` custom<Shape>($shape) `` $elementType `>`";
+}
+
 #endif  // STABLEHLO_DIALECT_VHLO_TYPES

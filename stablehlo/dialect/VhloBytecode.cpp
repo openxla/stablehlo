@@ -201,7 +201,7 @@ enum AttributeCode {
 /// location is updated.
 enum TypeCode {
   // TO ADD TYPE: Add an enum value with doc string for new type.
-  // Next available code: 41
+  // Next available code: 42
 
   ///   BooleanV1Type {
   ///   }
@@ -388,6 +388,10 @@ enum TypeCode {
   ///   }
   kUniformQuantizedPerAxisV1Type = 30,
 
+  ///   RankedBufferV1Type {
+  ///   }
+  kRankedBufferV1Type = 41,
+
   /// NoneV1Type {
   /// }
   kNoneV1Type = 33,
@@ -500,6 +504,8 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
       DialectBytecodeReader &reader) const;
   UnrankedTensorV1Type readUnrankedTensorV1Type(
       DialectBytecodeReader &reader) const;
+  RankedBufferV1Type readRankedBufferV1Type(
+      DialectBytecodeReader& reader) const;
 
   // TO ADD TYPE: Include a write method for each type in VHLO
   // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
@@ -512,6 +518,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
              DialectBytecodeWriter &writer) const;
   void write(UniformQuantizedV1Type type, DialectBytecodeWriter &writer) const;
   void write(UnrankedTensorV1Type type, DialectBytecodeWriter &writer) const;
+  void write(RankedBufferV1Type type, DialectBytecodeWriter& writer) const;
 };
 
 //===----------------------------------------------------------------------===//
@@ -1090,6 +1097,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return readUnrankedTensorV1Type(reader);
     case vhlo_encoding::kWitnessV1Type:
       return WitnessV1Type::get(getContext());
+    case vhlo_encoding::kRankedBufferV1Type:
+      return readRankedBufferV1Type(reader);
     default:
       reader.emitError() << "unknown vhlo type code: " << code;
       return Type();
@@ -1102,7 +1111,7 @@ LogicalResult VhloBytecodeInterface::writeType(
   return TypeSwitch<Type, LogicalResult>(type)
       .Case<ComplexV1Type, FunctionV1Type, RankedTensorV1Type, TokenV1Type,
             TupleV1Type, UnrankedTensorV1Type, UniformQuantizedPerAxisV1Type,
-            UniformQuantizedV1Type>([&](auto type) {
+            UniformQuantizedV1Type, RankedBufferV1Type>([&](auto type) {
         LOG_WRITE_CALL;
         return write(type, writer), success();
       })
@@ -1471,6 +1480,29 @@ UnrankedTensorV1Type VhloBytecodeInterface::readUnrankedTensorV1Type(
 void VhloBytecodeInterface::write(UnrankedTensorV1Type type,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kUnrankedTensorV1Type);
+  writer.writeType(type.getElementType());
+}
+
+//===----------------------------------------------------------------------===//
+// RankedBufferV1Type
+//===----------------------------------------------------------------------===//
+
+RankedBufferV1Type VhloBytecodeInterface::readRankedBufferV1Type(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  SmallVector<int64_t> shape;
+  Type elementType;
+  if (failed(reader.readSignedVarInts(shape)) ||
+      failed(reader.readType(elementType)))
+    return RankedBufferV1Type();
+
+  return RankedBufferV1Type::get(getContext(), shape, elementType);
+}
+
+void VhloBytecodeInterface::write(RankedBufferV1Type type,
+                                  DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(vhlo_encoding::kRankedBufferV1Type);
+  writer.writeSignedVarInts(type.getShape());
   writer.writeType(type.getElementType());
 }
 

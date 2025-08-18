@@ -89,7 +89,7 @@ completely numeric to simplify generation of StableHLO programs.
 
 ```ebnf
 Type         ::= ValueType | NonValueType
-ValueType    ::= TensorType | QuantizedTensorType | TokenType | TupleType
+ValueType    ::= TensorType | QuantizedTensorType | TokenType | TupleType | BufferType
 NonValueType ::= TensorElementType | QuantizedTensorElementType | FunctionType | StringType
 ```
 
@@ -228,6 +228,21 @@ as described in the [Execution](#execution) section.
 TupleType ::= 'tuple' '<' TupleElementTypes '>'
 TupleElementTypes ::= [ValueType {',' ValueType}]
 ```
+
+**Buffer types** represent buffers. For example, in XLA, buffers are
+multidimensional arrays with consistent storage. Similar to **tensor types**,
+buffer types have a **shape** and an **element type**, where a shape represents
+non-negative or unknown **dimension sizes** in the ascending order of the
+corresponding **dimensions** (which are also called **axes**) numbered from `0`
+to `R-1`. The number of dimensions `R` is called **rank**. For example,
+`memref<2x3xf32>` is a buffer type with shape `2x3` and element type `f32`. It
+has two dimensions (or, in other words, two axes) - 0th dimension and 1st
+dimension - whose sizes are 2 and 3. Its rank is 2.
+
+Buffers can be allocated using a `custom_call` to `CreateBuffer` or `Pin` and
+deallocated via a `custom_call` to `Unpin`. Only `custom_call` ops can read and
+write the content inside buffers. See [custom_call](#custom_call) for more
+detail.
 
 **Tuple types** represent tuples, i.e. heterogeneous lists. Tuples are a legacy
 feature which only exists for compatibility with HLO. In HLO, tuples are
@@ -2433,20 +2448,62 @@ the XLA compiler. In the future, we are planning to unify this metadata
 
 #### Inputs
 
-| Label | Name                  | Type                                              |
-|-------|-----------------------|---------------------------------------------------|
-| (I1)  | `inputs`              | variadic number of values                         |
-| (I2)  | `call_target_name`    | constant of type `string`                         |
-| (I3)  | `has_side_effect`     | constant of type `i1`                             |
-| (I4)  | `backend_config`      | constant of type `string` or attribute dictionary |
-| (I5)  | `api_version`         | constant of type `si32`                           |
-| (I6)  | `called_computations` | variadic number of constants of type `string`     |
+| Label | Name                     | Type                                                       |
+|-------|--------------------------|------------------------------------------------------------|
+| (I1)  | `inputs`                 | variadic number of values                                  |
+| (I2)  | `call_target_name`       | constant of type `string`                                  |
+| (I3)  | `has_side_effect`        | constant of type `i1`                                      |
+| (I4)  | `backend_config`         | constant of type `string` or attribute dictionary          |
+| (I5)  | `api_version`            | constant of type `si32`                                    |
+| (I6)  | `called_computations`    | variadic number of constants of type `string`              |
+| (I7)  | `output_operand_aliases` | specify the aliasing parts in the outputs and operands     |
 
 #### Outputs
 
 | Name      | Type                      |
 |-----------|---------------------------|
 | `results` | variadic number of values |
+
+### (XLA GPU Support) Special custom_call targets
+
+There are three special `call_target_name` related to `buffer` types:
+`CreateBuffer` creates an uninitialized `buffer`, `Pin` creates an initialized
+`buffer` and `Unpin` deallocates a `buffer` and returns the content of the
+`buffer`.
+
+```mlir
+%uninitialized_buffer = "stablehlo.custom_call"() {
+  call_target_name = "CreateBuffer",
+  api_version = 4 : i32,
+} : () -> memref<4xf64>
+
+%initialized_buffer = "stablehlo.custom_call"(%init_value) {
+  call_target_name = "Pin",
+  api_version = 4 : i32,
+} : (tensor<4xf64>) -> memref<4xf64>
+
+%dealloc_buffer = "stablehlo.custom_call"(%initialized_buffer) {
+  call_target_name = "Unpin",
+  api_version = 4 : i32,
+} : (memref<4xf64>) -> tensor<4xf64>
+
+```
+
+### Alias
+
+Some custom_call ops may require a part in the outputs and a part in the
+operands to share the same memory. This can be expressed via
+`output_operand_aliases`. An alias pair representation consists a list of output
+ tuple indices representing the output part, and an operand_index along with a
+ list of operand tuple indices representing the operand part. The list of output
+  or operand tuple indices is empty if the corresponding type is not a `tuple`
+  type, and can be arbitrarily long for an arbitrarily nested tuple type. This
+  is similar to [the XLA alias representation](https://www.tensorflow.org/xla/aliasing).
+
+The output part and the input part in an alias pair must have the same type. For
+custom_call ops that aren't call to `CreateBuffer`, `Pin` and `Unpin`, a
+`buffer` operand can appear in at most one pair of alias, and a `buffer` output
+must appear in one pair of alias.
 
 #### Examples
 
@@ -2458,6 +2515,16 @@ the XLA compiler. In the future, we are planning to unify this metadata
   api_version = 4 : i32,
   called_computations = [@foo]
 } : (tensor<f64>) -> tensor<f64>
+
+%updated_buffer = "stablehlo.custom_call"(%buffer) {
+  call_target_name = "Update",
+  api_version = 4 : i32,
+  output_operand_aliases = [
+    #stablehlo.output_operand_alias<output_tuple_indices = [],
+      operand_index = 0,
+      operand_tuple_indices = []>]
+} : (memref<4xf64>) -> memref<4xf64>
+
 ```
 
 ### divide
@@ -3780,9 +3847,9 @@ Extracts element at `index` position of the `operand` tuple and produces a
 
 #### Outputs
 
-| Name     | Type               | Constraints |
-|----------|--------------------|-------------|
-| `result` | any supported type | (C2)        |
+| Name     | Type                   | Constraints |
+|----------|------------------------|-------------|
+| `result` | any value              | (C2)        |
 
 #### Constraints
 
@@ -6583,10 +6650,10 @@ Produces a `result` tuple from values `val`.
 #### Examples
 
 ```mlir
-// %val0: [1.0, 2.0]
+// %val0: memref[1.0, 2.0]
 // %val1: (3)
-%result = "stablehlo.tuple"(%val0, %val1) : (tensor<2xf32>, tuple<tensor<i32>>) -> tuple<tensor<2xf32>, tuple<tensor<i32>>>
-// %result: ([1.0, 2.0], (3))
+%result = "stablehlo.tuple"(%val0, %val1) : (memref<2xf32>, tuple<tensor<i32>>) -> tuple<memref<2xf32>, tuple<tensor<i32>>>
+// %result: (memref[1.0, 2.0], (3))
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/tuple_and_get_tuple_element.mlir)
@@ -6692,17 +6759,17 @@ The behavior of an infinite loop is TBD
 
 #### Inputs
 
-| Label | Name      | Type                                                    | Constraints |
-|-------|-----------|---------------------------------------------------------|-------------|
-| (I1)  | `operand` | variadic number of tensors, quantized tensors or tokens | (C1-C3)     |
-| (I2)  | `cond`    | function                                                | (C1)        |
-| (I3)  | `body`    | function                                                | (C2)        |
+| Label | Name      | Type                                    | Constraints |
+|-------|-----------|-----------------------------------------|-------------|
+| (I1)  | `operand` | variadic number of values               | (C1-C3)     |
+| (I2)  | `cond`    | function                                | (C1)        |
+| (I3)  | `body`    | function                                | (C2)        |
 
 #### Outputs
 
-| Name      | Type                                                    | Constraints |
-|-----------|---------------------------------------------------------|-------------|
-| `results` | variadic number of tensors, quantized tensors or tokens | (C3)        |
+| Name      | Type                                            | Constraints |
+|-----------|-------------------------------------------------|-------------|
+| `results` | variadic number of values                       | (C3)        |
 
 #### Constraints
 

@@ -193,15 +193,21 @@ def HLO_FloatOrQuantizedIntOrPerAxisQuantizedIntTensor : RankedTensorOf<[HLO_Flo
 
 def HLO_ComplexTensor : RankedTensorOf<[HLO_Complex]>;
 
-def HLO_Tuple : NestedTupleOf<[HLO_Tensor, HLO_PerAxisQuantizedIntTensor, HLO_Token]>;
+def HLO_Buffer : MemRefOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
+
+def HLO_Tuple : NestedTupleOf<[HLO_Tensor, HLO_Buffer, HLO_PerAxisQuantizedIntTensor, HLO_Token]>;
 
 def HLO_TensorOrToken : AnyTypeOf<[HLO_Tensor, HLO_Token]>;
 
 def HLO_TensorOrPerAxisQuantizedTensorOrToken : AnyTypeOf<[HLO_Tensor, HLO_PerAxisQuantizedIntTensor, HLO_Token]>;
 
+def HLO_TensorOrPerAxisQuantizedTensorOrTokenOrBuffer : AnyTypeOf<[HLO_TensorOrPerAxisQuantizedTensorOrToken, HLO_Buffer]>;
+
 def HLO_TensorOrTokenOrTuple : AnyTypeOf<[HLO_Tensor, HLO_Token, HLO_Tuple]>;
 
 def HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple : AnyTypeOf<[HLO_Tensor, HLO_PerAxisQuantizedIntTensor, HLO_Token, HLO_Tuple]>;
+
+def HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTupleOrBuffer : AnyTypeOf<[HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple, HLO_Buffer]>;
 
 def HLO_DimensionValue : AnyTypeOf<[Index, HLO_Int]>;
 
@@ -227,9 +233,9 @@ def HLO_AnyFpOrComplexTensor : TensorOf<[HLO_Float, HLO_Complex]>;
 
 def HLO_AnyPredOrIntTensor : TensorOf<[HLO_Pred, HLO_Int]>;
 
-def HLO_AnyTuple : NestedTupleOf<[HLO_AnyTensor, HLO_Token]>;
+def HLO_CustomCallTuple : NestedTupleOf<[HLO_AnyTensor, HLO_Buffer, HLO_Token]>;
 
-def HLO_CustomCallValue : AnyTypeOf<[HLO_AnyTensor, HLO_Token, HLO_AnyTuple]>;
+def HLO_CustomCallValue : AnyTypeOf<[HLO_AnyTensor, HLO_Buffer, HLO_Token, HLO_CustomCallTuple]>;
 
 //===----------------------------------------------------------------------===//
 // HLO combined type definitions.

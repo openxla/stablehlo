@@ -6639,3 +6639,184 @@ func.func @composite_c4(%arg0: !stablehlo.token) {
   } : (!stablehlo.token) -> tensor<f32>
   func.return
 }
+
+// -----
+
+func.func @custom_call_op_with_buffer_type(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "Pin",
+    api_version = 4 : i32
+  } : (tensor<2xf32>) -> memref<2xf32>
+  %1 = "stablehlo.custom_call"(%0) {
+    call_target_name = "foo",
+    api_version = 4 : i32,
+    output_operand_aliases = [
+      #stablehlo.output_operand_alias<output_tuple_indices = [],
+        operand_index = 0,
+        operand_tuple_indices = []>]
+  } : (memref<2xf32>) -> memref<2xf32>
+  %2 = "stablehlo.custom_call"(%1) {
+    call_target_name = "Unpin",
+    api_version = 4 : i32
+  } : (memref<2xf32>) -> tensor<2xf32>
+  func.return %2 : tensor<2xf32>
+}
+
+func.func @custom_call_op_create_buffer_type() -> memref<2xf32> {
+  %0 = "stablehlo.custom_call"() {
+    call_target_name = "CreateBuffer",
+    api_version = 4 : i32
+  } : () -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
+func.func @tuple_op_with_buffer_type(%arg0: tensor<2xf32>, %arg1: memref<2xf32>) -> tuple<tensor<2xf32>, memref<2xf32>> {
+  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<2xf32>, memref<2xf32>) -> tuple<tensor<2xf32>, memref<2xf32>>
+  func.return %0 : tuple<tensor<2xf32>, memref<2xf32>>
+}
+
+func.func @get_tuple_element_op_with_buffer_type(%arg0: tuple<tensor<2xf32>, memref<2xf32>>) -> memref<2xf32> {
+  %0 = "stablehlo.get_tuple_element"(%arg0) {
+    index = 1 : i32
+  } : (tuple<tensor<2xf32>, memref<2xf32>>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
+func.func @while_op_with_buffer_type(%arg0: tensor<i1>, %arg1: memref<2xf32>) -> memref<2xf32> {
+  %0:2 = stablehlo.while(%iterArg0 = %arg0, %iterArg1 = %arg1) : tensor<i1>, memref<2xf32>
+    cond {
+      stablehlo.return %iterArg0 : tensor<i1>
+    } do {
+      %1 = "stablehlo.custom_call"(%iterArg1) {
+        call_target_name = "foo",
+        api_version = 4 : i32,
+        output_operand_aliases = [
+          #stablehlo.output_operand_alias<output_tuple_indices = [],
+            operand_index = 0,
+            operand_tuple_indices = []>]
+      } : (memref<2xf32>) -> memref<2xf32>
+      stablehlo.return %iterArg0, %1 : tensor<i1>, memref<2xf32>
+    }
+  func.return %0#1: memref<2xf32>
+}
+
+func.func @custom_call_op_create_buffer_with_input(%arg0: tensor<2xf32>) -> memref<2xf32> {
+  // expected-error@+1 {{CreateBuffer custom_call shouldn't have any inputs}}
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "CreateBuffer",
+    api_version = 4 : i32
+  } : (tensor<2xf32>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
+func.func @custom_call_op_pin_with_tensor_output(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+  // expected-error@+1 {{Pin custom_call should have a memref output}}
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "Pin",
+    api_version = 4 : i32
+  } : (tensor<2xf32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+
+func.func @custom_call_op_unpin_with_incompatible_input_output(%arg0: memref<2xf32>) -> tensor<2xi32> {
+  // expected-error@+1 {{Unpin custom_call should have compatible input and output types}}
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "Unpin",
+    api_version = 4 : i32
+  } : (memref<2xf32>) -> tensor<2xi32>
+  func.return %0 : tensor<2xi32>
+}
+
+func.func @add_op_with_buffer_type(%arg0: memref<4xf32>, %arg1: memref<4xf32>) -> memref<4xf32> {
+  // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}}, but got 'memref<4xf32>'}}
+  %0 = "stablehlo.add"(%arg0, %arg1) : (memref<4xf32>, memref<4xf32>) -> memref<4xf32>
+  func.return %0 : memref<4xf32>
+}
+
+func.func @if_op_with_buffer_type(%pred : tensor<i1>, %branch_operand : memref<2xf32>) -> memref<2xf32> {
+  // expected-error-re@+1 {{result #0 must be variadic of ranked tensor of {{.*}}, but got 'memref<2xf32>'}}
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%branch_operand) : (memref<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (memref<2xf32>) -> ()
+    }) : (tensor<i1>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
+func.func @custom_call_pin_with_output_operand_alias(%arg0: tensor<2xf32>) -> memref<2xf32> {
+  // expected-error@+1 {{shapes mismatch in the output_operand_alias attribute: operand part has type 'tensor<2xf32>' and output part has type 'memref<2xf32>'}}
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "Pin",
+    api_version = 4 : i32,
+    output_operand_aliases = [
+      #stablehlo.output_operand_alias<output_tuple_indices = [],
+        operand_index = 0,
+        operand_tuple_indices = []>]
+  } : (tensor<2xf32>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
+func.func @custom_call_unpin_with_output_operand_alias(%arg0: memref<2xf32>) -> tensor<2xf32> {
+  // expected-error@+1 {{shapes mismatch in the output_operand_alias attribute: operand part has type 'memref<2xf32>' and output part has type 'tensor<2xf32>'}}
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "Unpin",
+    api_version = 4 : i32,
+    output_operand_aliases = [
+      #stablehlo.output_operand_alias<output_tuple_indices = [],
+        operand_index = 0,
+        operand_tuple_indices = []>]
+  } : (memref<2xf32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+
+func.func @custom_call_buffer_operand_in_multiple_output_operand_aliases(%arg0: tensor<2xf32>, %arg1: memref<2xf32>) -> (memref<2xf32>, memref<2xf32>) {
+  // expected-error@+1 {{buffer operand 1[] is used in output_operand_alias more than once}}
+  %0:2 = "stablehlo.custom_call"(%arg0, %arg1) {
+    call_target_name = "foo",
+    api_version = 4 : i32,
+    output_operand_aliases = [
+      #stablehlo.output_operand_alias<output_tuple_indices = [0],
+        operand_index = 1,
+        operand_tuple_indices = []>,
+      #stablehlo.output_operand_alias<output_tuple_indices = [1],
+        operand_index = 1,
+        operand_tuple_indices = []>]
+  } : (tensor<2xf32>, memref<2xf32>) -> (memref<2xf32>, memref<2xf32>)
+  func.return %0#0, %0#1 : memref<2xf32>, memref<2xf32>
+}
+
+func.func @custom_call_buffer_output_in_multiple_output_operand_aliases(%arg0: memref<2xf32>, %arg1: memref<2xf32>) -> tuple<tuple<memref<2xf32>>> {
+  %0 = "stablehlo.tuple"(%arg0) : (memref<2xf32>) -> tuple<memref<2xf32>>
+  %1 = "stablehlo.tuple"(%0, %arg1) : (tuple<memref<2xf32>>, memref<2xf32>) -> tuple<tuple<memref<2xf32>>, memref<2xf32>>
+  // expected-error@+1 {{buffer output [0, 0] is used in output_operand_alias more than once}}
+  %2 = "stablehlo.custom_call"(%1) {
+    call_target_name = "foo",
+    api_version = 4 : i32,
+    output_operand_aliases = [
+      #stablehlo.output_operand_alias<output_tuple_indices = [0, 0],
+        operand_index = 0,
+        operand_tuple_indices = [0, 0]>,
+      #stablehlo.output_operand_alias<output_tuple_indices = [0, 0],
+        operand_index = 0,
+        operand_tuple_indices = [1]>]
+  } : (tuple<tuple<memref<2xf32>>, memref<2xf32>>) -> tuple<tuple<memref<2xf32>>>
+  func.return %2 : tuple<tuple<memref<2xf32>>>
+}
+
+func.func @custom_call_buffer_output_not_in_output_operand_aliases(%arg0: memref<2xf32>, %arg1: memref<2xf32>) -> (memref<2xf32>, memref<2xf32>, memref<2xf32>) {
+  %0 = "stablehlo.tuple"(%arg0) : (memref<2xf32>) -> tuple<memref<2xf32>>
+  %1 = "stablehlo.tuple"(%0, %arg1) : (tuple<memref<2xf32>>, memref<2xf32>) -> tuple<tuple<memref<2xf32>>, memref<2xf32>>
+  // expected-error@+1 {{buffer output [2] is not used in output_operand_alias}}
+  %2:3 = "stablehlo.custom_call"(%1) {
+    call_target_name = "foo",
+    api_version = 4 : i32,
+    output_operand_aliases = [
+      #stablehlo.output_operand_alias<output_tuple_indices = [0],
+        operand_index = 0,
+        operand_tuple_indices = [0, 0]>,
+      #stablehlo.output_operand_alias<output_tuple_indices = [1],
+        operand_index = 0,
+        operand_tuple_indices = [1]>]
+  } : (tuple<tuple<memref<2xf32>>, memref<2xf32>>) -> (memref<2xf32>, memref<2xf32>, memref<2xf32>)
+  func.return %2#0, %2#1, %2#2 : memref<2xf32>, memref<2xf32>, memref<2xf32>
+}

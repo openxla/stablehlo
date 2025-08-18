@@ -2971,6 +2971,33 @@ func.func @type_tuple(%arg0: tuple<tensor<f32>>) -> tuple<!stablehlo.token> {
   return %0 : tuple<!stablehlo.token>
 }
 
+// CHECK-LABEL: type_buffer_function_input_output
+// CHECK-NEXT: (%[[ARG0:.*]]: !vhlo.buffer_v1<2x!vhlo.f32_v1>)
+func.func @type_buffer_function_input_output(%arg0: memref<2xf32>) -> memref<2xf32> {
+  // CHECK: "vhlo.return_v1"(%[[ARG0]]) : (!vhlo.buffer_v1<2x!vhlo.f32_v1>) -> ()
+  func.return %arg0 : memref<2xf32>
+}
+
+// CHECK-LABEL: type_buffer_special_custom_calls
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func @type_buffer_special_custom_calls(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+  //               CHECK: %[[CALL0:.*]] = "vhlo.custom_call_v1"(%[[ARG0]])
+  //          CHECK-SAME: call_target_name = #vhlo.string_v1<"Pin">
+  //          CHECK-SAME: : (!vhlo.tensor_v1<2x!vhlo.f32_v1>) -> !vhlo.buffer_v1<2x!vhlo.f32_v1>
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "Pin",
+    api_version = 4 : i32
+  } : (tensor<2xf32>) -> memref<2xf32>
+  //               CHECK: %{{.*}} = "vhlo.custom_call_v1"(%[[CALL0]])
+  //          CHECK-SAME: call_target_name = #vhlo.string_v1<"Unpin">
+  //          CHECK-SAME: : (!vhlo.buffer_v1<2x!vhlo.f32_v1>) -> !vhlo.tensor_v1<2x!vhlo.f32_v1>
+  %1 = "stablehlo.custom_call"(%0) {
+    call_target_name = "Unpin",
+    api_version = 4 : i32
+  } : (memref<2xf32>) -> tensor<2xf32>
+  func.return %1 : tensor<2xf32>
+}
+
 // ============ DEPENDENCIES  ============
 
 func.func @composite_target(%arg0: tensor<f32>) -> tensor<f32> {

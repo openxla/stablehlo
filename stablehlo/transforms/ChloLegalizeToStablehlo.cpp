@@ -51,6 +51,10 @@
 #include "stablehlo/transforms/PassUtils.h"
 #include "stablehlo/transforms/Passes.h"
 
+// This must precede all other headers, otherwise during Windows cross
+// compilation, M_PI will not be defined.
+#define _USE_MATH_DEFINES
+
 namespace mlir {
 namespace stablehlo {
 
