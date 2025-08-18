@@ -3989,7 +3989,7 @@ ParseResult parseWindowAttributes(OpAsmParser& parser,
 void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
                              ComparisonDirection direction,
                              std::optional<StringRef> compareType, Region* body,
-                            OpBuilder* builder) {
+                             OpBuilder* builder) {
   OpBuilder::InsertionGuard insertionPointGuard(*builder);
 
   Location loc = body->getLoc();
