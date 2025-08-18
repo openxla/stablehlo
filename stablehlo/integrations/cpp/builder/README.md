@@ -13,7 +13,7 @@ The builders look fairly similar to XlaBuilder's declarative style, see
 ```c++
 StablehloModuleBuilder mb;
 {  // Build Main Func
-  ScopedBuilderLocation loc(mb.get(), FileLineColLoc(mb.get(), "main.mlir"));
+  ScopedBuilderLocation loc(mb.get(), fileLineColLoc(mb.get(), "main.mlir"));
   func::FunctionBuilder fb(mb.get(), mb->getLoc(), "main");
   auto type4xi64 = RankedTensorType::get({4}, fb.getOpBuilder().getI64Type());
   auto arg0 = func::Argument(fb, type4xi64);

@@ -72,7 +72,7 @@ TEST(MlirBuilderTest, SmokeTest) {
 
   StablehloModuleBuilder mb;
   {  // Build Main Func
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type2xi64 = makeTensorType(mb->getContext(), {2}, ElementType::I64);
     auto arg0 = func::Argument(fb, type2xi64);
@@ -320,7 +320,7 @@ TEST(MlirBuilderTest, ConstantPRED) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::PRED);
     auto cst = stablehlo::Constant(fb, makeConstant(true, type));
@@ -341,7 +341,7 @@ TEST(MlirBuilderTest, ConstantI32) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::I32);
     auto cst = stablehlo::Constant(fb, makeConstant(1, type));
@@ -362,7 +362,7 @@ TEST(MlirBuilderTest, ConstantF32) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::F32);
     auto cst = stablehlo::Constant(fb, makeConstant(1.0, type));
@@ -383,7 +383,7 @@ TEST(MlirBuilderTest, ConstantComplexF32) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::COMPLEXF32);
     auto cst = stablehlo::Constant(
@@ -405,7 +405,7 @@ TEST(MlirBuilderTest, ConstantPredFromInt) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::PRED);
     auto cst = stablehlo::Constant(fb, makeConstant(1, type));
@@ -426,7 +426,7 @@ TEST(MlirBuilderTest, ConstantPredFromFloat) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::PRED);
     auto cst = stablehlo::Constant(fb, makeConstant(1.0, type));
@@ -447,7 +447,7 @@ TEST(MlirBuilderTest, ConstantPredFromComplexF32) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::PRED);
     auto cst = stablehlo::Constant(
@@ -469,7 +469,7 @@ TEST(MlirBuilderTest, ConstantI32FromPred) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::I32);
     auto cst = stablehlo::Constant(fb, makeConstant(true, type));
@@ -490,7 +490,7 @@ TEST(MlirBuilderTest, ConstantI32FromFloat) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::I32);
     auto cst = stablehlo::Constant(fb, makeConstant(0.0, type));
@@ -511,7 +511,7 @@ TEST(MlirBuilderTest, ConstantI32FromComplexF32) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::I32);
     auto cst = stablehlo::Constant(
@@ -533,7 +533,7 @@ TEST(MlirBuilderTest, ConstantF32FromPred) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::F32);
     auto cst = stablehlo::Constant(fb, makeConstant(true, type));
@@ -554,7 +554,7 @@ TEST(MlirBuilderTest, ConstantF32FromInt) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::F32);
     auto cst = stablehlo::Constant(fb, makeConstant(0, type));
@@ -575,7 +575,7 @@ TEST(MlirBuilderTest, ConstantF32FromComplexF32) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::F32);
     auto cst = stablehlo::Constant(
@@ -597,7 +597,7 @@ TEST(MlirBuilderTest, ConstantComplexF32FromPred) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::COMPLEXF32);
     auto cst = stablehlo::Constant(fb, makeConstant(true, type));
@@ -618,7 +618,7 @@ TEST(MlirBuilderTest, ConstantComplexF32FromInt) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::COMPLEXF32);
     auto cst = stablehlo::Constant(fb, makeConstant(1, type));
@@ -639,7 +639,7 @@ TEST(MlirBuilderTest, ConstantComplexF32FromFloat) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {}, ElementType::COMPLEXF32);
     auto cst = stablehlo::Constant(fb, makeConstant(1.0, type));
@@ -660,7 +660,7 @@ TEST(MlirBuilderTest, ConstantPREDArray) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {2}, ElementType::PRED);
     auto cst = stablehlo::Constant(
@@ -682,7 +682,7 @@ TEST(MlirBuilderTest, ConstantI2Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {4}, ElementType::I2);
     auto cst = stablehlo::Constant(
@@ -704,7 +704,7 @@ TEST(MlirBuilderTest, ConstantUI2Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {4}, ElementType::UI2);
     auto cst = stablehlo::Constant(
@@ -726,7 +726,7 @@ TEST(MlirBuilderTest, ConstantI4Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {5}, ElementType::I4);
     auto cst = stablehlo::Constant(
@@ -748,7 +748,7 @@ TEST(MlirBuilderTest, ConstantUI4Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {3}, ElementType::UI4);
     auto cst = stablehlo::Constant(
@@ -770,7 +770,7 @@ TEST(MlirBuilderTest, ConstantI8Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {5}, ElementType::I8);
     auto cst = stablehlo::Constant(
@@ -792,7 +792,7 @@ TEST(MlirBuilderTest, ConstantUI8Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {3}, ElementType::UI8);
     auto cst = stablehlo::Constant(
@@ -814,7 +814,7 @@ TEST(MlirBuilderTest, ConstantI16Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {5}, ElementType::I16);
     auto cst = stablehlo::Constant(
@@ -837,7 +837,7 @@ TEST(MlirBuilderTest, ConstantUI16Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {3}, ElementType::UI16);
     auto cst = stablehlo::Constant(
@@ -859,7 +859,7 @@ TEST(MlirBuilderTest, ConstantI32Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {5}, ElementType::I32);
     auto cst = stablehlo::Constant(
@@ -883,7 +883,7 @@ TEST(MlirBuilderTest, ConstantUI32Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {3}, ElementType::UI32);
     auto cst = stablehlo::Constant(
@@ -905,7 +905,7 @@ TEST(MlirBuilderTest, ConstantI64Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {5}, ElementType::I64);
     auto cst = stablehlo::Constant(
@@ -930,7 +930,7 @@ TEST(MlirBuilderTest, ConstantUI64Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {3}, ElementType::UI64);
     auto cst = stablehlo::Constant(
@@ -954,7 +954,7 @@ TEST(MlirBuilderTest, ConstantF4E2M1FNArray) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F4E2M1FN);
     auto cst = stablehlo::Constant(
@@ -978,7 +978,7 @@ TEST(MlirBuilderTest, ConstantF6E2M3FNArray) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F6E2M3FN);
     auto cst = stablehlo::Constant(
@@ -1002,7 +1002,7 @@ TEST(MlirBuilderTest, ConstantF6E3M2FNArray) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F6E3M2FN);
     auto cst = stablehlo::Constant(
@@ -1026,7 +1026,7 @@ TEST(MlirBuilderTest, ConstantF8E3M4Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E3M4);
     auto cst = stablehlo::Constant(
@@ -1050,7 +1050,7 @@ TEST(MlirBuilderTest, ConstantF8E4M3B11FNUZArray) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type =
         makeTensorType(fb.getContext(), {10}, ElementType::F8E4M3B11FNUZ);
@@ -1075,7 +1075,7 @@ TEST(MlirBuilderTest, ConstantF8E4M3Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E4M3);
     auto cst = stablehlo::Constant(
@@ -1099,7 +1099,7 @@ TEST(MlirBuilderTest, ConstantF8E4M3FNArray) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E4M3FN);
     auto cst = stablehlo::Constant(
@@ -1123,7 +1123,7 @@ TEST(MlirBuilderTest, ConstantF8E4M3FNUZArray) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E4M3FNUZ);
     auto cst = stablehlo::Constant(
@@ -1147,7 +1147,7 @@ TEST(MlirBuilderTest, ConstantF8E5M2Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E5M2);
     auto cst = stablehlo::Constant(
@@ -1171,7 +1171,7 @@ TEST(MlirBuilderTest, ConstantF8E5M2FNUZArray) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E5M2FNUZ);
     auto cst = stablehlo::Constant(
@@ -1195,7 +1195,7 @@ TEST(MlirBuilderTest, ConstantF8E8M0FNUArray) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {8}, ElementType::F8E8M0FNU);
     auto cst = stablehlo::Constant(
@@ -1219,7 +1219,7 @@ TEST(MlirBuilderTest, ConstantBF16Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {11}, ElementType::BF16);
     auto cst = stablehlo::Constant(
@@ -1244,7 +1244,7 @@ TEST(MlirBuilderTest, ConstantF16Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {11}, ElementType::F16);
     auto cst = stablehlo::Constant(
@@ -1269,7 +1269,7 @@ TEST(MlirBuilderTest, ConstantF32Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {11}, ElementType::F32);
     auto cst = stablehlo::Constant(
@@ -1294,7 +1294,7 @@ TEST(MlirBuilderTest, ConstantF64Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {11}, ElementType::F64);
     auto cst = stablehlo::Constant(
@@ -1321,7 +1321,7 @@ TEST(MlirBuilderTest, ConstantComplexF32Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {2}, ElementType::COMPLEXF32);
     auto cst = stablehlo::Constant(
@@ -1345,7 +1345,7 @@ TEST(MlirBuilderTest, ConstantComplexF64Array) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {2}, ElementType::COMPLEXF64);
     auto cst = stablehlo::Constant(
@@ -1370,7 +1370,7 @@ TEST(MlirBuilderTest, ConvertElementTypeF32ToI32) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto& ctx = fb.getContext();
     auto type = makeTensorType(ctx, {2}, ElementType::F32);
@@ -1395,7 +1395,7 @@ TEST(MlirBuilderTest, ConvertElementTypeComplexToReal) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto& ctx = fb.getContext();
     auto type = makeTensorType(ctx, {2}, ElementType::COMPLEXF32);
@@ -1418,7 +1418,7 @@ TEST(MlirBuilderTest, ConstantI64SmallVector) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {8}, ElementType::I64);
     auto cst = stablehlo::Constant(
@@ -1440,7 +1440,7 @@ TEST(MlirBuilderTest, ConstantI64Vector) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {8}, ElementType::I64);
     auto cst = stablehlo::Constant(
@@ -1462,7 +1462,7 @@ TEST(MlirBuilderTest, EmptyConstantI64) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {0}, ElementType::I64);
     auto cst = stablehlo::Constant(fb, makeConstant(ArrayRef<int64_t>{}, type));
@@ -1483,7 +1483,7 @@ TEST(MlirBuilderTest, EmptyConstantMismatchedTypeI64) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {0}, ElementType::I64);
     // Pass double data with i64 type.
@@ -1505,7 +1505,7 @@ TEST(MlirBuilderTest, EmptyConstantMismatchedTypeAPIntF64) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {0}, ElementType::F64);
     // Pass double data with i64 type.
@@ -1531,7 +1531,7 @@ TEST(MlirBuilderTest, ResultAccuracyAttrDefault) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {2}, ElementType::F32);
     auto arg0 = func::Argument(fb, type);
@@ -1553,7 +1553,7 @@ TEST(MlirBuilderTest, ResultAccuracyAttrHighest) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {2}, ElementType::F32);
     auto arg0 = func::Argument(fb, type);
@@ -1577,7 +1577,7 @@ TEST(MlirBuilderTest, ResultAccuracyAttrTolerance) {
 
   StablehloModuleBuilder mb;
   {
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {2}, ElementType::F32);
     auto arg0 = func::Argument(fb, type);

@@ -54,8 +54,9 @@ using mlir::tblgen::NamedRegion;
 using mlir::tblgen::Operator;
 
 namespace mlir {
+namespace {
 
-enum ActionType {
+enum class ActionType {
   GenBuilderHeader,
   GenBuilderImpl,
   GenBuilderDocs,
@@ -63,9 +64,12 @@ enum ActionType {
 
 static llvm::cl::opt<ActionType> action(
     llvm::cl::desc("action to perform"),
-    llvm::cl::values(clEnumValN(GenBuilderHeader, "gen-builder-decls", "")),
-    llvm::cl::values(clEnumValN(GenBuilderImpl, "gen-builder-defs", "")),
-    llvm::cl::values(clEnumValN(GenBuilderDocs, "gen-builder-docs", "")));
+    llvm::cl::values(clEnumValN(ActionType::GenBuilderHeader,
+                                "gen-builder-decls", "")),
+    llvm::cl::values(clEnumValN(ActionType::GenBuilderImpl, "gen-builder-defs",
+                                "")),
+    llvm::cl::values(clEnumValN(ActionType::GenBuilderDocs, "gen-builder-docs",
+                                "")));
 
 LogicalResult skipOperation(const Operator& op, StringRef reason) {
   llvm::errs() << "Skipping " << op.getCppClassName() << ": " << reason << "\n";
@@ -76,56 +80,58 @@ LogicalResult skipOperation(const Operator& op, StringRef reason) {
 
 /// Returns true if the SameArgumentAndResultTypes trait can be used to infer
 /// result types of the given operation.
-static bool hasSameArgumentAndResultTypes(const Operator& op) {
+bool hasSameArgumentAndResultTypes(const Operator& op) {
   return op.getTrait("::mlir::OpTrait::SameOperandsAndResultType") &&
          op.getNumVariableLengthResults() == 0;
 }
 
 /// Returns true if the FirstAttrDerivedResultType trait can be used to infer
 /// result types of the given operation.
-// static bool hasFirstAttrDerivedResultTypes(const Operator &op) {
+/// TODO: Once the use of this is understood, it should be added to tablegen to
+/// simplify builders for ops that use this trait.
+// bool hasFirstAttrDerivedResultTypes(const Operator &op) {
 //   return op.getTrait("::mlir::OpTrait::FirstAttrDerivedResultType") &&
 //          op.getNumVariableLengthResults() == 0;
 // }
 
 /// Returns true if the InferTypeOpInterface can be used to infer result types
 /// of the given operation.
-static bool hasInferTypeInterface(const Operator& op) {
+bool hasInferTypeInterface(const Operator& op) {
   return op.getTrait("::mlir::InferTypeOpInterface::Trait");
 }
 
 /// Returns true if there is a trait or interface that can be used to infer
 /// result types of the given operation.
-static bool canInferType(const Operator& op) {
+bool canInferType(const Operator& op) {
   // TODO: Support hasFirstAttrDerivedResultTypes(op)
   bool hasOutputType = op.getNumResults() > 0;
   return !hasOutputType || hasSameArgumentAndResultTypes(op) ||
          hasInferTypeInterface(op);
 }
 
-static bool hasVariadicResult(const Operator& op) {
+bool hasVariadicResult(const Operator& op) {
   return llvm::any_of(op.getResults(),
                       [](const auto& result) { return result.isVariadic(); });
 }
 
-static bool hasSingleVariadicResult(const Operator& op) {
+bool hasSingleVariadicResult(const Operator& op) {
   return op.getNumResults() == 1 && hasVariadicResult(op);
 }
 
-static bool hasRegions(const Operator& op,
-                       std::optional<int> numRegions = std::nullopt) {
+bool hasRegions(const Operator& op,
+                std::optional<int> numRegions = std::nullopt) {
   if (numRegions.has_value()) {
     return op.getNumRegions() == static_cast<unsigned int>(numRegions.value());
   }
   return op.getNumRegions() > 0;
 }
 
-static bool isTerminator(const Operator& op) {
+bool isTerminator(const Operator& op) {
   return op.getTrait("::mlir::OpTrait::IsTerminator");
 }
 
 // Returns true if we can use unwrapped value for the given `attr` in builders.
-static bool canUseUnwrappedRawValue(const tblgen::Attribute& attr) {
+bool canUseUnwrappedRawValue(const tblgen::Attribute& attr) {
   return attr.getReturnType() != attr.getStorageType() &&
          // We need to wrap the raw value into an attribute in the builder impl
          // so we need to make sure that the attribute specifies how to do that.
@@ -291,9 +297,6 @@ class OpBuilderEmitter {
   void buildMethodCall(MethodBody& body);
 
   // Insert a creation call and invoke region callbacks.
-  //   OpTy op = builder.createUnwrapped(...);
-  //   regionCallback(op->getRegion(N))
-  //   return MlirOp(this, op);
   void buildMethodCallWithRegions(MethodBody& body);
 
   // Write a description of the current builder method either to a code comment
@@ -313,10 +316,11 @@ std::string resultsStringSwitch(const Operator& op,
                                 std::function<std::string()> one,
                                 std::function<std::string(int)> many,
                                 std::function<std::string()> variadic) {
-  if (op.getNumResults() == 0) return zero();
+  auto numResults = op.getNumResults();
+  if (numResults == 0) return zero();
   if (hasSingleVariadicResult(op)) return variadic();
-  if (op.getNumResults() == 1) return one();
-  if (op.getNumResults() > 1) return many(op.getNumResults());
+  if (numResults == 1) return one();
+  if (numResults > 1) return many(numResults);
   return "<<ResultStringSwitch error>>";
 }
 
@@ -327,8 +331,9 @@ std::string resultsStringSwitch(const Operator& op,
 //   Single Variadic  --> SmallVector<MlirOp>
 std::string OpBuilderEmitter::getReturnType() {
   return resultsStringSwitch(
-      getOp(), []() { return "void"; },  // zero
-      []() { return "MlirOp"; },         // one
+      getOp(),                    //
+      []() { return "void"; },    // zero
+      []() { return "MlirOp"; },  // one
       [](int n) { return llvm::formatv("SmallVector<MlirOp, {0}>", n).str(); },
       []() { return "SmallVector<MlirOp>"; });  // variadic
 }
@@ -356,7 +361,6 @@ SmallVector<MethodParameter> OpBuilderEmitter::getOperandParameters() {
   return parameters;
 }
 
-namespace {
 StringRef getAttributeType(Attribute attr) {
   if (canUseUnwrappedRawValue(attr)) {
     return attr.getReturnType();
@@ -379,7 +383,6 @@ std::optional<std::string> getAttributeDefaultValue(OpBuilderEmitter& emitter,
     return tgfmt(attr.getDefaultValue(), &fctx);
   return "{}";
 }
-}  // namespace
 
 // Get attribute params:
 // TODO: Support buildable attributes from default values with fmt gen.
@@ -513,12 +516,12 @@ void OpBuilderEmitter::buildMethodDescription(mlir::raw_indented_ostream& os,
 
   if (isTerminator(op_)) {
     ds << R"(
-This operation is a Regions Terminator. It can only be called in a RegionBuilder
+This operation is a Region's Terminator. It can only be called in a RegionBuilder
 function callback when constructing the body of an op.)";
   }
   if (hasRegions(op_)) {
     ds << R"(
-This operation has a body region build via a callback function.)";
+This operation has a body region built via a callback function.)";
   }
 
   if (!description.empty()) {
@@ -605,7 +608,8 @@ LogicalResult verifyArgumentOrder(const Operator& op) {
 
 LogicalResult verifyAttributes(const Operator& op) {
   // TODO: Name conflicts cause issues, like StableHLO Transpose attr vs
-  // the free stablehlo::Transpose op builder method.
+  // the free stablehlo::Transpose op builder method. The StableHLO enum kind
+  // should be renamed.
   llvm::DenseSet<StringRef> knownBadTypes = {"StableHLO_TransposeAttr"};
   bool hasBadType =
       llvm::any_of(op.getAttributes(), [&](const NamedAttribute& attr) {
@@ -679,20 +683,21 @@ void WriteOperatorBuilder(OpBuilderEmitter& emitter,
   // Need to switch on operations that don't have operands to take a builder as
   // an argument.
   switch (action) {
-    case GenBuilderHeader:
+    case ActionType::GenBuilderHeader:
       method.writeDeclTo(os);
-      break;
-    case GenBuilderImpl:
+      return;
+    case ActionType::GenBuilderImpl:
       method.writeDefTo(os, "");
-      break;
-    case GenBuilderDocs:
+      return;
+    case ActionType::GenBuilderDocs:
       emitter.buildMethodDoc(os, method);
-      break;
+      return;
   }
+  llvm::report_fatal_error("[WriteOperatorBuilder] Unknown enum value.");
 }
 
 void writeFileHeader(mlir::raw_indented_ostream& os, StringRef header) {
-  if (action == GenBuilderDocs) {
+  if (action == ActionType::GenBuilderDocs) {
     os << "# " << header << "\n\n";
     os << "[TOC]\n\n";
     os << "## Builder Methods\n\n";
@@ -706,7 +711,7 @@ void writeSkipped(mlir::raw_indented_ostream& os,
   if (skipped.empty()) return;
 
   std::string prefix = "// Skipped ";
-  if (action == GenBuilderDocs) {
+  if (action == ActionType::GenBuilderDocs) {
     prefix = " - ";
     os << "## Skipped Operations\n\n";
     os << "Unable to generate builder for the following operations:\n\n";
@@ -719,8 +724,8 @@ void writeSkipped(mlir::raw_indented_ostream& os,
 // The function below has a non-constant reference as that is required by LLVM's
 // TableGenMain.
 // NOLINTNEXTLINE
-static bool GenerateStablehloBuilderMain(raw_ostream& os,
-                                         const RecordKeeper& records) {
+bool GenerateStablehloBuilderMain(raw_ostream& os,
+                                  const RecordKeeper& records) {
   mlir::raw_indented_ostream indentedOs(os);
   // Get the list of StableHLO operations that are allowed to be directly
   // converted to HLO without intermediate MHLO step.
@@ -748,6 +753,7 @@ static bool GenerateStablehloBuilderMain(raw_ostream& os,
   return false;
 }
 
+}  // namespace
 }  // namespace mlir
 
 int main(int argc, char** argv) {

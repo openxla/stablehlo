@@ -135,7 +135,7 @@ inline FloatAttr getFloatAttr(llvm::APSInt value, FloatType type) {
   return getFloatAttr(value.roundToDouble(), type);
 }
 template <typename T>
-inline FloatAttr getFloatAttr(std::complex<T> value, FloatType type) {
+FloatAttr getFloatAttr(std::complex<T> value, FloatType type) {
   return getFloatAttr(value.real(), type);
 }
 

@@ -27,7 +27,7 @@ MlirOp Constant(MlirBuilder &builder, Type resultType, ::llvm::StringRef value);
 Creates a new [`func.return`](https://mlir.llvm.org/docs/Dialects/Func/#funcreturn-funcreturnop)
 operation.
 
-This operation is a Regions Terminator. It can only be called in a RegionBuilder
+This operation is a Region's Terminator. It can only be called in a RegionBuilder
 function callback when constructing the body of an op.
 
 ```c++

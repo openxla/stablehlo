@@ -73,7 +73,7 @@ TEST(MlirBuilderTest, SimpleAdd) {
 
   StablehloModuleBuilder mb;
   {  // Build Main Func
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type2xi64 = RankedTensorType::get({2}, fb.getOpBuilder().getI64Type());
     auto arg0 = func::Argument(fb, type2xi64);
@@ -97,7 +97,7 @@ TEST(MlirBuilderTest, MultipleReturn) {
 
   StablehloModuleBuilder mb;
   {  // Build Main Func
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type2xi64 = makeTensorType(fb.getContext(), {2}, ElementType::I64);
     auto arg0 = func::Argument(fb, type2xi64);
@@ -118,7 +118,7 @@ TEST(MlirBuilderTest, NoReturn) {
 
   StablehloModuleBuilder mb;
   {  // Build Main Func
-    Location funcLoc = FileLineColLoc(mb.get(), "main.mlir", 1, 1);
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     func::Return(fb, {});
   }
@@ -169,8 +169,8 @@ module {
 
   StablehloModuleBuilder mb;
   {  // Build Main Func
-    ScopedBuilderLocation loc(mb.get(),
-                              FileLineColLoc(mb.get(), "main.mlir", 1, 1));
+    ScopedBuilderLocation loc(
+        mb.get(), fileLineColLoc(mb->getContext(), "main.mlir", 1, 1));
     func::FunctionBuilder fb(mb.get(), "main");
     auto type2xi64 = makeTensorType(fb.getContext(), {}, ElementType::I64);
     auto arg0 = func::Argument(fb, type2xi64);
@@ -178,7 +178,8 @@ module {
 
     // This would typically be a library call, emulate with a lambda.
     auto buildCst = [type2xi64](MlirBuilder& b) {
-      ScopedBuilderLocation loc(b, FileLineColLoc(b, "constant.mlir", 10, 20));
+      ScopedBuilderLocation loc(
+          b, fileLineColLoc(b.getContext(), "constant.mlir", 10, 20));
       return stablehlo::Constant(b, mlir::makeConstant(1L, type2xi64));
     };
 

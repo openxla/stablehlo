@@ -78,9 +78,6 @@ SmallVector<MlirOp> Call(MlirBuilder& builder, func::FuncOp func,
 // GENERATED APIs
 /////////////////
 
-// Idea: Update function signature in func::Return.
-// May need to specialize the op gen for func return...
-
 FuncOp Func(MlirBuilder& mb, StringRef name,
             const RegionBuilderCallback& body) {
   FuncOp func = mb.createUnwrapped<func::FuncOp>(

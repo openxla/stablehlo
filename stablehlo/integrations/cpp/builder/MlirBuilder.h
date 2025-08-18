@@ -239,14 +239,6 @@ class RegionOpBuilder : public MlirBuilder {
 };
 
 ///////////////
-// Builtin Dialect Type & Attribute Builders
-///////////////
-
-Location UnknownLoc(MlirBuilder& builder);
-Location FileLineColLoc(MlirBuilder& builder, StringRef filename,
-                        unsigned line = 0, unsigned col = 0);
-
-///////////////
 // Builtin Dialect Helpers
 ///////////////
 

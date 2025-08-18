@@ -37,10 +37,6 @@ namespace stablehlo {
 // MANUAL APIs
 /////////////////
 
-bool isComplex(RankedTensorType type) {
-  return mlir::isa<ComplexType>(type.getElementType());
-}
-
 MlirOp ConvertElementType(MlirOp input, Type resultElementType) {
   MlirOp operand = input;
   auto inputType = mlir::cast<RankedTensorType>(input.getType());

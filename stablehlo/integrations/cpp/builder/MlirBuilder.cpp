@@ -28,16 +28,6 @@ MlirOp Argument(RegionBuilder& rb, Type type) {
   return MlirOp(rb, rb.getRegion().addArgument(type, rb.getLoc()));
 }
 
-// Builtin Dialect Generated Builders
-
-Location UnknownLoc(MlirBuilder& builder) {
-  return UnknownLoc::get(&builder.getContext());
-}
-Location FileLineColLoc(MlirBuilder& builder, StringRef filename, unsigned line,
-                        unsigned col) {
-  return FileLineColLoc::get(&builder.getContext(), filename, line, col);
-}
-
 Value unwrap(MlirOp const& value) { return value.getValue(); }
 
 SmallVector<Value> unwrap(ArrayRef<MlirOp> values) {

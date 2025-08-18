@@ -45,7 +45,7 @@ SmallVector<MlirOp> AllGather(MlirBuilder &builder, Type resultType, ArrayRef<Ml
 Creates a new [`stablehlo.all_reduce`](https://openxla.org/stablehlo/spec#all_reduce)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 SmallVector<MlirOp> AllReduce(MlirBuilder &builder, ArrayRef<MlirOp> operands, const RegionBuilderCallback &computation, ::mlir::DenseIntElementsAttr replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
@@ -470,7 +470,7 @@ MlirOp GetTupleElement(MlirOp &operand, uint32_t index);
 Creates a new [`stablehlo.if`](https://openxla.org/stablehlo/spec#if)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 SmallVector<MlirOp> If(MlirOp &pred, const RegionBuilderCallback &true_branch, const RegionBuilderCallback &false_branch);
@@ -544,7 +544,7 @@ MlirOp Logistic(MlirOp &operand, /*optional*/::mlir::stablehlo::ResultAccuracyAt
 Creates a new [`stablehlo.map`](https://openxla.org/stablehlo/spec#map)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 MlirOp Map(MlirBuilder &builder, ArrayRef<MlirOp> inputs, const RegionBuilderCallback &computation, ::llvm::ArrayRef<int64_t> dimensions);
@@ -690,7 +690,7 @@ SmallVector<MlirOp> Recv(Type resultType, MlirOp &token, ::mlir::stablehlo::Chan
 Creates a new [`stablehlo.reduce`](https://openxla.org/stablehlo/spec#reduce)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 SmallVector<MlirOp> Reduce(MlirBuilder &builder, ArrayRef<MlirOp> inputs, ArrayRef<MlirOp> init_values, const RegionBuilderCallback &body, ::llvm::ArrayRef<int64_t> dimensions);
@@ -710,7 +710,7 @@ MlirOp ReducePrecision(MlirOp &operand, uint32_t exponent_bits, uint32_t mantiss
 Creates a new [`stablehlo.reduce_scatter`](https://openxla.org/stablehlo/spec#reduce_scatter)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 MlirOp ReduceScatter(Type resultType, MlirOp &operand, const RegionBuilderCallback &computation, uint64_t scatter_dimension, ::mlir::DenseIntElementsAttr replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
@@ -721,7 +721,7 @@ MlirOp ReduceScatter(Type resultType, MlirOp &operand, const RegionBuilderCallba
 Creates a new [`stablehlo.reduce_window`](https://openxla.org/stablehlo/spec#reduce_window)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 SmallVector<MlirOp> ReduceWindow(MlirBuilder &builder, ArrayRef<MlirOp> inputs, ArrayRef<MlirOp> init_values, const RegionBuilderCallback &body, ::llvm::ArrayRef<int64_t> window_dimensions, /*optional*/::mlir::DenseI64ArrayAttr window_strides = {}, /*optional*/::mlir::DenseI64ArrayAttr base_dilations = {}, /*optional*/::mlir::DenseI64ArrayAttr window_dilations = {}, /*optional*/::mlir::DenseIntElementsAttr padding = {});
@@ -759,7 +759,7 @@ MlirOp Reshape(Type resultType, MlirOp &operand);
 Creates a new [`stablehlo.return`](https://openxla.org/stablehlo/spec#return)
 operation.
 
-This operation is a Regions Terminator. It can only be called in a RegionBuilder
+This operation is a Region's Terminator. It can only be called in a RegionBuilder
 function callback when constructing the body of an op.
 
 ```c++
@@ -816,7 +816,7 @@ MlirOp Rsqrt(MlirOp &operand, /*optional*/::mlir::stablehlo::ResultAccuracyAttr 
 Creates a new [`stablehlo.scatter`](https://openxla.org/stablehlo/spec#scatter)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 SmallVector<MlirOp> Scatter(ArrayRef<MlirOp> inputs, MlirOp &scatter_indices, ArrayRef<MlirOp> updates, const RegionBuilderCallback &update_computation, ::mlir::stablehlo::ScatterDimensionNumbersAttr scatter_dimension_numbers, /*optional*/bool indices_are_sorted = false, /*optional*/bool unique_indices = false);
@@ -827,7 +827,7 @@ SmallVector<MlirOp> Scatter(ArrayRef<MlirOp> inputs, MlirOp &scatter_indices, Ar
 Creates a new [`stablehlo.select_and_scatter`](https://openxla.org/stablehlo/spec#select_and_scatter)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 MlirOp SelectAndScatter(MlirOp &operand, MlirOp &source, MlirOp &init_value, const RegionBuilderCallback &select, const RegionBuilderCallback &scatter, /*optional*/::mlir::DenseI64ArrayAttr window_dimensions = {}, /*optional*/::mlir::DenseI64ArrayAttr window_strides = {}, /*optional*/::mlir::DenseIntElementsAttr padding = {});
@@ -919,7 +919,7 @@ MlirOp Slice(MlirOp &operand, ::llvm::ArrayRef<int64_t> start_indices, ::llvm::A
 Creates a new [`stablehlo.sort`](https://openxla.org/stablehlo/spec#sort)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 SmallVector<MlirOp> Sort(MlirBuilder &builder, ArrayRef<MlirOp> inputs, const RegionBuilderCallback &comparator, /*optional*/uint64_t dimension = -1, /*optional*/bool is_stable = false);
@@ -1020,7 +1020,7 @@ MlirOp UniformQuantize(Type resultType, MlirOp &operand);
 Creates a new [`stablehlo.while`](https://openxla.org/stablehlo/spec#while)
 operation.
 
-This operation has a body region build via a callback function.
+This operation has a body region built via a callback function.
 
 ```c++
 SmallVector<MlirOp> While(MlirBuilder &builder, ArrayRef<MlirOp> operand, const RegionBuilderCallback &cond, const RegionBuilderCallback &body);

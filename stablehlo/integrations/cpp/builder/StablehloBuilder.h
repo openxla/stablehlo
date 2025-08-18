@@ -77,7 +77,6 @@ SmallVector<MlirOp> Arguments(RegionBuilder& rb, WhileOp op);
 #include "stablehlo/integrations/cpp/builder/StablehloBuilder.h.inc"
 
 }  // namespace stablehlo
-
 }  // namespace mlir
 
 #endif  // STABLEHLO_BUILDER_STABLEHLOBUILDER_H_

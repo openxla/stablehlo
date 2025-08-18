@@ -137,6 +137,4 @@ APFloat toAPFloat(double val, FloatType floatType) {
 
 }  // namespace detail
 
-// Dense Element Attrs
-
 }  // namespace mlir
