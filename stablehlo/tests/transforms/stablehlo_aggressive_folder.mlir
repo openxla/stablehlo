@@ -150,8 +150,8 @@ func.func @clamp_fold(%arg0: tensor<3xi32>) -> tensor<3xi32> {
 ////////
 // CompareOp
 
-// CHECK-LABEL: func.func @compare_folds
-func.func @compare_folds()
+// CHECK-LABEL: func.func @compare_fold_int
+func.func @compare_fold_int()
   -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
   %cn1 = stablehlo.constant dense<-1> : tensor<i32>
   %c0 = stablehlo.constant dense<0> : tensor<i32>
@@ -176,6 +176,270 @@ func.func @compare_folds()
          tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
 }
 
+// -----
+
+// CHECK-LABEL: func.func @compare_fold_float
+func.func @compare_fold_float()
+  -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
+  %c0 = stablehlo.constant dense<0.0> : tensor<f32>
+  %c1 = stablehlo.constant dense<0.01> : tensor<f32>
+  %c2 = stablehlo.constant dense<-0.01> : tensor<f32>
+  %c3 = stablehlo.constant dense<42.1> : tensor<f32>
+  %c4 = stablehlo.constant dense<-50.0> : tensor<f32>
+
+  %0 = stablehlo.compare EQ, %c0, %c0, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %1 = stablehlo.compare EQ, %c1, %c2, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %2 = stablehlo.compare NE, %c0, %c0, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %3 = stablehlo.compare NE, %c1, %c2, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %4 = stablehlo.compare GT, %c3, %c3, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %5 = stablehlo.compare GT, %c3, %c4, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %6 = stablehlo.compare GE, %c3, %c3, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %7 = stablehlo.compare GE, %c3, %c4, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %8 = stablehlo.compare LT, %c2, %c2, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %9 = stablehlo.compare LT, %c2, %c4, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %10 = stablehlo.compare LE, %c2, %c2, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %11 = stablehlo.compare LE, %c2, %c4, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  // CHECK-DAG:  [[FALSE:%.+]] = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-DAG:  [[TRUE:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+
+  // CHECK-NEXT: return [[TRUE]], [[FALSE]], [[FALSE]], [[TRUE]], [[FALSE]], [[TRUE]], [[TRUE]], [[TRUE]], [[FALSE]], [[FALSE]], [[TRUE]], [[FALSE]]
+  return %0, %1, %2, %3, %4, %5, %6, %7, %8, %9, %10, %11 :
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @compare_fold_float_edge_cases
+func.func @compare_fold_float_edge_cases()
+  -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+      tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
+  %zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %pos_inf = stablehlo.constant dense<0x7F800000> : tensor<f32>
+  %neg_inf = stablehlo.constant dense<0xFF800000> : tensor<f32>
+  %nan = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+
+  // CHECK-DAG:  [[FALSE:%.+]] = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-DAG:  [[TRUE:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+
+  %0 = stablehlo.compare EQ, %zero, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %1 = stablehlo.compare EQ, %zero, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %2 = stablehlo.compare EQ, %zero, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %3 = stablehlo.compare EQ, %zero, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %4 = stablehlo.compare EQ, %pos_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %5 = stablehlo.compare EQ, %pos_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %6 = stablehlo.compare EQ, %pos_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %7 = stablehlo.compare EQ, %pos_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %8 = stablehlo.compare EQ, %neg_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %9 = stablehlo.compare EQ, %neg_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %10 = stablehlo.compare EQ, %neg_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %11 = stablehlo.compare EQ, %neg_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %12 = stablehlo.compare EQ, %nan, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %13 = stablehlo.compare EQ, %nan, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %14 = stablehlo.compare EQ, %nan, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %15 = stablehlo.compare EQ, %nan, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  %16 = stablehlo.compare NE, %zero, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %17 = stablehlo.compare NE, %zero, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %18 = stablehlo.compare NE, %zero, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %19 = stablehlo.compare NE, %zero, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %20 = stablehlo.compare NE, %pos_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %21 = stablehlo.compare NE, %pos_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %22 = stablehlo.compare NE, %pos_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %23 = stablehlo.compare NE, %pos_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %24 = stablehlo.compare NE, %neg_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %25 = stablehlo.compare NE, %neg_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %26 = stablehlo.compare NE, %neg_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %27 = stablehlo.compare NE, %neg_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %28 = stablehlo.compare NE, %nan, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %29 = stablehlo.compare NE, %nan, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %30 = stablehlo.compare NE, %nan, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %31 = stablehlo.compare NE, %nan, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  %32 = stablehlo.compare GT, %zero, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %33 = stablehlo.compare GT, %zero, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %34 = stablehlo.compare GT, %zero, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %35 = stablehlo.compare GT, %zero, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %36 = stablehlo.compare GT, %pos_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %37 = stablehlo.compare GT, %pos_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %38 = stablehlo.compare GT, %pos_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %39 = stablehlo.compare GT, %pos_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %40 = stablehlo.compare GT, %neg_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %41 = stablehlo.compare GT, %neg_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %42 = stablehlo.compare GT, %neg_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %43 = stablehlo.compare GT, %neg_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %44 = stablehlo.compare GT, %nan, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %45 = stablehlo.compare GT, %nan, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %46 = stablehlo.compare GT, %nan, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %47 = stablehlo.compare GT, %nan, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  %48 = stablehlo.compare GE, %zero, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %49 = stablehlo.compare GE, %zero, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %50 = stablehlo.compare GE, %zero, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %51 = stablehlo.compare GE, %zero, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %52 = stablehlo.compare GE, %pos_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %53 = stablehlo.compare GE, %pos_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %54 = stablehlo.compare GE, %pos_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %55 = stablehlo.compare GE, %pos_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %56 = stablehlo.compare GE, %neg_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %57 = stablehlo.compare GE, %neg_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %58 = stablehlo.compare GE, %neg_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %59 = stablehlo.compare GE, %neg_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %60 = stablehlo.compare GE, %nan, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %61 = stablehlo.compare GE, %nan, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %62 = stablehlo.compare GE, %nan, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %63 = stablehlo.compare GE, %nan, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  %64 = stablehlo.compare LT, %zero, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %65 = stablehlo.compare LT, %zero, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %66 = stablehlo.compare LT, %zero, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %67 = stablehlo.compare LT, %zero, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %68 = stablehlo.compare LT, %pos_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %69 = stablehlo.compare LT, %pos_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %70 = stablehlo.compare LT, %pos_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %71 = stablehlo.compare LT, %pos_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %72 = stablehlo.compare LT, %neg_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %73 = stablehlo.compare LT, %neg_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %74 = stablehlo.compare LT, %neg_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %75 = stablehlo.compare LT, %neg_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %76 = stablehlo.compare LT, %nan, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %77 = stablehlo.compare LT, %nan, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %78 = stablehlo.compare LT, %nan, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %79 = stablehlo.compare LT, %nan, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  %80 = stablehlo.compare LE, %zero, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %81 = stablehlo.compare LE, %zero, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %82 = stablehlo.compare LE, %zero, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %83 = stablehlo.compare LE, %zero, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %84 = stablehlo.compare LE, %pos_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %85 = stablehlo.compare LE, %pos_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %86 = stablehlo.compare LE, %pos_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %87 = stablehlo.compare LE, %pos_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %88 = stablehlo.compare LE, %neg_inf, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %89 = stablehlo.compare LE, %neg_inf, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %90 = stablehlo.compare LE, %neg_inf, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %91 = stablehlo.compare LE, %neg_inf, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %92 = stablehlo.compare LE, %nan, %zero, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %93 = stablehlo.compare LE, %nan, %pos_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %94 = stablehlo.compare LE, %nan, %neg_inf, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %95 = stablehlo.compare LE, %nan, %nan, FLOAT : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  // CHECK: return [[TRUE]],  [[FALSE]], [[FALSE]], [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[TRUE]],  [[FALSE]], [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[TRUE]],  [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[FALSE]], [[FALSE]],
+
+  // CHECK-SAME:   [[FALSE]], [[TRUE]],  [[TRUE]],  [[TRUE]],
+  // CHECK-SAME:   [[TRUE]],  [[FALSE]], [[TRUE]],  [[TRUE]],
+  // CHECK-SAME:   [[TRUE]],  [[TRUE]],  [[FALSE]], [[TRUE]],
+  // CHECK-SAME:   [[TRUE]],  [[TRUE]],  [[TRUE]],  [[TRUE]],
+
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[TRUE]],  [[FALSE]],
+  // CHECK-SAME:   [[TRUE]],  [[FALSE]], [[TRUE]],  [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[FALSE]], [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[FALSE]], [[FALSE]],
+
+  // CHECK-SAME:   [[TRUE]],  [[FALSE]], [[TRUE]],  [[FALSE]],
+  // CHECK-SAME:   [[TRUE]],  [[TRUE]],  [[TRUE]],  [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[TRUE]],  [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[FALSE]], [[FALSE]],
+
+  // CHECK-SAME:   [[FALSE]], [[TRUE]],  [[FALSE]], [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[FALSE]], [[FALSE]],
+  // CHECK-SAME:   [[TRUE]],  [[TRUE]],  [[FALSE]], [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[FALSE]], [[FALSE]],
+
+  // CHECK-SAME:   [[TRUE]],  [[TRUE]],  [[FALSE]], [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[TRUE]],  [[FALSE]], [[FALSE]],
+  // CHECK-SAME:   [[TRUE]],  [[TRUE]],  [[TRUE]],  [[FALSE]],
+  // CHECK-SAME:   [[FALSE]], [[FALSE]], [[FALSE]], [[FALSE]]
+
+  return  %0,  %1,  %2,  %3,
+          %4,  %5,  %6,  %7,
+          %8,  %9, %10, %11,
+         %12, %13, %14, %15,
+
+         %16, %17, %18, %19,
+         %20, %21, %22, %23,
+         %24, %25, %26, %27,
+         %28, %29, %30, %31,
+
+         %32, %33, %34, %35,
+         %36, %37, %38, %39,
+         %40, %41, %42, %43,
+         %44, %45, %46, %47,
+
+         %48, %49, %50, %51,
+         %52, %53, %54, %55,
+         %56, %57, %58, %59,
+         %60, %61, %62, %63,
+
+         %64, %65, %66, %67,
+         %68, %69, %70, %71,
+         %72, %73, %74, %75,
+         %76, %77, %78, %79,
+
+         %80, %81, %82, %83,
+         %84, %85, %86, %87,
+         %88, %89, %90, %91,
+         %92, %93, %94, %95 :
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
 
 // -----
 
