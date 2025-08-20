@@ -56,12 +56,12 @@ gentbl_cc_library(
         "StablehloBuilder.md": ["-gen-builder-docs"],
     },
     tblgen = ":mlir_builder_tblgen",
-    td_file = "//party/stablehlo:stablehlo/dialect/StablehloOps.td",
+    td_file = "stablehlo/dialect/StablehloOps.td",
     deps = [
-        "//party/llvm/llvm-project/mlir:InferTypeOpInterfaceTdFiles",
-        "//party/llvm/llvm-project/mlir:OpBaseTdFiles",
-        "//party/llvm/llvm-project/mlir:SideEffectInterfacesTdFiles",
-        "//party/stablehlo:stablehlo_ops_td_filegroup",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
+        ":stablehlo_ops_td_filegroup",
     ],
 )
 ```
