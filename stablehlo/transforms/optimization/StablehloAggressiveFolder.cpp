@@ -132,8 +132,8 @@ FailureOr<TypedAttr> foldUnaryOpIntOrFloat(PatternRewriter& rewriter,
 /// ints and floats.
 template <typename Fn, typename IntResultType = IntegerAttr,
           typename FloatResultType = FloatAttr>
-TypedAttr foldBinaryOpIntOrFloat(Type resultType, TypedAttr lhs,
-                                        TypedAttr rhs, Fn&& folder) {
+TypedAttr foldBinaryOpIntOrFloat(Type resultType, TypedAttr lhs, TypedAttr rhs,
+                                 Fn&& folder) {
   Attribute operands[2] = {lhs, rhs};
   Type elemTy = getElementTypeOrSelf(lhs);
 
