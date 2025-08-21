@@ -482,8 +482,7 @@ func.func @div_fold_cst() -> (tensor<i32>, tensor<ui32>, tensor<f32>) {
   %cst_2 = stablehlo.constant dense<2.0> : tensor<f32>
   // CHECK: stablehlo.constant dense<1> : tensor<i32>
   // CHECK: stablehlo.constant dense<1> : tensor<ui32>
-  // CHECK: stablehlo.divide{{.*}} : tensor<f32>
-  // DISABLED-CHECK: stablehlo.constant dense<1.0{{.*}}> : tensor<f32>
+  // CHECK: stablehlo.constant dense<1.0{{.*}}> : tensor<f32>
   %0 = stablehlo.divide %cst, %cst : tensor<i32>
   %1 = stablehlo.divide %cst_1, %cst_1 : tensor<ui32>
   %2 = stablehlo.divide %cst_2, %cst_2 : tensor<f32>

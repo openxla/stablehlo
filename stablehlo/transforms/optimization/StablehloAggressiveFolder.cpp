@@ -111,6 +111,26 @@ LogicalResult validateStaticShapeResult(PatternRewriter& rewriter,
 /// ints and floats.
 template <typename Fn, typename IntResultType = IntegerAttr,
           typename FloatResultType = FloatAttr>
+TypedAttr foldUnaryOpIntOrFloat(Type resultType, TypedAttr operand,
+                                Fn&& folder) {
+  Type elemTy = getElementTypeOrSelf(operand);
+
+  Attribute res;
+  if (isa<IntegerType>(elemTy))
+    res = constFoldUnaryOp<IntegerAttr, IntegerAttr::ValueType, void,
+                           IntResultType>(operand, folder);
+  if (isa<FloatType>(elemTy))
+    res = constFoldUnaryOp<FloatAttr, FloatAttr::ValueType, void,
+                           FloatResultType>(operand, folder);
+  if (res) return cast<TypedAttr>(res);
+
+  return nullptr;
+}
+
+/// Unary constant folder that uses a generic folder function to handle both
+/// ints and floats.
+template <typename Fn, typename IntResultType = IntegerAttr,
+          typename FloatResultType = FloatAttr>
 FailureOr<TypedAttr> foldUnaryOpIntOrFloat(PatternRewriter& rewriter,
                                            Operation* op, Fn&& folder) {
   if (op->getNumOperands() != 1 || op->getNumResults() != 1)
