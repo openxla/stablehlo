@@ -564,6 +564,20 @@ class InlineCaseOpWithConstantBranchIndex
     Operation* terminator = blockToInline->getTerminator();
     ValueRange results = terminator->getOperands();
 
+    // TODO: Add support for complex, quantized, and token return types.
+    // Currently, this pattern only supports int and float return types. We'll
+    // need a more general equivalent of `getZeroAttr` to support other types.
+    SmallVector<TypedAttr> placeholderAttrs;
+    for (auto result : op.getResults()) {
+      TypedAttr placeholderAttr = rewriter.getZeroAttr(result.getType());
+      if (!placeholderAttr)
+        return rewriter.notifyMatchFailure(
+            op,
+            "The case op's return type isn't currently supported by this "
+            "optimization pattern.");
+      placeholderAttrs.push_back(placeholderAttr);
+    }
+
     // Inline the active branch of the `case` op.
     rewriter.inlineBlockBefore(blockToInline, op, blockArgs);
     rewriter.replaceAllOpUsesWith(op, results);
@@ -576,9 +590,9 @@ class InlineCaseOpWithConstantBranchIndex
     Block& noopBlock = region.emplaceBlock();
     SmallVector<Value> placeholderResults;
     rewriter.setInsertionPointToEnd(&noopBlock);
-    for (auto result : op.getResults()) {
-      placeholderResults.push_back(rewriter.create<ConstantOp>(
-          region.getLoc(), rewriter.getZeroAttr(result.getType())));
+    for (auto placeholderAttr : placeholderAttrs) {
+      placeholderResults.push_back(
+          rewriter.create<ConstantOp>(region.getLoc(), placeholderAttr));
     }
     rewriter.create<stablehlo::ReturnOp>(region.getLoc(), placeholderResults);
 
