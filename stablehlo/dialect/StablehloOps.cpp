@@ -542,7 +542,7 @@ LogicalResult CustomCallOp::verify() {
 // to allow erroring in StableHLO for these custom calls.
 LogicalResult CustomCallOp::verifyKnownCustomCalls() {
   // We have already verified that the output_operand_aliases have consistent
-  // types and valid indices. Here we verify buffer releated special custom_call
+  // types and valid indices. Here we verify buffer-related special custom_call
   // targets, and also verify that buffer operands used non-special custom_call
   // ops meet this requirements:
   //   A result with a buffer type should be mentioned in one pair of

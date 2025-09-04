@@ -59,3 +59,34 @@ func.func @dce_while_false_condition(%arg0: tensor<i64>) -> tensor<i64> {
   }
   return %0 : tensor<i64>
 }
+
+// -----
+
+// Check that we properly handle expressions involving NaN terms or variables
+// that could potentially be NaN.
+
+// CHECK-LABEL: @fold_constant_nan_to_nan
+func.func @fold_constant_nan_to_nan() -> tensor<f32> {
+  // CHECK: [[NAN:%.*]] = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+  // CHECK: return [[NAN]] : tensor<f32>
+  %zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %one = stablehlo.constant dense<1.0> : tensor<f32>
+  %nan = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+  %nan_times_zero = stablehlo.multiply %nan, %zero : tensor<f32>
+  %result = stablehlo.add %one, %nan_times_zero : tensor<f32>
+  return %result : tensor<f32>
+}
+
+// TODO: Consider adding an `--assume-non-nan` pass option to override this.
+// CHECK-LABEL: @do_not_assume_non_nan
+func.func @do_not_assume_non_nan(%arg0: tensor<f32>) -> tensor<f32> {
+  // Note: These two checks are out of order on purpose: [[RESULT]] binds to the
+  // `return` op first and then looks backward for the corresponding assignment.
+  // CHECK-DAG: return [[RESULT:.*]] : tensor<f32>
+  // CHECK-DAG: [[RESULT]] = stablehlo.{{(add|multiply).*}} : tensor<f32>
+  %zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %one = stablehlo.constant dense<1.0> : tensor<f32>
+  %arg_times_zero = stablehlo.multiply %arg0, %zero : tensor<f32>
+  %result = stablehlo.add %one, %arg_times_zero : tensor<f32>
+  return %result : tensor<f32>
+}

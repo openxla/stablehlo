@@ -64,7 +64,7 @@ namespace {
 static constexpr StablehloAggressiveSimplificationPassOptions kDefaultOptions;
 
 static bool isIotaRange(ArrayRef<int64_t> dims) {
-  return llvm::all_of(llvm::enumerate(dims), [](const auto &it) {
+  return llvm::all_of(llvm::enumerate(dims), [](const auto& it) {
     return static_cast<int64_t>(it.index()) == it.value();
   });
 }
@@ -72,20 +72,20 @@ static bool isIotaRange(ArrayRef<int64_t> dims) {
 template <typename OpType>
 struct SimplifyOpRewritePattern : OpRewritePattern<OpType> {
   SimplifyOpRewritePattern(
-      MLIRContext *context,
-      const StablehloAggressiveSimplificationPassOptions &options,
+      MLIRContext* context,
+      const StablehloAggressiveSimplificationPassOptions& options,
       PatternBenefit benefit = 1, ArrayRef<StringRef> generatedNames = {})
       : OpRewritePattern<OpType>(context, benefit, generatedNames),
         options(options) {}
 
   // Prevent `options` from binding to a temporary.
   SimplifyOpRewritePattern(
-      MLIRContext *context,
-      StablehloAggressiveSimplificationPassOptions &&options,
+      MLIRContext* context,
+      StablehloAggressiveSimplificationPassOptions&& options,
       PatternBenefit benefit = 1,
       ArrayRef<StringRef> generatedNames = {}) = delete;
 
-  const StablehloAggressiveSimplificationPassOptions &options;
+  const StablehloAggressiveSimplificationPassOptions& options;
 };
 
 /// Matches when either of the submatchers match.
@@ -93,7 +93,7 @@ template <typename MatcherA, typename MatcherB>
 struct m_AnyOf {
   m_AnyOf(MatcherA a, MatcherB b) : matcherA(a), matcherB(b) {}
 
-  bool match(Operation *op) { return matcherA.match(op) || matcherB.match(op); }
+  bool match(Operation* op) { return matcherA.match(op) || matcherB.match(op); }
 
   MatcherA matcherA;
   MatcherB matcherB;
@@ -146,7 +146,7 @@ struct CompareOpCanon final : SimplifyOpRewritePattern<CompareOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(CompareOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     RankedTensorType type = op.getType();
 
     // Bail out on non-integer comparison.
@@ -211,7 +211,7 @@ class ConcatenateOpNoop : public SimplifyOpRewritePattern<ConcatenateOp> {
  public:
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     if (op.getInputs().size() != 1 ||
         op.getInputs().front().getType() != op.getType())
       return rewriter.notifyMatchFailure(op, "not single operand noop-concat");
@@ -227,7 +227,7 @@ class ConcatenateOpRemoveEmpty
  public:
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto axis = op.getDimension();
     llvm::SmallVector<Value> newOperands = llvm::to_vector(
         llvm::make_filter_range(op.getOperands(), [&](Value operand) {
@@ -249,8 +249,8 @@ class ConcatenateOpRemoveEmpty
 class ConcatenateOpFlatten : public SimplifyOpRewritePattern<ConcatenateOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
-                                PatternRewriter &rewriter) const override {
-    auto getFlattenedOperands = [&](const Value &val) -> ValueRange {
+                                PatternRewriter& rewriter) const override {
+    auto getFlattenedOperands = [&](const Value& val) -> ValueRange {
       auto definingOp = dyn_cast_or_null<ConcatenateOp>(val.getDefiningOp());
       // To avoid inflate the memory footprint, only flatten the
       // ConcatenateOp when it has only one use.
@@ -293,7 +293,7 @@ struct CustomCallUnregisteredBackendConfigToFfi final
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(CustomCallOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     constexpr StringRef kMhloBackendConfigAttrName = "mhlo.backend_config";
 
     if (op.getApiVersion() != CustomCallApiVersion::API_VERSION_ORIGINAL)
@@ -327,7 +327,7 @@ struct CustomCallUnregisteredBackendConfigToFfi final
 /////////////////////////////////
 
 // Used in DRR file.
-DenseI64ArrayAttr getMergedBroadcastDimensions(OpBuilder &b,
+DenseI64ArrayAttr getMergedBroadcastDimensions(OpBuilder& b,
                                                ArrayRef<int64_t> dims,
                                                ArrayRef<int64_t> dimsParent) {
   auto mergedDims = llvm::map_to_vector(
@@ -350,8 +350,8 @@ DenseI64ArrayAttr getMergedBroadcastDimensions(OpBuilder &b,
 /// the op is used outside of the HLO dialect (e.g. in func.return). In these
 /// cases, we insert a stablehlo.convert to smooth things out.
 template <typename OpTy, typename... Args>
-static OpTy refineOpWithNewOp(PatternRewriter &rewriter, Operation *op,
-                              Args &&...args) {
+static OpTy refineOpWithNewOp(PatternRewriter& rewriter, Operation* op,
+                              Args&&... args) {
   auto newOp = rewriter.create<OpTy>(op->getLoc(), std::forward<Args>(args)...);
 
   llvm::SmallVector<Value> replacementResults;
@@ -360,7 +360,7 @@ static OpTy refineOpWithNewOp(PatternRewriter &rewriter, Operation *op,
   for (auto [opResult, newOpResult] :
        llvm::zip(op->getResults(), newOp->getResults())) {
     Value replacementResult = newOpResult;
-    if (llvm::any_of(opResult.getUsers(), [&](Operation *user) {
+    if (llvm::any_of(opResult.getUsers(), [&](Operation* user) {
           return user->getDialect() != op->getDialect();
         }))
       replacementResult = rewriter.create<ConvertOp>(
@@ -379,7 +379,7 @@ struct DynamicBroadcastInDimOpNotActuallyDynamic final
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicBroadcastInDimOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     RankedTensorType operandType = op.getOperand().getType();
     if (!operandType.hasStaticShape())
       return rewriter.notifyMatchFailure(op, "requires operand static shape");
@@ -410,7 +410,7 @@ struct DynamicBroadcastInDimOpNotActuallyDynamic final
 // DynamicGatherOp
 /////////////////////////////////
 
-DenseI64ArrayAttr convertToI64Array(OpBuilder &b, Attribute attr) {
+DenseI64ArrayAttr convertToI64Array(OpBuilder& b, Attribute attr) {
   auto denseAttr = cast<ElementsAttr>(attr);
   SmallVector<int64_t> result;
   result.reserve(denseAttr.getNumElements());
@@ -427,7 +427,7 @@ struct DynamicIotaIsStatic : public SimplifyOpRewritePattern<DynamicIotaOp> {
   using SimplifyOpRewritePattern<DynamicIotaOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicIotaOp iota,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     // Result type has static shape, replace with iota.
     auto resultTy = cast<ShapedType>(iota.getType());
     if (!resultTy.hasStaticShape())
@@ -447,7 +447,7 @@ struct DynamicIotaOpToBroadcast
   using SimplifyOpRewritePattern<DynamicIotaOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicIotaOp iota,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultType = cast<ShapedType>(iota.getType());
     if (resultType.getRank() < 2)
       return rewriter.notifyMatchFailure(iota, "requires rank >= 2");
@@ -496,7 +496,7 @@ struct DynamicReshapeOpIsStatic final
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicReshapeOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     // This is a noop when the output type is already a static shape.
     RankedTensorType type = op.getType();
     if (!type.hasStaticShape())
@@ -516,8 +516,8 @@ class DynamicReshapeOpSameOperandAndResultShape
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicReshapeOp op,
-                                PatternRewriter &rewriter) const override {
-    Operation *defOp = op.getOperand().getDefiningOp();
+                                PatternRewriter& rewriter) const override {
+    Operation* defOp = op.getOperand().getDefiningOp();
     if (!defOp ||
         !defOp->hasTrait<mlir::OpTrait::SameOperandsAndResultShape>()) {
       return rewriter.notifyMatchFailure(
@@ -549,7 +549,7 @@ struct DynamicSliceOpToSlice : public SimplifyOpRewritePattern<DynamicSliceOp> {
   using SimplifyOpRewritePattern<DynamicSliceOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(DynamicSliceOp dynamicSlice,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     Value input = dynamicSlice.getOperand();
     auto inputType = cast<ShapedType>(input.getType());
     if (!inputType.hasStaticShape())
@@ -558,7 +558,7 @@ struct DynamicSliceOpToSlice : public SimplifyOpRewritePattern<DynamicSliceOp> {
 
     auto sliceSizes = dynamicSlice.getSliceSizes();
     SmallVector<int64_t, 4> tempStartIndices;
-    for (const auto &indexAndSliceStart :
+    for (const auto& indexAndSliceStart :
          llvm::enumerate(dynamicSlice.getStartIndices())) {
       APInt val;
       Value start = indexAndSliceStart.value();
@@ -579,7 +579,7 @@ struct DynamicSliceOpToSlice : public SimplifyOpRewritePattern<DynamicSliceOp> {
     // pack them into a single tensor.
     auto sliceStartIndices = rewriter.getDenseI64ArrayAttr(tempStartIndices);
     SmallVector<int64_t, 4> tempSliceLimits;
-    for (const auto &[start, size] : llvm::zip(tempStartIndices, sliceSizes)) {
+    for (const auto& [start, size] : llvm::zip(tempStartIndices, sliceSizes)) {
       tempSliceLimits.push_back(start + size);
     }
     auto sliceLimits = rewriter.getDenseI64ArrayAttr(tempSliceLimits);
@@ -605,7 +605,7 @@ struct RealDynamicSliceOpToDynamicSlice
   using SimplifyOpRewritePattern<RealDynamicSliceOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(RealDynamicSliceOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     // This rewrite only works for unit strides because DynamicSliceOp
     // doesn't support strides (i.e. it implicitly has unit strides).
     DenseIntElementsAttr stridesAttr;
@@ -670,11 +670,11 @@ struct ReduceOpNoopVariableReturn final : SimplifyOpRewritePattern<ReduceOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     // If all returned values in the ReduceOp region exists outside the
     // region, replace the ReduceOp with those values.
     if (auto retOp = dyn_cast<ReturnOp>(op.getBody().front().getTerminator())) {
-      Region *retRegion = retOp->getParentRegion();
+      Region* retRegion = retOp->getParentRegion();
       if (llvm::any_of(retOp.getResults(), [retRegion](Value result) {
             return result.getParentRegion() == retRegion;
           }))
@@ -693,7 +693,7 @@ struct ReduceOpEmptyCanon final : SimplifyOpRewritePattern<ReduceOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     // We require all reduce shapes to be the same, up to the element types, so
     // we can just use the first operand and the first result as
     // representatives.
@@ -733,7 +733,7 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(ReduceOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     SmallVector<OpResult, 4> usedResults;
     llvm::copy_if(op.getResults(), std::back_inserter(usedResults),
                   [](OpResult result) { return !result.use_empty(); });
@@ -745,7 +745,7 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
     const auto numOperands = op.getNumOperands();
     const auto numOperandPairs = numOperands / pairSize;
 
-    Block &reducerBlock = op.getBody().front();
+    Block& reducerBlock = op.getBody().front();
     auto retOp = cast<ReturnOp>(reducerBlock.getTerminator());
 
     assert(numOperandPairs == op.getNumResults() &&
@@ -757,10 +757,10 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
       if (v.getParentRegion() == reducerBody) workList.push_back(v);
     };
 
-    SmallPtrSet<Operation *, 16> usedOps;
+    SmallPtrSet<Operation*, 16> usedOps;
     SmallBitVector usedArgs(numOperands);
     SmallBitVector usedReturnOperands(numOperandPairs);
-    for (const auto &usedResult : usedResults) {
+    for (const auto& usedResult : usedResults) {
       auto resultNo = usedResult.getResultNumber();
       usedReturnOperands.set(resultNo);
 
@@ -774,9 +774,9 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
           const auto pairNo = blockArg.getArgNumber() % numOperandPairs;
           usedArgs.set(pairNo);
           usedArgs.set(pairNo + numOperandPairs);
-        } else if (auto *defOp = definition.getDefiningOp()) {
+        } else if (auto* defOp = definition.getDefiningOp()) {
           usedOps.insert(defOp);
-          for (const auto &operand : defOp->getOperands())
+          for (const auto& operand : defOp->getOperands())
             addToWorkList(operand);
         }
       }
@@ -785,7 +785,7 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
     const auto newNumOperandPairs = usedResults.size();
     const auto newNumOperands = newNumOperandPairs * pairSize;
     if (newNumOperands != usedArgs.count()) {
-      return rewriter.notifyMatchFailure(op, [&](Diagnostic &diag) {
+      return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
         diag << "non-conservative case: " << newNumOperandPairs
              << " return results should be matched with " << newNumOperands
              << " operands, but got " << usedArgs.count();
@@ -809,7 +809,7 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
     auto newOp =
         rewriter.create<ReduceOp>(op.getLoc(), newInputs, newInitVals,
                                   op.getDimensionsAttr(), newElementTypes);
-    Block *newReducerBlock = rewriter.createBlock(&newOp.getBody());
+    Block* newReducerBlock = rewriter.createBlock(&newOp.getBody());
 
     IRMapping mapper;
     for (auto arg : reducerBlock.getArguments())
@@ -818,11 +818,11 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
                    newReducerBlock->addArgument(arg.getType(), arg.getLoc()));
 
     rewriter.setInsertionPointToStart(newReducerBlock);
-    for (Operation &op : reducerBlock.getOperations())
+    for (Operation& op : reducerBlock.getOperations())
       if (usedOps.contains(&op)) rewriter.clone(op, mapper);
 
     SmallVector<Value> newReturnOperands;
-    for (const auto &en : llvm::enumerate(retOp.getOperands()))
+    for (const auto& en : llvm::enumerate(retOp.getOperands()))
       if (usedReturnOperands[en.index()])
         newReturnOperands.push_back(mapper.lookup(en.value()));
 
@@ -830,7 +830,7 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
 
     // Build new results list (unused entries will be null).
     SmallVector<Value> newResults(op.getNumResults());
-    for (const auto &[i, result] : llvm::enumerate(usedResults)) {
+    for (const auto& [i, result] : llvm::enumerate(usedResults)) {
       newResults[result.getResultNumber()] = newOp.getResult(i);
     }
 
@@ -851,7 +851,7 @@ struct GetDimensionSizeOpCanon final
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(GetDimensionSizeOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     // Fold get_dimension_size when the queried dim is statically known.
     RankedTensorType operandTy = op.getOperand().getType();
 
@@ -877,7 +877,7 @@ struct GatherOpCanon final : SimplifyOpRewritePattern<GatherOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(GatherOp gather,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     DenseIntElementsAttr index;
     if (!matchPattern(gather.getStartIndices(), m_Constant(&index)))
       return failure();
@@ -952,7 +952,7 @@ struct IotaOpBroadcast : public SimplifyOpRewritePattern<IotaOp> {
   using SimplifyOpRewritePattern<IotaOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(IotaOp iota,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultTy = cast<ShapedType>(iota.getType());
     if (resultTy.getRank() < 2)
       return rewriter.notifyMatchFailure(iota, "itoa not broadcastable");
@@ -989,7 +989,7 @@ struct PadOpBroadcastEmptyTensor : public SimplifyOpRewritePattern<PadOp> {
   using SimplifyOpRewritePattern<PadOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(PadOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto operand = op.getOperand();
     auto padVal = op.getPaddingValue();
 
@@ -1028,7 +1028,7 @@ struct SelectOpCanon final : SimplifyOpRewritePattern<SelectOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SelectOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     RankedTensorType type = op.getType();
 
     Value trueVal = op.getOnTrue();
@@ -1079,7 +1079,7 @@ struct CompareSelectIntoMinMax final : SimplifyOpRewritePattern<SelectOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SelectOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     Value pred = op.getPred();
     Value trueVal = op.getOnTrue();
     Value falseVal = op.getOnFalse();
@@ -1133,7 +1133,7 @@ struct SliceOpConcatSimplify : public SimplifyOpRewritePattern<SliceOp> {
   using SimplifyOpRewritePattern<SliceOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SliceOp slice,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto resultTy = cast<ShapedType>(slice.getType());
     if (!resultTy.hasStaticShape())
       return rewriter.notifyMatchFailure(slice, "result shape not static");
@@ -1228,12 +1228,12 @@ struct SortOpDropUnusedArgs : public SimplifyOpRewritePattern<SortOp> {
   using SimplifyOpRewritePattern<SortOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SortOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     DenseSet<unsigned> erasedArgs;
     unsigned numOperands = op.getNumOperands();
     for (unsigned i = 0; i < numOperands; ++i) {
       if (!op.getResult(i).use_empty()) continue;
-      Block &block = op.getComparator().front();
+      Block& block = op.getComparator().front();
       if (!block.getArgument(i * 2).use_empty()) continue;
       if (!block.getArgument(i * 2 + 1).use_empty()) continue;
       erasedArgs.insert(i);
@@ -1242,7 +1242,7 @@ struct SortOpDropUnusedArgs : public SimplifyOpRewritePattern<SortOp> {
 
     SmallVector<Value> newOperands;
     BitVector erasedBlockArgs(op.getNumOperands() * 2);
-    for (const auto &en : llvm::enumerate(op.getInputs())) {
+    for (const auto& en : llvm::enumerate(op.getInputs())) {
       if (erasedArgs.contains(en.index())) {
         erasedBlockArgs.set(en.index() * 2);
         erasedBlockArgs.set(en.index() * 2 + 1);
@@ -1253,7 +1253,7 @@ struct SortOpDropUnusedArgs : public SimplifyOpRewritePattern<SortOp> {
 
     auto newOp = rewriter.create<SortOp>(op.getLoc(), newOperands,
                                          op.getDimension(), op.getIsStable());
-    Region &region = newOp.getComparator();
+    Region& region = newOp.getComparator();
     rewriter.inlineRegionBefore(op.getComparator(), region, region.end());
     region.front().eraseArguments(erasedBlockArgs);
 
@@ -1278,7 +1278,7 @@ struct SortOpSetDimension : public SimplifyOpRewritePattern<SortOp> {
   using SimplifyOpRewritePattern<SortOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(SortOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     if (op.getResults().empty() ||
         static_cast<int64_t>(op.getDimension()) != -1)
       return rewriter.notifyMatchFailure(op,
@@ -1304,7 +1304,7 @@ struct TransposeIsReshape final : SimplifyOpRewritePattern<TransposeOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(TransposeOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto input = op.getOperand();
     auto permutation = op.getPermutation();
 
@@ -1340,7 +1340,7 @@ struct TupleIsRepacking : public SimplifyOpRewritePattern<TupleOp> {
   using SimplifyOpRewritePattern<TupleOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(TupleOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     if (op.getVal().empty())
       return rewriter.notifyMatchFailure(op, "empty tuple");
 
@@ -1356,7 +1356,7 @@ struct TupleIsRepacking : public SimplifyOpRewritePattern<TupleOp> {
           op, "tuple predecessor type does not match");
 
     // Check that this is a repacking of the parent tuple.
-    for (const auto &elementAndIdx : llvm::enumerate(op.getVal())) {
+    for (const auto& elementAndIdx : llvm::enumerate(op.getVal())) {
       auto elementOp = elementAndIdx.value().getDefiningOp<GetTupleElementOp>();
       if (!elementOp ||
           elementOp.getIndexAttr().getInt() !=
@@ -1385,9 +1385,9 @@ struct WhileOpImplicitCapture : public SimplifyOpRewritePattern<WhileOp> {
   using SimplifyOpRewritePattern<WhileOp>::SimplifyOpRewritePattern;
 
   LogicalResult matchAndRewrite(WhileOp whileOp,
-                                PatternRewriter &rewriter) const override {
-    Block *cond = whileOp.SingleBlock::getBody(0);
-    Block *body = whileOp.SingleBlock::getBody(1);
+                                PatternRewriter& rewriter) const override {
+    Block* cond = whileOp.SingleBlock::getBody(0);
+    Block* body = whileOp.SingleBlock::getBody(1);
     auto bodyReturnOp = cast<ReturnOp>(body->getTerminator());
     if (!llvm::any_of(llvm::zip(whileOp->getOperands(), body->getArguments(),
                                 bodyReturnOp->getOperands()),
@@ -1400,10 +1400,10 @@ struct WhileOpImplicitCapture : public SimplifyOpRewritePattern<WhileOp> {
     SmallVector<Value> newOperands, resultsToReplace;
     SmallVector<unsigned> invariantArgIdxs;
     BitVector invariantArgIdxBitVector(cond->getNumArguments());
-    for (const auto &enumeratedOperands : llvm::enumerate(llvm::zip(
+    for (const auto& enumeratedOperands : llvm::enumerate(llvm::zip(
              whileOp.getOperands(), cond->getArguments(), body->getArguments(),
              bodyReturnOp->getOperands(), whileOp->getResults()))) {
-      const auto &operands = enumeratedOperands.value();
+      const auto& operands = enumeratedOperands.value();
       Value whileOperand = std::get<0>(operands);
       BlockArgument condBlockArg = std::get<1>(operands);
       BlockArgument bodyBlockArg = std::get<2>(operands);
@@ -1455,14 +1455,14 @@ static std::optional<RankedTensorType> getMaybeZeroExtentType(Type t) {
 // Pattern: op(X : zero_extent_tensor) -> constant([])
 struct ZeroExtentToEmptyConstant final : RewritePattern {
   explicit ZeroExtentToEmptyConstant(
-      MLIRContext *context,
+      MLIRContext* context,
       StablehloAggressiveSimplificationPassOptions options,
       PatternBenefit benefit = 1)
       : RewritePattern(MatchAnyOpTypeTag(), benefit, context),
         options(options) {}
 
-  LogicalResult matchAndRewrite(Operation *op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
     auto loc = op->getLoc();
 
     if (!isa_and_present<StablehloDialect>(op->getDialect()))
@@ -1492,10 +1492,10 @@ struct ZeroExtentToEmptyConstant final : RewritePattern {
 
     // If one of the operands is a zero-extent tensor, replace the operand with
     // an empty tensor.
-    for (OpOperand &operand : op->getOpOperands()) {
+    for (OpOperand& operand : op->getOpOperands()) {
       auto operandType = getMaybeZeroExtentType(operand.get().getType());
       if (!operandType || operand.get().getDefiningOp<ConstantOp>()) continue;
-      Operation *owner = operand.getOwner();
+      Operation* owner = operand.getOwner();
       int operandNum = operand.getOperandNumber();
       auto emptyConstantOp = rewriter.create<ConstantOp>(
           loc, operandType.value(),
@@ -1514,13 +1514,13 @@ struct ZeroExtentToEmptyConstant final : RewritePattern {
 struct ReorderElementwiseAndShapeOp final
     : OpTraitRewritePattern<OpTrait::Elementwise> {
   explicit ReorderElementwiseAndShapeOp(
-      MLIRContext *context,
+      MLIRContext* context,
       StablehloAggressiveSimplificationPassOptions options,
       PatternBenefit benefit = 1)
       : OpTraitRewritePattern(context, benefit), options(options) {}
 
-  LogicalResult matchAndRewrite(Operation *op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
     if (op->getOperands().size() != 1)
       return rewriter.notifyMatchFailure(op, "expected to be unary");
 
@@ -1575,7 +1575,7 @@ struct StablehloAggressiveSimplificationPass
       : StablehloAggressiveSimplificationPassBase() {}
 
   void runOnOperation() override {
-    MLIRContext *context = &getContext();
+    MLIRContext* context = &getContext();
     RewritePatternSet patterns(context);
 
     StablehloAggressiveSimplificationPassOptions options{
@@ -1597,12 +1597,13 @@ struct StablehloAggressiveSimplificationPass
 }  // namespace
 
 void populateStablehloCanonicalizationPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    const StablehloAggressiveSimplificationPassOptions &options,
+    MLIRContext* context, RewritePatternSet* patterns,
+    const StablehloAggressiveSimplificationPassOptions& options,
     PatternBenefit benefit) {
   populateWithGenerated(*patterns);
+  // TODO: Re-enable `CompareSelectIntoMinMax` after fixing legalization issue.
   patterns->add<
-      CompareOpCanon, CompareSelectIntoMinMax, ConcatenateOpFlatten,
+      CompareOpCanon, /*CompareSelectIntoMinMax,*/ ConcatenateOpFlatten,
       ConcatenateOpNoop, ConcatenateOpRemoveEmpty,
       CustomCallUnregisteredBackendConfigToFfi, DynamicIotaOpToBroadcast,
       DynamicReshapeOpSameOperandAndResultShape, DynamicSliceOpToSlice,
@@ -1614,8 +1615,11 @@ void populateStablehloCanonicalizationPatterns(
       context, options, benefit);
 
   // Generic patterns
-  patterns->add<ReorderElementwiseAndShapeOp, ZeroExtentToEmptyConstant>(
-      context, options, benefit);
+  // TODO: Re-enable `ReorderElementwiseAndShapeOp` after fixing BF16 precision
+  // emulation issue in XLA-CPU.
+  patterns->add<
+      /*ReorderElementwiseAndShapeOp,*/
+      ZeroExtentToEmptyConstant>(context, options, benefit);
 
   // TODO: Dynamism Refinements, consider merging with canonicalize dynamism
   patterns
@@ -1623,22 +1627,22 @@ void populateStablehloCanonicalizationPatterns(
             DynamicReshapeOpIsStatic, DynamicIotaIsStatic>(context, options);
 }
 
-void populateStablehloCanonicalizationPatterns(MLIRContext *context,
-                                               RewritePatternSet *patterns,
+void populateStablehloCanonicalizationPatterns(MLIRContext* context,
+                                               RewritePatternSet* patterns,
                                                PatternBenefit benefit) {
   populateStablehloCanonicalizationPatterns(context, patterns, kDefaultOptions,
                                             benefit);
 }
 
 void populateStablehloHloImportCanonicalizationPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    const StablehloAggressiveSimplificationPassOptions &options) {
+    MLIRContext* context, RewritePatternSet* patterns,
+    const StablehloAggressiveSimplificationPassOptions& options) {
   patterns->add<ReshapeOp_RemoveNoop, GetTupleElementOp_UnpackTuple>(context);
   patterns->add<TupleIsRepacking, WhileOpImplicitCapture>(context, options);
 }
 
 void populateStablehloHloImportCanonicalizationPatterns(
-    MLIRContext *context, RewritePatternSet *patterns) {
+    MLIRContext* context, RewritePatternSet* patterns) {
   populateStablehloHloImportCanonicalizationPatterns(context, patterns,
                                                      kDefaultOptions);
 }
