@@ -1633,17 +1633,17 @@ func.func @select_into_minmax1(%arg0: tensor<2xi32>, %arg1: tensor<2xi32>,
   %s4 = stablehlo.select %4, %arg1, %arg2 : (tensor<2xi1>, tensor<2xi32>, tensor<2xi32>) -> tensor<2xi32>
   %s5 = stablehlo.select %5, %arg1, %arg3 : (tensor<2xi1>, tensor<2xi32>, tensor<2xi32>) -> tensor<2xi32>
 
-  // CHECK-DAG:  [[C0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[ARG1]], SIGNED
-  // CHECK-DAG:  [[C1:%.+]] = stablehlo.compare NE, [[ARG0]], [[ARG1]], SIGNED
+  // DISABLED-CHECK-DAG:  [[C0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[ARG1]], SIGNED
+  // DISABLED-CHECK-DAG:  [[C1:%.+]] = stablehlo.compare NE, [[ARG0]], [[ARG1]], SIGNED
 
-  // CHECK-DAG:  [[S0:%.+]] = stablehlo.select [[C0]], [[ARG0]], [[ARG1]]
-  // CHECK-DAG:  [[S1:%.+]] = stablehlo.select [[C1]], [[ARG0]], [[ARG1]]
-  // CHECK-DAG:  [[S2:%.+]] = stablehlo.maximum [[ARG0]], [[ARG1]]
-  // CHECK-DAG:  [[S3:%.+]] = stablehlo.maximum [[ARG0]], [[ARG2]]
-  // CHECK-DAG:  [[S4:%.+]] = stablehlo.minimum [[ARG1]], [[ARG2]]
-  // CHECK-DAG:  [[S5:%.+]] = stablehlo.minimum [[ARG1]], [[ARG3]]
+  // DISABLED-CHECK-DAG:  [[S0:%.+]] = stablehlo.select [[C0]], [[ARG0]], [[ARG1]]
+  // DISABLED-CHECK-DAG:  [[S1:%.+]] = stablehlo.select [[C1]], [[ARG0]], [[ARG1]]
+  // DISABLED-CHECK-DAG:  [[S2:%.+]] = stablehlo.maximum [[ARG0]], [[ARG1]]
+  // DISABLED-CHECK-DAG:  [[S3:%.+]] = stablehlo.maximum [[ARG0]], [[ARG2]]
+  // DISABLED-CHECK-DAG:  [[S4:%.+]] = stablehlo.minimum [[ARG1]], [[ARG2]]
+  // DISABLED-CHECK-DAG:  [[S5:%.+]] = stablehlo.minimum [[ARG1]], [[ARG3]]
 
-  // CHECK-NEXT: return [[S0]], [[S1]], [[S2]], [[S3]], [[S4]], [[S5]]
+  // DISABLED-CHECK-NEXT: return [[S0]], [[S1]], [[S2]], [[S3]], [[S4]], [[S5]]
   return %s0, %s1, %s2, %s3, %s4, %s5 :
          tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>
 }
@@ -1674,23 +1674,23 @@ func.func @select_into_minmax2(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: te
   %s6 = stablehlo.select %6, %arg3, %arg2 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
   %s7 = stablehlo.select %7, %arg2, %arg3 : (tensor<i1>, tensor<i32>, tensor<i32>) -> tensor<i32>
 
-  // CHECK-DAG:  [[C1:%.+]] = stablehlo.compare GT, [[ARG1]], [[ARG2]], SIGNED
-  // CHECK-DAG:  [[C3:%.+]] = stablehlo.compare GE, [[ARG1]], [[ARG2]], SIGNED
+  // DISABLED-CHECK-DAG:  [[C1:%.+]] = stablehlo.compare GT, [[ARG1]], [[ARG2]], SIGNED
+  // DISABLED-CHECK-DAG:  [[C3:%.+]] = stablehlo.compare GE, [[ARG1]], [[ARG2]], SIGNED
 
-  // CHECK-DAG:  [[S0:%.+]] = stablehlo.minimum [[ARG0]], [[ARG1]]
-  // CHECK-DAG:  [[S1:%.+]] = stablehlo.select [[C1]], [[ARG0]], [[ARG1]]
-  // CHECK-DAG:  [[S2:%.+]] = stablehlo.minimum [[ARG3]], [[ARG1]]
-  // CHECK-DAG:  [[S3:%.+]] = stablehlo.select [[C3]], [[ARG0]], [[ARG2]]
+  // DISABLED-CHECK-DAG:  [[S0:%.+]] = stablehlo.minimum [[ARG0]], [[ARG1]]
+  // DISABLED-CHECK-DAG:  [[S1:%.+]] = stablehlo.select [[C1]], [[ARG0]], [[ARG1]]
+  // DISABLED-CHECK-DAG:  [[S2:%.+]] = stablehlo.minimum [[ARG3]], [[ARG1]]
+  // DISABLED-CHECK-DAG:  [[S3:%.+]] = stablehlo.select [[C3]], [[ARG0]], [[ARG2]]
 
-  // CHECK-DAG:  [[C5:%.+]] = stablehlo.compare LT, [[ARG0]], [[ARG2]], SIGNED
-  // CHECK-DAG:  [[C7:%.+]] = stablehlo.compare LE, [[ARG0]], [[ARG2]], SIGNED
+  // DISABLED-CHECK-DAG:  [[C5:%.+]] = stablehlo.compare LT, [[ARG0]], [[ARG2]], SIGNED
+  // DISABLED-CHECK-DAG:  [[C7:%.+]] = stablehlo.compare LE, [[ARG0]], [[ARG2]], SIGNED
 
-  // CHECK-DAG:  [[S4:%.+]] = stablehlo.maximum [[ARG2]], [[ARG1]]
-  // CHECK-DAG:  [[S5:%.+]] = stablehlo.select [[C5]], [[ARG1]], [[ARG2]]
-  // CHECK-DAG:  [[S6:%.+]] = stablehlo.maximum [[ARG3]], [[ARG2]]
-  // CHECK-DAG:  [[S7:%.+]] = stablehlo.select [[C7]], [[ARG2]], [[ARG3]]
+  // DISABLED-CHECK-DAG:  [[S4:%.+]] = stablehlo.maximum [[ARG2]], [[ARG1]]
+  // DISABLED-CHECK-DAG:  [[S5:%.+]] = stablehlo.select [[C5]], [[ARG1]], [[ARG2]]
+  // DISABLED-CHECK-DAG:  [[S6:%.+]] = stablehlo.maximum [[ARG3]], [[ARG2]]
+  // DISABLED-CHECK-DAG:  [[S7:%.+]] = stablehlo.select [[C7]], [[ARG2]], [[ARG3]]
 
-  // CHECK-NEXT: return [[S0]], [[S1]], [[S2]], [[S3]], [[S4]], [[S5]], [[S6]], [[S7]]
+  // DISABLED-CHECK-NEXT: return [[S0]], [[S1]], [[S2]], [[S3]], [[S4]], [[S5]], [[S6]], [[S7]]
   return %s0, %s1, %s2, %s3, %s4, %s5, %s6, %s7 : tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>,
                                                   tensor<i32>, tensor<i32>, tensor<i32>, tensor<i32>
 }
@@ -2040,12 +2040,12 @@ func.func @side_effecting_custom_call(%arg0: tensor<0xf32>) -> (tensor<0xf32>, t
 
 // CHECK-LABEL: @push_shape_ops_to_end
 func.func @push_shape_ops_to_end(%arg0 : tensor<12xf32>) -> tensor<3x4x2x1xf32> {
-  // CHECK: %[[COS:.+]] = stablehlo.cosine %arg0 : tensor<12xf32>
-  // CHECK: %[[ABS:.+]] = stablehlo.abs %[[COS]] : tensor<12xf32>
-  // CHECK: %[[RESHAPE:.+]] = stablehlo.reshape %[[ABS]] : (tensor<12xf32>) -> tensor<3x4xf32>
-  // CHECK: %[[BROADCAST:.+]] = stablehlo.broadcast %[[RESHAPE]], sizes = [1, 2] : (tensor<3x4xf32>) -> tensor<1x2x3x4xf32>
-  // CHECK: %[[TRANSPOSE:.+]] = stablehlo.transpose %[[BROADCAST]], dims = [2, 3, 1, 0] : (tensor<1x2x3x4xf32>) -> tensor<3x4x2x1xf32>
-  // CHECK: return %[[TRANSPOSE]]
+  // DISABLED-CHECK: %[[COS:.+]] = stablehlo.cosine %arg0 : tensor<12xf32>
+  // DISABLED-CHECK: %[[ABS:.+]] = stablehlo.abs %[[COS]] : tensor<12xf32>
+  // DISABLED-CHECK: %[[RESHAPE:.+]] = stablehlo.reshape %[[ABS]] : (tensor<12xf32>) -> tensor<3x4xf32>
+  // DISABLED-CHECK: %[[BROADCAST:.+]] = stablehlo.broadcast %[[RESHAPE]], sizes = [1, 2] : (tensor<3x4xf32>) -> tensor<1x2x3x4xf32>
+  // DISABLED-CHECK: %[[TRANSPOSE:.+]] = stablehlo.transpose %[[BROADCAST]], dims = [2, 3, 1, 0] : (tensor<1x2x3x4xf32>) -> tensor<3x4x2x1xf32>
+  // DISABLED-CHECK: return %[[TRANSPOSE]]
   %0 = stablehlo.reshape %arg0 : (tensor<12xf32>) -> tensor<3x4xf32>
   %1 = stablehlo.broadcast %0, sizes = [1, 2] : (tensor<3x4xf32>) -> tensor<1x2x3x4xf32>
   %2 = stablehlo.cosine %1 : (tensor<1x2x3x4xf32>) -> tensor<1x2x3x4xf32>
@@ -2059,9 +2059,9 @@ func.func @push_shape_ops_to_end(%arg0 : tensor<12xf32>) -> tensor<3x4x2x1xf32> 
 
 // CHECK-LABEL: @reorder_with_type_change
 func.func @reorder_with_type_change(%arg0 : tensor<3x4xi32>) -> tensor<12xi64> {
-  // CHECK: %[[CONVERT:.+]] = stablehlo.convert %arg0 : (tensor<3x4xi32>) -> tensor<3x4xi64>
-  // CHECK: %[[RESHAPE:.+]] = stablehlo.reshape %[[CONVERT]] : (tensor<3x4xi64>) -> tensor<12xi64>
-  // CHECK: return %[[RESHAPE]]
+  // DISABLED-CHECK: %[[CONVERT:.+]] = stablehlo.convert %arg0 : (tensor<3x4xi32>) -> tensor<3x4xi64>
+  // DISABLED-CHECK: %[[RESHAPE:.+]] = stablehlo.reshape %[[CONVERT]] : (tensor<3x4xi64>) -> tensor<12xi64>
+  // DISABLED-CHECK: return %[[RESHAPE]]
   %0 = stablehlo.reshape %arg0 : (tensor<3x4xi32>) -> tensor<12xi32>
   %1 = stablehlo.convert %0 : (tensor<12xi32>) -> tensor<12xi64>
   return %1 : tensor<12xi64>

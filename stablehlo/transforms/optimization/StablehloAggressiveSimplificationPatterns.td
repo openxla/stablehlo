@@ -234,7 +234,7 @@ def DynamicBroadcastInDimOp_MergeComposition
 //
 // No-op, but wrap in ConvertOp to preserve dynamic output shape. This can be
 // important if the result is returned, in which case refining the type would
-// require also updating the funciton signature.
+// require also updating the function signature.
 def DynamicBroadcastInDimOp_ReplaceNoopWithConvert
   : Pat<(StableHLO_DynamicBroadcastInDimOp:$op
             $operand, $shape, IotaDims:$dims, $expanding, $nonexpanding),
@@ -387,9 +387,10 @@ def MulOp_CanonicalizeConstantToRhs
 
 // Pattern: multiply(X, 0i) -> 0i
 //
-// Multiplication by 0. This fold is not trivial for floats in presence of NaNs.
+// Multiplication by 0. This fold is not trivial for floats in presence of NaNs,
+// so we currently only enable it for ints.
 def MulOp_FoldToZero
-  : Pat<(StableHLO_MulOp $lhs, (StableHLO_ConstantOp:$zero AnyZero:$value)),
+  : Pat<(StableHLO_MulOp $lhs, (StableHLO_ConstantOp:$zero IntZero:$value)),
         (replaceWithValue $zero)>;
 
 // Pattern: multiply(X, 1i) -> X
