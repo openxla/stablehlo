@@ -1399,6 +1399,8 @@ implementation-defined as well.
 
 #### Semantics
 
+![broadcast_in_dim](images/spec/broadcast_in_dim.svg)
+
 Expands the dimensions and/or rank of an input tensor by duplicating the data
 in the `operand` tensor and produces a `result` tensor. More formally,
 `result[result_index] = operand[operand_index]` where for all `d` in
