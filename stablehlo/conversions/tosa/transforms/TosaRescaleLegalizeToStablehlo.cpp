@@ -68,7 +68,7 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
   auto roundingMode = op.getRoundingMode();
   bool perChannel = op.getPerChannel();
 
-  if (perChannel || roundingMode != "SINGLE_ROUND" || !scale32) {
+  if (perChannel || roundingMode != RoundingMode::SINGLE_ROUND || !scale32) {
     return rewriter.notifyMatchFailure(
         op,
         "per_channel, double_round, or scale32=false are not yet supported");

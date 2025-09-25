@@ -24,6 +24,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -54,6 +55,8 @@
 // This must precede all other headers, otherwise during Windows cross
 // compilation, M_PI will not be defined.
 #define _USE_MATH_DEFINES
+
+#define DEBUG_TYPE "chlo-legalize-to-stablehlo"
 
 namespace mlir {
 namespace stablehlo {
@@ -198,6 +201,31 @@ static Value getConstantLikeSmallestNormalizedValue(OpBuilder &b, Location loc,
       val);
 }
 
+// Broadcast using numpy-style broadcasting semantics.
+// This is only valid if the CHLO op has static shaped operands, and no
+// explicitly specified broadcast_dimensions.
+//
+// Asserts that input is ranked tensor type.
+Value numpyBroadcastIfNeeded(Value op, RankedTensorType opResultType,
+                             PatternRewriter& rewriter) {
+  RankedTensorType inputType = cast<RankedTensorType>(op.getType());
+  RankedTensorType broadcastedResultType =
+      opResultType.clone(inputType.getElementType());
+
+  // No broadcasting needed if input type matches broadcasted result type.
+  if (inputType == broadcastedResultType) return op;
+
+  // broadcast dims are the last dims for numpy style broadcasting.
+  int64_t inputRank = inputType.getRank();
+  int64_t resultRank = opResultType.getRank();
+  auto broadcastDimensions =
+      llvm::to_vector(llvm::seq<int64_t>(resultRank - inputRank, resultRank));
+  return stablehlo::BroadcastInDimOp::create(rewriter, op.getLoc(),
+                                             broadcastedResultType, op,
+                                             broadcastDimensions)
+      .getResult();
+}
+
 //===----------------------------------------------------------------------===//
 // Broadcasting Patterns.
 //===----------------------------------------------------------------------===//
@@ -215,24 +243,69 @@ struct ConvertTrivialNonBroadcastBinaryOp final
     // Only rewrite for statically determinable non-broadcasting cases.
     auto lhsType = dyn_cast<RankedTensorType>(adaptor.getLhs().getType());
     auto rhsType = dyn_cast<RankedTensorType>(adaptor.getRhs().getType());
-    if (!lhsType || !rhsType) return failure();
-
-    // Requires rank broadcast.
-    if (lhsType.getRank() != rhsType.getRank()) return failure();
-
-    // Any dynamic dimension may require broadcasting and requires more
-    // analysis.
-    if (!lhsType.hasStaticShape() || !rhsType.hasStaticShape()) {
-      return failure();
-    }
-
-    if (!llvm::equal(lhsType.getShape(), rhsType.getShape())) {
-      return failure();
-    }
+    if (!lhsType || !rhsType || lhsType.getShape() != rhsType.getShape() ||
+        !lhsType.hasStaticShape() || !rhsType.hasStaticShape())
+      return rewriter.notifyMatchFailure(
+          op,
+          "expected LHS and RHS to be ranked tensors with matching shapes that "
+          "are all static");
 
     rewriter.replaceOp(
         op, ValueRange{Adaptor::createOp(op, op.getType(),
                                          adaptor.getOperands(), rewriter)});
+    return success();
+  }
+};
+
+// Converts binary ops that statically determined to use default numpy
+// broadcasting to simple StableHLO broadcasting ops without shape dialect.
+template <typename ChloOpTy, typename HloOpTy, typename Adaptor>
+struct ConvertTrivialNumpyBroadcastBinaryOp final
+    : OpConversionPattern<ChloOpTy> {
+  using OpConversionPattern<ChloOpTy>::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      ChloOpTy op, typename ChloOpTy::Adaptor adaptor,
+      ConversionPatternRewriter& rewriter) const override {
+    // Only rewrite for statically determinable non-broadcasting cases.
+    auto lhsType = dyn_cast<RankedTensorType>(adaptor.getLhs().getType());
+    auto rhsType = dyn_cast<RankedTensorType>(adaptor.getRhs().getType());
+    if (!lhsType || !rhsType || !lhsType.hasStaticShape() ||
+        !rhsType.hasStaticShape())
+      return rewriter.notifyMatchFailure(
+          op,
+          "expected LHS and RHS to be ranked tensor types with static "
+          "shape");
+
+    // Rely on CHLO type inference to figure out the proper broadcasted shape.
+    auto resultType = dyn_cast<RankedTensorType>(op.getResult().getType());
+    if (!resultType || !resultType.hasStaticShape())
+      return rewriter.notifyMatchFailure(
+          op, "expected result to be a ranked tensor type with static shape");
+
+    auto lhs = adaptor.getLhs();
+    auto rhs = adaptor.getRhs();
+    auto broadcastDimensions = adaptor.getBroadcastDimensions();
+    if (broadcastDimensions &&
+        !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, *broadcastDimensions))
+      return rewriter.notifyMatchFailure(
+          op,
+          "expected implicit broadcast_dimensions or numpy-style broadcasting");
+
+    LLVM_DEBUG(llvm::dbgs()
+               << "CHLO Decomposing " << op->getName() << " with broadcast "
+               << lhsType << " x " << rhsType << " -> " << resultType << "\n");
+
+    // If operands are static directly create stablehlo broadcasting ops.
+    // Use numpy-style broadcasting with using StableHLO broadcast ops,
+    // when user didn't specify broadcast_dimensions.
+    auto lhsBroadcast =
+        numpyBroadcastIfNeeded(adaptor.getLhs(), resultType, rewriter);
+    auto rhsBroadcast =
+        numpyBroadcastIfNeeded(adaptor.getRhs(), resultType, rewriter);
+    auto result = Adaptor::createOp(op, resultType,
+                                    {lhsBroadcast, rhsBroadcast}, rewriter);
+    rewriter.replaceOp(op, {result.getResult()});
     return success();
   }
 };
@@ -2415,6 +2488,8 @@ static void populateChloBroadcastingPatterns(MLIRContext *context,
   // that do not have different dtypes between operands and results and do
   // not have special attributes that need to be preserved.
   populateForBroadcastingBinaryOp<ConvertTrivialNonBroadcastBinaryOp>(
+      context, patterns, 10);
+  populateForBroadcastingBinaryOp<ConvertTrivialNumpyBroadcastBinaryOp>(
       context, patterns, 10);
   populateForBroadcastingBinaryOp<ConvertRankedDynamicBroadcastBinaryOp>(
       context, patterns, 5);

@@ -70,12 +70,14 @@ Value buildRescale(PatternRewriter &rewriter, Location loc,
       outputZpVal.has_value() &&
       "buildRescale: Failed to create output zero-point tensor for RescaleOp.");
 
-  std::string roundingMode = doubleRound ? "DOUBLE_ROUND" : "SINGLE_ROUND";
+  auto roundingMode =
+      doubleRound ? RoundingMode::DOUBLE_ROUND : RoundingMode::SINGLE_ROUND;
 
   auto rescale_op = rewriter.create<RescaleOp>(
       loc, outputType, inputVal, multiplierVal, shiftVal, inputZpVal.value(),
       outputZpVal.value(), rewriter.getBoolAttr(scale32),
-      rewriter.getStringAttr(roundingMode), rewriter.getBoolAttr(perChannel),
+      RoundingModeAttr::get(rewriter.getContext(), roundingMode),
+      rewriter.getBoolAttr(perChannel),
       /*input_unsigned=*/rewriter.getBoolAttr(false),
       /*output_unsigned=*/rewriter.getBoolAttr(false));
 

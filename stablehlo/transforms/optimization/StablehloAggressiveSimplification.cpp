@@ -325,8 +325,18 @@ struct CustomCallUnregisteredBackendConfigToFfi final
 //////////////////////////////////
 // BroadcastInDimOp
 /////////////////////////////////
-
 // Used in DRR file.
+
+// Convert broadcast dimensions into permutation for transpose.
+DenseI64ArrayAttr getInvertedBroadcastDimensions(OpBuilder& b,
+                                                 ArrayRef<int64_t> dims) {
+  SmallVector<int64_t> permutation(dims.size());
+  for (auto i = 0; i < dims.size(); ++i) {
+    permutation[dims[i]] = i;
+  }
+  return b.getDenseI64ArrayAttr(permutation);
+}
+
 DenseI64ArrayAttr getMergedBroadcastDimensions(OpBuilder& b,
                                                ArrayRef<int64_t> dims,
                                                ArrayRef<int64_t> dimsParent) {

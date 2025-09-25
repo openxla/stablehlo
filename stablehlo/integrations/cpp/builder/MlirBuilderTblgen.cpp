@@ -50,7 +50,6 @@ using mlir::tblgen::Method;
 using mlir::tblgen::MethodBody;
 using mlir::tblgen::MethodParameter;
 using mlir::tblgen::NamedAttribute;
-using mlir::tblgen::NamedRegion;
 using mlir::tblgen::Operator;
 
 namespace mlir {

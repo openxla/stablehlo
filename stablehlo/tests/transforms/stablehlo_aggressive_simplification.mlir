@@ -100,6 +100,14 @@ func.func @broadcast_in_dim_transpose(%arg0: tensor<3x3xi32>)
   return %3, %4 : tensor<3x3xi32>, tensor<3x3xi32>
 }
 
+// CHECK-LABEL: func.func @broadcast_in_dim_transpose_invert
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<1x2x3x4xf32>)
+func.func @broadcast_in_dim_transpose_invert(%arg0 : tensor<1x2x3x4xf32>) -> tensor<3x1x4x2xf32> {
+  // stablehlo.transpose %arg0, dims = [2, 0, 3, 1] : (tensor<1x2x3x4xf32>) -> tensor<3x1x4x2xf32>
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [1,3,0,2] : (tensor<1x2x3x4xf32>) -> tensor<3x1x4x2xf32>
+  return %0 : tensor<3x1x4x2xf32>
+}
+
 // CHECK-LABEL: func.func @broadcast_in_dim_nested
 // CHECK-SAME:   ([[ARG0:%.+]]: tensor<3x3xi32>)
 func.func @broadcast_in_dim_nested(%arg0: tensor<3x3xi32>)
