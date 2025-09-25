@@ -17,7 +17,6 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 
-#include "testing/base/public/gunit.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectRegistry.h"
@@ -32,6 +31,7 @@ limitations under the License.
 #include "stablehlo/integrations/cpp/builder/FuncBuilder.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
 #include "stablehlo/integrations/cpp/builder/StablehloBuilder.h"
+#include "testing/base/public/gunit.h"
 
 namespace mlir {
 namespace stablehlo {
