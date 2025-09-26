@@ -73,7 +73,7 @@ namespace {
 template <typename FromOpTy, typename ToOpTy>
 struct HloNaryElementwiseAdaptor {
   static ToOpTy createOp(FromOpTy fromOp, Type resultType,
-                         ValueRange broadcastedOperands, OpBuilder &builder) {
+                         ValueRange broadcastedOperands, OpBuilder& builder) {
     return builder.create<ToOpTy>(fromOp.getLoc(), resultType,
                                   broadcastedOperands);
   }
@@ -118,7 +118,7 @@ static std::optional<mlir::stablehlo::ComparisonType> toStableHloComparisonType(
 struct HloCompareAdaptor {
   static mlir::stablehlo::CompareOp createOp(
       mlir::chlo::BroadcastCompareOp fromOp, Type resultType,
-      ValueRange broadcastedOperands, OpBuilder &builder) {
+      ValueRange broadcastedOperands, OpBuilder& builder) {
     auto chloDirection = fromOp.getComparisonDirection();
     auto hloDirection = toStableHloComparisonDirection(chloDirection);
     if (!hloDirection) return nullptr;
@@ -140,9 +140,9 @@ struct HloCompareAdaptor {
 // to take a ChloOpTy, NonBroadcastingOpTy, and an Adaptor as templated values.
 template <template <typename, typename, typename> typename Pattern,
           typename... ConstructorArgs>
-static void populateForBroadcastingBinaryOp(MLIRContext *context,
-                                            RewritePatternSet *patterns,
-                                            ConstructorArgs &&...args) {
+static void populateForBroadcastingBinaryOp(MLIRContext* context,
+                                            RewritePatternSet* patterns,
+                                            ConstructorArgs&&... args) {
 #define POPULATE_BCAST(ChloOp, HloOp)                                          \
   patterns                                                                     \
       ->add<Pattern<ChloOp, HloOp, HloNaryElementwiseAdaptor<ChloOp, HloOp>>>( \
@@ -179,21 +179,21 @@ static void populateForBroadcastingBinaryOp(MLIRContext *context,
       context, args...);
 }
 
-static Value getConstantLikeMaxFiniteValue(OpBuilder &b, Location loc,
+static Value getConstantLikeMaxFiniteValue(OpBuilder& b, Location loc,
                                            Value val) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(
       b, loc, llvm::APFloat::getLargest(ty.getFloatSemantics()), val);
 }
 
-static Value getConstantLikeInfValue(OpBuilder &b, Location loc, Value val,
+static Value getConstantLikeInfValue(OpBuilder& b, Location loc, Value val,
                                      bool negative) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(
       b, loc, llvm::APFloat::getInf(ty.getFloatSemantics(), negative), val);
 }
 
-static Value getConstantLikeSmallestNormalizedValue(OpBuilder &b, Location loc,
+static Value getConstantLikeSmallestNormalizedValue(OpBuilder& b, Location loc,
                                                     Value val) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(
@@ -239,7 +239,7 @@ struct ConvertTrivialNonBroadcastBinaryOp final
 
   LogicalResult matchAndRewrite(
       ChloOpTy op, typename ChloOpTy::Adaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     // Only rewrite for statically determinable non-broadcasting cases.
     auto lhsType = dyn_cast<RankedTensorType>(adaptor.getLhs().getType());
     auto rhsType = dyn_cast<RankedTensorType>(adaptor.getRhs().getType());
@@ -329,7 +329,7 @@ struct ConvertRankedDynamicBroadcastBinaryOp final
 
   LogicalResult matchAndRewrite(
       ChloOpTy op, typename ChloOpTy::Adaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     // Only support ranked operands.
     Value lhs = adaptor.getLhs();
     Value rhs = adaptor.getRhs();
@@ -413,7 +413,7 @@ struct ConvertConstantLikeOp final
 
   LogicalResult matchAndRewrite(
       mlir::chlo::ConstantLikeOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto resultTy = cast<ShapedType>(op.getType());
 
     // Unranked uses are not supported.
@@ -445,7 +445,7 @@ struct ConvertSelectOp final
 
   LogicalResult matchAndRewrite(
       mlir::chlo::BroadcastSelectOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     // Only support ranked operands.
     Value pred = adaptor.getPred();
     Value onTrue = adaptor.getOnTrue();
@@ -533,7 +533,7 @@ struct ConvertConstantOp final : OpConversionPattern<mlir::chlo::ConstantOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::ConstantOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, op.getValue());
     return success();
   }
@@ -541,7 +541,7 @@ struct ConvertConstantOp final : OpConversionPattern<mlir::chlo::ConstantOp> {
 
 template <typename FTy>
 static Value materializeChebyshevPolynomialApproximation(
-    OpBuilder &rewriter, Location loc, Value x, ArrayRef<FTy> coefficients) {
+    OpBuilder& rewriter, Location loc, Value x, ArrayRef<FTy> coefficients) {
   Value b0 = getConstantLike(rewriter, loc, 0.0, x);
   Value b1 = getConstantLike(rewriter, loc, 0.0, x);
   Value b2 = getConstantLike(rewriter, loc, 0.0, x);
@@ -561,7 +561,7 @@ static Value materializeChebyshevPolynomialApproximation(
 }
 
 template <typename FTy>
-static Value materializeBesselI1eApproximation(OpBuilder &rewriter,
+static Value materializeBesselI1eApproximation(OpBuilder& rewriter,
                                                Location loc, Value x,
                                                ArrayRef<FTy> kI1eCoeffsA,
                                                ArrayRef<FTy> kI1eCoeffsB) {
@@ -594,7 +594,7 @@ static Value materializeBesselI1eApproximation(OpBuilder &rewriter,
       loc, rewriter.create<mlir::stablehlo::SignOp>(loc, x), select);
 }
 
-Value materializeBesselI1eApproximationF32(OpBuilder &rewriter, Location loc,
+Value materializeBesselI1eApproximationF32(OpBuilder& rewriter, Location loc,
                                            ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
@@ -620,7 +620,7 @@ Value materializeBesselI1eApproximationF32(OpBuilder &rewriter, Location loc,
                                                   kI1eCoeffsB);
 }
 
-static Value materializeBesselI1eApproximationF64(OpBuilder &rewriter,
+static Value materializeBesselI1eApproximationF64(OpBuilder& rewriter,
                                                   Location loc,
                                                   ValueRange args) {
   Value x = args.front();
@@ -663,10 +663,10 @@ static Value materializeBesselI1eApproximationF64(OpBuilder &rewriter,
                                                    kI1eCoeffsA, kI1eCoeffsB);
 }
 
-static Value materializeWithUpcast(ConversionPatternRewriter &rewriter,
+static Value materializeWithUpcast(ConversionPatternRewriter& rewriter,
                                    Location loc, ValueRange args,
                                    FloatType minPrecisionTy,
-                                   Value callback(OpBuilder &, Location,
+                                   Value callback(OpBuilder&, Location,
                                                   ValueRange)) {
   Type originalTy = getElementTypeOrSelf(args.front().getType());
   auto floatOriginalTy = dyn_cast<FloatType>(originalTy);
@@ -699,7 +699,7 @@ struct ConvertBesselI1eOp final : OpConversionPattern<mlir::chlo::BesselI1eOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::BesselI1eOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     Location loc = op.getLoc();
     Value x = adaptor.getOperand();
     Type ty = cast<ShapedType>(x.getType()).getElementType();
@@ -725,7 +725,7 @@ struct ConvertBesselI1eOp final : OpConversionPattern<mlir::chlo::BesselI1eOp> {
 };
 
 template <typename FTy>
-static Value materializePolynomialApproximation(OpBuilder &rewriter,
+static Value materializePolynomialApproximation(OpBuilder& rewriter,
                                                 Location loc, Value x,
                                                 ArrayRef<FTy> coefficients) {
   if (coefficients.empty()) return getConstantLike(rewriter, loc, 0.0, x);
@@ -746,7 +746,7 @@ static Value materializePolynomialApproximation(OpBuilder &rewriter,
 // argument and derive the final approximation for all |x| >= 1.
 // This implementation is based on Cephes.
 static Value materializeErfcApproximationF64ForMagnituteGeOne(
-    ConversionPatternRewriter &rewriter, Location loc, ValueRange args) {
+    ConversionPatternRewriter& rewriter, Location loc, ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF64() &&
          "expect f64 element type");
@@ -831,7 +831,7 @@ static Value materializeErfcApproximationF64ForMagnituteGeOne(
 // Precondition is |x| <= 1. Use erfc approximation, otherwise.
 // This implementation is based on Cephes.
 static Value materializeErfApproximationF64ForMagnituteLeOne(
-    ConversionPatternRewriter &rewriter, Location loc, ValueRange args) {
+    ConversionPatternRewriter& rewriter, Location loc, ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF64() &&
          "expect f64 element type");
@@ -856,7 +856,7 @@ static Value materializeErfApproximationF64ForMagnituteLeOne(
 }
 
 // This implementation is based on Cephes.
-static Value materializeErfApproximationF64(ConversionPatternRewriter &rewriter,
+static Value materializeErfApproximationF64(ConversionPatternRewriter& rewriter,
                                             Location loc, ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF64() &&
@@ -884,7 +884,7 @@ static Value materializeErfApproximationF64(ConversionPatternRewriter &rewriter,
 }
 
 static Value materializeErfcApproximationF64(
-    ConversionPatternRewriter &rewriter, Location loc, ValueRange args) {
+    ConversionPatternRewriter& rewriter, Location loc, ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF64() &&
          "expect f64 element type");
@@ -916,7 +916,7 @@ static Value materializeErfcApproximationF64(
 // argument and derive the final approximation for all |x| >= 1.
 // This implementation is based on Cephes.
 static Value materializeErfcApproximationF32ForMagnitudeGeOne(
-    OpBuilder &rewriter, Location loc, ValueRange args) {
+    OpBuilder& rewriter, Location loc, ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
          "expect f32 element type");
@@ -982,7 +982,7 @@ static Value materializeErfcApproximationF32ForMagnitudeGeOne(
 // Precondition is |x| <= 1. Use erfc approximation, otherwise.
 // This implementation is based on Cephes.
 static Value materializeErfApproximationF32ForMagnitudeLeOne(
-    OpBuilder &rewriter, Location loc, ValueRange args) {
+    OpBuilder& rewriter, Location loc, ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
          "expect f32 element type");
@@ -1001,7 +1001,7 @@ static Value materializeErfApproximationF32ForMagnitudeLeOne(
 }
 
 // This is the same approximation as used in Eigen.
-static Value materializeErfApproximationF32(OpBuilder &rewriter, Location loc,
+static Value materializeErfApproximationF32(OpBuilder& rewriter, Location loc,
                                             ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
@@ -1038,7 +1038,7 @@ static Value materializeErfApproximationF32(OpBuilder &rewriter, Location loc,
                                                    erf, ubErf);
 }
 
-static Value materializeErfcApproximationF32(OpBuilder &rewriter, Location loc,
+static Value materializeErfcApproximationF32(OpBuilder& rewriter, Location loc,
                                              ValueRange args) {
   Value x = args.front();
   assert(cast<ShapedType>(x.getType()).getElementType().isF32() &&
@@ -1070,7 +1070,7 @@ struct ConvertErfOp final : OpConversionPattern<mlir::chlo::ErfOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::ErfOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     Location loc = op.getLoc();
     Value x = adaptor.getOperand();
     Type ty = cast<ShapedType>(x.getType()).getElementType();
@@ -1098,7 +1098,7 @@ struct ConvertErfcOp final : OpConversionPattern<mlir::chlo::ErfcOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::ErfcOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     Location loc = op.getLoc();
     Value x = adaptor.getOperand();
     Type ty = cast<ShapedType>(x.getType()).getElementType();
@@ -1121,7 +1121,7 @@ struct ConvertErfcOp final : OpConversionPattern<mlir::chlo::ErfcOp> {
   }
 };
 
-static Value erfInv32(OpBuilder &b, Location loc, ValueRange args) {
+static Value erfInv32(OpBuilder& b, Location loc, ValueRange args) {
   constexpr int kDegree = 9;
   constexpr std::array<float, 9> wLessThan5Constants = {
       2.81022636e-08f,  3.43273939e-07f, -3.5233877e-06f,
@@ -1178,7 +1178,7 @@ static Value erfInv32(OpBuilder &b, Location loc, ValueRange args) {
       result);
 }
 
-static Value erfInv64(ConversionPatternRewriter &b, Location loc,
+static Value erfInv64(ConversionPatternRewriter& b, Location loc,
                       ValueRange args) {
   constexpr std::array<double, 23> wLessThan625Constants = {
       -3.6444120640178196996e-21, -1.685059138182016589e-19,
@@ -1298,7 +1298,7 @@ struct ConvertErfInvOp final : OpConversionPattern<mlir::chlo::ErfInvOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::ErfInvOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     Location loc = op.getLoc();
     if (op.getType().getElementType().isF64()) {
       rewriter.replaceOp(op, erfInv64(rewriter, loc, adaptor.getOperands()));
@@ -1338,7 +1338,7 @@ constexpr std::array<double, 8> kLanczosCoefficients = {
 //   with   t(z) = z + kLanczosGamma + 1/2
 //          a(z) = kBaseLanczosCoeff
 //                   + sum(k = 1, n, kLanczosCoefficients[i] / (z + k))
-Value materializeLgamma(OpBuilder &rewriter, Location loc, ValueRange args) {
+Value materializeLgamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   // If the input is less than 0.5 use Euler's reflection formula.
   //   gamma(x) = pi / (sin(pi * x) * gamma(1 - x))
   // Let z be
@@ -1485,7 +1485,7 @@ namespace {
 // +/-89.4159851, due to rounding error when computing x +/- log(1/2).  The
 // correct answer of 3.40281961e+38 (0x7f7fffec) is very close to max-float, so
 // we deem this acceptable.
-static Value materializeCoshApproximation(OpBuilder &rewriter, Location loc,
+static Value materializeCoshApproximation(OpBuilder& rewriter, Location loc,
                                           ValueRange operands) {
   mlir::chlo::CoshOp::Adaptor transformed(operands);
   Value x = transformed.getOperand();
@@ -1504,7 +1504,7 @@ struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::CoshOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     rewriter.replaceOp(
         op, materializeWithUpcast(rewriter, op.getLoc(), adaptor.getOperands(),
                                   rewriter.getF32Type(),
@@ -1523,7 +1523,7 @@ struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
 //          a(z) = kBaseLanczosCoeff
 //                   + sum(k = 1, n, kLanczosCoefficients[i] / (z + k))
 //          a'(z) = - sum(k = 1, n, kLanczosCoefficients[i] / (z + k) / (z + k))
-Value materializeDigamma(OpBuilder &rewriter, Location loc, ValueRange args) {
+Value materializeDigamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   // If the input is less than 0.5 use Euler's reflection formula.
   //   digamma(x) = digamma(1 - x) - pi * cot(pi * x)
   // Let z be
@@ -1630,14 +1630,14 @@ Value materializeDigamma(OpBuilder &rewriter, Location loc, ValueRange args) {
 
 namespace {
 
-static Value getConstantLikeSmallestFiniteValue(OpBuilder &b, Location loc,
+static Value getConstantLikeSmallestFiniteValue(OpBuilder& b, Location loc,
                                                 Value val) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(
       b, loc, llvm::APFloat::getSmallest(ty.getFloatSemantics()), val);
 }
 
-static Value materializeZeta(OpBuilder &rewriter, Location loc,
+static Value materializeZeta(OpBuilder& rewriter, Location loc,
                              ValueRange args) {
   // Implementation ported from:
   // https://github.com/openxla/xla/blob/7a067a7b88d2ffb15b1dc5e3c06f701a15f0391d/xla/client/lib/math.cc#L1912-L1917
@@ -1790,7 +1790,7 @@ static Value materializeZeta(OpBuilder &rewriter, Location loc,
 
 }  // namespace
 
-Value materializePolygamma(OpBuilder &rewriter, Location loc, ValueRange args) {
+Value materializePolygamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   mlir::chlo::PolygammaOp::Adaptor transformed(args);
   Value n = transformed.getN();
   Value x = transformed.getX();
@@ -1840,7 +1840,7 @@ struct ConvertLgammaOp final : OpConversionPattern<mlir::chlo::LgammaOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::LgammaOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     FloatType minPrecisionTy = rewriter.getF32Type();
     rewriter.replaceOp(
         op, materializeWithUpcast(rewriter, op.getLoc(), adaptor.getOperands(),
@@ -1854,7 +1854,7 @@ struct ConvertDigammaOp final : OpConversionPattern<mlir::chlo::DigammaOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::DigammaOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     FloatType minPrecisionTy = rewriter.getF32Type();
     rewriter.replaceOp(
         op, materializeWithUpcast(rewriter, op.getLoc(), adaptor.getOperands(),
@@ -1863,7 +1863,7 @@ struct ConvertDigammaOp final : OpConversionPattern<mlir::chlo::DigammaOp> {
   }
 };
 
-static Value materializeNextAfter(ConversionPatternRewriter &rewriter,
+static Value materializeNextAfter(ConversionPatternRewriter& rewriter,
                                   Location loc, ValueRange operands) {
   mlir::chlo::NextAfterOp::Adaptor transformed(operands);
   Value x = transformed.getX();
@@ -1957,7 +1957,7 @@ struct ConvertNextAfterOp final : OpConversionPattern<mlir::chlo::NextAfterOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::NextAfterOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     rewriter.replaceOp(
         op, materializeNextAfter(rewriter, op.getLoc(), adaptor.getOperands()));
     return success();
@@ -1969,7 +1969,7 @@ struct ConvertPolygammaOp final : OpConversionPattern<mlir::chlo::PolygammaOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::PolygammaOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     Location loc = op.getLoc();
     FloatType minPrecisionTy = rewriter.getF32Type();
     rewriter.replaceOp(
@@ -1989,7 +1989,7 @@ struct ConvertPolygammaOp final : OpConversionPattern<mlir::chlo::PolygammaOp> {
 // +/-89.4159851, due to rounding error when computing x +/- log(1/2).  The
 // correct answer of 3.40281961e+38 (0x7f7fffec) is very close to max-float, so
 // we deem this acceptable.
-static Value materializeSinhApproximationForLargeX(OpBuilder &rewriter,
+static Value materializeSinhApproximationForLargeX(OpBuilder& rewriter,
                                                    Location loc,
                                                    ValueRange operands) {
   mlir::chlo::SinhOp::Adaptor transformed(operands);
@@ -2007,7 +2007,7 @@ static Value materializeSinhApproximationForLargeX(OpBuilder &rewriter,
 // Express `sinh` as
 //   sinh(x) = (e^x - e^-x) / 2                     if |x| < 1
 //           = e^(x + log(1/2)) - e^(-x + log(1/2)) otherwise.
-static Value materializeSinhApproximation(OpBuilder &rewriter, Location loc,
+static Value materializeSinhApproximation(OpBuilder& rewriter, Location loc,
                                           ValueRange operands) {
   Value largeSinhResult =
       materializeSinhApproximationForLargeX(rewriter, loc, operands);
@@ -2043,7 +2043,7 @@ static Value materializeSinhApproximation(OpBuilder &rewriter, Location loc,
 namespace {
 
 ArrayAttr convertPrecisionConfig(mlir::ArrayAttr precisionConfig,
-                                 ConversionPatternRewriter &rewriter) {
+                                 ConversionPatternRewriter& rewriter) {
   std::vector<Attribute> precisions;
   for (Attribute precision : precisionConfig.getValue()) {
     switch (dyn_cast<mlir::chlo::PrecisionAttr>(precision).getValue()) {
@@ -2077,7 +2077,7 @@ ArrayAttr convertPrecisionConfig(mlir::ArrayAttr precisionConfig,
 // In this implementation, the IR size increases by a factor of g. If this
 // becomes a problem, we can try adding stablehlo.while to reduce the IR size.
 LogicalResult handleRaggedDotMode1(mlir::chlo::RaggedDotOp op,
-                                   ConversionPatternRewriter &rewriter) {
+                                   ConversionPatternRewriter& rewriter) {
   Value lhs = op.getLhs();
   Value rhs = op.getRhs();
   chlo::RaggedDotDimensionNumbersAttr raggedDotDimensionNumbers =
@@ -2231,7 +2231,7 @@ LogicalResult handleRaggedDotMode1(mlir::chlo::RaggedDotOp op,
 //   group_sizes : [g]
 //   result : [g, b, m, n]
 LogicalResult handleRaggedDotMode2(mlir::chlo::RaggedDotOp op,
-                                   ConversionPatternRewriter &rewriter) {
+                                   ConversionPatternRewriter& rewriter) {
   return failure();
 }
 
@@ -2241,7 +2241,7 @@ LogicalResult handleRaggedDotMode2(mlir::chlo::RaggedDotOp op,
 //   group_sizes : [g]
 //   result : [b, m, n]
 LogicalResult handleRaggedDotMode3(mlir::chlo::RaggedDotOp op,
-                                   ConversionPatternRewriter &rewriter) {
+                                   ConversionPatternRewriter& rewriter) {
   return failure();
 }
 
@@ -2254,7 +2254,7 @@ struct ConvertRaggedDotOp final : OpConversionPattern<mlir::chlo::RaggedDotOp> {
   // dimension.
   LogicalResult matchAndRewrite(
       mlir::chlo::RaggedDotOp op, OpAdaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     if (op.getLhs().getType().getRank() < op.getRhs().getType().getRank()) {
       return handleRaggedDotMode1(op, rewriter);
     } else if (op.getLhs().getType().getRank() <
@@ -2271,7 +2271,7 @@ struct ConvertSinhOp final : OpConversionPattern<mlir::chlo::SinhOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::SinhOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     Value x = adaptor.getOperand();
     if (isa<ComplexType>(cast<ShapedType>(x.getType()).getElementType())) {
       rewriter.replaceOp(op, materializeSinhApproximationForLargeX(
@@ -2321,7 +2321,7 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::TopKOp op, OpAdaptor /*adaptor*/,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto operandType = dyn_cast<RankedTensorType>(op.getOperand().getType());
     if (!operandType) return failure();
     int64_t operandRank = operandType.getRank();
@@ -2436,7 +2436,7 @@ struct ConvertZetaOp final : OpConversionPattern<mlir::chlo::ZetaOp> {
 
   LogicalResult matchAndRewrite(
       mlir::chlo::ZetaOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     Location loc = op.getLoc();
     FloatType minPrecisionTy = rewriter.getF32Type();
     rewriter.replaceOp(
@@ -2452,7 +2452,7 @@ struct ConvertZetaOp final : OpConversionPattern<mlir::chlo::ZetaOp> {
 
 struct ChloLegalizeToStablehloPass final
     : impl::ChloLegalizeToStablehloPassBase<ChloLegalizeToStablehloPass> {
-  LogicalResult initialize(MLIRContext *context) override {
+  LogicalResult initialize(MLIRContext* context) override {
     target = std::make_shared<ConversionTarget>(*context);
     target->addIllegalDialect<chlo::ChloDialect>();
     target->addLegalDialect<mlir::stablehlo::StablehloDialect,
@@ -2482,8 +2482,8 @@ struct ChloLegalizeToStablehloPass final
 }  // namespace
 
 namespace {
-static void populateChloBroadcastingPatterns(MLIRContext *context,
-                                             RewritePatternSet *patterns) {
+static void populateChloBroadcastingPatterns(MLIRContext* context,
+                                             RewritePatternSet* patterns) {
   // Instantiate conversion templates for conforming binary elementwise ops
   // that do not have different dtypes between operands and results and do
   // not have special attributes that need to be preserved.
@@ -2496,8 +2496,8 @@ static void populateChloBroadcastingPatterns(MLIRContext *context,
   patterns->add<ConvertConstantLikeOp, ConvertSelectOp>(context);
 }
 
-static void populateChloDecompositionPatterns(MLIRContext *context,
-                                              RewritePatternSet *patterns) {
+static void populateChloDecompositionPatterns(MLIRContext* context,
+                                              RewritePatternSet* patterns) {
   populateWithGenerated(*patterns);
   patterns
       ->add<ConvertConstantOp, ConvertBesselI1eOp, ConvertCoshOp,
@@ -2508,8 +2508,8 @@ static void populateChloDecompositionPatterns(MLIRContext *context,
 }
 }  // namespace
 
-void populateChloToStablehloPatterns(MLIRContext *context,
-                                     RewritePatternSet *patterns) {
+void populateChloToStablehloPatterns(MLIRContext* context,
+                                     RewritePatternSet* patterns) {
   populateChloBroadcastingPatterns(context, patterns);
   populateChloDecompositionPatterns(context, patterns);
 }
