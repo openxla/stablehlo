@@ -712,18 +712,412 @@ func.func @eval_convert_f64_precision_loss() -> (tensor<1xf32>, tensor<f32>) {
 // -----
 
 ////////
+// AbsOp
+
+// CHECK-LABEL: func @fold_abs
+func.func @fold_abs() -> (tensor<i32>, tensor<i32>, tensor<i32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[INT_ZERO:%.*]] = stablehlo.constant dense<0> : tensor<i32>
+  // CHECK-DAG: [[INT_TEN:%.*]] = stablehlo.constant dense<10> : tensor<i32>
+  // CHECK-DAG: [[FLOAT_ZERO:%.*]] = stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[FLOAT_HALF:%.*]] = stablehlo.constant dense<5.0{{.*}}e-01> : tensor<f32>
+  // CHECK-DAG: [[FLOAT_INF:%.*]] = stablehlo.constant dense<0x7F800000> : tensor<f32>
+  // CHECK:     return [[INT_ZERO]], [[INT_TEN]], [[INT_TEN]], [[FLOAT_ZERO]], [[FLOAT_HALF]], [[FLOAT_HALF]], [[FLOAT_INF]], [[FLOAT_INF]]
+
+  %int_zero = stablehlo.constant dense<0> : tensor<i32>
+  %int_neg_ten = stablehlo.constant dense<-10> : tensor<i32>
+  %int_pos_ten = stablehlo.constant dense<10> : tensor<i32>
+
+  %float_zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %float_neg_half = stablehlo.constant dense<-0.5> : tensor<f32>
+  %float_pos_half = stablehlo.constant dense<0.5> : tensor<f32>
+  %float_neg_inf = stablehlo.constant dense<0xFF800000> : tensor<f32> // -inf
+  %float_pos_inf = stablehlo.constant dense<0x7F800000> : tensor<f32> // +inf
+
+  %0 = stablehlo.abs %int_zero : tensor<i32>
+  %1 = stablehlo.abs %int_neg_ten : tensor<i32>
+  %2 = stablehlo.abs %int_pos_ten : tensor<i32>
+
+  %3 = stablehlo.abs %float_zero : tensor<f32>
+  %4 = stablehlo.abs %float_neg_half : tensor<f32>
+  %5 = stablehlo.abs %float_pos_half : tensor<f32>
+  %6 = stablehlo.abs %float_neg_inf : tensor<f32>
+  %7 = stablehlo.abs %float_pos_inf : tensor<f32>
+
+  func.return %0, %1, %2, %3, %4, %5, %6, %7 : tensor<i32>, tensor<i32>, tensor<i32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// CosineOp
+
+// CHECK-LABEL: func @fold_cosine
+func.func @fold_cosine() -> (tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[ONE:%.*]] = stablehlo.constant dense<{{1\.0000.*}}> : tensor<f32>
+  // CHECK-DAG: [[SQRT_THREE_OVER_TWO:%.*]] = stablehlo.constant dense<{{0\.8660.*|8\.660.*[Ee]-01}}> : tensor<f32>
+  // CHECK-DAG: [[SQRT_TWO_OVER_TWO:%.*]] = stablehlo.constant dense<{{0\.7071.*|7\.071.*[Ee]-01}}> : tensor<f32>
+  // CHECK-DAG: [[HALF:%.*]] = stablehlo.constant dense<{{0\.5000.*|5\.000.*[Ee]-01|0.4999.*|4\.999.*[Ee]-01}}> : tensor<f32>
+  // CHECK-DAG: [[ZERO:%.*]] = stablehlo.constant dense<{{-?(0\.0000.*|[0-9]\.[0-9]*[Ee]-(0?[5-9]|[1-9][0-9]))}}> : tensor<f32>
+  // CHECK:     return [[ONE]], [[SQRT_THREE_OVER_TWO]], [[SQRT_TWO_OVER_TWO]], [[HALF]], [[ZERO]]
+
+  %0 = stablehlo.constant dense<0.0> : tensor<f32>
+  %1 = stablehlo.constant dense<0.5235987755982989> : tensor<f32> // pi/6
+  %2 = stablehlo.constant dense<0.7853981633974483> : tensor<f32> // pi/4
+  %3 = stablehlo.constant dense<1.0471975511965977> : tensor<f32> // pi/3
+  %4 = stablehlo.constant dense<1.5707963267948966> : tensor<f32> // pi/2
+
+  %5 = stablehlo.cosine %0 : tensor<f32>
+  %6 = stablehlo.cosine %1 : tensor<f32>
+  %7 = stablehlo.cosine %2 : tensor<f32>
+  %8 = stablehlo.cosine %3 : tensor<f32>
+  %9 = stablehlo.cosine %4 : tensor<f32>
+
+  func.return %5, %6, %7, %8, %9 : tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// ErfOp
+
+// CHECK-LABEL: func @fold_erf
+func.func @fold_erf() -> (tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[RESULT0:%.*]] = stablehlo.constant dense<-0.52049{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[RESULT1:%.*]] = stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[RESULT2:%.*]] = stablehlo.constant dense<0.90000{{.*}}> : tensor<f32>
+  // CHECK:     return [[RESULT0]], [[RESULT1]], [[RESULT2]]
+
+  %0 = stablehlo.constant dense<-0.5> : tensor<f32>
+  %1 = stablehlo.constant dense<0.0> : tensor<f32>
+  %2 = stablehlo.constant dense<1.1631> : tensor<f32>
+
+  %3 = chlo.erf %0 : tensor<f32> -> tensor<f32>
+  %4 = chlo.erf %1 : tensor<f32> -> tensor<f32>
+  %5 = chlo.erf %2 : tensor<f32> -> tensor<f32>
+
+  func.return %3, %4, %5 : tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// ExpOp
+
+// CHECK-LABEL: func @fold_exponential
+func.func @fold_exponential() -> (tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[ONE:%.*]] = stablehlo.constant dense<1.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[E:%.*]] = stablehlo.constant dense<2.718{{.*}}> : tensor<f32>
+  // CHECK:     return [[ONE]], [[E]]
+
+  %0 = stablehlo.constant dense<0.0> : tensor<f32>
+  %1 = stablehlo.constant dense<1.0> : tensor<f32>
+
+  %2 = stablehlo.exponential %0 : tensor<f32>
+  %3 = stablehlo.exponential %1 : tensor<f32>
+
+  func.return %2, %3 : tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// LogOp
+
+// CHECK-LABEL: func @fold_log
+func.func @fold_log() -> (tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[ZERO:%.*]] = stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[ONE:%.*]] = stablehlo.constant dense<{{1\.0.*|0\.999.*}}> : tensor<f32>
+  // CHECK-DAG: [[DO_NOT_FOLD_LOG_ZERO:%.*]] = stablehlo.log [[ZERO]] : tensor<f32>
+  // CHECK:     return [[ZERO]], [[ONE]], [[DO_NOT_FOLD_LOG_ZERO]]
+
+  %0 = stablehlo.constant dense<1.0> : tensor<f32>
+  %1 = stablehlo.constant dense<2.718281828459045> : tensor<f32>
+  %2 = stablehlo.constant dense<0.0> : tensor<f32>
+
+  %3 = stablehlo.log %0 : tensor<f32>
+  %4 = stablehlo.log %1 : tensor<f32>
+  %5 = stablehlo.log %2 : tensor<f32>
+
+  func.return %3, %4, %5 : tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// LogisticOp
+
+// CHECK-LABEL: func @fold_logistic
+func.func @fold_logistic() -> (tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[ZERO:%.*]] = stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[HALF:%.*]] = stablehlo.constant dense<5.0{{.*}}e-01> : tensor<f32>
+  // CHECK-DAG: [[ONE:%.*]] = stablehlo.constant dense<1.0{{.*}}> : tensor<f32>
+  // CHECK:     return [[ZERO]], [[HALF]], [[ONE]]
+
+  %neg_inf = stablehlo.constant dense<0xFF800000> : tensor<f32>
+  %zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %pos_inf = stablehlo.constant dense<0x7F800000> : tensor<f32>
+
+  %0 = stablehlo.logistic %neg_inf : tensor<f32>
+  %1 = stablehlo.logistic %zero : tensor<f32>
+  %2 = stablehlo.logistic %pos_inf : tensor<f32>
+
+  func.return %0, %1, %2 : tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// NegOp
+
+// CHECK-LABEL: func @fold_negate
+func.func @fold_negate() -> (tensor<i32>, tensor<i32>, tensor<f32>) {
+  // CHECK-DAG: [[RESULT0:%.*]] = stablehlo.constant dense<-4> : tensor<i32>
+  // CHECK-DAG: [[RESULT1:%.*]] = stablehlo.constant dense<0> : tensor<i32>
+  // CHECK-DAG: [[RESULT2:%.*]] = stablehlo.constant dense<9.999{{.*}}e+02> : tensor<f32>
+  // CHECK:     return [[RESULT0]], [[RESULT1]], [[RESULT2]]
+
+  %0 = stablehlo.constant dense<4> : tensor<i32>
+  %1 = stablehlo.constant dense<0> : tensor<i32>
+  %2 = stablehlo.constant dense<-999.9> : tensor<f32>
+
+  %3 = stablehlo.negate %0 : tensor<i32>
+  %4 = stablehlo.negate %1 : tensor<i32>
+  %5 = stablehlo.negate %2 : tensor<f32>
+
+  func.return %3, %4, %5 : tensor<i32>, tensor<i32>, tensor<f32>
+}
+
+// -----
+
+////////
+// NotOp
+
+// CHECK-LABEL: func @fold_not
+func.func @fold_not() -> (tensor<i32>, tensor<i32>) {
+  // CHECK-DAG: [[RESULT0:%.*]] = stablehlo.constant dense<42> : tensor<i32>
+  // CHECK-DAG: [[RESULT1:%.*]] = stablehlo.constant dense<-1> : tensor<i32>
+  // CHECK:     return [[RESULT0]], [[RESULT1]]
+
+  %0 = stablehlo.constant dense<-43> : tensor<i32>
+  %1 = stablehlo.constant dense<0> : tensor<i32>
+
+  %2 = stablehlo.not %0 : tensor<i32>
+  %3 = stablehlo.not %1 : tensor<i32>
+
+  func.return %2, %3 : tensor<i32>, tensor<i32>
+}
+
+// -----
+
+////////
+// RoundOp
+
+// CHECK-LABEL: func @fold_round_nearest_afz
+func.func @fold_round_nearest_afz() -> (tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[NEG_THREE:%.*]] = stablehlo.constant dense<-3.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[NEG_TWO:%.*]] = stablehlo.constant dense<-2.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[ZERO:%.*]] = stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[ONE:%.*]] = stablehlo.constant dense<1.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[TWO:%.*]] = stablehlo.constant dense<2.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[THREE:%.*]] = stablehlo.constant dense<3.0{{.*}}> : tensor<f32>
+  // CHECK:     return [[NEG_THREE]], [[NEG_TWO]], [[ZERO]], [[ONE]], [[ONE]], [[TWO]], [[THREE]]
+
+  %0 = stablehlo.constant dense<-2.5> : tensor<f32>
+  %1 = stablehlo.constant dense<-1.5> : tensor<f32>
+  %2 = stablehlo.constant dense<0.4> : tensor<f32>
+  %3 = stablehlo.constant dense<0.5> : tensor<f32>
+  %4 = stablehlo.constant dense<0.6> : tensor<f32>
+  %5 = stablehlo.constant dense<1.5> : tensor<f32>
+  %6 = stablehlo.constant dense<2.5> : tensor<f32>
+
+  %7 = stablehlo.round_nearest_afz %0 : tensor<f32>
+  %8 = stablehlo.round_nearest_afz %1 : tensor<f32>
+  %9 = stablehlo.round_nearest_afz %2 : tensor<f32>
+  %10 = stablehlo.round_nearest_afz %3 : tensor<f32>
+  %11 = stablehlo.round_nearest_afz %4 : tensor<f32>
+  %12 = stablehlo.round_nearest_afz %5 : tensor<f32>
+  %13 = stablehlo.round_nearest_afz %6 : tensor<f32>
+
+  func.return %7, %8, %9, %10, %11, %12, %13 : tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// RoundNearestEvenOp
+
+// CHECK-LABEL: func @fold_round_nearest_even
+func.func @fold_round_nearest_even() -> (tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[NEG_TWO:%.*]] = stablehlo.constant dense<-2.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[ZERO:%.*]] = stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[ONE:%.*]] = stablehlo.constant dense<1.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[TWO:%.*]] = stablehlo.constant dense<2.0{{.*}}> : tensor<f32>
+  // CHECK:     return [[NEG_TWO]], [[NEG_TWO]], [[ZERO]], [[ZERO]], [[ONE]], [[TWO]], [[TWO]]
+
+  %0 = stablehlo.constant dense<-2.5> : tensor<f32>
+  %1 = stablehlo.constant dense<-1.5> : tensor<f32>
+  %2 = stablehlo.constant dense<0.4> : tensor<f32>
+  %3 = stablehlo.constant dense<0.5> : tensor<f32>
+  %4 = stablehlo.constant dense<0.6> : tensor<f32>
+  %5 = stablehlo.constant dense<1.5> : tensor<f32>
+  %6 = stablehlo.constant dense<2.5> : tensor<f32>
+
+  %7 = stablehlo.round_nearest_even %0 : tensor<f32>
+  %8 = stablehlo.round_nearest_even %1 : tensor<f32>
+  %9 = stablehlo.round_nearest_even %2 : tensor<f32>
+  %10 = stablehlo.round_nearest_even %3 : tensor<f32>
+  %11 = stablehlo.round_nearest_even %4 : tensor<f32>
+  %12 = stablehlo.round_nearest_even %5 : tensor<f32>
+  %13 = stablehlo.round_nearest_even %6 : tensor<f32>
+
+  func.return %7, %8, %9, %10, %11, %12, %13 : tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// RsqrtOp
+
+// CHECK-LABEL: func @fold_rsqrt
+func.func @fold_rsqrt() -> (tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[HALF:%.*]] = stablehlo.constant dense<5.0{{.*}}e-01> : tensor<f32>
+  // CHECK-DAG: [[ZERO:%.*]] = stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[DO_NOT_FOLD_RSQRT_ZERO:%.*]] = stablehlo.rsqrt [[ZERO]] : tensor<f32>
+  // CHECK:     return [[HALF]], [[DO_NOT_FOLD_RSQRT_ZERO]]
+
+  %0 = stablehlo.constant dense<4.0> : tensor<f32>
+  %1 = stablehlo.constant dense<0.0> : tensor<f32>
+
+  %2 = stablehlo.rsqrt %0 : tensor<f32>
+  %3 = stablehlo.rsqrt %1 : tensor<f32>
+
+  func.return %2, %3 : tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// SignOp
+
+// CHECK-LABEL: func @fold_sign
+func.func @fold_sign() -> (tensor<i32>, tensor<i32>, tensor<i32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[INT_NEG_ONE:%.*]] = stablehlo.constant dense<-1> : tensor<i32>
+  // CHECK-DAG: [[INT_ZERO:%.*]] = stablehlo.constant dense<0> : tensor<i32>
+  // CHECK-DAG: [[INT_POS_ONE:%.*]] = stablehlo.constant dense<1> : tensor<i32>
+  // CHECK-DAG: [[FLOAT_NEG_ONE:%.*]] = stablehlo.constant dense<-1.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[FLOAT_ZERO:%.*]] = stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[FLOAT_POS_ONE:%.*]] = stablehlo.constant dense<1.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[FLOAT_NAN:%.*]] = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+  // CHECK-DAG: [[DO_NOT_FOLD_SIGN_NAN:%.*]] = stablehlo.sign [[FLOAT_NAN]] : tensor<f32>
+  // CHECK:     return [[INT_NEG_ONE]], [[INT_ZERO]], [[INT_POS_ONE]], [[FLOAT_NEG_ONE]], [[FLOAT_ZERO]], [[FLOAT_POS_ONE]], [[DO_NOT_FOLD_SIGN_NAN]]
+
+  %0 = stablehlo.constant dense<-7> : tensor<i32>
+  %1 = stablehlo.constant dense<0> : tensor<i32>
+  %2 = stablehlo.constant dense<25> : tensor<i32>
+  %3 = stablehlo.constant dense<-2.5> : tensor<f32>
+  %4 = stablehlo.constant dense<0.0> : tensor<f32>
+  %5 = stablehlo.constant dense<0.1> : tensor<f32>
+  %6 = stablehlo.constant dense<0x7FC00000> : tensor<f32> // NaN
+
+  %7 = stablehlo.sign %0 : tensor<i32>
+  %8 = stablehlo.sign %1 : tensor<i32>
+  %9 = stablehlo.sign %2 : tensor<i32>
+  %10 = stablehlo.sign %3 : tensor<f32>
+  %11 = stablehlo.sign %4 : tensor<f32>
+  %12 = stablehlo.sign %5 : tensor<f32>
+  %13 = stablehlo.sign %6 : tensor<f32>
+
+  func.return %7, %8, %9, %10, %11, %12, %13 : tensor<i32>, tensor<i32>, tensor<i32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
+// SineOp
+
+// CHECK-LABEL: func @fold_sine
+func.func @fold_sine() -> (tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[ZERO:%.*]] = stablehlo.constant dense<{{0\.0000.*}}> : tensor<f32>
+  // CHECK-DAG: [[HALF:%.*]] = stablehlo.constant dense<{{0\.5000.*|5\.000.*[Ee]-01|0.4999.*|4\.999.*[Ee]-01}}> : tensor<f32>
+  // CHECK-DAG: [[SQRT_TWO_OVER_TWO:%.*]] = stablehlo.constant dense<{{0\.7071.*|7\.071.*[Ee]-01}}> : tensor<f32>
+  // CHECK-DAG: [[SQRT_THREE_OVER_TWO:%.*]] = stablehlo.constant dense<{{0\.8660.*|8\.660.*[Ee]-01}}> : tensor<f32>
+  // CHECK-DAG: [[ONE:%.*]] = stablehlo.constant dense<{{1\.0000.*|0\.9999.*|9\.999.*[Ee]-01}}> : tensor<f32>
+  // CHECK:     return [[ZERO]], [[HALF]], [[SQRT_TWO_OVER_TWO]], [[SQRT_THREE_OVER_TWO]], [[ONE]]
+
+  %0 = stablehlo.constant dense<0.0> : tensor<f32>
+  %1 = stablehlo.constant dense<0.5235987755982989> : tensor<f32> // pi/6
+  %2 = stablehlo.constant dense<0.7853981633974483> : tensor<f32> // pi/4
+  %3 = stablehlo.constant dense<1.0471975511965977> : tensor<f32> // pi/3
+  %4 = stablehlo.constant dense<1.5707963267948966> : tensor<f32> // pi/2
+
+  %5 = stablehlo.sine %0 : tensor<f32>
+  %6 = stablehlo.sine %1 : tensor<f32>
+  %7 = stablehlo.sine %2 : tensor<f32>
+  %8 = stablehlo.sine %3 : tensor<f32>
+  %9 = stablehlo.sine %4 : tensor<f32>
+
+  func.return %5, %6, %7, %8, %9 : tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
+
+////////
 // SqrtOp
 
 // CHECK-LABEL: func @fold_sqrt
-func.func @fold_sqrt() -> (tensor<f32>) {
-  // CHECK: [[RESULT0:%.*]] = stablehlo.constant dense<2.0{{.*}}> : tensor<f32>
-  // CHECK: return [[RESULT0]]
+func.func @fold_sqrt() -> (tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[TWO:%.*]] = stablehlo.constant dense<2.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[NEG_ONE:%.*]] = stablehlo.constant dense<-1.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[DO_NOT_FOLD_FLOAT_SQRT_NEG_ONE:%.*]] = stablehlo.sqrt [[NEG_ONE]] : tensor<f32>
+  // CHECK:     return [[TWO]], [[DO_NOT_FOLD_FLOAT_SQRT_NEG_ONE]]
+
   %0 = stablehlo.constant dense<4.0> : tensor<f32>
-  %1 = stablehlo.sqrt %0 : tensor<f32>
-  func.return %1 : tensor<f32>
+  %1 = stablehlo.constant dense<-1.0> : tensor<f32>
+
+  %2 = stablehlo.sqrt %0 : tensor<f32>
+  %3 = stablehlo.sqrt %1 : tensor<f32>
+
+  func.return %2, %3 : tensor<f32>, tensor<f32>
 }
 
-//
+// -----
+
+////////
+// TanOp
+
+// CHECK-LABEL: func @fold_tan
+func.func @fold_tan() -> (tensor<f32>) {
+  // CHECK: [[ONE:%.*]] = stablehlo.constant dense<{{1\.0.*|0\.999.*}}> : tensor<f32>
+  // CHECK: return [[ONE]]
+  %pi_over_4 = stablehlo.constant dense<0.7853981633974483> : tensor<f32>
+  %result = stablehlo.tan %pi_over_4 : tensor<f32>
+  func.return %result : tensor<f32>
+}
+
+// -----
+
+////////
+// TanhOp
+
+// CHECK-LABEL: func @fold_tanh
+func.func @fold_tanh() -> (tensor<f32>, tensor<f32>, tensor<f32>) {
+  // CHECK-DAG: [[NEG_SQRT_ONE_FIFTH:%.*]] = stablehlo.constant dense<-0.44721{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[ZERO:%.*]] = stablehlo.constant dense<0.0{{.*}}> : tensor<f32>
+  // CHECK-DAG: [[SQRT_ONE_FIFTH:%.*]] = stablehlo.constant dense<0.44721{{.*}}> : tensor<f32>
+  // CHECK:     return [[NEG_SQRT_ONE_FIFTH]], [[ZERO]], [[SQRT_ONE_FIFTH]]
+
+  %neg_log_phi = stablehlo.constant dense<-0.4812118250596034> : tensor<f32>
+  %zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %log_phi = stablehlo.constant dense<0.4812118250596034> : tensor<f32>
+
+  %tanh_neg_log_phi = stablehlo.tanh %neg_log_phi : tensor<f32>
+  %tanh_zero = stablehlo.tanh %zero : tensor<f32>
+  %tanh_log_phi = stablehlo.tanh %log_phi : tensor<f32>
+
+  func.return %tanh_neg_log_phi, %tanh_zero, %tanh_log_phi : tensor<f32>, tensor<f32>, tensor<f32>
+}
+
+// -----
 
 ////////
 // SetDimensionSizeOp
@@ -748,6 +1142,19 @@ func.func @no_fold_set_dimension_size(%arg0: tensor<10xf32>) -> tensor<?xf32, #s
   // CHECK-NEXT: return [[RESULT0]]
   %0 = stablehlo.set_dimension_size %arg0, %c, dim = 0 : (tensor<10xf32>, tensor<i32>) -> tensor<?xf32, #stablehlo.bounds<10>>
   return %0 : tensor<?xf32, #stablehlo.bounds<10>>
+}
+
+// -----
+
+// Don't fold when washing away a bounded dimension, not safe to replace with
+// operand when types mismatch.
+// CHECK-LABEL: func.func @no_fold_set_dimension_size_bounded_input
+func.func @no_fold_set_dimension_size_bounded_input(%arg0: tensor<?x4xf32, #stablehlo.bounds<8, ?>>) -> tensor<8x4xf32> {
+  %c = stablehlo.constant dense<8> : tensor<i32>
+  // CHECK: [[RESULT0:%.+]] = stablehlo.set_dimension_size
+  // CHECK-NEXT: return [[RESULT0]]
+  %0 = stablehlo.set_dimension_size %arg0, %c, dim = 0 : (tensor<?x4xf32, #stablehlo.bounds<8, ?>>, tensor<i32>) -> tensor<8x4xf32>
+  return %0 : tensor<8x4xf32>
 }
 
 // -----

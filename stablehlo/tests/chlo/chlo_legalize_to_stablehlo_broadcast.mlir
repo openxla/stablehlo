@@ -12,6 +12,30 @@ func.func @addWithoutBroadcast(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>) -> te
 
 // -----
 
+// CHECK-LABEL: @addStaticBroadcastExpanding
+func.func @addStaticBroadcastExpanding(%arg0: tensor<4xf32>, %arg1: tensor<f32>) -> tensor<4xf32> {
+  // CHECK:      %[[BROADCAST:.+]] = stablehlo.broadcast_in_dim %arg1, dims = [] : (tensor<f32>) -> tensor<4xf32>
+  // CHECK-NEXT: stablehlo.add %arg0, %[[BROADCAST]]
+  // CHECK-NOT: shape
+  %0 = chlo.broadcast_add %arg0, %arg1 : (tensor<4xf32>, tensor<f32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @addStaticBroadcastSameRank
+func.func @addStaticBroadcastSameRank(%arg0: tensor<1x4xf32>, %arg1: tensor<4x1xf32>) -> tensor<4x4xf32> {
+  // CHECK:      %[[ARG0_B:.+]] = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<1x4xf32>) -> tensor<4x4xf32>
+  // CHECK-NEXT: %[[ARG1_B:.+]] = stablehlo.broadcast_in_dim %arg1, dims = [0, 1] : (tensor<4x1xf32>) -> tensor<4x4xf32>
+  // CHECK-NEXT: stablehlo.add %[[ARG0_B]], %[[ARG1_B]] : tensor<4x4xf32>
+  // CHECK-NOT: shape
+  %0 = chlo.broadcast_add %arg0, %arg1 : (tensor<1x4xf32>, tensor<4x1xf32>) -> tensor<4x4xf32>
+  func.return %0 : tensor<4x4xf32>
+}
+
+// -----
+
+
 // CHECK-LABEL: @dynamicBroadcast
 // CHECK-SAME: %[[ARG0:.+]]: tensor<?xf32>
 // CHECK-SAME: %[[ARG1:.+]]: tensor<?x?xf32>
