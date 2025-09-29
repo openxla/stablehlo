@@ -25,11 +25,7 @@ bazel_dep(name = "rules_python", version = "0.30.0")
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 
-# There is a problem at the moment running lit using Python 3.11
-# Our CI system enforces Python 3.10 to get around it but we should set the toolchain
-# in Bazel itself to avoid this problem.
-# https://github.com/llvm/llvm-project/issues/75963
 python.toolchain(
     is_default = True,
-    python_version = "3.10",
+    python_version = "3.11",
 )
