@@ -15,6 +15,7 @@ limitations under the License.
 
 #include <string>
 
+#include "gtest/gtest.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -34,7 +35,6 @@ limitations under the License.
 #include "stablehlo/integrations/cpp/builder/FuncBuilder.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
 #include "stablehlo/integrations/cpp/builder/StablehloBuilder.h"
-#include "testing/base/public/gunit.h"
 
 namespace mlir {
 namespace stablehlo {
