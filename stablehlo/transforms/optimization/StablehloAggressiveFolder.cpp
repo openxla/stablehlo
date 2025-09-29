@@ -74,39 +74,12 @@ namespace {
 
 static constexpr StablehloAggressiveFolderPassOptions kDefaultOptions;
 
-APSInt getAPSInt(Type type, uint64_t value) {
-  unsigned numBits;
-  bool isUnsigned;
-  if (auto integerType = dyn_cast<IntegerType>(type)) {
-    numBits = integerType.getWidth();
-    // Signless types are treated as signed, per StableHLO convention.
-    isUnsigned = integerType.isUnsignedInteger();
-  } else {
-    llvm::report_fatal_error("expected integer type");
-  }
-  return APSInt(
-      {/*numBits=*/numBits, value, /*isSigned=*/false, /*implicitTrunc=*/true},
-      /*isUnsigned=*/isUnsigned);
-}
-
 template <typename T>
 APSInt getAPSInt(unsigned bitWidth, T value, bool isSigned) {
   return APSInt({/*numBits=*/bitWidth, static_cast<uint64_t>(value),
                  /*isSigned=*/isSigned,
                  /*implicitTrunc=*/true},
                 /*isUnsigned=*/!isSigned);
-}
-
-APFloat getAPFloat(
-    Type type, double value,
-    llvm::RoundingMode roundingMode = llvm::RoundingMode::NearestTiesToEven) {
-  auto floatType = dyn_cast<FloatType>(type);
-  if (!floatType) llvm::report_fatal_error("expected float type");
-
-  APFloat result(value);
-  bool unusedLosesInfo = false;
-  result.convert(floatType.getFloatSemantics(), roundingMode, &unusedLosesInfo);
-  return result;
 }
 
 LogicalResult validateStaticShapeResult(PatternRewriter& rewriter,
