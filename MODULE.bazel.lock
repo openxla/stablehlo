@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 3,
-  "moduleFileHash": "7d7242dc1d15217a8af40c80c5f91829a0f3fb0a5216b1c07a374b7cb24dfdfd",
+  "moduleFileHash": "ce4794458e362dbc8ef2ce05de1e7e4bce6bf67d9826b0cf419a10ba429bdc59",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -40,12 +40,12 @@
               "tagName": "toolchain",
               "attributeValues": {
                 "is_default": true,
-                "python_version": "3.10"
+                "python_version": "3.11"
               },
               "devDependency": false,
               "location": {
                 "file": "@@//:MODULE.bazel",
-                "line": 32,
+                "line": 27,
                 "column": 17
               }
             }
@@ -2943,42 +2943,22 @@
               ]
             }
           },
-          "python_3_10_aarch64-apple-darwin": {
-            "bzlFile": "@@rules_python~0.30.0//python:repositories.bzl",
-            "ruleClassName": "python_repository",
+          "python_3_11": {
+            "bzlFile": "@@rules_python~0.30.0//python/private:toolchains_repo.bzl",
+            "ruleClassName": "toolchain_aliases",
             "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_10_aarch64-apple-darwin",
-              "sha256": "fd027b1dedf1ea034cdaa272e91771bdf75ddef4c8653b05d224a0645aa2ca3c",
-              "patches": [],
-              "platform": "aarch64-apple-darwin",
-              "python_version": "3.10.13",
-              "release_filename": "20231002/cpython-3.10.13+20231002-aarch64-apple-darwin-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.10.13+20231002-aarch64-apple-darwin-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": false
-            }
-          },
-          "python_3_10_x86_64-apple-darwin": {
-            "bzlFile": "@@rules_python~0.30.0//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_10_x86_64-apple-darwin",
-              "sha256": "be0b19b6af1f7d8c667e5abef5505ad06cf72e5a11bb5844970c395a7e5b1275",
-              "patches": [],
-              "platform": "x86_64-apple-darwin",
-              "python_version": "3.10.13",
-              "release_filename": "20231002/cpython-3.10.13+20231002-x86_64-apple-darwin-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.10.13+20231002-x86_64-apple-darwin-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": false
+              "name": "rules_python~0.30.0~python~python_3_11",
+              "python_version": "3.11.7",
+              "user_repository_name": "python_3_11",
+              "platforms": [
+                "aarch64-apple-darwin",
+                "aarch64-unknown-linux-gnu",
+                "ppc64le-unknown-linux-gnu",
+                "s390x-unknown-linux-gnu",
+                "x86_64-apple-darwin",
+                "x86_64-pc-windows-msvc",
+                "x86_64-unknown-linux-gnu"
+              ]
             }
           },
           "python_3_11_aarch64-unknown-linux-gnu": {
@@ -3019,161 +2999,6 @@
               "ignore_root_user_error": false
             }
           },
-          "python_3_10_ppc64le-unknown-linux-gnu": {
-            "bzlFile": "@@rules_python~0.30.0//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_10_ppc64le-unknown-linux-gnu",
-              "sha256": "f3f9c43eec1a0c3f72845d0b705da17a336d3906b7df212d2640b8f47e8ff375",
-              "patches": [],
-              "platform": "ppc64le-unknown-linux-gnu",
-              "python_version": "3.10.13",
-              "release_filename": "20231002/cpython-3.10.13+20231002-ppc64le-unknown-linux-gnu-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.10.13+20231002-ppc64le-unknown-linux-gnu-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": false
-            }
-          },
-          "python_3_10_x86_64-pc-windows-msvc": {
-            "bzlFile": "@@rules_python~0.30.0//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_10_x86_64-pc-windows-msvc",
-              "sha256": "b8d930ce0d04bda83037ad3653d7450f8907c88e24bb8255a29b8dab8930d6f1",
-              "patches": [],
-              "platform": "x86_64-pc-windows-msvc",
-              "python_version": "3.10.13",
-              "release_filename": "20231002/cpython-3.10.13+20231002-x86_64-pc-windows-msvc-shared-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.10.13+20231002-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": false
-            }
-          },
-          "pythons_hub": {
-            "bzlFile": "@@rules_python~0.30.0//python/private/bzlmod:pythons_hub.bzl",
-            "ruleClassName": "hub_repo",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~pythons_hub",
-              "default_python_version": "3.10",
-              "toolchain_prefixes": [
-                "_0000_python_3_11_",
-                "_0001_python_3_10_"
-              ],
-              "toolchain_python_versions": [
-                "3.11",
-                "3.10"
-              ],
-              "toolchain_set_python_version_constraints": [
-                "True",
-                "False"
-              ],
-              "toolchain_user_repository_names": [
-                "python_3_11",
-                "python_3_10"
-              ]
-            }
-          },
-          "python_3_11_x86_64-pc-windows-msvc": {
-            "bzlFile": "@@rules_python~0.30.0//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_11_x86_64-pc-windows-msvc",
-              "sha256": "67077e6fa918e4f4fd60ba169820b00be7c390c497bf9bc9cab2c255ea8e6f3e",
-              "patches": [],
-              "platform": "x86_64-pc-windows-msvc",
-              "python_version": "3.11.7",
-              "release_filename": "20240107/cpython-3.11.7+20240107-x86_64-pc-windows-msvc-shared-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20240107/cpython-3.11.7+20240107-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": false
-            }
-          },
-          "python_3_10_aarch64-unknown-linux-gnu": {
-            "bzlFile": "@@rules_python~0.30.0//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_10_aarch64-unknown-linux-gnu",
-              "sha256": "8675915ff454ed2f1597e27794bc7df44f5933c26b94aa06af510fe91b58bb97",
-              "patches": [],
-              "platform": "aarch64-unknown-linux-gnu",
-              "python_version": "3.10.13",
-              "release_filename": "20231002/cpython-3.10.13+20231002-aarch64-unknown-linux-gnu-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.10.13+20231002-aarch64-unknown-linux-gnu-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": false
-            }
-          },
-          "python_3_11": {
-            "bzlFile": "@@rules_python~0.30.0//python/private:toolchains_repo.bzl",
-            "ruleClassName": "toolchain_aliases",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_11",
-              "python_version": "3.11.7",
-              "user_repository_name": "python_3_11",
-              "platforms": [
-                "aarch64-apple-darwin",
-                "aarch64-unknown-linux-gnu",
-                "ppc64le-unknown-linux-gnu",
-                "s390x-unknown-linux-gnu",
-                "x86_64-apple-darwin",
-                "x86_64-pc-windows-msvc",
-                "x86_64-unknown-linux-gnu"
-              ]
-            }
-          },
-          "python_3_10_s390x-unknown-linux-gnu": {
-            "bzlFile": "@@rules_python~0.30.0//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_10_s390x-unknown-linux-gnu",
-              "sha256": "859f6cfe9aedb6e8858892fdc124037e83ab05f28d42a7acd314c6a16d6bd66c",
-              "patches": [],
-              "platform": "s390x-unknown-linux-gnu",
-              "python_version": "3.10.13",
-              "release_filename": "20231002/cpython-3.10.13+20231002-s390x-unknown-linux-gnu-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.10.13+20231002-s390x-unknown-linux-gnu-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": false
-            }
-          },
-          "python_3_10": {
-            "bzlFile": "@@rules_python~0.30.0//python/private:toolchains_repo.bzl",
-            "ruleClassName": "toolchain_aliases",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_10",
-              "python_version": "3.10.13",
-              "user_repository_name": "python_3_10",
-              "platforms": [
-                "aarch64-apple-darwin",
-                "aarch64-unknown-linux-gnu",
-                "ppc64le-unknown-linux-gnu",
-                "s390x-unknown-linux-gnu",
-                "x86_64-apple-darwin",
-                "x86_64-pc-windows-msvc",
-                "x86_64-unknown-linux-gnu"
-              ]
-            }
-          },
           "python_3_11_ppc64le-unknown-linux-gnu": {
             "bzlFile": "@@rules_python~0.30.0//python:repositories.bzl",
             "ruleClassName": "python_repository",
@@ -3212,52 +3037,53 @@
               "ignore_root_user_error": false
             }
           },
+          "pythons_hub": {
+            "bzlFile": "@@rules_python~0.30.0//python/private/bzlmod:pythons_hub.bzl",
+            "ruleClassName": "hub_repo",
+            "attributes": {
+              "name": "rules_python~0.30.0~python~pythons_hub",
+              "default_python_version": "3.11",
+              "toolchain_prefixes": [
+                "_0000_python_3_11_"
+              ],
+              "toolchain_python_versions": [
+                "3.11"
+              ],
+              "toolchain_set_python_version_constraints": [
+                "False"
+              ],
+              "toolchain_user_repository_names": [
+                "python_3_11"
+              ]
+            }
+          },
           "python_versions": {
             "bzlFile": "@@rules_python~0.30.0//python/private:toolchains_repo.bzl",
             "ruleClassName": "multi_toolchain_aliases",
             "attributes": {
               "name": "rules_python~0.30.0~python~python_versions",
               "python_versions": {
-                "3.10": "python_3_10",
                 "3.11": "python_3_11"
               }
             }
           },
-          "python_3_10_x86_64-unknown-linux-gnu": {
+          "python_3_11_x86_64-pc-windows-msvc": {
             "bzlFile": "@@rules_python~0.30.0//python:repositories.bzl",
             "ruleClassName": "python_repository",
             "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_10_x86_64-unknown-linux-gnu",
-              "sha256": "5d0429c67c992da19ba3eb58b3acd0b35ec5e915b8cae9a4aa8ca565c423847a",
+              "name": "rules_python~0.30.0~python~python_3_11_x86_64-pc-windows-msvc",
+              "sha256": "67077e6fa918e4f4fd60ba169820b00be7c390c497bf9bc9cab2c255ea8e6f3e",
               "patches": [],
-              "platform": "x86_64-unknown-linux-gnu",
-              "python_version": "3.10.13",
-              "release_filename": "20231002/cpython-3.10.13+20231002-x86_64-unknown-linux-gnu-install_only.tar.gz",
+              "platform": "x86_64-pc-windows-msvc",
+              "python_version": "3.11.7",
+              "release_filename": "20240107/cpython-3.11.7+20240107-x86_64-pc-windows-msvc-shared-install_only.tar.gz",
               "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.10.13+20231002-x86_64-unknown-linux-gnu-install_only.tar.gz"
+                "https://github.com/indygreg/python-build-standalone/releases/download/20240107/cpython-3.11.7+20240107-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
               ],
               "distutils_content": "",
               "strip_prefix": "python",
               "coverage_tool": "",
               "ignore_root_user_error": false
-            }
-          },
-          "python_3_10_host": {
-            "bzlFile": "@@rules_python~0.30.0//python/private:toolchains_repo.bzl",
-            "ruleClassName": "host_toolchain",
-            "attributes": {
-              "name": "rules_python~0.30.0~python~python_3_10_host",
-              "python_version": "3.10.13",
-              "user_repository_name": "python_3_10",
-              "platforms": [
-                "aarch64-apple-darwin",
-                "aarch64-unknown-linux-gnu",
-                "ppc64le-unknown-linux-gnu",
-                "s390x-unknown-linux-gnu",
-                "x86_64-apple-darwin",
-                "x86_64-pc-windows-msvc",
-                "x86_64-unknown-linux-gnu"
-              ]
             }
           },
           "python_3_11_x86_64-unknown-linux-gnu": {
