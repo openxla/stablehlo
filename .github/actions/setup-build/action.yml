@@ -67,7 +67,7 @@ runs:
   - name: Install Clang 19
     shell: bash
     run: |
-      pip install clang==19
+      pip install clang==19.1.7
 
   - name: Install MLIR python requirements
     shell: bash
