@@ -3,6 +3,7 @@ bazel-out
 bazel-stablehlo
 bazel-testlogs
 build
+cmake-build
 llvm-project
 llvm-build
 .vscode
