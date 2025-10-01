@@ -13,17 +13,22 @@
 # limitations under the License.
 
 # The setup-build action gets everything needed by buildAndTest into the workspace.
-name: "Setup build environment (ninja, ccache, llvm, lld)"
-description: "Setup build environment (ninja, ccache, llvm, lld)"
+name: "Setup build environment (ninja, ccache, llvm, clang, lld)"
+description: "Setup build environment (ninja, ccache, llvm, clang, lld)"
 
 inputs:
   llvm-version:
     description: |
       LLVM version for checkout and build. Used for ccache value and checkout.
     required: true
+  clang-version:
+    description: |
+      Clang version to use for compilation. Independent of the LLVM version.
+    required: false
+    default: '20'
   python-version:
     description: |
-      Python version to install
+      Python version to install.
     required: false
     default: '3.11.13'
 runs:
@@ -43,11 +48,15 @@ runs:
   - name: Install Ninja
     uses: llvm/actions/install-ninja@6a57890d0e3f9f35dfc72e7e48bc5e1e527cdd6c
 
-  # Update Clang installation.
-  - name: Update Clang
+  # Install up-to-date versions of Clang and LLD (plus a few related packages).
+  # - Update Clang to support newer compiler features.
+  # - Install LLD to improve build speed on Linux.
+  - name: Install/update Clang and LLD
     shell: bash
     run: |
-      sudo apt-get install -y clang-20
+      wget https://apt.llvm.org/llvm.sh
+      chmod +x llvm.sh
+      sudo ./llvm.sh ${{ inputs.clang-version }}
 
   # Get LLD - Improves build speed on Linux
   - name: Install LLD
