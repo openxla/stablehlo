@@ -43,11 +43,17 @@ runs:
   - name: Install Ninja
     uses: llvm/actions/install-ninja@6a57890d0e3f9f35dfc72e7e48bc5e1e527cdd6c
 
+  # Update Clang installation.
+  - name: Update Clang
+    shell: bash
+    run: |
+      sudo apt-get install -y clang-20
+
   # Get LLD - Improves build speed on Linux
   - name: Install LLD
     shell: bash
     run: |
-      sudo apt-get install -y lld
+      sudo apt-get install -y lld-20
 
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
@@ -63,11 +69,6 @@ runs:
     with:
       python-version: ${{ inputs.python-version }}
       cache: 'pip' # caching pip dependencies
-
-  - name: Install Clang 19
-    shell: bash
-    run: |
-      pip install clang==19.1.7
 
   - name: Install MLIR python requirements
     shell: bash
