@@ -62,7 +62,9 @@ runs:
       echo ==================================================
       ls -l /usr/bin/lld*
       echo ==================================================
-      for program_name in "clang" "clang++" "lld"; do
+      ls -l /usr/bin/g++*
+      echo ==================================================
+      for program_name in "clang" "clang++" "lld" "g++"; do
         update-alternatives --query "$program_name" 2>&1 || true
       done
       echo ==================================================
@@ -74,11 +76,11 @@ runs:
           "$link_path" "$program_name" "$link_target" "$priority"
       done
       echo ==================================================
-      for program_name in "clang" "clang++" "lld"; do
+      for program_name in "clang" "clang++" "lld" "g++"; do
         update-alternatives --query "$program_name" 2>&1 || true
       done
       echo ==================================================
-      sudo apt-get install g++-14
+      sudo apt-get install gcc-14
       echo ==================================================
       clang -v
       echo ==================================================
