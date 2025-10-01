@@ -60,6 +60,12 @@ runs:
       echo ==================================================
       ls -l /usr/bin/clang*
       echo ==================================================
+      ls -l /usr/bin/lld*
+      echo ==================================================
+      update-alternatives --query clang
+      echo ==================================================
+      update-alternatives --query lld
+      echo ==================================================
 
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
