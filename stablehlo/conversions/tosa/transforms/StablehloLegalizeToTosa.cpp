@@ -502,11 +502,11 @@ struct ConvertStablehloReshapeOp
       return rewriter.notifyMatchFailure(op, "result tensor must be static");
     }
 
-    SmallVector<int64_t, 8> dimensions(resultType.getShape().begin(),
-                                       resultType.getShape().end());
+    auto resultShape = resultType.getShape();
+    SmallVector<int64_t, 8> dimensions(resultShape.begin(), resultShape.end());
 
     RankedTensorType shapeTensorType = RankedTensorType::get(
-        {(int64_t)dimensions.size()}, rewriter.getIndexType());
+        {static_cast<int64_t>(dimensions.size())}, rewriter.getIndexType());
 
     auto denseAttr = DenseIntElementsAttr::get(shapeTensorType, dimensions);
     auto shapeType =
