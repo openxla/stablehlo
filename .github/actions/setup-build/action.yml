@@ -78,6 +78,10 @@ runs:
         update-alternatives --query "$program_name" 2>&1 || true
       done
       echo ==================================================
+      sudo apt-get install g++-14
+      echo ==================================================
+      clang -v
+      echo ==================================================
 
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
