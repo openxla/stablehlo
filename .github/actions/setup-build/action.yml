@@ -23,7 +23,7 @@ inputs:
     required: true
   clang-version:
     description: |
-      Clang version to use for compilation. Independent of the LLVM version.
+      Clang and LLD version to use for compilation. Independent of LLVM version.
     required: false
     default: '20'
   python-version:
@@ -57,12 +57,9 @@ runs:
       wget https://apt.llvm.org/llvm.sh
       chmod +x llvm.sh
       sudo ./llvm.sh ${{ inputs.clang-version }}
-
-  # Get LLD - Improves build speed on Linux
-  - name: Install LLD
-    shell: bash
-    run: |
-      sudo apt-get install -y lld-20
+      echo ==================================================
+      ls -l /usr/bin/clang*
+      echo ==================================================
 
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
