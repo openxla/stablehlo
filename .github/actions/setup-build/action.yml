@@ -62,19 +62,20 @@ runs:
       echo ==================================================
       ls -l /usr/bin/lld*
       echo ==================================================
-      for program in "clang" "clang++" "lld"; do
-        update-alternatives --query "$program" 2>&1 || true
+      for program_name in "clang" "clang++" "lld"; do
+        update-alternatives --query "$program_name" 2>&1 || true
       done
       echo ==================================================
-      for tool_name in "clang" "clang++" "lld"; do
-        link="/usr/bin/$tool_name"
-        target="/usr/bin/$tool_name-${{ inputs.clang-version }}"
+      for program_name in "clang" "clang++" "lld"; do
+        link_path="/usr/bin/$program_name"
+        link_target="/usr/bin/$program_name-${{ inputs.clang-version }}"
         priority=200
-        update-alternatives --install "$link" "$tool_name" "$target" "$priority"
+        sudo update-alternatives --install \
+          "$link_path" "$program_name" "$link_target" "$priority"
       done
       echo ==================================================
-      for program in "clang" "clang++" "lld"; do
-        update-alternatives --query "$program" 2>&1 || true
+      for program_name in "clang" "clang++" "lld"; do
+        update-alternatives --query "$program_name" 2>&1 || true
       done
       echo ==================================================
 
