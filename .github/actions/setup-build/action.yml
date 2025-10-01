@@ -80,7 +80,11 @@ runs:
         update-alternatives --query "$program_name" 2>&1 || true
       done
       echo ==================================================
-      sudo apt-get install gcc-14
+      sudo apt-add-repository ppa:ubuntu-toolchain-r/test
+      sudo apt-get update
+      sudo apt-get install gcc-14 g++-14
+      echo ==================================================
+      ls -l /usr/bin/g++*
       echo ==================================================
       clang -v
       echo ==================================================
