@@ -36,7 +36,7 @@ jobs:
   bazel-build:
     strategy:
       fail-fast: false
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-24.04-64core' ||  'ubuntu-24.04'  }}
 
     steps:
     # Checkout StableHLO with all commits in the chain

@@ -26,7 +26,7 @@ on:
 
 jobs:
   markdown-lint:
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-24.04-64core' ||  'ubuntu-24.04'  }}
     steps:
     - name: Checking out repository
       uses: actions/checkout@v4
