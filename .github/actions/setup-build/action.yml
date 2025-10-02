@@ -80,7 +80,7 @@ runs:
         update-alternatives --query "$program_name" 2>&1 || true
       done
       echo ==================================================
-      sudo apt-add-repository ppa:ubuntu-toolchain-r/test
+      sudo apt-add-repository universe
       sudo apt-get update
       sudo apt-get install gcc-14 g++-14
       echo ==================================================
