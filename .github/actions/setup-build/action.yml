@@ -84,8 +84,8 @@ runs:
       echo
       echo ==================================================
       echo
-      echo 'sudo apt-get install libstdc++13-dev'
-      sudo apt-get install libstdc++13-dev 2>&1 || true
+      echo 'sudo apt-get install libstdc++-12-dev'
+      sudo apt-get install libstdc++-12-dev 2>&1 || true
       echo
       echo ==================================================
       echo
