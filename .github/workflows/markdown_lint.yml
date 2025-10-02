@@ -26,7 +26,8 @@ on:
 
 jobs:
   markdown-lint:
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-24.04-64core' ||  'ubuntu-24.04'  }}
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    container: us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest
     steps:
     - name: Checking out repository
       uses: actions/checkout@v4
