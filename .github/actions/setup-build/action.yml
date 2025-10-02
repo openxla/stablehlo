@@ -74,11 +74,6 @@ runs:
     run: |
       echo ==================================================
       echo
-      echo 'sudo apt-add-repository universe'
-      sudo apt-add-repository universe 2>&1
-      echo
-      echo ==================================================
-      echo
       echo 'sudo apt-add-repository ppa:ubuntu-toolchain-r/test'
       sudo apt-add-repository ppa:ubuntu-toolchain-r/test 2>&1
       echo
@@ -89,36 +84,36 @@ runs:
       echo
       echo ==================================================
       echo
-      echo 'ls -l /usr/bin/g++*'
-      ls -l /usr/bin/g++* 2>&1
+      echo 'sudo apt search gcc-13'
+      sudo apt search gcc-13 2>&1 || true
       echo
       echo ==================================================
       echo
-      echo 'sudo apt search g\\+\\+-14'
-      sudo apt search g\\+\\+-14 2>&1 || true
+      echo 'sudo apt search g\\+\\+-13'
+      sudo apt search g\\+\\+-13 2>&1 || true
       echo
       echo ==================================================
       echo
-      echo 'sudo apt-get install gcc-14'
-      sudo apt-get install gcc-14 2>&1 || true
+      echo 'sudo apt-get install gcc-13'
+      sudo apt-get install gcc-13 2>&1 || true
       echo
       echo ==================================================
       echo
-      echo 'sudo apt-get install g++-14'
-      sudo apt-get install g++-14 2>&1 || true
+      echo 'sudo apt-get install g++-13'
+      sudo apt-get install g++-13 2>&1 || true
       echo
       echo ==================================================
       echo
       echo 'sudo update-alternatives' \
-           '--install /usr/bin/gcc gcc /usr/bin/gcc-14 200'
-      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 200 \
+           '--install /usr/bin/gcc gcc /usr/bin/gcc-13 200'
+      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 200 \
         2>&1 || true
       echo
       echo ==================================================
       echo
       echo 'sudo update-alternatives' \
-           '--install /usr/bin/g++ g++ /usr/bin/g++-14 200'
-      sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 200 \
+           '--install /usr/bin/g++ g++ /usr/bin/g++-13 200'
+      sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 200 \
         2>&1 || true
       echo
       echo ==================================================
