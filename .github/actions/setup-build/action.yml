@@ -84,42 +84,8 @@ runs:
       echo
       echo ==================================================
       echo
-      echo 'sudo apt search gcc-13'
-      sudo apt search gcc-13 2>&1 || true
-      echo
-      echo ==================================================
-      echo
-      echo 'sudo apt search g\\+\\+-13'
-      sudo apt search g\\+\\+-13 2>&1 || true
-      echo
-      echo ==================================================
-      echo
-      echo 'sudo apt-get install gcc-13'
-      sudo apt-get install gcc-13 2>&1 || true
-      echo
-      echo ==================================================
-      echo
-      echo 'sudo apt-get install g++-13'
-      sudo apt-get install g++-13 2>&1 || true
-      echo
-      echo ==================================================
-      echo
-      echo 'sudo update-alternatives' \
-           '--install /usr/bin/gcc gcc /usr/bin/gcc-13 200'
-      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 200 \
-        2>&1 || true
-      echo
-      echo ==================================================
-      echo
-      echo 'sudo update-alternatives' \
-           '--install /usr/bin/g++ g++ /usr/bin/g++-13 200'
-      sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 200 \
-        2>&1 || true
-      echo
-      echo ==================================================
-      echo
-      echo 'ls -l /usr/bin/gcc* /usr/bin/g++*'
-      ls -l /usr/bin/gcc* /usr/bin/g++* 2>&1
+      echo 'sudo apt-get install libstdc++12-dev'
+      sudo apt-get install libstdc++12-dev 2>&1 || true
       echo
       echo ==================================================
       echo
