@@ -65,34 +65,13 @@ runs:
           "$link_path" "$program_name" "$link_target" "$priority"
       done
 
-  # Update the system C++ headers, which are provided by `g++` even though we
-  # compile with `clang++`. The `g++-12` headers used language features that
-  # newer Clang versions recognize as deprecated, so we need a newer `g++`
-  # package.
-  - name: Update g++ for system C++ headers
+  # Update the system C++ headers.
+  - name: Update system C++ headers
     shell: bash
     run: |
-      echo ==================================================
-      echo
-      echo 'sudo apt-add-repository ppa:ubuntu-toolchain-r/test'
-      sudo apt-add-repository ppa:ubuntu-toolchain-r/test 2>&1
-      echo
-      echo ==================================================
-      echo
-      echo 'sudo apt-get update'
-      sudo apt-get update 2>&1
-      echo
-      echo ==================================================
-      echo
-      echo 'sudo apt-get install libstdc++-13-dev'
-      sudo apt-get install libstdc++-13-dev 2>&1 || true
-      echo
-      echo ==================================================
-      echo
-      echo 'clang -v'
-      clang -v 2>&1
-      echo
-      echo ==================================================
+      # sudo apt-add-repository ppa:ubuntu-toolchain-r/test
+      # sudo apt-get update
+      sudo apt-get install libstdc++-13-dev 
 
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
