@@ -71,7 +71,7 @@ runs:
     run: |
       # sudo apt-add-repository ppa:ubuntu-toolchain-r/test
       # sudo apt-get update
-      sudo apt-get install libstdc++-13-dev 
+      sudo apt-get install libstdc++-13-dev
 
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
