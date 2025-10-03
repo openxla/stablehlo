@@ -171,7 +171,7 @@ test_cases = [
             np.array([1.0, 2.0], dtype=np.float32),
             np.array([3.0, 4.0], dtype=np.float32),
         ],
-        EXPECTED_TESTDATA_MODULE_STR_1B,
+        EXPECTED_TESTDATA_MODULE_STR_1,
     ),
     (
         # To test
@@ -200,7 +200,7 @@ test_cases = [
         #  - Usage of custom_call ops as check ops.
         MODULE_STR_IN_TESTDATA_FORMAT_WITH_CUSTOM_CALL_AS_CHECK_OPS,
         [],
-        EXPECTED_TESTDATA_MODULE_STR_1,
+        EXPECTED_TESTDATA_MODULE_STR_1B,
     ),
     (
         # To test
