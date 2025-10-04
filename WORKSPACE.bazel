@@ -17,9 +17,9 @@ workspace(name = "stablehlo")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-LLVM_COMMIT = "cb2f0d0a5f14c183e7182aba0f0e54a518de9e3f"
+LLVM_COMMIT = "113f01aa82d055410f22a9d03b3468fa68600589"
 
-LLVM_SHA256 = "e8ece380fdb57dc6f8e42df9db872a1ade5056c5379075e3e2f99c89200aea69"
+LLVM_SHA256 = "9aee00a35aa76639746589c6d09e8c18249be16b5b6aa6b788a570a4bc6c4543"
 
 http_archive(
     name = "llvm-raw",
@@ -53,6 +53,13 @@ http_archive(
     urls = [
         "https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.0.7.zip",
     ],
+)
+
+http_archive(
+    name = "rules_shell",
+    sha256 = "bc61ef94facc78e20a645726f64756e5e285a045037c7a61f65af2941f4c25e1",
+    strip_prefix = "rules_shell-0.4.1",
+    url = "https://github.com/bazelbuild/rules_shell/releases/download/v0.4.1/rules_shell-v0.4.1.tar.gz",
 )
 
 load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure")

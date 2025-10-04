@@ -21,6 +21,7 @@ limitations under the License.
 #include <numeric>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 #include "llvm/ADT/APFloat.h"
@@ -58,6 +59,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/transforms/optimization/Passes.h"
 
@@ -72,31 +74,12 @@ namespace {
 
 static constexpr StablehloAggressiveFolderPassOptions kDefaultOptions;
 
-APSInt getAPSInt(Type type, uint64_t value) {
-  unsigned numBits;
-  bool isUnsigned;
-  if (auto integerType = dyn_cast<IntegerType>(type)) {
-    numBits = integerType.getWidth();
-    // Signless types are treated as signed, per StableHLO convention.
-    isUnsigned = integerType.isUnsignedInteger();
-  } else {
-    llvm::report_fatal_error("expected integer type");
-  }
-  return APSInt(
-      {/*numBits=*/numBits, value, /*isSigned=*/false, /*implicitTrunc=*/true},
-      /*isUnsigned=*/isUnsigned);
-}
-
-APFloat getAPFloat(
-    Type type, double value,
-    llvm::RoundingMode roundingMode = llvm::RoundingMode::NearestTiesToEven) {
-  auto floatType = dyn_cast<FloatType>(type);
-  if (!floatType) llvm::report_fatal_error("expected float type");
-
-  APFloat result(value);
-  bool losesInfo = false;
-  result.convert(floatType.getFloatSemantics(), roundingMode, &losesInfo);
-  return result;
+template <typename T>
+APSInt getAPSInt(unsigned bitWidth, T value, bool isSigned) {
+  return APSInt({/*numBits=*/bitWidth, static_cast<uint64_t>(value),
+                 /*isSigned=*/isSigned,
+                 /*implicitTrunc=*/true},
+                /*isUnsigned=*/!isSigned);
 }
 
 LogicalResult validateStaticShapeResult(PatternRewriter& rewriter,
@@ -351,6 +334,190 @@ struct FoldOpRewritePattern : OpRewritePattern<OpType> {
           "too many elements, fold "
           "limit is " +
               std::to_string(options.foldOpElementLimit));
+    return success();
+  }
+};
+
+namespace fold_unary {
+
+template <typename Impl, typename = void, typename... ArgTypes>
+struct FolderExistsHelper : std::false_type {};
+
+template <typename Impl, typename... ArgTypes>
+struct FolderExistsHelper<
+    Impl,
+    std::enable_if_t<sizeof(Impl::EvaluateOp(std::declval<ArgTypes>()...)) != 0,
+                     void>,
+    ArgTypes...> : std::true_type {};
+
+template <typename Impl, typename... ArgTypes>
+struct FolderExists : FolderExistsHelper<Impl, void, ArgTypes...> {};
+
+template <typename Impl, typename CanonicalType, typename = void>
+struct DirectFolderExists : std::false_type {};
+
+template <typename Impl, typename CanonicalType>
+struct DirectFolderExists<
+    Impl, CanonicalType,
+    std::enable_if_t<std::is_convertible_v<decltype(Impl::EvaluateOp(
+                                               std::declval<CanonicalType>())),
+                                           std::optional<CanonicalType>>,
+                     void>> : std::true_type {
+  static_assert(FolderExists<Impl, CanonicalType>::value);
+};
+
+template <typename Impl, typename CanonicalType, typename ComputeType,
+          typename ConversionFn, typename = void>
+struct ConvertingFolderExists : std::false_type {};
+
+template <typename Impl, typename CanonicalType, typename ComputeType,
+          typename ConversionFn>
+struct ConvertingFolderExists<
+    Impl, CanonicalType, ComputeType, ConversionFn,
+    std::enable_if_t<std::is_convertible_v<
+                         decltype(std::declval<ConversionFn>()(
+                             Impl::EvaluateOp(std::declval<ComputeType>()))),
+                         std::optional<CanonicalType>> &&
+                         !std::is_same_v<std::decay_t<CanonicalType>,
+                                         std::decay_t<ComputeType>>,
+                     void>> : std::true_type {
+  static_assert(FolderExists<Impl, ComputeType>::value);
+  static_assert(!DirectFolderExists<Impl, CanonicalType>::value);
+};
+
+}  // namespace fold_unary
+
+template <typename Impl, typename OpType>
+struct FoldUnaryOpPattern : public FoldOpRewritePattern<OpType> {
+  using FoldOpRewritePattern<OpType>::FoldOpRewritePattern;
+
+  template <
+      typename CanonicalType,
+      std::enable_if_t<
+          fold_unary::DirectFolderExists<Impl, CanonicalType>::value, int> = 0>
+  static std::optional<CanonicalType> FoldIfImplemented(CanonicalType operand) {
+    return Impl::EvaluateOp(operand);
+  }
+
+  template <typename CanonicalType, typename ComputeType,
+            typename ConversionFn =
+                std::optional<CanonicalType> (*)(std::optional<ComputeType>),
+            std::enable_if_t<
+                fold_unary::ConvertingFolderExists<
+                    Impl, CanonicalType, ComputeType, ConversionFn>::value,
+                int> = 0>
+  static std::optional<CanonicalType> FoldIfImplemented(
+      ComputeType operand,
+      ConversionFn&& convertResult = [](std::optional<ComputeType> result)
+          -> std::optional<CanonicalType> {
+        if (result == std::nullopt) return std::nullopt;
+        return CanonicalType(*result);
+      }) {
+    return convertResult(Impl::EvaluateOp(operand));
+  }
+
+  template <typename CanonicalType, typename ComputeType,
+            typename ConversionFn = std::nullptr_t,
+            std::enable_if_t<
+                !fold_unary::FolderExists<Impl, ComputeType>::value, int> = 0>
+  static std::nullopt_t FoldIfImplemented(
+      ComputeType operand, ConversionFn&& convertResult = nullptr) {
+    return std::nullopt;
+  }
+
+  struct FoldDispatch {
+    bool isSignedInt = false;
+
+    std::optional<APInt> operator()(APInt operand) const {
+      if constexpr (fold_unary::DirectFolderExists<Impl, APInt>::value) {
+        // Fold as a signedness-agnostic `APInt`.
+        return FoldIfImplemented<APInt>(operand);
+      } else if constexpr (fold_unary::DirectFolderExists<Impl,
+                                                          APSInt>::value) {
+        // Fold as a signedness-aware `APSInt`.
+        return FoldIfImplemented<APSInt>(
+            APSInt(std::move(operand), /*isUnsigned=*/!isSignedInt));
+      } else {
+        // Fold as a C++ primitive of type `int64_t` or `uint64_t`.
+        return isSignedInt ? FoldAsIntType<int64_t>(operand)
+                           : FoldAsIntType<uint64_t>(operand);
+      }
+    }
+
+    std::optional<APFloat> operator()(APFloat operand) const {
+      if constexpr (fold_unary::DirectFolderExists<Impl, APFloat>::value) {
+        // Fold as an `APFloat`.
+        return FoldIfImplemented<APFloat>(operand);
+      } else {
+        // Fold as a `double`.
+        return FoldAsDouble(operand);
+      }
+    }
+
+    template <typename ComputationDataType>
+    std::optional<APInt> FoldAsIntType(APInt operand) const {
+      const size_t bitWidth = operand.getBitWidth();
+
+      auto convertResult = [&](std::optional<ComputationDataType> result)
+          -> std::optional<APInt> {
+        if (result == std::nullopt) return std::nullopt;
+        return APInt(bitWidth, *result, isSignedInt);
+      };
+
+      ComputationDataType operandValue;
+      if constexpr (std::is_signed_v<ComputationDataType>) {
+        operandValue = static_cast<ComputationDataType>(operand.getSExtValue());
+      } else {
+        operandValue = static_cast<ComputationDataType>(operand.getZExtValue());
+      }
+
+      return FoldIfImplemented<APInt, ComputationDataType>(operandValue,
+                                                           convertResult);
+    }
+
+    std::optional<APFloat> FoldAsDouble(APFloat operand) const {
+      auto convertResult =
+          [&](std::optional<double> result) -> std::optional<APFloat> {
+        if (result == std::nullopt) return std::nullopt;
+        APFloat resultAsAPFloat(*result);
+        bool unusedLosesInfo;
+        resultAsAPFloat.convert(operand.getSemantics(),
+                                APFloat::rmNearestTiesToEven, &unusedLosesInfo);
+        return resultAsAPFloat;
+      };
+
+      APFloat operandCopy = operand;
+      bool unusedLosesInfo;
+      operandCopy.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
+                          &unusedLosesInfo);
+      double operandValue = operandCopy.convertToDouble();
+
+      return FoldIfImplemented<APFloat, double>(operandValue, convertResult);
+    }
+  };
+
+  LogicalResult matchAndRewrite(OpType op,
+                                PatternRewriter& rewriter) const override {
+    auto elementType = op.getType().getElementType();
+
+    FailureOr<TypedAttr> result;
+    if (elementType.isUnsignedInteger()) {
+      result = foldUnaryOpIntOrFloat(rewriter, op,
+                                     FoldDispatch{/*isSignedInt=*/false});
+    } else if (elementType.isInteger()) {
+      // Types with unspecified signedness are treated as signed per StableHLO
+      // convention.
+      result = foldUnaryOpIntOrFloat(rewriter, op,
+                                     FoldDispatch{/*isSignedInt=*/true});
+    } else if (elementType.isFloat()) {
+      result = foldUnaryOpIntOrFloat(rewriter, op,
+                                     FoldDispatch{/*isSignedInt=*/false});
+    } else {
+      return failure();
+    }
+    if (failed(result)) return failure();
+
+    rewriter.replaceOpWithNewOp<ConstantOp>(op, result.value());
     return success();
   }
 };
@@ -1014,6 +1181,11 @@ struct FoldSetDimensionSizeOpPattern
     // No need to verify static shape or dtype here since we aren't evaluating
     // dtype, just folding set_dim_size ops with no semantic meaning.
 
+    // Don't fold if the input is dynamic and we're washing away the bound.
+    if (op.getOperand().getType() != op.getType())
+      return rewriter.notifyMatchFailure(
+          op, "operand and result type must be the same");
+
     SplatElementsAttr cstSplatAttr;
     matchPattern(op.getSize(), m_Constant(&cstSplatAttr));
     if (!cstSplatAttr)
@@ -1031,50 +1203,6 @@ struct FoldSetDimensionSizeOpPattern
     rewriter.replaceAllOpUsesWith(op, op.getOperand());
     return success();
   }
-};
-
-struct FoldSignOpPattern : public ShapeOpRewritePattern<SignOp> {
-  using ShapeOpRewritePattern::ShapeOpRewritePattern;
-
-  LogicalResult matchAndRewrite(SignOp op,
-                                PatternRewriter& rewriter) const override {
-    if (failed(validateShapeFoldDtype(rewriter, op, op.getType())))
-      return failure();
-
-    auto elementType = op.getType().getElementType();
-    auto res = foldUnaryOpIntOrFloat(rewriter, op, FoldSign(elementType));
-    if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
-  }
-
-  struct FoldSign {
-    FoldSign(Type elementType) : elementType(elementType) {}
-    Type elementType;
-    double result;
-    APFloat operator()(APFloat operand) {
-      if (operand.isNegative())
-        result = -1.0;
-      else if (operand.isZero())
-        result = 0.0;
-      else
-        result = 1.0;
-      return getAPFloat(elementType, result);
-    }
-
-    APInt operator()(APInt operand) {
-      // SignOp only supports signed integers.
-      APSInt signedInt = getAPSInt(elementType, operand.getSExtValue());
-      int64_t result;
-      if (signedInt.isNegative())
-        result = -1;
-      else if (signedInt.isZero())
-        result = 0;
-      else
-        result = 1;
-      return getAPSInt(elementType, result);
-    }
-  };
 };
 
 template <typename RangeType>
@@ -1163,31 +1291,169 @@ struct FoldSubtractOpPattern final
   }
 };
 
-struct FoldSqrtOpPattern
-    : public FoldOpRewritePattern<mlir::stablehlo::SqrtOp> {
-  using FoldOpRewritePattern<mlir::stablehlo::SqrtOp>::FoldOpRewritePattern;
+struct FoldAbsOpPattern : public FoldUnaryOpPattern<FoldAbsOpPattern, AbsOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
 
-  LogicalResult matchAndRewrite(mlir::stablehlo::SqrtOp op,
-                                PatternRewriter& rewriter) const final {
-    auto res = foldUnaryOpIntOrFloat(rewriter, op, FoldSqrt());
-    if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
+  static std::optional<APInt> EvaluateOp(APInt operand) {
+    return operand.abs();
+  }
+  static std::optional<APFloat> EvaluateOp(APFloat operand) {
+    return llvm::abs(operand);
+  }
+};
+
+struct FoldCosineOpPattern
+    : public FoldUnaryOpPattern<FoldCosineOpPattern, CosineOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return std::cos(operand);
+  }
+};
+
+struct FoldErfOpPattern
+    : public FoldUnaryOpPattern<FoldErfOpPattern, chlo::ErfOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return std::erf(operand);
+  }
+};
+
+struct FoldExpOpPattern : public FoldUnaryOpPattern<FoldExpOpPattern, ExpOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return std::exp(operand);
+  }
+};
+
+struct FoldLogOpPattern : public FoldUnaryOpPattern<FoldLogOpPattern, LogOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    if (operand <= 0.0) return std::nullopt;
+    return std::log(operand);
+  }
+};
+
+struct FoldLogisticOpPattern
+    : public FoldUnaryOpPattern<FoldLogisticOpPattern, LogisticOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return 1.0 / (1.0 + std::exp(-operand));
+  }
+};
+
+struct FoldNegOpPattern : public FoldUnaryOpPattern<FoldNegOpPattern, NegOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<APInt> EvaluateOp(APInt operand) { return -operand; }
+  static std::optional<APFloat> EvaluateOp(APFloat operand) { return -operand; }
+};
+
+struct FoldNotOpPattern : public FoldUnaryOpPattern<FoldNotOpPattern, NotOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<APInt> EvaluateOp(APInt operand) {
+    operand.flipAllBits();
+    return operand;
+  }
+};
+
+struct FoldRoundOpPattern
+    : public FoldUnaryOpPattern<FoldRoundOpPattern, RoundOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<APFloat> EvaluateOp(APFloat operand) {
+    operand.roundToIntegral(APFloat::rmNearestTiesToAway);
+    return operand;
+  }
+};
+
+struct FoldRoundNearestEvenOpPattern
+    : public FoldUnaryOpPattern<FoldRoundNearestEvenOpPattern,
+                                RoundNearestEvenOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<APFloat> EvaluateOp(APFloat operand) {
+    operand.roundToIntegral(APFloat::rmNearestTiesToEven);
+    return operand;
+  }
+};
+
+struct FoldRsqrtOpPattern
+    : public FoldUnaryOpPattern<FoldRsqrtOpPattern, RsqrtOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    if (operand <= 0.0) return std::nullopt;
+    return 1.0 / std::sqrt(operand);
+  }
+};
+
+struct FoldSignOpPattern
+    : public FoldUnaryOpPattern<FoldSignOpPattern, SignOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<APFloat> EvaluateOp(APFloat operand) {
+    if (operand.isNaN()) return std::nullopt;
+    if (operand.isZero()) return APFloat::getZero(operand.getSemantics());
+    return APFloat::getOne(operand.getSemantics(),
+                           /*Negative=*/operand.isNegative());
   }
 
-  struct FoldSqrt {
-    std::optional<APFloat> operator()(APFloat operand) {
-      if (operand.getSizeInBits(operand.getSemantics()) == 64)
-        return APFloat(std::sqrt(operand.convertToDouble()));
+  static std::optional<APSInt> EvaluateOp(APSInt operand) {
+    // SignOp only supports signed integers.
+    if (operand.isUnsigned()) return std::nullopt;
 
-      if (operand.getSizeInBits(operand.getSemantics()) == 32)
-        return APFloat(sqrtf(operand.convertToFloat()));
-      return std::nullopt;
+    int sign;
+    if (operand.isNegative()) {
+      sign = -1;
+    } else if (operand.isZero()) {
+      sign = 0;
+    } else {
+      sign = +1;
     }
+    return getAPSInt(operand.getBitWidth(), sign, /*isSigned=*/true);
+  }
+};
 
-    // TODO: Enable int folding.
-    std::optional<APInt> operator()(APInt operand) { return std::nullopt; }
-  };
+struct FoldSineOpPattern
+    : public FoldUnaryOpPattern<FoldSineOpPattern, SineOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return std::sin(operand);
+  }
+};
+
+struct FoldSqrtOpPattern
+    : public FoldUnaryOpPattern<FoldSqrtOpPattern, SqrtOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    if (operand < 0.0) return std::nullopt;
+    return std::sqrt(operand);
+  }
+};
+
+struct FoldTanOpPattern : public FoldUnaryOpPattern<FoldTanOpPattern, TanOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return std::tan(operand);
+  }
+};
+
+struct FoldTanhOpPattern
+    : public FoldUnaryOpPattern<FoldTanhOpPattern, TanhOp> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return std::tanh(operand);
+  }
 };
 
 struct FoldIotaOpPattern : public FoldOpRewritePattern<IotaOp> {
@@ -1316,13 +1582,9 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
 
     for (auto [inputValue, bodyArg] :
          llvm::zip_equal(op.getOperands(), body.getArguments())) {
-      auto inputConstantOp = inputValue.getDefiningOp<ConstantOp>();
-      if (!inputConstantOp)
-        return rewriter.notifyMatchFailure(op, "Input must be a constant.");
-
-      auto inputConstantAttr =
-          dyn_cast_or_null<DenseElementsAttr>(inputConstantOp.getValue());
-      if (!inputConstantAttr)
+      SplatElementsAttr constantSplatAttr;
+      if (!matchPattern(inputValue, m_Constant(&constantSplatAttr)) ||
+          !constantSplatAttr)
         return rewriter.notifyMatchFailure(op,
                                            "Input must be a splat constant.");
 
@@ -1332,7 +1594,7 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
             op, "Could not get the shape of the body argument.");
 
       bodyArgConstantAttrs.push_back(DenseElementsAttr::get(
-          bodyArgShapedType, inputConstantAttr.getSplatValue<Attribute>()));
+          bodyArgShapedType, constantSplatAttr.getSplatValue<Attribute>()));
     }
 
     for (BlockArgument bodyArg : body.getArguments()) {
@@ -1570,11 +1832,25 @@ void populateStablehloAggressiveFolderPatterns(
     PatternBenefit benefit) {
   populateStablehloShapeFolderPatterns(context, patterns, options, benefit);
 
-  patterns->add<FoldIotaOpPattern,                    //
+  patterns->add<FoldAbsOpPattern,                     //
+                FoldCosineOpPattern,                  //
+                FoldErfOpPattern,                     //
+                FoldExpOpPattern,                     //
+                FoldIotaOpPattern,                    //
+                FoldLogOpPattern,                     //
+                FoldLogisticOpPattern,                //
+                FoldNegOpPattern,                     //
+                FoldNotOpPattern,                     //
                 FoldReduceOpReducingZeroDims,         //
                 FoldReduceOpToConstantInitializer,    //
                 FoldReduceOpWithRedundantResults,     //
+                FoldRoundOpPattern,                   //
+                FoldRoundNearestEvenOpPattern,        //
+                FoldRsqrtOpPattern,                   //
+                FoldSineOpPattern,                    //
                 FoldSqrtOpPattern,                    //
+                FoldTanOpPattern,                     //
+                FoldTanhOpPattern,                    //
                 FoldTransposeOpPattern,               //
                 FoldWhileOpIfDeadAndPresumedPure,     //
                 FoldWhileOpPattern,                   //

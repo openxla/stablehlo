@@ -116,6 +116,8 @@ def GetOperandN : NativeCodeCall<"$0.getDefiningOp()->getOperand($1.getInt())">;
 
 def GetEmptyI64Array : NativeCodeCall<"$_builder.getDenseI64ArrayAttr({})">;
 
+def InvertBroadcastDims : NativeCodeCall<"getInvertedBroadcastDimensions($_builder, $0)">;
+
 def MergeBroadcastDims : NativeCodeCall<"getMergedBroadcastDimensions($_builder, $0, $1)">;
 
 def StableHLO_ConvertOpWithShape : NativeCodeCall<
@@ -193,7 +195,7 @@ def BroadcastInDimOp_ReplaceWithReshape
 //          [if same numel & rank]
 def BroadcastInDimOp_ReplaceWithTranspose
   : Pat<(StableHLO_BroadcastInDimOp:$op $operand, $dims),
-        (StableHLO_TransposeOp $operand, $dims),
+        (StableHLO_TransposeOp $operand, (InvertBroadcastDims $dims)),
         [(NumberOfElementsEqual $op, $operand), (RankEqual $op, $operand)]>;
 
 ////////
