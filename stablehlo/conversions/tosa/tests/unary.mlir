@@ -155,3 +155,11 @@ func.func @while(%arg0: tensor<i32>) -> tensor<i32> {
   }) : (tensor<i32>) -> (tensor<i32>)
   return %0 : tensor<i32>
 }
+
+// CHECK-LABEL: @reshape
+func.func @reshape(%arg0 : tensor<2x3xf32>) -> tensor<6xf32> {
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<6> : tensor<1xindex>} : () -> !tosa.shape<1>
+  // CHECK: tosa.reshape %arg0, %[[VAR0]]
+  %0 = "stablehlo.reshape"(%arg0) : (tensor<2x3xf32>) -> tensor<6xf32>
+  return %0 : tensor<6xf32>
+}

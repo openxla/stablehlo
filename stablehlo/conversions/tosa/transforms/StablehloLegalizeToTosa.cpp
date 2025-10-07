@@ -491,6 +491,38 @@ struct ConvertStablehloWhileOp : public OpRewritePattern<stablehlo::WhileOp> {
   }
 };
 
+struct ConvertStablehloReshapeOp
+    : public OpRewritePattern<mlir::stablehlo::ReshapeOp> {
+  using OpRewritePattern<mlir::stablehlo::ReshapeOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(stablehlo::ReshapeOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getResult().getType();
+    if (!resultType.hasStaticShape()) {
+      return rewriter.notifyMatchFailure(op, "result tensor must be static");
+    }
+
+    auto resultShape = resultType.getShape();
+    SmallVector<int64_t, 8> dimensions(resultShape.begin(), resultShape.end());
+
+    RankedTensorType shapeTensorType = RankedTensorType::get(
+        {static_cast<int64_t>(dimensions.size())}, rewriter.getIndexType());
+
+    auto denseAttr = DenseIntElementsAttr::get(shapeTensorType, dimensions);
+    auto shapeType =
+        tosa::shapeType::get(rewriter.getContext(), dimensions.size());
+
+    auto constShapeOp =
+        rewriter.create<tosa::ConstShapeOp>(op.getLoc(), shapeType, denseAttr);
+
+    auto reshapeOp = rewriter.create<tosa::ReshapeOp>(
+        op.getLoc(), resultType, op.getOperand(), constShapeOp);
+
+    rewriter.replaceOp(op, reshapeOp.getResult());
+    return success();
+  }
+};
+
 LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
   RewritePatternSet patternList(ctx);
   populateGeneratedPDLLPatterns(patternList);
@@ -509,6 +541,9 @@ LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
   patternList.addWithLabel<ConvertStablehloTransposeOp>({"StablehloTranspose"},
                                                         ctx);
   patternList.addWithLabel<ConvertStablehloWhileOp>({"StablehloWhile"}, ctx);
+  patternList.addWithLabel<ConvertStablehloReshapeOp>({"StablehloReshape"},
+                                                      ctx);
+
   patterns = std::move(patternList);
   return success();
 }
