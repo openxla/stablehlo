@@ -1549,9 +1549,11 @@ struct FoldTransposeOpPattern : public FoldOpRewritePattern<TransposeOp> {
       return rewriter.notifyMatchFailure(
           op, "expected constant integer or float operand");
 
-    // TODO: Does this expand splat values? Should we special case splats?
     DenseElementsAttr resAttr;
-    if (auto data = els.tryGetValues<APInt>())
+    if (auto splat = dyn_cast<SplatElementsAttr>(els))
+      resAttr =
+          DenseElementsAttr::get(resultType, splat.getSplatValue<Attribute>());
+    else if (auto data = els.tryGetValues<APInt>())
       resAttr = transposeType(op, *data);
     else if (auto data = els.tryGetValues<APFloat>())
       resAttr = transposeType(op, *data);
