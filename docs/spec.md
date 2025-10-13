@@ -1612,7 +1612,7 @@ For quantized types, performs
 | Label | Name    | Type                                                                    | Constraints |
 |-------|---------|-------------------------------------------------------------------------|-------------|
 | (I1)  | `a`     | tensor of floating-point or complex type or per-tensor quantized tensor | (C1-C3)     |
-| (I2)  | `lower` | 0-dimensional tensor constant of type `i1`                              |             |
+| (I2)  | `lower` | constant of type `i1`                                                   |             |
 
 #### Outputs
 
