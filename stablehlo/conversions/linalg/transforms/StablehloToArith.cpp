@@ -145,6 +145,7 @@ void populateScalarHloToArithConversionPatterns(
       ScalarHloToArithmeticPattern<mlir::stablehlo::SineOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::SqrtOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::SubtractOp>,
+      ScalarHloToArithmeticPattern<mlir::stablehlo::TanOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::TanhOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::XorOp>>(typeConverter,
                                                             context, filterFn);

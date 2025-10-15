@@ -331,7 +331,7 @@ struct CustomCallUnregisteredBackendConfigToFfi final
 DenseI64ArrayAttr getInvertedBroadcastDimensions(OpBuilder& b,
                                                  ArrayRef<int64_t> dims) {
   SmallVector<int64_t> permutation(dims.size());
-  for (size_t i = 0; i < dims.size(); ++i) {
+  for (auto i = 0; i < dims.size(); ++i) {
     permutation[dims[i]] = i;
   }
   return b.getDenseI64ArrayAttr(permutation);

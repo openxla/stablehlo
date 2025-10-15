@@ -17,7 +17,7 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 
-#include "gtest/gtest.h"
+#include "testing/base/public/gunit.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectRegistry.h"

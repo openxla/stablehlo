@@ -26,11 +26,12 @@ namespace mlir::stablehlo {
 //===----------------------------------------------------------------------===//
 
 /// Populates the patterns that convert from StableHLO to Linalg on tensors.
-void populateStablehloToLinalgConversionPatterns(MLIRContext *context,
-                                                 TypeConverter &typeConverter,
-                                                 RewritePatternSet *patterns,
+void populateStablehloToLinalgConversionPatterns(MLIRContext* context,
+                                                 TypeConverter& typeConverter,
+                                                 RewritePatternSet* patterns,
                                                  bool enablePrimitiveOps,
-                                                 bool enableSparseOps);
+                                                 bool enableSparseOps,
+                                                 bool captureScalarInputs);
 
 //===----------------------------------------------------------------------===//
 // Fine-grained patterns used by the implementation.
@@ -39,8 +40,9 @@ namespace detail {
 /// Populates the patterns that convert from elementwise StableHLO ops to Linalg
 /// on tensors.
 void populatePointwiseStablehloToLinalgConversionPatterns(
-    MLIRContext *context, TypeConverter &typeConverter,
-    RewritePatternSet *patterns, bool enablePrimitiveOps);
+    MLIRContext* context, TypeConverter& typeConverter,
+    RewritePatternSet* patterns, bool enablePrimitiveOps,
+    bool captureScalarInputs);
 
 /// Populates the patterns that convert from convolution StableHLO ops to Linalg
 /// on tensors.

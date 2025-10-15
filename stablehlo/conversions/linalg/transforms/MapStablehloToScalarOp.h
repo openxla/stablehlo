@@ -153,14 +153,11 @@ struct StablehloToScalarOp<stablehlo::SineOp> {
   using FOp = ::mlir::math::SinOp;
   using COp = ::mlir::complex::SinOp;
 };
-// FIXME(Jakub)
-/*
 template <>
 struct StablehloToScalarOp<stablehlo::TanOp> {
   using FOp = ::mlir::math::TanOp;
   using COp = ::mlir::complex::TanOp;
 };
-*/
 template <>
 struct StablehloToScalarOp<stablehlo::Atan2Op> {
   using FOp = ::mlir::math::Atan2Op;
