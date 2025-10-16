@@ -20,7 +20,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 #include "llvm/ADT/DenseMap.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
