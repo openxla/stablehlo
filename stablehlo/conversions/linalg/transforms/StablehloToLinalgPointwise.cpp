@@ -84,8 +84,8 @@ struct PointwiseConversionInfo {
 /// Checks the preconditions for conversion of pointwise HLO ops to linalg.
 /// Returns the max operand rank and the result type on success.
 FailureOr<PointwiseConversionInfo> checkOperandsAndResults(
-    Operation *op, ValueRange operands, const TypeConverter &typeConverter,
-    ConversionPatternRewriter &rewriter) {
+    Operation* op, ValueRange operands, const TypeConverter& typeConverter,
+    ConversionPatternRewriter& rewriter) {
   int64_t maxRank = getMaxRank(operands);
 
   // Apply only if all operands are scalar or have the same rank. Some ops,
@@ -119,7 +119,7 @@ FailureOr<PointwiseConversionInfo> checkOperandsAndResults(
 
 /// If `input` is a splat constant value, materialize the scalar splat
 /// value. Otherwise, return nullopt.
-std::optional<Value> materializeSplatScalarConstant(RewriterBase &rewriter,
+std::optional<Value> materializeSplatScalarConstant(RewriterBase& rewriter,
                                                     Location loc, Value input) {
   SplatElementsAttr attr;
   Type elementType = mlir::getElementTypeOrSelf(input.getType());
@@ -151,13 +151,13 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
       : OpConversionPattern<OpTy>(typeConverter, context),
         captureScalarInputs(captureScalarInputs) {}
 
-  virtual FailureOr<Operation *> createLinalgOp(
-      OpTy &op, ConversionPatternRewriter &rewriter,
+  virtual FailureOr<Operation*> createLinalgOp(
+      OpTy& op, ConversionPatternRewriter& rewriter,
       ArrayRef<Value> mappedInputs, ArrayRef<Value> scalarVals,
       Value emptyTensor, int64_t maxRank) const {
-    Operation *mapOp = rewriter.create<linalg::MapOp>(
+    Operation* mapOp = rewriter.create<linalg::MapOp>(
         op.getLoc(), mappedInputs, emptyTensor,
-        [&](OpBuilder &b, Location loc, ValueRange args) {
+        [&](OpBuilder& b, Location loc, ValueRange args) {
           Value innerResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
               op, getElementTypeOrSelf(emptyTensor),
               interleaveScalarAndBlockArgs(scalarVals, args), &b);
@@ -170,7 +170,7 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
 
   LogicalResult matchAndRewrite(
       OpTy op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto conversionInfo = checkOperandsAndResults(
         op, adaptor.getOperands(), *this->typeConverter, rewriter);
     if (failed(conversionInfo)) {

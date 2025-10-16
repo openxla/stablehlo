@@ -40,7 +40,7 @@ namespace tosa {
 
 namespace {
 
-Value buildRescaleMultiplier(bool scale32, OpBuilder &builder, Location loc,
+Value buildRescaleMultiplier(bool scale32, OpBuilder& builder, Location loc,
                              ArrayRef<int32_t> multipliers) {
   if (scale32) {
     return tosa::getConstTensorInt<int32_t>(builder, loc, multipliers);
@@ -51,7 +51,7 @@ Value buildRescaleMultiplier(bool scale32, OpBuilder &builder, Location loc,
 }
 
 // create a tosa rescale op and return its result value
-Value buildRescale(PatternRewriter &rewriter, Location loc,
+Value buildRescale(PatternRewriter& rewriter, Location loc,
                    ShapedType outputType, Value inputVal, int32_t multiplier,
                    int32_t shift, int64_t inputZp, int64_t outputZp,
                    bool doubleRound, bool scale32, bool perChannel) {
@@ -85,7 +85,7 @@ Value buildRescale(PatternRewriter &rewriter, Location loc,
 }
 
 // Creates TOSA rescale op with int32 output
-Value buildRescaleToInt32(PatternRewriter &rewriter, Location loc,
+Value buildRescaleToInt32(PatternRewriter& rewriter, Location loc,
                           Value inputVal, double inputScale, int64_t inputZp) {
   auto inputType = cast<ShapedType>(inputVal.getType());
   auto outputType = inputType.clone(rewriter.getI32Type());
@@ -103,7 +103,7 @@ Value buildRescaleToInt32(PatternRewriter &rewriter, Location loc,
 }
 
 // Creates TOSA rescale op with int32 input
-Value buildRescaleFromInt32(PatternRewriter &rewriter, Location loc,
+Value buildRescaleFromInt32(PatternRewriter& rewriter, Location loc,
                             ShapedType outputType, Value inputVal,
                             double outputScale, int64_t outputZp) {
   // Input should be int32 type
@@ -124,14 +124,14 @@ Value buildRescaleFromInt32(PatternRewriter &rewriter, Location loc,
 }
 
 using UnaryRescaleScalesFn =
-    void (*)(const quant::UniformQuantizedType &operandQType,
-             const quant::UniformQuantizedType &resultQType,
-             double &operandRescaleScale, double &resultRescaleScale);
+    void (*)(const quant::UniformQuantizedType& operandQType,
+             const quant::UniformQuantizedType& resultQType,
+             double& operandRescaleScale, double& resultRescaleScale);
 
-void GetUnaryRescaleScales(const quant::UniformQuantizedType &operandQType,
-                           const quant::UniformQuantizedType &resultQType,
-                           double &operandRescaleScale,
-                           double &resultRescaleScale) {
+void GetUnaryRescaleScales(const quant::UniformQuantizedType& operandQType,
+                           const quant::UniformQuantizedType& resultQType,
+                           double& operandRescaleScale,
+                           double& resultRescaleScale) {
   double operandScale = operandQType.getScale();
   double resultScale = resultQType.getScale();
 
@@ -145,7 +145,7 @@ void GetUnaryRescaleScales(const quant::UniformQuantizedType &operandQType,
 
 template <typename StablehloOp>
 LogicalResult matchAndRewriteUnaryOp(
-    StablehloOp op, PatternRewriter &rewriter,
+    StablehloOp op, PatternRewriter& rewriter,
     UnaryRescaleScalesFn rescaleScalesFn = GetUnaryRescaleScales) {
   Value operand = op.getOperand();
   Value result = op.getResult();
@@ -190,21 +190,21 @@ LogicalResult matchAndRewriteUnaryOp(
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::AbsOp op,
-                                PatternRewriter &rewriter) {
+                                PatternRewriter& rewriter) {
   return matchAndRewriteUnaryOp(op, rewriter);
 }
 
 using BinaryRescaleScalesFn = void (*)(
-    const quant::UniformQuantizedType &lhsQType,
-    const quant::UniformQuantizedType &rhsQType,
-    const quant::UniformQuantizedType &resultQType, double &lhsRescaleScale,
-    double &rhsRescaleScale, double &resultRescaleScale);
+    const quant::UniformQuantizedType& lhsQType,
+    const quant::UniformQuantizedType& rhsQType,
+    const quant::UniformQuantizedType& resultQType, double& lhsRescaleScale,
+    double& rhsRescaleScale, double& resultRescaleScale);
 
-void GetAddSubRescaleScales(const quant::UniformQuantizedType &lhsQType,
-                            const quant::UniformQuantizedType &rhsQType,
-                            const quant::UniformQuantizedType &resultQType,
-                            double &lhsRescaleScale, double &rhsRescaleScale,
-                            double &resultRescaleScale) {
+void GetAddSubRescaleScales(const quant::UniformQuantizedType& lhsQType,
+                            const quant::UniformQuantizedType& rhsQType,
+                            const quant::UniformQuantizedType& resultQType,
+                            double& lhsRescaleScale, double& rhsRescaleScale,
+                            double& resultRescaleScale) {
   // 1. Rescale inputs to scale = 2.0 x max(lhs.scale, rhs.scale)
   // 2. Extra left shift to input to increase precision
   // Where input_shift = 20 if input is 8-bit
@@ -230,11 +230,11 @@ void GetAddSubRescaleScales(const quant::UniformQuantizedType &lhsQType,
       maxScale2x / (resultScale * static_cast<double>(1 << inputShift));
 }
 
-void GetMulDivRescaleScales(const quant::UniformQuantizedType &lhsQType,
-                            const quant::UniformQuantizedType &rhsQType,
-                            const quant::UniformQuantizedType &resultQType,
-                            double &lhsRescaleScale, double &rhsRescaleScale,
-                            double &resultRescaleScale) {
+void GetMulDivRescaleScales(const quant::UniformQuantizedType& lhsQType,
+                            const quant::UniformQuantizedType& rhsQType,
+                            const quant::UniformQuantizedType& resultQType,
+                            double& lhsRescaleScale, double& rhsRescaleScale,
+                            double& resultRescaleScale) {
   double lhsScale = lhsQType.getScale();
   double rhsScale = rhsQType.getScale();
   double resultScale = resultQType.getScale();
@@ -248,11 +248,11 @@ void GetMulDivRescaleScales(const quant::UniformQuantizedType &lhsQType,
   resultRescaleScale = lhsScale * rhsScale / resultScale;
 }
 
-void GetMinMaxRescaleScales(const quant::UniformQuantizedType &lhsQType,
-                            const quant::UniformQuantizedType &rhsQType,
-                            const quant::UniformQuantizedType &resultQType,
-                            double &lhsRescaleScale, double &rhsRescaleScale,
-                            double &resultRescaleScale) {
+void GetMinMaxRescaleScales(const quant::UniformQuantizedType& lhsQType,
+                            const quant::UniformQuantizedType& rhsQType,
+                            const quant::UniformQuantizedType& resultQType,
+                            double& lhsRescaleScale, double& rhsRescaleScale,
+                            double& resultRescaleScale) {
   // 1. Rescale inputs to scale = max(lhs.scale, rhs.scale)
   // 2. Extra left shift to input to increase precision
   // Where input_shift = 20 if input is 8-bit
@@ -280,7 +280,7 @@ void GetMinMaxRescaleScales(const quant::UniformQuantizedType &lhsQType,
 }
 
 template <typename StablehloOp>
-LogicalResult matchAndRewriteBinaryOp(StablehloOp op, PatternRewriter &rewriter,
+LogicalResult matchAndRewriteBinaryOp(StablehloOp op, PatternRewriter& rewriter,
                                       BinaryRescaleScalesFn rescaleScalesFn) {
   Value lhs = op.getLhs();
   Value rhs = op.getRhs();
@@ -339,37 +339,37 @@ LogicalResult matchAndRewriteBinaryOp(StablehloOp op, PatternRewriter &rewriter,
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::AddOp op,
-                                PatternRewriter &rewriter) {
+                                PatternRewriter& rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetAddSubRescaleScales);
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::SubtractOp op,
-                                PatternRewriter &rewriter) {
+                                PatternRewriter& rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetAddSubRescaleScales);
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::MulOp op,
-                                PatternRewriter &rewriter) {
+                                PatternRewriter& rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetMulDivRescaleScales);
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::DivOp op,
-                                PatternRewriter &rewriter) {
+                                PatternRewriter& rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetMulDivRescaleScales);
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::MinOp op,
-                                PatternRewriter &rewriter) {
+                                PatternRewriter& rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetMinMaxRescaleScales);
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::MaxOp op,
-                                PatternRewriter &rewriter) {
+                                PatternRewriter& rewriter) {
   return matchAndRewriteBinaryOp(op, rewriter, GetMinMaxRescaleScales);
 }
 
 LogicalResult matchAndRewriteCompareOp(stablehlo::CompareOp op,
-                                       PatternRewriter &rewriter) {
+                                       PatternRewriter& rewriter) {
   Value lhs = op.getLhs();
   Value rhs = op.getRhs();
   Value result = op.getResult();
@@ -429,7 +429,7 @@ LogicalResult matchAndRewriteCompareOp(stablehlo::CompareOp op,
 }
 
 LogicalResult matchAndRewriteOp(stablehlo::CompareOp op,
-                                PatternRewriter &rewriter) {
+                                PatternRewriter& rewriter) {
   return matchAndRewriteCompareOp(op, rewriter);
 }
 
@@ -438,7 +438,7 @@ struct QuantizedStablehloOpConversion
     : public OpRewritePattern<StablehloOpType> {
   using OpRewritePattern<StablehloOpType>::OpRewritePattern;
   LogicalResult matchAndRewrite(StablehloOpType op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     return matchAndRewriteOp(op, rewriter);
   }
 };
@@ -446,7 +446,7 @@ struct QuantizedStablehloOpConversion
 struct StablehloQuantLegalizeToTosaRescalePass
     : impl::StablehloQuantLegalizeToTosaRescalePassBase<
           StablehloQuantLegalizeToTosaRescalePass> {
-  LogicalResult initialize(MLIRContext *ctx) override {
+  LogicalResult initialize(MLIRContext* ctx) override {
     RewritePatternSet patternList(ctx);
     populateStablehloQuantLegalizeToTosaRescalePatterns(&patternList, ctx);
     patterns = std::move(patternList);
@@ -468,7 +468,7 @@ struct StablehloQuantLegalizeToTosaRescalePass
 }  // namespace
 
 void populateStablehloQuantLegalizeToTosaRescalePatterns(
-    RewritePatternSet *patterns, MLIRContext *context) {
+    RewritePatternSet* patterns, MLIRContext* context) {
   // unary ops
   patterns->addWithLabel<QuantizedStablehloOpConversion<stablehlo::AbsOp>>(
       {"StablehloQuantAbsOp"}, context);
