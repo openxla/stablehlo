@@ -110,6 +110,43 @@ Type getElementType(MLIRContext& ctx, ElementType elementType) {
   }
 }
 
+bool IsBoolean(ElementType elementType) {
+  MLIRContext ctx;
+  return getElementType(ctx, elementType).isInteger(1);
+}
+
+bool IsComplex(ElementType elementType) {
+  MLIRContext ctx;
+  auto type = dyn_cast<ComplexType>(getElementType(ctx, elementType));
+  return !!type;
+}
+
+bool IsFloat(ElementType elementType) {
+  MLIRContext ctx;
+  return getElementType(ctx, elementType).isFloat();
+}
+
+bool IsInteger(ElementType elementType, bool includeBool = false) {
+  MLIRContext ctx;
+  Type type = getElementType(ctx, elementType);
+  return type.isInteger() && (includeBool || !IsBoolean(elementType));
+}
+
+bool IsSignedInteger(ElementType elementType) {
+  MLIRContext ctx;
+  Type type = getElementType(ctx, elementType);
+
+  // Note that this is not the same as `type.isSignedInteger()`. Signed integers
+  // are not used in StableHLO.
+  return type.isSignlessInteger() && !IsBoolean(elementType);
+}
+
+bool IsUnsignedInteger(ElementType elementType) {
+  MLIRContext ctx;
+  return getElementType(ctx, elementType).isUnsignedInteger() &&
+         !IsBoolean(elementType);
+}
+
 RankedTensorType makeTensorType(MLIRContext& ctx, ArrayRef<int64_t> shape,
                                 ElementType elementType) {
   return makeTensorType(ctx, shape, getElementType(ctx, elementType));

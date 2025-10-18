@@ -2634,7 +2634,8 @@ struct StablehloLegalizeToLinalgPass
 
     RewritePatternSet patterns_(context);
     populateStablehloToLinalgConversionPatterns(
-        context, converter, &patterns_, enablePrimitiveOps, enableSparseOps);
+        context, converter, &patterns_, enablePrimitiveOps, enableSparseOps,
+        captureScalarInputs);
     patterns = std::move(patterns_);
 
     return success();
@@ -2657,7 +2658,8 @@ void populateStablehloToLinalgConversionPatterns(MLIRContext* context,
                                                  TypeConverter& typeConverter,
                                                  RewritePatternSet* patterns,
                                                  bool enablePrimitiveOps,
-                                                 bool enableSparseOps) {
+                                                 bool enableSparseOps,
+                                                 bool captureScalarInputs) {
   // clang-format off
   patterns->add<ConcatenateConverter>(typeConverter, context,
                                       enablePrimitiveOps);
@@ -2680,7 +2682,8 @@ void populateStablehloToLinalgConversionPatterns(MLIRContext* context,
       >(typeConverter, context);
 
   detail::populatePointwiseStablehloToLinalgConversionPatterns(
-      context, typeConverter, patterns, enablePrimitiveOps);
+      context, typeConverter, patterns, enablePrimitiveOps,
+      captureScalarInputs);
 
   if (enableSparseOps) {
     patterns->add<SparseConcatenateConverter>(typeConverter, context);

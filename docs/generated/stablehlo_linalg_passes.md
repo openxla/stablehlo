@@ -7,6 +7,7 @@ _Legalize StableHLO to LinAlg_
 #### Options
 
 ```
--enable-primitive-ops : Lower to primitive Linalg ops (map, reduce and transpose) when possible, instead of linalg.generic
--enable-sparse-ops    : Lower to Sparse Tensor ops (sparse_tensor.concatenate)when possible, instead of linalg.generic
+-enable-primitive-ops  : Lower to primitive Linalg ops (map, reduce and transpose) when possible, instead of linalg.generic
+-enable-sparse-ops     : Lower to Sparse Tensor ops (sparse_tensor.concatenate)when possible, instead of linalg.generic
+-capture-scalar-inputs : Capture scalar inputs in generic ops instead ofpassing as tensor-scalar argument.
 ```

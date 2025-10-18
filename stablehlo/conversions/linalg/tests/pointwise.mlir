@@ -1,5 +1,6 @@
 // RUN: stablehlo-opt %s --stablehlo-legalize-to-linalg --split-input-file --canonicalize | FileCheck %s
 // RUN: stablehlo-opt %s --stablehlo-legalize-to-linalg="enable-primitive-ops=true" --split-input-file --canonicalize | FileCheck %s --check-prefix=CHECK-PRIMITIVE
+// RUN: stablehlo-opt %s --stablehlo-legalize-to-linalg="capture-scalar-inputs=false" --split-input-file --canonicalize | FileCheck %s --check-prefix=CHECK-NO-CAPTURE
 
 // CHECK: #map = affine_map<(d0, d1) -> (d0, d1)>
 // CHECK-LABEL: func @float_add
@@ -538,6 +539,19 @@ func.func @complex_sign(
 
 // -----
 
+// CHECK-LABEL: func @float_tan
+// CHECK-PRIMITIVE-LABEL: func @float_tan
+func.func @float_tan(%arg0: tensor<2x2xf32>) -> tensor<2x2xf32> {
+  // CHECK: linalg.generic
+  // CHECK: tan
+  // CHECK-PRIMITIVE: linalg.map
+  // CHECK-PRIMITIVE: tan
+  %0 = "stablehlo.tan"(%arg0) : (tensor<2x2xf32>) -> tensor<2x2xf32>
+  func.return %0 : tensor<2x2xf32>
+}
+
+// -----
+
 // CHECK-LABEL: func @float_tanh
 // CHECK-PRIMITIVE-LABEL: func @float_tanh
 func.func @float_tanh(%arg0: tensor<2x2xf32>) -> tensor<2x2xf32> {
@@ -926,6 +940,23 @@ func.func @select_scalar_pred_dyn(%pred : tensor<i1>, %lhs: tensor<2x?xf32>, %rh
 // CHECK-PRIMITIVE:      (%[[LHS_:.*]]: f32, %[[RHS_:.*]]: f32) {
 // CHECK-PRIMITIVE:        %[[RES:.*]] = arith.select %[[PRED_ELEM]], %[[LHS_]], %[[RHS_]] : f32
 // CHECK-PRIMITIVE:        linalg.yield %[[RES]]
+
+// CHECK-NO-CAPTURE:      #[[SCALAR_MAP:.*]] = affine_map<(d0, d1) -> ()>
+// CHECK-NO-CAPTURE:      #[[ID_MAP:.*]] = affine_map<(d0, d1) -> (d0, d1)>
+// CHECK-NO-CAPTURE:      func @select_scalar_pred_dyn
+// CHECK-NO-CAPTURE-SAME:  (%[[PRED:.*]]: tensor<i1>, %[[LHS:.*]]: tensor<2x?xf32>, %[[RHS:.*]]: tensor<2x?xf32>)
+// CHECK-NO-CAPTURE-DAG:  %[[C1:.*]] = arith.constant 1
+// CHECK-NO-CAPTURE-DAG:  %[[DIM:.*]] =  tensor.dim %[[LHS]], %[[C1]]
+// CHECK-NO-CAPTURE-DAG:  %[[DST:.*]] = tensor.empty(%[[DIM]])
+// CHECK-NO-CAPTURE:      linalg.generic
+// CHECK-NO-CAPTURE-SAME:   indexing_maps = [#[[SCALAR_MAP]], #[[ID_MAP]], #[[ID_MAP]], #[[ID_MAP]]]
+// CHECK-NO-CAPTURE-SAME:   iterator_types = ["parallel", "parallel"]
+// CHECK-NO-CAPTURE-SAME:   ins(%[[PRED]], %[[LHS]], %[[RHS]] : tensor<i1>, tensor<2x?xf32>, tensor<2x?xf32>)
+// CHECK-NO-CAPTURE-SAME:   outs(%[[DST]] : tensor<2x?xf32>)
+// CHECK-NO-CAPTURE-SAME:   {someattr}
+// CHECK-NO-CAPTURE:      ^bb0(%[[PRED_:.*]]: i1, %[[LHS_:.*]]: f32, %[[RHS_:.*]]: f32, %{{.*}}: f32):
+// CHECK-NO-CAPTURE:        %[[RES:.*]] = arith.select %[[PRED_]], %[[LHS_]], %[[RHS_]] : f32
+// CHECK-NO-CAPTURE:        linalg.yield %[[RES]]
 
 // -----
 

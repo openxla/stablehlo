@@ -39,7 +39,11 @@ def StablehloLegalizeToLinalgPass
                  Option<"enableSparseOps", "enable-sparse-ops", "bool",
                         /*default=*/"false",
                         "Lower to Sparse Tensor ops (sparse_tensor.concatenate)"
-                        "when possible, instead of linalg.generic">];
+                        "when possible, instead of linalg.generic">,
+                 Option<"captureScalarInputs", "capture-scalar-inputs", "bool",
+                        /*default=*/"true",
+                        "Capture scalar inputs in generic ops instead of"
+                        "passing as tensor-scalar argument.">];
 }
 
 #endif  // STABLEHLO_TO_LINALG_PASSES

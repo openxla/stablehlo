@@ -18,7 +18,6 @@ limitations under the License.
 
 #include <complex>
 #include <cstdint>
-#include <source_location>
 #include <type_traits>
 #include <vector>
 
@@ -67,6 +66,20 @@ enum class ElementType {
   COMPLEXF32, COMPLEXF64
   // clang-format on
 };
+
+bool IsBoolean(ElementType elementType);
+
+bool IsComplex(ElementType elementType);
+
+bool IsFloat(ElementType elementType);
+
+bool IsInteger(ElementType elementType, bool includeBool);
+
+// In StableHLO, we refer to signed integer as the MLIR's equivalent signless
+// integer. StableHLO does not have a notion of signless integers like MLIR.
+bool IsSignedInteger(ElementType elementType);
+
+bool IsUnsignedInteger(ElementType elementType);
 
 Type getElementType(MLIRContext& ctx, ElementType elementType);
 

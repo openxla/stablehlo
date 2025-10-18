@@ -23,6 +23,7 @@ limitations under the License.
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/AffineMap.h"
@@ -42,6 +43,8 @@ limitations under the License.
 #include "stablehlo/conversions/linalg/transforms/MapStablehloToScalarOp.h"
 #include "stablehlo/conversions/linalg/transforms/Rewriters.h"
 #include "stablehlo/dialect/StablehloOps.h"
+
+#define DEBUG_TYPE "stablehlo-conversions"
 
 namespace mlir::stablehlo {
 namespace {
@@ -81,8 +84,8 @@ struct PointwiseConversionInfo {
 /// Checks the preconditions for conversion of pointwise HLO ops to linalg.
 /// Returns the max operand rank and the result type on success.
 FailureOr<PointwiseConversionInfo> checkOperandsAndResults(
-    Operation *op, ValueRange operands, const TypeConverter &typeConverter,
-    ConversionPatternRewriter &rewriter) {
+    Operation* op, ValueRange operands, const TypeConverter& typeConverter,
+    ConversionPatternRewriter& rewriter) {
   int64_t maxRank = getMaxRank(operands);
 
   // Apply only if all operands are scalar or have the same rank. Some ops,
@@ -116,7 +119,7 @@ FailureOr<PointwiseConversionInfo> checkOperandsAndResults(
 
 /// If `input` is a splat constant value, materialize the scalar splat
 /// value. Otherwise, return nullopt.
-std::optional<Value> materializeSplatScalarConstant(RewriterBase &rewriter,
+std::optional<Value> materializeSplatScalarConstant(RewriterBase& rewriter,
                                                     Location loc, Value input) {
   SplatElementsAttr attr;
   Type elementType = mlir::getElementTypeOrSelf(input.getType());
@@ -143,13 +146,18 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
   using OpConversionPattern<OpTy>::OpConversionPattern;
   using OpAdaptor = typename OpTy::Adaptor;
 
-  virtual FailureOr<Operation *> createLinalgOp(
-      OpTy &op, ConversionPatternRewriter &rewriter,
+  PointwiseToLinalgMapConverter(TypeConverter& typeConverter,
+                                MLIRContext* context, bool captureScalarInputs)
+      : OpConversionPattern<OpTy>(typeConverter, context),
+        captureScalarInputs(captureScalarInputs) {}
+
+  virtual FailureOr<Operation*> createLinalgOp(
+      OpTy& op, ConversionPatternRewriter& rewriter,
       ArrayRef<Value> mappedInputs, ArrayRef<Value> scalarVals,
       Value emptyTensor, int64_t maxRank) const {
-    Operation *mapOp = rewriter.create<linalg::MapOp>(
+    Operation* mapOp = rewriter.create<linalg::MapOp>(
         op.getLoc(), mappedInputs, emptyTensor,
-        [&](OpBuilder &b, Location loc, ValueRange args) {
+        [&](OpBuilder& b, Location loc, ValueRange args) {
           Value innerResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
               op, getElementTypeOrSelf(emptyTensor),
               interleaveScalarAndBlockArgs(scalarVals, args), &b);
@@ -162,7 +170,7 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
 
   LogicalResult matchAndRewrite(
       OpTy op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto conversionInfo = checkOperandsAndResults(
         op, adaptor.getOperands(), *this->typeConverter, rewriter);
     if (failed(conversionInfo)) {
@@ -190,8 +198,11 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
             rewriter, loc, cast<TypedValue<ShapedType>>(input),
             cast<ShapedType>(emptyTensor.getType())));
         scalarInputs.push_back(nullptr);
-      } else {
+      } else if (captureScalarInputs) {
         scalarInputs.push_back(rewriter.create<tensor::ExtractOp>(loc, input));
+      } else {
+        mappedInputs.push_back(input);
+        scalarInputs.push_back(nullptr);
       }
     }
 
@@ -202,6 +213,8 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
     rewriter.replaceOp(op, (*mapOp)->getResults());
     return success();
   }
+
+  bool captureScalarInputs;
 };
 
 /// Converts a HLO operation to a linalg.generic op that contains the
@@ -211,12 +224,12 @@ struct PointwiseToLinalgConverter : PointwiseToLinalgMapConverter<OpTy> {
   using PointwiseToLinalgMapConverter<OpTy>::PointwiseToLinalgMapConverter;
   using OpAdaptor = typename OpTy::Adaptor;
 
-  FailureOr<Operation *> createLinalgOp(OpTy &op,
-                                        ConversionPatternRewriter &rewriter,
-                                        ArrayRef<Value> mappedInputs,
-                                        ArrayRef<Value> scalarVals,
-                                        Value emptyTensor,
-                                        int64_t maxRank) const override {
+  FailureOr<Operation*> createLinalgOp(OpTy& op,
+                                       ConversionPatternRewriter& rewriter,
+                                       ArrayRef<Value> mappedInputs,
+                                       ArrayRef<Value> scalarVals,
+                                       Value emptyTensor,
+                                       int64_t maxRank) const override {
     // Create indexing maps.
     AffineMap scalarMap = AffineMap::get(maxRank, 0, rewriter.getContext());
     AffineMap idMap = rewriter.getMultiDimIdentityMap(maxRank);
@@ -225,10 +238,10 @@ struct PointwiseToLinalgConverter : PointwiseToLinalgMapConverter<OpTy> {
       maps.push_back(isScalar(v) ? scalarMap : idMap);
     maps.push_back(idMap);
     bool failed = false;
-    Operation *linalgOp = rewriter.create<linalg::GenericOp>(
+    Operation* linalgOp = rewriter.create<linalg::GenericOp>(
         op.getLoc(), emptyTensor.getType(), mappedInputs, emptyTensor, maps,
         getNParallelLoopsAttrs(maxRank),
-        [&](OpBuilder &nestedBuilder, Location /*nested_loc*/,
+        [&](OpBuilder& nestedBuilder, Location /*nested_loc*/,
             ValueRange args) {
           Type innerResultTy = getElementTypeOrSelf(emptyTensor);
           auto argvec =
@@ -253,8 +266,9 @@ struct PointwiseToLinalgConverter : PointwiseToLinalgMapConverter<OpTy> {
 
 namespace detail {
 void populatePointwiseStablehloToLinalgConversionPatterns(
-    MLIRContext *context, TypeConverter &typeConverter,
-    RewritePatternSet *patterns, bool enablePrimitiveOps) {
+    MLIRContext* context, TypeConverter& typeConverter,
+    RewritePatternSet* patterns, bool enablePrimitiveOps,
+    bool captureScalarInputs) {
   if (enablePrimitiveOps) {
     patterns->add<
         PointwiseToLinalgMapConverter<mlir::stablehlo::AbsOp>,
@@ -301,12 +315,12 @@ void populatePointwiseStablehloToLinalgConversionPatterns(
         PointwiseToLinalgMapConverter<mlir::stablehlo::SineOp>,
         PointwiseToLinalgMapConverter<mlir::stablehlo::SqrtOp>,
         PointwiseToLinalgMapConverter<mlir::stablehlo::SubtractOp>,
+        PointwiseToLinalgMapConverter<mlir::stablehlo::TanOp>,
         PointwiseToLinalgMapConverter<mlir::stablehlo::TanhOp>,
-        PointwiseToLinalgMapConverter<mlir::stablehlo::XorOp>>(typeConverter,
-                                                               context);
+        PointwiseToLinalgMapConverter<mlir::stablehlo::XorOp>>(
+        typeConverter, context, captureScalarInputs);
     return;
   }
-
   patterns
       ->add<PointwiseToLinalgConverter<mlir::stablehlo::AbsOp>,
             PointwiseToLinalgConverter<mlir::stablehlo::AddOp>,
@@ -352,9 +366,10 @@ void populatePointwiseStablehloToLinalgConversionPatterns(
             PointwiseToLinalgConverter<mlir::stablehlo::SineOp>,
             PointwiseToLinalgConverter<mlir::stablehlo::SqrtOp>,
             PointwiseToLinalgConverter<mlir::stablehlo::SubtractOp>,
+            PointwiseToLinalgConverter<mlir::stablehlo::TanOp>,
             PointwiseToLinalgConverter<mlir::stablehlo::TanhOp>,
-            PointwiseToLinalgConverter<mlir::stablehlo::XorOp>>(typeConverter,
-                                                                context);
+            PointwiseToLinalgConverter<mlir::stablehlo::XorOp>>(
+          typeConverter, context, captureScalarInputs);
 }
 }  // namespace detail
 }  // namespace mlir::stablehlo

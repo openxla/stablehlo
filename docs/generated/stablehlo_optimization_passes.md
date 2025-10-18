@@ -8,7 +8,7 @@ _Folds StableHLO operations_
 
 ```
 -assume-no-undeclared-side-effects : Allow dead code to be eliminated in some situations (e.g. dead while loops) under the assumption that ops are pure unless declared with explicit MLIR `MemoryEffects`. Notably, this means `func.call` ops will be assumed pure.
--fold-op-element-limit             : Folding an op into a constant can sometimes come at the cost of memory overhead. (This occurs if the op's inputs are reused, meaning that they can't be deleted after the op is folded to a constant, or when folding operations like `iota` whose outputs take up more memory than their inputs.) In such cases, this config option sets an upper limit on how many elements an op's result may have before the op is no longer folded.
+-fold-op-element-limit             : Folding an op into a constant can sometimes come at the cost of memory overhead. (This occurs if the op's inputs are reused, meaning that they can't be deleted after the op is folded to a constant, or when folding operations like `concat` whose outputs take up more memory than their inputs.) In such cases, this config option sets an upper limit on how many elements an op's result may have before the op is no longer folded. Splat folds are exempt from this limit.
 -optimize-float                    : Allow float optimizations that, though mathematically equivalent, may result in slightly different quantization of floating-point values (e.g. `log(sqrt(x))` -> `0.5 * log(x)`). Float optimizations that can't affect numerical results are always enabled.
 ```
 
@@ -105,7 +105,7 @@ high coverage of the pass today.
 #### Options
 
 ```
--fold-op-element-limit : Folding an op into a constant can sometimes come at the cost of memory overhead. (This occurs if the op's inputs are reused, meaning that they can't be deleted after the op is folded to a constant, or when folding operations like `iota` whose outputs take up more memory than their inputs.) In such cases, this config option sets an upper limit on how many elements an op's result may have before the op is no longer folded.
+-fold-op-element-limit : Folding an op into a constant can sometimes come at the cost of memory overhead. (This occurs if the op's inputs are reused, meaning that they can't be deleted after the op is folded to a constant, or when folding operations like `concat` whose outputs take up more memory than their inputs.) In such cases, this config option sets an upper limit on how many elements an op's result may have before the op is no longer folded. Splat folds are exempt from this limit.
 ```
 
 ### `-stablehlo-target-independent-optimization`
@@ -123,6 +123,6 @@ Users should prefer this pass to calling the others directly.
 
 ```
 -assume-no-undeclared-side-effects : Allow dead code to be eliminated in some situations (e.g. dead while loops) under the assumption that ops are pure unless declared with explicit MLIR `MemoryEffects`. Notably, this means `func.call` ops will be assumed pure.
--fold-op-element-limit             : Folding an op into a constant can sometimes come at the cost of memory overhead. (This occurs if the op's inputs are reused, meaning that they can't be deleted after the op is folded to a constant, or when folding operations like `iota` whose outputs take up more memory than their inputs.) In such cases, this config option sets an upper limit on how many elements an op's result may have before the op is no longer folded.
+-fold-op-element-limit             : Folding an op into a constant can sometimes come at the cost of memory overhead. (This occurs if the op's inputs are reused, meaning that they can't be deleted after the op is folded to a constant, or when folding operations like `concat` whose outputs take up more memory than their inputs.) In such cases, this config option sets an upper limit on how many elements an op's result may have before the op is no longer folded. Splat folds are exempt from this limit.
 -optimize-float                    : Allow float optimizations that, though mathematically equivalent, may result in slightly different quantization of floating-point values (e.g. `log(sqrt(x))` -> `0.5 * log(x)`). Float optimizations that can't affect numerical results are always enabled.
 ```
