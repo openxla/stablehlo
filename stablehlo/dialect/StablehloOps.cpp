@@ -3167,8 +3167,8 @@ using mlir::hlo::printVariadicSameOperandsAndResultType;
 #define GET_OP_CLASSES
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
 
-using namespace mlir;
-using namespace mlir::stablehlo;
+namespace mlir {
+namespace stablehlo{
 
 //===----------------------------------------------------------------------===//
 // StableHLO Dialect Interfaces
