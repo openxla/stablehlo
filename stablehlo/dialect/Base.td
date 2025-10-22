@@ -72,11 +72,11 @@ def IsValidQuantizedDimension : CPred<"mlir::hlo::isValidQuantizedDimension($_se
 
 // TODO(b/230381284): Upstream width-specific uniform quantized element types.
 class StableHLO_UniformQuantizedSignedInt<int width>
-  : Type<And<[CPred<"::llvm::isa<mlir::quant::UniformQuantizedType>($_self)">,
-           CPred<"::llvm::cast<mlir::quant::UniformQuantizedType>($_self)" #
+  : Type<And<[CPred<"::llvm::isa<::mlir::quant::UniformQuantizedType>($_self)">,
+           CPred<"::llvm::cast<::mlir::quant::UniformQuantizedType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"::llvm::cast<mlir::IntegerType>(" #
-                   "::llvm::cast<mlir::quant::UniformQuantizedType>($_self).getStorageType()" #
+           CPred<"::llvm::cast<::mlir::IntegerType>(" #
+                   "::llvm::cast<::mlir::quant::UniformQuantizedType>($_self).getStorageType()" #
                  ").isSignless()">, IsValidStablehloQuantizedElementType]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedSignedInt";
@@ -84,11 +84,11 @@ class StableHLO_UniformQuantizedSignedInt<int width>
 }
 
 class StableHLO_UniformQuantizedPerAxisSignedInt<int width>
-  : Type<And<[CPred<"::llvm::isa<mlir::quant::UniformQuantizedPerAxisType>($_self)">,
-           CPred<"::llvm::cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
+  : Type<And<[CPred<"::llvm::isa<::mlir::quant::UniformQuantizedPerAxisType>($_self)">,
+           CPred<"::llvm::cast<::mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"::llvm::cast<mlir::IntegerType>(" #
-                   "::llvm::cast<mlir::quant::UniformQuantizedPerAxisType>($_self).getStorageType()" #
+           CPred<"::llvm::cast<::mlir::IntegerType>(" #
+                   "::llvm::cast<::mlir::quant::UniformQuantizedPerAxisType>($_self).getStorageType()" #
                  ").isSignless()">, IsValidStablehloQuantizedElementType]>,
     "QI" # width # " type"> {
   string name = "UniformQuantizedPerAxisSignedInt";
@@ -96,10 +96,10 @@ class StableHLO_UniformQuantizedPerAxisSignedInt<int width>
 }
 
 class StableHLO_UniformQuantizedUnsignedInt<int width>
-  : Type<And<[CPred<"::llvm::isa<mlir::quant::UniformQuantizedType>($_self)">,
-           CPred<"::llvm::cast<mlir::quant::UniformQuantizedType>($_self)" #
+  : Type<And<[CPred<"::llvm::isa<::mlir::quant::UniformQuantizedType>($_self)">,
+           CPred<"::llvm::cast<::mlir::quant::UniformQuantizedType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"!::llvm::cast<mlir::quant::UniformQuantizedType>($_self)" #
+           CPred<"!::llvm::cast<::mlir::quant::UniformQuantizedType>($_self)" #
                  ".isSigned()">, IsValidStablehloQuantizedElementType]>,
     "QUI" # width # " type"> {
   string name = "UniformQuantizedUnsignedInt";
@@ -107,10 +107,10 @@ class StableHLO_UniformQuantizedUnsignedInt<int width>
 }
 
 class StableHLO_UniformQuantizedPerAxisUnsignedInt<int width>
-  : Type<And<[CPred<"::llvm::isa<mlir::quant::UniformQuantizedPerAxisType>($_self)">,
-           CPred<"::llvm::cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
+  : Type<And<[CPred<"::llvm::isa<::mlir::quant::UniformQuantizedPerAxisType>($_self)">,
+           CPred<"::llvm::cast<::mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".getStorageTypeIntegralWidth() == " # width>,
-           CPred<"!::llvm::cast<mlir::quant::UniformQuantizedPerAxisType>($_self)" #
+           CPred<"!::llvm::cast<::mlir::quant::UniformQuantizedPerAxisType>($_self)" #
                  ".isSigned()">, IsValidStablehloQuantizedElementType]>,
     "QUI" # width # " type"> {
   string name = "UniformQuantizedPerAxisUnsignedInt";
@@ -152,7 +152,7 @@ def HLO_PerAxisQuantizedInt :
     AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt], "per-axis integer quantized">;
 
 // Token type.
-def HLO_Token : Type<CPred<"::llvm::isa<TokenType>($_self)">, "token">;
+def HLO_Token : Type<CPred<"::llvm::isa<::mlir::stablehlo::TokenType>($_self)">, "token">;
 
 // Any integer tensor types
 def HLO_IntTensor : RankedTensorOf<[HLO_Int]>;
