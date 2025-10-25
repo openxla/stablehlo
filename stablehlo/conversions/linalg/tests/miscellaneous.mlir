@@ -1,5 +1,6 @@
 // RUN: stablehlo-opt %s --stablehlo-legalize-to-linalg --split-input-file --canonicalize | FileCheck %s
 // RUN: stablehlo-opt %s --stablehlo-legalize-to-linalg="enable-primitive-ops=true" --split-input-file --canonicalize | FileCheck %s --check-prefix=CHECK-PRIMITIVE
+// RUN: stablehlo-opt %s --stablehlo-legalize-to-linalg="enable-primitive-ops=true" --split-input-file | FileCheck %s --check-prefix=CHECK-PRIMITIVE-2
 
 // CHECK-LABEL: func @bitcast_convert
 func.func @bitcast_convert(%input: tensor<2x2xi32>) -> tensor<2x2xf32> {
@@ -1672,3 +1673,15 @@ func.func @transpose_unsigned(%arg0: tensor<2x2xui32>) -> tensor<2x2xui32> {
 // Regression test. Just check that unsigned ints lower successfully.
 // CHECK-LABEL: func @transpose_unsigned
 // CHECK-PRIMITIVE-LABEL: func @transpose_unsigned
+
+// -----
+
+func.func @dynamic_broadcast(%arg0: tensor<?x1024x?xf32>, %arg1: tensor<3xindex>) -> (tensor<?x1024x?xf32>) {
+  %0 = stablehlo.dynamic_broadcast_in_dim %arg0, %arg1, dims = [0, 1, 2] : (tensor<?x1024x?xf32>, tensor<3xindex>) -> tensor<?x1024x?xf32>
+  return %0 : tensor<?x1024x?xf32>
+}
+
+// CHECK-PRIMITIVE-2: linalg.generic {indexing_maps = [#map, #map], iterator_types = ["parallel", "parallel", "parallel"]} ins(%[[ARG0:.*]] : tensor<?x1024x?xf32>) outs(%[[ARG1:.*]] : tensor<?x1024x?xf32>) {
+// CHECK-PRIMITIVE-2:     ^bb0(%[[IN:.*]]: f32, %[[OUT:.*]]: f32):
+// CHECK-PRIMITIVE-2:       linalg.yield %[[IN]] : f32
+// CHECK-PRIMITIVE-2:     } -> tensor<?x1024x?xf32>
