@@ -33,12 +33,12 @@ namespace {
 
 template <typename OpTy>
 struct ScalarHloToFuncPatterns final : OpConversionPattern<OpTy> {
-  ScalarHloToFuncPatterns(TypeConverter &typeConverter, MLIRContext *context,
+  ScalarHloToFuncPatterns(TypeConverter& typeConverter, MLIRContext* context,
                           PatternBenefit benefit = 1)
       : OpConversionPattern<OpTy>(typeConverter, context, benefit) {}
   LogicalResult matchAndRewrite(
       OpTy op, typename OpTy::Adaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     if (!isa<mlir::func::FuncOp>(op->getParentOp())) {
       return rewriter.notifyMatchFailure(op,
                                          "Return must be inside a function");
@@ -51,15 +51,15 @@ struct ScalarHloToFuncPatterns final : OpConversionPattern<OpTy> {
 template <typename OpTy>
 struct ScalarHloToArithmeticPattern final : OpConversionPattern<OpTy> {
   ScalarHloToArithmeticPattern(
-      TypeConverter &typeConverter, MLIRContext *context,
-      llvm::function_ref<bool(Operation *)> filterFn = nullptr,
+      TypeConverter& typeConverter, MLIRContext* context,
+      llvm::function_ref<bool(Operation*)> filterFn = nullptr,
       PatternBenefit benefit = 1)
       : OpConversionPattern<OpTy>(typeConverter, context, benefit),
         filterFn(filterFn) {}
 
   LogicalResult matchAndRewrite(
       OpTy op, typename OpTy::Adaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     if (filterFn && !filterFn(op)) return failure();
 
     auto isScalar = [](Value v) {
@@ -89,16 +89,16 @@ struct ScalarHloToArithmeticPattern final : OpConversionPattern<OpTy> {
   }
 
  private:
-  llvm::function_ref<bool(Operation *)> filterFn;
+  llvm::function_ref<bool(Operation*)> filterFn;
 };
 
 }  // namespace
 
 namespace detail {
 void populateScalarHloToArithConversionPatterns(
-    MLIRContext *context, TypeConverter &typeConverter,
-    RewritePatternSet *patterns,
-    llvm::function_ref<bool(Operation *)> filterFn) {
+    MLIRContext* context, TypeConverter& typeConverter,
+    RewritePatternSet* patterns,
+    llvm::function_ref<bool(Operation*)> filterFn) {
   // TODO(#12678): Handle the XLA rng op.
   patterns->add<
       ScalarHloToArithmeticPattern<mlir::stablehlo::AbsOp>,
@@ -145,6 +145,7 @@ void populateScalarHloToArithConversionPatterns(
       ScalarHloToArithmeticPattern<mlir::stablehlo::SineOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::SqrtOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::SubtractOp>,
+      ScalarHloToArithmeticPattern<mlir::stablehlo::TanOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::TanhOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::XorOp>>(typeConverter,
                                                             context, filterFn);
