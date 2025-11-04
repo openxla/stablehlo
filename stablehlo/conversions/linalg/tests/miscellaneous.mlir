@@ -768,7 +768,7 @@ func.func @map_compare(%arg0: tensor<?xcomplex<f32>>,
 // CHECK-PRIMITIVE: %[[MAP:.+]] = linalg.map
 // CHECK-PRIMITIVE-SAME: ins(%[[ARG0]], %[[ARG1]]
 // CHECK-PRIMITIVE-SAME: outs(%[[INIT]] : tensor<?xi1>)
-// CHECK-PRIMITIVE-NEXT: (%[[A:.+]]: complex<f32>, %[[B:.+]]: complex<f32>) {
+// CHECK-PRIMITIVE-NEXT: (%[[A:.+]]: complex<f32>, %[[B:.+]]: complex<f32>, %{{.+}}: i1) {
 // CHECK-PRIMITIVE: %[[RE1:.+]] = complex.re %[[A]] : complex<f32>
 // CHECK-PRIMITIVE: %[[RE2:.+]] = complex.re %[[B]] : complex<f32>
 // CHECK-PRIMITIVE: %[[CMP:.+]] = arith.cmpf oeq, %[[RE1]], %[[RE2]] : f32

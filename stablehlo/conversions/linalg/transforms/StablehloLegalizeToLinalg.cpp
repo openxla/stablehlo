@@ -1748,6 +1748,12 @@ struct MapOpToMapConverter final : OpConversionPattern<mlir::stablehlo::MapOp> {
 
     rewriter.applySignatureConversion(&region.front(), signatureConverter,
                                       getTypeConverter());
+    auto& blocks = linalgOp.getMapper().getBlocks();
+    if (blocks.empty()) {
+      return rewriter.notifyMatchFailure(op, "expected at least one block");
+    }
+    blocks.front().addArgument(resultType.getElementType(), loc);
+
     auto result = rewriter.createOrFold<tensor::CastOp>(loc, resultType,
                                                         linalgOp.getResults());
     rewriter.replaceOp(op, result);

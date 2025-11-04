@@ -17,7 +17,7 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 
-#include "gtest/gtest.h"
+#include "testing/base/public/gunit.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectRegistry.h"
@@ -1585,6 +1585,58 @@ TEST(MlirBuilderTest, ResultAccuracyAttrTolerance) {
         ResultAccuracyAttr::get(&fb.getContext(), /*atol=*/APFloat(1e-5),
                                 /*rtol=*/APFloat(0.0), /*ulps=*/5);
     auto exp = Exp(arg0, resultAccuracy);
+    func::Return(fb, {exp});
+  }
+
+  OwningOpRef<ModuleOp> module = mb->build();
+  EXPECT_EQ(expected, debugString(*module));
+}
+
+TEST(MlirBuilderTest, FrontendAttributesAppend) {
+  std::string expected = R"mlir(module {
+  func.func @main(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+    %0 = stablehlo.exponential %arg0 {mhlo.frontend_attributes = {bar = "hello", foo = 123 : i32}} : tensor<2xf32>
+    return %0 : tensor<2xf32>
+  }
+})mlir";
+
+  StablehloModuleBuilder mb;
+  {
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
+    func::FunctionBuilder fb(mb.get(), "main", funcLoc);
+    auto type = makeTensorType(fb.getContext(), {2}, ElementType::F32);
+    auto arg0 = func::Argument(fb, type);
+    auto exp = Exp(arg0);
+    stablehlo::AttachFrontendAttribute(
+        fb, exp, "foo", fb.getOpBuilder().getI32IntegerAttr(123));
+    stablehlo::AttachFrontendAttribute(
+        fb, exp, "bar", fb.getOpBuilder().getStringAttr("hello"));
+    func::Return(fb, {exp});
+  }
+
+  OwningOpRef<ModuleOp> module = mb->build();
+  EXPECT_EQ(expected, debugString(*module));
+}
+
+TEST(MlirBuilderTest, FrontendAttributesOverwrite) {
+  std::string expected = R"mlir(module {
+  func.func @main(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+    %0 = stablehlo.exponential %arg0 {mhlo.frontend_attributes = {foo = 456 : i32}} : tensor<2xf32>
+    return %0 : tensor<2xf32>
+  }
+})mlir";
+
+  StablehloModuleBuilder mb;
+  {
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
+    func::FunctionBuilder fb(mb.get(), "main", funcLoc);
+    auto type = makeTensorType(fb.getContext(), {2}, ElementType::F32);
+    auto arg0 = func::Argument(fb, type);
+    auto exp = Exp(arg0);
+    stablehlo::AttachFrontendAttribute(
+        fb, exp, "foo", fb.getOpBuilder().getI32IntegerAttr(123));
+    stablehlo::AttachFrontendAttribute(
+        fb, exp, "foo", fb.getOpBuilder().getI32IntegerAttr(456));
     func::Return(fb, {exp});
   }
 

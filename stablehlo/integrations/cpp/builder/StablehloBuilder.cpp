@@ -29,9 +29,35 @@ limitations under the License.
 #include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/integrations/cpp/builder/AttrTypeBuilderUtil.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
+#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/Attributes.h"
 
 namespace mlir {
 namespace stablehlo {
+
+///////////////
+// Dialect Helpers
+///////////////
+
+MlirOp AttachFrontendAttribute(MlirBuilder& builder, MlirOp op, StringRef name,
+                               Attribute value) {
+  constexpr char kFrontendAttrName[] = "mhlo.frontend_attributes";
+  Operation* mlirOp = unwrap(op).getDefiningOp();
+  SmallVector<NamedAttribute> attrs;
+  DictionaryAttr frontendAttr =
+      mlirOp->getAttrOfType<DictionaryAttr>(kFrontendAttrName);
+  if (frontendAttr) {
+    for (NamedAttribute attr : frontendAttr.getValue()) {
+      // Populate all non-conflicting names.
+      if (attr.getName() != name) {
+        attrs.push_back(attr);
+      }
+    }
+  }
+  attrs.emplace_back(name, value);
+  mlirOp->setAttr(kFrontendAttrName,
+                  DictionaryAttr::get(&builder.getContext(), attrs));
+  return op;
+}
 
 /////////////////
 // MANUAL APIs

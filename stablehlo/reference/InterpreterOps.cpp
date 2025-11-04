@@ -46,6 +46,7 @@ limitations under the License.
 #include "stablehlo/reference/ProcessGrid.h"
 #include "stablehlo/reference/Value.h"
 
+using mlir::stablehlo::TokenType;
 #define GET_OP_CLASSES
 #include "stablehlo/reference/InterpreterOps.cpp.inc"
 

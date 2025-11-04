@@ -752,7 +752,7 @@ module @refine_call_multiple_with_different_number_dimension_arguments {
     %2 = call @refine_call_callee(%arg0_different_i32, %1) : (tensor<i32>, tensor<?xf32>) -> tensor<?xf32>
     return %2 : tensor<?xf32>
   }
-  // expected-error@+1{{'func.func' op refined with invompatible refinement keys}}
+  // expected-error@+1{{'func.func' op refined with incompatible refinement keys}}
   func.func @refine_call_callee(%arg0: tensor<i32>, %arg1: tensor<?xf32>) -> tensor<?xf32> {
     return %arg1 : tensor<?xf32>
   }
@@ -770,7 +770,7 @@ module @refine_call_multiple_different_dimension_arguments {
     %2 = call @refine_call_callee(%arg0_different, %1) : (tensor<i32>, tensor<?xf32>) -> tensor<?xf32>
     return %2 : tensor<?xf32>
   }
-  // expected-error@+1{{'func.func' op refined with invompatible refinement keys}}
+  // expected-error@+1{{'func.func' op refined with incompatible refinement keys}}
   func.func @refine_call_callee(%arg0: tensor<i32>, %arg1: tensor<?xf32>) -> tensor<?xf32> {
     return %arg1 : tensor<?xf32>
   }
@@ -789,7 +789,7 @@ module @refine_call_multiple_different_non_dimension_arguments {
     %4 = call @refine_call_callee(%arg0_new, %3) : (tensor<i32>, tensor<?xf32>) -> tensor<?xf32>
     return %4 : tensor<?xf32>
   }
-  // expected-error@+1{{'func.func' op refined with invompatible refinement keys}}
+  // expected-error@+1{{'func.func' op refined with incompatible refinement keys}}
   func.func @refine_call_callee(%arg0: tensor<i32>, %arg1: tensor<?xf32>) -> tensor<?xf32> {
     return %arg1 : tensor<?xf32>
   }

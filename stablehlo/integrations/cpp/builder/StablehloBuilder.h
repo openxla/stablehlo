@@ -27,9 +27,22 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/integrations/cpp/builder/AttrTypeBuilderUtil.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
+#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/Attributes.h"
 
 namespace mlir {
 namespace stablehlo {
+
+///////////////
+// Dialect Helpers
+///////////////
+
+// Appends or overwrites an entry in the `mhlo.frontend_attributes` attribute
+//
+// of the given op.
+// Ex:
+//   stablehlo.abs %0 { mhlo.frontend_attributes = { "foo" = 123 } }
+MlirOp AttachFrontendAttribute(MlirBuilder& builder, MlirOp op, StringRef name,
+                               Attribute value);
 
 /////////////////
 // MANUAL APIs

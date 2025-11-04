@@ -3164,6 +3164,7 @@ using mlir::hlo::printTupleOpType;
 using mlir::hlo::printVariadicOperandWithAttribute;
 using mlir::hlo::printVariadicSameOperandsAndResultType;
 
+using mlir::stablehlo::TokenType;
 #define GET_OP_CLASSES
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
 

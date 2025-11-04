@@ -1309,10 +1309,20 @@ struct SortOpSetDimension : public SimplifyOpRewritePattern<SortOp> {
 // TransposeOp
 /////////////////////////////////
 
+DenseI64ArrayAttr getMergedTransposePermutation(OpBuilder& b,
+                                                ArrayRef<int64_t> childPerm,
+                                                ArrayRef<int64_t> parentPerm) {
+  SmallVector<int64_t> mergedPerm;
+  mergedPerm.reserve(parentPerm.size());
+  for (int64_t parentIdx : parentPerm) {
+    mergedPerm.push_back(childPerm[parentIdx]);
+  }
+  return b.getDenseI64ArrayAttr(mergedPerm);
+}
+
 // Pattern: transpose(X, [no_mem_layout_change...]) -> reshape(X)
 struct TransposeIsReshape final : SimplifyOpRewritePattern<TransposeOp> {
   using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
-
   LogicalResult matchAndRewrite(TransposeOp op,
                                 PatternRewriter& rewriter) const override {
     auto input = op.getOperand();
