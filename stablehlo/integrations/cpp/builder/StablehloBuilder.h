@@ -20,6 +20,7 @@ limitations under the License.
 #include <optional>
 #include <vector>
 
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Types.h"
@@ -27,7 +28,6 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/integrations/cpp/builder/AttrTypeBuilderUtil.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
-#include "third_party/llvm/llvm-project/mlir/include/mlir/IR/Attributes.h"
 
 namespace mlir {
 namespace stablehlo {
