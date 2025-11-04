@@ -13,8 +13,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/transforms/Passes.h"
-
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/LogicalResult.h"
@@ -24,8 +22,9 @@ limitations under the License.
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/Support/LLVM.h"
-#include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/dialect/TypeInference.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -86,8 +85,8 @@ struct CheckShapeAssertionsPass
       for (int i = 1; i < inputs.size(); ++i) {
         SmallVector<int64_t> input;
         if (failed(hlo::matchInts(inputs[i], input))) {
-          op.emitError()
-              << "expects static error_message_input (operand #" << i << ")";
+          op.emitError() << "expects static error_message_input (operand #" << i
+                         << ")";
           signalPassFailure();
           return;
         }
@@ -122,15 +121,13 @@ struct CheckShapeAssertionsPass
       return op.emitError() << "expects @shape_assertion";
 
     // input[0] (assert_what) : tensor<i1>
-    auto assertWhatType =
-        dyn_cast<ShapedType>(op.getInputs()[0].getType());
+    auto assertWhatType = dyn_cast<ShapedType>(op.getInputs()[0].getType());
     if (!assertWhatType || !assertWhatType.hasRank() ||
         assertWhatType.getRank() != 0 ||
         !assertWhatType.getElementType().isSignlessInteger() ||
         assertWhatType.getElementTypeBitWidth() != 1)
-      return op.emitError()
-             << "expects assert_what (operand #0) "
-             << "to be a constant of type tensor<i1>";
+      return op.emitError() << "expects assert_what (operand #0) "
+                            << "to be a constant of type tensor<i1>";
 
     // input[1:] (error_message_inputs) : tensor<i32> or tensor<i64>
     for (int i = 0; i < nrErrorMessageInputs; ++i) {
@@ -157,8 +154,7 @@ struct CheckShapeAssertionsPass
     size_t spec_end = errorMessage.find_first_of(",:}", spec_begin);
 
     // Check that all specs reference valid input indices.
-    while (spec_begin != StringRef::npos &&
-           spec_end != StringRef::npos) {
+    while (spec_begin != StringRef::npos && spec_end != StringRef::npos) {
       StringRef index_str =
           errorMessage.substr(spec_begin + 1, spec_end - spec_begin - 1);
 
@@ -167,10 +163,9 @@ struct CheckShapeAssertionsPass
           !(0 <= index && index < nrErrorMessageInputs)) {
         return op.emitError()
                << "expects error_message to contain format specifiers with "
-               << "error_message_input index less than "
-               << nrErrorMessageInputs << ". Found specifier "
-               << errorMessage.substr(spec_begin,
-                                      spec_end - spec_begin + 1);
+               << "error_message_input index less than " << nrErrorMessageInputs
+               << ". Found specifier "
+               << errorMessage.substr(spec_begin, spec_end - spec_begin + 1);
       }
 
       spec_begin = errorMessage.find_first_of('{', spec_begin + 1);
@@ -201,7 +196,6 @@ struct CheckShapeAssertionsPass
         errInput(23), errInput(24), errInput(25), errInput(26), errInput(27),
         errInput(28), errInput(29), errInput(30), errInput(31));
   }
-
 };
 
 }  // namespace
