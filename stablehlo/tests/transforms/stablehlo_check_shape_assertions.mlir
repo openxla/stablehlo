@@ -21,9 +21,9 @@ func.func @assertion_fails() {
   %c1 = stablehlo.constant dense<false> : tensor<i1>
   %c0 = stablehlo.constant dense<7> : tensor<i32>
   // expected-error@+1 {{should fire}}
-  stablehlo.custom_call @shape_assertion(%c1, %c0) { 
-    api_version = 2 : i32, 
-    error_message = "should fire", 
+  stablehlo.custom_call @shape_assertion(%c1, %c0) {
+    api_version = 2 : i32,
+    error_message = "should fire",
     has_side_effect = true
   } : (tensor<i1>, tensor<i32>) -> ()
   return
