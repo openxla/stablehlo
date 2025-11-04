@@ -73,7 +73,7 @@ def StablehloCheckShapeAssertionsPass
     stablehlo.custom_call @shape_assertion(%is_lt) { error_message = "DimA must be less than 2" }
     ```
 
-    After the pass, if the shapes are correct, the `stablehlo.custom_call` 
+    After the pass, if the shapes are correct, the `stablehlo.custom_call`
     will be removed.
   }];
 

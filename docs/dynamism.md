@@ -105,7 +105,8 @@ Individually, the passes that tend to be useful for shape refinement are:
   shape information throughout the entire program.
 - [`stablehlo-canonicalize-dynamism`][canonicalize-dynamism] to replace dynamic
   ops with their static variants.
-- [`stablehlo-check-shape-assertions`][check-shape-assertions] to check and remove shape assertions custom calls.
+- [`stablehlo-check-shape-assertions`][check-shape-assertions] to check and
+  remove shape assertions custom calls.
 
 See linked documentation for up-to-date information and examples.
 
