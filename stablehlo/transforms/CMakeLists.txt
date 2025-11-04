@@ -61,6 +61,7 @@ add_mlir_dialect_library(StablehloPasses
   PassPipelines.cpp
   ShapeLegalizeToStablehlo.cpp
   StablehloCanonicalizeDynamism.cpp
+  StablehloCheckShapeAssertions.cpp
   StablehloConvertToSignless.cpp
   StablehloCompatibilityExpander.cpp
   StablehloComplexMathExpander.cpp

@@ -55,6 +55,16 @@ def StablehloCanonicalizeDynamismPass : Pass<"stablehlo-canonicalize-dynamism", 
   }];
 }
 
+def StablehloCheckShapeAssertionsPass
+    : Pass<"stablehlo-check-shape-assertions", "func::FuncOp"> {
+  let summary = "Check stablehlo.custom_call @shape_assertion ops.";
+  let options = [
+    Option<"enable_shape_assertions", "enable-shape-assertions", "bool",
+           /*default=*/"true",
+           "Whether shape assertions may generate errors.">
+  ];
+}
+
 def StablehloCompatibilityExpanderPass : Pass<"stablehlo-compatibility-expander", "mlir::ModuleOp"> {
   let summary = "Compatibility expander for StableHLO operations.";
 
