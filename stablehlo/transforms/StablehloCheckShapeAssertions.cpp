@@ -82,7 +82,7 @@ struct CheckShapeAssertionsPass
       }
       StringRef errorMessage = getErrorMessage(op);
       SmallVector<int64_t> errorMessageInputs;
-      for (int i = 1; i < inputs.size(); ++i) {
+      for (size_t i = 1; i < inputs.size(); ++i) {
         SmallVector<int64_t> input;
         if (failed(hlo::matchInts(inputs[i], input))) {
           op.emitError() << "expects static error_message_input (operand #" << i
