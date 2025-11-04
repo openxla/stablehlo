@@ -58,6 +58,25 @@ def StablehloCanonicalizeDynamismPass : Pass<"stablehlo-canonicalize-dynamism", 
 def StablehloCheckShapeAssertionsPass
     : Pass<"stablehlo-check-shape-assertions", "func::FuncOp"> {
   let summary = "Check stablehlo.custom_call @shape_assertion ops.";
+
+  let description = [{
+    Validate shape_assertion custom calls.
+
+    Shape assertions validate constraints on dynamic dimensions in StableHLO.
+    For example if a framework needed to enforce a constraint of `DimA < 2`,
+    the following IR could be emitted:
+
+    ```mlir
+    %dimA = <get_dimension_size or input arg> : tensor<i32>
+    %c2 = stablehlo.constant dense<2> : tensor<i32>
+    %is_lt = stablehlo.compare LT %dimA, %c2 : tensor<i1>
+    stablehlo.custom_call @shape_assertion(%is_lt) { error_message = "DimA must be less than 2" }
+    ```
+
+    After the pass, if the shapes are correct, the `stablehlo.custom_call` 
+    will be removed.
+  }];
+
   let options = [
     Option<"enable_shape_assertions", "enable-shape-assertions", "bool",
            /*default=*/"true",
