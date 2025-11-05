@@ -339,7 +339,7 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
 namespace {
 Value materializeIllegalCast(OpBuilder& builder, Type type, ValueRange inputs,
                              Location loc) {
-  return builder.create<UnrealizedConversionCastOp>(loc, type, inputs)
+  return UnrealizedConversionCastOp::create(builder, loc, type, inputs)
       ->getResult(0);
 }
 }  // namespace

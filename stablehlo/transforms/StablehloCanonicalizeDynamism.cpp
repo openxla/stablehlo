@@ -266,12 +266,12 @@ struct CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern
       auto startIndexElementType =
           op.getStartIndices().getType().getElementType();
       auto startIndex1DType = RankedTensorType::get({1}, startIndexElementType);
-      auto startIndex1D = rewriter.create<SliceOp>(
-          op.getLoc(), startIndex1DType, op.getStartIndices(),
+      auto startIndex1D = SliceOp::create(
+          rewriter, op.getLoc(), startIndex1DType, op.getStartIndices(),
           ArrayRef<int64_t>{i}, ArrayRef<int64_t>{i + 1}, ArrayRef<int64_t>{1});
       auto startIndex0DType = RankedTensorType::get({}, startIndexElementType);
-      auto startIndex0D = rewriter.create<ReshapeOp>(
-          op.getLoc(), startIndex0DType, startIndex1D);
+      auto startIndex0D = ReshapeOp::create(rewriter, op.getLoc(),
+                                            startIndex0DType, startIndex1D);
       startIndices.push_back(startIndex0D);
     }
 

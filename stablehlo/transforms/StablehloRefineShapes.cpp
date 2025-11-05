@@ -144,8 +144,8 @@ LogicalResult refineValues(PatternRewriter& rewriter, Operation* op,
     };
     if (llvm::none_of(value.getUses(), isFuncReturn)) continue;
     rewriter.setInsertionPointAfter(op);
-    auto castToUnrefinedType = rewriter.create<UnrealizedConversionCastOp>(
-        op->getLoc(), unrefinedType, value);
+    auto castToUnrefinedType = UnrealizedConversionCastOp::create(
+        rewriter, op->getLoc(), unrefinedType, value);
     value.replaceUsesWithIf(castToUnrefinedType.getOutputs()[0], isFuncReturn);
   }
 
@@ -569,7 +569,7 @@ struct RefineCallOpPattern : public OpRewritePattern<func::CallOp> {
       SmallVector<Value> constants;
       for (auto constAttr : constantAttrs.value()) {
         constants.push_back(
-            rewriter.create<ConstantOp>(op.getLoc(), constAttr));
+            ConstantOp::create(rewriter, op.getLoc(), constAttr));
       }
       rewriter.replaceOp(op, constants);
       return success();
@@ -1093,8 +1093,9 @@ LogicalResult refineFunction(MLIRContext& context, RefineShapeState& state,
       return func.emitOpError()
              << "expected global constant argument to be shaped";
 
-    auto replacement_op = builder.create<stablehlo::ConstantOp>(
-        arg.getLoc(), argType, DenseElementsAttr::get(argShapedType, dimValue));
+    auto replacement_op = stablehlo::ConstantOp::create(
+        builder, arg.getLoc(), argType,
+        DenseElementsAttr::get(argShapedType, dimValue));
     arg.replaceAllUsesWith(replacement_op);
   }
   BitVector argIndices(func.getNumArguments());

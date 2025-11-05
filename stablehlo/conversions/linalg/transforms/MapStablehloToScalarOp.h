@@ -481,7 +481,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ReducePrecisionOp>(
   int64_t nbits = floatType.getWidth();
   auto intType = mlir::IntegerType::get(loc.getContext(), floatType.getWidth());
 
-  Value xAsInt = b.create<arith::BitcastOp>(intType, adaptor.getOperand());
+  Value xAsInt = arith::BitcastOp::create(b, intType, adaptor.getOperand());
 
   // SignificandWidth includes the implicit extra bit.
   auto srcMantissaBits = floatType.getFPMantissaWidth() - 1;
@@ -496,14 +496,14 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ReducePrecisionOp>(
   expBitsMask = ((expBitsMask << srcExponentBits) - 1) << srcMantissaBits;
 
   auto createConstant = [&](const APInt& v) {
-    return b.create<arith::ConstantIntOp>(intType, v.getZExtValue())
+    return arith::ConstantIntOp::create(b, intType, v.getZExtValue())
         .getResult();
   };
 
   Value xAbsBits =
-      b.create<arith::AndIOp>(xAsInt, createConstant(~signBitMask));
-  Value xIsNan = b.create<arith::CmpIOp>(arith::CmpIPredicate::ugt, xAbsBits,
-                                         createConstant(expBitsMask));
+      arith::AndIOp::create(b, xAsInt, createConstant(~signBitMask));
+  Value xIsNan = arith::CmpIOp::create(b, arith::CmpIPredicate::ugt, xAbsBits,
+                                       createConstant(expBitsMask));
 
   int destMantissaBits = adaptor.getMantissaBits();
   if (destMantissaBits < static_cast<int>(srcMantissaBits)) {
@@ -516,22 +516,23 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ReducePrecisionOp>(
     // mantissa bit is 1.
     APInt baseRoundingBias = lastMantissaBitMask.lshr(1) - 1;
 
-    Value mantissaDiff = b.create<arith::ConstantIntOp>(
-        intType, srcMantissaBits - destMantissaBits);
+    Value mantissaDiff = arith::ConstantIntOp::create(
+        b, intType, srcMantissaBits - destMantissaBits);
     Value highestMantissaMaskVal = createConstant(lastMantissaBitMask);
     Value baseRoundingBiasVal = createConstant(baseRoundingBias);
-    Value xLastMantissaBit = b.create<arith::ShRUIOp>(
-        b.create<arith::AndIOp>(xAsInt, highestMantissaMaskVal), mantissaDiff);
+    Value xLastMantissaBit = arith::ShRUIOp::create(
+        b, arith::AndIOp::create(b, xAsInt, highestMantissaMaskVal),
+        mantissaDiff);
     Value xRoundingBias =
-        b.create<arith::AddIOp>(xLastMantissaBit, baseRoundingBiasVal);
+        arith::AddIOp::create(b, xLastMantissaBit, baseRoundingBiasVal);
 
     // Add rounding bias, and mask out truncated bits.  Note that the case
     // where adding the rounding bias overflows into the exponent bits is
     // correct; the non-masked mantissa bits will all be zero, and the
     // exponent will be incremented by one.
     APInt truncationMask = ~(lastMantissaBitMask - 1);
-    Value xRounded = b.create<arith::AddIOp>(xAsInt, xRoundingBias);
-    xAsInt = b.create<arith::AndIOp>(xRounded, createConstant(truncationMask));
+    Value xRounded = arith::AddIOp::create(b, xAsInt, xRoundingBias);
+    xAsInt = arith::AndIOp::create(b, xRounded, createConstant(truncationMask));
   }
 
   int destExponentBits = adaptor.getExponentBits();
@@ -559,28 +560,28 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ReducePrecisionOp>(
 
     // Do we overflow or underflow?
     Value xExponent =
-        b.create<arith::AndIOp>(xAsInt, createConstant(expBitsMask));
-    Value xOverflows = b.create<arith::CmpIOp>(
-        arith::CmpIPredicate::ugt, xExponent,
+        arith::AndIOp::create(b, xAsInt, createConstant(expBitsMask));
+    Value xOverflows = arith::CmpIOp::create(
+        b, arith::CmpIPredicate::ugt, xExponent,
         createConstant(reducedMaxExponent << srcMantissaBits));
-    Value xUnderflows = b.create<arith::CmpIOp>(
-        arith::CmpIPredicate::ule, xExponent,
+    Value xUnderflows = arith::CmpIOp::create(
+        b, arith::CmpIPredicate::ule, xExponent,
         createConstant(reducedMinExponent << srcMantissaBits));
 
     // Compute appropriately-signed values of zero and infinity.
     Value xSignedZero =
-        b.create<arith::AndIOp>(xAsInt, createConstant(signBitMask));
+        arith::AndIOp::create(b, xAsInt, createConstant(signBitMask));
     Value xSignedInf =
-        b.create<arith::OrIOp>(xSignedZero, createConstant(expBitsMask));
+        arith::OrIOp::create(b, xSignedZero, createConstant(expBitsMask));
 
     // Force to zero or infinity if overflow or underflow.  (Note that this
     // truncates all denormal values to zero, rather than rounding them.)
-    xAsInt = b.create<arith::SelectOp>(xOverflows, xSignedInf, xAsInt);
-    xAsInt = b.create<arith::SelectOp>(xUnderflows, xSignedZero, xAsInt);
+    xAsInt = arith::SelectOp::create(b, xOverflows, xSignedInf, xAsInt);
+    xAsInt = arith::SelectOp::create(b, xUnderflows, xSignedZero, xAsInt);
   }
 
-  Value result = b.create<arith::BitcastOp>(floatType, xAsInt);
-  return b.create<arith::SelectOp>(xIsNan, adaptor.getOperand(), result);
+  Value result = arith::BitcastOp::create(b, floatType, xAsInt);
+  return arith::SelectOp::create(b, xIsNan, adaptor.getOperand(), result);
 }
 
 // FIXME(Jakub)
@@ -895,36 +896,36 @@ inline Value makeSafeIntDiv(ImplicitLocOpBuilder& lb, Type originalType,
                             Value returnedOnSignedOverflow) {
   Type type = lhs.getType();
   auto elementType = cast<IntegerType>(getElementTypeOrSelf(type));
-  Value zero = lb.create<arith::ConstantOp>(lb.getZeroAttr(type));
+  Value zero = arith::ConstantOp::create(lb, lb.getZeroAttr(type));
   auto makeConstant = [&](const APInt& i) {
     return getConstantOrSplat(&lb, lb.getLoc(), type,
                               lb.getIntegerAttr(elementType, i));
   };
   Value one = makeConstant(APInt(elementType.getWidth(), 1));
   Value rhsIsZero =
-      lb.create<arith::CmpIOp>(arith::CmpIPredicate::eq, rhs, zero);
+      arith::CmpIOp::create(lb, arith::CmpIPredicate::eq, rhs, zero);
 
   // For unsigned just set the divisor to 1 when it would be 0.
   if (originalType.isUnsignedInteger()) {
-    Value safeRhs = lb.create<arith::SelectOp>(rhsIsZero, one, rhs);
+    Value safeRhs = arith::SelectOp::create(lb, rhsIsZero, one, rhs);
     Value safeDiv = lb.create<U>(lhs, safeRhs);
-    return lb.create<arith::SelectOp>(rhsIsZero, returnedOnZero, safeDiv);
+    return arith::SelectOp::create(lb, rhsIsZero, returnedOnZero, safeDiv);
   }
 
   // For signed also check for INT_MIN / -1.
   Value smin = makeConstant(APInt::getSignedMinValue(elementType.getWidth()));
   Value lhsIsSmin =
-      lb.create<arith::CmpIOp>(arith::CmpIPredicate::eq, lhs, smin);
+      arith::CmpIOp::create(lb, arith::CmpIPredicate::eq, lhs, smin);
   Value minusOne = makeConstant(APInt::getAllOnes(elementType.getWidth()));
   Value rhsIsMinusOne =
-      lb.create<arith::CmpIOp>(arith::CmpIPredicate::eq, rhs, minusOne);
-  Value hasIntMinOverflow = lb.create<arith::AndIOp>(lhsIsSmin, rhsIsMinusOne);
-  Value rhsIsUnsafe = lb.create<arith::OrIOp>(rhsIsZero, hasIntMinOverflow);
-  Value safeRhs = lb.create<arith::SelectOp>(rhsIsUnsafe, one, rhs);
+      arith::CmpIOp::create(lb, arith::CmpIPredicate::eq, rhs, minusOne);
+  Value hasIntMinOverflow = arith::AndIOp::create(lb, lhsIsSmin, rhsIsMinusOne);
+  Value rhsIsUnsafe = arith::OrIOp::create(lb, rhsIsZero, hasIntMinOverflow);
+  Value safeRhs = arith::SelectOp::create(lb, rhsIsUnsafe, one, rhs);
   Value safeDiv = lb.create<S>(lhs, safeRhs);
-  Value safeSmin = lb.create<arith::SelectOp>(
-      hasIntMinOverflow, returnedOnSignedOverflow, safeDiv);
-  return lb.create<arith::SelectOp>(rhsIsZero, returnedOnZero, safeSmin);
+  Value safeSmin = arith::SelectOp::create(lb, hasIntMinOverflow,
+                                           returnedOnSignedOverflow, safeDiv);
+  return arith::SelectOp::create(lb, rhsIsZero, returnedOnZero, safeSmin);
 }
 
 template <>
@@ -973,7 +974,7 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::RemOp>(
   // INT_SMIN %s -1 = 0
   ImplicitLocOpBuilder lb(loc, *b);
   Type type = adaptor.getLhs().getType();
-  Value zero = lb.create<arith::ConstantOp>(lb.getZeroAttr(type));
+  Value zero = arith::ConstantOp::create(lb, lb.getZeroAttr(type));
   return makeSafeIntDiv<arith::RemUIOp, arith::RemSIOp>(
       lb, originalType, adaptor.getLhs(), adaptor.getRhs(),
       /*returnedOnZero=*/adaptor.getLhs(),
@@ -1052,51 +1053,51 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::PowOp>(
   // Exponentiation by squaring:
   // https://en.wikipedia.org/wiki/Exponentiation_by_squaring;
   Value negOne =
-      lb.create<arith::ConstantOp>(lb.getIntegerAttr(resultType, -1));
-  Value zero = lb.create<arith::ConstantOp>(lb.getIntegerAttr(resultType, 0));
-  Value one = lb.create<arith::ConstantOp>(lb.getIntegerAttr(resultType, 1));
-  Value two = lb.create<arith::ConstantOp>(lb.getIntegerAttr(resultType, 2));
-  Value step = lb.create<arith::ConstantIndexOp>(1);
-  Value lowerBound = lb.create<arith::ConstantIndexOp>(0);
+      arith::ConstantOp::create(lb, lb.getIntegerAttr(resultType, -1));
+  Value zero = arith::ConstantOp::create(lb, lb.getIntegerAttr(resultType, 0));
+  Value one = arith::ConstantOp::create(lb, lb.getIntegerAttr(resultType, 1));
+  Value two = arith::ConstantOp::create(lb, lb.getIntegerAttr(resultType, 2));
+  Value step = arith::ConstantIndexOp::create(lb, 1);
+  Value lowerBound = arith::ConstantIndexOp::create(lb, 0);
   // Everything else would overflow for any exponent > 1, as 2^64
   // is the larget possible exponent for a 64-bit integer, and
   // that's 1 << 6.
-  Value upperBound = lb.create<arith::ConstantIndexOp>(6);
+  Value upperBound = arith::ConstantIndexOp::create(lb, 6);
   auto originalBase = adaptor.getLhs();
   auto originalExponent = adaptor.getRhs();
 
   Value accum =
-      lb.create<scf::ForOp>(
-            lowerBound, upperBound, step,
-            SmallVector<Value>({one, originalBase, originalExponent}),
-            [&](OpBuilder& b, Location, Value /*v*/, ValueRange iters) {
-              Value accum = iters[0];
-              Value base = iters[1];
-              Value exponent = iters[2];
+      scf::ForOp::create(
+          lb, lowerBound, upperBound, step,
+          SmallVector<Value>({one, originalBase, originalExponent}),
+          [&](OpBuilder& b, Location, Value /*v*/, ValueRange iters) {
+            Value accum = iters[0];
+            Value base = iters[1];
+            Value exponent = iters[2];
 
-              Value condition = b.create<arith::CmpIOp>(
-                  loc, arith::CmpIPredicate::eq,
-                  b.create<::mlir::arith::AndIOp>(loc, exponent, one), one);
-              Value multiplied =
-                  b.create<::mlir::arith::MulIOp>(loc, accum, base);
-              accum = b.create<::mlir::arith::SelectOp>(loc, condition,
-                                                        multiplied, accum);
-              base = b.create<::mlir::arith::MulIOp>(loc, base, base);
-              exponent = b.create<::mlir::arith::ShRUIOp>(loc, exponent, one);
-              b.create<scf::YieldOp>(
-                  loc, SmallVector<Value>({accum, base, exponent}));
-            })
+            Value condition = arith::CmpIOp::create(
+                b, loc, arith::CmpIPredicate::eq,
+                ::mlir::arith::AndIOp::create(b, loc, exponent, one), one);
+            Value multiplied =
+                ::mlir::arith::MulIOp::create(b, loc, accum, base);
+            accum = ::mlir::arith::SelectOp::create(b, loc, condition,
+                                                    multiplied, accum);
+            base = ::mlir::arith::MulIOp::create(b, loc, base, base);
+            exponent = ::mlir::arith::ShRUIOp::create(b, loc, exponent, one);
+            scf::YieldOp::create(b, loc,
+                                 SmallVector<Value>({accum, base, exponent}));
+          })
           .getResult(0);
 
-  Value rhsIsEven = lb.create<arith::CmpIOp>(
-      arith::CmpIPredicate::eq,
-      lb.create<arith::RemSIOp>(adaptor.getRhs(), two), zero);
-  Value rhsIsNegative = lb.create<arith::CmpIOp>(arith::CmpIPredicate::slt,
-                                                 adaptor.getRhs(), zero);
-  Value lhsIsOne =
-      lb.create<arith::CmpIOp>(arith::CmpIPredicate::eq, adaptor.getLhs(), one);
-  Value lhsIsNegOne = lb.create<arith::CmpIOp>(arith::CmpIPredicate::eq,
-                                               adaptor.getLhs(), negOne);
+  Value rhsIsEven = arith::CmpIOp::create(
+      lb, arith::CmpIPredicate::eq,
+      arith::RemSIOp::create(lb, adaptor.getRhs(), two), zero);
+  Value rhsIsNegative = arith::CmpIOp::create(lb, arith::CmpIPredicate::slt,
+                                              adaptor.getRhs(), zero);
+  Value lhsIsOne = arith::CmpIOp::create(lb, arith::CmpIPredicate::eq,
+                                         adaptor.getLhs(), one);
+  Value lhsIsNegOne = arith::CmpIOp::create(lb, arith::CmpIPredicate::eq,
+                                            adaptor.getLhs(), negOne);
 
   // The accum is correct when the rhs is non-negative. When rhs is
   // negative, we return 0 for integer, with the exception of lhs values of 1
@@ -1107,12 +1108,12 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::PowOp>(
   // - Return 1 or -1 depending on the parity of rhs when the lhs is -1.
   // - Return 1 if lhs is 1.
   // - Else return 0.
-  Value ifLhsIsOne = lb.create<::mlir::arith::SelectOp>(lhsIsOne, one, zero);
-  Value ifLhsIsNegOne = lb.create<::mlir::arith::SelectOp>(
-      lhsIsNegOne, lb.create<::mlir::arith::SelectOp>(rhsIsEven, one, negOne),
-      ifLhsIsOne);
-  return lb.create<::mlir::arith::SelectOp>(rhsIsNegative, ifLhsIsNegOne,
-                                            accum);
+  Value ifLhsIsOne = ::mlir::arith::SelectOp::create(lb, lhsIsOne, one, zero);
+  Value ifLhsIsNegOne = ::mlir::arith::SelectOp::create(
+      lb, lhsIsNegOne,
+      ::mlir::arith::SelectOp::create(lb, rhsIsEven, one, negOne), ifLhsIsOne);
+  return ::mlir::arith::SelectOp::create(lb, rhsIsNegative, ifLhsIsNegOne,
+                                         accum);
 }
 
 template <>
@@ -1174,9 +1175,9 @@ inline Value selectShiftedOrSaturated(ImplicitLocOpBuilder& lb, Value rhs,
   auto bitWidthInt = etype.getIntOrFloatBitWidth();
   Value bitWidth = getConstantOrSplat(&lb, lb.getLoc(), type,
                                       lb.getIntegerAttr(etype, bitWidthInt));
-  Value cmp = lb.create<mlir::arith::CmpIOp>(mlir::arith::CmpIPredicate::ugt,
-                                             bitWidth, rhs);
-  return lb.create<mlir::arith::SelectOp>(cmp, shifted, saturated);
+  Value cmp = mlir::arith::CmpIOp::create(lb, mlir::arith::CmpIPredicate::ugt,
+                                          bitWidth, rhs);
+  return mlir::arith::SelectOp::create(lb, cmp, shifted, saturated);
 }
 
 template <>
@@ -1189,8 +1190,8 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ShiftLeftOp>(
   Type type = lhs.getType();
 
   // "Saturate" if the shift is greater than the bitwidth of the type
-  Value zero = lb.create<arith::ConstantOp>(lb.getZeroAttr(type));
-  Value shifted = lb.create<mlir::arith::ShLIOp>(lhs, rhs);
+  Value zero = arith::ConstantOp::create(lb, lb.getZeroAttr(type));
+  Value shifted = mlir::arith::ShLIOp::create(lb, lhs, rhs);
 
   return selectShiftedOrSaturated(lb, rhs, shifted, zero, type);
 }
@@ -1205,8 +1206,8 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ShiftRightLogicalOp>(
   Type type = lhs.getType();
 
   // "Saturate" if the shift is greater than the bitwidth of the type
-  Value zero = lb.create<arith::ConstantOp>(b->getZeroAttr(type));
-  Value shifted = lb.create<mlir::arith::ShRUIOp>(lhs, rhs);
+  Value zero = arith::ConstantOp::create(lb, b->getZeroAttr(type));
+  Value shifted = mlir::arith::ShRUIOp::create(lb, lhs, rhs);
 
   return selectShiftedOrSaturated(lb, rhs, shifted, zero, type);
 }
@@ -1226,8 +1227,8 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ShiftRightArithmeticOp>(
   // "Saturate" if the shift is greater than the bitwidth of the type
   Value maxShift = getConstantOrSplat(
       b, loc, type, lb.getIntegerAttr(etype, bitWidthInt - 1));
-  Value saturatedShifted = lb.create<mlir::arith::ShRSIOp>(lhs, maxShift);
-  Value shifted = lb.create<mlir::arith::ShRSIOp>(lhs, rhs);
+  Value saturatedShifted = mlir::arith::ShRSIOp::create(lb, lhs, maxShift);
+  Value shifted = mlir::arith::ShRSIOp::create(lb, lhs, rhs);
 
   return selectShiftedOrSaturated(lb, rhs, shifted, saturatedShifted, type);
 }

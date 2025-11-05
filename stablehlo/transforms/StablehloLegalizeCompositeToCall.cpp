@@ -38,14 +38,14 @@ struct ReplaceCompositeWithCall final
     : OpRewritePattern<mlir::stablehlo::CompositeOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  ReplaceCompositeWithCall(MLIRContext *context)
+  ReplaceCompositeWithCall(MLIRContext* context)
       : OpRewritePattern<mlir::stablehlo::CompositeOp>(context) {}
 
   LogicalResult matchAndRewrite(CompositeOp op,
-                                PatternRewriter &rewriter) const override {
-    auto call = rewriter.create<mlir::func::CallOp>(
-        op.getLoc(), op.getResultTypes(), op.getDecomposition(),
-        op.getOperands());
+                                PatternRewriter& rewriter) const override {
+    auto call =
+        mlir::func::CallOp::create(rewriter, op.getLoc(), op.getResultTypes(),
+                                   op.getDecomposition(), op.getOperands());
     rewriter.replaceOp(op, call.getResults());
     return success();
   }
@@ -58,7 +58,7 @@ struct StablehloLegalizeCompositeToCallPass
       StablehloLegalizeCompositeToCallPassBase;
 
   void runOnOperation() override {
-    MLIRContext *context = &getContext();
+    MLIRContext* context = &getContext();
 
     DenseSet<StringRef> excludedNames(exceptListOption.begin(),
                                       exceptListOption.end());

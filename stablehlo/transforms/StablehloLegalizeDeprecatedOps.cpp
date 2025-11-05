@@ -48,7 +48,7 @@ struct StablehloLegalizeDeprecatedOpsPass final
   using StablehloLegalizeDeprecatedOpsPassBase::
       StablehloLegalizeDeprecatedOpsPassBase;
 
-  LogicalResult initialize(MLIRContext *context) override {
+  LogicalResult initialize(MLIRContext* context) override {
     target = std::make_shared<ConversionTarget>(*context);
     target->addIllegalOp<BroadcastOp, CreateTokenOp, CrossReplicaSumOp, DotOp,
                          UnaryEinsumOp>();
@@ -86,21 +86,21 @@ struct CrossReplicaSumToAllReducePattern
     : public OpRewritePattern<CrossReplicaSumOp> {
   using OpRewritePattern<CrossReplicaSumOp>::OpRewritePattern;
   LogicalResult matchAndRewrite(CrossReplicaSumOp crossReplicaSumOp,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     auto allReduceOp = rewriter.replaceOpWithNewOp<AllReduceOp>(
         crossReplicaSumOp, crossReplicaSumOp.getType(),
         crossReplicaSumOp.getOperand(), crossReplicaSumOp.getReplicaGroups(),
         /*channel_handle=*/ChannelHandleAttr(),
         /*use_global_device_ids=*/false);
 
-    auto *block = rewriter.createBlock(&allReduceOp.getComputation());
+    auto* block = rewriter.createBlock(&allReduceOp.getComputation());
     auto elementType = RankedTensorType::get(
         {}, cast<ShapedType>(allReduceOp.getType(0)).getElementType());
     auto location = allReduceOp.getComputation().getLoc();
     block->addArguments({elementType, elementType}, {location, location});
-    auto addOp = rewriter.create<AddOp>(location, block->getArgument(0),
-                                        block->getArgument(1));
-    rewriter.create<ReturnOp>(location, addOp.getResult());
+    auto addOp = AddOp::create(rewriter, location, block->getArgument(0),
+                               block->getArgument(1));
+    ReturnOp::create(rewriter, location, addOp.getResult());
     return success();
   }
 };
@@ -136,7 +136,7 @@ DenseElementsAttr getScalarOfType(Type ty, int64_t rawValue) {
 }  // namespace
 
 void populateStablehloLegalizeDeprecatedOpsPatterns(
-    MLIRContext *context, RewritePatternSet *patterns) {
+    MLIRContext* context, RewritePatternSet* patterns) {
   populateWithGenerated(*patterns);
   patterns->add<CrossReplicaSumToAllReducePattern>(context);
 }

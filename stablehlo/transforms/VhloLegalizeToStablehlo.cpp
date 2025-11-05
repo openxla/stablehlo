@@ -1008,12 +1008,13 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
     // additional argument for the generic builder.
     VhloToStablehloOp<VhloOpTy> stablehloOp;
     if constexpr (std::is_same<VhloOpTy, vhlo::CaseOpV1>::value) {
-      stablehloOp = rewriter.create<stablehlo::CaseOp>(
-          vhloOp.getLoc(), stablehloTypes, stablehloOperands, stablehloAttrs,
-          vhloOp.getBranches().size());
+      stablehloOp = stablehlo::CaseOp::create(
+          rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
+          stablehloAttrs, vhloOp.getBranches().size());
     } else {
-      stablehloOp = rewriter.create<VhloToStablehloOp<VhloOpTy>>(
-          vhloOp.getLoc(), stablehloTypes, stablehloOperands, stablehloAttrs);
+      stablehloOp = VhloToStablehloOp<VhloOpTy>::create(
+          rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
+          stablehloAttrs);
     }
 
     for (auto [vhloRegion, stablehloRegion] :

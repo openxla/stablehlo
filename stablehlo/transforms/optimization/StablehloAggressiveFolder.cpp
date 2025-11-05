@@ -765,9 +765,9 @@ class InlineCaseOpWithConstantBranchIndex
     rewriter.setInsertionPointToEnd(&noopBlock);
     for (auto placeholderAttr : placeholderAttrs) {
       placeholderResults.push_back(
-          rewriter.create<ConstantOp>(region.getLoc(), placeholderAttr));
+          ConstantOp::create(rewriter, region.getLoc(), placeholderAttr));
     }
-    rewriter.create<stablehlo::ReturnOp>(region.getLoc(), placeholderResults);
+    stablehlo::ReturnOp::create(rewriter, region.getLoc(), placeholderResults);
 
     return success();
   }
@@ -1643,9 +1643,9 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
 
     for (BlockArgument bodyArg : body.getArguments()) {
       rewriter.replaceAllUsesWith(
-          bodyArg, rewriter.create<ConstantOp>(
-                       body.front().getLoc(), bodyArg.getType(),
-                       bodyArgConstantAttrs[bodyArg.getArgNumber()]));
+          bodyArg,
+          ConstantOp::create(rewriter, body.front().getLoc(), bodyArg.getType(),
+                             bodyArgConstantAttrs[bodyArg.getArgNumber()]));
     }
 
     return success();
@@ -1714,8 +1714,8 @@ struct FoldReduceOpToConstantInitializer
 
     SmallVector<Value> resultValues;
     for (auto resultAttr : resultAttrs) {
-      resultValues.push_back(rewriter.create<ConstantOp>(
-          op.getLoc(), resultAttr.getType(), resultAttr));
+      resultValues.push_back(ConstantOp::create(
+          rewriter, op.getLoc(), resultAttr.getType(), resultAttr));
     }
 
     rewriter.replaceOp(op, resultValues);

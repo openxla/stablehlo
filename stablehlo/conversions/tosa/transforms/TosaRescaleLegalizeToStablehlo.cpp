@@ -43,7 +43,7 @@ namespace {
 
 Value getStablehloConstantOp(PatternRewriter& rewriter, Location loc,
                              const DenseElementsAttr& attr) {
-  return rewriter.create<stablehlo::ConstantOp>(loc, attr.getType(), attr);
+  return stablehlo::ConstantOp::create(rewriter, loc, attr.getType(), attr);
 }
 
 struct ConvertTosaRescaleToStablehlo : public OpRewritePattern<RescaleOp> {
@@ -83,7 +83,7 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
     // first bit_cast input to quantized storage type
     auto bitCastType = inputType.clone(inputQType.getStorageType());
     input =
-        rewriter.create<stablehlo::BitcastConvertOp>(loc, bitCastType, input);
+        stablehlo::BitcastConvertOp::create(rewriter, loc, bitCastType, input);
     // change inputType and inputEType to be based on inputQType's storage type
     inputEType = inputQType.getStorageType();
     inputType = inputType.clone(inputEType);
@@ -175,41 +175,41 @@ LogicalResult ConvertTosaRescaleToStablehlo::matchAndRewrite(
 
   // convert to i64 tensors
   Value multiplierI64 =
-      rewriter.create<stablehlo::ConvertOp>(loc, i64Type, multiplier);
-  Value shiftI64 = rewriter.create<stablehlo::ConvertOp>(loc, i64Type, shift);
+      stablehlo::ConvertOp::create(rewriter, loc, i64Type, multiplier);
+  Value shiftI64 = stablehlo::ConvertOp::create(rewriter, loc, i64Type, shift);
   Value inputZpI64 =
-      rewriter.create<stablehlo::ConvertOp>(loc, i64Type, inputZpI32);
+      stablehlo::ConvertOp::create(rewriter, loc, i64Type, inputZpI32);
   Value outputZpI64 =
-      rewriter.create<stablehlo::ConvertOp>(loc, i64Type, outputZpI32);
+      stablehlo::ConvertOp::create(rewriter, loc, i64Type, outputZpI32);
 
-  Value inputI64 = rewriter.create<stablehlo::ConvertOp>(loc, i64Type, input);
+  Value inputI64 = stablehlo::ConvertOp::create(rewriter, loc, i64Type, input);
 
   Value adjustedInput =
-      rewriter.create<stablehlo::SubtractOp>(loc, inputI64, inputZpI64);
+      stablehlo::SubtractOp::create(rewriter, loc, inputI64, inputZpI64);
   Value adjustedShift =
-      rewriter.create<stablehlo::SubtractOp>(loc, shiftI64, onesI64);
+      stablehlo::SubtractOp::create(rewriter, loc, shiftI64, onesI64);
 
   Value round =
-      rewriter.create<stablehlo::ShiftLeftOp>(loc, onesI64, adjustedShift);
+      stablehlo::ShiftLeftOp::create(rewriter, loc, onesI64, adjustedShift);
 
   Value r1 =
-      rewriter.create<stablehlo::MulOp>(loc, adjustedInput, multiplierI64);
-  Value r2 = rewriter.create<stablehlo::AddOp>(loc, r1, round);
+      stablehlo::MulOp::create(rewriter, loc, adjustedInput, multiplierI64);
+  Value r2 = stablehlo::AddOp::create(rewriter, loc, r1, round);
   Value r3 =
-      rewriter.create<stablehlo::ShiftRightArithmeticOp>(loc, r2, shiftI64);
-  Value r4 = rewriter.create<stablehlo::AddOp>(loc, r3, outputZpI64);
+      stablehlo::ShiftRightArithmeticOp::create(rewriter, loc, r2, shiftI64);
+  Value r4 = stablehlo::AddOp::create(rewriter, loc, r3, outputZpI64);
   Value r5 =
-      rewriter.create<stablehlo::ClampOp>(loc, outputMinI64, r4, outputMaxI64);
+      stablehlo::ClampOp::create(rewriter, loc, outputMinI64, r4, outputMaxI64);
 
   Value result;
   if (outputQType) {
     // outputType has been converted to tensor of storage type by this point
-    Value r6 = rewriter.create<stablehlo::ConvertOp>(loc, outputType, r5);
+    Value r6 = stablehlo::ConvertOp::create(rewriter, loc, outputType, r5);
     auto originalOutputType = outputType.clone(outputQType);
-    result = rewriter.create<stablehlo::BitcastConvertOp>(
-        loc, originalOutputType, r6);
+    result = stablehlo::BitcastConvertOp::create(rewriter, loc,
+                                                 originalOutputType, r6);
   } else {
-    result = rewriter.create<stablehlo::ConvertOp>(loc, outputType, r5);
+    result = stablehlo::ConvertOp::create(rewriter, loc, outputType, r5);
   }
   rewriter.replaceOp(op, {result});
 

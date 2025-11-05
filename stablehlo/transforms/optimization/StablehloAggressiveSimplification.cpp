@@ -362,7 +362,8 @@ DenseI64ArrayAttr getMergedBroadcastDimensions(OpBuilder& b,
 template <typename OpTy, typename... Args>
 static OpTy refineOpWithNewOp(PatternRewriter& rewriter, Operation* op,
                               Args&&... args) {
-  auto newOp = rewriter.create<OpTy>(op->getLoc(), std::forward<Args>(args)...);
+  auto newOp =
+      OpTy::create(rewriter, op->getLoc(), std::forward<Args>(args)...);
 
   llvm::SmallVector<Value> replacementResults;
   assert(op->getNumResults() == newOp->getNumResults() &&
@@ -373,8 +374,8 @@ static OpTy refineOpWithNewOp(PatternRewriter& rewriter, Operation* op,
     if (llvm::any_of(opResult.getUsers(), [&](Operation* user) {
           return user->getDialect() != op->getDialect();
         }))
-      replacementResult = rewriter.create<ConvertOp>(
-          op->getLoc(), opResult.getType(), newOpResult);
+      replacementResult = ConvertOp::create(rewriter, op->getLoc(),
+                                            opResult.getType(), newOpResult);
     replacementResults.push_back(replacementResult);
   }
 
@@ -471,24 +472,25 @@ struct DynamicIotaOpToBroadcast
         RankedTensorType::get(iotaShapeType.getShape(), rewriter.getI64Type());
     Value iotaShapeI64;
     if (iotaShapeType.getElementType().isIndex()) {
-      iotaShapeI64 = rewriter.create<arith::IndexCastOp>(
-          iotaLoc, iotaShapeI64Type, iotaShape);
+      iotaShapeI64 = arith::IndexCastOp::create(rewriter, iotaLoc,
+                                                iotaShapeI64Type, iotaShape);
     } else {
-      iotaShapeI64 = rewriter.create<stablehlo::ConvertOp>(
-          iotaLoc, iotaShapeI64Type, iotaShape);
+      iotaShapeI64 = stablehlo::ConvertOp::create(rewriter, iotaLoc,
+                                                  iotaShapeI64Type, iotaShape);
     }
 
-    auto iotaDimensionSize = rewriter.create<SliceOp>(
-        iotaLoc, iotaShapeI64, rewriter.getDenseI64ArrayAttr(iotaDimension),
-        rewriter.getDenseI64ArrayAttr(iotaDimension + 1),
-        rewriter.getDenseI64ArrayAttr(1));
+    auto iotaDimensionSize =
+        SliceOp::create(rewriter, iotaLoc, iotaShapeI64,
+                        rewriter.getDenseI64ArrayAttr(iotaDimension),
+                        rewriter.getDenseI64ArrayAttr(iotaDimension + 1),
+                        rewriter.getDenseI64ArrayAttr(1));
 
     auto preBroadcastResultType = RankedTensorType::get(
         {resultType.getDimSize(iotaDimension)}, resultType.getElementType());
 
-    auto preBroadcastResult = rewriter.create<DynamicIotaOp>(
-        iotaLoc, preBroadcastResultType, iotaDimensionSize,
-        rewriter.getI64IntegerAttr(0));
+    auto preBroadcastResult =
+        DynamicIotaOp::create(rewriter, iotaLoc, preBroadcastResultType,
+                              iotaDimensionSize, rewriter.getI64IntegerAttr(0));
 
     rewriter.replaceOpWithNewOp<DynamicBroadcastInDimOp>(
         iota, resultType, preBroadcastResult, iotaShape,
@@ -652,15 +654,16 @@ struct RealDynamicSliceOpToDynamicSlice
     // Adapt accordingly in order to be compatible with DynamicSliceOp.
     SmallVector<Value> startIndices;
     for (auto i = 0; i < static_cast<int64_t>(sliceSizes.size()); ++i) {
-      auto startIndex1D = rewriter.create<SliceOp>(
-          op.getLoc(), op.getStartIndices(), rewriter.getDenseI64ArrayAttr(i),
-          rewriter.getDenseI64ArrayAttr(i + 1),
-          rewriter.getDenseI64ArrayAttr(1));
+      auto startIndex1D =
+          SliceOp::create(rewriter, op.getLoc(), op.getStartIndices(),
+                          rewriter.getDenseI64ArrayAttr(i),
+                          rewriter.getDenseI64ArrayAttr(i + 1),
+                          rewriter.getDenseI64ArrayAttr(1));
       auto startIndex0DType = RankedTensorType::get(
           {},
           cast<ShapedType>(op.getStartIndices().getType()).getElementType());
-      auto startIndex0D = rewriter.create<ReshapeOp>(
-          op.getLoc(), startIndex0DType, startIndex1D);
+      auto startIndex0D = ReshapeOp::create(rewriter, op.getLoc(),
+                                            startIndex0DType, startIndex1D);
       startIndices.push_back(startIndex0D);
     }
 
@@ -717,7 +720,7 @@ struct ReduceOpEmptyCanon final : SimplifyOpRewritePattern<ReduceOp> {
       SmallVector<Value> broadcasts(op.getNumResults());
       for (auto [bcast, init, outTy] : llvm::zip_equal(
                broadcasts, op.getInitValues(), op.getResultTypes())) {
-        bcast = rewriter.create<BroadcastInDimOp>(loc, outTy, init, empty);
+        bcast = BroadcastInDimOp::create(rewriter, loc, outTy, init, empty);
       }
       rewriter.replaceOp(op, broadcasts);
       return success();
@@ -730,8 +733,8 @@ struct ReduceOpEmptyCanon final : SimplifyOpRewritePattern<ReduceOp> {
     SmallVector<Value> broadcasts(op.getNumResults());
     for (auto [bcast, init, shape, outTy] : llvm::zip_equal(
              broadcasts, op.getInitValues(), shapes, op.getResultTypes())) {
-      bcast = rewriter.create<DynamicBroadcastInDimOp>(loc, outTy, init, shape,
-                                                       empty);
+      bcast = DynamicBroadcastInDimOp::create(rewriter, loc, outTy, init, shape,
+                                              empty);
     }
     rewriter.replaceOp(op, broadcasts);
     return success();
@@ -816,8 +819,7 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
       newInitVals.push_back(op.getOperand(i + numOperandPairs));
     }
 
-    auto newOp =
-        rewriter.create<ReduceOp>(op.getLoc(), newInputs, newInitVals,
+    auto newOp = ReduceOp::create(rewriter, op.getLoc(), newInputs, newInitVals,
                                   op.getDimensionsAttr(), newElementTypes);
     Block* newReducerBlock = rewriter.createBlock(&newOp.getBody());
 
@@ -836,7 +838,7 @@ struct ReduceOpUnusedResultCanon final : SimplifyOpRewritePattern<ReduceOp> {
       if (usedReturnOperands[en.index()])
         newReturnOperands.push_back(mapper.lookup(en.value()));
 
-    rewriter.create<ReturnOp>(retOp.getLoc(), newReturnOperands);
+    ReturnOp::create(rewriter, retOp.getLoc(), newReturnOperands);
 
     // Build new results list (unused entries will be null).
     SmallVector<Value> newResults(op.getNumResults());
@@ -927,11 +929,11 @@ struct GatherOpCanon final : SimplifyOpRewritePattern<GatherOp> {
 
     Type elementType = gather.getType().getElementType();
     auto sliceType = RankedTensorType::get(sliceShape, elementType);
-    Value result = rewriter.create<SliceOp>(
-        gather.getLoc(), sliceType, gather.getOperand(),
-        rewriter.getDenseI64ArrayAttr(sliceStart),
-        rewriter.getDenseI64ArrayAttr(sliceEnd),
-        rewriter.getDenseI64ArrayAttr(sliceStride));
+    Value result = SliceOp::create(rewriter, gather.getLoc(), sliceType,
+                                   gather.getOperand(),
+                                   rewriter.getDenseI64ArrayAttr(sliceStart),
+                                   rewriter.getDenseI64ArrayAttr(sliceEnd),
+                                   rewriter.getDenseI64ArrayAttr(sliceStride));
 
     ArrayRef<int64_t> collapsedSliceDims = dnums.getCollapsedSliceDims();
     if (!collapsedSliceDims.empty()) {
@@ -941,7 +943,8 @@ struct GatherOpCanon final : SimplifyOpRewritePattern<GatherOp> {
           reshapeShape.push_back(dim);
       }
       auto reshapeType = RankedTensorType::get(reshapeShape, elementType);
-      result = rewriter.create<ReshapeOp>(gather.getLoc(), reshapeType, result);
+      result =
+          ReshapeOp::create(rewriter, gather.getLoc(), reshapeType, result);
     }
 
     result.setType(gather.getType());
@@ -969,8 +972,8 @@ struct IotaOpBroadcast : public SimplifyOpRewritePattern<IotaOp> {
 
     auto iotaDim = iota.getIotaDimension();
     auto iotaDimSize = resultTy.getDimSize(iotaDim);
-    auto iota1D = rewriter.create<IotaOp>(
-        iota.getLoc(),
+    auto iota1D = IotaOp::create(
+        rewriter, iota.getLoc(),
         RankedTensorType::get({iotaDimSize}, resultTy.getElementType()),
         rewriter.getI64IntegerAttr(0));
 
@@ -1211,8 +1214,8 @@ struct SliceOpConcatSimplify : public SimplifyOpRewritePattern<SliceOp> {
                                          "slice is not the only concat user");
 
     auto concatRange = OperandRange(subsetStart, subsetEnd);
-    auto newConcat = rewriter.create<ConcatenateOp>(
-        concat.getLoc(), concatRange, concat.getDimension());
+    auto newConcat = ConcatenateOp::create(rewriter, concat.getLoc(),
+                                           concatRange, concat.getDimension());
 
     SmallVector<int64_t> newStart(start);
     SmallVector<int64_t> newLimit(limit);
@@ -1261,8 +1264,8 @@ struct SortOpDropUnusedArgs : public SimplifyOpRewritePattern<SortOp> {
       }
     }
 
-    auto newOp = rewriter.create<SortOp>(op.getLoc(), newOperands,
-                                         op.getDimension(), op.getIsStable());
+    auto newOp = SortOp::create(rewriter, op.getLoc(), newOperands,
+                                op.getDimension(), op.getIsStable());
     Region& region = newOp.getComparator();
     rewriter.inlineRegionBefore(op.getComparator(), region, region.end());
     region.front().eraseArguments(erasedBlockArgs);
@@ -1296,8 +1299,7 @@ struct SortOpSetDimension : public SimplifyOpRewritePattern<SortOp> {
 
     auto type = cast<ShapedType>(op.getResultTypes()[0]);
     IntegerAttr dim = rewriter.getI64IntegerAttr(type.getRank() - 1);
-    auto newOp =
-        rewriter.create<SortOp>(op.getLoc(), op.getResultTypes(),
+    auto newOp = SortOp::create(rewriter, op.getLoc(), op.getResultTypes(),
                                 op.getInputs(), dim, op.getIsStableAttr());
     newOp.getComparator().takeBody(op.getComparator());
     rewriter.replaceOp(op, newOp.getResults());
@@ -1448,9 +1450,9 @@ struct WhileOpImplicitCapture : public SimplifyOpRewritePattern<WhileOp> {
     for (int idx : llvm::reverse(invariantArgIdxs))
       bodyReturnOp->eraseOperand(idx);
 
-    WhileOp newWhileOp = rewriter.create<WhileOp>(
-        whileOp.getLoc(), bodyReturnOp->getOperandTypes(), newOperands,
-        whileOp->getAttrs());
+    WhileOp newWhileOp = WhileOp::create(rewriter, whileOp.getLoc(),
+                                         bodyReturnOp->getOperandTypes(),
+                                         newOperands, whileOp->getAttrs());
     newWhileOp.getBodyRegion(0).takeBody(whileOp.getBodyRegion(0));
     newWhileOp.getBodyRegion(1).takeBody(whileOp.getBodyRegion(1));
     for (auto results : llvm::zip(resultsToReplace, newWhileOp->getResults()))
@@ -1503,10 +1505,10 @@ struct ZeroExtentToEmptyConstant final : RewritePattern {
       auto resultType = getMaybeZeroExtentType(result.getType());
       if (!resultType || result.use_empty()) continue;
       rewriter.replaceAllUsesWith(
-          result, rewriter.create<ConstantOp>(
-                      loc, result.getType(),
-                      DenseElementsAttr::get(resultType.value(),
-                                             ArrayRef<Attribute>())));
+          result,
+          ConstantOp::create(rewriter, loc, result.getType(),
+                             DenseElementsAttr::get(resultType.value(),
+                                                    ArrayRef<Attribute>())));
       didUpdate = true;
     }
 
@@ -1517,8 +1519,8 @@ struct ZeroExtentToEmptyConstant final : RewritePattern {
       if (!operandType || operand.get().getDefiningOp<ConstantOp>()) continue;
       Operation* owner = operand.getOwner();
       int operandNum = operand.getOperandNumber();
-      auto emptyConstantOp = rewriter.create<ConstantOp>(
-          loc, operandType.value(),
+      auto emptyConstantOp = ConstantOp::create(
+          rewriter, loc, operandType.value(),
           DenseElementsAttr::get(operandType.value(), ArrayRef<Attribute>()));
       rewriter.modifyOpInPlace(
           owner, [&]() { owner->setOperand(operandNum, emptyConstantOp); });

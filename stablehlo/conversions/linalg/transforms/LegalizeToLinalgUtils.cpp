@@ -105,7 +105,7 @@ Value getEmptyTensorFor(OpBuilder& b, Location loc, ShapedType resultType,
       if (en.value() != ShapedType::kDynamic) continue;
       sizes.push_back(tensor::ExtractOp::create(
           b, loc, reifiedShapes[0],
-          ValueRange{b.create<arith::ConstantIndexOp>(loc, en.index())}));
+          ValueRange{arith::ConstantIndexOp::create(b, loc, en.index())}));
     }
   }
   return isSparse ? getEmptySparseTensor(b, loc, resultType, sizes)

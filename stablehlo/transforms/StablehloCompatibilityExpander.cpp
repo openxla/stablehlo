@@ -98,7 +98,7 @@ bool fitsInIntegralType(int64_t size, IntegerType type) {
 
 // If `type` is an integer type in which `size` doesn't fit, promote it to i32
 // or i64 (depending on `size`).
-Type promoteTypeForSize(Type type, int64_t size, OpBuilder &builder) {
+Type promoteTypeForSize(Type type, int64_t size, OpBuilder& builder) {
   // Gather/Scatter should have an integer type, but we check just in case.
   auto intType = dyn_cast<IntegerType>(type);
   if (!intType || fitsInIntegralType(size, intType)) {
@@ -131,7 +131,7 @@ bool getUpdatedIndicesAreSorted(bool indices_are_sorted,
 // a trailing dimension of size 1 so it can be concatenated with the `IotaOp`s.
 Value createConcatIndices(Value indices, int64_t indexVectorDim,
                           ArrayRef<int64_t> indicesBatchingDims,
-                          PatternRewriter &rewriter) {
+                          PatternRewriter& rewriter) {
   Location loc = indices.getLoc();
   auto indicesType = cast<RankedTensorType>(indices.getType());
   Type elementType = indicesType.getElementType();
@@ -144,7 +144,7 @@ Value createConcatIndices(Value indices, int64_t indexVectorDim,
   }
   if (elementType != indicesType.getElementType()) {
     indicesType = RankedTensorType::get(indicesType.getShape(), elementType);
-    indices = rewriter.create<ConvertOp>(loc, indicesType, indices);
+    indices = ConvertOp::create(rewriter, loc, indicesType, indices);
   }
 
   bool indexVectorDimOnLastDim = indexVectorDim == indicesType.getRank();
@@ -157,17 +157,17 @@ Value createConcatIndices(Value indices, int64_t indexVectorDim,
   auto iotaType = RankedTensorType::get(iotaShape, elementType);
 
   if (indexVectorDimOnLastDim) {
-    indices = rewriter.create<ReshapeOp>(loc, iotaType, indices);
+    indices = ReshapeOp::create(rewriter, loc, iotaType, indices);
   }
 
   SmallVector<Value> indicesToConcat;
   indicesToConcat.reserve(indicesBatchingDims.size() + 1);
   for (int64_t batchingDim : indicesBatchingDims) {
     indicesToConcat.push_back(
-        rewriter.create<IotaOp>(loc, iotaType, batchingDim));
+        IotaOp::create(rewriter, loc, iotaType, batchingDim));
   }
   indicesToConcat.push_back(indices);
-  return rewriter.create<ConcatenateOp>(loc, indicesToConcat, indexVectorDim);
+  return ConcatenateOp::create(rewriter, loc, indicesToConcat, indexVectorDim);
 }
 
 //===----------------------------------------------------------------------===//
@@ -181,19 +181,19 @@ struct GatherWithBatchingDimsExpander : public OpRewritePattern<GatherOp> {
   using OpRewritePattern<GatherOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(GatherOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     GatherDimensionNumbersAttr dimNumbers = op.getDimensionNumbers();
     ArrayRef<int64_t> operandBatchingDims = dimNumbers.getOperandBatchingDims();
     ArrayRef<int64_t> startIndicesBatchingDims =
         dimNumbers.getStartIndicesBatchingDims();
     if (operandBatchingDims.empty()) {
-      return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
+      return rewriter.notifyMatchFailure(op, [](Diagnostic& diag) {
         diag << "gather op has no batching dims";
       });
     }
 
     if (!op.getStartIndices().getType().hasStaticShape()) {
-      return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
+      return rewriter.notifyMatchFailure(op, [](Diagnostic& diag) {
         diag << "gather op has start indices with dynamic shape, can't expand";
       });
     }
@@ -227,19 +227,19 @@ struct ScatterWithBatchingDimsExpander : public OpRewritePattern<ScatterOp> {
   using OpRewritePattern<ScatterOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(ScatterOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     ScatterDimensionNumbersAttr dimNumbers = op.getScatterDimensionNumbers();
     ArrayRef<int64_t> inputBatchingDims = dimNumbers.getInputBatchingDims();
     ArrayRef<int64_t> scatterIndicesBatchingDims =
         dimNumbers.getScatterIndicesBatchingDims();
     if (inputBatchingDims.empty()) {
-      return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
+      return rewriter.notifyMatchFailure(op, [](Diagnostic& diag) {
         diag << "scatter op has no batching dims";
       });
     }
 
     if (!op.getScatterIndices().getType().hasStaticShape()) {
-      return rewriter.notifyMatchFailure(op, [](Diagnostic &diag) {
+      return rewriter.notifyMatchFailure(op, [](Diagnostic& diag) {
         diag << "gather op has start indices with dynamic shape, can't expand";
       });
     }
@@ -252,8 +252,8 @@ struct ScatterWithBatchingDimsExpander : public OpRewritePattern<ScatterOp> {
     Value newIndices = createConcatIndices(
         op.getScatterIndices(), dimNumbers.getIndexVectorDim(),
         scatterIndicesBatchingDims, rewriter);
-    auto newScatterOp = rewriter.create<ScatterOp>(
-        op.getLoc(), op->getResultTypes(), op.getInputs(), newIndices,
+    auto newScatterOp = ScatterOp::create(
+        rewriter, op.getLoc(), op->getResultTypes(), op.getInputs(), newIndices,
         op.getUpdates(),
         ScatterDimensionNumbersAttr::get(
             op.getContext(), dimNumbers.getUpdateWindowDims(),
@@ -280,7 +280,7 @@ struct FileLineColRangeToLoc : public OpRewritePattern<ModuleOp> {
   using OpRewritePattern<ModuleOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(ModuleOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     bool changed = false;
     mlir::AttrTypeReplacer replacer;
     replacer.addReplacement(
@@ -321,12 +321,12 @@ struct StablehloCompatibilityExpanderPass
       : StablehloCompatibilityExpanderPassBase<
             StablehloCompatibilityExpanderPass>() {}
   StablehloCompatibilityExpanderPass(
-      const StablehloCompatibilityExpanderPassOptions &opts)
+      const StablehloCompatibilityExpanderPassOptions& opts)
       : StablehloCompatibilityExpanderPassBase<
             StablehloCompatibilityExpanderPass>(opts) {}
 
  public:
-  LogicalResult initialize(MLIRContext *context) override {
+  LogicalResult initialize(MLIRContext* context) override {
     auto targetVersion = validateTargetVersion(targetVersionOption);
 
     config.setUseTopDownTraversal(true);
@@ -362,7 +362,7 @@ struct StablehloCompatibilityExpanderPass
 }  // namespace
 
 void populateStablehloCompatibilityExpanderPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
+    MLIRContext* context, RewritePatternSet* patterns,
     vhlo::Version targetVersion) {
   // StableHLO GatherOp/ScatterOp with batching dims is introduced in v1.1.0.
   if (targetVersion < vhlo::Version(1, 1, 0))

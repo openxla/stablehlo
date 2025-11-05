@@ -83,14 +83,19 @@ MlirOp ConvertElementType(MlirOp input, ElementType resultElementTypeKind) {
 // These are not finalized APIs, just an example of hiding the ugly for
 // important leaf ops.
 MlirOp Constant(MlirBuilder& builder, int64_t value) {
-  return builder.create<stablehlo::ConstantOp>(DenseIntElementsAttr::get(
-      RankedTensorType::get({}, builder.getOpBuilder().getI64Type()), value));
+  return stablehlo::ConstantOp::create(
+      builder,
+      DenseIntElementsAttr::get(
+          RankedTensorType::get({}, builder.getOpBuilder().getI64Type()),
+          value));
 }
 MlirOp Constant(MlirBuilder& builder, std::vector<int64_t> value) {
   auto numel = static_cast<int64_t>(value.size());
-  return builder.create<stablehlo::ConstantOp>(DenseIntElementsAttr::get(
-      RankedTensorType::get({numel}, builder.getOpBuilder().getI64Type()),
-      value));
+  return stablehlo::ConstantOp::create(
+      builder,
+      DenseIntElementsAttr::get(
+          RankedTensorType::get({numel}, builder.getOpBuilder().getI64Type()),
+          value));
 }
 
 namespace {

@@ -70,7 +70,7 @@ struct StablehloDialectVersion : public mlir::DialectVersion {
     return {vhloVer.getMajor(), vhloVer.getMinor(), vhloVer.getPatch()};
   }
 
-  bool operator<(const StablehloDialectVersion &other) const {
+  bool operator<(const StablehloDialectVersion& other) const {
     return this->dialectVersion < other.dialectVersion;
   }
 
@@ -81,25 +81,25 @@ struct StablehloDialectVersion : public mlir::DialectVersion {
 
 class StablehloDialect : public Dialect {
  public:
-  explicit StablehloDialect(MLIRContext *context);
+  explicit StablehloDialect(MLIRContext* context);
   static StringRef getDialectNamespace() { return "stablehlo"; }
 
   // Registered hook to materialize a constant operation from a given attribute
   // value with the desired resultant type.
-  Operation *materializeConstant(OpBuilder &builder, Attribute value, Type type,
+  Operation* materializeConstant(OpBuilder& builder, Attribute value, Type type,
                                  Location loc) override;
 
   // Parses a type registered to this dialect.
-  Type parseType(DialectAsmParser &parser) const override;
+  Type parseType(DialectAsmParser& parser) const override;
 
   // Prints a type registered to this dialect.
-  void printType(Type type, DialectAsmPrinter &os) const override;
+  void printType(Type type, DialectAsmPrinter& os) const override;
 
   // Parses an attribute registered to this dialect.
-  Attribute parseAttribute(DialectAsmParser &parser, Type type) const override;
+  Attribute parseAttribute(DialectAsmParser& parser, Type type) const override;
 
   // Prints an attribute registered to this dialect.
-  void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
+  void printAttribute(Attribute attr, DialectAsmPrinter& os) const override;
 
   // Get the set dialect version.
   std::optional<StablehloDialectVersion> getVersion() const;
@@ -114,28 +114,28 @@ class StablehloDialect : public Dialect {
 
 // Verifies the source target pairs attached to collective permute.
 LogicalResult verifyCollectivePermuteSourceTargetPairs(
-    Operation *op, DenseIntElementsAttr attr);
+    Operation* op, DenseIntElementsAttr attr);
 
-void printConvolutionDimensions(AsmPrinter &p,
+void printConvolutionDimensions(AsmPrinter& p,
                                 ConvDimensionNumbersAttr dimNums);
-void printConvolutionDimensions(AsmPrinter &p, Operation *,
+void printConvolutionDimensions(AsmPrinter& p, Operation*,
                                 ConvDimensionNumbersAttr dimNums);
-ParseResult parseConvolutionDimensions(AsmParser &parser,
-                                       ConvDimensionNumbersAttr &dimNums);
+ParseResult parseConvolutionDimensions(AsmParser& parser,
+                                       ConvDimensionNumbersAttr& dimNums);
 
-void printWindowAttributes(OpAsmPrinter &p, Operation *op,
+void printWindowAttributes(OpAsmPrinter& p, Operation* op,
                            std::optional<DenseI64ArrayAttr> windowStrides,
                            std::optional<DenseIntElementsAttr> padding,
                            std::optional<DenseI64ArrayAttr> lhsDilation,
                            std::optional<DenseI64ArrayAttr> rhsDilation,
                            std::optional<DenseBoolArrayAttr> windowReversal);
 
-ParseResult parseWindowAttributes(OpAsmParser &parser,
-                                  DenseI64ArrayAttr &windowStrides,
-                                  DenseIntElementsAttr &padding,
-                                  DenseI64ArrayAttr &lhsDilation,
-                                  DenseI64ArrayAttr &rhsDilation,
-                                  DenseBoolArrayAttr &windowReversal);
+ParseResult parseWindowAttributes(OpAsmParser& parser,
+                                  DenseI64ArrayAttr& windowStrides,
+                                  DenseIntElementsAttr& padding,
+                                  DenseI64ArrayAttr& lhsDilation,
+                                  DenseI64ArrayAttr& rhsDilation,
+                                  DenseBoolArrayAttr& windowReversal);
 
 namespace side_effects {
 
@@ -172,9 +172,9 @@ DenseI64ArrayAttr getBroadcastDimensionsFromBroadcastSizes(
 // a DotOp, given the LHS of such an operation.
 DotDimensionNumbersAttr getDefaultDotDimensionNumbers(mlir::Value lhs);
 
-SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
-                    const llvm::ArrayRef<Value> &operands,
-                    const llvm::ArrayRef<Type> &elementTypes, int64_t dimension,
+SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
+                    const llvm::ArrayRef<Value>& operands,
+                    const llvm::ArrayRef<Type>& elementTypes, int64_t dimension,
                     bool isStable, ComparisonDirection direction);
 
 // Builds the region `body` for stablehlo.sort's comparator: for each type in
@@ -184,14 +184,14 @@ SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
 // arguments.
 void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
                              ComparisonDirection direction,
-                             std::optional<StringRef> compareType, Region *body,
-                             OpBuilder *builder);
+                             std::optional<StringRef> compareType, Region* body,
+                             OpBuilder* builder);
 
 template <typename OpTy>
-void buildReduceBody(Type elementType, Region &body, OpBuilder &builder) {
+void buildReduceBody(Type elementType, Region& body, OpBuilder& builder) {
   OpBuilder::InsertionGuard guard(builder);
   if (body.getBlocks().empty()) builder.createBlock(&body);
-  Block *block = &body.getBlocks().front();
+  Block* block = &body.getBlocks().front();
 
   // Block arguments are scalars of the given element type.
   Type type = RankedTensorType::get(/*shape=*/{}, elementType);
@@ -199,15 +199,15 @@ void buildReduceBody(Type elementType, Region &body, OpBuilder &builder) {
   block->addArguments({type, type}, {loc, loc});
 
   auto reducer =
-      builder.create<OpTy>(loc, block->getArgument(0), block->getArgument(1));
-  builder.create<stablehlo::ReturnOp>(loc, reducer.getResult());
+      OpTy::create(builder, loc, block->getArgument(0), block->getArgument(1));
+  stablehlo::ReturnOp::create(builder, loc, reducer.getResult());
 }
 
 // PrecisionConfigAttr is a constraint attribute on ArrayAttrs.
 // Create this class to allow for building this attr similar to other
 // attributes.
 struct PrecisionConfigAttr : public ArrayAttr {
-  static ArrayAttr get(MLIRContext *context, ArrayRef<Precision> precisions);
+  static ArrayAttr get(MLIRContext* context, ArrayRef<Precision> precisions);
 };
 
 constexpr StringRef kCreateBufferCustomCallTarget = "CreateBuffer";

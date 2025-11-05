@@ -45,7 +45,7 @@ Type convertShapedType(ShapedType shapedType) {
   return shapedType;
 }
 
-Value materializeCastFromIllegal(OpBuilder &builder, Type type,
+Value materializeCastFromIllegal(OpBuilder& builder, Type type,
                                  ValueRange inputs, Location loc) {
   Type fromType = getElementTypeOrSelf(inputs[0].getType());
   Type toType = getElementTypeOrSelf(type);
@@ -53,11 +53,11 @@ Value materializeCastFromIllegal(OpBuilder &builder, Type type,
       !toType.isSignlessInteger())
     return Value();
   // Use unrealized conversion casts to do signful->signless conversions.
-  return builder.create<UnrealizedConversionCastOp>(loc, type, inputs[0])
+  return UnrealizedConversionCastOp::create(builder, loc, type, inputs[0])
       ->getResult(0);
 }
 
-Value materializeCastToIllegal(OpBuilder &builder, Type type, ValueRange inputs,
+Value materializeCastToIllegal(OpBuilder& builder, Type type, ValueRange inputs,
                                Location loc) {
   Type fromType = getElementTypeOrSelf(inputs[0].getType());
   Type toType = getElementTypeOrSelf(type);
@@ -65,7 +65,7 @@ Value materializeCastToIllegal(OpBuilder &builder, Type type, ValueRange inputs,
       (!toType.isSignedInteger() && !toType.isUnsignedInteger()))
     return Value();
   // Use unrealized conversion casts to do signless->signful conversions.
-  return builder.create<UnrealizedConversionCastOp>(loc, type, inputs[0])
+  return UnrealizedConversionCastOp::create(builder, loc, type, inputs[0])
       ->getResult(0);
 }
 

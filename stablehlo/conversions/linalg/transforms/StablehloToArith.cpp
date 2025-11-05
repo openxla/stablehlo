@@ -80,7 +80,7 @@ struct ScalarHloToArithmeticPattern final : OpConversionPattern<OpTy> {
     SmallVector<Value> operands;
     for (Value operand : adaptor.getOperands()) {
       operands.push_back(
-          rewriter.create<tensor::ExtractOp>(loc, operand, ValueRange()));
+          tensor::ExtractOp::create(rewriter, loc, operand, ValueRange()));
     }
     Value scalarResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
         op, resultTy.getElementType(), operands, &rewriter);

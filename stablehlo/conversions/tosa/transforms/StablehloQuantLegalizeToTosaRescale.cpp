@@ -73,9 +73,9 @@ Value buildRescale(PatternRewriter& rewriter, Location loc,
   auto roundingMode =
       doubleRound ? RoundingMode::DOUBLE_ROUND : RoundingMode::SINGLE_ROUND;
 
-  auto rescale_op = rewriter.create<RescaleOp>(
-      loc, outputType, inputVal, multiplierVal, shiftVal, inputZpVal.value(),
-      outputZpVal.value(), rewriter.getBoolAttr(scale32),
+  auto rescale_op = RescaleOp::create(
+      rewriter, loc, outputType, inputVal, multiplierVal, shiftVal,
+      inputZpVal.value(), outputZpVal.value(), rewriter.getBoolAttr(scale32),
       RoundingModeAttr::get(rewriter.getContext(), roundingMode),
       rewriter.getBoolAttr(perChannel),
       /*input_unsigned=*/rewriter.getBoolAttr(false),
@@ -178,7 +178,7 @@ LogicalResult matchAndRewriteUnaryOp(
 
   auto rescaledResultType = resultType.clone(rewriter.getI32Type());
   Value rescaledResult =
-      rewriter.create<StablehloOp>(loc, rescaledResultType, rescaledOperand)
+      StablehloOp::create(rewriter, loc, rescaledResultType, rescaledOperand)
           .getResult();
 
   Value newOutput =
@@ -325,9 +325,8 @@ LogicalResult matchAndRewriteBinaryOp(StablehloOp op, PatternRewriter& rewriter,
                                           rhsQType.getZeroPoint());
 
   auto rescaledResultType = resultType.clone(rewriter.getI32Type());
-  Value rescaledResult = rewriter
-                             .create<StablehloOp>(loc, rescaledResultType,
-                                                  rescaledLhs, rescaledRhs)
+  Value rescaledResult = StablehloOp::create(rewriter, loc, rescaledResultType,
+                                             rescaledLhs, rescaledRhs)
                              .getResult();
 
   Value newOutput =
@@ -418,10 +417,9 @@ LogicalResult matchAndRewriteCompareOp(stablehlo::CompareOp op,
   auto compareDirection = op.getComparisonDirection();
   auto compareTypeAttr = op.getCompareTypeAttr();
 
-  Value newOutput = rewriter
-                        .create<stablehlo::CompareOp>(
-                            loc, resultType, rescaledLhs, rescaledRhs,
-                            compareDirection, compareTypeAttr)
+  Value newOutput = stablehlo::CompareOp::create(
+                        rewriter, loc, resultType, rescaledLhs, rescaledRhs,
+                        compareDirection, compareTypeAttr)
                         .getResult();
 
   rewriter.replaceOp(op, {newOutput});

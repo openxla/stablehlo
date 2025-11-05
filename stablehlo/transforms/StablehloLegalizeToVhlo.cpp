@@ -1029,7 +1029,7 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
           stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs,
           stablehloOp.getBranches().size());
     } else {
-      vhloOp = rewriter.create<StablehloToVhloOp<StablehloOpTy>>(
+      vhloOp = StablehloToVhloOp<StablehloOpTy>::create(rewriter,
           stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs);
     }
 
