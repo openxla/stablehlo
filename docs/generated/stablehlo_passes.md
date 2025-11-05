@@ -32,6 +32,32 @@ these ops are actually constants.
   %0 = stablehlo.broadcast_in_dim %cst, dims = [] : (tensor<f32>) -> tensor<16xf32>
 ```
 
+### `-stablehlo-check-shape-assertions`
+
+_Check stablehlo.custom_call @shape_assertion ops._
+
+Validate shape_assertion custom calls.
+
+Shape assertions validate constraints on dynamic dimensions in StableHLO.
+For example if a framework needed to enforce a constraint of `DimA < 2`,
+the following IR could be emitted:
+
+```mlir
+%dimA = <get_dimension_size or input arg> : tensor<i32>
+%c2 = stablehlo.constant dense<2> : tensor<i32>
+%is_lt = stablehlo.compare LT %dimA, %c2 : tensor<i1>
+stablehlo.custom_call @shape_assertion(%is_lt) { error_message = "DimA must be less than 2" }
+```
+
+After the pass, if the shapes are correct, the `stablehlo.custom_call`
+will be removed.
+
+#### Options
+
+```
+-enable-shape-assertions : Whether shape assertions may generate errors.
+```
+
 ### `-stablehlo-compatibility-expander`
 
 _Compatibility expander for StableHLO operations._
