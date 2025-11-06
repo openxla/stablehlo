@@ -288,11 +288,11 @@ class OpBuilderEmitter {
   }
 
   // Inset a call to the builder method into the given body.
-  // I.e. `AddOp::create(lhs.getBuilder(), unwrap(lhs), unwrap(rhs));`
+  // I.e. `lhs.getBuilder().create<AddOp>(unwrap(lhs), unwrap(rhs));`
   void buildMethodBody(Method& method);
 
   // Inset a call to the builder method into the given body.
-  // I.e. `AddOp::create(lhs.getBuilder(), unwrap(lhs), unwrap(rhs));`
+  // I.e. `lhs.getBuilder().create<AddOp>(unwrap(lhs), unwrap(rhs));`
   void buildMethodCall(MethodBody& body);
 
   // Insert a creation call and invoke region callbacks.
@@ -422,7 +422,7 @@ class ScopedIndent {
 };
 
 // Zero:     builder.create0<Op>(...)
-// One:      Op::create(builder, ...)
+// One:      builder.create<Op>(...)
 // Many:     builder.createN<Op, N>(...)
 // Variadic: builder.createVariadic<Op>(...)
 void OpBuilderEmitter::buildMethodCall(MethodBody& body) {
