@@ -87,20 +87,6 @@ module {
 }
 """
 
-EXPECTED_TESTDATA_MODULE_STR_1B = """
-module {
-  func.func @main() -> tensor<2xf32> {
-    %cst = stablehlo.constant dense<[1.000000e+00, 2.000000e+00]> : tensor<2xf32>
-    %cst_0 = stablehlo.constant dense<[3.000000e+00, 4.000000e+00]> : tensor<2xf32>
-    %cst_1 = stablehlo.constant dense<[4.000000e+00, 6.000000e+00]> : tensor<2xf32>
-    %cst_2 = stablehlo.constant dense<[4.000000e+00, 6.000000e+00]> : tensor<2xf32>
-    %0 = stablehlo.add %cst, %cst_0 : tensor<2xf32>
-    %1 = stablehlo.custom_call @check.eq(%cst_2, %0) : (tensor<2xf32>, tensor<2xf32>) -> tensor<i1>
-    return %0 : tensor<2xf32>
-  }
-}
-"""
-
 EXPECTED_TESTDATA_MODULE_STR_2 = """
 module {
   func.func @main() -> tensor<2xf32> {
@@ -185,6 +171,14 @@ test_cases = [
     (
         # To test
         #  - Input programs already in testdata format
+        #  - Usage of custom_call ops as check ops.
+        MODULE_STR_IN_TESTDATA_FORMAT_WITH_CUSTOM_CALL_AS_CHECK_OPS,
+        [],
+        EXPECTED_TESTDATA_MODULE_STR_1,
+    ),
+    (
+        # To test
+        #  - Input programs already in testdata format
         #  - If concrete inputs are provided, the embedded stablehlo.constant ops,
         #    feeding as program inputs, will be ignored.
         MODULE_STR_IN_TESTDATA_FORMAT_WITH_CHECK_OPS,
@@ -193,14 +187,6 @@ test_cases = [
             np.array([30.0, 40.0], dtype=np.float32),
         ],
         EXPECTED_TESTDATA_MODULE_STR_2,
-    ),
-    (
-        # To test
-        #  - Input programs already in testdata format
-        #  - Usage of custom_call ops as check ops.
-        MODULE_STR_IN_TESTDATA_FORMAT_WITH_CUSTOM_CALL_AS_CHECK_OPS,
-        [],
-        EXPECTED_TESTDATA_MODULE_STR_1B,
     ),
     (
         # To test
