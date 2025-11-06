@@ -215,7 +215,7 @@ LogicalResult deriveShapeFromOperand(
     return failure();
   }
   reifiedReturnShapes->assign(
-      {builder->create<shape::ShapeOfOp>(op->getLoc(), operand)});
+      {shape::ShapeOfOp::create(*builder, op->getLoc(), operand)});
   return success();
 }
 

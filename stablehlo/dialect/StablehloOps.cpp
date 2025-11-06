@@ -4018,10 +4018,10 @@ void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
     typeAttr = symbolizeComparisonType(*compareType).value();
   else
     typeAttr = ComparisonType::NOTYPE;
-  Value compare = builder->create<CompareOp>(
-      loc, block->getArgument(0), block->getArgument(1), direction, typeAttr);
+  Value compare = CompareOp::create(*builder, loc, block->getArgument(0),
+                                    block->getArgument(1), direction, typeAttr);
 
-  builder->create<ReturnOp>(loc, compare);
+  ReturnOp::create(*builder, loc, compare);
 }
 
 SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
@@ -4030,7 +4030,7 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
                     bool isStable, ComparisonDirection direction) {
   assert(!operands.empty() && "No operands to sort");
   // Create the sort op.
-  auto sortOp = rewriter->create<SortOp>(loc, operands, dimension, isStable);
+  auto sortOp = SortOp::create(*rewriter, loc, operands, dimension, isStable);
 
   // Use TOTALORDER comparison type instead of the default comparison if the
   // element type is of type float.

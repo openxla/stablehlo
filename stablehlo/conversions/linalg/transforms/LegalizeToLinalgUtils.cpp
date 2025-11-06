@@ -149,7 +149,7 @@ Value preSparsify(Operation* op, llvm::SmallVector<Value, 2>& values, Type rtp,
         !sparse_tensor::getSparseTensorEncoding(op->getOperand(0).getType()))
       return Value();
     Location loc = op->getLoc();
-    auto semiring = b->create<sparse_tensor::UnaryOp>(loc, rtp, values[0]);
+    auto semiring = sparse_tensor::UnaryOp::create(*b, loc, rtp, values[0]);
     Type itp = values[0].getType();
     Block* present = b->createBlock(&semiring.getPresentRegion(), {}, itp, loc);
     b->setInsertionPointToStart(&semiring.getPresentRegion().front());
@@ -161,7 +161,7 @@ Value preSparsify(Operation* op, llvm::SmallVector<Value, 2>& values, Type rtp,
 
 Value postSparsify(Operation* op, Value semiring, Value result, OpBuilder* b) {
   if (semiring) {
-    b->create<sparse_tensor::YieldOp>(op->getLoc(), result);
+    sparse_tensor::YieldOp::create(*b, op->getLoc(), result);
     b->setInsertionPointAfter(semiring.getDefiningOp());
     return semiring;
   }
