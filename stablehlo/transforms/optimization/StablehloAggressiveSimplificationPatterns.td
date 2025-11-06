@@ -135,10 +135,10 @@ def MergeBroadcastDims : NativeCodeCall<"getMergedBroadcastDimensions($_builder,
 def MergePermutations : NativeCodeCall<"getMergedTransposePermutation($_builder, $0, $1)">;
 
 def StableHLO_ConvertOpWithShape : NativeCodeCall<
-    "$_builder.create<stablehlo::ConvertOp>($_loc, $0.getType(), $1)">;
+    "stablehlo::ConvertOp::create($_builder, $_loc, $0.getType(), $1)">;
 
 def StableHLO_ReshapeOpWithShape : NativeCodeCall<
-    "$_builder.create<stablehlo::ReshapeOp>($_loc, $0.getType(), $1)">;
+    "stablehlo::ReshapeOp::create($_builder, $_loc, $0.getType(), $1)">;
 
 class StableHLO_ConstantLike<string value> : NativeCodeCall<
     "::mlir::stablehlo::getConstantLike($_builder, $_loc, " # value # ", $0)">;
