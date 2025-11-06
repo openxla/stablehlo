@@ -118,7 +118,7 @@ hlo::HloDialectInterface* getStablehloDialect(MLIRContext* context) {
 Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
   if (type == value.getType()) return value;
   assert(type.isIndex() || value.getType().isIndex());
-  return b.create<arith::IndexCastOp>(loc, type, value);
+  return arith::IndexCastOp::create(b, loc, type, value);
 }
 }  // namespace
 
@@ -869,21 +869,21 @@ LogicalResult DotGeneralOp::reifyReturnTypeShapes(
   SmallVector<Value> dimensions;
   for (const int64_t lhsDim : dimNumbers.getLhsBatchingDimensions())
     dimensions.push_back(
-        builder.create<tensor::DimOp>(getLoc(), adaptor.getLhs(), lhsDim));
+        tensor::DimOp::create(builder, getLoc(), adaptor.getLhs(), lhsDim));
 
   for (int64_t i = 0; i < lhsType.getRank(); i++)
     if (!llvm::is_contained(dimNumbers.getLhsContractingDimensions(), i) &&
         !llvm::is_contained(dimNumbers.getLhsBatchingDimensions(), i))
       dimensions.push_back(
-          builder.create<tensor::DimOp>(getLoc(), adaptor.getLhs(), i));
+          tensor::DimOp::create(builder, getLoc(), adaptor.getLhs(), i));
   for (int64_t i = 0; i < rhsType.getRank(); i++)
     if (!llvm::is_contained(dimNumbers.getRhsContractingDimensions(), i) &&
         !llvm::is_contained(dimNumbers.getRhsBatchingDimensions(), i))
       dimensions.push_back(
-          builder.create<tensor::DimOp>(getLoc(), adaptor.getRhs(), i));
+          tensor::DimOp::create(builder, getLoc(), adaptor.getRhs(), i));
 
   reifiedReturnShapes.push_back(
-      builder.create<tensor::FromElementsOp>(getLoc(), dimensions));
+      tensor::FromElementsOp::create(builder, getLoc(), dimensions));
   return success();
 }
 
@@ -1181,7 +1181,7 @@ void getSliceSizeValues(GatherOp* gather, OpBuilder& builder, Location loc,
                         ValueRange operands,
                         SmallVectorImpl<Value>& sliceSizes) {
   for (int64_t val : gather->getSliceSizes())
-    sliceSizes.push_back(builder.create<arith::ConstantIndexOp>(loc, val));
+    sliceSizes.push_back(arith::ConstantIndexOp::create(builder, loc, val));
 }
 
 void getSliceSizeValues(DynamicGatherOp* /*dGather*/, OpBuilder& builder,
@@ -1191,9 +1191,9 @@ void getSliceSizeValues(DynamicGatherOp* /*dGather*/, OpBuilder& builder,
   Value sliceSizes = adaptor.getSliceSizes();
   auto sliceSizesTy = cast<ShapedType>(sliceSizes.getType());
   for (int64_t i = 0; i < sliceSizesTy.getDimSize(0); ++i) {
-    Value idx = builder.create<arith::ConstantIndexOp>(loc, i);
+    Value idx = arith::ConstantIndexOp::create(builder, loc, i);
     sliceSizeValues.push_back(
-        builder.create<tensor::ExtractOp>(loc, sliceSizes, idx));
+        tensor::ExtractOp::create(builder, loc, sliceSizes, idx));
   }
 }
 
@@ -1219,7 +1219,7 @@ LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
 
   auto getStartIndicesDim = [&](int64_t index) {
     return toShapeElType(
-        builder.create<tensor::DimOp>(loc, startIndices, index));
+        tensor::DimOp::create(builder, loc, startIndices, index));
   };
   SmallVector<Value, 4> shapeValues;
   auto getSliceDim = [&sliceSizes](int64_t index) -> Value {
@@ -1232,8 +1232,9 @@ LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
                            op->getDimensionNumbers().getIndexVectorDim(),
                            shapeValues);
 
-  Value outputShape = builder.create<tensor::FromElementsOp>(
-      loc, RankedTensorType::get({resultRank}, shapeElTy), shapeValues);
+  Value outputShape = tensor::FromElementsOp::create(
+      builder, loc, RankedTensorType::get({resultRank}, shapeElTy),
+      shapeValues);
   reifiedReturnShapes.push_back(outputShape);
 
   return success();
@@ -1336,7 +1337,7 @@ static Value castToIndexTensor(OpBuilder& builder, Location loc,
   ShapedType resultTy = shape::getExtentTensorType(
       builder.getContext(), cast<ShapedType>(shapeOp.getType()).getDimSize(0));
   if (shapeOp.getType() == resultTy) return shapeOp;  // Nothing to do.
-  return builder.create<arith::IndexCastOp>(loc, resultTy, shapeOp);
+  return arith::IndexCastOp::create(builder, loc, resultTy, shapeOp);
 }
 
 LogicalResult DynamicIotaOp::reifyReturnTypeShapes(
@@ -1806,15 +1807,15 @@ LogicalResult BroadcastOp::reifyReturnTypeShapes(
 
   // Collect the broadcast sizes.
   for (const auto& size : getBroadcastSizes())
-    shapeValues.push_back(builder.create<arith::ConstantIndexOp>(loc, size));
+    shapeValues.push_back(arith::ConstantIndexOp::create(builder, loc, size));
 
   // Collect the operand sizes.
   for (auto index : llvm::seq<int64_t>(0, operandType.getRank()))
     shapeValues.push_back(
         builder.createOrFold<tensor::DimOp>(loc, operand, index));
 
-  reifiedReturnShapes.push_back(builder.create<tensor::FromElementsOp>(
-      loc,
+  reifiedReturnShapes.push_back(tensor::FromElementsOp::create(
+      builder, loc,
       RankedTensorType::get({static_cast<int64_t>(shapeValues.size())},
                             builder.getIndexType()),
       shapeValues));
@@ -2062,7 +2063,7 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
     SmallVector<Value, 4> shapeVals;
     for (const auto& element : llvm::enumerate(operandType.getShape())) {
       Value valueDim = toShapeScalarType(
-          builder.create<tensor::DimOp>(loc, operand, element.index()));
+          tensor::DimOp::create(builder, loc, operand, element.index()));
       shapeVals.push_back(valueDim);
     }
     allShapeValues.emplace_back(std::move(shapeVals));
@@ -2077,12 +2078,12 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
           << "Concatenate expects all operands must be of the same rank";
       return failure();
     }
-    shapeValues[axis] = builder.create<arith::AddIOp>(loc, shapeValues[axis],
-                                                      otherShapeValues[axis]);
+    shapeValues[axis] = arith::AddIOp::create(builder, loc, shapeValues[axis],
+                                              otherShapeValues[axis]);
   }
 
-  Value outputShape = builder.create<tensor::FromElementsOp>(
-      loc,
+  Value outputShape = tensor::FromElementsOp::create(
+      builder, loc,
       RankedTensorType::get({static_cast<int64_t>(shapeValues.size())},
                             shapeScalarType),
       shapeValues);
@@ -2165,29 +2166,31 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
   shapeValues.reserve(operandType.getRank());
   Type shapeScalarType =
       cast<ShapedType>(startIndices.getType()).getElementType();
-  Value one = builder.create<arith::ConstantIndexOp>(loc, 1);
+  Value one = arith::ConstantIndexOp::create(builder, loc, 1);
   one = maybeCastTo(builder, loc, one, shapeScalarType);
   for (const auto& element : llvm::enumerate(operandType.getShape())) {
-    Value offset = builder.create<arith::ConstantIndexOp>(loc, element.index());
+    Value offset =
+        arith::ConstantIndexOp::create(builder, loc, element.index());
     Value valueStart =
-        builder.create<tensor::ExtractOp>(loc, startIndices, offset);
+        tensor::ExtractOp::create(builder, loc, startIndices, offset);
     Value valueLimit =
-        builder.create<tensor::ExtractOp>(loc, limitIndices, offset);
-    Value valueStride = builder.create<tensor::ExtractOp>(loc, strides, offset);
+        tensor::ExtractOp::create(builder, loc, limitIndices, offset);
+    Value valueStride =
+        tensor::ExtractOp::create(builder, loc, strides, offset);
     // size = (limit - start + stride - 1) / stride
-    shapeValues.push_back(builder.create<arith::DivSIOp>(
-        loc,
-        builder.create<arith::SubIOp>(
-            loc,
-            builder.create<arith::AddIOp>(
-                loc, valueStride,
-                builder.create<arith::SubIOp>(loc, valueLimit, valueStart)),
+    shapeValues.push_back(arith::DivSIOp::create(
+        builder, loc,
+        arith::SubIOp::create(
+            builder, loc,
+            arith::AddIOp::create(
+                builder, loc, valueStride,
+                arith::SubIOp::create(builder, loc, valueLimit, valueStart)),
             one),
         valueStride));
   }
 
-  reifiedReturnShapes.push_back(builder.create<tensor::FromElementsOp>(
-      loc,
+  reifiedReturnShapes.push_back(tensor::FromElementsOp::create(
+      builder, loc,
       RankedTensorType::get({static_cast<int64_t>(shapeValues.size())},
                             shapeScalarType),
       shapeValues));
@@ -2452,12 +2455,12 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
     auto* it = std::find(dimensions.begin(), dimensions.end(), idx);
     if (it != dimensions.end()) continue;
     Value valueDim = toShapeScalarType(
-        builder.create<tensor::DimOp>(loc, inputs[0], element.index()));
+        tensor::DimOp::create(builder, loc, inputs[0], element.index()));
     shapeValues.push_back(valueDim);
   }
 
-  Value outputShape = builder.create<tensor::FromElementsOp>(
-      loc,
+  Value outputShape = tensor::FromElementsOp::create(
+      builder, loc,
       RankedTensorType::get({static_cast<int64_t>(shapeValues.size())},
                             shapeScalarType),
       shapeValues);
@@ -2631,36 +2634,37 @@ LogicalResult PadOp::reifyReturnTypeShapes(
   auto padLow = adaptor.getEdgePaddingLow();
   auto padInterior = adaptor.getInteriorPadding();
 
-  Value one = builder.create<arith::ConstantIndexOp>(loc, 1).getResult();
-  Value zero = builder.create<arith::ConstantIndexOp>(loc, 0).getResult();
+  Value one = arith::ConstantIndexOp::create(builder, loc, 1).getResult();
+  Value zero = arith::ConstantIndexOp::create(builder, loc, 0).getResult();
 
   llvm::SmallVector<Value> dimensions;
   dimensions.reserve(operandTy.getRank());
   for (int i = 0, s = operandTy.getRank(); i < s; ++i) {
     Value padEdge =
-        builder.create<arith::ConstantIndexOp>(loc, padHigh[i] + padLow[i]);
+        arith::ConstantIndexOp::create(builder, loc, padHigh[i] + padLow[i]);
 
     // First we grab the initial interior size.
-    Value dim = builder.create<tensor::DimOp>(loc, operand, i).getResult();
+    Value dim = tensor::DimOp::create(builder, loc, operand, i).getResult();
 
     // Compute the interior of the tensor and determine padding size.
     if (padInterior[i] > 0) {
       Value padInter =
-          builder.create<arith::ConstantIndexOp>(loc, padInterior[i])
+          arith::ConstantIndexOp::create(builder, loc, padInterior[i])
               .getResult();
-      Value interior = builder.create<arith::SubIOp>(loc, dim, one).getResult();
-      interior = builder.create<arith::MaxSIOp>(loc, interior, zero);
-      interior = builder.create<arith::MulIOp>(loc, interior, padInter);
-      dim = builder.create<arith::AddIOp>(loc, dim, interior).getResult();
+      Value interior =
+          arith::SubIOp::create(builder, loc, dim, one).getResult();
+      interior = arith::MaxSIOp::create(builder, loc, interior, zero);
+      interior = arith::MulIOp::create(builder, loc, interior, padInter);
+      dim = arith::AddIOp::create(builder, loc, dim, interior).getResult();
     }
 
     // Then we add the padding on the edge of the tensor.
-    dim = builder.create<arith::AddIOp>(loc, dim, padEdge).getResult();
+    dim = arith::AddIOp::create(builder, loc, dim, padEdge).getResult();
     dimensions.push_back(dim);
   }
 
   Value dimensionTensor =
-      builder.create<tensor::FromElementsOp>(loc, dimensions).getResult();
+      tensor::FromElementsOp::create(builder, loc, dimensions).getResult();
   reifiedReturnShapes.push_back(dimensionTensor);
   return success();
 }
@@ -2697,38 +2701,40 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
   };
 
   Value zero =
-      toShapeScalarType(builder.create<arith::ConstantIndexOp>(loc, 0));
-  Value one = toShapeScalarType(builder.create<arith::ConstantIndexOp>(loc, 1));
+      toShapeScalarType(arith::ConstantIndexOp::create(builder, loc, 0));
+  Value one =
+      toShapeScalarType(arith::ConstantIndexOp::create(builder, loc, 1));
 
   for (int idx : llvm::seq<int>(0, operandType.getShape().size())) {
     Value valueDim =
-        toShapeScalarType(builder.create<tensor::DimOp>(loc, operand, idx));
-    Value offset = builder.create<arith::ConstantIndexOp>(loc, idx);
+        toShapeScalarType(tensor::DimOp::create(builder, loc, operand, idx));
+    Value offset = arith::ConstantIndexOp::create(builder, loc, idx);
     Value valueLow =
-        builder.create<tensor::ExtractOp>(loc, edgePaddingLow, offset);
+        tensor::ExtractOp::create(builder, loc, edgePaddingLow, offset);
     Value valueHigh =
-        builder.create<tensor::ExtractOp>(loc, edgePaddingHigh, offset);
+        tensor::ExtractOp::create(builder, loc, edgePaddingHigh, offset);
     Value valueInterior =
-        builder.create<tensor::ExtractOp>(loc, interiorPadding, offset);
+        tensor::ExtractOp::create(builder, loc, interiorPadding, offset);
     // output_size = input_size + padding_low + padding_high + interior *
     // max(input_size - 1, 0)
-    Value valueDimLessThanOne = builder.create<arith::CmpIOp>(
-        loc, arith::CmpIPredicate::slt, valueDim, one);
-    Value interiorSize = builder.create<arith::MulIOp>(
-        loc, valueInterior,
-        builder.create<mlir::arith::SelectOp>(
-            loc, valueDimLessThanOne, zero,
-            builder.create<arith::SubIOp>(loc, valueDim, one)));
-    shapeValues.push_back(builder.create<arith::AddIOp>(
-        loc,
-        builder.create<arith::AddIOp>(
-            loc, builder.create<arith::AddIOp>(loc, interiorSize, valueDim),
+    Value valueDimLessThanOne = arith::CmpIOp::create(
+        builder, loc, arith::CmpIPredicate::slt, valueDim, one);
+    Value interiorSize = arith::MulIOp::create(
+        builder, loc, valueInterior,
+        mlir::arith::SelectOp::create(
+            builder, loc, valueDimLessThanOne, zero,
+            arith::SubIOp::create(builder, loc, valueDim, one)));
+    shapeValues.push_back(arith::AddIOp::create(
+        builder, loc,
+        arith::AddIOp::create(
+            builder, loc,
+            arith::AddIOp::create(builder, loc, interiorSize, valueDim),
             valueLow),
         valueHigh));
   }
 
-  reifiedReturnShapes.push_back(builder.create<tensor::FromElementsOp>(
-      loc,
+  reifiedReturnShapes.push_back(tensor::FromElementsOp::create(
+      builder, loc,
       RankedTensorType::get({static_cast<int64_t>(shapeValues.size())},
                             shapeScalarType),
       shapeValues));
@@ -2905,8 +2911,8 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
     shapeValues[std::distance(permutation.begin(), it)] = valueDim;
   }
 
-  Value outputShape = builder.create<tensor::FromElementsOp>(
-      loc,
+  Value outputShape = tensor::FromElementsOp::create(
+      builder, loc,
       RankedTensorType::get({static_cast<int64_t>(shapeValues.size())},
                             shapeScalarType),
       shapeValues);
@@ -3164,6 +3170,7 @@ using mlir::hlo::printTupleOpType;
 using mlir::hlo::printVariadicOperandWithAttribute;
 using mlir::hlo::printVariadicSameOperandsAndResultType;
 
+using mlir::stablehlo::TokenType;
 #define GET_OP_CLASSES
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
 
@@ -4011,10 +4018,10 @@ void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
     typeAttr = symbolizeComparisonType(*compareType).value();
   else
     typeAttr = ComparisonType::NOTYPE;
-  Value compare = builder->create<CompareOp>(
-      loc, block->getArgument(0), block->getArgument(1), direction, typeAttr);
+  Value compare = CompareOp::create(*builder, loc, block->getArgument(0),
+                                    block->getArgument(1), direction, typeAttr);
 
-  builder->create<ReturnOp>(loc, compare);
+  ReturnOp::create(*builder, loc, compare);
 }
 
 SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
@@ -4023,7 +4030,7 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
                     bool isStable, ComparisonDirection direction) {
   assert(!operands.empty() && "No operands to sort");
   // Create the sort op.
-  auto sortOp = rewriter->create<SortOp>(loc, operands, dimension, isStable);
+  auto sortOp = SortOp::create(*rewriter, loc, operands, dimension, isStable);
 
   // Use TOTALORDER comparison type instead of the default comparison if the
   // element type is of type float.
@@ -4053,7 +4060,7 @@ Operation* StablehloDialect::materializeConstant(OpBuilder& builder,
   // HLO dialect constants require the type of value and result to match.
   if (type != elementsAttr.getType()) return nullptr;
 
-  return builder.create<ConstantOp>(loc, type, elementsAttr);
+  return ConstantOp::create(builder, loc, type, elementsAttr);
 }
 
 std::optional<StablehloDialectVersion> StablehloDialect::getVersion() const {

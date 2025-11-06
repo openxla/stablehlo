@@ -37,22 +37,21 @@ namespace mlir::stablehlo {
 
 namespace {
 
-Value scalarToTensor(OpBuilder &builder, Type type, ValueRange inputs,
+Value scalarToTensor(OpBuilder& builder, Type type, ValueRange inputs,
                      Location loc) {
   assert(inputs.size() == 1);
   if (mlir::isa<ShapedType>(inputs.front().getType())) {
     return Value();
   }
   Value result =
-      builder
-          .create<tensor::FromElementsOp>(
-              loc, RankedTensorType::get({}, inputs.front().getType()),
-              inputs.front())
+      tensor::FromElementsOp::create(
+          builder, loc, RankedTensorType::get({}, inputs.front().getType()),
+          inputs.front())
           .getResult();
   // Convert to a signed integer if necessary.
   Type elementType = mlir::getElementTypeOrSelf(type);
   if (elementType.isInteger() && !elementType.isSignlessInteger()) {
-    result = builder.create<UnrealizedConversionCastOp>(loc, type, result)
+    result = UnrealizedConversionCastOp::create(builder, loc, type, result)
                  ->getResult(0);
   }
   return result;

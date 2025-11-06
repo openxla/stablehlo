@@ -20,6 +20,7 @@ limitations under the License.
 #include <optional>
 #include <vector>
 
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Types.h"
@@ -30,6 +31,18 @@ limitations under the License.
 
 namespace mlir {
 namespace stablehlo {
+
+///////////////
+// Dialect Helpers
+///////////////
+
+// Appends or overwrites an entry in the `mhlo.frontend_attributes` attribute
+//
+// of the given op.
+// Ex:
+//   stablehlo.abs %0 { mhlo.frontend_attributes = { "foo" = 123 } }
+MlirOp AttachFrontendAttribute(MlirBuilder& builder, MlirOp op, StringRef name,
+                               Attribute value);
 
 /////////////////
 // MANUAL APIs

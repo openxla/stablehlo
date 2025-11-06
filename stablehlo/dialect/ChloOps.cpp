@@ -793,8 +793,8 @@ ChloDialect::ChloDialect(MLIRContext* context)
 Operation* ChloDialect::materializeConstant(OpBuilder& builder, Attribute value,
                                             Type type, Location loc) {
   if (isa<ElementsAttr>(value))
-    return builder.create<chlo::ConstantOp>(loc, type,
-                                            cast<ElementsAttr>(value));
+    return chlo::ConstantOp::create(builder, loc, type,
+                                    cast<ElementsAttr>(value));
   return nullptr;
 }
 

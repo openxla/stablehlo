@@ -70,7 +70,7 @@ static bool isUnsupported(mlir::stablehlo::ReduceOp op) {
 /// if `rank` is 4 and `reductionDims` is {1, 3}, then
 /// "(d0, d1, d2, d3) -> (d0, d2, d1, d3)" is used. The inverse permutation of
 /// the AffineMap is returned.
-AffineMap getTransposeMapForReduction(MLIRContext *context, int rank,
+AffineMap getTransposeMapForReduction(MLIRContext* context, int rank,
                                       ArrayRef<int64_t> reductionDims) {
   llvm::SmallSetVector<int, 4> s(reductionDims.begin(), reductionDims.end());
 
@@ -87,7 +87,7 @@ AffineMap getTransposeMapForReduction(MLIRContext *context, int rank,
 }
 
 SmallVector<Value, 8> getReduceOpEmptyTensorDynSizes(
-    OpBuilder &b, Location loc, Value arg, ShapedType resultType,
+    OpBuilder& b, Location loc, Value arg, ShapedType resultType,
     ArrayRef<int64_t> reductionDims) {
   llvm::SmallSetVector<int, 4> s(reductionDims.begin(), reductionDims.end());
 
@@ -97,7 +97,7 @@ SmallVector<Value, 8> getReduceOpEmptyTensorDynSizes(
   for (int i = 0, j = 0; i < rank; ++i) {
     if (s.contains(i)) continue;
     if (!resultType.isDynamicDim(j++)) continue;
-    dynShape.push_back(b.create<tensor::DimOp>(loc, arg, i));
+    dynShape.push_back(tensor::DimOp::create(b, loc, arg, i));
   }
 
   return dynShape;
@@ -109,16 +109,16 @@ struct ReduceRegionReturnOpConversion final
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ReturnOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     if (!isInBodyOfLinalgOps(op)) {
       return failure();
     }
 
     SmallVector<Value> operands(adaptor.getOperands());
-    for (Value &operand : operands) {
+    for (Value& operand : operands) {
       if (isa<ShapedType>(operand.getType())) {
         Location loc = operand.getLoc();
-        operand = rewriter.create<tensor::ExtractOp>(loc, operand);
+        operand = tensor::ExtractOp::create(rewriter, loc, operand);
       }
     }
     rewriter.replaceOpWithNewOp<linalg::YieldOp>(op, operands);
@@ -132,7 +132,7 @@ struct ReduceOpToGenericConverter final
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ReduceOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     if (isUnsupported(op)) {
       return rewriter.notifyMatchFailure(op,
                                          "unsupported reduce (noop or empty)");
@@ -168,7 +168,8 @@ struct ReduceOpToGenericConverter final
       auto emptyTensor =
           getEmptyTensor(rewriter, loc, cast<ShapedType>(resultType), dynShape);
       Value filledTensor =
-          rewriter.create<linalg::FillOp>(loc, initValue, emptyTensor).result();
+          linalg::FillOp::create(rewriter, loc, initValue, emptyTensor)
+              .result();
       outputs.push_back(filledTensor);
     }
 
@@ -192,8 +193,8 @@ struct ReduceOpToGenericConverter final
                         AffineMap::get(srcRank, /*symbolCount=*/0, exprs,
                                        rewriter.getContext()));
 
-    auto linalgOp = rewriter.create<linalg::GenericOp>(
-        loc, /*resultTensorTypes=*/resultTypes, adaptor.getInputs(),
+    auto linalgOp = linalg::GenericOp::create(
+        rewriter, loc, /*resultTensorTypes=*/resultTypes, adaptor.getInputs(),
         /*outputBuffers=*/ValueRange{outputs}, indexingMaps,
         getParallelAndReductionIterators(srcRank, reductionDims.size()),
         /*bodyBuild=*/nullptr, linalg::getPrunedAttributeList(op));
@@ -203,7 +204,7 @@ struct ReduceOpToGenericConverter final
     // This is converted to a function with the same signature but with
     // element types. E.g., "(tensor<f32>, tensor<f32>) -> tensor<f32>" will
     // be converted to "(f32, f32, f32)".
-    Region &region = linalgOp.getRegion();
+    Region& region = linalgOp.getRegion();
     rewriter.inlineRegionBefore(op.getBody(), region, region.end());
     TypeConverter::SignatureConversion signatureConverter(numOperands * 2);
 
@@ -240,7 +241,7 @@ struct ReduceOpToReduceConverter final
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ReduceOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     if (isUnsupported(op)) {
       return rewriter.notifyMatchFailure(op,
                                          "unsupported reduce (noop or empty)");
@@ -280,23 +281,25 @@ struct ReduceOpToReduceConverter final
           resultShape.push_back(dim);
           if (ShapedType::isDynamic(dim)) {
             dynShape.push_back(
-                rewriter.create<tensor::DimOp>(loc, operand, index));
+                tensor::DimOp::create(rewriter, loc, operand, index));
           }
         }
       }
 
-      Value emptyTensor = rewriter.create<tensor::EmptyOp>(
-          loc, resultShape, tensorResultType.getElementType(), dynShape);
+      Value emptyTensor =
+          tensor::EmptyOp::create(rewriter, loc, resultShape,
+                                  tensorResultType.getElementType(), dynShape);
       Value filledTensor =
-          rewriter.create<linalg::FillOp>(loc, initValue, emptyTensor).result();
+          linalg::FillOp::create(rewriter, loc, initValue, emptyTensor)
+              .result();
       outputs.push_back(filledTensor);
     }
 
-    auto linalgOp = rewriter.create<linalg::ReduceOp>(
-        loc, adaptor.getInputs(), outputs, reductionDims,
+    auto linalgOp = linalg::ReduceOp::create(
+        rewriter, loc, adaptor.getInputs(), outputs, reductionDims,
         /*bodyBuild=*/nullptr, linalg::getPrunedAttributeList(op));
 
-    Region &region = linalgOp.getRegion();
+    Region& region = linalgOp.getRegion();
     rewriter.inlineRegionBefore(op.getBody(), region, region.end());
 
     // Convert the signature of the body. The reduce op 'computation' region
@@ -310,13 +313,13 @@ struct ReduceOpToReduceConverter final
     TypeConverter::SignatureConversion signatureConverter(
         linalgOp.getNumDpsInputs() * 2);
     assert(linalgOp.getNumDpsInputs() == linalgOp.getNumDpsInits());
-    for (const auto &[idx, val] : llvm::enumerate(operandTypes)) {
+    for (const auto& [idx, val] : llvm::enumerate(operandTypes)) {
       signatureConverter.addInputs(
           /*origInputNo=*/idx + linalgOp.getNumDpsInputs(),
           // type for new operand number 'idx'.
           typeConverter->convertType(val.getElementType()));
     }
-    for (const auto &[idx, val] : llvm::enumerate(initTypes)) {
+    for (const auto& [idx, val] : llvm::enumerate(initTypes)) {
       signatureConverter.addInputs(
           /*origInputNo=*/idx,
           // type for new operand number 'idx' + linalgOp.getNumInputs()
@@ -343,8 +346,8 @@ struct ReduceWindowOpOnTensorsGenericConversion final
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ReduceWindowOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
-    MLIRContext *ctx = op->getContext();
+      ConversionPatternRewriter& rewriter) const override {
+    MLIRContext* ctx = op->getContext();
     Location loc = op.getLoc();
     llvm::SmallVector<Value> initValues = adaptor.getInitValues();
     llvm::SmallVector<Type> resultTypes;
@@ -422,8 +425,8 @@ struct ReduceWindowOpOnTensorsGenericConversion final
       if (!resultTy.hasStaticShape()) return failure();
 
       auto broadcastSizes = rewriter.getDenseI64ArrayAttr(resultTy.getShape());
-      broadcastValues.push_back(rewriter.create<mlir::stablehlo::BroadcastOp>(
-          loc, resultTy, initValue, broadcastSizes));
+      broadcastValues.push_back(mlir::stablehlo::BroadcastOp::create(
+          rewriter, loc, resultTy, initValue, broadcastSizes));
     }
 
     llvm::SmallVector<Value> inputs = llvm::to_vector(adaptor.getInputs());
@@ -444,17 +447,18 @@ struct ReduceWindowOpOnTensorsGenericConversion final
       }
 
       for (auto [input, initValue] : llvm::zip(inputs, initValues)) {
-        input = rewriter.create<mlir::stablehlo::PadOp>(
-            loc, input, initValue, staticLows, staticHighs, staticInteriors);
+        input = mlir::stablehlo::PadOp::create(rewriter, loc, input, initValue,
+                                               staticLows, staticHighs,
+                                               staticInteriors);
       }
     }
 
     // Add the extra input for the reduction dimension.
-    inputs.push_back(rewriter.create<tensor::EmptyOp>(loc, filteredWindowDims,
-                                                      rewriter.getF32Type()));
+    inputs.push_back(tensor::EmptyOp::create(rewriter, loc, filteredWindowDims,
+                                             rewriter.getF32Type()));
 
-    auto linalgOp = rewriter.create<linalg::GenericOp>(
-        loc, /*resultTensors=*/resultTypes,
+    auto linalgOp = linalg::GenericOp::create(
+        rewriter, loc, /*resultTensors=*/resultTypes,
         /*inputs=*/inputs,
         /*outputs=*/broadcastValues, indexingMaps,
         getParallelAndReductionIterators(rank + filteredWindowDims.size(),
@@ -464,7 +468,7 @@ struct ReduceWindowOpOnTensorsGenericConversion final
     // Convert the signature of the body. This includes converting scalar
     // tensors to their scalar values and inserting an additional block arg for
     // the window arg.
-    Region &region = linalgOp.getRegion();
+    Region& region = linalgOp.getRegion();
     rewriter.cloneRegionBefore(op.getBody(), region, region.end());
 
     TypeConverter::SignatureConversion signatureConverter(
@@ -503,11 +507,11 @@ struct ReduceWindowOpConversion final
   /// Get the operation used for reduction applied to `result_index`th result.
   /// Its expected to be a binary operation that consumes `result_index`th and
   /// `result_index + getInputs().size`th arguments of the body.
-  static Operation *getReductionOp(mlir::stablehlo::ReduceWindowOp op,
+  static Operation* getReductionOp(mlir::stablehlo::ReduceWindowOp op,
                                    int resultIndex) {
     auto returnOp =
         cast<mlir::stablehlo::ReturnOp>(op.getBody().front().getTerminator());
-    Operation *computeOp = returnOp.getResults()[resultIndex].getDefiningOp();
+    Operation* computeOp = returnOp.getResults()[resultIndex].getDefiningOp();
     if (computeOp->getNumOperands() != 2) return nullptr;
     auto arg0 = llvm::dyn_cast<BlockArgument>(computeOp->getOperand(0));
     auto arg1 = llvm::dyn_cast<BlockArgument>(computeOp->getOperand(1));
@@ -539,7 +543,7 @@ struct ReduceWindowOpConversion final
                                     int resultIndex) {
     auto rank = llvm::cast<ShapedType>(reduceOp.getResultTypes()[resultIndex])
                     .getRank();
-    if (Operation *op = getReductionOp(reduceOp, resultIndex)) {
+    if (Operation* op = getReductionOp(reduceOp, resultIndex)) {
       if (isa<mlir::stablehlo::MinOp>(*op) && rank == 4)
         return PoolingType::k2DMin;
       if (isa<mlir::stablehlo::MinOp>(*op) && rank == 5)
@@ -558,7 +562,7 @@ struct ReduceWindowOpConversion final
 
   LogicalResult matchAndRewrite(
       mlir::stablehlo::ReduceWindowOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto loc = op.getLoc();
     int rank = llvm::cast<ShapedType>(op.getResultTypes()[0]).getRank();
     if (rank != 4 && rank != 5) {
@@ -631,13 +635,13 @@ struct ReduceWindowOpConversion final
       }
 
       // Create a fake window dimension.
-      auto fakeWindowDims = rewriter.create<tensor::EmptyOp>(
-          loc, fakeWindowShapes, resultType.getElementType());
+      auto fakeWindowDims = tensor::EmptyOp::create(
+          rewriter, loc, fakeWindowShapes, resultType.getElementType());
 
       SmallVector<Value> resultDynamicDims;
-      for (const auto &en : llvm::enumerate(resultType.getShape())) {
+      for (const auto& en : llvm::enumerate(resultType.getShape())) {
         if (en.value() != ShapedType::kDynamic) continue;
-        Value dimSize = rewriter.create<tensor::DimOp>(loc, input, en.index());
+        Value dimSize = tensor::DimOp::create(rewriter, loc, input, en.index());
         if (en.index() == 0 || static_cast<int64_t>(en.index()) == rank - 1) {
           // batch dims and channel dims can be derived from input dims
           // directly.
@@ -650,66 +654,62 @@ struct ReduceWindowOpConversion final
                               .getValues<int64_t>()[i];
           // let j = i * stride
           // output[i] = reduce( input[j, j + window_size * dilation) )
-          Value offset = rewriter.create<arith::ConstantIndexOp>(
-              loc, fakeWindowShapes[i] * dilation);
-          dimSize = rewriter.create<arith::SubIOp>(loc, dimSize, offset);
-          dimSize = rewriter.create<arith::DivUIOp>(
-              loc, dimSize,
-              rewriter.create<arith::ConstantIndexOp>(loc, stride));
-          dimSize = rewriter.create<arith::AddIOp>(
-              loc, dimSize, rewriter.create<arith::ConstantIndexOp>(loc, 1));
+          Value offset = arith::ConstantIndexOp::create(
+              rewriter, loc, fakeWindowShapes[i] * dilation);
+          dimSize = arith::SubIOp::create(rewriter, loc, dimSize, offset);
+          dimSize = arith::DivUIOp::create(
+              rewriter, loc, dimSize,
+              arith::ConstantIndexOp::create(rewriter, loc, stride));
+          dimSize = arith::AddIOp::create(
+              rewriter, loc, dimSize,
+              arith::ConstantIndexOp::create(rewriter, loc, 1));
           resultDynamicDims.push_back(dimSize);
         }
       }
-      Value emptyTensor = rewriter.create<tensor::EmptyOp>(
-          loc, resultType.getShape(), resultType.getElementType(),
+      Value emptyTensor = tensor::EmptyOp::create(
+          rewriter, loc, resultType.getShape(), resultType.getElementType(),
           resultDynamicDims);
 
-      initValue = rewriter.create<tensor::ExtractOp>(loc, initValue);
+      initValue = tensor::ExtractOp::create(rewriter, loc, initValue);
       Value filledInitTensor =
-          rewriter.create<linalg::FillOp>(loc, initValue, emptyTensor)
+          linalg::FillOp::create(rewriter, loc, initValue, emptyTensor)
               .getResult(0);
-      auto createOp = [&](auto *typePtr) -> linalg::LinalgOp {
+      auto createOp = [&](auto* typePtr) -> linalg::LinalgOp {
         return cast<linalg::LinalgOp>(
-            rewriter
-                .create<std::remove_pointer_t<decltype(typePtr)>>(
-                    loc, ArrayRef<Type>{resultType},
-                    ValueRange{input, fakeWindowDims.getResult()},
-                    filledInitTensor, strides, dilations,
-                    linalg::getPrunedAttributeList(op))
+            std::remove_pointer_t<decltype(typePtr)>::create(
+                rewriter, loc, ArrayRef<Type>{resultType},
+                ValueRange{input, fakeWindowDims.getResult()}, filledInitTensor,
+                strides, dilations, linalg::getPrunedAttributeList(op))
                 .getOperation());
       };
       linalg::LinalgOp poolingOp;
       PoolingType poolingType = getPoolingType(op, result.getResultNumber());
       switch (poolingType) {
         case PoolingType::k2DMin: {
-          poolingOp =
-              createOp(static_cast<linalg::PoolingNhwcMinOp *>(nullptr));
+          poolingOp = createOp(static_cast<linalg::PoolingNhwcMinOp*>(nullptr));
           break;
         }
         case PoolingType::k3DMin: {
           poolingOp =
-              createOp(static_cast<linalg::PoolingNdhwcMinOp *>(nullptr));
+              createOp(static_cast<linalg::PoolingNdhwcMinOp*>(nullptr));
           break;
         }
         case PoolingType::k2DMax: {
-          poolingOp =
-              createOp(static_cast<linalg::PoolingNhwcMaxOp *>(nullptr));
+          poolingOp = createOp(static_cast<linalg::PoolingNhwcMaxOp*>(nullptr));
           break;
         }
         case PoolingType::k3DMax: {
           poolingOp =
-              createOp(static_cast<linalg::PoolingNdhwcMaxOp *>(nullptr));
+              createOp(static_cast<linalg::PoolingNdhwcMaxOp*>(nullptr));
           break;
         }
         case PoolingType::k2DAdd: {
-          poolingOp =
-              createOp(static_cast<linalg::PoolingNhwcSumOp *>(nullptr));
+          poolingOp = createOp(static_cast<linalg::PoolingNhwcSumOp*>(nullptr));
           break;
         }
         case PoolingType::k3DAdd: {
           poolingOp =
-              createOp(static_cast<linalg::PoolingNdhwcSumOp *>(nullptr));
+              createOp(static_cast<linalg::PoolingNdhwcSumOp*>(nullptr));
           break;
         }
         case PoolingType::kInvalid:
@@ -726,8 +726,8 @@ struct ReduceWindowOpConversion final
 
 namespace detail {
 void populateStablehloReductionToLinalgConversionPatterns(
-    MLIRContext *context, TypeConverter &typeConverter,
-    RewritePatternSet *patterns, bool enablePrimitiveOps) {
+    MLIRContext* context, TypeConverter& typeConverter,
+    RewritePatternSet* patterns, bool enablePrimitiveOps) {
   if (enablePrimitiveOps) {
     patterns->add<ReduceOpToReduceConverter>(typeConverter, context);
   } else {

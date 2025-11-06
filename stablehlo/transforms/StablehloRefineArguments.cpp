@@ -52,10 +52,12 @@ namespace {
 CustomCallOp makeShapeRefinementOperandWrapper(OpBuilder& builder,
                                                Value operand,
                                                RankedTensorType refinedType) {
-  auto constant = builder.create<stablehlo::ConstantOp>(
-      operand.getLoc(), builder.getI64TensorAttr(refinedType.getShape()));
-  return builder.create<stablehlo::CustomCallOp>(
-      operand.getLoc(), operand.getType(), ValueRange{operand, constant},
+  auto constant = stablehlo::ConstantOp::create(
+      builder, operand.getLoc(),
+      builder.getI64TensorAttr(refinedType.getShape()));
+  return stablehlo::CustomCallOp::create(
+      builder, operand.getLoc(), operand.getType(),
+      ValueRange{operand, constant},
       llvm::SmallVector<NamedAttribute>{
           builder.getNamedAttr(
               "call_target_name",

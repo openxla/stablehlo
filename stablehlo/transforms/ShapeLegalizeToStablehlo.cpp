@@ -78,7 +78,7 @@ Value castToI32(PatternRewriter& rewriter, Location loc, Value value) {
   }
   if (!resultType) return {};
   auto cast =
-      rewriter.create<UnrealizedConversionCastOp>(loc, resultType, value);
+      UnrealizedConversionCastOp::create(rewriter, loc, resultType, value);
   return cast.getResult(0);
 }
 
@@ -113,7 +113,7 @@ Value castToIndex(PatternRewriter& rewriter, Location loc, Value value) {
   }
   if (!resultType) return {};
   auto cast =
-      rewriter.create<UnrealizedConversionCastOp>(loc, resultType, value);
+      UnrealizedConversionCastOp::create(rewriter, loc, resultType, value);
   return cast.getResult(0);
 }
 
@@ -125,10 +125,11 @@ Value maybeCastToIndex(Value result, Value value, PatternRewriter& rewriter) {
 Value convertToConstantOrI32Cast(Value value, PatternRewriter& rewriter) {
   if (auto constIndex =
           dyn_cast_or_null<arith::ConstantIndexOp>(value.getDefiningOp())) {
-    return rewriter.create<ConstantOp>(
-        value.getLoc(), DenseIntElementsAttr::get<int32_t>(
-                            RankedTensorType::get({}, rewriter.getI32Type()),
-                            static_cast<int32_t>(constIndex.value())));
+    return ConstantOp::create(
+        rewriter, value.getLoc(),
+        DenseIntElementsAttr::get<int32_t>(
+            RankedTensorType::get({}, rewriter.getI32Type()),
+            static_cast<int32_t>(constIndex.value())));
   }
   return castToI32(rewriter, value.getLoc(), value);
 }
@@ -150,16 +151,17 @@ struct ConvertNumElementsOpPattern
     // shape is static, but individual multiplications can be folded if
     // individual dimensions are static).
     auto resultI32Type = RankedTensorType::get({}, rewriter.getI32Type());
-    Value resultI32 = rewriter.create<ConstantOp>(
-        op.getLoc(), DenseIntElementsAttr::get<int32_t>(resultI32Type, 1));
+    Value resultI32 = ConstantOp::create(
+        rewriter, op.getLoc(),
+        DenseIntElementsAttr::get<int32_t>(resultI32Type, 1));
     for (auto i = 0; i < rank; ++i) {
-      auto sizeI32x1 = rewriter.create<SliceOp>(
-          op.getLoc(), shapeI32, rewriter.getDenseI64ArrayAttr(i),
-          rewriter.getDenseI64ArrayAttr(i + 1),
-          rewriter.getDenseI64ArrayAttr(1));
+      auto sizeI32x1 = SliceOp::create(rewriter, op.getLoc(), shapeI32,
+                                       rewriter.getDenseI64ArrayAttr(i),
+                                       rewriter.getDenseI64ArrayAttr(i + 1),
+                                       rewriter.getDenseI64ArrayAttr(1));
       auto sizeI32 =
-          rewriter.create<ReshapeOp>(op.getLoc(), resultI32Type, sizeI32x1);
-      resultI32 = rewriter.create<MulOp>(op.getLoc(), resultI32, sizeI32);
+          ReshapeOp::create(rewriter, op.getLoc(), resultI32Type, sizeI32x1);
+      resultI32 = MulOp::create(rewriter, op.getLoc(), resultI32, sizeI32);
     }
 
     // Cast result from tensor<i32> to index.
@@ -188,19 +190,20 @@ struct ConvertShapeOfOpPattern : public OpRewritePattern<shape::ShapeOfOp> {
       SmallVector<Value> sizesI32x1;
       for (auto i = 0; i < operandType.getRank(); ++i) {
         auto sizeI32 =
-            rewriter.create<GetDimensionSizeOp>(op.getLoc(), op.getArg(), i);
-        auto sizeI32x1 = rewriter.create<ReshapeOp>(
-            op.getLoc(), RankedTensorType::get({1}, rewriter.getI32Type()),
-            sizeI32);
+            GetDimensionSizeOp::create(rewriter, op.getLoc(), op.getArg(), i);
+        auto sizeI32x1 = ReshapeOp::create(
+            rewriter, op.getLoc(),
+            RankedTensorType::get({1}, rewriter.getI32Type()), sizeI32);
         sizesI32x1.push_back(sizeI32x1);
       }
-      shapeI32 = rewriter.create<ConcatenateOp>(op.getLoc(), sizesI32x1,
-                                                /*dimension=*/0);
+      shapeI32 = ConcatenateOp::create(rewriter, op.getLoc(), sizesI32x1,
+                                       /*dimension=*/0);
     } else {
-      shapeI32 = rewriter.create<ConstantOp>(
-          op.getLoc(), DenseElementsAttr::get(
-                           RankedTensorType::get({0}, rewriter.getI32Type()),
-                           ArrayRef<Attribute>()));
+      shapeI32 = ConstantOp::create(
+          rewriter, op.getLoc(),
+          DenseElementsAttr::get(
+              RankedTensorType::get({0}, rewriter.getI32Type()),
+              ArrayRef<Attribute>()));
     }
 
     // Cast result from tensor<Nxi32> to tensor<Nxindex>.
@@ -226,11 +229,12 @@ struct ConvertConstShapeOpPattern
         op.getShape().getValues<int64_t>(),
         [](int64_t val) { return static_cast<int32_t>(val); });
 
-    auto newConst = rewriter.create<ConstantOp>(
-        op.getLoc(), DenseElementsAttr::get(
-                         RankedTensorType::get({operandType.getDimSize(0)},
-                                               rewriter.getI32Type()),
-                         ArrayRef(shape)));
+    auto newConst = ConstantOp::create(
+        rewriter, op.getLoc(),
+        DenseElementsAttr::get(
+            RankedTensorType::get({operandType.getDimSize(0)},
+                                  rewriter.getI32Type()),
+            ArrayRef(shape)));
     auto newConstIndex = castToIndex(rewriter, op.getLoc(), newConst);
     rewriter.replaceOp(op, newConstIndex);
     return success();
@@ -252,11 +256,12 @@ struct ConvertIndexCastOpPattern : public OpRewritePattern<arith::IndexCastOp> {
       //   unrealized_conversion_cast tensor<i64> -> i64
       result = castToI32(rewriter, op.getLoc(), result);
       if (!op.getOut().getType().isInteger(32)) {
-        result = rewriter.create<ConvertOp>(op.getLoc(), result,
-                                            op.getOut().getType());
+        result = ConvertOp::create(rewriter, op.getLoc(), result,
+                                   op.getOut().getType());
       }
-      rewriter.replaceOp(op, rewriter.create<UnrealizedConversionCastOp>(
-                                 op.getLoc(), op.getOut().getType(), result));
+      rewriter.replaceOp(
+          op, UnrealizedConversionCastOp::create(
+                  rewriter, op.getLoc(), op.getOut().getType(), result));
       return success();
     }
     if (!isa<ShapedType>(op.getIn().getType()) &&
@@ -265,13 +270,13 @@ struct ConvertIndexCastOpPattern : public OpRewritePattern<arith::IndexCastOp> {
       // This is converted to the following sequence:
       //   unrealized_conversion_cast i32 -> tensor<i32>
       //   unrealized_conversion_cast tensor<i32> -> index
-      result = rewriter
-                   .create<UnrealizedConversionCastOp>(
-                       op.getLoc(), RankedTensorType::get({}, result.getType()),
-                       result)
+      result = UnrealizedConversionCastOp::create(
+                   rewriter, op.getLoc(),
+                   RankedTensorType::get({}, result.getType()), result)
                    .getResult(0);
-      rewriter.replaceOp(op, rewriter.create<UnrealizedConversionCastOp>(
-                                 op.getLoc(), op.getOut().getType(), result));
+      rewriter.replaceOp(
+          op, UnrealizedConversionCastOp::create(
+                  rewriter, op.getLoc(), op.getOut().getType(), result));
       return success();
     }
 
@@ -305,7 +310,7 @@ struct ConvertMulIOpPattern : public OpRewritePattern<arith::MulIOp> {
     }
     Value lhs = convertToConstantOrI32Cast(op.getLhs(), rewriter);
     Value rhs = convertToConstantOrI32Cast(op.getRhs(), rewriter);
-    Value result = rewriter.create<MulOp>(op.getLoc(), lhs, rhs);
+    Value result = MulOp::create(rewriter, op.getLoc(), lhs, rhs);
     rewriter.replaceOp(op, castToIndex(rewriter, op.getLoc(), result));
     return success();
   }
@@ -316,11 +321,12 @@ struct ConvertMulIOpPattern : public OpRewritePattern<arith::MulIOp> {
 // elements are ones.
 Value padFromLeft(PatternRewriter& rewriter, Location loc, Value input,
                   int64_t pad) {
-  Value padI32 = rewriter.create<ConstantOp>(
-      loc, DenseIntElementsAttr::get<int32_t>(
-               RankedTensorType::get({pad}, rewriter.getI32Type()), 1));
-  return rewriter.create<ConcatenateOp>(loc, ValueRange{padI32, input},
-                                        /*dimension=*/0);
+  Value padI32 = ConstantOp::create(
+      rewriter, loc,
+      DenseIntElementsAttr::get<int32_t>(
+          RankedTensorType::get({pad}, rewriter.getI32Type()), 1));
+  return ConcatenateOp::create(rewriter, loc, ValueRange{padI32, input},
+                               /*dimension=*/0);
 }
 
 struct ConvertShapeBroadcastOpPattern
@@ -360,7 +366,7 @@ struct ConvertShapeBroadcastOpPattern
     // result simply using MaxOp. In case the shapes are not broadcastable, the
     // result extent tensor is undefined according to spec. So this
     // implementation is technically correct.
-    auto broadcasted = rewriter.create<MaxOp>(op->getLoc(), shape1, shape2);
+    auto broadcasted = MaxOp::create(rewriter, op->getLoc(), shape1, shape2);
 
     auto broadcastedIndex = castToIndex(rewriter, op.getLoc(), broadcasted);
     if (!broadcastedIndex || broadcastedIndex.getType() != op.getType())
@@ -380,8 +386,8 @@ struct ConvertTensorDimPattern : public OpRewritePattern<tensor::DimOp> {
     if (!constIndex)
       return rewriter.notifyMatchFailure(op, "expected constant index op");
 
-    auto dim = rewriter.create<GetDimensionSizeOp>(op->getLoc(), op.getSource(),
-                                                   constIndex.value());
+    auto dim = GetDimensionSizeOp::create(rewriter, op->getLoc(),
+                                          op.getSource(), constIndex.value());
     auto dimIndex = castToIndex(rewriter, op.getLoc(), dim);
     rewriter.replaceOp(op, dimIndex);
     return success();
@@ -417,12 +423,12 @@ struct ConvertTensorExtractPattern
     }
     auto limitIndices = rewriter.getDenseI64ArrayAttr(indices);
 
-    Value extractedTensor = rewriter.create<SliceOp>(
-        op.getLoc(), input, startIndices, limitIndices,
+    Value extractedTensor = SliceOp::create(
+        rewriter, op.getLoc(), input, startIndices, limitIndices,
         /*strides=*/
         rewriter.getDenseI64ArrayAttr(SmallVector<int64_t>(indices.size(), 1)));
-    Value extractedScalarTensor = rewriter.create<ReshapeOp>(
-        op.getLoc(), RankedTensorType::get({}, rewriter.getI32Type()),
+    Value extractedScalarTensor = ReshapeOp::create(
+        rewriter, op.getLoc(), RankedTensorType::get({}, rewriter.getI32Type()),
         extractedTensor);
     if (getElementTypeOrSelf(op.getType()).isIndex()) {
       auto extractedIndex =
@@ -432,9 +438,9 @@ struct ConvertTensorExtractPattern
       // For the special case when the input is a i32 tensor and output is i32,
       // convert the result back to i32 to be consistent:
       //   unrealized_conversion_cast tensor<i32> -> i32
-      rewriter.replaceOp(op,
-                         rewriter.create<UnrealizedConversionCastOp>(
-                             op.getLoc(), op.getType(), extractedScalarTensor));
+      rewriter.replaceOp(
+          op, UnrealizedConversionCastOp::create(
+                  rewriter, op.getLoc(), op.getType(), extractedScalarTensor));
     }
     return success();
   }
@@ -454,9 +460,9 @@ struct ConvertTensorFromElementsPattern
       //   tensor.from_elements i64 -> tensor<i64>
       // This is converted to unrealized_conversion_cast i64 -> tensor<i64>,
       // which is later cancelled with previous unrealized_conversion_cast op.
-      rewriter.replaceOp(op,
-                         rewriter.create<UnrealizedConversionCastOp>(
-                             op.getLoc(), op.getType(), op.getElements()[0]));
+      rewriter.replaceOp(
+          op, UnrealizedConversionCastOp::create(
+                  rewriter, op.getLoc(), op.getType(), op.getElements()[0]));
       return success();
     }
 
@@ -469,18 +475,20 @@ struct ConvertTensorFromElementsPattern
     for (size_t i = 0; i < op.getElements().size(); ++i) {
       if (auto constIndex = dyn_cast_or_null<arith::ConstantIndexOp>(
               op.getElements()[i].getDefiningOp())) {
-        elementI32x1.push_back(rewriter.create<ConstantOp>(
-            op.getLoc(), DenseIntElementsAttr::get<int32_t>(
-                             RankedTensorType::get({1}, rewriter.getI32Type()),
-                             static_cast<int32_t>(constIndex.value()))));
+        elementI32x1.push_back(ConstantOp::create(
+            rewriter, op.getLoc(),
+            DenseIntElementsAttr::get<int32_t>(
+                RankedTensorType::get({1}, rewriter.getI32Type()),
+                static_cast<int32_t>(constIndex.value()))));
       } else {
-        elementI32x1.push_back(rewriter.create<ReshapeOp>(
-            op.getLoc(), RankedTensorType::get({1}, rewriter.getI32Type()),
+        elementI32x1.push_back(ReshapeOp::create(
+            rewriter, op.getLoc(),
+            RankedTensorType::get({1}, rewriter.getI32Type()),
             castToI32(rewriter, op->getLoc(), op.getElements()[i])));
       }
     }
-    Value tensorI32 = rewriter.create<ConcatenateOp>(op.getLoc(), elementI32x1,
-                                                     /*dimension=*/0);
+    Value tensorI32 = ConcatenateOp::create(rewriter, op.getLoc(), elementI32x1,
+                                            /*dimension=*/0);
 
     tensorI32 = maybeCastToIndex(op.getResult(), tensorI32, rewriter);
     if (!tensorI32 || tensorI32.getType() != op.getType())

@@ -22,21 +22,24 @@ func.func @add_fold_cst() -> (tensor<i32>, tensor<f32>) {
 // CHECK-LABEL: func.func @broadcast_in_dim_fold_splat
 // CHECK-SAME:   ([[ARG0:%.+]]: tensor<3x3xi32>)
 func.func @broadcast_in_dim_fold_splat(%arg0: tensor<3x3xi32>)
-  -> (tensor<6xi32>, tensor<3xf32>, tensor<3x3xi32>) {
+  -> (tensor<6xi32>, tensor<3xf32>, tensor<5xcomplex<f32>>, tensor<3x3xi32>) {
   %c0 = stablehlo.constant dense<5> : tensor<i32>
   %c1 = stablehlo.constant dense<3.0> : tensor<f32>
-  %c2 = stablehlo.constant dense<1> : tensor<1x3xi32>
+  %c2 = stablehlo.constant dense<(1.0,2.0)> : tensor<complex<f32>>
+  %c3 = stablehlo.constant dense<1> : tensor<1x3xi32>
 
   %0 = stablehlo.broadcast_in_dim %c0, dims = [] : (tensor<i32>) -> tensor<6xi32>
   %1 = stablehlo.broadcast_in_dim %c1, dims = [] : (tensor<f32>) -> tensor<3xf32>
-  %2 = stablehlo.broadcast_in_dim %c2, dims = [1, 0] : (tensor<1x3xi32>) -> tensor<3x3xi32>
+  %2 = stablehlo.broadcast_in_dim %c2, dims = [] : (tensor<complex<f32>>) -> tensor<5xcomplex<f32>>
+  %3 = stablehlo.broadcast_in_dim %c3, dims = [1, 0] : (tensor<1x3xi32>) -> tensor<3x3xi32>
 
   // CHECK-DAG:  [[R0:%.+]] = stablehlo.constant dense<5> : tensor<6xi32>
   // CHECK-DAG:  [[R1:%.+]] = stablehlo.constant dense<3.000000e+00> : tensor<3xf32>
-  // CHECK-DAG:  [[R2:%.+]] = stablehlo.constant dense<1> : tensor<3x3xi32>
+  // CHECK-DAG:  [[R2:%.+]] = stablehlo.constant dense<(1.0{{.*}},2.0{{.*}})> : tensor<5xcomplex<f32>>
+  // CHECK-DAG:  [[R3:%.+]] = stablehlo.constant dense<1> : tensor<3x3xi32>
 
-  // CHECK-NEXT: return [[R0]], [[R1]], [[R2]]
-  return %0, %1, %2 : tensor<6xi32>, tensor<3xf32>, tensor<3x3xi32>
+  // CHECK-NEXT: return [[R0]], [[R1]], [[R2]], [[R3]]
+  return %0, %1, %2, %3 : tensor<6xi32>, tensor<3xf32>, tensor<5xcomplex<f32>>, tensor<3x3xi32>
 }
 
 // -----

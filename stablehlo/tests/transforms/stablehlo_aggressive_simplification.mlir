@@ -134,6 +134,35 @@ func.func @broadcast_in_dim_reshape(%arg0: tensor<3x6xi32>)
   return %0, %5 : tensor<1x3x6xi32>, tensor<3x6x1xi32>
 }
 
+// CHECK-LABEL: func.func @broadcast_in_dim_prefer_nested_reshape
+// CHECK-SAME:   ([[ARG0:%[^ ]+]]: tensor<3x4xi32>)
+func.func @broadcast_in_dim_prefer_nested_reshape(%arg0: tensor<3x4xi32>) -> (tensor<2x3x4x3xi32>, tensor<2x3x4x3xi32>) {
+  // When `broadcast_in_dim(broadcast_in_dim(x))` could be optimized into either
+  // `broadcast_in_dim(reshape(x))` or `broadcast_in_dim(x)`, we want to select
+  // the former pattern.
+  //
+  // (We accomplish this by blocking the merge-composition pattern if the inner
+  // op can be replaced with a `reshape`. Simply adding benefit to the
+  // replace-with-reshape pattern isn't sufficient here because the outermost
+  // op, which only matches the merge-composition pattern, is traversed first.)
+
+  // CHECK-DAG: [[INNER_RESHAPE:%[^ ]+]] = stablehlo.reshape [[ARG0]] : (tensor<3x4xi32>) -> tensor<3x1x4xi32>
+  // CHECK-DAG: [[BROADCAST_OF_RESHAPE:%[^ ]+]] = stablehlo.broadcast_in_dim [[INNER_RESHAPE]], dims = [1, 0, 2] : (tensor<3x1x4xi32>) -> tensor<2x3x4x3xi32>
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [0, 2] : (tensor<3x4xi32>) -> tensor<3x1x4xi32>
+  %1 = stablehlo.broadcast_in_dim %0, dims = [1, 0, 2] : (tensor<3x1x4xi32>) -> tensor<2x3x4x3xi32>
+
+  // When the inner op doesn't qualify for replacement with a `reshape` op,
+  // however (particularly when it meets some conditions but not others), ensure
+  // that we allow the merge-composition pattern to match.
+
+  // CHECK-DAG: [[MERGED_BROADCAST:%[^ ]+]] = stablehlo.broadcast_in_dim [[ARG0]], dims = [3, 2] : (tensor<3x4xi32>) -> tensor<2x3x4x3xi32>
+  %2 = stablehlo.broadcast_in_dim %arg0, dims = [2, 1] : (tensor<3x4xi32>) -> tensor<1x4x3xi32>
+  %3 = stablehlo.broadcast_in_dim %2, dims = [0, 2, 3] : (tensor<1x4x3xi32>) -> tensor<2x3x4x3xi32>
+
+  // CHECK-DAG: return [[BROADCAST_OF_RESHAPE]], [[MERGED_BROADCAST]]
+  return %1, %3 : tensor<2x3x4x3xi32>, tensor<2x3x4x3xi32>
+}
+
 // CHECK-LABEL: func.func @broadcast_in_dim_not_identity_broadcasts
 func.func @broadcast_in_dim_not_identity_broadcasts(%arg0: tensor<1x2xf32>) -> tensor<2x2xf32> {
   // CHECK: stablehlo.broadcast_in_dim
@@ -208,6 +237,18 @@ func.func @compare_unsigned_arg(%arg0: tensor<i32>)
   // CHECK-NEXT: return [[C1]], [[C0]], [[C1]], [[C0]], [[R0]], [[R1]], [[R2]], [[R3]]
   return %0, %1, %2, %3, %4, %5, %6, %7 :
          tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
+
+// CHECK-LABEL: func.func @compare_op_bool_simplify
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<i1>)
+func.func @compare_op_bool_simplify(%arg0: tensor<i1>) -> (tensor<i1>, tensor<i1>) {
+  %false = stablehlo.constant dense<false> : tensor<i1>
+  %true = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK-NOT: stablehlo.compare
+  %0 = stablehlo.compare NE, %arg0, %false, UNSIGNED : (tensor<i1>, tensor<i1>) -> tensor<i1>
+  %1 = stablehlo.compare EQ, %arg0, %true, UNSIGNED : (tensor<i1>, tensor<i1>) -> tensor<i1>
+  // CHECK: return [[ARG0]], [[ARG0]]
+  func.return %0, %1 : tensor<i1>, tensor<i1>
 }
 
 // -----
@@ -1023,6 +1064,18 @@ func.func @pad_noop(%arg0: tensor<256x1024xbf16>, %arg1: tensor<i32>) -> tensor<
   return %1 : tensor<256x1024xbf16>
 }
 
+// We don't want to delete `pad` ops that move a tensor's values around without
+// affecting its dimensions.
+//
+// CHECK-LABEL: @pad_rotate_tensor_no_dim_change
+func.func @pad_rotate_tensor_no_dim_change(%arg0: tensor<50x50xf32>) -> tensor<50x50xf32> {
+  // CHECK: %[[RES:.+]] = stablehlo.pad
+  // CHECK: return %[[RES]]
+  %cst = stablehlo.constant dense<0.0> : tensor<f32>
+  %0 = stablehlo.pad %arg0, %cst, low = [0, -1], high = [0, 1], interior = [0, 0] : (tensor<50x50xf32>, tensor<f32>) -> tensor<50x50xf32>
+  return %0 : tensor<50x50xf32>
+}
+
 // -----
 
 /////////
@@ -1808,6 +1861,15 @@ func.func @transpose_is_not_reshape(%arg0: tensor<1x4x5x2xf32>) -> tensor<2x4x1x
   // CHECK-NOT: stablehlo.reshape
   %0 = stablehlo.transpose %arg0, dims = [3, 1, 0, 2] : (tensor<1x4x5x2xf32>) -> tensor<2x4x1x5xf32>
   return %0 : tensor<2x4x1x5xf32>
+}
+
+// CHECK-LABEL: @transpose_of_transpose
+func.func @transpose_of_transpose(%arg0 : tensor<1x2x3x4xf32>) -> tensor<1x2x3x4xf32> {
+  %0 = stablehlo.transpose %arg0, dims = [3,2,1,0] : (tensor<1x2x3x4xf32>) -> tensor<4x3x2x1xf32>
+  %1 = stablehlo.transpose %0, dims = [3,2,1,0] : (tensor<4x3x2x1xf32>) -> tensor<1x2x3x4xf32>
+  // CHECK-NOT: stablehlo.transpose
+  // CHECK: return %arg0
+  return %1 : tensor<1x2x3x4xf32>
 }
 
 // -----

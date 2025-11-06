@@ -69,9 +69,9 @@ int main() {
 
   llvm::SmallVector<mlir::NamedAttribute, 10> attributes;
   mlir::Operation* op =
-      block_builder.create<mlir::stablehlo::AddOp>(loc, arguments, attributes)
+      mlir::stablehlo::AddOp::create(block_builder, loc, arguments, attributes)
           .getOperation();
-  block_builder.create<mlir::func::ReturnOp>(loc, op->getResult(0));
+  mlir::func::ReturnOp::create(block_builder, loc, op->getResult(0));
 
   /** verify and dump the module **/
   assert(mlir::succeeded(mlir::verify(module.get())));

@@ -43,6 +43,14 @@ def NumberOfElementsEqual : Constraint<
     CPred<"llvm::cast<ShapedType>($0.getType()).getNumElements() == llvm::cast<ShapedType>($1.getType()).getNumElements()">,
     "same number of elements">;
 
+def BroadcastNotReducibleToReshape : Constraint<
+    CPred<"llvm::isa<stablehlo::BroadcastInDimOp>($0.getDefiningOp()) && "
+          "!("
+            "llvm::is_sorted($0.getDefiningOp<stablehlo::BroadcastInDimOp>().getBroadcastDimensions()) && "
+            "llvm::cast<ShapedType>($0.getType()).getNumElements() == llvm::cast<ShapedType>($1.getType()).getNumElements()"
+          ")">,
+    "is a broadcast_in_dim op that cannot be simplified to a reshape op">;
+
 def OperandsEqual : Constraint<CPred<"$0 == $1">, "operands are equal">;
 
 def RankEqual : Constraint<
@@ -61,6 +69,10 @@ def AnySplat : AttrConstraint<CPred<"$_self.isSplat()">, "is any splat">;
 def AnyZero : AttrConstraint<
     CPred<"::mlir::matchPattern($_self, m_AnyAttrOf(m_Zero(), m_AnyZeroFloat()))">,
     "is int or float zero">;
+
+def ZeroArrayI64 : AttrConstraint<
+    CPred<"::llvm::all_of(::llvm::cast<DenseI64ArrayAttr>($_self).asArrayRef(), [](int64_t val) { return val == 0; })">,
+    "is an array of zeros">;
 
 def DenseIntElementsAttr : AttrConstraint<
     CPred<"llvm::isa<DenseIntElementsAttr>($_self)">,
@@ -120,11 +132,13 @@ def InvertBroadcastDims : NativeCodeCall<"getInvertedBroadcastDimensions($_build
 
 def MergeBroadcastDims : NativeCodeCall<"getMergedBroadcastDimensions($_builder, $0, $1)">;
 
+def MergePermutations : NativeCodeCall<"getMergedTransposePermutation($_builder, $0, $1)">;
+
 def StableHLO_ConvertOpWithShape : NativeCodeCall<
-    "$_builder.create<stablehlo::ConvertOp>($_loc, $0.getType(), $1)">;
+    "stablehlo::ConvertOp::create($_builder, $_loc, $0.getType(), $1)">;
 
 def StableHLO_ReshapeOpWithShape : NativeCodeCall<
-    "$_builder.create<stablehlo::ReshapeOp>($_loc, $0.getType(), $1)">;
+    "stablehlo::ReshapeOp::create($_builder, $_loc, $0.getType(), $1)">;
 
 class StableHLO_ConstantLike<string value> : NativeCodeCall<
     "::mlir::stablehlo::getConstantLike($_builder, $_loc, " # value # ", $0)">;
@@ -178,18 +192,23 @@ def BroadcastInDimOp_RemoveNoop
 
 // Pattern: broadcast_in_dim(broadcast_in_dim(X, [dimsA...]), [dimsB...])
 //       -> broadcast_in_dim(X, merge(dimsA, dimsB))
+//          [if the nested broadcast can't be simplified to a reshape]
 def BroadcastInDimOp_MergeComposition
-  : Pat<(StableHLO_BroadcastInDimOp
-            (StableHLO_BroadcastInDimOp $operand, $dims_parent), $dims),
+  : Pat<(StableHLO_BroadcastInDimOp:$outer_op
+            (StableHLO_BroadcastInDimOp:$inner_op $operand, $inner_dims),
+            $outer_dims),
         (StableHLO_BroadcastInDimOp
-            $operand, (MergeBroadcastDims $dims, $dims_parent))>;
+            $operand, (MergeBroadcastDims $outer_dims, $inner_dims)),
+        [(BroadcastNotReducibleToReshape $inner_op, $operand)]>;
 
 // Pattern: broadcast_in_dim(X, [sorted...]) -> reshape(X, [sorted...])
 //          [if same numel]
 def BroadcastInDimOp_ReplaceWithReshape
   : Pat<(StableHLO_BroadcastInDimOp:$op $operand, SortedDims:$dims),
         (StableHLO_ReshapeOpWithShape $op, $operand),
-        [(NumberOfElementsEqual $op, $operand)]>;
+        [(NumberOfElementsEqual $op, $operand)],
+        [],
+        (addBenefit 1)>;
 
 // Pattern: broadcast_in_dim(X, [dims...]) -> transpose(X, [dims...])
 //          [if same numel & rank]
@@ -197,6 +216,36 @@ def BroadcastInDimOp_ReplaceWithTranspose
   : Pat<(StableHLO_BroadcastInDimOp:$op $operand, $dims),
         (StableHLO_TransposeOp $operand, (InvertBroadcastDims $dims)),
         [(NumberOfElementsEqual $op, $operand), (RankEqual $op, $operand)]>;
+
+////////
+// CompareOp
+
+// The canonical form has the constant operand as the RHS.
+class StableHLO_ComparisonDirectionValue<string enumStr> :
+  ConstantAttr<StableHLO_ComparisonDirectionAttr, "::mlir::stablehlo::ComparisonDirection::" # enumStr>;
+
+// Pattern: compare(NE, X, False) : i1 -> X
+def CompareOp_NeBooleanFalse
+  : Pat<(StableHLO_CompareOp
+            $lhs,
+            (StableHLO_ConstantOp:$cst IntZero:$value),
+            StableHLO_ComparisonDirectionValue<"NE">,
+            $type),
+        (replaceWithValue $lhs),
+        [(HLO_PredTensor $cst)]>;
+
+// Pattern: compare(EQ, X, True) : i1 -> X
+def CompareOp_EqBooleanTrue
+  : Pat<(StableHLO_CompareOp
+            $lhs,
+            (StableHLO_ConstantOp:$cst IntOne:$value),
+            StableHLO_ComparisonDirectionValue<"EQ">,
+            $type),
+        (replaceWithValue $lhs),
+        [(HLO_PredTensor $cst)]>;
+
+// TODO: compare(EQ, X, False) : i1 -> not(X)
+// TODO: compare(NE, X, True) : i1 -> not(X)
 
 ////////
 // ConvertOp
@@ -424,9 +473,9 @@ def PadOp_RemoveNoop
   : Pat<(StableHLO_PadOp:$pad
             $operand,
             $padding_value,
-            $edge_padding_low,
-            $edge_padding_high,
-            $interior_padding),
+            ZeroArrayI64:$edge_padding_low,
+            ZeroArrayI64:$edge_padding_high,
+            ZeroArrayI64:$interior_padding),
         (replaceWithValue $operand),
         [(TypesEqual $pad, $operand)]>;
 
@@ -538,6 +587,12 @@ def SliceOp_RemoveNoop
 def TransposeOp_RemoveNoop
   : Pat<(StableHLO_TransposeOp $lhs, IotaDims:$dims),
         (replaceWithValue $lhs)>;
+
+// Pattern: transpose(transpose(X)) -> transpose(X)
+def TransposeOp_TransposeOfTranspose
+  : Pat<(StableHLO_TransposeOp
+          (StableHLO_TransposeOp $child, $child_dims), $dims),
+        (StableHLO_TransposeOp $child, (MergePermutations $child_dims, $dims))>;
 
 ////////
 // GetTupleElementOp

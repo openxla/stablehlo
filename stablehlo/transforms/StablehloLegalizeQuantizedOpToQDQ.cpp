@@ -76,7 +76,7 @@ struct QuantizedStablehloOpConversion
     for (auto operand : op->getOperands()) {
       if (isa<quant::QuantizedType>(getElementTypeOrSelf(operand.getType()))) {
         dequantizedOperands.push_back(
-            rewriter.create<UniformDequantizeOp>(op->getLoc(), operand));
+            UniformDequantizeOp::create(rewriter, op->getLoc(), operand));
       } else {
         dequantizedOperands.push_back(operand);
       }
@@ -87,9 +87,8 @@ struct QuantizedStablehloOpConversion
         llvm::map_to_vector(origOp->getResultTypes(),
                             [](Type t) { return getQuantExpressedType(t); });
     auto origAttrs = origOp->getAttrs();
-    auto newOp = rewriter
-                     .create<StablehloOpType>(op.getLoc(), newResultTypes,
-                                              dequantizedOperands, origAttrs)
+    auto newOp = StablehloOpType::create(rewriter, op.getLoc(), newResultTypes,
+                                         dequantizedOperands, origAttrs)
                      .getOperation();
 
     SmallVector<Value> quantizedResults;
@@ -97,9 +96,8 @@ struct QuantizedStablehloOpConversion
          llvm::zip(origOp->getResults(), newOp->getResults())) {
       if (isa<quant::QuantizedType>(
               getElementTypeOrSelf(oldResult.getType()))) {
-        quantizedResults.push_back(
-            rewriter.create<stablehlo::UniformQuantizeOp>(
-                op->getLoc(), oldResult.getType(), newResult));
+        quantizedResults.push_back(stablehlo::UniformQuantizeOp::create(
+            rewriter, op->getLoc(), oldResult.getType(), newResult));
       } else {
         quantizedResults.push_back(newResult);
       }

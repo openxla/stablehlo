@@ -530,10 +530,15 @@ struct ShapeOpRewritePattern : public FoldOpRewritePattern<OpType> {
   using FoldOpRewritePattern<OpType>::matchAndRewrite;
   using FoldOpRewritePattern<OpType>::options;
 
+  // TODO: Generalize all relevant folder patterns to support complex data
+  // types, then hard-code `allowComplex` to `true`.
   LogicalResult validateShapeFoldDtype(PatternRewriter& rewriter, OpType op,
-                                       ShapedType resultType) const {
+                                       ShapedType resultType,
+                                       bool allowComplex = false) const {
     if (resultType.getElementType().isInteger()) return success();
-    if (options.optimizeFloat && isa<FloatType>(resultType.getElementType()))
+    if (options.optimizeFloat &&
+        (allowComplex ? isa<FloatType, ComplexType>(resultType.getElementType())
+                      : isa<FloatType>(resultType.getElementType())))
       return success();
     return rewriter.notifyMatchFailure(op, "skipping fold of shape op dtype");
   }
@@ -605,7 +610,8 @@ struct FoldBroadcastInDimOpSplatPattern
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
     if (failed(validateStaticShapeResult(rewriter, op, resultType)) ||
-        failed(validateShapeFoldDtype(rewriter, op, resultType)))
+        failed(validateShapeFoldDtype(rewriter, op, resultType,
+                                      /*allowComplex=*/true)))
       return failure();
 
     SplatElementsAttr cstAttr;
@@ -759,9 +765,9 @@ class InlineCaseOpWithConstantBranchIndex
     rewriter.setInsertionPointToEnd(&noopBlock);
     for (auto placeholderAttr : placeholderAttrs) {
       placeholderResults.push_back(
-          rewriter.create<ConstantOp>(region.getLoc(), placeholderAttr));
+          ConstantOp::create(rewriter, region.getLoc(), placeholderAttr));
     }
-    rewriter.create<stablehlo::ReturnOp>(region.getLoc(), placeholderResults);
+    stablehlo::ReturnOp::create(rewriter, region.getLoc(), placeholderResults);
 
     return success();
   }
@@ -825,7 +831,8 @@ struct FoldConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
     RankedTensorType resultType = op.getType();
 
     if (failed(validateStaticShapeResult(rewriter, op, resultType)) ||
-        failed(validateShapeFoldDtype(rewriter, op, resultType)))
+        failed(validateShapeFoldDtype(rewriter, op, resultType)) ||
+        failed(validateElementCountForFold(rewriter, op, resultType)))
       return failure();
 
     auto operandElemType = getElementTypeOrSelf(operand.getType());
@@ -1104,7 +1111,7 @@ struct FoldReshapeOpPattern : public ShapeOpRewritePattern<ReshapeOp> {
         failed(validateShapeFoldDtype(rewriter, op, resultType)))
       return failure();
 
-    DenseIntOrFPElementsAttr attr;
+    DenseElementsAttr attr;
     if (!matchPattern(op.getOperand(), m_Constant(&attr)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
     rewriter.replaceOpWithNewOp<ConstantOp>(op, attr.reshape(resultType));
@@ -1636,9 +1643,9 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
 
     for (BlockArgument bodyArg : body.getArguments()) {
       rewriter.replaceAllUsesWith(
-          bodyArg, rewriter.create<ConstantOp>(
-                       body.front().getLoc(), bodyArg.getType(),
-                       bodyArgConstantAttrs[bodyArg.getArgNumber()]));
+          bodyArg,
+          ConstantOp::create(rewriter, body.front().getLoc(), bodyArg.getType(),
+                             bodyArgConstantAttrs[bodyArg.getArgNumber()]));
     }
 
     return success();
@@ -1707,8 +1714,8 @@ struct FoldReduceOpToConstantInitializer
 
     SmallVector<Value> resultValues;
     for (auto resultAttr : resultAttrs) {
-      resultValues.push_back(rewriter.create<ConstantOp>(
-          op.getLoc(), resultAttr.getType(), resultAttr));
+      resultValues.push_back(ConstantOp::create(
+          rewriter, op.getLoc(), resultAttr.getType(), resultAttr));
     }
 
     rewriter.replaceOp(op, resultValues);

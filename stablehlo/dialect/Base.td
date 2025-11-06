@@ -152,7 +152,7 @@ def HLO_PerAxisQuantizedInt :
     AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt], "per-axis integer quantized">;
 
 // Token type.
-def HLO_Token : Type<CPred<"::llvm::isa<::mlir::stablehlo::TokenType>($_self)">, "token">;
+def HLO_Token : Type<CPred<"::llvm::isa<TokenType>($_self)">, "token">;
 
 // Any integer tensor types
 def HLO_IntTensor : RankedTensorOf<[HLO_Int]>;

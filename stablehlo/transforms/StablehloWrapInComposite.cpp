@@ -65,8 +65,8 @@ func::FuncOp buildFuncOpWrappingOperation(Operation* op, ModuleOp module) {
   // SymbolTable will resolve all name conflicts.
   Location loc = op->getLoc();
   auto funcName = (op->getName().getStringRef() + ".impl").str();
-  mlir::func::FuncOp implFunc = builder.create<mlir::func::FuncOp>(
-      loc, funcName,
+  mlir::func::FuncOp implFunc = mlir::func::FuncOp::create(
+      builder, loc, funcName,
       builder.getFunctionType(op->getOperandTypes(), op->getResultTypes()));
   implFunc.setPrivate();
   symbol_table.insert(implFunc);
@@ -75,7 +75,7 @@ func::FuncOp buildFuncOpWrappingOperation(Operation* op, ModuleOp module) {
   builder.setInsertionPointToEnd(block);
   mlir::Operation* clonedOp = builder.clone(*op);
   clonedOp->setOperands(block->getArguments());
-  builder.create<mlir::func::ReturnOp>(loc, clonedOp->getResults());
+  mlir::func::ReturnOp::create(builder, loc, clonedOp->getResults());
 
   return implFunc;
 }
@@ -121,9 +121,10 @@ class ConvertGenericOp : public RewritePattern {
     auto namedAttributes = compositeAttributeProvider(op);
     auto compositeAttributes = rewriter.getDictionaryAttr(*namedAttributes);
 
-    auto compositeOp = rewriter.create<stablehlo::CompositeOp>(
-        op->getLoc(), op->getResultTypes(), op->getOperands(), compositeName,
-        compositeAttributes, decomposition.getSymName(), compositeVersion);
+    auto compositeOp = stablehlo::CompositeOp::create(
+        rewriter, op->getLoc(), op->getResultTypes(), op->getOperands(),
+        compositeName, compositeAttributes, decomposition.getSymName(),
+        compositeVersion);
     rewriter.replaceOp(op, compositeOp.getResults());
     return success();
   }
@@ -215,9 +216,10 @@ stablehlo::CompositeOp wrapOperationInComposite(OpBuilder& builder,
   auto compositeName = op->getName().getStringRef();
   auto compositeAttributes = builder.getDictionaryAttr(attrs);
   auto compositeDecomposition = decomposition.getSymName();
-  auto composite = builder.create<stablehlo::CompositeOp>(
-      op->getLoc(), op->getResultTypes(), op->getOperands(), compositeName,
-      compositeAttributes, compositeDecomposition, compositeVersion);
+  auto composite = stablehlo::CompositeOp::create(
+      builder, op->getLoc(), op->getResultTypes(), op->getOperands(),
+      compositeName, compositeAttributes, compositeDecomposition,
+      compositeVersion);
   return composite;
 }
 

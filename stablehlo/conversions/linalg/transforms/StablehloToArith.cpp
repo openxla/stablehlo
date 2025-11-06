@@ -33,6 +33,7 @@ namespace {
 
 template <typename OpTy>
 struct ScalarHloToFuncPatterns final : OpConversionPattern<OpTy> {
+  // NOLINTNEXTLINE(clang-diagnostic-shadow-field)
   ScalarHloToFuncPatterns(TypeConverter& typeConverter, MLIRContext* context,
                           PatternBenefit benefit = 1)
       : OpConversionPattern<OpTy>(typeConverter, context, benefit) {}
@@ -51,6 +52,7 @@ struct ScalarHloToFuncPatterns final : OpConversionPattern<OpTy> {
 template <typename OpTy>
 struct ScalarHloToArithmeticPattern final : OpConversionPattern<OpTy> {
   ScalarHloToArithmeticPattern(
+      // NOLINTNEXTLINE(clang-diagnostic-shadow-field)
       TypeConverter& typeConverter, MLIRContext* context,
       llvm::function_ref<bool(Operation*)> filterFn = nullptr,
       PatternBenefit benefit = 1)
@@ -78,7 +80,7 @@ struct ScalarHloToArithmeticPattern final : OpConversionPattern<OpTy> {
     SmallVector<Value> operands;
     for (Value operand : adaptor.getOperands()) {
       operands.push_back(
-          rewriter.create<tensor::ExtractOp>(loc, operand, ValueRange()));
+          tensor::ExtractOp::create(rewriter, loc, operand, ValueRange()));
     }
     Value scalarResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
         op, resultTy.getElementType(), operands, &rewriter);

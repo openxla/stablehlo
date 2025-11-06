@@ -72,30 +72,32 @@ quant::UniformQuantizedPerAxisType getPerAxisType(Type type) {
 }
 
 // Extracts scale and zero point info from input quant type info.
-void getQuantizationParams(OpBuilder &builder, Location loc,
-                           QuantType quantType, Value &scales,
-                           Value &zeroPoints, bool outputZeroPointInFp,
-                           DenseI64ArrayAttr &broadcastDims) {
+void getQuantizationParams(OpBuilder& builder, Location loc,
+                           QuantType quantType, Value& scales,
+                           Value& zeroPoints, bool outputZeroPointInFp,
+                           DenseI64ArrayAttr& broadcastDims) {
   // Get scales/zero points for per-tensor and per-axis quantization cases.
   if (auto quantPerTensorType =
           dyn_cast<quant::UniformQuantizedType>(quantType)) {
-    scales = builder.create<stablehlo::ConstantOp>(
-        loc, builder.getF32FloatAttr(quantPerTensorType.getScale()));
+    scales = stablehlo::ConstantOp::create(
+        builder, loc, builder.getF32FloatAttr(quantPerTensorType.getScale()));
     if (outputZeroPointInFp) {
-      zeroPoints = builder.create<stablehlo::ConstantOp>(
-          loc, builder.getF32FloatAttr(
-                   static_cast<float>(quantPerTensorType.getZeroPoint())));
+      zeroPoints = stablehlo::ConstantOp::create(
+          builder, loc,
+          builder.getF32FloatAttr(
+              static_cast<float>(quantPerTensorType.getZeroPoint())));
     } else {
-      zeroPoints = builder.create<stablehlo::ConstantOp>(
-          loc, builder.getI32IntegerAttr(
-                   static_cast<int32_t>(quantPerTensorType.getZeroPoint())));
+      zeroPoints = stablehlo::ConstantOp::create(
+          builder, loc,
+          builder.getI32IntegerAttr(
+              static_cast<int32_t>(quantPerTensorType.getZeroPoint())));
     }
   } else {
     auto quantPerAxisType = getPerAxisType(quantType);
     SmallVector<float> scalesVec;
     for (auto scale : quantPerAxisType.getScales()) scalesVec.push_back(scale);
-    scales = builder.create<stablehlo::ConstantOp>(
-        loc,
+    scales = stablehlo::ConstantOp::create(
+        builder, loc,
         DenseFPElementsAttr::get(
             RankedTensorType::get(
                 {static_cast<int64_t>(quantPerAxisType.getScales().size())},
@@ -105,24 +107,26 @@ void getQuantizationParams(OpBuilder &builder, Location loc,
       SmallVector<float> zeroPointsVec;
       for (auto zeroPoint : quantPerAxisType.getZeroPoints())
         zeroPointsVec.push_back(zeroPoint);
-      zeroPoints = builder.create<stablehlo::ConstantOp>(
-          loc, DenseFPElementsAttr::get(
-                   RankedTensorType::get(
-                       {static_cast<int64_t>(
-                           quantPerAxisType.getZeroPoints().size())},
-                       builder.getF32Type()),
-                   zeroPointsVec));
+      zeroPoints = stablehlo::ConstantOp::create(
+          builder, loc,
+          DenseFPElementsAttr::get(
+              RankedTensorType::get(
+                  {static_cast<int64_t>(
+                      quantPerAxisType.getZeroPoints().size())},
+                  builder.getF32Type()),
+              zeroPointsVec));
     } else {
       SmallVector<int32_t> zeroPointsVec;
       for (auto zeroPoint : quantPerAxisType.getZeroPoints())
         zeroPointsVec.push_back(zeroPoint);
-      zeroPoints = builder.create<stablehlo::ConstantOp>(
-          loc, DenseIntElementsAttr::get(
-                   RankedTensorType::get(
-                       {static_cast<int64_t>(
-                           quantPerAxisType.getZeroPoints().size())},
-                       builder.getI32Type()),
-                   zeroPointsVec));
+      zeroPoints = stablehlo::ConstantOp::create(
+          builder, loc,
+          DenseIntElementsAttr::get(
+              RankedTensorType::get(
+                  {static_cast<int64_t>(
+                      quantPerAxisType.getZeroPoints().size())},
+                  builder.getI32Type()),
+              zeroPointsVec));
     }
     broadcastDims = DenseI64ArrayAttr::get(
         builder.getContext(),
@@ -131,15 +135,17 @@ void getQuantizationParams(OpBuilder &builder, Location loc,
 }
 
 // Extracts storage min/max from input quant type info.
-void getQuantizationStorageInfo(OpBuilder &builder, Location loc,
-                                QuantType quantType, Value &storageMin,
-                                Value &storageMax) {
-  storageMin = builder.create<stablehlo::ConstantOp>(
-      loc, builder.getF32FloatAttr(
-               static_cast<float>(quantType.getStorageTypeMin())));
-  storageMax = builder.create<stablehlo::ConstantOp>(
-      loc, builder.getF32FloatAttr(
-               static_cast<float>(quantType.getStorageTypeMax())));
+void getQuantizationStorageInfo(OpBuilder& builder, Location loc,
+                                QuantType quantType, Value& storageMin,
+                                Value& storageMax) {
+  storageMin = stablehlo::ConstantOp::create(
+      builder, loc,
+      builder.getF32FloatAttr(
+          static_cast<float>(quantType.getStorageTypeMin())));
+  storageMax = stablehlo::ConstantOp::create(
+      builder, loc,
+      builder.getF32FloatAttr(
+          static_cast<float>(quantType.getStorageTypeMax())));
 }
 
 // Extracts storage type of a UQ type, preserving its shape.
@@ -155,7 +161,7 @@ Type getQuantStorageType(Type type) {
   return type;
 }
 
-Value applyMergedScalesAndZps(OpBuilder &builder, Location loc,
+Value applyMergedScalesAndZps(OpBuilder& builder, Location loc,
                               QuantType inputQuantType,
                               QuantType outputQuantType,
                               Value inputFloatTensor) {
@@ -168,19 +174,22 @@ Value applyMergedScalesAndZps(OpBuilder &builder, Location loc,
         getPerTensorType(outputQuantType);
     double mergedScaleFp =
         inputPerTensorType.getScale() / outputPerTensorType.getScale();
-    auto mergedScale = builder.create<stablehlo::ConstantOp>(
-        loc, builder.getF32FloatAttr(static_cast<float>(mergedScaleFp)));
-    inputFloatTensor =
-        builder.create<chlo::BroadcastMulOp>(loc, inputFloatTensor, mergedScale,
-                                             /*broadcast_dimensions=*/nullptr);
+    auto mergedScale = stablehlo::ConstantOp::create(
+        builder, loc,
+        builder.getF32FloatAttr(static_cast<float>(mergedScaleFp)));
+    inputFloatTensor = chlo::BroadcastMulOp::create(
+        builder, loc, inputFloatTensor, mergedScale,
+        /*broadcast_dimensions=*/nullptr);
     // Add merged_zp only when it is non-zero.
     double mergedZpFp = outputPerTensorType.getZeroPoint() -
                         inputPerTensorType.getZeroPoint() * mergedScaleFp;
     if (mergedZpFp != 0) {
-      Value mergedZp = builder.create<stablehlo::ConstantOp>(
-          loc, builder.getF32FloatAttr(static_cast<float>(mergedZpFp)));
-      inputFloatTensor = builder.create<chlo::BroadcastAddOp>(
-          loc, inputFloatTensor, mergedZp, /*broadcast_dimensions=*/nullptr);
+      Value mergedZp = stablehlo::ConstantOp::create(
+          builder, loc,
+          builder.getF32FloatAttr(static_cast<float>(mergedZpFp)));
+      inputFloatTensor =
+          chlo::BroadcastAddOp::create(builder, loc, inputFloatTensor, mergedZp,
+                                       /*broadcast_dimensions=*/nullptr);
     }
   } else {
     int64_t channelSize =
@@ -217,19 +226,21 @@ Value applyMergedScalesAndZps(OpBuilder &builder, Location loc,
 
     auto broadcastDims =
         DenseI64ArrayAttr::get(builder.getContext(), {quantizedDimension});
-    Value mergedScale = builder.create<stablehlo::ConstantOp>(
-        loc, DenseFPElementsAttr::get(
-                 RankedTensorType::get({channelSize}, builder.getF32Type()),
-                 mergedScaleFloat));
-    inputFloatTensor = builder.create<chlo::BroadcastMulOp>(
-        loc, inputFloatTensor, mergedScale, broadcastDims);
+    Value mergedScale = stablehlo::ConstantOp::create(
+        builder, loc,
+        DenseFPElementsAttr::get(
+            RankedTensorType::get({channelSize}, builder.getF32Type()),
+            mergedScaleFloat));
+    inputFloatTensor = chlo::BroadcastMulOp::create(
+        builder, loc, inputFloatTensor, mergedScale, broadcastDims);
     if (llvm::any_of(mergedZpFloat, [](double zp) { return zp != 0; })) {
-      Value mergedZp = builder.create<stablehlo::ConstantOp>(
-          loc, DenseFPElementsAttr::get(
-                   RankedTensorType::get({channelSize}, builder.getF32Type()),
-                   mergedZpFloat));
-      inputFloatTensor = builder.create<chlo::BroadcastAddOp>(
-          loc, inputFloatTensor, mergedZp, broadcastDims);
+      Value mergedZp = stablehlo::ConstantOp::create(
+          builder, loc,
+          DenseFPElementsAttr::get(
+              RankedTensorType::get({channelSize}, builder.getF32Type()),
+              mergedZpFloat));
+      inputFloatTensor = chlo::BroadcastAddOp::create(
+          builder, loc, inputFloatTensor, mergedZp, broadcastDims);
     }
   }
   return inputFloatTensor;
@@ -255,16 +266,16 @@ Value applyMergedScalesAndZps(OpBuilder &builder, Location loc,
 //   merged_scale = input_scale / output_scale.
 Value requantize(OpState op, Value input, QuantType inputQuantType,
                  QuantType outputQuantType, TensorType outputTensorType,
-                 ConversionPatternRewriter &rewriter) {
+                 ConversionPatternRewriter& rewriter) {
   // Skip requantization when input and result have the same type.
   if (inputQuantType == outputQuantType) {
-    return rewriter.create<stablehlo::ConvertOp>(op->getLoc(), outputTensorType,
-                                                 input);
+    return stablehlo::ConvertOp::create(rewriter, op->getLoc(),
+                                        outputTensorType, input);
   }
 
   auto floatTensorType = outputTensorType.clone(rewriter.getF32Type());
-  Value outputFloat = rewriter.create<stablehlo::ConvertOp>(
-      op->getLoc(), floatTensorType, input);
+  Value outputFloat = stablehlo::ConvertOp::create(rewriter, op->getLoc(),
+                                                   floatTensorType, input);
 
   outputFloat = applyMergedScalesAndZps(rewriter, op->getLoc(), inputQuantType,
                                         outputQuantType, outputFloat);
@@ -275,14 +286,14 @@ Value requantize(OpState op, Value input, QuantType inputQuantType,
     getQuantizationStorageInfo(rewriter, op->getLoc(), outputQuantType,
                                quantizationMin, quantizationMax);
     // Clamp results by [quantizationMin, quantizationMax].
-    outputFloat = rewriter.create<stablehlo::ClampOp>(
-        op->getLoc(), quantizationMin, outputFloat, quantizationMax);
+    outputFloat = stablehlo::ClampOp::create(
+        rewriter, op->getLoc(), quantizationMin, outputFloat, quantizationMax);
   }
 
-  outputFloat = rewriter.create<stablehlo::RoundNearestEvenOp>(
-      op->getLoc(), floatTensorType, outputFloat);
-  return rewriter.create<stablehlo::ConvertOp>(op->getLoc(), outputTensorType,
-                                               outputFloat);
+  outputFloat = stablehlo::RoundNearestEvenOp::create(
+      rewriter, op->getLoc(), floatTensorType, outputFloat);
+  return stablehlo::ConvertOp::create(rewriter, op->getLoc(), outputTensorType,
+                                      outputFloat);
 }
 
 class ConvertUniformQuantizeOp
@@ -293,7 +304,7 @@ class ConvertUniformQuantizeOp
   LogicalResult matchAndRewrite(
       stablehlo::UniformQuantizeOp op,
       stablehlo::UniformQuantizeOpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto inputElementType = getElementTypeOrSelf(op.getOperand().getType());
     if (inputElementType.isF32()) {
       auto quantType = getQuantType(op.getResult().getType());
@@ -322,7 +333,7 @@ class ConvertUniformQuantizeOp
   LogicalResult matchAndRewriteQuantize(
       stablehlo::UniformQuantizeOp op,
       stablehlo::UniformQuantizeOpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter, QuantType quantType) const {
+      ConversionPatternRewriter& rewriter, QuantType quantType) const {
     Value scales, zeroPoints;
     DenseI64ArrayAttr broadcastDims;
     getQuantizationParams(rewriter, op->getLoc(), quantType, scales, zeroPoints,
@@ -334,17 +345,18 @@ class ConvertUniformQuantizeOp
 
     auto resFloatTensorType =
         op.getOperand().getType().clone(rewriter.getF32Type());
-    Value resFloat = rewriter.create<chlo::BroadcastDivOp>(
-        op->getLoc(), resFloatTensorType, adaptor.getOperand(), scales,
-        broadcastDims);
-    resFloat = rewriter.create<chlo::BroadcastAddOp>(
-        op->getLoc(), resFloatTensorType, resFloat, zeroPoints, broadcastDims);
+    Value resFloat = chlo::BroadcastDivOp::create(
+        rewriter, op->getLoc(), resFloatTensorType, adaptor.getOperand(),
+        scales, broadcastDims);
+    resFloat =
+        chlo::BroadcastAddOp::create(rewriter, op->getLoc(), resFloatTensorType,
+                                     resFloat, zeroPoints, broadcastDims);
 
-    resFloat = rewriter.create<stablehlo::ClampOp>(
-        op->getLoc(), resFloatTensorType, quantizationMin, resFloat,
-        quantizationMax);
-    resFloat = rewriter.create<stablehlo::RoundNearestEvenOp>(
-        op->getLoc(), resFloatTensorType, resFloat);
+    resFloat =
+        stablehlo::ClampOp::create(rewriter, op->getLoc(), resFloatTensorType,
+                                   quantizationMin, resFloat, quantizationMax);
+    resFloat = stablehlo::RoundNearestEvenOp::create(
+        rewriter, op->getLoc(), resFloatTensorType, resFloat);
     auto resFinalTensorType = resFloatTensorType.clone(
         getQuantStorageType(op.getResult().getType().getElementType()));
     rewriter.replaceOpWithNewOp<stablehlo::ConvertOp>(op, resFinalTensorType,
@@ -355,7 +367,7 @@ class ConvertUniformQuantizeOp
   LogicalResult matchAndRewriteRequantize(
       stablehlo::UniformQuantizeOp op,
       stablehlo::UniformQuantizeOpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter, QuantType inputQuantType,
+      ConversionPatternRewriter& rewriter, QuantType inputQuantType,
       QuantType outputQuantType) const {
     rewriter.replaceOp(
         op,
@@ -376,7 +388,7 @@ class ConvertUniformDequantizeOp
   LogicalResult matchAndRewrite(
       stablehlo::UniformDequantizeOp op,
       stablehlo::UniformDequantizeOpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto quantType = getQuantType(op.getOperand().getType());
     if (failed(quantType)) {
       return failure();
@@ -391,14 +403,15 @@ class ConvertUniformDequantizeOp
     // TODO: b/260280919 - Consider avoiding conversion to int32.
     auto resInt32TensorType =
         cast<TensorType>(input.getType()).clone(rewriter.getI32Type());
-    Value resInt32 = rewriter.create<stablehlo::ConvertOp>(
-        op->getLoc(), resInt32TensorType, input);
-    resInt32 = rewriter.create<chlo::BroadcastSubOp>(
-        op->getLoc(), resInt32TensorType, resInt32, zeroPoints, broadcastDims);
+    Value resInt32 = stablehlo::ConvertOp::create(rewriter, op->getLoc(),
+                                                  resInt32TensorType, input);
+    resInt32 =
+        chlo::BroadcastSubOp::create(rewriter, op->getLoc(), resInt32TensorType,
+                                     resInt32, zeroPoints, broadcastDims);
     auto resFloatTensorType =
         cast<TensorType>(resInt32.getType()).clone(rewriter.getF32Type());
-    Value resFloat = rewriter.create<stablehlo::ConvertOp>(
-        op->getLoc(), resFloatTensorType, resInt32);
+    Value resFloat = stablehlo::ConvertOp::create(rewriter, op->getLoc(),
+                                                  resFloatTensorType, resInt32);
     resFloat = rewriter.replaceOpWithNewOp<chlo::BroadcastMulOp>(
         op, resFloatTensorType, resFloat, scales, broadcastDims);
     return success();
@@ -412,7 +425,7 @@ class ConvertUniformQuantizedAddOp
 
   LogicalResult matchAndRewrite(
       stablehlo::AddOp op, stablehlo::AddOpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto lhsQuantType =
         getQuantType(getElementTypeOrSelf(op.getLhs().getType()));
     auto rhsQuantType =
@@ -467,9 +480,10 @@ class ConvertUniformQuantizedAddOp
     Value rhsInt32Tensor = requantize(op, rhs, *rhsQuantType, *resQuantType,
                                       resInt32TensorType, rewriter);
 
-    Value zeroPoint = rewriter.create<stablehlo::ConstantOp>(
-        op->getLoc(), rewriter.getI32IntegerAttr(static_cast<int32_t>(
-                          getPerTensorType(*resQuantType).getZeroPoint())));
+    Value zeroPoint = stablehlo::ConstantOp::create(
+        rewriter, op->getLoc(),
+        rewriter.getI32IntegerAttr(static_cast<int32_t>(
+            getPerTensorType(*resQuantType).getZeroPoint())));
 
     // Now the lhs and rhs have been coverted to the same scale and zps.
     // Given:
@@ -480,11 +494,12 @@ class ConvertUniformQuantizedAddOp
     // res_quant = res_fp / scale + zp
     //           = lhs_quant + rhs_quant - zp
     // The following add the inputs and then substract by zero point.
-    Value addResult = rewriter.create<chlo::BroadcastAddOp>(
-        op->getLoc(), resInt32TensorType, lhsInt32Tensor, rhsInt32Tensor,
-        nullptr);
-    Value resInt32 = rewriter.create<chlo::BroadcastSubOp>(
-        op->getLoc(), resInt32TensorType, addResult, zeroPoint, nullptr);
+    Value addResult =
+        chlo::BroadcastAddOp::create(rewriter, op->getLoc(), resInt32TensorType,
+                                     lhsInt32Tensor, rhsInt32Tensor, nullptr);
+    Value resInt32 =
+        chlo::BroadcastSubOp::create(rewriter, op->getLoc(), resInt32TensorType,
+                                     addResult, zeroPoint, nullptr);
 
     if (getQuantStorageType(*resQuantType).isInteger(32)) {
       // For i32, clamping is not needed.
@@ -492,17 +507,17 @@ class ConvertUniformQuantizedAddOp
     } else {
       // Clamp results by [quantizationMin, quantizationMax] when storage type
       // is not i32.
-      Value resultQuantizationMin = rewriter.create<stablehlo::ConstantOp>(
-          op->getLoc(),
+      Value resultQuantizationMin = stablehlo::ConstantOp::create(
+          rewriter, op->getLoc(),
           rewriter.getI32IntegerAttr(static_cast<int32_t>(
               getPerTensorType(*resQuantType).getStorageTypeMin())));
-      Value resultQuantizationMax = rewriter.create<stablehlo::ConstantOp>(
-          op->getLoc(),
+      Value resultQuantizationMax = stablehlo::ConstantOp::create(
+          rewriter, op->getLoc(),
           rewriter.getI32IntegerAttr(static_cast<int32_t>(
               getPerTensorType(*resQuantType).getStorageTypeMax())));
-      resInt32 = rewriter.create<stablehlo::ClampOp>(
-          op->getLoc(), resInt32TensorType, resultQuantizationMin, resInt32,
-          resultQuantizationMax);
+      resInt32 = stablehlo::ClampOp::create(
+          rewriter, op->getLoc(), resInt32TensorType, resultQuantizationMin,
+          resInt32, resultQuantizationMax);
       // Convert results back to result storage type.
       auto resFinalTensorType =
           resInt32TensorType.clone(getQuantStorageType(*resQuantType));
@@ -515,24 +530,24 @@ class ConvertUniformQuantizedAddOp
 
   LogicalResult matchAndRewritePerAxis(
       stablehlo::AddOp op, stablehlo::AddOpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter,
+      ConversionPatternRewriter& rewriter,
       quant::UniformQuantizedPerAxisType quantType) const {
     // We assume lhs/rhs/result have the same quantized type with i32 storage.
-    Value addResult = rewriter.create<stablehlo::AddOp>(
-        op->getLoc(), adaptor.getLhs(), adaptor.getRhs());
+    Value addResult = stablehlo::AddOp::create(
+        rewriter, op->getLoc(), adaptor.getLhs(), adaptor.getRhs());
     // Add zp contribution if it is non-zero for any axis.
     if (llvm::any_of(quantType.getZeroPoints(),
                      [](int64_t zp) { return zp != 0; })) {
       SmallVector<int32_t> zpsVec(quantType.getZeroPoints().begin(),
                                   quantType.getZeroPoints().end());
-      Value zps = rewriter.create<stablehlo::ConstantOp>(
-          op->getLoc(),
+      Value zps = stablehlo::ConstantOp::create(
+          rewriter, op->getLoc(),
           DenseIntElementsAttr::get(
               RankedTensorType::get({static_cast<int64_t>(zpsVec.size())},
                                     rewriter.getI32Type()),
               zpsVec));
-      addResult = rewriter.create<chlo::BroadcastSubOp>(
-          op->getLoc(), addResult, zps,
+      addResult = chlo::BroadcastSubOp::create(
+          rewriter, op->getLoc(), addResult, zps,
           rewriter.getDenseI64ArrayAttr(
               {static_cast<int64_t>(quantType.getQuantizedDimension())}));
     }
@@ -576,7 +591,7 @@ bool isZeroPointZero(QuantType type) {
 // All attrs of the original op are preserved after the conversion.
 template <typename OpType, typename OpAdaptorType>
 LogicalResult matchAndRewriteDotLikeHybridOp(
-    OpType &op, OpAdaptorType &adaptor, ConversionPatternRewriter &rewriter) {
+    OpType& op, OpAdaptorType& adaptor, ConversionPatternRewriter& rewriter) {
   // For dot like hybrid ops, lhs is float type, rhs is uniform
   // quantized type and result is float type.
   // For weight-only quantization:
@@ -584,8 +599,8 @@ LogicalResult matchAndRewriteDotLikeHybridOp(
   Value lhsFloat32Tensor = adaptor.getLhs();
   // Insert optimization_barrier to prevent constant folding of dequantize +
   // quantized weights.
-  auto barrier = rewriter.create<stablehlo::OptimizationBarrierOp>(
-      op->getLoc(), adaptor.getRhs());
+  auto barrier = stablehlo::OptimizationBarrierOp::create(
+      rewriter, op->getLoc(), adaptor.getRhs());
   Operation::result_range resultRange = barrier.getResults();
   Value rhs = resultRange.front();
   FailureOr<QuantType> rhsElementQuantType =
@@ -605,18 +620,18 @@ LogicalResult matchAndRewriteDotLikeHybridOp(
                         /*outputZeroPointInFp=*/true, broadcastDims);
 
   // Dequantize rhs_float32_tensor.
-  Value rhsFloat32Tensor = rewriter.create<stablehlo::ConvertOp>(
-      op->getLoc(), rhsFloat32TensorType, rhs);
+  Value rhsFloat32Tensor = stablehlo::ConvertOp::create(
+      rewriter, op->getLoc(), rhsFloat32TensorType, rhs);
 
   // Subtract zero points only when it is not zero.
   if (!isZeroPointZero(*rhsElementQuantType)) {
-    rhsFloat32Tensor = rewriter.create<chlo::BroadcastSubOp>(
-        op->getLoc(), rhsFloat32TensorType, rhsFloat32Tensor, rhsZeroPoint,
-        broadcastDims);
+    rhsFloat32Tensor = chlo::BroadcastSubOp::create(
+        rewriter, op->getLoc(), rhsFloat32TensorType, rhsFloat32Tensor,
+        rhsZeroPoint, broadcastDims);
   }
-  rhsFloat32Tensor = rewriter.create<chlo::BroadcastMulOp>(
-      op->getLoc(), rhsFloat32TensorType, rhsFloat32Tensor, rhsScale,
-      broadcastDims);
+  rhsFloat32Tensor =
+      chlo::BroadcastMulOp::create(rewriter, op->getLoc(), rhsFloat32TensorType,
+                                   rhsFloat32Tensor, rhsScale, broadcastDims);
 
   // Execute conversion target op.
   SmallVector<Value, 2> operands{lhsFloat32Tensor, rhsFloat32Tensor};
@@ -625,7 +640,7 @@ LogicalResult matchAndRewriteDotLikeHybridOp(
   return success();
 }
 
-Value createZeroPointPartialOffset(OpBuilder &builder, Location loc,
+Value createZeroPointPartialOffset(OpBuilder& builder, Location loc,
                                    Value tensor, const int64_t otherTensorZp,
                                    SmallVector<int64_t> reductionDims) {
   // This function calculates part of the zero-point-offset by using
@@ -645,57 +660,61 @@ Value createZeroPointPartialOffset(OpBuilder &builder, Location loc,
 
   // Convert input tensor to output type since stablehlo::Reduce only supports
   // same element type for input/output.
-  tensor = builder.create<stablehlo::ConvertOp>(
-      loc, cast<TensorType>(tensor.getType()).clone(outputElementType), tensor);
+  tensor = stablehlo::ConvertOp::create(
+      builder, loc, cast<TensorType>(tensor.getType()).clone(outputElementType),
+      tensor);
   auto reducerTensorType = RankedTensorType::get({}, outputElementType);
 
   // Initial value for reduced tensor. This is set 0.
-  Value initValues = builder.create<stablehlo::ConstantOp>(
-      loc, DenseIntElementsAttr::get(reducerTensorType, {0}));
-  stablehlo::ReduceOp reduce = builder.create<stablehlo::ReduceOp>(
-      loc, RankedTensorType::get(outputDims, outputElementType), tensor,
-      initValues, reductionDims);
+  Value initValues = stablehlo::ConstantOp::create(
+      builder, loc, DenseIntElementsAttr::get(reducerTensorType, {0}));
+  stablehlo::ReduceOp reduce = stablehlo::ReduceOp::create(
+      builder, loc, RankedTensorType::get(outputDims, outputElementType),
+      tensor, initValues, reductionDims);
   // Define reducer function to compute sum.
-  Region &region = reduce.getBody();
-  Block &block = region.emplaceBlock();
+  Region& region = reduce.getBody();
+  Block& block = region.emplaceBlock();
   block.addArgument(reducerTensorType, loc);
   block.addArgument(reducerTensorType, loc);
-  auto *firstArgument = block.args_begin();
+  auto* firstArgument = block.args_begin();
   auto secondArgument = block.args_rbegin();
   {
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&block);
     Value sum =
-        builder.create<stablehlo::AddOp>(loc, *firstArgument, *secondArgument);
-    builder.create<stablehlo::ReturnOp>(loc, sum);
+        stablehlo::AddOp::create(builder, loc, *firstArgument, *secondArgument);
+    stablehlo::ReturnOp::create(builder, loc, sum);
   }
-  Value zp = builder.create<stablehlo::ConstantOp>(
-      loc, builder.getI32IntegerAttr(otherTensorZp));
-  Value mulOp = builder.create<chlo::BroadcastMulOp>(loc, reduce.getResult(0),
-                                                     zp, nullptr);
+  Value zp = stablehlo::ConstantOp::create(
+      builder, loc, builder.getI32IntegerAttr(otherTensorZp));
+  Value mulOp = chlo::BroadcastMulOp::create(builder, loc, reduce.getResult(0),
+                                             zp, nullptr);
   return mulOp;
 }
 
-Value getDimValue(OpBuilder &builder, Location loc, Value tensor,
+Value getDimValue(OpBuilder& builder, Location loc, Value tensor,
                   ShapedType tensorShape, int64_t idx) {
   if (tensorShape.isDynamicDim(idx)) {
     // Get dynamic dim using GetDimensionSizeOp and convert result from <i32> to
     // <1xi64>.
-    Value dynamicDim = builder.create<stablehlo::GetDimensionSizeOp>(
-        loc, tensor, builder.getI64IntegerAttr(idx));
-    dynamicDim = builder.create<stablehlo::ConvertOp>(
-        loc, RankedTensorType::get(ArrayRef<int64_t>{}, builder.getI64Type()),
+    Value dynamicDim = stablehlo::GetDimensionSizeOp::create(
+        builder, loc, tensor, builder.getI64IntegerAttr(idx));
+    dynamicDim = stablehlo::ConvertOp::create(
+        builder, loc,
+        RankedTensorType::get(ArrayRef<int64_t>{}, builder.getI64Type()),
         dynamicDim);
-    return builder.create<stablehlo::ReshapeOp>(
-        loc, RankedTensorType::get({1}, builder.getI64Type()), dynamicDim);
+    return stablehlo::ReshapeOp::create(
+        builder, loc, RankedTensorType::get({1}, builder.getI64Type()),
+        dynamicDim);
   }
-  return builder.create<stablehlo::ConstantOp>(
-      loc, DenseIntElementsAttr::get(
-               RankedTensorType::get({1}, builder.getI64Type()),
-               {tensorShape.getDimSize(idx)}));
+  return stablehlo::ConstantOp::create(
+      builder, loc,
+      DenseIntElementsAttr::get(
+          RankedTensorType::get({1}, builder.getI64Type()),
+          {tensorShape.getDimSize(idx)}));
 }
 
-Value calculateDynamicOutputDims(OpBuilder &builder, Location loc, Value output,
+Value calculateDynamicOutputDims(OpBuilder& builder, Location loc, Value output,
                                  ShapedType outputTensorType) {
   // Calculate each output tensor dim and concatenate into a 1D tensor.
   SmallVector<Value> outputDims;
@@ -703,17 +722,17 @@ Value calculateDynamicOutputDims(OpBuilder &builder, Location loc, Value output,
     outputDims.push_back(
         getDimValue(builder, loc, output, outputTensorType, i));
   }
-  return builder.create<stablehlo::ConcatenateOp>(loc, outputDims,
-                                                  builder.getI64IntegerAttr(0));
+  return stablehlo::ConcatenateOp::create(builder, loc, outputDims,
+                                          builder.getI64IntegerAttr(0));
 }
 
-Value broadcastZpContribution(OpBuilder &builder, Location loc,
+Value broadcastZpContribution(OpBuilder& builder, Location loc,
                               Value zpContribution,
                               ArrayRef<int64_t> reductionDims,
                               ArrayRef<int64_t> batchingDims,
                               int64_t nonBatchingStartingIdx, Value output,
                               TensorType outputTensorType,
-                              Value &outputDimsValue) {
+                              Value& outputDimsValue) {
   // This function calculates the dims for broadcasting from the
   // zero-point-offset tensor to the final output tensor, and then do the
   // broadcast.
@@ -742,24 +761,24 @@ Value broadcastZpContribution(OpBuilder &builder, Location loc,
   // Use broadcast_in_dim or dyanmic_broadcast_in_dim based on output shape
   // dynamism.
   if (cast<ShapedType>(outputTensorType).hasStaticShape()) {
-    zpContribution = builder.create<stablehlo::BroadcastInDimOp>(
-        loc, outputTensorType, zpContribution, broadcastDims);
+    zpContribution = stablehlo::BroadcastInDimOp::create(
+        builder, loc, outputTensorType, zpContribution, broadcastDims);
   } else {
     if (!outputDimsValue) {
       outputDimsValue =
           calculateDynamicOutputDims(builder, loc, output, outputTensorType);
     }
-    zpContribution = builder.create<stablehlo::DynamicBroadcastInDimOp>(
-        loc, outputTensorType, zpContribution, outputDimsValue,
+    zpContribution = stablehlo::DynamicBroadcastInDimOp::create(
+        builder, loc, outputTensorType, zpContribution, outputDimsValue,
         builder.getDenseI64ArrayAttr(broadcastDims));
   }
   return zpContribution;
 }
 
-Value calculateZeroPointOffset(OpBuilder &builder, Location loc, Value lhs,
+Value calculateZeroPointOffset(OpBuilder& builder, Location loc, Value lhs,
                                Value rhs, Value output, int64_t lhsZp,
                                int64_t rhsZp, TensorType outputTensorType,
-                               const DotLikeDimensionNumbers &dims) {
+                               const DotLikeDimensionNumbers& dims) {
   ShapedType lhsShape = cast<ShapedType>(lhs.getType());
   ShapedType rhsShape = cast<ShapedType>(rhs.getType());
   Value result = nullptr;
@@ -797,7 +816,8 @@ Value calculateZeroPointOffset(OpBuilder &builder, Location loc, Value lhs,
         builder, loc, rhsZpContribution, reductionDims, dims.rhsBatchingDims,
         nonBatchingStartingIdx, output, outputTensorType, outputDimsValue);
     if (result) {
-      result = builder.create<stablehlo::AddOp>(loc, result, rhsZpContribution);
+      result =
+          stablehlo::AddOp::create(builder, loc, result, rhsZpContribution);
     } else {
       result = rhsZpContribution;
     }
@@ -808,53 +828,54 @@ Value calculateZeroPointOffset(OpBuilder &builder, Location loc, Value lhs,
     // This is multiplied by the product of all contracting dimensions.
     int32_t contractingDimTotalInt = 1;
     bool hasDynamicContractingDim = false;
-    Value dynamicContractingDimTotal = builder.create<stablehlo::ConstantOp>(
-        loc, builder.getI32IntegerAttr(static_cast<int32_t>(1)));
+    Value dynamicContractingDimTotal = stablehlo::ConstantOp::create(
+        builder, loc, builder.getI32IntegerAttr(static_cast<int32_t>(1)));
     // Calculate the product for static/dynamic dims separately.
     for (int64_t rhsIdx : llvm::concat<const int64_t>(
              dims.rhsSpatialDims, dims.rhsContractingDims)) {
       if (rhsShape.isDynamicDim(rhsIdx)) {
         hasDynamicContractingDim = true;
-        auto dim = builder.create<stablehlo::GetDimensionSizeOp>(
-            loc, rhs, builder.getI64IntegerAttr(rhsIdx));
-        dynamicContractingDimTotal = builder.create<stablehlo::MulOp>(
-            loc, dynamicContractingDimTotal, dim);
+        auto dim = stablehlo::GetDimensionSizeOp::create(
+            builder, loc, rhs, builder.getI64IntegerAttr(rhsIdx));
+        dynamicContractingDimTotal = stablehlo::MulOp::create(
+            builder, loc, dynamicContractingDimTotal, dim);
       } else {
         contractingDimTotalInt *= rhsShape.getDimSize(rhsIdx);
       }
     }
-    Value zpOffsetValue = builder.create<stablehlo::ConstantOp>(
-        loc, builder.getI32IntegerAttr(static_cast<int32_t>(lhsZp) *
-                                       static_cast<int32_t>(rhsZp) *
-                                       contractingDimTotalInt));
+    Value zpOffsetValue = stablehlo::ConstantOp::create(
+        builder, loc,
+        builder.getI32IntegerAttr(static_cast<int32_t>(lhsZp) *
+                                  static_cast<int32_t>(rhsZp) *
+                                  contractingDimTotalInt));
     // Multiply the static dims contribution by the dynamic one if needed.
     if (hasDynamicContractingDim) {
-      zpOffsetValue = builder.create<stablehlo::MulOp>(
-          loc, zpOffsetValue, dynamicContractingDimTotal);
+      zpOffsetValue = stablehlo::MulOp::create(builder, loc, zpOffsetValue,
+                                               dynamicContractingDimTotal);
     }
-    result = builder.create<chlo::BroadcastSubOp>(loc, result, zpOffsetValue,
-                                                  nullptr);
+    result = chlo::BroadcastSubOp::create(builder, loc, result, zpOffsetValue,
+                                          nullptr);
   }
   return result;
 }
 
 // Generic function to create DotGeneral kernel for Dot/DotGeneral ops.
 template <typename DotLikeOp>
-Value createDotLikeKernel(OpBuilder &builder, Location loc, DotLikeOp,
-                          Type resultType, Value &lhs, Value &rhs,
+Value createDotLikeKernel(OpBuilder& builder, Location loc, DotLikeOp,
+                          Type resultType, Value& lhs, Value& rhs,
                           ArrayRef<NamedAttribute> attrs,
-                          const DotLikeDimensionNumbers &dims) {
-  return builder.create<stablehlo::DotGeneralOp>(
-      loc, resultType, ArrayRef<Value>{lhs, rhs}, attrs);
+                          const DotLikeDimensionNumbers& dims) {
+  return stablehlo::DotGeneralOp::create(builder, loc, resultType,
+                                         ArrayRef<Value>{lhs, rhs}, attrs);
 }
 
 // Template specialization for Convolution op.
 // This function may pad LHS if needed. If so, lhs is updated in place.
 template <>
 Value createDotLikeKernel<stablehlo::ConvolutionOp>(
-    OpBuilder &builder, Location loc, stablehlo::ConvolutionOp op,
-    Type resultType, Value &lhs, Value &rhs, ArrayRef<NamedAttribute> attrs,
-    const DotLikeDimensionNumbers &dims) {
+    OpBuilder& builder, Location loc, stablehlo::ConvolutionOp op,
+    Type resultType, Value& lhs, Value& rhs, ArrayRef<NamedAttribute> attrs,
+    const DotLikeDimensionNumbers& dims) {
   // We only handle the case where RHS zp is zero.
   // Explicitly pad LHS with zp and update LHS value.
   SmallVector<NamedAttribute> newAttrs(attrs);
@@ -863,11 +884,12 @@ Value createDotLikeKernel<stablehlo::ConvolutionOp>(
                    [](int64_t x) { return x != 0; })) {
     auto originalPadding = op.getPaddingAttr().getValues<int64_t>();
 
-    Value zp = builder.create<stablehlo::ConstantOp>(
-        loc, DenseIntElementsAttr::get(
-                 RankedTensorType::get({}, builder.getI8Type()),
-                 {static_cast<int8_t>(
-                     getPerTensorType(op.getLhs().getType()).getZeroPoint())}));
+    Value zp = stablehlo::ConstantOp::create(
+        builder, loc,
+        DenseIntElementsAttr::get(
+            RankedTensorType::get({}, builder.getI8Type()),
+            {static_cast<int8_t>(
+                getPerTensorType(op.getLhs().getType()).getZeroPoint())}));
     // Convert Padding attributes from stablehlo::Convolution to stablehlo::Pad.
     // Note that Padding is applied for spatial dimensions [1...rank-1) only for
     // stablehlo::Convolution. But stablehlo::Pad require those for all
@@ -880,12 +902,12 @@ Value createDotLikeKernel<stablehlo::ConvolutionOp>(
       paddingLow[dims.lhsSpatialDims[i]] = originalPadding[i * 2];
       paddingHigh[dims.lhsSpatialDims[i]] = originalPadding[i * 2 + 1];
     }
-    lhs = builder.create<stablehlo::PadOp>(loc, lhs, zp, paddingLow,
-                                           paddingHigh, paddingInterior);
+    lhs = stablehlo::PadOp::create(builder, loc, lhs, zp, paddingLow,
+                                   paddingHigh, paddingInterior);
 
     // After explicitly padding/dilating LHS, update attributes so that LHS is
     // not padded/dilated again during Convolution.
-    for (auto &attr : newAttrs) {
+    for (auto& attr : newAttrs) {
       if (attr.getName().getValue() == "padding") {
         attr.setValue(SplatElementsAttr::get(
             RankedTensorType::get({rank - 2, 2}, builder.getI64Type()),
@@ -893,15 +915,15 @@ Value createDotLikeKernel<stablehlo::ConvolutionOp>(
       }
     }
   }
-  return builder.create<stablehlo::ConvolutionOp>(
-      loc, resultType, ArrayRef<Value>{lhs, rhs}, newAttrs);
+  return stablehlo::ConvolutionOp::create(builder, loc, resultType,
+                                          ArrayRef<Value>{lhs, rhs}, newAttrs);
 }
 
 template <typename DotLikeOp, typename DotLikeOpAdaptor>
 LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
                                        ArrayRef<NamedAttribute> attrs,
-                                       const DotLikeDimensionNumbers &dims,
-                                       ConversionPatternRewriter &rewriter) {
+                                       const DotLikeDimensionNumbers& dims,
+                                       ConversionPatternRewriter& rewriter) {
   // Lower Dot/DotGeneral UQ ops to DotGeneral int.
   // Assumes that operands and results are uq types.
   Value lhs = adaptor.getLhs();
@@ -955,42 +977,44 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
 
   // Multiply dot result and zp_offset by combined_scale only if it is not 1.0.
   if (std::abs(combinedScaleFp - 1.0) > 0.001) {
-    Value combinedScale = rewriter.create<stablehlo::ConstantOp>(
-        op->getLoc(), rewriter.getF32FloatAttr(combinedScaleFp));
+    Value combinedScale = stablehlo::ConstantOp::create(
+        rewriter, op->getLoc(), rewriter.getF32FloatAttr(combinedScaleFp));
 
-    Value resF32 = rewriter.create<stablehlo::ConvertOp>(
-        op->getLoc(), resFloat32TensorType, resI32);
-    resF32 = rewriter.create<chlo::BroadcastMulOp>(
-        op->getLoc(), resFloat32TensorType, resF32, combinedScale, nullptr);
-    resI32 = rewriter.create<stablehlo::ConvertOp>(op->getLoc(),
-                                                   resInt32TensorType, resF32);
+    Value resF32 = stablehlo::ConvertOp::create(rewriter, op->getLoc(),
+                                                resFloat32TensorType, resI32);
+    resF32 = chlo::BroadcastMulOp::create(rewriter, op->getLoc(),
+                                          resFloat32TensorType, resF32,
+                                          combinedScale, nullptr);
+    resI32 = stablehlo::ConvertOp::create(rewriter, op->getLoc(),
+                                          resInt32TensorType, resF32);
 
     // Skip zp_offset if it is 0.
     if (zpOffset) {
       auto zpOffsetFloat32TensorType =
           cast<TensorType>(zpOffset.getType()).clone(rewriter.getF32Type());
-      zpOffset = rewriter.create<stablehlo::ConvertOp>(
-          op->getLoc(), zpOffsetFloat32TensorType, zpOffset);
-      zpOffset = rewriter.create<chlo::BroadcastMulOp>(
-          op->getLoc(), zpOffsetFloat32TensorType, zpOffset, combinedScale,
-          nullptr);
-      zpOffset = rewriter.create<stablehlo::ConvertOp>(
-          op->getLoc(), zpOffsetFloat32TensorType.clone(rewriter.getI32Type()),
-          zpOffset);
+      zpOffset = stablehlo::ConvertOp::create(
+          rewriter, op->getLoc(), zpOffsetFloat32TensorType, zpOffset);
+      zpOffset = chlo::BroadcastMulOp::create(rewriter, op->getLoc(),
+                                              zpOffsetFloat32TensorType,
+                                              zpOffset, combinedScale, nullptr);
+      zpOffset = stablehlo::ConvertOp::create(
+          rewriter, op->getLoc(),
+          zpOffsetFloat32TensorType.clone(rewriter.getI32Type()), zpOffset);
     }
   }
 
   // If result is per-axis quantized, it must has 0 zp.
-  Value combinedZp = rewriter.create<stablehlo::ConstantOp>(
-      op->getLoc(),
+  Value combinedZp = stablehlo::ConstantOp::create(
+      rewriter, op->getLoc(),
       rewriter.getI32IntegerAttr(
           resElementQuantType ? resElementQuantType.getZeroPoint() : 0));
   if (zpOffset) {
-    combinedZp = rewriter.create<chlo::BroadcastSubOp>(
-        op->getLoc(), resInt32TensorType, combinedZp, zpOffset, nullptr);
+    combinedZp =
+        chlo::BroadcastSubOp::create(rewriter, op->getLoc(), resInt32TensorType,
+                                     combinedZp, zpOffset, nullptr);
   }
-  Value zpAdded = rewriter.create<chlo::BroadcastAddOp>(
-      op->getLoc(), resInt32TensorType, resI32, combinedZp, nullptr);
+  Value zpAdded = chlo::BroadcastAddOp::create(
+      rewriter, op->getLoc(), resInt32TensorType, resI32, combinedZp, nullptr);
 
   // Convert results back to result storage type.
   auto resQuantType = getQuantType(getElementTypeOrSelf(op.getResult()));
@@ -1003,7 +1027,7 @@ LogicalResult matchAndRewriteDotLikeOp(DotLikeOp op, DotLikeOpAdaptor adaptor,
 
 template <typename DotLikeOp>
 FailureOr<bool> isDotLikeOpHybrid(DotLikeOp op,
-                                  ConversionPatternRewriter &rewriter) {
+                                  ConversionPatternRewriter& rewriter) {
   // Checks whether a dot-like op is hybrid by looking at input/output types.
   // Returns failure() when the type is not supported.
   bool isLhsQuant = isa<quant::UniformQuantizedType>(
@@ -1040,7 +1064,7 @@ class ConvertUniformQuantizedDotOp
 
   LogicalResult matchAndRewrite(
       stablehlo::DotOp op, stablehlo::DotOpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
@@ -1076,7 +1100,7 @@ class ConvertUniformQuantizedDotGeneralOp
 
   LogicalResult matchAndRewrite(
       stablehlo::DotGeneralOp op, stablehlo::DotGeneralOpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
@@ -1099,7 +1123,7 @@ class ConvertUniformQuantizedDotGeneralOp
   }
 };
 
-bool isConvNhwc(const stablehlo::ConvDimensionNumbersAttr &dims) {
+bool isConvNhwc(const stablehlo::ConvDimensionNumbersAttr& dims) {
   // lhs(b, 0, 1, f) x rhs(0, 1, i, o) -> res(b, 0, 1, f)
   return dims.getInputBatchDimension() == 0 &&
          dims.getInputFeatureDimension() == 3 &&
@@ -1118,7 +1142,7 @@ bool isConvNhwc(const stablehlo::ConvDimensionNumbersAttr &dims) {
          dims.getOutputSpatialDimensions()[1] == 2;
 }
 
-bool isConvNchw(const stablehlo::ConvDimensionNumbersAttr &dims) {
+bool isConvNchw(const stablehlo::ConvDimensionNumbersAttr& dims) {
   // lhs(b, f, 0, 1) x rhs(o, i, 0, 1) -> res(b, f, 0, 1)
   return dims.getInputBatchDimension() == 0 &&
          dims.getInputFeatureDimension() == 1 &&
@@ -1137,7 +1161,7 @@ bool isConvNchw(const stablehlo::ConvDimensionNumbersAttr &dims) {
          dims.getOutputSpatialDimensions()[1] == 3;
 }
 
-bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr &dims) {
+bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr& dims) {
   // lhs(b, 0, 1, 2, f) x rhs(0, 1, 2, i, o) -> res(b, 0, 1, 2, f)
   return dims.getInputBatchDimension() == 0 &&
          dims.getInputFeatureDimension() == 4 &&
@@ -1159,7 +1183,7 @@ bool isConvNDHWC(const stablehlo::ConvDimensionNumbersAttr &dims) {
          dims.getOutputSpatialDimensions()[2] == 3;
 }
 
-bool isConvNCDHW(const stablehlo::ConvDimensionNumbersAttr &dims) {
+bool isConvNCDHW(const stablehlo::ConvDimensionNumbersAttr& dims) {
   // lhs(b, f, 0, 1, 2) x rhs(o, i, 0, 1, 2) -> res(b, f, 0, 1, 2)
   return dims.getInputBatchDimension() == 0 &&
          dims.getInputFeatureDimension() == 1 &&
@@ -1182,7 +1206,7 @@ bool isConvNCDHW(const stablehlo::ConvDimensionNumbersAttr &dims) {
 }
 
 FailureOr<DotLikeDimensionNumbers> verifyAndConstructDims(
-    stablehlo::ConvolutionOp op, ConversionPatternRewriter &rewriter) {
+    stablehlo::ConvolutionOp op, ConversionPatternRewriter& rewriter) {
   // RHS (weight) must have zero zp.
   // Here assumes RHS/result must be both per-tensor or both per-axis
   // quantized.
@@ -1289,7 +1313,7 @@ class ConvertUniformQuantizedConvolutionOp
 
   LogicalResult matchAndRewrite(
       stablehlo::ConvolutionOp op, stablehlo::ConvolutionOpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
+      ConversionPatternRewriter& rewriter) const override {
     auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
@@ -1309,13 +1333,13 @@ class ConvertUniformQuantizedConvolutionOp
 // TODO: b/310685906 - Add operand/result type validations.
 class ConvertGenericOp : public ConversionPattern {
  public:
-  explicit ConvertGenericOp(MLIRContext *ctx, TypeConverter &converter,
+  explicit ConvertGenericOp(MLIRContext* ctx, TypeConverter& converter,
                             PatternBenefit benefit)
       : ConversionPattern(converter, MatchAnyOpTypeTag(), benefit, ctx) {}
 
   LogicalResult matchAndRewrite(
-      Operation *op, ArrayRef<Value> operands,
-      ConversionPatternRewriter &rewriter) const override {
+      Operation* op, ArrayRef<Value> operands,
+      ConversionPatternRewriter& rewriter) const override {
     // This pattern only handle selected ops.
     if (!isa<stablehlo::BitcastConvertOp, stablehlo::BroadcastInDimOp,
              stablehlo::CompositeOp, stablehlo::ConcatenateOp,
@@ -1352,7 +1376,7 @@ class ConvertGenericOp : public ConversionPattern {
 
     OperationState state(op->getLoc(), op->getName().getStringRef(), operands,
                          newResultTypes, op->getAttrs(), op->getSuccessors());
-    for (Region &region : op->getRegions()) {
+    for (Region& region : op->getRegions()) {
       auto newRegion = std::make_unique<Region>(op);
       rewriter.inlineRegionBefore(region, *newRegion, newRegion->begin());
       if (failed(rewriter.convertRegionTypes(newRegion.get(),
@@ -1361,7 +1385,7 @@ class ConvertGenericOp : public ConversionPattern {
       }
       state.addRegion(std::move(newRegion));
     }
-    Operation *newOp = rewriter.create(state);
+    Operation* newOp = rewriter.create(state);
     rewriter.replaceOp(op, newOp);
     return success();
   }
@@ -1386,8 +1410,8 @@ class StablehloLegalizeQuantToMathPass
  public:
   // Performs conversion of stablehlo quant ops to primitive ops.
   void runOnOperation() override {
-    Operation *op = getOperation();
-    MLIRContext *context = op->getContext();
+    Operation* op = getOperation();
+    MLIRContext* context = op->getContext();
     RewritePatternSet patterns(context);
 
     // Populate stablehlo quant ops conversion patterns.
@@ -1409,13 +1433,13 @@ class StablehloLegalizeQuantToMathPass
 
     ConversionTarget target(*op->getContext());
     target.addIllegalDialect<quant::QuantDialect>();
-    auto isLegal = [&converter](Operation *op) {
+    auto isLegal = [&converter](Operation* op) {
       return converter.isLegal(op);
     };
     target.addDynamicallyLegalDialect<stablehlo::StablehloDialect>(isLegal);
     target.addDynamicallyLegalDialect<chlo::ChloDialect>(isLegal);
     target.addDynamicallyLegalDialect<func::FuncDialect>(
-        [&converter](Operation *op) {
+        [&converter](Operation* op) {
           if (auto func = dyn_cast<func::FuncOp>(op)) {
             return converter.isSignatureLegal(func.getFunctionType());
           }

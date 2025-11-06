@@ -85,8 +85,8 @@ void InterpreterInstrumentWithProbePass::probeValue(Value value,
                                                     const std::string& probe_id,
                                                     OpBuilder& builder) {
   builder.setInsertionPointAfterValue(value);
-  Value instrumentedValue = builder.create<interpreter::ProbeOp>(
-      value.getLoc(), value, StringAttr::get(&getContext(), probe_id));
+  Value instrumentedValue = interpreter::ProbeOp::create(
+      builder, value.getLoc(), value, StringAttr::get(&getContext(), probe_id));
   value.replaceAllUsesExcept(instrumentedValue,
                              instrumentedValue.getDefiningOp());
 }

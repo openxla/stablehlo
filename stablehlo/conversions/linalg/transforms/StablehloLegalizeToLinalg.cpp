@@ -296,12 +296,12 @@ struct EinsumToLinalgConverter final
         output, maps, getEinsumLoopsAttrs(inputInd, reductionAxe),
         [reductionAxe](OpBuilder& b, Location nestedLoc, ValueRange args) {
           Value resultVal =
-              b.create<mlir::arith::MulFOp>(nestedLoc, args[0], args[1]);
+              mlir::arith::MulFOp::create(b, nestedLoc, args[0], args[1]);
           if (!reductionAxe.empty()) {
             resultVal =
-                b.create<mlir::arith::AddFOp>(nestedLoc, args[2], resultVal);
+                mlir::arith::AddFOp::create(b, nestedLoc, args[2], resultVal);
           }
-          b.create<linalg::YieldOp>(nestedLoc, resultVal);
+          linalg::YieldOp::create(b, nestedLoc, resultVal);
         },
         linalg::getPrunedAttributeList(op));
     rewriter.replaceOp(op, linalgOp.getResults());
@@ -416,7 +416,7 @@ struct DataMovementOpConverter : OpConversionPattern<OpTy> {
         indexingMaps, getNParallelLoopsAttrs(nloops),
         [&](OpBuilder& nestedBuilder, Location /*nested_loc*/,
             ValueRange args) {
-          nestedBuilder.create<linalg::YieldOp>(loc, *args.begin());
+          linalg::YieldOp::create(nestedBuilder, loc, *args.begin());
         },
         linalg::getPrunedAttributeList(op));
     rewriter.replaceOp(op, linalgOp.getOperation()->getResults());
@@ -1248,14 +1248,14 @@ struct IotaConverter final : OpConversionPattern<OpTy> {
         llvm::ArrayRef(rewriter.getMultiDimIdentityMap(nloops)),
         getNParallelLoopsAttrs(nloops),
         [&](OpBuilder& nestedBuilder, Location nestedLoc, ValueRange /*args*/) {
-          Value indexOp = nestedBuilder.create<linalg::IndexOp>(
-              nestedLoc, iotaOp.getIotaDimension());
+          Value indexOp = linalg::IndexOp::create(nestedBuilder, nestedLoc,
+                                                  iotaOp.getIotaDimension());
           Type unwrappedResultElementType = resultElementType;
           if (auto complexType =
                   llvm::dyn_cast<ComplexType>(unwrappedResultElementType))
             unwrappedResultElementType = complexType.getElementType();
-          Value castOp = nestedBuilder.create<arith::IndexCastOp>(
-              nestedLoc,
+          Value castOp = arith::IndexCastOp::create(
+              nestedBuilder, nestedLoc,
               nestedBuilder.getIntegerType(
                   unwrappedResultElementType.getIntOrFloatBitWidth()),
               indexOp);
@@ -1263,7 +1263,7 @@ struct IotaConverter final : OpConversionPattern<OpTy> {
               mlir::stablehlo::ConvertOp>(nestedLoc, resultElementType,
                                           castOp.getType(), {castOp},
                                           &nestedBuilder);
-          nestedBuilder.create<linalg::YieldOp>(nestedLoc, castOp);
+          linalg::YieldOp::create(nestedBuilder, nestedLoc, castOp);
         },
         linalg::getPrunedAttributeList(iotaOp));
     rewriter.replaceOp(iotaOp, linalgOp.getResultTensors());
@@ -1294,15 +1294,15 @@ struct IotaToMapConverter final : OpConversionPattern<OpTy> {
     auto linalgOp = linalg::MapOp::create(
         rewriter, loc, ValueRange{}, empty,
         [&](OpBuilder& nestedBuilder, Location nestedLoc, ValueRange /*args*/) {
-          Value index = nestedBuilder.create<linalg::IndexOp>(
-              nestedLoc, iotaOp.getIotaDimension());
-          index = nestedBuilder.create<arith::IndexCastOp>(
-              nestedLoc, nestedBuilder.getI64Type(), index);
+          Value index = linalg::IndexOp::create(nestedBuilder, nestedLoc,
+                                                iotaOp.getIotaDimension());
+          index = arith::IndexCastOp::create(nestedBuilder, nestedLoc,
+                                             nestedBuilder.getI64Type(), index);
           Value result = mlir::stablehlo::StablehloOpToStdScalarOp::mapOpOfType<
               mlir::stablehlo::ConvertOp>(nestedLoc, resultTy.getElementType(),
                                           index.getType(), {ValueRange{index}},
                                           &nestedBuilder);
-          nestedBuilder.create<linalg::YieldOp>(nestedLoc, ValueRange{result});
+          linalg::YieldOp::create(nestedBuilder, nestedLoc, ValueRange{result});
         },
         linalg::getPrunedAttributeList(iotaOp));
     rewriter.replaceOp(iotaOp, linalgOp.getResult());
@@ -1385,9 +1385,9 @@ struct ConcatenateConverter final
             if (idx + 1 != adaptor.getOperands().size()) {
               // Calculate how far along we have iterated along the concatenate
               // dimension. That way we can tell which input to select.
-              newConcatDimSize =
-                  arith::AddIOp::create(b, loc, concatDimSize,
-                                        b.create<tensor::DimOp>(loc, arg, dim));
+              newConcatDimSize = arith::AddIOp::create(
+                  b, loc, concatDimSize,
+                  tensor::DimOp::create(b, loc, arg, dim));
               Value cmp = arith::CmpIOp::create(b, loc, rewriter.getI1Type(),
                                                 arith::CmpIPredicate::ult,
                                                 indexOp, newConcatDimSize);
@@ -1748,6 +1748,12 @@ struct MapOpToMapConverter final : OpConversionPattern<mlir::stablehlo::MapOp> {
 
     rewriter.applySignatureConversion(&region.front(), signatureConverter,
                                       getTypeConverter());
+    auto& blocks = linalgOp.getMapper().getBlocks();
+    if (blocks.empty()) {
+      return rewriter.notifyMatchFailure(op, "expected at least one block");
+    }
+    blocks.front().addArgument(resultType.getElementType(), loc);
+
     auto result = rewriter.createOrFold<tensor::CastOp>(loc, resultType,
                                                         linalgOp.getResults());
     rewriter.replaceOp(op, result);
@@ -1928,8 +1934,8 @@ struct GatherConversion final : OpConversionPattern<mlir::stablehlo::GatherOp> {
       // Clamp indices to [0, i, operand_dim-output_dim].
       Value clamp = arith::MinSIOp::create(
           rewriter, loc,
-          rewriter.create<arith::MaxSIOp>(loc, constants[0],
-                                          remappedIndexFromIndices[i]),
+          arith::MaxSIOp::create(rewriter, loc, constants[0],
+                                 remappedIndexFromIndices[i]),
           largestValidIndex);
       remappedIndexFromIndices[i] = clamp;
     }

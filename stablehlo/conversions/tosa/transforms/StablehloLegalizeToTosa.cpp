@@ -79,8 +79,8 @@ struct ConvertStablehloCompareOp
         break;
       }
       case stablehlo::ComparisonDirection::NE: {
-        auto equalOp = rewriter.create<tosa::EqualOp>(op->getLoc(), resultType,
-                                                      op.getLhs(), op.getRhs());
+        auto equalOp = tosa::EqualOp::create(rewriter, op->getLoc(), resultType,
+                                             op.getLhs(), op.getRhs());
         rewriter.replaceOpWithNewOp<tosa::LogicalNotOp>(op, resultType,
                                                         equalOp);
         break;
@@ -170,19 +170,19 @@ LogicalResult rewriteSimpleDotOp(DotOpTy op, PatternRewriter& rewriter) {
   auto lhsReshapeType =
       RankedTensorType::get(lhsReshape, lhsType.getElementType());
   auto lhsReshapeValue = getTosaConstShape(rewriter, op->getLoc(), lhsReshape);
-  auto lhsReshapeOp = rewriter.create<tosa::ReshapeOp>(
-      op->getLoc(), lhsReshapeType, op.getLhs(), lhsReshapeValue);
+  auto lhsReshapeOp = tosa::ReshapeOp::create(
+      rewriter, op->getLoc(), lhsReshapeType, op.getLhs(), lhsReshapeValue);
 
   auto rhsReshapeType =
       RankedTensorType::get(rhsReshape, rhsType.getElementType());
   auto rhsReshapeValue = getTosaConstShape(rewriter, op->getLoc(), rhsReshape);
-  auto rhsReshapeOp = rewriter.create<tosa::ReshapeOp>(
-      op->getLoc(), rhsReshapeType, op.getRhs(), rhsReshapeValue);
+  auto rhsReshapeOp = tosa::ReshapeOp::create(
+      rewriter, op->getLoc(), rhsReshapeType, op.getRhs(), rhsReshapeValue);
 
   auto matMulType =
       RankedTensorType::get(matMulShape, lhsType.getElementType());
-  auto matMulOp = rewriter.create<tosa::MatMulOp>(op->getLoc(), matMulType,
-                                                  lhsReshapeOp, rhsReshapeOp);
+  auto matMulOp = tosa::MatMulOp::create(rewriter, op->getLoc(), matMulType,
+                                         lhsReshapeOp, rhsReshapeOp);
 
   // Reshape the matmul result back to the original result shape.
   auto resultReshapeValue =
@@ -244,8 +244,9 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
     llvm::SmallVector<int64_t, 4> constShape(resultShape.size(), 1);
     constShape[iotaDimension] = resultShape[iotaDimension];
     RankedTensorType constType = RankedTensorType::get(constShape, elementType);
-    auto constOp = rewriter.create<tosa::ConstOp>(
-        op.getLoc(), constType, DenseElementsAttr::get(constType, constValues));
+    auto constOp =
+        tosa::ConstOp::create(rewriter, op.getLoc(), constType,
+                              DenseElementsAttr::get(constType, constValues));
 
     // Create the multiples attr for the tile op, where all dimensions except
     // the iota dimension are multiplied.
@@ -262,8 +263,9 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
     }
 
     auto shapeType = rewriter.getType<tosa::shapeType>(tileMultiples.size());
-    auto shapedMultiples = rewriter.create<tosa::ConstShapeOp>(
-        op.getLoc(), shapeType, rewriter.getIndexVectorAttr(tileMultiples));
+    auto shapedMultiples =
+        tosa::ConstShapeOp::create(rewriter, op.getLoc(), shapeType,
+                                   rewriter.getIndexVectorAttr(tileMultiples));
 
     // Tile the const array to the result shape of the iota op.
     rewriter.replaceOpWithNewOp<tosa::TileOp>(op, resultType, constOp,
@@ -356,15 +358,13 @@ struct ConvertStablehloReduceOp : public OpRewritePattern<stablehlo::ReduceOp> {
     Value reduceOpResult;
     if (isa<stablehlo::AddOp>(innerOp)) {
       reduceOpResult =
-          rewriter
-              .create<tosa::ReduceSumOp>(op->getLoc(), innerTy, operand,
-                                         rewriter.getI32IntegerAttr(dimension))
+          tosa::ReduceSumOp::create(rewriter, op->getLoc(), innerTy, operand,
+                                    rewriter.getI32IntegerAttr(dimension))
               .getResult();
     } else if (isa<stablehlo::MaxOp>(innerOp)) {
       reduceOpResult =
-          rewriter
-              .create<tosa::ReduceMaxOp>(op->getLoc(), innerTy, operand,
-                                         rewriter.getI32IntegerAttr(dimension))
+          tosa::ReduceMaxOp::create(rewriter, op->getLoc(), innerTy, operand,
+                                    rewriter.getI32IntegerAttr(dimension))
               .getResult();
     } else {
       return rewriter.notifyMatchFailure(
@@ -473,8 +473,8 @@ struct ConvertStablehloWhileOp : public OpRewritePattern<stablehlo::WhileOp> {
                                 PatternRewriter& rewriter) const override {
     auto* cond = &op.getCond();
     auto* body = &op.getBody();
-    auto newWhileOp = rewriter.create<tosa::WhileOp>(
-        op->getLoc(), op->getResultTypes(), op->getOperands());
+    auto newWhileOp = tosa::WhileOp::create(
+        rewriter, op->getLoc(), op->getResultTypes(), op->getOperands());
 
     auto* newCond = &newWhileOp->getRegion(0);
     auto* newBody = &newWhileOp->getRegion(1);
@@ -513,10 +513,10 @@ struct ConvertStablehloReshapeOp
         tosa::shapeType::get(rewriter.getContext(), dimensions.size());
 
     auto constShapeOp =
-        rewriter.create<tosa::ConstShapeOp>(op.getLoc(), shapeType, denseAttr);
+        tosa::ConstShapeOp::create(rewriter, op.getLoc(), shapeType, denseAttr);
 
-    auto reshapeOp = rewriter.create<tosa::ReshapeOp>(
-        op.getLoc(), resultType, op.getOperand(), constShapeOp);
+    auto reshapeOp = tosa::ReshapeOp::create(rewriter, op.getLoc(), resultType,
+                                             op.getOperand(), constShapeOp);
 
     rewriter.replaceOp(op, reshapeOp.getResult());
     return success();

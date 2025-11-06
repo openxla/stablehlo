@@ -125,15 +125,13 @@ std::optional<Value> materializeSplatScalarConstant(RewriterBase& rewriter,
   Type elementType = mlir::getElementTypeOrSelf(input.getType());
   if (!matchPattern(input, m_Constant(&attr))) return {};
   if (isa<IntegerType, FloatType, IndexType>(elementType)) {
-    return rewriter
-        .create<arith::ConstantOp>(loc, elementType,
-                                   attr.getSplatValue<TypedAttr>())
+    return arith::ConstantOp::create(rewriter, loc, elementType,
+                                     attr.getSplatValue<TypedAttr>())
         .getResult();
   }
   if (isa<ComplexType>(elementType)) {
-    return rewriter
-        .create<complex::ConstantOp>(loc, elementType,
-                                     attr.getSplatValue<ArrayAttr>())
+    return complex::ConstantOp::create(rewriter, loc, elementType,
+                                       attr.getSplatValue<ArrayAttr>())
         .getResult();
   }
   return {};
@@ -155,14 +153,14 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
       OpTy& op, ConversionPatternRewriter& rewriter,
       ArrayRef<Value> mappedInputs, ArrayRef<Value> scalarVals,
       Value emptyTensor, int64_t maxRank) const {
-    Operation* mapOp = rewriter.create<linalg::MapOp>(
-        op.getLoc(), mappedInputs, emptyTensor,
+    Operation* mapOp = linalg::MapOp::create(
+        rewriter, op.getLoc(), mappedInputs, emptyTensor,
         [&](OpBuilder& b, Location loc, ValueRange args) {
           Value innerResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
               op, getElementTypeOrSelf(emptyTensor),
               interleaveScalarAndBlockArgs(scalarVals, args), &b);
 
-          b.create<linalg::YieldOp>(loc, innerResult);
+          linalg::YieldOp::create(b, loc, innerResult);
         },
         linalg::getPrunedAttributeList(op));
     return mapOp;
@@ -199,7 +197,7 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
             cast<ShapedType>(emptyTensor.getType())));
         scalarInputs.push_back(nullptr);
       } else if (captureScalarInputs) {
-        scalarInputs.push_back(rewriter.create<tensor::ExtractOp>(loc, input));
+        scalarInputs.push_back(tensor::ExtractOp::create(rewriter, loc, input));
       } else {
         mappedInputs.push_back(input);
         scalarInputs.push_back(nullptr);
@@ -238,9 +236,9 @@ struct PointwiseToLinalgConverter : PointwiseToLinalgMapConverter<OpTy> {
       maps.push_back(isScalar(v) ? scalarMap : idMap);
     maps.push_back(idMap);
     bool failed = false;
-    Operation* linalgOp = rewriter.create<linalg::GenericOp>(
-        op.getLoc(), emptyTensor.getType(), mappedInputs, emptyTensor, maps,
-        getNParallelLoopsAttrs(maxRank),
+    Operation* linalgOp = linalg::GenericOp::create(
+        rewriter, op.getLoc(), emptyTensor.getType(), mappedInputs, emptyTensor,
+        maps, getNParallelLoopsAttrs(maxRank),
         [&](OpBuilder& nestedBuilder, Location /*nested_loc*/,
             ValueRange args) {
           Type innerResultTy = getElementTypeOrSelf(emptyTensor);
@@ -254,7 +252,7 @@ struct PointwiseToLinalgConverter : PointwiseToLinalgMapConverter<OpTy> {
             failed = true;
           } else {
             innerResult = postSparsify(op, semiring, innerResult, &rewriter);
-            nestedBuilder.create<linalg::YieldOp>(op.getLoc(), innerResult);
+            linalg::YieldOp::create(nestedBuilder, op.getLoc(), innerResult);
           }
         },
         linalg::getPrunedAttributeList(op));

@@ -74,8 +74,8 @@ template <typename FromOpTy, typename ToOpTy>
 struct HloNaryElementwiseAdaptor {
   static ToOpTy createOp(FromOpTy fromOp, Type resultType,
                          ValueRange broadcastedOperands, OpBuilder& builder) {
-    return builder.create<ToOpTy>(fromOp.getLoc(), resultType,
-                                  broadcastedOperands);
+    return ToOpTy::create(builder, fromOp.getLoc(), resultType,
+                          broadcastedOperands);
   }
 };
 
@@ -130,8 +130,8 @@ struct HloCompareAdaptor {
                            ? mlir::stablehlo::ComparisonTypeAttr::get(
                                  builder.getContext(), *hloType)
                            : nullptr;
-    return builder.create<mlir::stablehlo::CompareOp>(
-        fromOp.getLoc(), resultType, broadcastedOperands[0],
+    return mlir::stablehlo::CompareOp::create(
+        builder, fromOp.getLoc(), resultType, broadcastedOperands[0],
         broadcastedOperands[1], *hloDirection, hloTypeAttr);
   }
 };
@@ -359,12 +359,13 @@ struct ConvertRankedDynamicBroadcastBinaryOp final
 
     // Insert a constraint on the shapes being broadcastable and insert all
     // future code into an assuming block reliant on the constraint.
-    Value lhsShape = rewriter.create<shape::ShapeOfOp>(loc, lhs);
-    Value rhsShape = rewriter.create<shape::ShapeOfOp>(loc, rhs);
+    Value lhsShape = shape::ShapeOfOp::create(rewriter, loc, lhs);
+    Value rhsShape = shape::ShapeOfOp::create(rewriter, loc, rhs);
     auto broadcastableCstr =
-        rewriter.create<shape::CstrBroadcastableOp>(loc, lhsShape, rhsShape);
-    auto assumingOp = rewriter.create<shape::AssumingOp>(
-        loc, ArrayRef<Type>{resultType}, broadcastableCstr.getResult());
+        shape::CstrBroadcastableOp::create(rewriter, loc, lhsShape, rhsShape);
+    auto assumingOp =
+        shape::AssumingOp::create(rewriter, loc, ArrayRef<Type>{resultType},
+                                  broadcastableCstr.getResult());
 
     OpBuilder::InsertionGuard guard(rewriter);
     rewriter.createBlock(&assumingOp.getDoRegion());
@@ -381,27 +382,23 @@ struct ConvertRankedDynamicBroadcastBinaryOp final
     // properly.
     auto lhsBroadcastDimensions = llvm::to_vector(
         llvm::seq<int64_t>(resultRank - lhsType.getRank(), resultRank));
-    Value broadcastedLhs =
-        rewriter.create<mlir::stablehlo::DynamicBroadcastInDimOp>(
-            loc,
-            RankedTensorType::get(resultType.getShape(),
-                                  lhsType.getElementType()),
-            lhs, resultExtents,
-            rewriter.getDenseI64ArrayAttr(lhsBroadcastDimensions));
+    Value broadcastedLhs = mlir::stablehlo::DynamicBroadcastInDimOp::create(
+        rewriter, loc,
+        RankedTensorType::get(resultType.getShape(), lhsType.getElementType()),
+        lhs, resultExtents,
+        rewriter.getDenseI64ArrayAttr(lhsBroadcastDimensions));
     auto rhsBroadcastDimensions = llvm::to_vector(
         llvm::seq<int64_t>(resultRank - rhsType.getRank(), resultRank));
-    Value broadcastedRhs =
-        rewriter.create<mlir::stablehlo::DynamicBroadcastInDimOp>(
-            loc,
-            RankedTensorType::get(resultType.getShape(),
-                                  rhsType.getElementType()),
-            rhs, resultExtents,
-            rewriter.getDenseI64ArrayAttr(rhsBroadcastDimensions));
+    Value broadcastedRhs = mlir::stablehlo::DynamicBroadcastInDimOp::create(
+        rewriter, loc,
+        RankedTensorType::get(resultType.getShape(), rhsType.getElementType()),
+        rhs, resultExtents,
+        rewriter.getDenseI64ArrayAttr(rhsBroadcastDimensions));
 
     // And generate the final non-broadcasted binary op.
     Value finalResult = Adaptor::createOp(
         op, resultType, {broadcastedLhs, broadcastedRhs}, rewriter);
-    rewriter.create<shape::AssumingYieldOp>(loc, finalResult);
+    shape::AssumingYieldOp::create(rewriter, loc, finalResult);
     rewriter.replaceOp(op, {assumingOp.getResult(0)});
     return success();
   }
@@ -431,8 +428,8 @@ struct ConvertConstantLikeOp final
     // Lower to broadcasted constant.
     Location loc = op.getLoc();
     Value constant =
-        rewriter.create<mlir::stablehlo::ConstantOp>(loc, op.getValue());
-    Value shape = rewriter.create<shape::ShapeOfOp>(loc, adaptor.getOperand());
+        mlir::stablehlo::ConstantOp::create(rewriter, loc, op.getValue());
+    Value shape = shape::ShapeOfOp::create(rewriter, loc, adaptor.getOperand());
     rewriter.replaceOpWithNewOp<mlir::stablehlo::DynamicBroadcastInDimOp>(
         op, resultTy, constant, shape, rewriter.getDenseI64ArrayAttr({}));
     return success();
@@ -467,8 +464,8 @@ struct ConvertSelectOp final
 
     Value broadcastableCstr = rewriter.createOrFold<shape::CstrBroadcastableOp>(
         loc, ValueRange{predShape, onTrueShape, onFalseShape});
-    auto assumingOp = rewriter.create<shape::AssumingOp>(
-        loc, ArrayRef<Type>{resultType}, broadcastableCstr);
+    auto assumingOp = shape::AssumingOp::create(
+        rewriter, loc, ArrayRef<Type>{resultType}, broadcastableCstr);
 
     OpBuilder::InsertionGuard guard(rewriter);
     rewriter.createBlock(&assumingOp.getDoRegion());
@@ -487,38 +484,35 @@ struct ConvertSelectOp final
     if (predType.getRank() > 0) {
       auto predBroadcastDimensions = llvm::to_vector(
           llvm::seq<int64_t>(resultRank - predType.getRank(), resultRank));
-      broadcastedPred =
-          rewriter.create<mlir::stablehlo::DynamicBroadcastInDimOp>(
-              loc,
-              RankedTensorType::get(resultType.getShape(),
-                                    predType.getElementType()),
-              pred, resultExtents,
-              rewriter.getDenseI64ArrayAttr(predBroadcastDimensions));
+      broadcastedPred = mlir::stablehlo::DynamicBroadcastInDimOp::create(
+          rewriter, loc,
+          RankedTensorType::get(resultType.getShape(),
+                                predType.getElementType()),
+          pred, resultExtents,
+          rewriter.getDenseI64ArrayAttr(predBroadcastDimensions));
     }
     auto onTrueBroadcastDimensions = llvm::to_vector(
         llvm::seq<int64_t>(resultRank - onTrueType.getRank(), resultRank));
-    Value broadcastedOnTrue =
-        rewriter.create<mlir::stablehlo::DynamicBroadcastInDimOp>(
-            loc,
-            RankedTensorType::get(resultType.getShape(),
-                                  onTrueType.getElementType()),
-            onTrue, resultExtents,
-            rewriter.getDenseI64ArrayAttr(onTrueBroadcastDimensions));
+    Value broadcastedOnTrue = mlir::stablehlo::DynamicBroadcastInDimOp::create(
+        rewriter, loc,
+        RankedTensorType::get(resultType.getShape(),
+                              onTrueType.getElementType()),
+        onTrue, resultExtents,
+        rewriter.getDenseI64ArrayAttr(onTrueBroadcastDimensions));
     auto onFalseBroadcastDimensions = llvm::to_vector(
         llvm::seq<int64_t>(resultRank - onFalseType.getRank(), resultRank));
-    Value broadcastedOnFalse =
-        rewriter.create<mlir::stablehlo::DynamicBroadcastInDimOp>(
-            loc,
-            RankedTensorType::get(resultType.getShape(),
-                                  onFalseType.getElementType()),
-            onFalse, resultExtents,
-            rewriter.getDenseI64ArrayAttr(onFalseBroadcastDimensions));
+    Value broadcastedOnFalse = mlir::stablehlo::DynamicBroadcastInDimOp::create(
+        rewriter, loc,
+        RankedTensorType::get(resultType.getShape(),
+                              onFalseType.getElementType()),
+        onFalse, resultExtents,
+        rewriter.getDenseI64ArrayAttr(onFalseBroadcastDimensions));
 
     // And generate the final non-broadcasted ternary op.
-    Value finalResult = rewriter.create<mlir::stablehlo::SelectOp>(
-        loc, resultType, broadcastedPred, broadcastedOnTrue,
+    Value finalResult = mlir::stablehlo::SelectOp::create(
+        rewriter, loc, resultType, broadcastedPred, broadcastedOnTrue,
         broadcastedOnFalse);
-    rewriter.create<shape::AssumingYieldOp>(loc, finalResult);
+    shape::AssumingYieldOp::create(rewriter, loc, finalResult);
     rewriter.replaceOp(op, {assumingOp.getResult(0)});
     return success();
   }
@@ -548,15 +542,17 @@ static Value materializeChebyshevPolynomialApproximation(
   for (FTy c : coefficients) {
     b2 = b1;
     b1 = b0;
-    b0 = rewriter.create<mlir::stablehlo::MulOp>(loc, x.getType(), x, b1);
-    b0 = rewriter.create<mlir::stablehlo::SubtractOp>(loc, x.getType(), b0, b2);
-    b0 = rewriter.create<mlir::stablehlo::AddOp>(
-        loc, x.getType(), b0, getConstantLike(rewriter, loc, c, x));
+    b0 = mlir::stablehlo::MulOp::create(rewriter, loc, x.getType(), x, b1);
+    b0 =
+        mlir::stablehlo::SubtractOp::create(rewriter, loc, x.getType(), b0, b2);
+    b0 = mlir::stablehlo::AddOp::create(rewriter, loc, x.getType(), b0,
+                                        getConstantLike(rewriter, loc, c, x));
   }
   Value result =
-      rewriter.create<mlir::stablehlo::SubtractOp>(loc, x.getType(), b0, b2);
-  result = rewriter.create<mlir::stablehlo::MulOp>(
-      loc, x.getType(), result, getConstantLike(rewriter, loc, 0.5, x));
+      mlir::stablehlo::SubtractOp::create(rewriter, loc, x.getType(), b0, b2);
+  result =
+      mlir::stablehlo::MulOp::create(rewriter, loc, x.getType(), result,
+                                     getConstantLike(rewriter, loc, 0.5, x));
   return result;
 }
 
@@ -565,33 +561,33 @@ static Value materializeBesselI1eApproximation(OpBuilder& rewriter,
                                                Location loc, Value x,
                                                ArrayRef<FTy> kI1eCoeffsA,
                                                ArrayRef<FTy> kI1eCoeffsB) {
-  Value z = rewriter.create<mlir::stablehlo::AbsOp>(loc, x);
+  Value z = mlir::stablehlo::AbsOp::create(rewriter, loc, x);
   Value half = getConstantLike(rewriter, loc, 0.5, x);
   Value two = getConstantLike(rewriter, loc, 2.0, x);
   Value thirtyTwo = getConstantLike(rewriter, loc, 32.0, x);
   Value eight = getConstantLike(rewriter, loc, 8.0, x);
 
-  Value tmp = rewriter.create<mlir::stablehlo::MulOp>(loc, half, z);
-  tmp = rewriter.create<mlir::stablehlo::SubtractOp>(loc, tmp, two);
+  Value tmp = mlir::stablehlo::MulOp::create(rewriter, loc, half, z);
+  tmp = mlir::stablehlo::SubtractOp::create(rewriter, loc, tmp, two);
 
   Value xLe8 = materializeChebyshevPolynomialApproximation(rewriter, loc, tmp,
                                                            kI1eCoeffsA);
-  xLe8 = rewriter.create<mlir::stablehlo::MulOp>(loc, z, xLe8);
+  xLe8 = mlir::stablehlo::MulOp::create(rewriter, loc, z, xLe8);
 
-  tmp = rewriter.create<mlir::stablehlo::DivOp>(loc, thirtyTwo, z);
-  tmp = rewriter.create<mlir::stablehlo::SubtractOp>(loc, tmp, two);
+  tmp = mlir::stablehlo::DivOp::create(rewriter, loc, thirtyTwo, z);
+  tmp = mlir::stablehlo::SubtractOp::create(rewriter, loc, tmp, two);
   Value xGt8 = materializeChebyshevPolynomialApproximation(rewriter, loc, tmp,
                                                            kI1eCoeffsB);
-  xGt8 = rewriter.create<mlir::stablehlo::DivOp>(
-      loc, xGt8, rewriter.create<mlir::stablehlo::SqrtOp>(loc, z));
+  xGt8 = mlir::stablehlo::DivOp::create(
+      rewriter, loc, xGt8, mlir::stablehlo::SqrtOp::create(rewriter, loc, z));
 
-  Value isLe8 = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, z, eight, mlir::stablehlo::ComparisonDirection::LE);
+  Value isLe8 = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, z, eight, mlir::stablehlo::ComparisonDirection::LE);
 
   Value select =
-      rewriter.create<mlir::stablehlo::SelectOp>(loc, isLe8, xLe8, xGt8);
-  return rewriter.create<mlir::stablehlo::MulOp>(
-      loc, rewriter.create<mlir::stablehlo::SignOp>(loc, x), select);
+      mlir::stablehlo::SelectOp::create(rewriter, loc, isLe8, xLe8, xGt8);
+  return mlir::stablehlo::MulOp::create(
+      rewriter, loc, mlir::stablehlo::SignOp::create(rewriter, loc, x), select);
 }
 
 Value materializeBesselI1eApproximationF32(OpBuilder& rewriter, Location loc,
@@ -678,7 +674,7 @@ static Value materializeWithUpcast(ConversionPatternRewriter& rewriter,
   if (needsUpcast) {
     for (Value a : args) {
       castedArgs.push_back(
-          rewriter.create<mlir::stablehlo::ConvertOp>(loc, a, minPrecisionTy));
+          mlir::stablehlo::ConvertOp::create(rewriter, loc, a, minPrecisionTy));
     }
     args = castedArgs;
   }
@@ -688,7 +684,7 @@ static Value materializeWithUpcast(ConversionPatternRewriter& rewriter,
   // Cast back if necessary.
   if (needsUpcast) {
     result =
-        rewriter.create<mlir::stablehlo::ConvertOp>(loc, result, originalTy);
+        mlir::stablehlo::ConvertOp::create(rewriter, loc, result, originalTy);
   }
 
   return result;
@@ -732,9 +728,9 @@ static Value materializePolynomialApproximation(OpBuilder& rewriter,
 
   Value poly = getConstantLike(rewriter, loc, coefficients[0], x);
   for (size_t i = 1, e = coefficients.size(); i < e; ++i) {
-    poly = rewriter.create<mlir::stablehlo::MulOp>(loc, x.getType(), poly, x);
-    poly = rewriter.create<mlir::stablehlo::AddOp>(
-        loc, x.getType(), poly,
+    poly = mlir::stablehlo::MulOp::create(rewriter, loc, x.getType(), poly, x);
+    poly = mlir::stablehlo::AddOp::create(
+        rewriter, loc, x.getType(), poly,
         getConstantLike(rewriter, loc, coefficients[i], x));
   }
   return poly;
@@ -774,58 +770,60 @@ static Value materializeErfcApproximationF64ForMagnituteGeOne(
       3.36907645100081516050E0};
 
   // Let z = -x^2.
-  Value xSq = rewriter.create<mlir::stablehlo::MulOp>(loc, x, x);
-  Value z = rewriter.create<mlir::stablehlo::NegOp>(loc, xSq);
+  Value xSq = mlir::stablehlo::MulOp::create(rewriter, loc, x, x);
+  Value z = mlir::stablehlo::NegOp::create(rewriter, loc, xSq);
 
   // Materialize polynomial approximation for x in [1, 8) as
   //   erfc(x) = exp(z) P(|x|) / Q(|x|).
-  Value expZ = rewriter.create<mlir::stablehlo::ExpOp>(loc, z);
-  Value absX = rewriter.create<mlir::stablehlo::AbsOp>(loc, x);
+  Value expZ = mlir::stablehlo::ExpOp::create(rewriter, loc, z);
+  Value absX = mlir::stablehlo::AbsOp::create(rewriter, loc, x);
   Value polP = materializePolynomialApproximation(
       rewriter, loc, absX, llvm::ArrayRef(kErfcPCoefficients));
-  Value expZMulPolyP = rewriter.create<mlir::stablehlo::MulOp>(loc, expZ, polP);
+  Value expZMulPolyP =
+      mlir::stablehlo::MulOp::create(rewriter, loc, expZ, polP);
   Value polQ = materializePolynomialApproximation(
       rewriter, loc, absX, llvm::ArrayRef(kErfcQCoefficients));
   Value erfcApprox18 =
-      rewriter.create<mlir::stablehlo::DivOp>(loc, expZMulPolyP, polQ);
+      mlir::stablehlo::DivOp::create(rewriter, loc, expZMulPolyP, polQ);
 
   // Materialize polynomial approximation for x in >= 8 as
   //   erfc(x) exp(z) R(|x|) / S(|x|).
   Value polR = materializePolynomialApproximation(
       rewriter, loc, absX, llvm::ArrayRef(kErfcRCoefficients));
-  Value expZMulPolyR = rewriter.create<mlir::stablehlo::MulOp>(loc, expZ, polR);
+  Value expZMulPolyR =
+      mlir::stablehlo::MulOp::create(rewriter, loc, expZ, polR);
   Value polS = materializePolynomialApproximation(
       rewriter, loc, absX, llvm::ArrayRef(kErfcSCoefficients));
   Value erfcApprox8Inf =
-      rewriter.create<mlir::stablehlo::DivOp>(loc, expZMulPolyR, polS);
+      mlir::stablehlo::DivOp::create(rewriter, loc, expZMulPolyR, polS);
 
   // Combine polynomial approximations for x >= 1.
   Value eight = getConstantLike(rewriter, loc, 8.0, x);
-  Value absXLt8 = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, absX, eight, mlir::stablehlo::ComparisonDirection::LT);
-  Value erfcApprox = rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, absXLt8, erfcApprox18, erfcApprox8Inf);
+  Value absXLt8 = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, absX, eight, mlir::stablehlo::ComparisonDirection::LT);
+  Value erfcApprox = mlir::stablehlo::SelectOp::create(
+      rewriter, loc, absXLt8, erfcApprox18, erfcApprox8Inf);
 
   // Clamp to prevent overflow and materialize approximation for large x as
   //   erfc(x) = 0.
-  Value zLtNegMaxlog = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, z, getConstantLike(rewriter, loc, -kMaxlog, x),
+  Value zLtNegMaxlog = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, z, getConstantLike(rewriter, loc, -kMaxlog, x),
       mlir::stablehlo::ComparisonDirection::LT);
   Value zero = getConstantLike(rewriter, loc, 0.0, x);
-  Value erfcApproxClamped = rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, zLtNegMaxlog, zero, erfcApprox);
+  Value erfcApproxClamped = mlir::stablehlo::SelectOp::create(
+      rewriter, loc, zLtNegMaxlog, zero, erfcApprox);
 
   // Derive approximation for x <= -1 as
   //   erfc(x) = 2 - erfc(-x).
   // Reuse previously materialized approximations all of which take |x| as their
   // argument.
-  Value xLtZero = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, x, zero, mlir::stablehlo::ComparisonDirection::LT);
+  Value xLtZero = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::LT);
   Value two = getConstantLike(rewriter, loc, 2.0, x);
-  Value twoSubErfcApproxClamped =
-      rewriter.create<mlir::stablehlo::SubtractOp>(loc, two, erfcApproxClamped);
-  return rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, xLtZero, twoSubErfcApproxClamped, erfcApproxClamped);
+  Value twoSubErfcApproxClamped = mlir::stablehlo::SubtractOp::create(
+      rewriter, loc, two, erfcApproxClamped);
+  return mlir::stablehlo::SelectOp::create(
+      rewriter, loc, xLtZero, twoSubErfcApproxClamped, erfcApproxClamped);
 }
 
 // Precondition is |x| <= 1. Use erfc approximation, otherwise.
@@ -846,13 +844,13 @@ static Value materializeErfApproximationF64ForMagnituteLeOne(
 
   // Materialize polynomial approximation for |x| <= 1 as
   //   erf(x) = x T(x^2) / U(x^2).
-  Value xSq = rewriter.create<mlir::stablehlo::MulOp>(loc, x, x);
+  Value xSq = mlir::stablehlo::MulOp::create(rewriter, loc, x, x);
   Value polyT = materializePolynomialApproximation(
       rewriter, loc, xSq, llvm::ArrayRef(kErfTCoefficients));
-  Value xMulPolyT = rewriter.create<mlir::stablehlo::MulOp>(loc, x, polyT);
+  Value xMulPolyT = mlir::stablehlo::MulOp::create(rewriter, loc, x, polyT);
   Value polyU = materializePolynomialApproximation(
       rewriter, loc, xSq, llvm::ArrayRef(kErfUCoefficients));
-  return rewriter.create<mlir::stablehlo::DivOp>(loc, xMulPolyT, polyU);
+  return mlir::stablehlo::DivOp::create(rewriter, loc, xMulPolyT, polyU);
 }
 
 // This implementation is based on Cephes.
@@ -873,14 +871,14 @@ static Value materializeErfApproximationF64(ConversionPatternRewriter& rewriter,
   Value erfcApprox =
       materializeErfcApproximationF64ForMagnituteGeOne(rewriter, loc, x);
   Value erfcBasedApprox =
-      rewriter.create<mlir::stablehlo::SubtractOp>(loc, one, erfcApprox);
+      mlir::stablehlo::SubtractOp::create(rewriter, loc, one, erfcApprox);
 
   // Materialize approximation selection based on argument.
-  Value absX = rewriter.create<mlir::stablehlo::AbsOp>(loc, x);
-  Value absXLtOne = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, absX, one, mlir::stablehlo::ComparisonDirection::LT);
-  return rewriter.create<mlir::stablehlo::SelectOp>(loc, absXLtOne, erfApprox,
-                                                    erfcBasedApprox);
+  Value absX = mlir::stablehlo::AbsOp::create(rewriter, loc, x);
+  Value absXLtOne = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, absX, one, mlir::stablehlo::ComparisonDirection::LT);
+  return mlir::stablehlo::SelectOp::create(rewriter, loc, absXLtOne, erfApprox,
+                                           erfcBasedApprox);
 }
 
 static Value materializeErfcApproximationF64(
@@ -900,14 +898,14 @@ static Value materializeErfcApproximationF64(
   Value erfApprox =
       materializeErfApproximationF64ForMagnituteLeOne(rewriter, loc, x);
   Value erfBasedApprox =
-      rewriter.create<mlir::stablehlo::SubtractOp>(loc, one, erfApprox);
+      mlir::stablehlo::SubtractOp::create(rewriter, loc, one, erfApprox);
 
   // Materialize approximation selection based on argument.
-  Value absX = rewriter.create<mlir::stablehlo::AbsOp>(loc, x);
-  Value absXLtOne = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, absX, one, mlir::stablehlo::ComparisonDirection::LT);
-  return rewriter.create<mlir::stablehlo::SelectOp>(loc, absXLtOne,
-                                                    erfBasedApprox, erfcApprox);
+  Value absX = mlir::stablehlo::AbsOp::create(rewriter, loc, x);
+  Value absXLtOne = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, absX, one, mlir::stablehlo::ComparisonDirection::LT);
+  return mlir::stablehlo::SelectOp::create(rewriter, loc, absXLtOne,
+                                           erfBasedApprox, erfcApprox);
 }
 
 // Precondition is |x| >= 1. Use erf approximation, otherwise.
@@ -933,50 +931,50 @@ static Value materializeErfcApproximationF32ForMagnitudeGeOne(
   };
 
   // Let z = -x^2.
-  Value xSq = rewriter.create<mlir::stablehlo::MulOp>(loc, x, x);
-  Value z = rewriter.create<mlir::stablehlo::NegOp>(loc, xSq);
+  Value xSq = mlir::stablehlo::MulOp::create(rewriter, loc, x, x);
+  Value z = mlir::stablehlo::NegOp::create(rewriter, loc, xSq);
 
   // Materialize polynomial approximation for x >= 1 as
   //   erfc(x) = exp(z) 1/x P(1/x^2)   if x in [1, 2)
   //   erfc(x) = exp(z) 1/x R(1/x^2)   if x >= 2
-  Value absX = rewriter.create<mlir::stablehlo::AbsOp>(loc, x);
+  Value absX = mlir::stablehlo::AbsOp::create(rewriter, loc, x);
   Value one = getConstantLike(rewriter, loc, 1.0, x);
-  Value reciprocalXSq = rewriter.create<mlir::stablehlo::DivOp>(loc, one, xSq);
-  Value expZ = rewriter.create<mlir::stablehlo::ExpOp>(loc, z);
-  Value oneDivAbsX = rewriter.create<mlir::stablehlo::DivOp>(loc, one, absX);
+  Value reciprocalXSq = mlir::stablehlo::DivOp::create(rewriter, loc, one, xSq);
+  Value expZ = mlir::stablehlo::ExpOp::create(rewriter, loc, z);
+  Value oneDivAbsX = mlir::stablehlo::DivOp::create(rewriter, loc, one, absX);
   Value expZMulOneDivAbsX =
-      rewriter.create<mlir::stablehlo::MulOp>(loc, expZ, oneDivAbsX);
+      mlir::stablehlo::MulOp::create(rewriter, loc, expZ, oneDivAbsX);
   Value two = getConstantLike(rewriter, loc, 2.0, x);
-  Value absXLtTwo = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, absX, two, mlir::stablehlo::ComparisonDirection::LT);
+  Value absXLtTwo = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, absX, two, mlir::stablehlo::ComparisonDirection::LT);
   Value polP = materializePolynomialApproximation(
       rewriter, loc, reciprocalXSq, llvm::ArrayRef(kErfcPCoefficients));
   Value polR = materializePolynomialApproximation(
       rewriter, loc, reciprocalXSq, llvm::ArrayRef(kErfcRCoefficients));
   Value poly =
-      rewriter.create<mlir::stablehlo::SelectOp>(loc, absXLtTwo, polP, polR);
+      mlir::stablehlo::SelectOp::create(rewriter, loc, absXLtTwo, polP, polR);
   Value erfcApprox =
-      rewriter.create<mlir::stablehlo::MulOp>(loc, expZMulOneDivAbsX, poly);
+      mlir::stablehlo::MulOp::create(rewriter, loc, expZMulOneDivAbsX, poly);
 
   // Clamp to prevent overflow and materialize approximation for large x as
   //   erfc(x) = 0.
-  Value zLtNeqMaxlog = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, z, getConstantLike(rewriter, loc, -kMaxlog, x),
+  Value zLtNeqMaxlog = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, z, getConstantLike(rewriter, loc, -kMaxlog, x),
       mlir::stablehlo::ComparisonDirection::LT);
   Value zero = getConstantLike(rewriter, loc, 0.0, x);
-  Value erfcApproxClamped = rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, zLtNeqMaxlog, zero, erfcApprox);
+  Value erfcApproxClamped = mlir::stablehlo::SelectOp::create(
+      rewriter, loc, zLtNeqMaxlog, zero, erfcApprox);
 
   // Derive approximation for x <= -1 as
   //   erfc(x) = 2 - erfc(-x).
   // Reuse previously materialized approximations all of which take |x| as their
   // argument.
-  Value xLtZero = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, x, zero, mlir::stablehlo::ComparisonDirection::LT);
-  Value twoSubErfcApprox =
-      rewriter.create<mlir::stablehlo::SubtractOp>(loc, two, erfcApproxClamped);
-  return rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, xLtZero, twoSubErfcApprox, erfcApproxClamped);
+  Value xLtZero = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::LT);
+  Value twoSubErfcApprox = mlir::stablehlo::SubtractOp::create(
+      rewriter, loc, two, erfcApproxClamped);
+  return mlir::stablehlo::SelectOp::create(rewriter, loc, xLtZero,
+                                           twoSubErfcApprox, erfcApproxClamped);
 }
 
 // Precondition is |x| <= 1. Use erfc approximation, otherwise.
@@ -994,10 +992,10 @@ static Value materializeErfApproximationF32ForMagnitudeLeOne(
 
   // Materialize polynomial approximation for |x| <= 1 as
   //   erf(x) = x T(x^2).
-  Value xSq = rewriter.create<mlir::stablehlo::MulOp>(loc, x, x);
+  Value xSq = mlir::stablehlo::MulOp::create(rewriter, loc, x, x);
   Value polyT = materializePolynomialApproximation(
       rewriter, loc, xSq, llvm::ArrayRef(kErfTCoefficients));
-  return rewriter.create<mlir::stablehlo::MulOp>(loc, x, polyT);
+  return mlir::stablehlo::MulOp::create(rewriter, loc, x, polyT);
 }
 
 // This is the same approximation as used in Eigen.
@@ -1019,8 +1017,8 @@ static Value materializeErfApproximationF32(OpBuilder& rewriter, Location loc,
   // Clamp argument between -4 and 4.
   Value lb = getConstantLike(rewriter, loc, -4.0, x);
   Value ub = getConstantLike(rewriter, loc, 4.0, x);
-  x = rewriter.create<mlir::stablehlo::ClampOp>(loc, x.getType(), lb, x, ub);
-  Value xSq = rewriter.create<mlir::stablehlo::MulOp>(loc, x, x);
+  x = mlir::stablehlo::ClampOp::create(rewriter, loc, x.getType(), lb, x, ub);
+  Value xSq = mlir::stablehlo::MulOp::create(rewriter, loc, x, x);
 
   // Materialize polynomial approximation for x in [-4, 4] as
   //   erf(x) = x * Alpha(x^2) / Beta(x^2).
@@ -1029,13 +1027,13 @@ static Value materializeErfApproximationF32(OpBuilder& rewriter, Location loc,
   Value betaPoly = materializePolynomialApproximation(rewriter, loc, xSq,
                                                       llvm::ArrayRef(kBeta));
   Value xMulAlphaPoly =
-      rewriter.create<mlir::stablehlo::MulOp>(loc, x, alphaPoly);
+      mlir::stablehlo::MulOp::create(rewriter, loc, x, alphaPoly);
   Value erf =
-      rewriter.create<mlir::stablehlo::DivOp>(loc, xMulAlphaPoly, betaPoly);
+      mlir::stablehlo::DivOp::create(rewriter, loc, xMulAlphaPoly, betaPoly);
   Value lbErf = getConstantLike(rewriter, loc, -1.0, x);
   Value ubErf = getConstantLike(rewriter, loc, 1.0, x);
-  return rewriter.create<mlir::stablehlo::ClampOp>(loc, erf.getType(), lbErf,
-                                                   erf, ubErf);
+  return mlir::stablehlo::ClampOp::create(rewriter, loc, erf.getType(), lbErf,
+                                          erf, ubErf);
 }
 
 static Value materializeErfcApproximationF32(OpBuilder& rewriter, Location loc,
@@ -1055,14 +1053,14 @@ static Value materializeErfcApproximationF32(OpBuilder& rewriter, Location loc,
   Value erfApprox =
       materializeErfApproximationF32ForMagnitudeLeOne(rewriter, loc, x);
   Value erfBasedApprox =
-      rewriter.create<mlir::stablehlo::SubtractOp>(loc, one, erfApprox);
+      mlir::stablehlo::SubtractOp::create(rewriter, loc, one, erfApprox);
 
   // Materialize approximation selection based on argument.
-  Value absX = rewriter.create<mlir::stablehlo::AbsOp>(loc, x);
-  Value absXLtOne = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, absX, one, mlir::stablehlo::ComparisonDirection::LT);
-  return rewriter.create<mlir::stablehlo::SelectOp>(loc, absXLtOne,
-                                                    erfBasedApprox, erfcApprox);
+  Value absX = mlir::stablehlo::AbsOp::create(rewriter, loc, x);
+  Value absXLtOne = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, absX, one, mlir::stablehlo::ComparisonDirection::LT);
+  return mlir::stablehlo::SelectOp::create(rewriter, loc, absXLtOne,
+                                           erfBasedApprox, erfcApprox);
 }
 
 struct ConvertErfOp final : OpConversionPattern<mlir::chlo::ErfOp> {
@@ -1136,45 +1134,45 @@ static Value erfInv32(OpBuilder& b, Location loc, ValueRange args) {
   // Compute logarithm of (1+arg) using log1p(arg) which is more precise than
   // log(1+arg) when arg is close to zero. For more details, see
   // https://en.cppreference.com/w/cpp/numeric/math/log1p
-  Value minusXSquared = b.create<mlir::stablehlo::MulOp>(
-      loc, x, b.create<mlir::stablehlo::NegOp>(loc, x));
-  Value w = b.create<mlir::stablehlo::NegOp>(
-      loc, b.create<mlir::stablehlo::Log1pOp>(loc, minusXSquared));
+  Value minusXSquared = mlir::stablehlo::MulOp::create(
+      b, loc, x, mlir::stablehlo::NegOp::create(b, loc, x));
+  Value w = mlir::stablehlo::NegOp::create(
+      b, loc, mlir::stablehlo::Log1pOp::create(b, loc, minusXSquared));
 
-  Value lt = b.create<mlir::stablehlo::CompareOp>(
-      loc, w, getConstantLike(b, loc, 5.0, x),
+  Value lt = mlir::stablehlo::CompareOp::create(
+      b, loc, w, getConstantLike(b, loc, 5.0, x),
       mlir::stablehlo::ComparisonDirection::LT);
   auto coefficient = [&](int i) {
-    return b.create<mlir::stablehlo::SelectOp>(
-        loc, lt, getConstantLike(b, loc, wLessThan5Constants[i], x),
+    return mlir::stablehlo::SelectOp::create(
+        b, loc, lt, getConstantLike(b, loc, wLessThan5Constants[i], x),
         getConstantLike(b, loc, wGreaterThan5Constants[i], x));
   };
-  w = b.create<mlir::stablehlo::SelectOp>(
-      loc, lt,
-      b.create<mlir::stablehlo::SubtractOp>(loc, w,
-                                            getConstantLike(b, loc, 2.5, x)),
-      b.create<mlir::stablehlo::SubtractOp>(
-          loc, b.create<mlir::stablehlo::SqrtOp>(loc, w),
+  w = mlir::stablehlo::SelectOp::create(
+      b, loc, lt,
+      mlir::stablehlo::SubtractOp::create(b, loc, w,
+                                          getConstantLike(b, loc, 2.5, x)),
+      mlir::stablehlo::SubtractOp::create(
+          b, loc, mlir::stablehlo::SqrtOp::create(b, loc, w),
           getConstantLike(b, loc, 3.0, x)));
   Value p = coefficient(0);
   for (int i = 1; i < kDegree; ++i) {
-    p = b.create<mlir::stablehlo::AddOp>(
-        loc, coefficient(i), b.create<mlir::stablehlo::MulOp>(loc, p, w));
+    p = mlir::stablehlo::AddOp::create(
+        b, loc, coefficient(i), mlir::stablehlo::MulOp::create(b, loc, p, w));
   }
 
   // Result modulo edge cases.
-  Value result = b.create<mlir::stablehlo::MulOp>(loc, p, x);
+  Value result = mlir::stablehlo::MulOp::create(b, loc, p, x);
 
   // Handle edge cases, namely erfinv(+/-1) = +/-inf.  (The above computation is
   // indeterminate, and can give nan or -/+inf.)
-  return b.create<mlir::stablehlo::SelectOp>(
-      loc,
-      b.create<mlir::stablehlo::CompareOp>(
-          loc, b.create<mlir::stablehlo::AbsOp>(loc, x),
+  return mlir::stablehlo::SelectOp::create(
+      b, loc,
+      mlir::stablehlo::CompareOp::create(
+          b, loc, mlir::stablehlo::AbsOp::create(b, loc, x),
           getConstantLike(b, loc, 1, x),
           mlir::stablehlo::ComparisonDirection::EQ),
-      b.create<mlir::stablehlo::MulOp>(
-          loc, x, getConstantLikeInfValue(b, loc, x, false)),
+      mlir::stablehlo::MulOp::create(b, loc, x,
+                                     getConstantLikeInfValue(b, loc, x, false)),
       result);
 }
 
@@ -1221,75 +1219,79 @@ static Value erfInv64(ConversionPatternRewriter& b, Location loc,
   // Compute logarithm of (1+arg) using log1p(arg) which is more precise than
   // log(1+arg) when arg is close to zero. For more details, see
   // https://en.cppreference.com/w/cpp/numeric/math/log1p
-  Value minusXSquared = b.create<mlir::stablehlo::MulOp>(
-      loc, x, b.create<mlir::stablehlo::NegOp>(loc, x));
-  Value w = b.create<mlir::stablehlo::NegOp>(
-      loc, b.create<mlir::stablehlo::Log1pOp>(loc, minusXSquared));
+  Value minusXSquared = mlir::stablehlo::MulOp::create(
+      b, loc, x, mlir::stablehlo::NegOp::create(b, loc, x));
+  Value w = mlir::stablehlo::NegOp::create(
+      b, loc, mlir::stablehlo::Log1pOp::create(b, loc, minusXSquared));
 
-  Value lt625 = b.create<mlir::stablehlo::CompareOp>(
-      loc, w, getConstantLike(b, loc, 6.25, x),
+  Value lt625 = mlir::stablehlo::CompareOp::create(
+      b, loc, w, getConstantLike(b, loc, 6.25, x),
       mlir::stablehlo::ComparisonDirection::LT);
-  Value lt16 = b.create<mlir::stablehlo::CompareOp>(
-      loc, w, getConstantLike(b, loc, 16, x),
+  Value lt16 = mlir::stablehlo::CompareOp::create(
+      b, loc, w, getConstantLike(b, loc, 16, x),
       mlir::stablehlo::ComparisonDirection::LT);
 
   auto coefficient = [&](int i) {
     Value c = getConstantLike(b, loc, wLessThan625Constants[i], x);
     if (i < 19) {
-      c = b.create<mlir::stablehlo::SelectOp>(
-          loc, lt625, c, getConstantLike(b, loc, wLessThan16Constants[i], x));
+      c = mlir::stablehlo::SelectOp::create(
+          b, loc, lt625, c,
+          getConstantLike(b, loc, wLessThan16Constants[i], x));
     }
     if (i < 17) {
-      c = b.create<mlir::stablehlo::SelectOp>(
-          loc, lt16, c, getConstantLike(b, loc, wGreaterThan16Constants[i], x));
+      c = mlir::stablehlo::SelectOp::create(
+          b, loc, lt16, c,
+          getConstantLike(b, loc, wGreaterThan16Constants[i], x));
     }
     return c;
   };
 
-  Value sqrtW = b.create<mlir::stablehlo::SqrtOp>(loc, w);
-  Value wMinus3125 = b.create<mlir::stablehlo::SubtractOp>(
-      loc, w, getConstantLike(b, loc, 3.125, x));
-  Value select2 = b.create<mlir::stablehlo::SelectOp>(
-      loc, lt16, getConstantLike(b, loc, 3.25, w),
+  Value sqrtW = mlir::stablehlo::SqrtOp::create(b, loc, w);
+  Value wMinus3125 = mlir::stablehlo::SubtractOp::create(
+      b, loc, w, getConstantLike(b, loc, 3.125, x));
+  Value select2 = mlir::stablehlo::SelectOp::create(
+      b, loc, lt16, getConstantLike(b, loc, 3.25, w),
       getConstantLike(b, loc, 5.0, w));
   Value select2Result =
-      b.create<mlir::stablehlo::SubtractOp>(loc, sqrtW, select2);
-  w = b.create<mlir::stablehlo::SelectOp>(loc, lt625, wMinus3125,
-                                          select2Result);
+      mlir::stablehlo::SubtractOp::create(b, loc, sqrtW, select2);
+  w = mlir::stablehlo::SelectOp::create(b, loc, lt625, wMinus3125,
+                                        select2Result);
 
   Value p = coefficient(0);
   for (int i = 1; i < 17; ++i) {
-    p = b.create<mlir::stablehlo::AddOp>(
-        loc, coefficient(i), b.create<mlir::stablehlo::MulOp>(loc, p, w));
+    p = mlir::stablehlo::AddOp::create(
+        b, loc, coefficient(i), mlir::stablehlo::MulOp::create(b, loc, p, w));
   }
   for (int i = 17; i < 19; ++i) {
-    p = b.create<mlir::stablehlo::SelectOp>(
-        loc, lt16,
-        b.create<mlir::stablehlo::AddOp>(
-            loc, coefficient(i), b.create<mlir::stablehlo::MulOp>(loc, p, w)),
+    p = mlir::stablehlo::SelectOp::create(
+        b, loc, lt16,
+        mlir::stablehlo::AddOp::create(
+            b, loc, coefficient(i),
+            mlir::stablehlo::MulOp::create(b, loc, p, w)),
         p);
   }
   for (int i = 19; i < 23; ++i) {
-    p = b.create<mlir::stablehlo::SelectOp>(
-        loc, lt625,
-        b.create<mlir::stablehlo::AddOp>(
-            loc, coefficient(i), b.create<mlir::stablehlo::MulOp>(loc, p, w)),
+    p = mlir::stablehlo::SelectOp::create(
+        b, loc, lt625,
+        mlir::stablehlo::AddOp::create(
+            b, loc, coefficient(i),
+            mlir::stablehlo::MulOp::create(b, loc, p, w)),
         p);
   }
 
   // Result modulo edge cases.
-  Value result = b.create<mlir::stablehlo::MulOp>(loc, p, x);
+  Value result = mlir::stablehlo::MulOp::create(b, loc, p, x);
 
   // Handle edge cases, namely erfinv(+/-1) = +/-inf.  (The above computation is
   // indeterminate, and can give nan or -/+inf.)
-  return b.create<mlir::stablehlo::SelectOp>(
-      loc,
-      b.create<mlir::stablehlo::CompareOp>(
-          loc, b.create<mlir::stablehlo::AbsOp>(loc, x),
+  return mlir::stablehlo::SelectOp::create(
+      b, loc,
+      mlir::stablehlo::CompareOp::create(
+          b, loc, mlir::stablehlo::AbsOp::create(b, loc, x),
           getConstantLike(b, loc, 1, x),
           mlir::stablehlo::ComparisonDirection::EQ),
-      b.create<mlir::stablehlo::MulOp>(
-          loc, x, getConstantLikeInfValue(b, loc, x, false)),
+      mlir::stablehlo::MulOp::create(b, loc, x,
+                                     getConstantLikeInfValue(b, loc, x, false)),
       result);
 }
 
@@ -1346,13 +1348,13 @@ Value materializeLgamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   //   z = x - 1   otheriwse
   Value x = args.front();
   Value half = getConstantLike(rewriter, loc, 0.5, x);
-  Value needToReflect = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, x, half, mlir::stablehlo::ComparisonDirection::LT);
-  Value negX = rewriter.create<mlir::stablehlo::NegOp>(loc, x);
+  Value needToReflect = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, half, mlir::stablehlo::ComparisonDirection::LT);
+  Value negX = mlir::stablehlo::NegOp::create(rewriter, loc, x);
   Value one = getConstantLike(rewriter, loc, 1, x);
-  Value xSubOne = rewriter.create<mlir::stablehlo::SubtractOp>(loc, x, one);
-  Value z = rewriter.create<mlir::stablehlo::SelectOp>(loc, needToReflect, negX,
-                                                       xSubOne);
+  Value xSubOne = mlir::stablehlo::SubtractOp::create(rewriter, loc, x, one);
+  Value z = mlir::stablehlo::SelectOp::create(rewriter, loc, needToReflect,
+                                              negX, xSubOne);
 
   // Materialize
   //   a(z) = kBaseLanczosCoeff
@@ -1361,10 +1363,10 @@ Value materializeLgamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   for (int i = 0, end = kLanczosCoefficients.size(); i < end; ++i) {
     Value coeff = getConstantLike(rewriter, loc, kLanczosCoefficients[i], x);
     Value oneBasedIndex = getConstantLike(rewriter, loc, i + 1, x);
-    Value quotient = rewriter.create<mlir::stablehlo::DivOp>(
-        loc, coeff,
-        rewriter.create<mlir::stablehlo::AddOp>(loc, z, oneBasedIndex));
-    a = rewriter.create<mlir::stablehlo::AddOp>(loc, a, quotient);
+    Value quotient = mlir::stablehlo::DivOp::create(
+        rewriter, loc, coeff,
+        mlir::stablehlo::AddOp::create(rewriter, loc, z, oneBasedIndex));
+    a = mlir::stablehlo::AddOp::create(rewriter, loc, a, quotient);
   }
 
   // To improve accuracy on platforms with less-precise log implementations,
@@ -1375,30 +1377,33 @@ Value materializeLgamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   //          = log(kLanczosGamma + 1/2) + log1p(z / (kLanczosGamma + 1/2)).
   Value lanczosPlusHalf =
       getConstantLike(rewriter, loc, kLanczosGamma + 0.5, x);
-  Value t = rewriter.create<mlir::stablehlo::AddOp>(loc, lanczosPlusHalf, z);
+  Value t = mlir::stablehlo::AddOp::create(rewriter, loc, lanczosPlusHalf, z);
   Value logTerm =
       getConstantLike(rewriter, loc, std::log(kLanczosGamma + 0.5), x);
-  Value log1pTerm = rewriter.create<mlir::stablehlo::Log1pOp>(
-      loc, rewriter.create<mlir::stablehlo::DivOp>(loc, z, lanczosPlusHalf));
-  Value logT = rewriter.create<mlir::stablehlo::AddOp>(loc, logTerm, log1pTerm);
+  Value log1pTerm = mlir::stablehlo::Log1pOp::create(
+      rewriter, loc,
+      mlir::stablehlo::DivOp::create(rewriter, loc, z, lanczosPlusHalf));
+  Value logT =
+      mlir::stablehlo::AddOp::create(rewriter, loc, logTerm, log1pTerm);
 
   // Note that t(z) may be large and we need to be careful not to overflow to
   // infinity in the relevant term
   //   r = (z + 1/2) * log(t(z)) - t(z).
   // Therefore, we compute this as
   //   r = (z + 1/2 - t(z) / log(t(z))) * log(t(z)).
-  Value tDivLogT = rewriter.create<mlir::stablehlo::DivOp>(loc, t, logT);
-  Value sum = rewriter.create<mlir::stablehlo::SubtractOp>(
-      loc, rewriter.create<mlir::stablehlo::AddOp>(loc, z, half), tDivLogT);
-  Value r = rewriter.create<mlir::stablehlo::MulOp>(loc, sum, logT);
+  Value tDivLogT = mlir::stablehlo::DivOp::create(rewriter, loc, t, logT);
+  Value sum = mlir::stablehlo::SubtractOp::create(
+      rewriter, loc, mlir::stablehlo::AddOp::create(rewriter, loc, z, half),
+      tDivLogT);
+  Value r = mlir::stablehlo::MulOp::create(rewriter, loc, sum, logT);
 
   // Compute the final result (modulo reflection) as
   //   lgamma(z + 1) = (log(2) + log(pi)) / 2 + r + log(a(z)).
-  Value logA = rewriter.create<mlir::stablehlo::LogOp>(loc, a);
-  Value lgamma = rewriter.create<mlir::stablehlo::AddOp>(
-      loc,
-      rewriter.create<mlir::stablehlo::AddOp>(
-          loc,
+  Value logA = mlir::stablehlo::LogOp::create(rewriter, loc, a);
+  Value lgamma = mlir::stablehlo::AddOp::create(
+      rewriter, loc,
+      mlir::stablehlo::AddOp::create(
+          rewriter, loc,
           getConstantLike(rewriter, loc, (std::log(2) + std::log(M_PI)) / 2, x),
           r),
       logA);
@@ -1430,46 +1435,50 @@ Value materializeLgamma(OpBuilder& rewriter, Location loc, ValueRange args) {
 
   // Convert values of abs_frac > 0.5 to (1 - abs_frac) to improve precision of
   // pi * abs_frac for values of abs_frac close to 1.
-  Value abs = rewriter.create<mlir::stablehlo::AbsOp>(loc, x);
-  Value absFrac = rewriter.create<mlir::stablehlo::SubtractOp>(
-      loc, abs, rewriter.create<mlir::stablehlo::FloorOp>(loc, abs));
-  Value reduceAbsFrac = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, half, absFrac, mlir::stablehlo::ComparisonDirection::LT);
-  absFrac = rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, reduceAbsFrac,
-      rewriter.create<mlir::stablehlo::SubtractOp>(loc, one, absFrac), absFrac);
+  Value abs = mlir::stablehlo::AbsOp::create(rewriter, loc, x);
+  Value absFrac = mlir::stablehlo::SubtractOp::create(
+      rewriter, loc, abs, mlir::stablehlo::FloorOp::create(rewriter, loc, abs));
+  Value reduceAbsFrac = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, half, absFrac, mlir::stablehlo::ComparisonDirection::LT);
+  absFrac = mlir::stablehlo::SelectOp::create(
+      rewriter, loc, reduceAbsFrac,
+      mlir::stablehlo::SubtractOp::create(rewriter, loc, one, absFrac),
+      absFrac);
 
   // Materialize reflection.
-  Value reflectionDenom = rewriter.create<mlir::stablehlo::LogOp>(
-      loc,
-      rewriter.create<mlir::stablehlo::SineOp>(
-          loc, rewriter.create<mlir::stablehlo::MulOp>(
-                   loc, getConstantLike(rewriter, loc, M_PI, x), absFrac)));
-  Value lgammaReflection = rewriter.create<mlir::stablehlo::SubtractOp>(
-      loc,
-      rewriter.create<mlir::stablehlo::SubtractOp>(
-          loc, getConstantLike(rewriter, loc, std::log(M_PI), x),
+  Value reflectionDenom = mlir::stablehlo::LogOp::create(
+      rewriter, loc,
+      mlir::stablehlo::SineOp::create(
+          rewriter, loc,
+          mlir::stablehlo::MulOp::create(
+              rewriter, loc, getConstantLike(rewriter, loc, M_PI, x),
+              absFrac)));
+  Value lgammaReflection = mlir::stablehlo::SubtractOp::create(
+      rewriter, loc,
+      mlir::stablehlo::SubtractOp::create(
+          rewriter, loc, getConstantLike(rewriter, loc, std::log(M_PI), x),
           reflectionDenom),
       lgamma);
 
   // Avoid computing -inf - inf, which is nan. If reflection_denom is +/-inf,
   // then it "wins" and the result is +/-inf.
   Value finiteReflectionDenom =
-      rewriter.create<mlir::stablehlo::IsFiniteOp>(loc, reflectionDenom);
+      mlir::stablehlo::IsFiniteOp::create(rewriter, loc, reflectionDenom);
   Value negReflectionDenom =
-      rewriter.create<mlir::stablehlo::NegOp>(loc, reflectionDenom);
-  lgammaReflection = rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, finiteReflectionDenom, lgammaReflection, negReflectionDenom);
+      mlir::stablehlo::NegOp::create(rewriter, loc, reflectionDenom);
+  lgammaReflection =
+      mlir::stablehlo::SelectOp::create(rewriter, loc, finiteReflectionDenom,
+                                        lgammaReflection, negReflectionDenom);
 
   // Select whether or not to rely on the reflection.
-  lgamma = rewriter.create<mlir::stablehlo::SelectOp>(loc, needToReflect,
-                                                      lgammaReflection, lgamma);
+  lgamma = mlir::stablehlo::SelectOp::create(rewriter, loc, needToReflect,
+                                             lgammaReflection, lgamma);
 
   // Materialize +/-inf behavior as
   //   lgamma(+/-inf) = +inf.
-  Value xIsInf = rewriter.create<chlo::IsInfOp>(loc, x);
-  return rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, xIsInf,
+  Value xIsInf = chlo::IsInfOp::create(rewriter, loc, x);
+  return mlir::stablehlo::SelectOp::create(
+      rewriter, loc, xIsInf,
       getConstantLikeInfValue(rewriter, loc, x, /*negative=*/false), lgamma);
 }
 
@@ -1490,13 +1499,15 @@ static Value materializeCoshApproximation(OpBuilder& rewriter, Location loc,
   mlir::chlo::CoshOp::Adaptor transformed(operands);
   Value x = transformed.getOperand();
 
-  Value logOneHalf = rewriter.create<mlir::stablehlo::LogOp>(
-      loc, getConstantLike(rewriter, loc, 0.5, x));
-  Value expAdd = rewriter.create<mlir::stablehlo::ExpOp>(
-      loc, rewriter.create<mlir::stablehlo::AddOp>(loc, x, logOneHalf));
-  Value expSub = rewriter.create<mlir::stablehlo::ExpOp>(
-      loc, rewriter.create<mlir::stablehlo::SubtractOp>(loc, logOneHalf, x));
-  return rewriter.create<mlir::stablehlo::AddOp>(loc, expAdd, expSub);
+  Value logOneHalf = mlir::stablehlo::LogOp::create(
+      rewriter, loc, getConstantLike(rewriter, loc, 0.5, x));
+  Value expAdd = mlir::stablehlo::ExpOp::create(
+      rewriter, loc,
+      mlir::stablehlo::AddOp::create(rewriter, loc, x, logOneHalf));
+  Value expSub = mlir::stablehlo::ExpOp::create(
+      rewriter, loc,
+      mlir::stablehlo::SubtractOp::create(rewriter, loc, logOneHalf, x));
+  return mlir::stablehlo::AddOp::create(rewriter, loc, expAdd, expSub);
 }
 
 struct ConvertCoshOp final : OpConversionPattern<mlir::chlo::CoshOp> {
@@ -1531,13 +1542,13 @@ Value materializeDigamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   //   z = x - 1   otheriwse
   Value x = args.front();
   Value half = getConstantLike(rewriter, loc, 0.5, x);
-  Value needToReflect = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, x, half, mlir::stablehlo::ComparisonDirection::LT);
-  Value negX = rewriter.create<mlir::stablehlo::NegOp>(loc, x);
+  Value needToReflect = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, half, mlir::stablehlo::ComparisonDirection::LT);
+  Value negX = mlir::stablehlo::NegOp::create(rewriter, loc, x);
   Value one = getConstantLike(rewriter, loc, 1, x);
-  Value xSubOne = rewriter.create<mlir::stablehlo::SubtractOp>(loc, x, one);
-  Value z = rewriter.create<mlir::stablehlo::SelectOp>(loc, needToReflect, negX,
-                                                       xSubOne);
+  Value xSubOne = mlir::stablehlo::SubtractOp::create(rewriter, loc, x, one);
+  Value z = mlir::stablehlo::SelectOp::create(rewriter, loc, needToReflect,
+                                              negX, xSubOne);
 
   // Materialize
   //   a(z) = kBaseLanczosCoeff
@@ -1550,14 +1561,15 @@ Value materializeDigamma(OpBuilder& rewriter, Location loc, ValueRange args) {
     Value coeff = getConstantLike(rewriter, loc, kLanczosCoefficients[i], x);
     Value oneBasedIndex = getConstantLike(rewriter, loc, i + 1, x);
     Value zTerm =
-        rewriter.create<mlir::stablehlo::AddOp>(loc, z, oneBasedIndex);
-    aPrime = rewriter.create<mlir::stablehlo::SubtractOp>(
-        loc, aPrime,
-        rewriter.create<mlir::stablehlo::DivOp>(
-            loc, coeff,
-            rewriter.create<mlir::stablehlo::MulOp>(loc, zTerm, zTerm)));
-    a = rewriter.create<mlir::stablehlo::AddOp>(
-        loc, a, rewriter.create<mlir::stablehlo::DivOp>(loc, coeff, zTerm));
+        mlir::stablehlo::AddOp::create(rewriter, loc, z, oneBasedIndex);
+    aPrime = mlir::stablehlo::SubtractOp::create(
+        rewriter, loc, aPrime,
+        mlir::stablehlo::DivOp::create(
+            rewriter, loc, coeff,
+            mlir::stablehlo::MulOp::create(rewriter, loc, zTerm, zTerm)));
+    a = mlir::stablehlo::AddOp::create(
+        rewriter, loc, a,
+        mlir::stablehlo::DivOp::create(rewriter, loc, coeff, zTerm));
   }
 
   // To improve accuracy on platforms with less-precise log implementations,
@@ -1568,20 +1580,23 @@ Value materializeDigamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   //          = log(kLanczosGamma + 1/2) + log1p(z / (kLanczosGamma + 1/2)).
   Value lanczosPlusHalf =
       getConstantLike(rewriter, loc, kLanczosGamma + 0.5, x);
-  Value t = rewriter.create<mlir::stablehlo::AddOp>(loc, lanczosPlusHalf, z);
+  Value t = mlir::stablehlo::AddOp::create(rewriter, loc, lanczosPlusHalf, z);
   Value logTerm =
       getConstantLike(rewriter, loc, std::log(kLanczosGamma + 0.5), x);
-  Value log1pTerm = rewriter.create<mlir::stablehlo::Log1pOp>(
-      loc, rewriter.create<mlir::stablehlo::DivOp>(loc, z, lanczosPlusHalf));
-  Value logT = rewriter.create<mlir::stablehlo::AddOp>(loc, logTerm, log1pTerm);
+  Value log1pTerm = mlir::stablehlo::Log1pOp::create(
+      rewriter, loc,
+      mlir::stablehlo::DivOp::create(rewriter, loc, z, lanczosPlusHalf));
+  Value logT =
+      mlir::stablehlo::AddOp::create(rewriter, loc, logTerm, log1pTerm);
 
   // Materialize the final result (modulo reflection) as
   //   digamma(z + 1) = log(t(z)) + a'(z) / a(z) - kLanczosGamma / t(z).
-  Value aPrimeDivA = rewriter.create<mlir::stablehlo::DivOp>(loc, aPrime, a);
-  Value lanczosGammaDivT = rewriter.create<mlir::stablehlo::DivOp>(
-      loc, getConstantLike(rewriter, loc, kLanczosGamma, x), t);
-  Value digamma = rewriter.create<mlir::stablehlo::SubtractOp>(
-      loc, rewriter.create<mlir::stablehlo::AddOp>(loc, logT, aPrimeDivA),
+  Value aPrimeDivA = mlir::stablehlo::DivOp::create(rewriter, loc, aPrime, a);
+  Value lanczosGammaDivT = mlir::stablehlo::DivOp::create(
+      rewriter, loc, getConstantLike(rewriter, loc, kLanczosGamma, x), t);
+  Value digamma = mlir::stablehlo::SubtractOp::create(
+      rewriter, loc,
+      mlir::stablehlo::AddOp::create(rewriter, loc, logT, aPrimeDivA),
       lanczosGammaDivT);
 
   // We need to be careful how we compute cot(pi * input) below: For
@@ -1590,39 +1605,42 @@ Value materializeDigamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   // Input is already known to be less than 0.5 (otherwise we don't have to
   // reflect). We shift values smaller than -0.5 into the range [-0.5, 0.5] to
   // increase precision of pi * x and the resulting cotangent.
-  Value reducedX = rewriter.create<mlir::stablehlo::AddOp>(
-      loc, x,
-      rewriter.create<mlir::stablehlo::AbsOp>(
-          loc, rewriter.create<mlir::stablehlo::FloorOp>(
-                   loc, rewriter.create<mlir::stablehlo::AddOp>(
-                            loc, x, getConstantLike(rewriter, loc, 0.5, x)))));
+  Value reducedX = mlir::stablehlo::AddOp::create(
+      rewriter, loc, x,
+      mlir::stablehlo::AbsOp::create(
+          rewriter, loc,
+          mlir::stablehlo::FloorOp::create(
+              rewriter, loc,
+              mlir::stablehlo::AddOp::create(
+                  rewriter, loc, x, getConstantLike(rewriter, loc, 0.5, x)))));
 
   // Materialize reflection for inputs less than 0.5 as
   //   digamma(x) = digamma(1 - x) - pi * cot(pi * x)
   //              = digamma(1 - x) - pi * cos(pi * x) / sin(pi * x)
   Value pi = getConstantLike(rewriter, loc, M_PI, x);
   Value piMulReducedX =
-      rewriter.create<mlir::stablehlo::MulOp>(loc, pi, reducedX);
-  Value cos = rewriter.create<mlir::stablehlo::CosineOp>(loc, piMulReducedX);
-  Value sin = rewriter.create<mlir::stablehlo::SineOp>(loc, piMulReducedX);
-  Value reflection = rewriter.create<mlir::stablehlo::SubtractOp>(
-      loc, digamma,
-      rewriter.create<mlir::stablehlo::DivOp>(
-          loc, rewriter.create<mlir::stablehlo::MulOp>(loc, pi, cos), sin));
+      mlir::stablehlo::MulOp::create(rewriter, loc, pi, reducedX);
+  Value cos = mlir::stablehlo::CosineOp::create(rewriter, loc, piMulReducedX);
+  Value sin = mlir::stablehlo::SineOp::create(rewriter, loc, piMulReducedX);
+  Value reflection = mlir::stablehlo::SubtractOp::create(
+      rewriter, loc, digamma,
+      mlir::stablehlo::DivOp::create(
+          rewriter, loc, mlir::stablehlo::MulOp::create(rewriter, loc, pi, cos),
+          sin));
 
   // Select whether or not to rely on the reflection.
-  digamma = rewriter.create<mlir::stablehlo::SelectOp>(loc, needToReflect,
-                                                       reflection, digamma);
+  digamma = mlir::stablehlo::SelectOp::create(rewriter, loc, needToReflect,
+                                              reflection, digamma);
 
   // Digamma has poles at negative integers and zero; return nan for those.
-  Value isLeZero = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, x, zero, mlir::stablehlo::ComparisonDirection::LE);
-  Value isInt = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, x, rewriter.create<mlir::stablehlo::FloorOp>(loc, x),
+  Value isLeZero = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::LE);
+  Value isInt = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, mlir::stablehlo::FloorOp::create(rewriter, loc, x),
       mlir::stablehlo::ComparisonDirection::EQ);
-  Value isPole = rewriter.create<mlir::stablehlo::AndOp>(loc, isLeZero, isInt);
-  return rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, isPole,
+  Value isPole = mlir::stablehlo::AndOp::create(rewriter, loc, isLeZero, isInt);
+  return mlir::stablehlo::SelectOp::create(
+      rewriter, loc, isPole,
       getConstantLike(rewriter, loc, std::numeric_limits<double>::quiet_NaN(),
                       x),
       digamma);
@@ -1674,23 +1692,23 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
   Value one = getConstantLike(rewriter, loc, 1.0, q);
   Value acc = q;
   Value qNegPower = zero;
-  Value negX = rewriter.create<NegOp>(loc, x);
-  Value powerSum = rewriter.create<PowOp>(loc, q, negX);
+  Value negX = NegOp::create(rewriter, loc, x);
+  Value powerSum = PowOp::create(rewriter, loc, q, negX);
   for (int i = 0; i < kIters; ++i) {
-    acc = rewriter.create<AddOp>(loc, acc, one);
-    qNegPower = rewriter.create<PowOp>(loc, acc, negX);
-    powerSum = rewriter.create<AddOp>(loc, powerSum, qNegPower);
+    acc = AddOp::create(rewriter, loc, acc, one);
+    qNegPower = PowOp::create(rewriter, loc, acc, negX);
+    powerSum = AddOp::create(rewriter, loc, powerSum, qNegPower);
   }
-  acc = rewriter.create<AddOp>(loc, acc, one);
-  qNegPower = rewriter.create<PowOp>(loc, acc, negX);
+  acc = AddOp::create(rewriter, loc, acc, one);
+  qNegPower = PowOp::create(rewriter, loc, acc, negX);
   Value oneLikeX = getConstantLike(rewriter, loc, 1.0, x);
   Value correctionEulerMaclaurin =
-      rewriter.create<DivOp>(loc, rewriter.create<MulOp>(loc, qNegPower, acc),
-                             rewriter.create<SubtractOp>(loc, x, oneLikeX));
+      DivOp::create(rewriter, loc, MulOp::create(rewriter, loc, qNegPower, acc),
+                    SubtractOp::create(rewriter, loc, x, oneLikeX));
 
   // Manual reciprocal of the square root as RsqrtOp produces different results
   Value rsqrtAcc =
-      rewriter.create<DivOp>(loc, one, rewriter.create<MulOp>(loc, acc, acc));
+      DivOp::create(rewriter, loc, one, MulOp::create(rewriter, loc, acc, acc));
 
   // Use Horner's rule for this.
   // Note this differs from Cephes which does a 'naive' polynomial evaluation.
@@ -1700,90 +1718,94 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
   Value hornerProduct = one;
 
   for (int i = 0; i < kTerms - 1; ++i) {
-    Value factorLhs = rewriter.create<AddOp>(
-        loc, x,
+    Value factorLhs = AddOp::create(
+        rewriter, loc, x,
         getConstantLike(rewriter, loc, kTwoTermsMinusOne - 1 - 2 * i, x));
-    Value factorRhs = rewriter.create<AddOp>(
-        loc, x,
+    Value factorRhs = AddOp::create(
+        rewriter, loc, x,
         getConstantLike(rewriter, loc, kTwoTermsMinusOne - 2 - 2 * i, x));
-    hornerProduct = rewriter.create<MulOp>(loc, factorLhs, factorRhs);
-    hornerSum = rewriter.create<MulOp>(
-        loc, hornerProduct,
-        rewriter.create<MulOp>(
-            loc, rsqrtAcc,
-            rewriter.create<AddOp>(
-                loc, hornerSum,
+    hornerProduct = MulOp::create(rewriter, loc, factorLhs, factorRhs);
+    hornerSum = MulOp::create(
+        rewriter, loc, hornerProduct,
+        MulOp::create(
+            rewriter, loc, rsqrtAcc,
+            AddOp::create(
+                rewriter, loc, hornerSum,
                 getConstantLike(rewriter, loc, 1. / kZetaCoeffs[i], acc))));
   }
   Value zeroPointFiveLikeQNegPower =
       getConstantLike(rewriter, loc, .5, qNegPower);
-  Value xDivAcc = rewriter.create<DivOp>(loc, x, acc);
-  Value bernoulliTailTerm = rewriter.create<MulOp>(
-      loc, qNegPower,
-      rewriter.create<AddOp>(
-          loc, zeroPointFiveLikeQNegPower,
-          rewriter.create<MulOp>(
-              loc, xDivAcc,
-              rewriter.create<AddOp>(
-                  loc,
-                  getConstantLike(rewriter, loc, 1. / kZetaCoeffs[kTerms - 1],
-                                  acc),
-                  hornerSum))));
-  Value accurateResult = rewriter.create<AddOp>(
-      loc, rewriter.create<AddOp>(loc, powerSum, correctionEulerMaclaurin),
+  Value xDivAcc = DivOp::create(rewriter, loc, x, acc);
+  Value bernoulliTailTerm = MulOp::create(
+      rewriter, loc, qNegPower,
+      AddOp::create(
+          rewriter, loc, zeroPointFiveLikeQNegPower,
+          MulOp::create(
+              rewriter, loc, xDivAcc,
+              AddOp::create(rewriter, loc,
+                            getConstantLike(rewriter, loc,
+                                            1. / kZetaCoeffs[kTerms - 1], acc),
+                            hornerSum))));
+  Value accurateResult = AddOp::create(
+      rewriter, loc,
+      AddOp::create(rewriter, loc, powerSum, correctionEulerMaclaurin),
       bernoulliTailTerm);
 
   // Use the initial zeta sum without the correction term coming
   // from Euler-Maclaurin if it is accurate enough.
-  Value absQNegPower = rewriter.create<AbsOp>(loc, qNegPower);
-  Value absPowerSum = rewriter.create<AbsOp>(loc, powerSum);
-  Value output = rewriter.create<SelectOp>(
-      loc,
-      rewriter.create<CompareOp>(
-          loc, absQNegPower,
-          rewriter.create<MulOp>(
-              loc, absPowerSum,
-              getConstantLikeSmallestFiniteValue(rewriter, loc, acc)),
+  Value absQNegPower = AbsOp::create(rewriter, loc, qNegPower);
+  Value absPowerSum = AbsOp::create(rewriter, loc, powerSum);
+  Value output = SelectOp::create(
+      rewriter, loc,
+      CompareOp::create(
+          rewriter, loc, absQNegPower,
+          MulOp::create(rewriter, loc, absPowerSum,
+                        getConstantLikeSmallestFiniteValue(rewriter, loc, acc)),
           ComparisonDirection::LT),
       powerSum, accurateResult);
 
   // Function is not defined for x < 1.
   Value nan = getConstantLike(rewriter, loc,
                               std::numeric_limits<double>::quiet_NaN(), x);
-  output = rewriter.create<SelectOp>(
-      loc,
-      rewriter.create<CompareOp>(loc, x, oneLikeX, ComparisonDirection::LT),
+  output = SelectOp::create(
+      rewriter, loc,
+      CompareOp::create(rewriter, loc, x, oneLikeX, ComparisonDirection::LT),
       nan, output);
 
   // For q <= 0, x must be an integer.
   Value qLeZero =
-      rewriter.create<CompareOp>(loc, q, zero, ComparisonDirection::LE);
-  Value xNotInt = rewriter.create<CompareOp>(
-      loc, x, rewriter.create<FloorOp>(loc, x), ComparisonDirection::NE);
-  Value xDomainError = rewriter.create<AndOp>(loc, qLeZero, xNotInt);
-  output = rewriter.create<SelectOp>(loc, xDomainError, nan, output);
+      CompareOp::create(rewriter, loc, q, zero, ComparisonDirection::LE);
+  Value xNotInt =
+      CompareOp::create(rewriter, loc, x, FloorOp::create(rewriter, loc, x),
+                        ComparisonDirection::NE);
+  Value xDomainError = AndOp::create(rewriter, loc, qLeZero, xNotInt);
+  output = SelectOp::create(rewriter, loc, xDomainError, nan, output);
 
   // For all integer q <= 0, zeta has a pole. The limit is only defined as
   // +inf if x is and even integer.
   Value inf = getConstantLike(rewriter, loc,
                               std::numeric_limits<double>::infinity(), x);
-  Value qIsInt = rewriter.create<CompareOp>(
-      loc, q, rewriter.create<FloorOp>(loc, q), ComparisonDirection::EQ);
-  Value atPole = rewriter.create<AndOp>(loc, qLeZero, qIsInt);
+  Value qIsInt =
+      CompareOp::create(rewriter, loc, q, FloorOp::create(rewriter, loc, q),
+                        ComparisonDirection::EQ);
+  Value atPole = AndOp::create(rewriter, loc, qLeZero, qIsInt);
   Value two = getConstantLike(rewriter, loc, 2.0, x);
-  Value xIsInt = rewriter.create<CompareOp>(
-      loc, x, rewriter.create<FloorOp>(loc, x), ComparisonDirection::EQ);
-  Value xIsEven = rewriter.create<CompareOp>(
-      loc, rewriter.create<RemOp>(loc, x, two), zero, ComparisonDirection::EQ);
-  Value xIsEvenInt = rewriter.create<AndOp>(loc, xIsInt, xIsEven);
-  output = rewriter.create<SelectOp>(
-      loc, atPole, rewriter.create<SelectOp>(loc, xIsEvenInt, inf, nan),
-      output);
+  Value xIsInt =
+      CompareOp::create(rewriter, loc, x, FloorOp::create(rewriter, loc, x),
+                        ComparisonDirection::EQ);
+  Value xIsEven =
+      CompareOp::create(rewriter, loc, RemOp::create(rewriter, loc, x, two),
+                        zero, ComparisonDirection::EQ);
+  Value xIsEvenInt = AndOp::create(rewriter, loc, xIsInt, xIsEven);
+  output = SelectOp::create(
+      rewriter, loc, atPole,
+      SelectOp::create(rewriter, loc, xIsEvenInt, inf, nan), output);
 
   // For x = 1, this is the harmonic series and diverges.
-  output = rewriter.create<SelectOp>(
-      loc, rewriter.create<CompareOp>(loc, x, one, ComparisonDirection::EQ),
-      inf, output);
+  output = SelectOp::create(
+      rewriter, loc,
+      CompareOp::create(rewriter, loc, x, one, ComparisonDirection::EQ), inf,
+      output);
 
   return output;
 }
@@ -1798,36 +1820,38 @@ Value materializePolygamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   // Handle integer n > 0.
   Value one = getConstantLike(rewriter, loc, 1.0, x);
   Value two = getConstantLike(rewriter, loc, 2.0, x);
-  Value sign = rewriter.create<mlir::stablehlo::SubtractOp>(
-      loc,
-      rewriter.create<mlir::stablehlo::MulOp>(
-          loc, two, rewriter.create<mlir::stablehlo::RemOp>(loc, n, two)),
+  Value sign = mlir::stablehlo::SubtractOp::create(
+      rewriter, loc,
+      mlir::stablehlo::MulOp::create(
+          rewriter, loc, two,
+          mlir::stablehlo::RemOp::create(rewriter, loc, n, two)),
       one);
-  Value nPlusOne = rewriter.create<mlir::stablehlo::AddOp>(loc, n, one);
-  Value expLgammaNp1 = rewriter.create<mlir::stablehlo::ExpOp>(
-      loc, rewriter.create<chlo::LgammaOp>(loc, nPlusOne));
-  Value zeta = rewriter.create<chlo::ZetaOp>(loc, nPlusOne, x);
-  Value result = rewriter.create<mlir::stablehlo::MulOp>(
-      loc, rewriter.create<mlir::stablehlo::MulOp>(loc, sign, expLgammaNp1),
-      zeta);
+  Value nPlusOne = mlir::stablehlo::AddOp::create(rewriter, loc, n, one);
+  Value expLgammaNp1 = mlir::stablehlo::ExpOp::create(
+      rewriter, loc, chlo::LgammaOp::create(rewriter, loc, nPlusOne));
+  Value zeta = chlo::ZetaOp::create(rewriter, loc, nPlusOne, x);
+  Value result = mlir::stablehlo::MulOp::create(
+      rewriter, loc,
+      mlir::stablehlo::MulOp::create(rewriter, loc, sign, expLgammaNp1), zeta);
 
   // Handle n = 0.
   Value zero = getConstantLike(rewriter, loc, 0.0, x);
-  Value nEqZero = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, n, zero, mlir::stablehlo::ComparisonDirection::EQ);
-  result = rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, nEqZero, rewriter.create<chlo::DigammaOp>(loc, x), result);
+  Value nEqZero = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, n, zero, mlir::stablehlo::ComparisonDirection::EQ);
+  result = mlir::stablehlo::SelectOp::create(
+      rewriter, loc, nEqZero, chlo::DigammaOp::create(rewriter, loc, x),
+      result);
 
   // Check that n is a natural number. Return nan, otherwise.
-  Value nonInt = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, n, rewriter.create<mlir::stablehlo::FloorOp>(loc, n),
+  Value nonInt = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, n, mlir::stablehlo::FloorOp::create(rewriter, loc, n),
       mlir::stablehlo::ComparisonDirection::NE);
-  Value negative = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, n, zero, mlir::stablehlo::ComparisonDirection::LT);
+  Value negative = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, n, zero, mlir::stablehlo::ComparisonDirection::LT);
   Value nonNatural =
-      rewriter.create<mlir::stablehlo::OrOp>(loc, nonInt, negative);
-  return rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, nonNatural,
+      mlir::stablehlo::OrOp::create(rewriter, loc, nonInt, negative);
+  return mlir::stablehlo::SelectOp::create(
+      rewriter, loc, nonNatural,
       getConstantLike(rewriter, loc, std::numeric_limits<double>::quiet_NaN(),
                       x),
       result);
@@ -1872,49 +1896,49 @@ static Value materializeNextAfter(ConversionPatternRewriter& rewriter,
   auto bitwidth = resultTy.getElementType().getIntOrFloatBitWidth();
   mlir::ImplicitLocOpBuilder b(loc, rewriter);
   Type intTy = resultTy.clone(b.getIntegerType(bitwidth));
-  auto xAsInt = b.create<mlir::stablehlo::BitcastConvertOp>(intTy, x);
-  auto yAsInt = b.create<mlir::stablehlo::BitcastConvertOp>(intTy, y);
+  auto xAsInt = mlir::stablehlo::BitcastConvertOp::create(b, intTy, x);
+  auto yAsInt = mlir::stablehlo::BitcastConvertOp::create(b, intTy, y);
 
   // The result is NaN if either "x" or "y" are NaN.
-  auto xIsNan = b.create<mlir::stablehlo::CompareOp>(
-      x, x, mlir::stablehlo::ComparisonDirection::NE);
-  auto yIsNan = b.create<mlir::stablehlo::CompareOp>(
-      y, y, mlir::stablehlo::ComparisonDirection::NE);
-  auto nanInput = b.create<mlir::stablehlo::OrOp>(xIsNan, yIsNan);
+  auto xIsNan = mlir::stablehlo::CompareOp::create(
+      b, x, x, mlir::stablehlo::ComparisonDirection::NE);
+  auto yIsNan = mlir::stablehlo::CompareOp::create(
+      b, y, y, mlir::stablehlo::ComparisonDirection::NE);
+  auto nanInput = mlir::stablehlo::OrOp::create(b, xIsNan, yIsNan);
   auto resultForNan = getConstantLike(
       rewriter, loc, std::numeric_limits<double>::quiet_NaN(), x);
   auto resultForNanAsInt =
-      b.create<mlir::stablehlo::BitcastConvertOp>(intTy, resultForNan);
+      mlir::stablehlo::BitcastConvertOp::create(b, intTy, resultForNan);
 
   // The sign bit is the MSB.
   const int64_t signBit = int64_t{1} << (bitwidth - 1);
   // Discard the sign bit to make the result non-negative.
   Value signMask = getConstantLike(rewriter, loc, signBit, xAsInt);
   Value negatedSignMask = getConstantLike(rewriter, loc, ~signBit, xAsInt);
-  auto xAbs = b.create<mlir::stablehlo::AndOp>(xAsInt, negatedSignMask);
-  auto yAbs = b.create<mlir::stablehlo::AndOp>(yAsInt, negatedSignMask);
+  auto xAbs = mlir::stablehlo::AndOp::create(b, xAsInt, negatedSignMask);
+  auto yAbs = mlir::stablehlo::AndOp::create(b, yAsInt, negatedSignMask);
 
   // When both "x" and "y" are equal, the result is "y".
-  auto xAndYAreEqual = b.create<mlir::stablehlo::CompareOp>(
-      x, y, mlir::stablehlo::ComparisonDirection::EQ);
+  auto xAndYAreEqual = mlir::stablehlo::CompareOp::create(
+      b, x, y, mlir::stablehlo::ComparisonDirection::EQ);
   auto resultForEqual = yAsInt;
 
   // When both "x" and "y" are 0, the result is "y". This is a separate case
   // from above because "x" and "y" might have a different sign.
   Value zero = getConstantLike(rewriter, loc, 0, xAsInt);
-  auto xIsZero = b.create<mlir::stablehlo::CompareOp>(
-      xAbs, zero, mlir::stablehlo::ComparisonDirection::EQ);
-  auto yIsZero = b.create<mlir::stablehlo::CompareOp>(
-      yAbs, zero, mlir::stablehlo::ComparisonDirection::EQ);
+  auto xIsZero = mlir::stablehlo::CompareOp::create(
+      b, xAbs, zero, mlir::stablehlo::ComparisonDirection::EQ);
+  auto yIsZero = mlir::stablehlo::CompareOp::create(
+      b, yAbs, zero, mlir::stablehlo::ComparisonDirection::EQ);
   auto resultForBothZero = yAsInt;
 
-  auto xSign = b.create<mlir::stablehlo::AndOp>(xAsInt, signMask);
-  auto ySign = b.create<mlir::stablehlo::AndOp>(yAsInt, signMask);
+  auto xSign = mlir::stablehlo::AndOp::create(b, xAsInt, signMask);
+  auto ySign = mlir::stablehlo::AndOp::create(b, yAsInt, signMask);
 
   // If from == 0 && to != 0, we need to return the smallest subnormal number
   // signed like "to".
   Value one = getConstantLike(rewriter, loc, 1, xAsInt);
-  auto resultForXZeroYNonZero = b.create<mlir::stablehlo::OrOp>(ySign, one);
+  auto resultForXZeroYNonZero = mlir::stablehlo::OrOp::create(b, ySign, one);
 
   // If the sign of "x" and "y" disagree:
   // - we need to make the magnitude of "from" smaller so that it is closer to
@@ -1925,31 +1949,31 @@ static Value materializeNextAfter(ConversionPatternRewriter& rewriter,
   //   smaller.
   // - "x" with a magnitude smaller than "y" means we need to make the magnitude
   //   larger.
-  auto signsDisagree = b.create<mlir::stablehlo::CompareOp>(
-      xSign, ySign, mlir::stablehlo::ComparisonDirection::NE);
-  auto xMagnitudeLargerThanY = b.create<mlir::stablehlo::CompareOp>(
-      xAbs, yAbs, mlir::stablehlo::ComparisonDirection::GT);
+  auto signsDisagree = mlir::stablehlo::CompareOp::create(
+      b, xSign, ySign, mlir::stablehlo::ComparisonDirection::NE);
+  auto xMagnitudeLargerThanY = mlir::stablehlo::CompareOp::create(
+      b, xAbs, yAbs, mlir::stablehlo::ComparisonDirection::GT);
   auto resultHasSmallerMagnitude =
-      b.create<mlir::stablehlo::OrOp>(xMagnitudeLargerThanY, signsDisagree);
+      mlir::stablehlo::OrOp::create(b, xMagnitudeLargerThanY, signsDisagree);
   auto minusOne = getConstantLike(rewriter, loc, -1, xAsInt);
-  auto magnitudeAdjustment = b.create<mlir::stablehlo::SelectOp>(
-      resultHasSmallerMagnitude, minusOne, one);
-  Value result = b.create<mlir::stablehlo::AddOp>(xAsInt, magnitudeAdjustment);
+  auto magnitudeAdjustment = mlir::stablehlo::SelectOp::create(
+      b, resultHasSmallerMagnitude, minusOne, one);
+  Value result = mlir::stablehlo::AddOp::create(b, xAsInt, magnitudeAdjustment);
   // Handle from == +-0.
-  result = b.create<mlir::stablehlo::SelectOp>(
-      xIsZero,
-      b.create<mlir::stablehlo::SelectOp>(yIsZero, resultForBothZero,
-                                          resultForXZeroYNonZero),
+  result = mlir::stablehlo::SelectOp::create(
+      b, xIsZero,
+      mlir::stablehlo::SelectOp::create(b, yIsZero, resultForBothZero,
+                                        resultForXZeroYNonZero),
       result);
   // Handle from == to.
-  result = b.create<mlir::stablehlo::SelectOp>(xAndYAreEqual, resultForEqual,
-                                               result);
+  result = mlir::stablehlo::SelectOp::create(b, xAndYAreEqual, resultForEqual,
+                                             result);
   // Handle isnan(x) || isnan(y).
   result =
-      b.create<mlir::stablehlo::SelectOp>(nanInput, resultForNanAsInt, result);
+      mlir::stablehlo::SelectOp::create(b, nanInput, resultForNanAsInt, result);
 
   // Cast back to the original type.
-  return b.create<mlir::stablehlo::BitcastConvertOp>(resultTy, result);
+  return mlir::stablehlo::BitcastConvertOp::create(b, resultTy, result);
 }
 
 struct ConvertNextAfterOp final : OpConversionPattern<mlir::chlo::NextAfterOp> {
@@ -1995,13 +2019,15 @@ static Value materializeSinhApproximationForLargeX(OpBuilder& rewriter,
   mlir::chlo::SinhOp::Adaptor transformed(operands);
   Value x = transformed.getOperand();
 
-  Value logOneHalf = rewriter.create<mlir::stablehlo::LogOp>(
-      loc, getConstantLike(rewriter, loc, 0.5, x));
-  Value expAdd = rewriter.create<mlir::stablehlo::ExpOp>(
-      loc, rewriter.create<mlir::stablehlo::AddOp>(loc, x, logOneHalf));
-  Value expSub = rewriter.create<mlir::stablehlo::ExpOp>(
-      loc, rewriter.create<mlir::stablehlo::SubtractOp>(loc, logOneHalf, x));
-  return rewriter.create<mlir::stablehlo::SubtractOp>(loc, expAdd, expSub);
+  Value logOneHalf = mlir::stablehlo::LogOp::create(
+      rewriter, loc, getConstantLike(rewriter, loc, 0.5, x));
+  Value expAdd = mlir::stablehlo::ExpOp::create(
+      rewriter, loc,
+      mlir::stablehlo::AddOp::create(rewriter, loc, x, logOneHalf));
+  Value expSub = mlir::stablehlo::ExpOp::create(
+      rewriter, loc,
+      mlir::stablehlo::SubtractOp::create(rewriter, loc, logOneHalf, x));
+  return mlir::stablehlo::SubtractOp::create(rewriter, loc, expAdd, expSub);
 }
 
 // Express `sinh` as
@@ -2023,21 +2049,22 @@ static Value materializeSinhApproximation(OpBuilder& rewriter, Location loc,
   // (e^(x) - 1 + 1 - e^(-x)) / 2.
   // (expm1(x) + (e^(x) - 1) / e^x) / 2.
   // (expm1(x) + expm1(x) / (expm1(x) + 1)) / 2.
-  Value expm1 = rewriter.create<mlir::stablehlo::Expm1Op>(loc, x);
+  Value expm1 = mlir::stablehlo::Expm1Op::create(rewriter, loc, x);
   Value one = getConstantLike(rewriter, loc, 1.0, x);
   Value oneHalf = getConstantLike(rewriter, loc, 0.5, x);
-  Value expm1PlusOne = rewriter.create<mlir::stablehlo::AddOp>(loc, expm1, one);
+  Value expm1PlusOne =
+      mlir::stablehlo::AddOp::create(rewriter, loc, expm1, one);
   Value ratio =
-      rewriter.create<mlir::stablehlo::DivOp>(loc, expm1, expm1PlusOne);
-  Value sum = rewriter.create<mlir::stablehlo::AddOp>(loc, expm1, ratio);
+      mlir::stablehlo::DivOp::create(rewriter, loc, expm1, expm1PlusOne);
+  Value sum = mlir::stablehlo::AddOp::create(rewriter, loc, expm1, ratio);
   Value smallSinhResult =
-      rewriter.create<mlir::stablehlo::MulOp>(loc, oneHalf, sum);
+      mlir::stablehlo::MulOp::create(rewriter, loc, oneHalf, sum);
 
-  Value absX = rewriter.create<mlir::stablehlo::AbsOp>(loc, x);
-  Value absXLtOne = rewriter.create<mlir::stablehlo::CompareOp>(
-      loc, absX, one, mlir::stablehlo::ComparisonDirection::LT);
-  return rewriter.create<mlir::stablehlo::SelectOp>(
-      loc, absXLtOne, smallSinhResult, largeSinhResult);
+  Value absX = mlir::stablehlo::AbsOp::create(rewriter, loc, x);
+  Value absXLtOne = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, absX, one, mlir::stablehlo::ComparisonDirection::LT);
+  return mlir::stablehlo::SelectOp::create(rewriter, loc, absXLtOne,
+                                           smallSinhResult, largeSinhResult);
 }
 
 namespace {
@@ -2125,83 +2152,84 @@ LogicalResult handleRaggedDotMode1(mlir::chlo::RaggedDotOp op,
   }
 
   // result_iota = iota of shape [m, 1] or [1, m, 1]
-  Value resultIota = rewriter.create<mlir::stablehlo::IotaOp>(
-      op.getLoc(), RankedTensorType::get(iotaShape, rewriter.getI64Type()),
+  Value resultIota = mlir::stablehlo::IotaOp::create(
+      rewriter, op.getLoc(),
+      RankedTensorType::get(iotaShape, rewriter.getI64Type()),
       /*dimension=*/iotaDim);
-  Value start = rewriter.create<mlir::stablehlo::ConstantOp>(
-      op.getLoc(),
+  Value start = mlir::stablehlo::ConstantOp::create(
+      rewriter, op.getLoc(),
       rewriter.getZeroAttr(RankedTensorType::get({1}, rewriter.getI64Type())));
 
   std::vector<int64_t> broadcastDimensions(lhsRank);
   std::iota(broadcastDimensions.begin(), broadcastDimensions.end(), 0);
 
-  Value out = rewriter.create<mlir::stablehlo::ConstantOp>(
-      op.getLoc(),
+  Value out = mlir::stablehlo::ConstantOp::create(
+      rewriter, op.getLoc(),
       rewriter.getZeroAttr(RankedTensorType::get(outDims, outDType)));
 
-  Value outZeros = rewriter.create<mlir::stablehlo::ConstantOp>(
-      op.getLoc(),
+  Value outZeros = mlir::stablehlo::ConstantOp::create(
+      rewriter, op.getLoc(),
       rewriter.getZeroAttr(RankedTensorType::get(outDims, outDType)));
   for (auto i = 0; i < g; ++i) {
     // groupSize = group_sizes[i]
-    Value groupSize = rewriter.create<mlir::stablehlo::SliceOp>(
-        op.getLoc(), RankedTensorType::get({1}, rewriter.getI64Type()),
-        groupSizes,
+    Value groupSize = mlir::stablehlo::SliceOp::create(
+        rewriter, op.getLoc(),
+        RankedTensorType::get({1}, rewriter.getI64Type()), groupSizes,
         /*startIndices=*/rewriter.getDenseI64ArrayAttr({i}),
         /*limitIndices=*/rewriter.getDenseI64ArrayAttr({i + 1}),
         /*strides=*/rewriter.getDenseI64ArrayAttr({1}));
 
-    Value startBroadcasted = rewriter.create<mlir::stablehlo::BroadcastInDimOp>(
-        op.getLoc(), resultIota.getType(), start,
+    Value startBroadcasted = mlir::stablehlo::BroadcastInDimOp::create(
+        rewriter, op.getLoc(), resultIota.getType(), start,
         /*broadcast_dimensions=*/
         rewriter.getDenseI64ArrayAttr(0));
 
     // start <= result_iota
-    Value startLEResultIota = rewriter.create<mlir::stablehlo::CompareOp>(
-        op.getLoc(), startBroadcasted, resultIota, ComparisonDirection::LE);
+    Value startLEResultIota = mlir::stablehlo::CompareOp::create(
+        rewriter, op.getLoc(), startBroadcasted, resultIota,
+        ComparisonDirection::LE);
 
     // result_iota < (start + size)
-    Value resultIotaLTStartPlusGroupSize =
-        rewriter.create<mlir::stablehlo::CompareOp>(
-            op.getLoc(), resultIota,
-            rewriter.create<mlir::stablehlo::BroadcastInDimOp>(
-                op.getLoc(), resultIota.getType(),
-                rewriter.create<mlir::stablehlo::AddOp>(op.getLoc(), start,
-                                                        groupSize),
-                /*broadcast_dimensions=*/rewriter.getDenseI64ArrayAttr(0)),
-            ComparisonDirection::LT);
+    Value resultIotaLTStartPlusGroupSize = mlir::stablehlo::CompareOp::create(
+        rewriter, op.getLoc(), resultIota,
+        mlir::stablehlo::BroadcastInDimOp::create(
+            rewriter, op.getLoc(), resultIota.getType(),
+            mlir::stablehlo::AddOp::create(rewriter, op.getLoc(), start,
+                                           groupSize),
+            /*broadcast_dimensions=*/rewriter.getDenseI64ArrayAttr(0)),
+        ComparisonDirection::LT);
 
     // (start <= result_iota) & (result_iota < (start + size))
-    Value logicalAnd = rewriter.create<mlir::stablehlo::AndOp>(
-        op.getLoc(), startLEResultIota, resultIotaLTStartPlusGroupSize);
-    Value logicalAndBroadcasted =
-        rewriter.create<mlir::stablehlo::BroadcastInDimOp>(
-            op.getLoc(),
-            RankedTensorType::get(op.getResult().getType().getShape(),
-                                  rewriter.getI1Type()),
-            logicalAnd,
-            /*broadcast_dimensions=*/
-            rewriter.getDenseI64ArrayAttr(broadcastDimensions));
+    Value logicalAnd =
+        mlir::stablehlo::AndOp::create(rewriter, op.getLoc(), startLEResultIota,
+                                       resultIotaLTStartPlusGroupSize);
+    Value logicalAndBroadcasted = mlir::stablehlo::BroadcastInDimOp::create(
+        rewriter, op.getLoc(),
+        RankedTensorType::get(op.getResult().getType().getShape(),
+                              rewriter.getI1Type()),
+        logicalAnd,
+        /*broadcast_dimensions=*/
+        rewriter.getDenseI64ArrayAttr(broadcastDimensions));
 
     // rhs_rehaped_slice = rhs[i, :, :, :]
     std::vector<int64_t> rhs_start_indices(rhsTy.getRank(), 0);
     rhs_start_indices[rhsGroupDimension] = i;
     std::vector<int64_t> rhs_limit_indices = rhsTy.getShape();
     rhs_limit_indices[rhsGroupDimension] = i + 1;
-    Value rhsSliced = rewriter.create<mlir::stablehlo::SliceOp>(
-        op.getLoc(), rhs,
+    Value rhsSliced = mlir::stablehlo::SliceOp::create(
+        rewriter, op.getLoc(), rhs,
         /*startIndices=*/rewriter.getDenseI64ArrayAttr(rhs_start_indices),
         /*limitIndices=*/rewriter.getDenseI64ArrayAttr(rhs_limit_indices),
         /*strides=*/
         rewriter.getDenseI64ArrayAttr(std::vector<int64_t>(rhsRank, 1)));
-    Value rhsReshapedSlice = rewriter.create<mlir::stablehlo::ReshapeOp>(
-        op.getLoc(),
+    Value rhsReshapedSlice = mlir::stablehlo::ReshapeOp::create(
+        rewriter, op.getLoc(),
         RankedTensorType::get(rhsReshapedSliceShape, rhsTy.getElementType()),
         rhsSliced);
 
     // Einsum of (b)mk,(b)kn->(b)mn
-    Value dotGeneral = rewriter.create<mlir::stablehlo::DotGeneralOp>(
-        op.getLoc(), TypeRange{out.getType()},
+    Value dotGeneral = mlir::stablehlo::DotGeneralOp::create(
+        rewriter, op.getLoc(), TypeRange{out.getType()},
         ValueRange{lhs, rhsReshapedSlice},
         ArrayRef<mlir::NamedAttribute>{
             rewriter.getNamedAttr(
@@ -2215,11 +2243,11 @@ LogicalResult handleRaggedDotMode1(mlir::chlo::RaggedDotOp op,
                                   precisionConfig.value())});
 
     // Place the i'th dot_general to the corresponding position in the result.
-    Value select = rewriter.create<mlir::stablehlo::SelectOp>(
-        op.getLoc(), logicalAndBroadcasted, dotGeneral, outZeros);
-    out = rewriter.create<mlir::stablehlo::AddOp>(op.getLoc(), out, select);
+    Value select = mlir::stablehlo::SelectOp::create(
+        rewriter, op.getLoc(), logicalAndBroadcasted, dotGeneral, outZeros);
+    out = mlir::stablehlo::AddOp::create(rewriter, op.getLoc(), out, select);
     start =
-        rewriter.create<mlir::stablehlo::AddOp>(op.getLoc(), start, groupSize);
+        mlir::stablehlo::AddOp::create(rewriter, op.getLoc(), start, groupSize);
   }
   rewriter.replaceOp(op, {out});
   return success();
@@ -2337,23 +2365,25 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
     if (isDynamic) {
       SmallVector<Value> sizesI32x1;
       for (auto i = 0; i < operandType.getRank(); ++i) {
-        auto sizeI32 = rewriter.create<mlir::stablehlo::GetDimensionSizeOp>(
-            op.getLoc(), op.getOperand(), i);
-        auto sizeI32x1 = rewriter.create<mlir::stablehlo::ReshapeOp>(
-            op.getLoc(), RankedTensorType::get({1}, i32Type), sizeI32);
+        auto sizeI32 = mlir::stablehlo::GetDimensionSizeOp::create(
+            rewriter, op.getLoc(), op.getOperand(), i);
+        auto sizeI32x1 = mlir::stablehlo::ReshapeOp::create(
+            rewriter, op.getLoc(), RankedTensorType::get({1}, i32Type),
+            sizeI32);
         sizesI32x1.push_back(sizeI32x1);
       }
-      opShapeValue = rewriter.create<mlir::stablehlo::ConcatenateOp>(
-          op.getLoc(), sizesI32x1,
+      opShapeValue = mlir::stablehlo::ConcatenateOp::create(
+          rewriter, op.getLoc(), sizesI32x1,
           /*dimension=*/0);
-      auto lastDimI32 = rewriter.create<mlir::stablehlo::ConstantOp>(
-          op.getLoc(),
+      auto lastDimI32 = mlir::stablehlo::ConstantOp::create(
+          rewriter, op.getLoc(),
           rewriter.getI32IntegerAttr(static_cast<int32_t>(lastDimResultSize)));
-      auto lastDimI32x1 = rewriter.create<mlir::stablehlo::ReshapeOp>(
-          op.getLoc(), RankedTensorType::get({1}, i32Type), lastDimI32);
+      auto lastDimI32x1 = mlir::stablehlo::ReshapeOp::create(
+          rewriter, op.getLoc(), RankedTensorType::get({1}, i32Type),
+          lastDimI32);
       sizesI32x1.back() = lastDimI32x1;
-      resultShapeValue = rewriter.create<mlir::stablehlo::ConcatenateOp>(
-          op.getLoc(), sizesI32x1,
+      resultShapeValue = mlir::stablehlo::ConcatenateOp::create(
+          rewriter, op.getLoc(), sizesI32x1,
           /*dimension=*/0);
     }
 
@@ -2361,12 +2391,13 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
     Type iotaType = RankedTensorType::get(operandType.getShape(), i32Type);
     Value iotaOp;
     if (isDynamic) {
-      iotaOp = rewriter.create<mlir::stablehlo::DynamicIotaOp>(
-          op.getLoc(), iotaType, opShapeValue,
+      iotaOp = mlir::stablehlo::DynamicIotaOp::create(
+          rewriter, op.getLoc(), iotaType, opShapeValue,
           rewriter.getI64IntegerAttr(lastDimIndex));
     } else {
-      iotaOp = rewriter.create<mlir::stablehlo::IotaOp>(
-          op.getLoc(), iotaType, rewriter.getI64IntegerAttr(lastDimIndex));
+      iotaOp = mlir::stablehlo::IotaOp::create(
+          rewriter, op.getLoc(), iotaType,
+          rewriter.getI64IntegerAttr(lastDimIndex));
     }
 
     // Create the sort op. It takes two inputs, one for the original input, the
@@ -2392,12 +2423,13 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
     auto indicesTy = RankedTensorType::get(operandRank, rewriter.getI64Type());
     Value values, indices;
     if (isDynamic) {
-      Value startIndices = rewriter.create<mlir::stablehlo::ConstantOp>(
-          op.getLoc(), DenseIntElementsAttr::get(indicesTy, beginIndices));
-      Value lastIndices = rewriter.create<mlir::stablehlo::ConvertOp>(
-          op.getLoc(), resultShapeValue, rewriter.getI64Type());
-      Value stridesOp = rewriter.create<mlir::stablehlo::ConstantOp>(
-          op.getLoc(), DenseIntElementsAttr::get(indicesTy, strides));
+      Value startIndices = mlir::stablehlo::ConstantOp::create(
+          rewriter, op.getLoc(),
+          DenseIntElementsAttr::get(indicesTy, beginIndices));
+      Value lastIndices = mlir::stablehlo::ConvertOp::create(
+          rewriter, op.getLoc(), resultShapeValue, rewriter.getI64Type());
+      Value stridesOp = mlir::stablehlo::ConstantOp::create(
+          rewriter, op.getLoc(), DenseIntElementsAttr::get(indicesTy, strides));
 
       SmallVector<int64_t> resultShape =
           llvm::to_vector(operandType.getShape());
@@ -2407,20 +2439,20 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
       RankedTensorType indexResultType =
           RankedTensorType::get(resultShape, i32Type);
 
-      values = rewriter.create<mlir::stablehlo::RealDynamicSliceOp>(
-          op.getLoc(), resultType, tupleFirstElement, startIndices, lastIndices,
-          stridesOp);
-      indices = rewriter.create<mlir::stablehlo::RealDynamicSliceOp>(
-          op.getLoc(), indexResultType, tupleSecondElement, startIndices,
+      values = mlir::stablehlo::RealDynamicSliceOp::create(
+          rewriter, op.getLoc(), resultType, tupleFirstElement, startIndices,
           lastIndices, stridesOp);
+      indices = mlir::stablehlo::RealDynamicSliceOp::create(
+          rewriter, op.getLoc(), indexResultType, tupleSecondElement,
+          startIndices, lastIndices, stridesOp);
     } else {
-      values = rewriter.create<mlir::stablehlo::SliceOp>(
-          op.getLoc(), tupleFirstElement,
+      values = mlir::stablehlo::SliceOp::create(
+          rewriter, op.getLoc(), tupleFirstElement,
           rewriter.getDenseI64ArrayAttr(beginIndices),
           rewriter.getDenseI64ArrayAttr(endIndices),
           rewriter.getDenseI64ArrayAttr(strides));
-      indices = rewriter.create<mlir::stablehlo::SliceOp>(
-          op.getLoc(), tupleSecondElement,
+      indices = mlir::stablehlo::SliceOp::create(
+          rewriter, op.getLoc(), tupleSecondElement,
           rewriter.getDenseI64ArrayAttr(beginIndices),
           rewriter.getDenseI64ArrayAttr(endIndices),
           rewriter.getDenseI64ArrayAttr(strides));

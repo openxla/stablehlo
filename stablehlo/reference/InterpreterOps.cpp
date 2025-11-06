@@ -46,6 +46,7 @@ limitations under the License.
 #include "stablehlo/reference/ProcessGrid.h"
 #include "stablehlo/reference/Value.h"
 
+using mlir::stablehlo::TokenType;
 #define GET_OP_CLASSES
 #include "stablehlo/reference/InterpreterOps.cpp.inc"
 
@@ -84,7 +85,7 @@ llvm::Error writeProbeMetadata(StringRef probeId, Type type, StringRef filename,
 // Interpreter Dialect Constructor
 //===----------------------------------------------------------------------===//
 
-InterpreterDialect::InterpreterDialect(MLIRContext *context)
+InterpreterDialect::InterpreterDialect(MLIRContext* context)
     : Dialect(getDialectNamespace(), context,
               TypeID::get<InterpreterDialect>()) {
   addOperations<
@@ -104,13 +105,13 @@ LogicalResult RunParallelOp::verify() {
   size_t numArgs = 0;
   size_t numResults = 0;
   auto numPartitions = cast<ArrayAttr>(getPrograms()[0]).size();
-  for (auto &replica : getPrograms()) {
+  for (auto& replica : getPrograms()) {
     if (cast<ArrayAttr>(replica).size() != numPartitions)
       return emitOptionalError(
           getLoc(), "Sizes of second dimension of `programs` should all match ",
           numPartitions, " but got ", cast<ArrayAttr>(replica).size());
 
-    for (auto &program : cast<ArrayAttr>(replica)) {
+    for (auto& program : cast<ArrayAttr>(replica)) {
       auto funcName = cast<FlatSymbolRefAttr>(program).getAttr();
       auto func = getOperation()
                       ->getParentOfType<ModuleOp>()
@@ -135,7 +136,7 @@ LogicalResult RunParallelOp::verify() {
         ") should match the sum of the number of results of all programs (",
         numResults, ")");
 
-  if (const auto &infeed = getInfeed()) {
+  if (const auto& infeed = getInfeed()) {
     if (infeed->empty())
       return emitOptionalError(
           getLoc(), "infeed attribute is optional or should not be empty");
@@ -169,8 +170,8 @@ LogicalResult RunParallelOp::verify() {
 //===----------------------------------------------------------------------===//
 
 SmallVector<InterpreterValue> evalRunParallelOp(
-    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
-    SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable) {
+    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr>& infeed,
+    SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable) {
   llvm::DefaultThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
 
@@ -184,7 +185,7 @@ SmallVector<InterpreterValue> evalRunParallelOp(
     for (uint32_t j = 0; j < numPartitions; ++j) {
       auto funcName = programs[i][j];
       auto func = llvm::cast<func::FuncOp>(symbolTable.lookup(funcName));
-      auto evalWrapper = [&](Region &region, ArrayRef<InterpreterValue> args,
+      auto evalWrapper = [&](Region& region, ArrayRef<InterpreterValue> args,
                              ProcessId processId) {
         Process process{processId, &processGrid};
         return eval(region, args, /*config=*/nullptr, &process,
@@ -201,12 +202,12 @@ SmallVector<InterpreterValue> evalRunParallelOp(
   }
 
   SmallVector<InterpreterValue> results;
-  for (auto &future : futures) results.append(future.get());
+  for (auto& future : futures) results.append(future.get());
   // TODO(#1725): Figure out how to test the outfeed queue.
   return results;
 }
 
-llvm::Error evalPrintOp(PrintOp &op, InterpreterValue operand) {
+llvm::Error evalPrintOp(PrintOp& op, InterpreterValue operand) {
   std::string ssaValueStr;
   llvm::raw_string_ostream stream(ssaValueStr);
   stream << op.getOperand();
