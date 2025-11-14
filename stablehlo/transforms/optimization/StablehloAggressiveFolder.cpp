@@ -835,7 +835,7 @@ struct FoldConcatenateAdjacentSplatsOpPattern final
       Value operand = op.getOperand(i);
       // Match a splat and look ahead for adjacent identical splats.
       if (matchPattern(operand, m_Constant(&currSplat)) && currSplat) {
-        size_t j = i+1;
+        size_t j = i + 1;
         SplatElementsAttr lookaheadSplat;
         int64_t nOccurrences = 1;
         for (; j < op.getNumOperands(); ++j) {

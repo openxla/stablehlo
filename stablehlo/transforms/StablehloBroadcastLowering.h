@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-
 #ifndef STABLEHLO_TRANSFORMS_OPBROADCASTUTILS_H_
 #define STABLEHLO_TRANSFORMS_OPBROADCASTUTILS_H_
 

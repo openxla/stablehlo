@@ -48,8 +48,7 @@ namespace stablehlo {
 namespace {
 
 DimensionInfo getDimensionInfo(Value op, mlir::RankedTensorType tensorType,
-                               TypeExtensionsAttr encoding,
-                               int64_t dim) {
+                               TypeExtensionsAttr encoding, int64_t dim) {
   if (!encoding || !mlir::ShapedType::isDynamic(tensorType.getDimSize(dim)))
     return DimensionInfo{tensorType.getDimSize(dim)};
 
@@ -79,8 +78,8 @@ FailureOr<Dimensions> getDimensions(Value op) {
   return dimensions;
 }
 
-FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(
-    const Dimensions& a, const Dimensions& b) {
+FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(const Dimensions& a,
+                                                       const Dimensions& b) {
   LLVM_DEBUG(llvm::dbgs() << "[getNumpyBroadcastShapeWithBounds] inputs: "
                           << toString(a) << " * " << toString(b));
   size_t max_rank = std::max(a.size(), b.size());
@@ -155,7 +154,6 @@ mlir::RankedTensorType getRankedTensorType(const Dimensions& dims,
 }
 
 }  // namespace
-
 
 FailureOr<Dimensions> getNumpyBroadcastShape(ArrayRef<Value> ops) {
   if (ops.empty()) return failure();
