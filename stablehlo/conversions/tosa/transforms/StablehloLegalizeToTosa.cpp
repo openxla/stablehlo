@@ -544,13 +544,15 @@ struct ConvertStablehloFloatDivideOp
     auto shiftTensorType = RankedTensorType::get({1}, rewriter.getI8Type());
     auto zeroShiftValue = DenseElementsAttr::get(
         shiftTensorType, rewriter.getIntegerAttr(rewriter.getI8Type(), 0));
-    auto shiftConst = rewriter.create<tosa::ConstOp>(
-        op.getLoc(), shiftTensorType, zeroShiftValue);
+    auto shiftConst = tosa::ConstOp::create(rewriter, op.getLoc(),
+                                            shiftTensorType, zeroShiftValue);
 
     auto reciprocalOp =
-        rewriter.create<tosa::ReciprocalOp>(op.getLoc(), rhsType, op.getRhs());
-    auto mulOp = rewriter.create<tosa::MulOp>(
-        op.getLoc(), op.getType(), op.getLhs(), reciprocalOp, shiftConst);
+        tosa::ReciprocalOp::create(rewriter, op.getLoc(), rhsType, op.getRhs());
+
+    auto mulOp = tosa::MulOp::create(rewriter, op.getLoc(), op.getType(),
+                                     op.getLhs(), reciprocalOp, shiftConst);
+
     rewriter.replaceOp(op, mulOp.getResult());
     return success();
   }
