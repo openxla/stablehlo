@@ -67,12 +67,12 @@ struct BroadcastValuesPattern : public RewritePattern {
 };
 
 struct InferReturnTypesPattern : public RewritePattern {
-  explicit InferReturnTypesPattern(MLIRContext *context)
+  explicit InferReturnTypesPattern(MLIRContext* context)
       : RewritePattern("hlo_test_infer.get_return_types", 1, context) {}
-  LogicalResult matchAndRewrite(Operation *op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
     if (op->getNumOperands() != 1) return failure();
-    auto *definingOp = op->getOperand(0).getDefiningOp();
+    auto* definingOp = op->getOperand(0).getDefiningOp();
     auto definingOpInt =
         llvm::dyn_cast_or_null<InferTypeOpInterface>(definingOp);
     if (!definingOpInt) return failure();
@@ -87,8 +87,8 @@ struct InferReturnTypesPattern : public RewritePattern {
     OperationState state(op->getLoc(), "hlo_test_infer.return_types",
                          op->getOperands(), op->getResultTypes(),
                          op->getAttrs());
-    auto *newOp = rewriter.create(state);
-    for (const auto &it : llvm::enumerate(types))
+    auto* newOp = rewriter.create(state);
+    for (const auto& it : llvm::enumerate(types))
       newOp->setAttr((StringRef("types") + Twine(it.index())).str(),
                      TypeAttr::get(it.value()));
     rewriter.replaceOp(op, {newOp->getResults()});
@@ -97,10 +97,10 @@ struct InferReturnTypesPattern : public RewritePattern {
 };
 
 struct ReifyReturnTypeShapesPattern : public RewritePattern {
-  explicit ReifyReturnTypeShapesPattern(MLIRContext *context)
+  explicit ReifyReturnTypeShapesPattern(MLIRContext* context)
       : RewritePattern("hlo_test_infer.reify_return_type_shapes", 1, context) {}
-  LogicalResult matchAndRewrite(Operation *op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
     if (op->getNumOperands() != 1) return failure();
     auto definingOp =
         op->getOperand(0).getDefiningOp<InferShapedTypeOpInterface>();
@@ -114,7 +114,7 @@ struct ReifyReturnTypeShapesPattern : public RewritePattern {
   }
 };
 
-LogicalResult checkSpeculatability(PatternRewriter &rewriter, Operation *op,
+LogicalResult checkSpeculatability(PatternRewriter& rewriter, Operation* op,
                                    mlir::Speculation::Speculatability spec) {
   if (op->getNumOperands() != 1) return failure();
   auto definingOp =
@@ -131,32 +131,32 @@ LogicalResult checkSpeculatability(PatternRewriter &rewriter, Operation *op,
 }
 
 struct IsSpeculatablePattern : public RewritePattern {
-  explicit IsSpeculatablePattern(MLIRContext *context)
+  explicit IsSpeculatablePattern(MLIRContext* context)
       : RewritePattern("hlo_test_speculatability.is_speculatable", 1, context) {
   }
-  LogicalResult matchAndRewrite(Operation *op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
     return checkSpeculatability(rewriter, op, mlir::Speculation::Speculatable);
   }
 };
 
 struct IsRecursivelySpeculatablePattern : public RewritePattern {
-  explicit IsRecursivelySpeculatablePattern(MLIRContext *context)
+  explicit IsRecursivelySpeculatablePattern(MLIRContext* context)
       : RewritePattern("hlo_test_speculatability.is_recursively_speculatable",
                        1, context) {}
-  LogicalResult matchAndRewrite(Operation *op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
     return checkSpeculatability(rewriter, op,
                                 mlir::Speculation::RecursivelySpeculatable);
   }
 };
 
 struct IsNotSpeculatablePattern : public RewritePattern {
-  explicit IsNotSpeculatablePattern(MLIRContext *context)
+  explicit IsNotSpeculatablePattern(MLIRContext* context)
       : RewritePattern("hlo_test_speculatability.is_not_speculatable", 1,
                        context) {}
-  LogicalResult matchAndRewrite(Operation *op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
     return checkSpeculatability(rewriter, op,
                                 mlir::Speculation::NotSpeculatable);
   }
@@ -186,7 +186,7 @@ struct HloTestBroadcastPass
 };
 
 struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
-  LogicalResult initialize(MLIRContext *context) override {
+  LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns(context);
     patterns.add<InferReturnTypesPattern>(context);
     patterns.add<ReifyReturnTypeShapesPattern>(context);
@@ -205,7 +205,7 @@ struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
 
 struct HloTestSpeculatabilityPass
     : public impl::HloTestSpeculatabilityPassBase<HloTestSpeculatabilityPass> {
-  LogicalResult initialize(MLIRContext *context) override {
+  LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns(context);
     patterns.add<IsSpeculatablePattern>(context);
     patterns.add<IsNotSpeculatablePattern>(context);
