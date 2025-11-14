@@ -72,7 +72,7 @@ FailureOr<Dimensions> getDimensions(Value op) {
 
   Dimensions dimensions;
   dimensions.reserve(tensor_type.getRank());
-  for (size_t idx = 0; idx < tensor_type.getRank(); ++idx) {
+  for (int64_t idx = 0; idx < tensor_type.getRank(); ++idx) {
     auto dimInfo = getDimensionInfo(op, tensor_type, encoding, idx);
     dimensions.push_back(dimInfo);
   }
@@ -87,7 +87,7 @@ FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(
   Dimensions result(max_rank);
 
   // Iterate from right to left (NumPy-style broadcasting)
-  for (int i = 1; i <= max_rank; ++i) {
+  for (size_t i = 1; i <= max_rank; ++i) {
     size_t a_idx = a.size() - i;
     size_t b_idx = b.size() - i;
     size_t res_idx = max_rank - i;
@@ -165,7 +165,7 @@ FailureOr<Dimensions> getNumpyBroadcastShape(ArrayRef<Value> ops) {
   if (failed(bcastShapeOrFail)) return failure();
   Dimensions bcastShape = std::move(*bcastShapeOrFail);
 
-  for (int i = 1; i < ops.size(); ++i) {
+  for (size_t i = 1; i < ops.size(); ++i) {
     Value currOp = ops[i];
     auto dims = getDimensions(currOp);
     if (failed(dims)) return failure();
@@ -246,7 +246,7 @@ FailureOr<Value> numpyBroadcastIfNeeded(OpBuilder& builder, Value input,
   //  - If input is not bounded, but target shape is bounded, broadcast to
   //    the padded shape then call SetDimensionSize to make dynamic.
   auto bcastShape = shape;
-  for (size_t i = 0; i < input_rank; ++i) {
+  for (int64_t i = 0; i < input_rank; ++i) {
     int64_t input_dim_size = inputShape[i].size;
     int64_t result_idx = i + rank_diff;
     int64_t result_dim_size = shape[result_idx].size;

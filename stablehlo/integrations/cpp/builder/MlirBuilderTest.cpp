@@ -15,7 +15,7 @@ limitations under the License.
 
 #include <string>
 
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"

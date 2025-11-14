@@ -69,16 +69,6 @@ static bool isIotaRange(ArrayRef<int64_t> dims) {
   });
 }
 
-bool mergeDiscardableAttributes(ValueRange sourceValues,
-                                ValueRange destValues) {
-  if (sourceValues.size() != destValues.size()) return false;
-  bool changed = false;
-  for (auto [source, dest] : llvm::zip(sourceValues, destValues)) {
-    if (mergeDiscardableAttributes(source, dest)) changed = true;
-  }
-  return changed;
-}
-
 bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
   Operation* sourceOp = sourceValue.getDefiningOp();
   Operation* destOp = destValue.getDefiningOp();
