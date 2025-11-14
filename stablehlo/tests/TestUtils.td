@@ -16,6 +16,11 @@ limitations under the License.
 
 include "mlir/Pass/PassBase.td"
 
+def HloTestBroadcastPass : Pass<"hlo-test-broadcast", "func::FuncOp"> {
+  let summary = "Uses test ops to invoke BroadcastUtils methods.";
+  let dependentDialects = ["stablehlo::StablehloDialect"];
+}
+
 def HloTestInferPass : Pass<"hlo-test-infer", "func::FuncOp"> {
   let summary = "Uses test ops to invoke InferShapedTypeOpInterface methods.";
   let dependentDialects = ["shape::ShapeDialect"];

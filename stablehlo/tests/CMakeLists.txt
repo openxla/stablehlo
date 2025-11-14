@@ -48,6 +48,7 @@ add_mlir_library(StablehloTestUtils
   MLIRSupport
   MLIRTransformUtils
   StablehloAssemblyFormat
+  StablehloBroadcastLowering
 )
 
 set(LLVM_TARGET_DEFINITIONS CheckOps.td)

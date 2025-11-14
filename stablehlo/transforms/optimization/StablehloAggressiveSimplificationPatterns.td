@@ -134,6 +134,9 @@ def MergeBroadcastDims : NativeCodeCall<"getMergedBroadcastDimensions($_builder,
 
 def MergePermutations : NativeCodeCall<"getMergedTransposePermutation($_builder, $0, $1)">;
 
+def MergeDiscardableAttributes
+    : NativeCodeCall<"mergeDiscardableAttributes($0, $1)">;
+
 def StableHLO_ConvertOpWithShape : NativeCodeCall<
     "stablehlo::ConvertOp::create($_builder, $_loc, $0.getType(), $1)">;
 
@@ -148,9 +151,10 @@ class StableHLO_ConstantLike<string value> : NativeCodeCall<
 
 // op(cst, X) -> op(X, cst)
 class CanonicalizeConstantToRhs<Op StableHLO_OpType>
-  : Pat<(StableHLO_OpType:$op (StableHLO_ConstantOp:$lhs $value), $rhs),
-        (StableHLO_OpType $rhs, $lhs),
-        [(NotConstantOp $rhs), (CommutativeOp $op)]>;
+    : Pat<(StableHLO_OpType:$op (StableHLO_ConstantOp:$lhs $value), $rhs),
+          (StableHLO_OpType:$new_op $rhs, $lhs),
+          [(NotConstantOp $rhs), (CommutativeOp $op)],
+          [(MergeDiscardableAttributes $op, $new_op)]>;
 
 ////////
 // AddOp
@@ -161,8 +165,9 @@ def AddOp_CanonicalizeConstantToRhs
 
 // Pattern: add(X, 0) -> X
 def AddOp_RemoveNoop
-  : Pat<(StableHLO_AddOp $lhs, (ConstantLikeMatcher AnyZero:$value)),
-        (replaceWithValue $lhs)>;
+    : Pat<(StableHLO_AddOp:$op $lhs, (ConstantLikeMatcher AnyZero:$value)),
+          (replaceWithValue $lhs), [],
+          [(MergeDiscardableAttributes $op, $lhs)]>;
 
 ////////
 // AndOp
@@ -172,23 +177,25 @@ def AndOp_CanonicalizeConstantToRhs
   : CanonicalizeConstantToRhs<StableHLO_AndOp>;
 
 // Pattern: and(X, 0) -> 0
-def AndOp_FoldToZero
-  : Pat<(StableHLO_AndOp $lhs, (StableHLO_ConstantOp:$zero IntZero:$value)),
-        (replaceWithValue $zero)>;
+def AndOp_FoldToZero : Pat<(StableHLO_AndOp:$op $lhs,
+                               (StableHLO_ConstantOp:$zero IntZero:$value)),
+                           (replaceWithValue $zero), [],
+                           [(MergeDiscardableAttributes $op, $zero)]>;
 
 // Pattern: and(X, 1) -> X
-def AndOp_RemoveNoop
-  : Pat<(StableHLO_AndOp $lhs, (StableHLO_ConstantOp:$one IntAllOnes:$value)),
-        (replaceWithValue $lhs)>;
+def AndOp_RemoveNoop : Pat<(StableHLO_AndOp:$op $lhs,
+                               (StableHLO_ConstantOp:$one IntAllOnes:$value)),
+                           (replaceWithValue $lhs), [],
+                           [(MergeDiscardableAttributes $op, $lhs)]>;
 
 ////////
 // BroadcastInDimOp
 
 // Pattern: broadcast_in_dim(X, [iota...]) -> X
 def BroadcastInDimOp_RemoveNoop
-  : Pat<(StableHLO_BroadcastInDimOp:$op $operand, IotaDims:$dims),
-        (replaceWithValue $operand),
-        [(TypesEqual $op, $operand)]>;
+    : Pat<(StableHLO_BroadcastInDimOp:$op $operand, IotaDims:$dims),
+          (replaceWithValue $operand), [(TypesEqual $op, $operand)],
+          [(MergeDiscardableAttributes $op, $operand)]>;
 
 // Pattern: broadcast_in_dim(broadcast_in_dim(X, [dimsA...]), [dimsB...])
 //       -> broadcast_in_dim(X, merge(dimsA, dimsB))
@@ -252,9 +259,9 @@ def CompareOp_EqBooleanTrue
 
 // Pattern: convert(X, [X.type]) -> X
 def ConvertOp_RemoveNoop
-  : Pat<(StableHLO_ConvertOp:$convert $operand),
-        (replaceWithValue $operand),
-        [(TypesEqual $convert, $operand)]>;
+    : Pat<(StableHLO_ConvertOp:$convert $operand),
+          (replaceWithValue $operand), [(TypesEqual $convert, $operand)],
+          [(MergeDiscardableAttributes $convert, $operand)]>;
 
 ////////
 // DynamicBroadcastInDimOp
@@ -440,14 +447,16 @@ def MulOp_CanonicalizeConstantToRhs
 //
 // Multiplication by 0. This fold is not trivial for floats in presence of NaNs,
 // so we currently only enable it for ints.
-def MulOp_FoldToZero
-  : Pat<(StableHLO_MulOp $lhs, (StableHLO_ConstantOp:$zero IntZero:$value)),
-        (replaceWithValue $zero)>;
+def MulOp_FoldToZero : Pat<(StableHLO_MulOp:$mul_op $lhs,
+                               (StableHLO_ConstantOp:$zero IntZero:$value)),
+                           (replaceWithValue $zero), [],
+                           [(MergeDiscardableAttributes $mul_op, $zero)]>;
 
 // Pattern: multiply(X, 1i) -> X
 def MulOp_RemoveNoop
-  : Pat<(StableHLO_MulOp $lhs, (StableHLO_ConstantOp AnyOne:$value)),
-        (replaceWithValue $lhs)>;
+    : Pat<(StableHLO_MulOp:$mul_op $lhs, (StableHLO_ConstantOp AnyOne:$value)),
+          (replaceWithValue $lhs), [],
+          [(MergeDiscardableAttributes $mul_op, $lhs)]>;
 
 ////////
 // OrOp
@@ -456,14 +465,16 @@ def MulOp_RemoveNoop
 def OrOp_CanonicalizeConstantToRhs : CanonicalizeConstantToRhs<StableHLO_OrOp>;
 
 // Pattern: or(X, 1) -> 1
-def OrOp_FoldToOne
-  : Pat<(StableHLO_OrOp $lhs, (StableHLO_ConstantOp:$one IntAllOnes:$value)),
-        (replaceWithValue $one)>;
+def OrOp_FoldToOne : Pat<(StableHLO_OrOp:$op $lhs,
+                             (StableHLO_ConstantOp:$one IntAllOnes:$value)),
+                         (replaceWithValue $one), [],
+                         [(MergeDiscardableAttributes $op, $one)]>;
 
 // Pattern: or(X, 0) -> X
-def OrOp_RemoveNoop
-  : Pat<(StableHLO_OrOp $lhs, (StableHLO_ConstantOp:$zero IntZero:$value)),
-        (replaceWithValue $lhs)>;
+def OrOp_RemoveNoop : Pat<(StableHLO_OrOp:$op $lhs,
+                              (StableHLO_ConstantOp:$zero IntZero:$value)),
+                          (replaceWithValue $lhs), [],
+                          [(MergeDiscardableAttributes $op, $lhs)]>;
 
 ////////
 // PadOp
@@ -563,9 +574,10 @@ def SubtractOp_FoldToZero
         (StableHLO_ConstantLike<"0"> $operand)>;
 
 // Pattern: subtract(X, 0) -> X
-def SubtractOp_RemoveNoop
-  : Pat<(StableHLO_SubtractOp $lhs, (StableHLO_ConstantOp AnyZero:$value)),
-        (replaceWithValue $lhs)>;
+def SubtractOp_RemoveNoop : Pat<(StableHLO_SubtractOp:$op $lhs,
+                                    (StableHLO_ConstantOp AnyZero:$value)),
+                                (replaceWithValue $lhs), [],
+                                [(MergeDiscardableAttributes $op, $lhs)]>;
 
 ////////
 // SliceOp

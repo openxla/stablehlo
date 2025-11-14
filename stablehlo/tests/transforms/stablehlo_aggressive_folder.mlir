@@ -473,6 +473,44 @@ func.func @concatenate_fold() -> (tensor<6xi32>, tensor<3xi32>, tensor<3x3xi32>,
   return %0, %1, %2, %3 : tensor<6xi32>, tensor<3xi32>, tensor<3x3xi32>, tensor<2x5xi32>
 }
 
+// CHECK-LABEL: func.func @fold_concatenate_splat_leading
+func.func @fold_concatenate_splat_leading(%arg0: tensor<1xi32>) -> tensor<3xi32> {
+  // CHECK: [[CST0:%.+]] = stablehlo.constant dense<0> : tensor<2xi32>
+  // CHECK-NEXT: stablehlo.concatenate [[CST0]], %arg0, dim = 0
+  %cst0 = stablehlo.constant dense<0> : tensor<1xi32>
+  %0 = stablehlo.concatenate %cst0, %cst0, %arg0, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
+  return %0 : tensor<3xi32>
+}
+
+// CHECK-LABEL: func.func @fold_concatenate_splat_trailing
+func.func @fold_concatenate_splat_trailing(%arg0: tensor<2xi32>) -> tensor<6xi32> {
+  // CHECK: [[CST0:%.+]] = stablehlo.constant dense<0> : tensor<4xi32>
+  // CHECK-NEXT: stablehlo.concatenate %arg0, [[CST0]], dim = 0
+  %cst0 = stablehlo.constant dense<0> : tensor<2xi32>
+  %0 = stablehlo.concatenate %arg0, %cst0, %cst0, dim = 0 : (tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<6xi32>
+  return %0 : tensor<6xi32>
+}
+
+// CHECK-LABEL: func.func @fold_concatenate_splat_middle
+func.func @fold_concatenate_splat_middle(%arg0: tensor<1xi32>) -> tensor<4xi32> {
+  // CHECK: [[CST0:%.+]] = stablehlo.constant dense<0> : tensor<2xi32>
+  // CHECK-NEXT: stablehlo.concatenate %arg0, [[CST0]], %arg0, dim = 0
+  %cst0 = stablehlo.constant dense<0> : tensor<1xi32>
+  %0 = stablehlo.concatenate %arg0, %cst0, %cst0, %arg0, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xi32>
+  return %0 : tensor<4xi32>
+}
+
+// CHECK-LABEL: func.func @fold_concatenate_splat_multiple
+func.func @fold_concatenate_splat_multiple(%arg0: tensor<1xi32>) -> tensor<5xi32> {
+  // CHECK-DAG: [[CST0:%.+]] = stablehlo.constant dense<0> : tensor<2xi32>
+  // CHECK-DAG: [[CST1:%.+]] = stablehlo.constant dense<1> : tensor<2xi32>
+  // CHECK-NEXT: stablehlo.concatenate [[CST0]], [[CST1]], %arg0, dim = 0
+  %cst0 = stablehlo.constant dense<0> : tensor<1xi32>
+  %cst1 = stablehlo.constant dense<1> : tensor<1xi32>
+  %0 = stablehlo.concatenate %cst0, %cst0, %cst1, %cst1, %arg0, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<5xi32>
+  return %0 : tensor<5xi32>
+}
+
 // -----
 
 ////////
@@ -576,16 +614,19 @@ func.func @reduce_op_fold(%arg0: tensor<i64>) -> tensor<i1> {
 // ReshapeOp
 
 // CHECK-LABEL: func @reshape_fold
-func.func @reshape_fold() -> (tensor<1xi32>, tensor<2x2xi32>) {
-  %c0 = stablehlo.constant dense<2> : tensor<i32>
+func.func @reshape_fold() -> (tensor<1xf32>, tensor<2x2xi32>, tensor<3x2xcomplex<f32>>) {
+  %c0 = stablehlo.constant dense<2.0> : tensor<f32>
   %c1 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi32>
-  %0 = stablehlo.reshape %c0 : (tensor<i32>) -> tensor<1xi32>
+  %c2 = stablehlo.constant dense<(1.0,2.0)> : tensor<2x3xcomplex<f32>>
+  %0 = stablehlo.reshape %c0 : (tensor<f32>) -> tensor<1xf32>
   %1 = stablehlo.reshape %c1 : (tensor<4xi32>) -> tensor<2x2xi32>
+  %2 = stablehlo.reshape %c2 : (tensor<2x3xcomplex<f32>>) -> tensor<3x2xcomplex<f32>>
 
-  // CHECK-DAG:  [[CST1:%.+]] = stablehlo.constant dense<2> : tensor<1xi32>
-  // CHECK-DAG:  [[CST2:%.+]] = stablehlo.constant dense<{{\[\[1, 2\], \[3, 4\]\]}}> : tensor<2x2xi32>
-  // CHECK-NEXT: return [[CST1]], [[CST2]]
-  return %0, %1 : tensor<1xi32>, tensor<2x2xi32>
+  // CHECK-DAG:  [[RESULT0:%.+]] = stablehlo.constant dense<2.0{{.*}}> : tensor<1xf32>
+  // CHECK-DAG:  [[RESULT1:%.+]] = stablehlo.constant dense<{{\[\[1, 2\], \[3, 4\]\]}}> : tensor<2x2xi32>
+  // CHECK-DAG:  [[RESULT2:%.+]] = stablehlo.constant dense<(1.0{{.*}},2.0{{.*}})> : tensor<3x2xcomplex<f32>>
+  // CHECK-NEXT: return [[RESULT0]], [[RESULT1]], [[RESULT2]]
+  return %0, %1, %2 : tensor<1xf32>, tensor<2x2xi32>, tensor<3x2xcomplex<f32>>
 }
 
 // -----

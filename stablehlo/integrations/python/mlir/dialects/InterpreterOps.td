@@ -17,6 +17,6 @@ limitations under the License.
 #ifndef STABLEHLO_INTEGRATIONS_PYTHON_INTERPRETER_OPS
 #define STABLEHLO_INTEGRATIONS_PYTHON_INTERPRETER_OPS
 
-include "third_party/stablehlo/stablehlo/reference/InterpreterOps.h"
+include "stablehlo/reference/InterpreterOps.h"
 
 #endif

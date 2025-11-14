@@ -29,6 +29,14 @@ func.func @add_zero_like_rhs(%arg0: tensor<f32>) -> tensor<f32> {
   return %1 : tensor<f32>
 }
 
+// CHECK-LABEL: @add_cst_on_rhs_with_attrs
+func.func @add_cst_on_rhs_with_attrs(%arg0: tensor<f32>) -> tensor<f32> {
+  %cst = stablehlo.constant dense<1.0> : tensor<f32>
+  // CHECK: stablehlo.add %arg0, %cst {mhlo.frontend_attributes = {foo = "1"}} : tensor<f32>
+  %0 = stablehlo.add %cst, %arg0 {mhlo.frontend_attributes = {foo = "1"}} : tensor<f32>
+  return %0 : tensor<f32>
+}
+
 // -----
 
 /////////
@@ -976,6 +984,26 @@ func.func @multiply_by_one_float(%arg0: tensor<f32>) -> tensor<f32> {
   // CHECK-NOT: stablehlo.constant
   // CHECK: return %arg0 : tensor<f32>
   return %0 : tensor<f32>
+}
+
+// CHECK-LABEL: @multiply_by_one_merge_attrs
+func.func @multiply_by_one_merge_attrs(%arg0: tensor<f32>) -> tensor<f32> {
+  %cst = stablehlo.constant dense<1.0> : tensor<f32>
+  %0 = stablehlo.add %arg0, %arg0 {mhlo.frontend_attributes = {bar = "1"}} : tensor<f32>
+  %1 = stablehlo.multiply %0, %cst {mhlo.frontend_attributes = {foo = "1"}} : tensor<f32>
+  // CHECK: %[[ADD:.*]] = stablehlo.add %arg0, %arg0 {mhlo.frontend_attributes = {bar = "1", foo = "1"}} : tensor<f32>
+  // CHECK: return %[[ADD]] : tensor<f32>
+  return %1 : tensor<f32>
+}
+
+// CHECK-LABEL: @multiply_by_one_merge_attrs_conflict
+func.func @multiply_by_one_merge_attrs_conflict(%arg0: tensor<f32>) -> tensor<f32> {
+  %cst = stablehlo.constant dense<1.0> : tensor<f32>
+  %0 = stablehlo.add %arg0, %arg0 {mhlo.frontend_attributes = {bar = "1", foo = "0"}} : tensor<f32>
+  %1 = stablehlo.multiply %0, %cst {mhlo.frontend_attributes = {foo = "1"}} : tensor<f32>
+  // CHECK: %[[ADD:.*]] = stablehlo.add %arg0, %arg0 {mhlo.frontend_attributes = {bar = "1", foo = "1"}} : tensor<f32>
+  // CHECK: return %[[ADD]] : tensor<f32>
+  return %1 : tensor<f32>
 }
 
 // -----
