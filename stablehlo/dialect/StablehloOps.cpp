@@ -3275,12 +3275,12 @@ Attribute StablehloDialect::parseAttribute(DialectAsmParser& parser,
 // Entry point for Attribute printing, TableGen generated code will handle the
 // dispatch to the individual classes.
 void StablehloDialect::printAttribute(Attribute attr,
-                                      DialectAsmPrinter& os) const {
+                                      DialectAsmPrinter& printer) const {
   if (auto type_extensions = dyn_cast<TypeExtensionsAttr>(attr)) {
-    hlo::printTypeExtensions(cast<hlo::BoundedAttrInterface>(attr), os);
+    hlo::printTypeExtensions(cast<hlo::BoundedAttrInterface>(attr), printer);
     return;
   }
-  LogicalResult result = generatedAttributePrinter(attr, os);
+  LogicalResult result = generatedAttributePrinter(attr, printer);
   (void)result;
   assert(succeeded(result));
 }

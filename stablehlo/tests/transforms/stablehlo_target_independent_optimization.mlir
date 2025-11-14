@@ -13,6 +13,32 @@ func.func @add_cst_on_rhs(%arg0: tensor<f32>) -> tensor<f32> {
 
 // -----
 
+func.func @concatenate_fold_splat_flatten_integ(%arg0: tensor<8xf32>) -> tensor<64xf32> {
+  // CHECK-DAG: [[CST0:%.+]] = stablehlo.constant dense<0.000000e+00> : tensor<8xf32>
+  // CHECK-DAG: [[CST1:%.+]] = stablehlo.constant dense<1.000000e+00> : tensor<8xf32>
+  // CHECK-DAG: [[CST2:%.+]] = stablehlo.constant dense<2.000000e+00> : tensor<8xf32>
+  // CHECK-DAG: [[CST3:%.+]] = stablehlo.constant dense<3.000000e+00> : tensor<8xf32>
+  // CHECK: stablehlo.concatenate [[CST0]], [[CST1]], [[CST2]], [[CST3]], %arg0, %arg0, %arg0, %arg0,
+  %cst0 = stablehlo.constant dense<0.0> : tensor<f32>
+  %cst1 = stablehlo.constant dense<1.0> : tensor<f32>
+  %cst2 = stablehlo.constant dense<2.0> : tensor<f32>
+  %cst3 = stablehlo.constant dense<3.0> : tensor<f32>
+  %0 = stablehlo.reshape %cst0 : (tensor<f32>) -> tensor<1xf32>
+  %1 = stablehlo.reshape %cst1 : (tensor<f32>) -> tensor<1xf32>
+  %2 = stablehlo.reshape %cst2 : (tensor<f32>) -> tensor<1xf32>
+  %3 = stablehlo.reshape %cst3 : (tensor<f32>) -> tensor<1xf32>
+  %4 = stablehlo.concatenate %0, %0, %0, %0, %0, %0, %0, %0, dim = 0 : (tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>) -> tensor<8xf32>
+  %5 = stablehlo.concatenate %1, %1, %1, %1, %1, %1, %1, %1, dim = 0 : (tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>) -> tensor<8xf32>
+  %6 = stablehlo.concatenate %2, %2, %2, %2, %2, %2, %2, %2, dim = 0 : (tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>) -> tensor<8xf32>
+  %7 = stablehlo.concatenate %3, %3, %3, %3, %3, %3, %3, %3, dim = 0 : (tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>, tensor<1xf32>) -> tensor<8xf32>
+  %8 = stablehlo.concatenate %4, %5, %6, %7, dim = 0 : (tensor<8xf32>, tensor<8xf32>, tensor<8xf32>, tensor<8xf32>) -> tensor<32xf32>
+  %9 = stablehlo.concatenate %arg0, %arg0, %arg0, %arg0, dim = 0 : (tensor<8xf32>, tensor<8xf32>, tensor<8xf32>, tensor<8xf32>) -> tensor<32xf32>
+  %10 = stablehlo.concatenate %8, %9, dim = 0 : (tensor<32xf32>, tensor<32xf32>) -> tensor<64xf32>
+  return %10 : tensor<64xf32>
+}
+
+// -----
+
 // Check that the WhileOp optimizations from AggressiveFolder and
 // AggressiveSimplification don't interfere with one another. Specifically, we
 // need to make sure that FoldWhileOpPattern doesn't DCE code with side effects.

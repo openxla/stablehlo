@@ -822,6 +822,61 @@ struct FoldConcatenateOpPattern final
   int64_t foldOpElementLimit;
 };
 
+// Pattern: concat(splat_a, splat_a, X) -> concat(splat_a_resize, X)
+struct FoldConcatenateAdjacentSplatsOpPattern final
+    : ShapeOpRewritePattern<mlir::stablehlo::ConcatenateOp> {
+  using ShapeOpRewritePattern::ShapeOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ConcatenateOp op,
+                                PatternRewriter& rewriter) const override {
+    SmallVector<Value> newOperands;
+    SplatElementsAttr currSplat;
+    for (size_t i = 0; i < op.getNumOperands(); ++i) {
+      Value operand = op.getOperand(i);
+      // Match a splat and look ahead for adjacent identical splats.
+      if (matchPattern(operand, m_Constant(&currSplat)) && currSplat) {
+        size_t j = i+1;
+        SplatElementsAttr lookaheadSplat;
+        int64_t nOccurrences = 1;
+        for (; j < op.getNumOperands(); ++j) {
+          if (matchPattern(op.getOperand(j), m_Constant(&lookaheadSplat)) &&
+              lookaheadSplat && lookaheadSplat == currSplat) {
+            ++nOccurrences;
+            continue;
+          }
+          break;
+        }
+
+        // Special case for a single occurrence, no new constants
+        if (nOccurrences == 1) {
+          newOperands.push_back(operand);
+          continue;
+        }
+
+        // Resize the splat and append it to the new operands.
+        SmallVector<int64_t> newShape =
+            llvm::to_vector(currSplat.getType().getShape());
+        newShape[op.getDimension()] *= nOccurrences;
+        newOperands.push_back(ConstantOp::create(
+            rewriter, op.getLoc(),
+            currSplat.resizeSplat(currSplat.getType().clone(newShape))));
+
+        // Set `i` to j-1 so that next iteration processes the next operand.
+        i = j - 1;
+        continue;
+      }
+      // Not splat, append the operand.
+      newOperands.push_back(operand);
+    }
+    if (newOperands.size() == op.getNumOperands()) {
+      return rewriter.notifyMatchFailure(op, "No splats to fold");
+    }
+    rewriter.replaceOpWithNewOp<ConcatenateOp>(op, op.getType(), newOperands,
+                                               op.getDimension());
+    return success();
+  }
+};
+
 struct FoldConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
   using ShapeOpRewritePattern::ShapeOpRewritePattern;
 
@@ -1108,7 +1163,8 @@ struct FoldReshapeOpPattern : public ShapeOpRewritePattern<ReshapeOp> {
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
     if (failed(validateStaticShapeResult(rewriter, op, resultType)) ||
-        failed(validateShapeFoldDtype(rewriter, op, resultType)))
+        failed(validateShapeFoldDtype(rewriter, op, resultType,
+                                      /*allowComplex=*/true)))
       return failure();
 
     DenseElementsAttr attr;
@@ -1923,6 +1979,8 @@ void populateStablehloShapeFolderPatterns(
   patterns->add<FoldClampOpPattern>(context, options, benefit);
   patterns->add<FoldCompareOpPattern>(context, options, benefit);
   patterns->add<FoldConcatenateOpPattern>(context, options, benefit);
+  patterns->add<FoldConcatenateAdjacentSplatsOpPattern>(context, options,
+                                                        benefit);
   patterns->add<FoldConvertOpPattern>(context, options, benefit);
   patterns->add<FoldDivOpPattern>(context, options, benefit);
   patterns->add<FoldDynamicSliceOpPattern>(context, options, benefit);

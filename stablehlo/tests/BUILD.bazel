@@ -102,6 +102,8 @@ cc_library(
     deps = [
         ":test_utils_inc_gen",
         "//:stablehlo_assembly_format",
+        "//:stablehlo_broadcast_lowering",
+        "//:stablehlo_ops",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",

@@ -69,6 +69,54 @@ static bool isIotaRange(ArrayRef<int64_t> dims) {
   });
 }
 
+bool mergeDiscardableAttributes(ValueRange sourceValues,
+                                ValueRange destValues) {
+  if (sourceValues.size() != destValues.size()) return false;
+  bool changed = false;
+  for (auto [source, dest] : llvm::zip(sourceValues, destValues)) {
+    if (mergeDiscardableAttributes(source, dest)) changed = true;
+  }
+  return changed;
+}
+
+bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
+  Operation* sourceOp = sourceValue.getDefiningOp();
+  Operation* destOp = destValue.getDefiningOp();
+  if (!sourceOp || !destOp) return false;
+
+  auto sourceAttrs = sourceOp->getDiscardableAttrDictionary();
+  if (!sourceAttrs) return true;
+
+  auto destAttrs = destOp->getDiscardableAttrDictionary();
+  if (!destAttrs) {
+    destOp->setDiscardableAttrs(sourceAttrs);
+    return true;
+  }
+
+  NamedAttrList mergedAttrs(destAttrs);
+  for (auto attr : sourceAttrs.getValue()) {
+    if (attr.getName() == "mhlo.frontend_attributes" &&
+        mergedAttrs.get("mhlo.frontend_attributes")) {
+      // Merge frontend attributes, prioritizing source attributes.
+      auto destFrontendAttrs =
+          cast<DictionaryAttr>(mergedAttrs.get("mhlo.frontend_attributes"));
+      auto sourceFrontendAttrs = cast<DictionaryAttr>(attr.getValue());
+      NamedAttrList frontendAttrs(destFrontendAttrs);
+      for (auto sourceAttr : sourceFrontendAttrs) {
+        frontendAttrs.set(sourceAttr.getName(), sourceAttr.getValue());
+      }
+      mergedAttrs.set("mhlo.frontend_attributes",
+                      frontendAttrs.getDictionary(destOp->getContext()));
+    } else {
+      // Otherwise prioritize source attributes
+      mergedAttrs.set(attr.getName(), attr.getValue());
+    }
+  }
+
+  destOp->setDiscardableAttrs(mergedAttrs.getDictionary(destOp->getContext()));
+  return true;
+}
+
 template <typename OpType>
 struct SimplifyOpRewritePattern : OpRewritePattern<OpType> {
   SimplifyOpRewritePattern(

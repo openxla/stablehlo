@@ -93,13 +93,14 @@ class StablehloDialect : public Dialect {
   Type parseType(DialectAsmParser& parser) const override;
 
   // Prints a type registered to this dialect.
-  void printType(Type type, DialectAsmPrinter& os) const override;
+  void printType(Type type, DialectAsmPrinter& printer) const override;
 
   // Parses an attribute registered to this dialect.
   Attribute parseAttribute(DialectAsmParser& parser, Type type) const override;
 
   // Prints an attribute registered to this dialect.
-  void printAttribute(Attribute attr, DialectAsmPrinter& os) const override;
+  void printAttribute(Attribute attr,
+                      DialectAsmPrinter& printer) const override;
 
   // Get the set dialect version.
   std::optional<StablehloDialectVersion> getVersion() const;

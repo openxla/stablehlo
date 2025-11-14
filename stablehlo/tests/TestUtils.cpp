@@ -19,6 +19,7 @@ limitations under the License.
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Casting.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
@@ -28,6 +29,7 @@ limitations under the License.
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/TypeRange.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Pass/Pass.h"
@@ -35,11 +37,34 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/transforms/StablehloBroadcastLowering.h"
 
 namespace mlir {
 namespace hlo {
 
 namespace {
+
+struct BroadcastValuesPattern : public RewritePattern {
+  explicit BroadcastValuesPattern(MLIRContext* context)
+      : RewritePattern("hlo_test_broadcast.numpy_broadcast", 1, context) {}
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
+    // Process all operands
+    SmallVector<Value> operands = llvm::to_vector(op->getOperands());
+    auto broadcastedOperands =
+        stablehlo::numpyBroadcastIfNeeded(rewriter, operands);
+    if (failed(broadcastedOperands)) return failure();
+
+    // Replace with custom call to avoid pattern reapplication
+    auto customCall = stablehlo::CustomCallOp::create(
+        rewriter, op->getLoc(), op->getResultTypes(), *broadcastedOperands);
+    customCall.setCallTargetName("numpy_broadcasted");
+    customCall.setHasSideEffect(true);
+    rewriter.replaceOp(op, customCall);
+    return success();
+  }
+};
 
 struct InferReturnTypesPattern : public RewritePattern {
   explicit InferReturnTypesPattern(MLIRContext *context)
@@ -137,36 +162,55 @@ struct IsNotSpeculatablePattern : public RewritePattern {
   }
 };
 
+#define GEN_PASS_DEF_HLOTESTBROADCASTPASS
 #define GEN_PASS_DEF_HLOTESTINFERPASS
 #define GEN_PASS_DEF_HLOTESTSPECULATABILITYPASS
 #include "stablehlo/tests/TestUtils.h.inc"
 
-struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
-  LogicalResult initialize(MLIRContext *context) override {
-    RewritePatternSet patterns_(context);
-    patterns_.add<InferReturnTypesPattern>(context);
-    patterns_.add<ReifyReturnTypeShapesPattern>(context);
-    patterns = std::move(patterns_);
+struct HloTestBroadcastPass
+    : public impl::HloTestBroadcastPassBase<HloTestBroadcastPass> {
+  LogicalResult initialize(MLIRContext* context) override {
+    RewritePatternSet patterns(context);
+    patterns.add<BroadcastValuesPattern>(context);
+    patterns_ = std::move(patterns);
     return success();
   }
 
   void runOnOperation() override {
-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns_))))
       return signalPassFailure();
   }
 
  private:
-  FrozenRewritePatternSet patterns;
+  FrozenRewritePatternSet patterns_;
+};
+
+struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
+  LogicalResult initialize(MLIRContext *context) override {
+    RewritePatternSet patterns(context);
+    patterns.add<InferReturnTypesPattern>(context);
+    patterns.add<ReifyReturnTypeShapesPattern>(context);
+    patterns_ = std::move(patterns);
+    return success();
+  }
+
+  void runOnOperation() override {
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns_))))
+      return signalPassFailure();
+  }
+
+ private:
+  FrozenRewritePatternSet patterns_;
 };
 
 struct HloTestSpeculatabilityPass
     : public impl::HloTestSpeculatabilityPassBase<HloTestSpeculatabilityPass> {
   LogicalResult initialize(MLIRContext *context) override {
-    RewritePatternSet patterns_(context);
-    patterns_.add<IsSpeculatablePattern>(context);
-    patterns_.add<IsNotSpeculatablePattern>(context);
-    patterns_.add<IsRecursivelySpeculatablePattern>(context);
-    patterns = std::move(patterns_);
+    RewritePatternSet patterns(context);
+    patterns.add<IsSpeculatablePattern>(context);
+    patterns.add<IsNotSpeculatablePattern>(context);
+    patterns.add<IsRecursivelySpeculatablePattern>(context);
+    patterns_ = std::move(patterns);
     return success();
   }
 
@@ -175,11 +219,11 @@ struct HloTestSpeculatabilityPass
     config.setMaxIterations(1)
         .setUseTopDownTraversal(true)
         .setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
-    (void)applyPatternsGreedily(getOperation(), std::move(patterns));
+    (void)applyPatternsGreedily(getOperation(), std::move(patterns_));
   }
 
  private:
-  FrozenRewritePatternSet patterns;
+  FrozenRewritePatternSet patterns_;
 };
 
 #define GEN_PASS_REGISTRATION
