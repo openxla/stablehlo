@@ -5760,7 +5760,7 @@ undefined.
     index_vector_dim = 3>,
   indices_are_sorted = false,
   unique_indices = false
-} : (tensor<2x3x4x2xi64>, tensor<2x2x3x2xi64>, tensor<2x2x3x2x2xi64>) -> tensor<2x3x4x2xi64>
+} : (tensor<2x3x4x2xi64>, tensor<2x2x3x2xi64>, tensor<2x2x3x2xi64>) -> tensor<2x3x4x2xi64>
 // %result: [
 //           [
 //            [[3, 4], [6, 7], [6, 7], [7, 8]],
