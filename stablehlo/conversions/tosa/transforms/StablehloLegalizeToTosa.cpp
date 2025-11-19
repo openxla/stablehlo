@@ -523,6 +523,41 @@ struct ConvertStablehloReshapeOp
   }
 };
 
+struct ConvertStablehloFloatDivideOp
+    : public OpRewritePattern<stablehlo::DivOp> {
+  using OpRewritePattern<stablehlo::DivOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(stablehlo::DivOp op,
+                                PatternRewriter& rewriter) const override {
+    auto lhsType = dyn_cast<RankedTensorType>(op.getLhs().getType());
+    auto rhsType = dyn_cast<RankedTensorType>(op.getRhs().getType());
+    if (!lhsType || !rhsType) {
+      return rewriter.notifyMatchFailure(op, "expected ranked tensor types");
+    }
+
+    if (!llvm::isa<mlir::FloatType>(lhsType.getElementType()) &&
+        !llvm::isa<mlir::FloatType>(rhsType.getElementType())) {
+      return rewriter.notifyMatchFailure(
+          op, "only converts floating point division");
+    }
+
+    auto shiftTensorType = RankedTensorType::get({1}, rewriter.getI8Type());
+    auto zeroShiftValue = DenseElementsAttr::get(
+        shiftTensorType, rewriter.getIntegerAttr(rewriter.getI8Type(), 0));
+    auto shiftConst = tosa::ConstOp::create(rewriter, op.getLoc(),
+                                            shiftTensorType, zeroShiftValue);
+
+    auto reciprocalOp =
+        tosa::ReciprocalOp::create(rewriter, op.getLoc(), rhsType, op.getRhs());
+
+    auto mulOp = tosa::MulOp::create(rewriter, op.getLoc(), op.getType(),
+                                     op.getLhs(), reciprocalOp, shiftConst);
+
+    rewriter.replaceOp(op, mulOp.getResult());
+    return success();
+  }
+};
+
 LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
   RewritePatternSet patternList(ctx);
   populateGeneratedPDLLPatterns(patternList);
@@ -543,6 +578,8 @@ LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
   patternList.addWithLabel<ConvertStablehloWhileOp>({"StablehloWhile"}, ctx);
   patternList.addWithLabel<ConvertStablehloReshapeOp>({"StablehloReshape"},
                                                       ctx);
+  patternList.addWithLabel<ConvertStablehloFloatDivideOp>(
+      {"StablehloFloatDivide"}, ctx);
 
   patterns = std::move(patternList);
   return success();
