@@ -2727,6 +2727,8 @@ void populateStablehloToLinalgConversionPatterns(MLIRContext* context,
       context, typeConverter, patterns);
   detail::populateStablehloReductionToLinalgConversionPatterns(
       context, typeConverter, patterns, enablePrimitiveOps);
+  detail::populateStablehloScatterToLinalgConversionPatterns(
+      context, typeConverter, patterns, enablePrimitiveOps);
   detail::populateScalarHloToArithConversionPatterns(
       context, typeConverter, patterns, isInBodyOfLinalgOps);
   linalg::populateEraseUnusedOperandsAndResultsPatterns(*patterns);
