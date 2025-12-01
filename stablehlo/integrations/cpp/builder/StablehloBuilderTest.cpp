@@ -17,6 +17,7 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 
+#include "gtest/gtest.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectRegistry.h"
@@ -32,7 +33,6 @@ limitations under the License.
 #include "stablehlo/integrations/cpp/builder/FuncBuilder.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
 #include "stablehlo/integrations/cpp/builder/StablehloBuilder.h"
-#include "gtest/gtest.h"
 
 namespace mlir {
 namespace stablehlo {
