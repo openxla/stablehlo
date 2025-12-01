@@ -4041,42 +4041,37 @@ void buildMaxAndArgmaxBody(Type elementType, Type indices_type, Region& body,
   auto rhs_value = block->getArgument(2);
   auto rhs_index = block->getArgument(3);
 
-  auto gt_pred =
-      builder
-          .create<CompareOp>(loc, lhs_value, rhs_value, ComparisonDirection::GT)
-          .getResult();
+  auto gt_pred = CompareOp::create(builder, loc, lhs_value, rhs_value,
+                                   ComparisonDirection::GT)
+                     .getResult();
 
   // Tie-Breaker Condition: (lhs == rhs) AND (lhs_index < rhs_index)
-  auto eq_pred =
-      builder
-          .create<CompareOp>(loc, lhs_value, rhs_value, ComparisonDirection::EQ)
-          .getResult();
-  auto lt_index_pred =
-      builder
-          .create<CompareOp>(loc, lhs_index, rhs_index, ComparisonDirection::LT)
-          .getResult();
+  auto eq_pred = CompareOp::create(builder, loc, lhs_value, rhs_value,
+                                   ComparisonDirection::EQ)
+                     .getResult();
+  auto lt_index_pred = CompareOp::create(builder, loc, lhs_index, rhs_index,
+                                         ComparisonDirection::LT)
+                           .getResult();
   auto tie_breaker_condition =
-      builder.create<AndOp>(loc, eq_pred, lt_index_pred).getResult();
+      AndOp::create(builder, loc, eq_pred, lt_index_pred).getResult();
 
   // Final lhs Selection Condition: (gt_pred) OR (tie_breaker_condition)
   auto final_lhs_condition =
-      builder.create<OrOp>(loc, gt_pred, tie_breaker_condition).getResult();
+      OrOp::create(builder, loc, gt_pred, tie_breaker_condition).getResult();
 
   // Select Final Results:
   // if final_lhs_condition:
   //     return (lhs_value, lhs_index)
   // else:
   //     return (rhs_value, rhs_index)
-  auto selected_value = builder
-                            .create<stablehlo::SelectOp>(
-                                loc, final_lhs_condition, lhs_value, rhs_value)
-                            .getResult();
-  auto selected_index = builder
-                            .create<stablehlo::SelectOp>(
-                                loc, final_lhs_condition, lhs_index, rhs_index)
-                            .getResult();
-  builder.create<stablehlo::ReturnOp>(
-      loc, mlir::ValueRange{selected_value, selected_index});
+  auto selected_value =
+      SelectOp::create(builder, loc, final_lhs_condition, lhs_value, rhs_value)
+          .getResult();
+  auto selected_index =
+      SelectOp::create(builder, loc, final_lhs_condition, lhs_index, rhs_index)
+          .getResult();
+  ReturnOp::create(builder, loc,
+                   mlir::ValueRange{selected_value, selected_index});
 }
 
 SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
