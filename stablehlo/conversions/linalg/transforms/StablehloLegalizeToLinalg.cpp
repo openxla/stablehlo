@@ -1103,6 +1103,12 @@ struct ReshapeOpConverter final
 
     if (!resultType.hasStaticShape()) return failure();
 
+    // If the reshape is a no-op simply fold it away.
+    if (resultType == operandType) {
+      rewriter.replaceOp(reshapeOp, operand);
+      return success();
+    }
+
     // If any of the output dimensions is 0, the tensor has no elements. In that
     // case, we can just replace the reshape with an empty op.
     if (llvm::is_contained(resultType.getShape(), 0)) {

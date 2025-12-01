@@ -47,8 +47,8 @@ func.func @broadcast_in_dim_fold_splat(%arg0: tensor<3x3xi32>)
 ////////
 // CaseOp
 
-// CHECK-LABEL: func.func @case_fold_constant_branch_index
-func.func @case_fold_constant_branch_index(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>) -> tensor<i32> {
+// CHECK-LABEL: func.func @case_fold_constant_branch_index_int_result
+func.func @case_fold_constant_branch_index_int_result(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>) -> tensor<i32> {
   // CHECK-NEXT: {{(^ *|func\.)}}return %arg1
   // CHECK-NOT:  stablehlo.case
   %branch_index = stablehlo.constant dense<1> : tensor<i32>
@@ -60,6 +60,47 @@ func.func @case_fold_constant_branch_index(%arg0: tensor<i32>, %arg1: tensor<i32
     stablehlo.return %arg2 : tensor<i32>
   }) : (tensor<i32>) -> tensor<i32>
   func.return %result: tensor<i32>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @case_fold_constant_branch_index_complex_result
+func.func @case_fold_constant_branch_index_complex_result(%arg0: tensor<complex<f32>>, %arg1: tensor<complex<f32>>, %arg2: tensor<complex<f32>>) -> tensor<complex<f32>> {
+  // CHECK-NEXT: {{(^ *|func\.)}}return %arg1
+  // CHECK-NOT:  stablehlo.case
+  %branch_index = stablehlo.constant dense<1> : tensor<i32>
+  %result = "stablehlo.case"(%branch_index) ({
+    stablehlo.return %arg0 : tensor<complex<f32>>
+  }, {
+    stablehlo.return %arg1 : tensor<complex<f32>>
+  }, {
+    stablehlo.return %arg2 : tensor<complex<f32>>
+  }) : (tensor<i32>) -> tensor<complex<f32>>
+  func.return %result: tensor<complex<f32>>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @case_fold_inline_call_tf_function
+func.func @case_fold_inline_call_tf_function(%arg0: !stablehlo.token {jax.token = true}, %arg1: tensor<16xi32>, %arg2: tensor<16xi64>) -> (!stablehlo.token {jax.token = true}, tensor<16xi32> {jax.result_info = "result"}) {
+  // CHECK: [[RESULT_TOKEN:%.+]] = stablehlo.custom_call @tf.call_tf_function(%arg0, %arg1, %arg2)
+  // CHECK: [[UNUSED_TOKEN:%.+]] = {{"?}}stablehlo.case{{"?}}(
+  // CHECK: return [[RESULT_TOKEN]], %arg1
+  %c = stablehlo.constant dense<1> : tensor<i32>
+  %c_0 = stablehlo.constant dense<0> : tensor<i32>
+  %0 = "stablehlo.case"(%c_0) ({
+    stablehlo.return %c_0 : tensor<i32>
+  }, {
+    stablehlo.return %c : tensor<i32>
+  }) : (tensor<i32>) -> tensor<i32>
+  %1 = "stablehlo.case"(%0) ({
+    %2 = stablehlo.custom_call @tf.call_tf_function(%arg0, %arg1, %arg2) {api_version = 2 : i32, has_side_effect = true, tf.backend_config = {called_index = 0 : i64, has_token_input_output = true}} : (!stablehlo.token, tensor<16xi32>, tensor<16xi64>) -> !stablehlo.token
+    stablehlo.return %2 : !stablehlo.token
+  }, {
+    %2 = stablehlo.custom_call @tf.call_tf_function(%arg0, %arg1, %arg2) {api_version = 2 : i32, has_side_effect = true, tf.backend_config = {called_index = 1 : i64, has_token_input_output = true}} : (!stablehlo.token, tensor<16xi32>, tensor<16xi64>) -> !stablehlo.token
+    stablehlo.return %2 : !stablehlo.token
+  }) : (tensor<i32>) -> !stablehlo.token
+  return %1, %arg1 : !stablehlo.token, tensor<16xi32>
 }
 
 // -----

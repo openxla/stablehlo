@@ -913,6 +913,15 @@ func.func @reshape_0D_1D(%arg0: tensor<i32>) -> tensor<1xi32> {
 
 // -----
 
+// CHECK-LABEL: func @reshape_0D_0D
+func.func @reshape_0D_0D(%arg0: tensor<i32>) ->tensor<i32> {
+  %0 = "stablehlo.reshape"(%arg0) : (tensor<i32>) -> tensor<i32>
+  func.return %0 : tensor<i32>
+}
+// CHECK: return %arg0 : tensor<i32>
+
+// -----
+
 // CHECK-LABEL: func @reshape_0D_1D_unsigned
 // CHECK-SAME:    %[[ARG_UNSIGNED:[a-zA-Z0-9_]*]]
 func.func @reshape_0D_1D_unsigned(%arg0: tensor<ui32>) -> tensor<1xui32> {
