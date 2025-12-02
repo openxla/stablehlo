@@ -45,10 +45,12 @@ def NumberOfElementsEqual : Constraint<
 
 def BroadcastNotReducibleToReshape : Constraint<
     CPred<"!llvm::cast<ShapedType>($0.getType()).hasStaticShape() || "
-          "llvm::isa<stablehlo::BroadcastInDimOp>($0.getDefiningOp()) && "
-          "!("
-            "llvm::is_sorted($0.getDefiningOp<stablehlo::BroadcastInDimOp>().getBroadcastDimensions()) && "
-            "llvm::cast<ShapedType>($0.getType()).getNumElements() == llvm::cast<ShapedType>($1.getType()).getNumElements()"
+          "("
+            "llvm::isa<stablehlo::BroadcastInDimOp>($0.getDefiningOp()) && "
+            "!("
+              "llvm::is_sorted($0.getDefiningOp<stablehlo::BroadcastInDimOp>().getBroadcastDimensions()) && "
+              "llvm::cast<ShapedType>($0.getType()).getNumElements() == llvm::cast<ShapedType>($1.getType()).getNumElements()"
+            ")"
           ")">,
     "is a broadcast_in_dim op that cannot be simplified to a reshape op">;
 
