@@ -268,24 +268,42 @@ struct NormalConvolutionOpConversion final
         break;
       }
       case 3: {
-        res = linalg::Conv1DNwcWcfOp::create(
-            rewriter, loc, resultType, ValueRange{input, filter},
-            ValueRange{zeroTensor}, strides, dilations,
-            linalg::getPrunedAttributeList(op));
+        if (strides && dilations) {
+          res = linalg::Conv1DNwcWcfOp::create(
+              rewriter, loc, resultType, ValueRange{input, filter},
+              ValueRange{zeroTensor}, strides, dilations,
+              linalg::getPrunedAttributeList(op));
+        } else {
+          res = linalg::Conv1DNwcWcfOp::create(
+              rewriter, loc, resultType, ValueRange{input, filter},
+              ValueRange{zeroTensor}, linalg::getPrunedAttributeList(op));
+        }
         break;
       }
       case 4: {
-        res = linalg::Conv2DNhwcHwcfOp::create(
-            rewriter, loc, resultType, ValueRange{input, filter},
-            ValueRange{zeroTensor}, strides, dilations,
-            linalg::getPrunedAttributeList(op));
+        if (strides && dilations) {
+          res = linalg::Conv2DNhwcHwcfOp::create(
+              rewriter, loc, resultType, ValueRange{input, filter},
+              ValueRange{zeroTensor}, strides, dilations,
+              linalg::getPrunedAttributeList(op));
+        } else {
+          res = linalg::Conv2DNhwcHwcfOp::create(
+              rewriter, loc, resultType, ValueRange{input, filter},
+              ValueRange{zeroTensor}, linalg::getPrunedAttributeList(op));
+        }
         break;
       }
       case 5: {
-        res = linalg::Conv3DNdhwcDhwcfOp::create(
-            rewriter, loc, resultType, ValueRange{input, filter},
-            ValueRange{zeroTensor}, strides, dilations,
-            linalg::getPrunedAttributeList(op));
+        if (strides && dilations) {
+          res = linalg::Conv3DNdhwcDhwcfOp::create(
+              rewriter, loc, resultType, ValueRange{input, filter},
+              ValueRange{zeroTensor}, strides, dilations,
+              linalg::getPrunedAttributeList(op));
+        } else {
+          res = linalg::Conv3DNdhwcDhwcfOp::create(
+              rewriter, loc, resultType, ValueRange{input, filter},
+              ValueRange{zeroTensor}, linalg::getPrunedAttributeList(op));
+        }
         break;
       }
       default: {
