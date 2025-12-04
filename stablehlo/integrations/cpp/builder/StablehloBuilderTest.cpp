@@ -23,6 +23,7 @@ limitations under the License.
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OwningOpRef.h"
+#include "mlir/IR/Types.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Support/LLVM.h"
@@ -1511,6 +1512,29 @@ TEST(MlirBuilderTest, EmptyConstantMismatchedTypeAPIntF64) {
     // Pass double data with i64 type.
     auto cst = stablehlo::Constant(fb, makeConstant(ArrayRef<int64_t>{}, type));
     func::Return(fb, {cst});
+  }
+
+  OwningOpRef<ModuleOp> module = mb->build();
+  EXPECT_EQ(expected, debugString(*module));
+}
+
+TEST(MlirBuilderTest, VariadicResult) {
+  std::string expected = R"mlir(module {
+  func.func @main() -> (tensor<f64>, tensor<f64>) {
+    %0:2 = stablehlo.custom_call @two_outs() : () -> (tensor<f64>, tensor<f64>)
+    return %0#0, %0#1 : tensor<f64>, tensor<f64>
+  }
+})mlir";
+
+  StablehloModuleBuilder mb;
+  {
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
+    func::FunctionBuilder fb(mb.get(), "main", funcLoc);
+    auto type = makeTensorType(fb.getContext(), {}, ElementType::F64);
+    SmallVector<Type> resultTypes = {type, type};
+    // Pass double data with i64 type.
+    auto cc = stablehlo::CustomCall(fb, resultTypes, {}, "two_outs");
+    func::Return(fb, {cc});
   }
 
   OwningOpRef<ModuleOp> module = mb->build();

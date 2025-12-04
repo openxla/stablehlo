@@ -203,6 +203,9 @@ class OpBuilderEmitter {
   // If the op does not support type inference, return a default output shape
   // parameter that must be injected.
   MethodParameter getDefaultOutputShape() {
+    if (hasSingleVariadicResult(getOp()) || getOp().getNumResults() > 1) {
+      return MethodParameter("TypeRange", "resultTypes");
+    }
     return MethodParameter("Type", "resultType");
   }
 
@@ -276,7 +279,7 @@ class OpBuilderEmitter {
     BuilderParams params = getOpBuilderParameters();
     SmallVector<MethodParameter> parameters;
     if (params.outputShape.has_value()) {
-      parameters.push_back(getDefaultOutputShape());
+      parameters.push_back(params.outputShape.value());
     }
     for (auto& operand : params.operands) {
       parameters.push_back(

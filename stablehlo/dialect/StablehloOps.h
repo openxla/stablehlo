@@ -204,6 +204,16 @@ void buildReduceBody(Type elementType, Region& body, OpBuilder& builder) {
   stablehlo::ReturnOp::create(builder, loc, reducer.getResult());
 }
 
+// Builds the region `body` for a max-and-argmax computation, suitable for
+// use in ReduceWindow operations with varidic value and index inputs.
+// It creates four block arguments (val1, idx1, val2, idx2) of `elementType` and
+// `indices_type`, and returns two results: result_val and result_idx.
+// result_val is the maximum of val1 and val2, and result_idx is the index
+// corresponding to result_val. If val1 >= val2, idx1 is returned, otherwise
+// idx2 is returned.
+void buildMaxAndArgmaxBody(Type elementType, Type indices_type, Region& body,
+                           OpBuilder& builder);
+
 // PrecisionConfigAttr is a constraint attribute on ArrayAttrs.
 // Create this class to allow for building this attr similar to other
 // attributes.

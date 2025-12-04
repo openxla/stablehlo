@@ -128,6 +128,16 @@ func.func @broadcast_in_dim_nested(%arg0: tensor<3x3xi32>)
   return %7 : tensor<3x2x3x3xi32>
 }
 
+// CHECK-LABEL: func.func @broadcast_in_dim_nested_bounded
+func.func @broadcast_in_dim_nested_bounded(%arg0: tensor<3x3xi32>, %arg1: tensor<i32>) -> tensor<3x2x?x3xi32, #stablehlo.bounds<?, ?, 3, ?>> {
+  // CHECK: [[SDS:%.+]] = stablehlo.set_dimension_size
+  // CHECK-NEXT: stablehlo.broadcast_in_dim [[SDS]], dims = [2, 0] : (tensor<?x3xi32, #stablehlo.bounds<3, ?>>) -> tensor<3x2x?x3xi32, #stablehlo.bounds<?, ?, 3, ?>>
+  %0 = stablehlo.set_dimension_size %arg0, %arg1, dim = 0 : (tensor<3x3xi32>, tensor<i32>) -> tensor<?x3xi32, #stablehlo.bounds<3, ?>>
+  %1 = stablehlo.broadcast_in_dim %0, dims = [1, 0] : (tensor<?x3xi32, #stablehlo.bounds<3, ?>>) -> tensor<3x?x2xi32, #stablehlo.bounds<?, 3, ?>>
+  %2 = stablehlo.broadcast_in_dim %1, dims = [0, 2, 1] : (tensor<3x?x2xi32, #stablehlo.bounds<?, 3, ?>>) -> tensor<3x2x?x3xi32, #stablehlo.bounds<?, ?, 3, ?>>
+  return %2 : tensor<3x2x?x3xi32, #stablehlo.bounds<?, ?, 3, ?>>
+}
+
 // CHECK-LABEL: func.func @broadcast_in_dim_reshape
 // CHECK-SAME:   ([[ARG0:%.+]]: tensor<3x6xi32>)
 func.func @broadcast_in_dim_reshape(%arg0: tensor<3x6xi32>)
@@ -140,6 +150,15 @@ func.func @broadcast_in_dim_reshape(%arg0: tensor<3x6xi32>)
 
   // CHECK-NEXT: return [[R0]], [[R5]]
   return %0, %5 : tensor<1x3x6xi32>, tensor<3x6x1xi32>
+}
+
+// CHECK-LABEL: func.func @broadcast_in_dim_bounded_no_reshape
+func.func @broadcast_in_dim_bounded_no_reshape(%arg0: tensor<20xf32>, %arg1: tensor<i32>) -> tensor<1x?xf32, #stablehlo.bounds<?, 20>> {
+  %0 = stablehlo.set_dimension_size %arg0, %arg1, dim = 0 : (tensor<20xf32>, tensor<i32>) -> tensor<?xf32, #stablehlo.bounds<20>>
+  // CHECK: stablehlo.set_dimension_size
+  // CHECK-NEXT: stablehlo.broadcast_in_dim
+  %1 = stablehlo.broadcast_in_dim %0, dims = [1] : (tensor<?xf32, #stablehlo.bounds<20>>) -> tensor<1x?xf32, #stablehlo.bounds<?, 20>>
+  return %1 : tensor<1x?xf32, #stablehlo.bounds<?, 20>>
 }
 
 // CHECK-LABEL: func.func @broadcast_in_dim_prefer_nested_reshape

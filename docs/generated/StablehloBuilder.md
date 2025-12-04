@@ -37,7 +37,7 @@ Creates a new [`stablehlo.all_gather`](https://openxla.org/stablehlo/spec#all_ga
 operation.
 
 ```c++
-SmallVector<MlirOp> AllGather(MlirBuilder &builder, Type resultType, ArrayRef<MlirOp> operands, uint64_t all_gather_dim, ::mlir::DenseIntElementsAttr replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
+SmallVector<MlirOp> AllGather(MlirBuilder &builder, TypeRange resultTypes, ArrayRef<MlirOp> operands, uint64_t all_gather_dim, ::mlir::DenseIntElementsAttr replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
 ```
 
 ### `stablehlo::AllReduceOp`
@@ -219,7 +219,7 @@ Creates a new [`stablehlo.composite`](https://openxla.org/stablehlo/spec#composi
 operation.
 
 ```c++
-SmallVector<MlirOp> Composite(MlirBuilder &builder, Type resultType, ArrayRef<MlirOp> inputs, ::llvm::StringRef name, ::llvm::StringRef decomposition, /*optional*/::mlir::DictionaryAttr composite_attributes = {}, /*optional*/uint32_t version = 0);
+SmallVector<MlirOp> Composite(MlirBuilder &builder, TypeRange resultTypes, ArrayRef<MlirOp> inputs, ::llvm::StringRef name, ::llvm::StringRef decomposition, /*optional*/::mlir::DictionaryAttr composite_attributes = {}, /*optional*/uint32_t version = 0);
 ```
 
 ### `stablehlo::ConcatenateOp`
@@ -291,7 +291,7 @@ Creates a new [`stablehlo.custom_call`](https://openxla.org/stablehlo/spec#custo
 operation.
 
 ```c++
-SmallVector<MlirOp> CustomCall(MlirBuilder &builder, Type resultType, ArrayRef<MlirOp> inputs, ::llvm::StringRef call_target_name, /*optional*/bool has_side_effect = false, /*optional*/::mlir::Attribute backend_config = {}, /*optional*/::mlir::stablehlo::CustomCallApiVersion api_version = ::mlir::stablehlo::CustomCallApiVersion::API_VERSION_ORIGINAL, /*optional*/::mlir::ArrayAttr called_computations = {}, /*optional*/::mlir::ArrayAttr operand_layouts = {}, /*optional*/::mlir::ArrayAttr result_layouts = {}, /*optional*/::mlir::ArrayAttr output_operand_aliases = {});
+SmallVector<MlirOp> CustomCall(MlirBuilder &builder, TypeRange resultTypes, ArrayRef<MlirOp> inputs, ::llvm::StringRef call_target_name, /*optional*/bool has_side_effect = false, /*optional*/::mlir::Attribute backend_config = {}, /*optional*/::mlir::stablehlo::CustomCallApiVersion api_version = ::mlir::stablehlo::CustomCallApiVersion::API_VERSION_ORIGINAL, /*optional*/::mlir::ArrayAttr called_computations = {}, /*optional*/::mlir::ArrayAttr operand_layouts = {}, /*optional*/::mlir::ArrayAttr result_layouts = {}, /*optional*/::mlir::ArrayAttr output_operand_aliases = {});
 ```
 
 ### `stablehlo::DivOp`
@@ -491,7 +491,7 @@ Creates a new [`stablehlo.infeed`](https://openxla.org/stablehlo/spec#infeed)
 operation.
 
 ```c++
-SmallVector<MlirOp> Infeed(Type resultType, MlirOp &token, ::llvm::StringRef infeed_config = "", /*optional*/::mlir::ArrayAttr layout = {});
+SmallVector<MlirOp> Infeed(TypeRange resultTypes, MlirOp &token, ::llvm::StringRef infeed_config = "", /*optional*/::mlir::ArrayAttr layout = {});
 ```
 
 ### `stablehlo::IotaOp`
@@ -682,7 +682,7 @@ Creates a new [`stablehlo.recv`](https://openxla.org/stablehlo/spec#recv)
 operation.
 
 ```c++
-SmallVector<MlirOp> Recv(Type resultType, MlirOp &token, ::mlir::stablehlo::ChannelHandleAttr channel_handle, /*optional*/bool is_host_transfer = false, /*optional*/::mlir::DenseIntElementsAttr source_target_pairs = {});
+SmallVector<MlirOp> Recv(TypeRange resultTypes, MlirOp &token, ::mlir::stablehlo::ChannelHandleAttr channel_handle, /*optional*/bool is_host_transfer = false, /*optional*/::mlir::DenseIntElementsAttr source_target_pairs = {});
 ```
 
 ### `stablehlo::ReduceOp`

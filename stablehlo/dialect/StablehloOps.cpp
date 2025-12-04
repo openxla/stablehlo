@@ -4024,6 +4024,56 @@ void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
   ReturnOp::create(*builder, loc, compare);
 }
 
+void buildMaxAndArgmaxBody(Type elementType, Type indices_type, Region& body,
+                           OpBuilder& builder) {
+  OpBuilder::InsertionGuard guard(builder);
+  if (body.getBlocks().empty()) builder.createBlock(&body);
+  Block* block = &body.getBlocks().front();
+
+  Type value_type = RankedTensorType::get(/*shape=*/{}, elementType);
+  Type index_type = RankedTensorType::get(/*shape=*/{}, indices_type);
+  Location loc = body.getLoc();
+  block->addArguments({value_type, index_type}, {loc, loc});
+  block->addArguments({value_type, index_type}, {loc, loc});
+
+  auto lhs_value = block->getArgument(0);
+  auto lhs_index = block->getArgument(1);
+  auto rhs_value = block->getArgument(2);
+  auto rhs_index = block->getArgument(3);
+
+  auto gt_pred = CompareOp::create(builder, loc, lhs_value, rhs_value,
+                                   ComparisonDirection::GT)
+                     .getResult();
+
+  // Tie-Breaker Condition: (lhs == rhs) AND (lhs_index < rhs_index)
+  auto eq_pred = CompareOp::create(builder, loc, lhs_value, rhs_value,
+                                   ComparisonDirection::EQ)
+                     .getResult();
+  auto lt_index_pred = CompareOp::create(builder, loc, lhs_index, rhs_index,
+                                         ComparisonDirection::LT)
+                           .getResult();
+  auto tie_breaker_condition =
+      AndOp::create(builder, loc, eq_pred, lt_index_pred).getResult();
+
+  // Final lhs Selection Condition: (gt_pred) OR (tie_breaker_condition)
+  auto final_lhs_condition =
+      OrOp::create(builder, loc, gt_pred, tie_breaker_condition).getResult();
+
+  // Select Final Results:
+  // if final_lhs_condition:
+  //     return (lhs_value, lhs_index)
+  // else:
+  //     return (rhs_value, rhs_index)
+  auto selected_value =
+      SelectOp::create(builder, loc, final_lhs_condition, lhs_value, rhs_value)
+          .getResult();
+  auto selected_index =
+      SelectOp::create(builder, loc, final_lhs_condition, lhs_index, rhs_index)
+          .getResult();
+  ReturnOp::create(builder, loc,
+                   mlir::ValueRange{selected_value, selected_index});
+}
+
 SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
                     const llvm::ArrayRef<Value>& operands,
                     const llvm::ArrayRef<Type>& elementTypes, int64_t dimension,

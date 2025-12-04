@@ -63,7 +63,8 @@ FailureOr<Dimensions> getDimensions(Value op) {
   // Get tensor type
   mlir::RankedTensorType tensor_type = dyn_cast<RankedTensorType>(op.getType());
   if (!tensor_type)
-    return emitError(op.getLoc(), "expected ranked tensor type");
+    return emitError(op.getLoc(),
+                     "expected ranked tensor type for broadcast inputs");
 
   auto encoding =
       mlir::dyn_cast_if_present<mlir::stablehlo::TypeExtensionsAttr>(
@@ -78,10 +79,11 @@ FailureOr<Dimensions> getDimensions(Value op) {
   return dimensions;
 }
 
-FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(const Dimensions& a,
+FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(Value op,
+                                                       const Dimensions& a,
                                                        const Dimensions& b) {
   LLVM_DEBUG(llvm::dbgs() << "[getNumpyBroadcastShapeWithBounds] inputs: "
-                          << toString(a) << " * " << toString(b));
+                          << toString(a) << " * " << toString(b) << "\n");
   size_t max_rank = std::max(a.size(), b.size());
   Dimensions result(max_rank);
 
@@ -110,14 +112,14 @@ FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(const Dimensions& a,
 
     // If both LHS and RHS are not 1, dim size must match.
     if (dim_a.size != dim_b.size) {
-      return emitError(a[a_idx].boundOp.value().getLoc(),
-                       "incompatible shapes for broadcasting ")
+      // FIXME
+      return emitError(op.getLoc(), "incompatible shapes for broadcasting ")
              << dim_a.size << " and " << dim_b.size;
     }
 
     // If bounded both must be bounded
     if (dim_a.boundOp.has_value() != dim_b.boundOp.has_value()) {
-      return emitError(a[a_idx].boundOp.value().getLoc(),
+      return emitError(op.getLoc(),
                        "cannot mix bounded and static dimensions in broadcast");
     }
 
@@ -126,7 +128,7 @@ FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(const Dimensions& a,
   }
 
   LLVM_DEBUG(llvm::dbgs() << "[getNumpyBroadcastShapeWithBounds] result: "
-                          << toString(result));
+                          << toString(result) << "\n");
   return result;
 }
 
@@ -155,8 +157,11 @@ mlir::RankedTensorType getRankedTensorType(const Dimensions& dims,
 
 }  // namespace
 
-FailureOr<Dimensions> getNumpyBroadcastShape(ArrayRef<Value> ops) {
-  if (ops.empty()) return failure();
+FailureOr<Dimensions> getNumpyBroadcastShape(OpBuilder& builder,
+                                             ArrayRef<Value> ops) {
+  if (ops.empty())
+    return emitError(builder.getInsertionPoint()->getLoc(),
+                     "requires at least one operand to broadcast");
 
   Value first = ops[0];
   auto bcastShapeOrFail = getDimensions(first);
@@ -168,7 +173,7 @@ FailureOr<Dimensions> getNumpyBroadcastShape(ArrayRef<Value> ops) {
     auto dims = getDimensions(currOp);
     if (failed(dims)) return failure();
     auto currBcastShapeOrFail =
-        getNumpyBroadcastShapeWithBounds(bcastShape, *dims);
+        getNumpyBroadcastShapeWithBounds(currOp, bcastShape, *dims);
     if (failed(currBcastShapeOrFail)) return failure();
     bcastShape = std::move(*currBcastShapeOrFail);
   }
@@ -192,7 +197,7 @@ std::string toString(const Dimensions& dims) {
 FailureOr<SmallVector<Value>> numpyBroadcastIfNeeded(OpBuilder& builder,
                                                      ArrayRef<Value> operands) {
   // Figure out the broadcast shape
-  auto bcastShapeOrFail = getNumpyBroadcastShape(operands);
+  auto bcastShapeOrFail = getNumpyBroadcastShape(builder, operands);
   if (failed(bcastShapeOrFail)) return failure();
   Dimensions bcastShape = std::move(*bcastShapeOrFail);
 
@@ -208,35 +213,34 @@ FailureOr<SmallVector<Value>> numpyBroadcastIfNeeded(OpBuilder& builder,
 
 FailureOr<Value> numpyBroadcastIfNeeded(OpBuilder& builder, Value input,
                                         const Dimensions& shape) {
-  LLVM_DEBUG(llvm::dbgs() << "[BroadcastIfNeeded] input: " << input
-                          << " shape: " << toString(shape));
+  LLVM_DEBUG(llvm::dbgs() << "[numpyBroadcastIfNeeded] Broadcasting input "
+                          << input.getType() << " => " << toString(shape)
+                          << "\n");
   auto loc = input.getLoc();
-  mlir::RankedTensorType input_type =
+  mlir::RankedTensorType inputType =
       dyn_cast<RankedTensorType>(input.getType());
-  if (!input_type) return emitError(input.getLoc(), "expected tensor type");
-  mlir::RankedTensorType output_type =
-      getRankedTensorType(shape, input_type.getElementType());
+  if (!inputType)
+    return emitError(loc, "expected ranked tensor type for broadcast inputs");
+  mlir::RankedTensorType outputType =
+      getRankedTensorType(shape, inputType.getElementType());
 
   // Short circuit if no broadcasting is needed.
-  if (input_type == output_type) return input;
+  if (inputType == outputType) return input;
 
-  int64_t input_rank = input_type.getRank();
-  int64_t output_rank = output_type.getRank();
-  if (input_rank > output_rank)
+  int64_t inputRank = inputType.getRank();
+  int64_t outputRank = outputType.getRank();
+  if (inputRank > outputRank)
     return emitError(loc, "input rank must be <= output rank, got ")
-           << input_rank << " vs " << output_rank;
+           << inputRank << " vs " << outputRank;
 
-  size_t rank_diff = output_rank - input_rank;
-  SmallVector<int64_t> bcast_dims;
-  bcast_dims.reserve(input_rank);
-
+  size_t rankDiff = outputRank - inputRank;
   auto inputShapeOrFail = getDimensions(input);
   if (failed(inputShapeOrFail)) return failure();
   Dimensions inputShape = std::move(*inputShapeOrFail);
 
   // Construct broadcast dimensions.
-  auto broadcastDimensions = llvm::to_vector(
-      llvm::seq<int64_t>(output_rank - input_rank, output_rank));
+  auto broadcastDimensions =
+      llvm::to_vector(llvm::seq<int64_t>(outputRank - inputRank, outputRank));
 
   // Construct the result type of the broadcast
   //  - If input is static and target shape is static, use static shape.
@@ -244,33 +248,35 @@ FailureOr<Value> numpyBroadcastIfNeeded(OpBuilder& builder, Value input,
   //  - If input is not bounded, but target shape is bounded, broadcast to
   //    the padded shape then call SetDimensionSize to make dynamic.
   auto bcastShape = shape;
-  for (int64_t i = 0; i < input_rank; ++i) {
-    int64_t input_dim_size = inputShape[i].size;
-    int64_t result_idx = i + rank_diff;
-    int64_t result_dim_size = shape[result_idx].size;
-    if (input_dim_size != 1 && input_dim_size != result_dim_size)
+  for (int64_t i = 0; i < inputRank; ++i) {
+    int64_t inputDimSize = inputShape[i].size;
+    int64_t resultIdx = i + rankDiff;
+    int64_t resultDimSize = shape[resultIdx].size;
+    if (inputDimSize != 1 && inputDimSize != resultDimSize)
       return emitError(loc, "Cannot broadcast input: ")
-             << input_type << " to target shape " << toString(shape);
+             << inputType << " to target shape " << toString(shape);
 
     if (!inputShape[i].boundOp.has_value() &&
-        shape[result_idx].boundOp.has_value()) {
+        shape[resultIdx].boundOp.has_value()) {
       // Use padded shape in broadcast.
-      bcastShape[result_idx] = DimensionInfo{shape[result_idx].size};
+      bcastShape[resultIdx] = DimensionInfo{shape[resultIdx].size};
     }
-    bcast_dims.push_back(result_idx);
   }
 
   // Broadcast to padded size for remaining dimensions.
-  for (size_t i = input_rank; i < shape.size(); ++i) {
+  for (size_t i = 0; i < rankDiff; ++i) {
     bcastShape[i] = DimensionInfo{shape[i].size};
   }
 
   // Insert broadcast ops
-  mlir::RankedTensorType bcast_type =
-      getRankedTensorType(bcastShape, input_type.getElementType());
-  Value bcast_op = stablehlo::BroadcastInDimOp::create(
-      builder, loc, bcast_type, input, broadcastDimensions);
-  if (bcast_op.getType() == output_type) return bcast_op;
+  mlir::RankedTensorType bcastType =
+      getRankedTensorType(bcastShape, inputType.getElementType());
+  LLVM_DEBUG(
+      llvm::dbgs() << "[numpyBroadcastIfNeeded] Broadcast to padded type "
+                   << bcastType << "\n");
+  Value bcastOp = stablehlo::BroadcastInDimOp::create(
+      builder, loc, bcastType, input, broadcastDimensions);
+  if (bcastOp.getType() == outputType) return bcastOp;
 
   // Mark the padded broadcast as dynamic where the result is bounded.
   // Inserts `GetDimSize(boundOp)->SetDimSize(inputBcast)` for any bounded
@@ -278,13 +284,13 @@ FailureOr<Value> numpyBroadcastIfNeeded(OpBuilder& builder, Value input,
   for (size_t i = 0; i < shape.size(); ++i) {
     if (!bcastShape[i].boundOp.has_value() && shape[i].boundOp.has_value()) {
       Value boundOp = shape[i].boundOp.value();
-      auto dim_size = stablehlo::GetDimensionSizeOp::create(
+      auto dimSize = stablehlo::GetDimensionSizeOp::create(
           builder, loc, boundOp, shape[i].boundOpDim);
-      bcast_op = stablehlo::SetDimensionSizeOp::create(builder, loc, bcast_op,
-                                                       dim_size, i);
+      bcastOp = stablehlo::SetDimensionSizeOp::create(builder, loc, bcastOp,
+                                                      dimSize, i);
     }
   }
-  return bcast_op;
+  return bcastOp;
 }
 
 }  // namespace stablehlo

@@ -92,6 +92,8 @@ func.func @scalar_broadcast_10_1_b5_x_scalar(%arg0: tensor<10x1x?xf64, #stablehl
 // [<=10] x [1] => [<=10]
 // [1] x [<=10] => [<=10]
 // [1] x [1, <=10, 1] => [1, <=10, 1]
+// [5] x [10, 1] => [10, 5]
+// [5] x [<=10, 1] => [<=10, 5]
 
 
 // [1] x [1] => [1]
@@ -232,6 +234,38 @@ func.func @tensor_broadcast_b10_1_x_1_b10(
 
 // -----
 
+// [5] x [10, 1] => [10, 5]
+// CHECK-LABEL: func @tensor_broadcast_5_x_10_1
+func.func @tensor_broadcast_5_x_10_1(%arg0: tensor<5xf64>, %arg1: tensor<10x1xf64>) -> !stablehlo.token {
+  // CHECK: %[[LHS_BCAST:.+]] = stablehlo.broadcast_in_dim %arg0, dims = [1] : (tensor<5xf64>) -> tensor<10x5xf64>
+  // CHECK: %[[RHS_BCAST:.+]] = stablehlo.broadcast_in_dim %arg1, dims = [0, 1] : (tensor<10x1xf64>) -> tensor<10x5xf64>
+  // CHECK-NEXT: stablehlo.custom_call @numpy_broadcasted(%[[LHS_BCAST]], %[[RHS_BCAST]])
+  %0 = "hlo_test_broadcast.numpy_broadcast"(%arg0, %arg1) : (tensor<5xf64>, tensor<10x1xf64>) -> !stablehlo.token
+  return %0 : !stablehlo.token
+}
+
+// -----
+
+// [<=10, 1] x [5] => [<=10, 5]
+// CHECK-LABEL: func @tensor_broadcast_b5_1_x_5
+func.func @tensor_broadcast_b5_1_x_5(
+  %arg0: tensor<?x1xf64, #stablehlo.bounds<10, ?>>,
+  %arg1: tensor<5xf64>
+) -> !stablehlo.token {
+  // CHECK: %[[LHS_BCAST:.+]] = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<?x1xf64, #stablehlo.bounds<10, ?>>) -> tensor<?x5xf64, #stablehlo.bounds<10, ?>>
+  // CHECK: %[[RHS_BCAST_STATIC:.+]] = stablehlo.broadcast_in_dim %arg1, dims = [1] : (tensor<5xf64>) -> tensor<10x5xf64>
+  // CHECK: %[[ARG0_DIM0_SIZE:.+]] = stablehlo.get_dimension_size %arg0, dim = 0
+  // CHECK: %[[RHS_BCAST_DYN:.+]] = stablehlo.set_dimension_size %[[RHS_BCAST_STATIC]], %[[ARG0_DIM0_SIZE]], dim = 0
+  // CHECK-NEXT: stablehlo.custom_call @numpy_broadcasted(%[[LHS_BCAST]], %[[RHS_BCAST_DYN]])
+  %0 = "hlo_test_broadcast.numpy_broadcast"(%arg0, %arg1) : (
+    tensor<?x1xf64, #stablehlo.bounds<10, ?>>,
+    tensor<5xf64>
+  ) -> !stablehlo.token
+  return %0 : !stablehlo.token
+}
+
+// -----
+
 //////
 // N-ary broadcast tests.
 
@@ -244,6 +278,45 @@ func.func @nary_broadcast_b10_1_x_1_b10_x_1(
   %arg2: tensor<1xf64>
 ) -> !stablehlo.token {
   %0 = "hlo_test_broadcast.numpy_broadcast"(%arg0, %arg1, %arg2) : (tensor<?x1xf64, #stablehlo.bounds<10, ?>>, tensor<1x?xf64, #stablehlo.bounds<?, 10>>, tensor<1xf64>) -> !stablehlo.token
+  return %0 : !stablehlo.token
+}
+
+// -----
+
+/////
+// Broadcast errors
+
+// [10] x [5] => error
+// expected-error @+1 {{incompatible shapes for broadcasting 10 and 5}}
+func.func @broadcast_error_10_x_5(%arg0: tensor<10xf64>, %arg1: tensor<5xf64>) -> !stablehlo.token {
+  %0 = "hlo_test_broadcast.numpy_broadcast"(%arg0, %arg1) : (tensor<10xf64>, tensor<5xf64>) -> !stablehlo.token
+  return %0 : !stablehlo.token
+}
+
+// -----
+
+// [10] x [<=10] => error
+// expected-error @+1 {{cannot mix bounded and static dimensions in broadcast}}
+func.func @broadcast_error_10_x_b10(%arg0: tensor<10xf64>, %arg1: tensor<?xf64, #stablehlo.bounds<10>>) -> !stablehlo.token {
+  %0 = "hlo_test_broadcast.numpy_broadcast"(%arg0, %arg1) : (tensor<10xf64>, tensor<?xf64, #stablehlo.bounds<10>>) -> !stablehlo.token
+  return %0 : !stablehlo.token
+}
+
+// -----
+
+// [10] x not_tensor => error
+func.func @broadcast_error_not_tensor(%arg0: tensor<10xf64>, %arg1: !stablehlo.token) -> !stablehlo.token {
+  // expected-error @+1 {{expected ranked tensor type for broadcast inputs}}
+  %0 = "hlo_test_broadcast.numpy_broadcast"(%arg0, %arg1) : (tensor<10xf64>, !stablehlo.token) -> !stablehlo.token
+  return %0 : !stablehlo.token
+}
+
+// -----
+
+// [] => error
+func.func @broadcast_error_empty() -> !stablehlo.token {
+  // expected-error @+1 {{requires at least one operand to broadcast}}
+  %0 = "hlo_test_broadcast.numpy_broadcast"() : () -> !stablehlo.token
   return %0 : !stablehlo.token
 }
 

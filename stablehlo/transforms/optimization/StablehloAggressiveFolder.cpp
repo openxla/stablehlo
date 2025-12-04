@@ -14,6 +14,7 @@ limitations under the License.
 
 #include <cassert>
 #include <cmath>
+#include <complex>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -38,6 +39,7 @@ limitations under the License.
 #include "mlir/Dialect/CommonFolders.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
@@ -81,6 +83,71 @@ APSInt getAPSInt(unsigned bitWidth, T value, bool isSigned) {
                  /*implicitTrunc=*/true},
                 /*isUnsigned=*/!isSigned);
 }
+
+class LazyPlaceholderValue {
+ public:
+  static FailureOr<LazyPlaceholderValue> preparePlaceholderFor(
+      PatternRewriter& rewriter, Value likeValue) {
+    Type valueType = likeValue.getType();
+
+    // If `getZeroAttr(valueType)` returns a valid attribute, simply wrap the
+    // result in a `stablehlo.constant` op.
+    if (TypedAttr placeholderAttr = rewriter.getZeroAttr(valueType)) {
+      return LazyPlaceholderValue([&rewriter, placeholderAttr](Location loc) {
+        return ConstantOp::create(rewriter, loc, placeholderAttr);
+      });
+    }
+
+    // `getZeroAttr` doesn't support complex types, so we handle that case here.
+    if (auto shapedType = dyn_cast<ShapedType>(valueType)) {
+      if (auto complexElementType =
+              dyn_cast<ComplexType>(shapedType.getElementType())) {
+        if (!isa<FloatType>(complexElementType.getElementType()))
+          return rewriter.notifyMatchFailure(
+              likeValue.getLoc(),
+              "unexpected real component type for complex element type");
+        auto realImagComponentFloatType =
+            cast<FloatType>(complexElementType.getElementType());
+        APFloat apFloatZero(0.0);
+        bool losesInfo;
+        apFloatZero.convert(realImagComponentFloatType.getFloatSemantics(),
+                            llvm::RoundingMode::NearestTiesToEven, &losesInfo);
+        std::complex<APFloat> complexZeroScalar(apFloatZero, apFloatZero);
+        auto complexZeroSplat =
+            SplatElementsAttr::get(shapedType, complexZeroScalar);
+        return LazyPlaceholderValue(
+            [&rewriter, complexZeroSplat](Location loc) {
+              return ConstantOp::create(rewriter, loc, complexZeroSplat);
+            });
+      }
+    }
+
+    // If `valueType` is a token type, use `stablehlo.after_all` with no
+    // arguments to create a placeholder token.
+    if (isa<TokenType>(valueType)) {
+      return LazyPlaceholderValue([&rewriter](Location loc) {  //
+        return AfterAllOp::create(rewriter, loc, {});
+      });
+    }
+
+    // TODO: Support quantized and buffer types.
+
+    return rewriter.notifyMatchFailure(
+        likeValue.getLoc(), "unable to create placeholder value for type");
+  }
+
+  Value createAt(Location loc) const {
+    if (!lazyInitializer)
+      llvm::report_fatal_error("No lazy initializer for this value type.");
+    return lazyInitializer(loc);
+  }
+
+ private:
+  LazyPlaceholderValue(std::function<Value(Location)> lazyInitializer)
+      : lazyInitializer(std::move(lazyInitializer)) {}
+
+  std::function<Value(Location)> lazyInitializer;
+};
 
 LogicalResult validateStaticShapeResult(PatternRewriter& rewriter,
                                         Operation* op, ShapedType resultType) {
@@ -737,18 +804,14 @@ class InlineCaseOpWithConstantBranchIndex
     Operation* terminator = blockToInline->getTerminator();
     ValueRange results = terminator->getOperands();
 
-    // TODO: Add support for complex, quantized, and token return types.
-    // Currently, this pattern only supports int and float return types. We'll
-    // need a more general equivalent of `getZeroAttr` to support other types.
-    SmallVector<TypedAttr> placeholderAttrs;
+    SmallVector<LazyPlaceholderValue> lazyPlaceholderResults;
     for (auto result : op.getResults()) {
-      TypedAttr placeholderAttr = rewriter.getZeroAttr(result.getType());
-      if (!placeholderAttr)
-        return rewriter.notifyMatchFailure(
-            op,
-            "The case op's return type isn't currently supported by this "
-            "optimization pattern.");
-      placeholderAttrs.push_back(placeholderAttr);
+      auto placeholder =
+          LazyPlaceholderValue::preparePlaceholderFor(rewriter, result);
+
+      if (failed(placeholder)) return failure();
+
+      lazyPlaceholderResults.push_back(std::move(placeholder.value()));
     }
 
     // Inline the active branch of the `case` op.
@@ -763,9 +826,9 @@ class InlineCaseOpWithConstantBranchIndex
     Block& noopBlock = region.emplaceBlock();
     SmallVector<Value> placeholderResults;
     rewriter.setInsertionPointToEnd(&noopBlock);
-    for (auto placeholderAttr : placeholderAttrs) {
+    for (const auto& lazyPlaceholderResult : lazyPlaceholderResults) {
       placeholderResults.push_back(
-          ConstantOp::create(rewriter, region.getLoc(), placeholderAttr));
+          lazyPlaceholderResult.createAt(region.getLoc()));
     }
     stablehlo::ReturnOp::create(rewriter, region.getLoc(), placeholderResults);
 

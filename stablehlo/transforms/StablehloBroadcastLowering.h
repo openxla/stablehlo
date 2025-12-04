@@ -49,7 +49,8 @@ std::string toString(const Dimensions& dims);
 
 // Returns the common shape these ops would broadcast to, or an error if the
 // ops are not broadcastable.
-FailureOr<Dimensions> getNumpyBroadcastShape(ArrayRef<Value> ops);
+FailureOr<Dimensions> getNumpyBroadcastShape(OpBuilder& builder,
+                                             ArrayRef<Value> ops);
 
 // Apply numpy broadcasting to the given operands, returning an error if any
 // operands are not broadcastable.
