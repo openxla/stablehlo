@@ -10,7 +10,7 @@ Creates a new [`func.call_indirect`](https://mlir.llvm.org/docs/Dialects/Func/#f
 operation.
 
 ```c++
-SmallVector<MlirOp> CallIndirect(Type resultType, MlirOp &callee, ArrayRef<MlirOp> callee_operands, /*optional*/::mlir::ArrayAttr arg_attrs = {}, /*optional*/::mlir::ArrayAttr res_attrs = {});
+SmallVector<MlirOp> CallIndirect(TypeRange resultTypes, MlirOp &callee, ArrayRef<MlirOp> callee_operands, /*optional*/::mlir::ArrayAttr arg_attrs = {}, /*optional*/::mlir::ArrayAttr res_attrs = {});
 ```
 
 ### `func::ConstantOp`
