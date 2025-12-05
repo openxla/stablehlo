@@ -19,6 +19,7 @@ limitations under the License.
 #include <cstdint>
 
 #include "llvm/ADT/SmallVector.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
 
@@ -30,6 +31,12 @@ namespace chlo {
 /////////////////
 
 #include "stablehlo/integrations/cpp/builder/ChloBuilder.h.inc"
+
+/////////////////
+// MANUAL APIs
+/////////////////
+
+MlirOp ConstantLike(MlirOp input, DenseElementsAttr val);
 
 }  // namespace chlo
 }  // namespace mlir

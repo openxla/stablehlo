@@ -365,11 +365,14 @@ LogicalResult ConstantLikeOp::inferReturnTypeComponents(
   Type elementType = op.getValue().getType();
   Type operandType = op.getOperand().getType();
   if (isa<UnrankedTensorType>(operandType)) {
+    // TODO(b/326463552): Remove unranked dynamism from CHLO.
     inferredReturnShapes.emplace_back(elementType);
-  } else {
-    const auto& shape = cast<RankedTensorType>(operandType).getShape();
-    inferredReturnShapes.emplace_back(shape, elementType);
+    return success();
   }
+  auto rankedType = cast<RankedTensorType>(operandType);
+  const auto& shape = rankedType.getShape();
+  Attribute encoding = rankedType.getEncoding();
+  inferredReturnShapes.emplace_back(shape, elementType, encoding);
   return success();
 }
 

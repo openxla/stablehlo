@@ -101,6 +101,9 @@ bool isValidStablehloQuantizedElementType(Type elementType);
 // mentioned in the StableHLO specification.
 bool isValidQuantizedDimension(Type type);
 
+// Returns true if the given type is a bounded dynamic tensor.
+bool isBoundedDynamic(Type type);
+
 // Returns true if the given type has a single bounded dimension.
 bool hasSingleBoundedDimension(Type type);
 
@@ -135,19 +138,19 @@ FailureOr<Type> inferMostSpecificType(std::optional<Location> location,
 
 LogicalResult inferMostSpecificTypeComponents(
     std::optional<Location> location, TypeRange inputTypes,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 // Matches a constant with integer value into int64_t.
-LogicalResult matchInt(Value value, int64_t &result);
+LogicalResult matchInt(Value value, int64_t& result);
 
 // Matches a constant tensor with integer values into a 1-dimensional vector.
 // Doesn't preserve the bitness or the signedness of the underlying values,
 // extracting them into int64_t.
-LogicalResult matchInts(Value value, SmallVector<int64_t> &result);
+LogicalResult matchInts(Value value, SmallVector<int64_t>& result);
 
 // Matches a constant tensor with integer values into a 1-dimensional vector.
 // Preserves the bitness and the signedness of the underlying values.
-LogicalResult matchInts(Value value, SmallVector<APSInt> &result);
+LogicalResult matchInts(Value value, SmallVector<APSInt>& result);
 
 // Matches a constant tensor with integer values.
 // Unlike the functions above, it doesn't return these values - it just checks
@@ -166,8 +169,8 @@ LogicalResult matchInts(Value value);
 //
 // and returns %4 as the shape value.
 LogicalResult deriveShapeFromOperand(
-    OpBuilder *builder, Operation *op, Value operand,
-    SmallVectorImpl<Value> *reifiedReturnShapes);
+    OpBuilder* builder, Operation* op, Value operand,
+    SmallVectorImpl<Value>* reifiedReturnShapes);
 
 // Type derivation function that returns a tensor type with a new element type.
 ShapedType getSameShapeTensorType(ShapedType shapedType, Type elementType);
@@ -199,15 +202,15 @@ Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds);
 // If the attribute is valid but not all shape operands are constants,
 // returns failure.
 LogicalResult getShapeRefinements(
-    std::optional<Location> location, Operation *operation,
-    SmallVector<ShapedTypeComponents> &refinements);
+    std::optional<Location> location, Operation* operation,
+    SmallVector<ShapedTypeComponents>& refinements);
 
 // For each type in `types`, recursively flatten tuple types into `result`.
 // Result is populated via in-order traversal of tuple types in `types`, i.e.:
 //   * Flattenings of individual types from `types` follow one another in the
 //     same order as `types`.
 //   * Same for flattenings of element types of tuple types.
-void flattenTupleTypes(TypeRange types, SmallVector<Type> &result);
+void flattenTupleTypes(TypeRange types, SmallVector<Type>& result);
 
 // Does the inverse of `flattenTupleTypes` - takes `types` and recursively
 // unflattens it, creating tuple types as needed to exactly match the structure
@@ -215,7 +218,7 @@ void flattenTupleTypes(TypeRange types, SmallVector<Type> &result);
 // Fails if the number of elements in flattened prototype is different from
 // the number of elements in types.
 LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
-                                  SmallVector<Type> &result);
+                                  SmallVector<Type>& result);
 
 ShapedType createShapedType(ShapedTypeComponents components);
 
@@ -224,7 +227,7 @@ ShapedType createShapedType(ShapedTypeComponents components);
 // prettyprinting logic between them.
 class HloDialectInterface : public DialectInterface::Base<HloDialectInterface> {
  public:
-  HloDialectInterface(Dialect *dialect) : Base(dialect) {}
+  HloDialectInterface(Dialect* dialect) : Base(dialect) {}
 
   // Creates a TokenType type, specific to this dialect.
   // See docs for the particular type in the corresponding dialect.
@@ -283,8 +286,8 @@ namespace bytecode {
 // Note this may cause issues if enums use an int64_t and have a large value.
 // All enums in StableHLO and CHLO currently use uint32_t.
 template <typename EnumTypeAttr, typename SymbolizeFn>
-EnumTypeAttr readEnumAttribute(DialectBytecodeReader &reader,
-                               MLIRContext *context, SymbolizeFn symbolizeFn) {
+EnumTypeAttr readEnumAttribute(DialectBytecodeReader& reader,
+                               MLIRContext* context, SymbolizeFn symbolizeFn) {
   uint64_t code;
   if (failed(reader.readVarInt(code))) return EnumTypeAttr();
 
@@ -295,7 +298,7 @@ EnumTypeAttr readEnumAttribute(DialectBytecodeReader &reader,
 }
 
 template <typename EnumType, typename EnumTypeAttr>
-void writeEnumAttribute(EnumTypeAttr val, DialectBytecodeWriter &writer) {
+void writeEnumAttribute(EnumTypeAttr val, DialectBytecodeWriter& writer) {
   static_assert(
       std::is_same<typename std::underlying_type<EnumType>::type,
                    uint32_t>::value,
@@ -311,7 +314,7 @@ void writeEnumAttribute(EnumTypeAttr val, DialectBytecodeWriter &writer) {
 // shape operands. The last `count` operands are assumed to be shape operands.
 // To be speculatable, such an op must have only static inputs and constant
 // shape operands.
-mlir::Speculation::Speculatability getShapedSpeculatability(Operation *op,
+mlir::Speculation::Speculatability getShapedSpeculatability(Operation* op,
                                                             int64_t shapeCount);
 
 // Applies `fn` to `type` if it is not a `tuple` type. Otherwise, applies `fn`
@@ -334,7 +337,7 @@ class PairwiseSameOperandAndResultType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       PairwiseSameOperandAndResultType> {
  public:
-  static LogicalResult verifyTrait(Operation *op) {
+  static LogicalResult verifyTrait(Operation* op) {
     const int numOperands = op->getNumOperands();
     const int numResults = op->getNumResults();
     if (numOperands != numResults) {
@@ -358,7 +361,7 @@ class PairwiseSameOperandAndResultElementType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       PairwiseSameOperandAndResultElementType> {
  public:
-  static LogicalResult verifyTrait(Operation *op) {
+  static LogicalResult verifyTrait(Operation* op) {
     const int numOperands = op->getNumOperands();
     const int numResults = op->getNumResults();
     if (numOperands != numResults) {
@@ -383,7 +386,7 @@ class CompatibleOperandsAndResultElementType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       CompatibleOperandsAndResultElementType> {
  public:
-  static LogicalResult verifyTrait(Operation *op) {
+  static LogicalResult verifyTrait(Operation* op) {
     Type expected;
     if (op->getNumResults() != 0) expected = op->getResult(0).getType();
     if (op->getNumOperands() != 0) expected = op->getOperand(0).getType();
@@ -408,7 +411,7 @@ class CompatibleOperandsElementType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       CompatibleOperandsElementType> {
  public:
-  static LogicalResult verifyTrait(Operation *op) {
+  static LogicalResult verifyTrait(Operation* op) {
     if (failed(mlir::OpTrait::impl::verifyAtLeastNOperands(op, 1)))
       return failure();
 
@@ -431,7 +434,7 @@ class CompatibleOperandsAndResultType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       CompatibleOperandsAndResultType> {
  public:
-  static LogicalResult verifyTrait(Operation *op) {
+  static LogicalResult verifyTrait(Operation* op) {
     Type expected;
     if (op->getNumResults() != 0) expected = op->getResult(0).getType();
     if (op->getNumOperands() != 0) expected = op->getOperand(0).getType();
@@ -451,10 +454,10 @@ class CompatibleOperandsAndResultType
   }
 
   static LogicalResult inferReturnTypes(
-      MLIRContext * /*context*/, std::optional<Location> location,
+      MLIRContext* /*context*/, std::optional<Location> location,
       ValueRange operands, DictionaryAttr /*attributes*/,
       OpaqueProperties /*properties*/, RegionRange /*regions*/,
-      SmallVectorImpl<Type> &inferredReturnTypes) {
+      SmallVectorImpl<Type>& inferredReturnTypes) {
     // TODO(b/231358795): Review the use of InferTypeOpInterface for ops that
     // support quantization or sparsity.
     if (operands.empty())
@@ -473,10 +476,10 @@ class CompatibleOperandsAndResultType
   // It needs to be paired with INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS
   // (see examples in StablehloOps.cpp).
   static LogicalResult inferReturnTypeComponentsFromOperands(
-      MLIRContext *context, std::optional<Location> location,
+      MLIRContext* context, std::optional<Location> location,
       ValueShapeRange operands, DictionaryAttr attributes,
       OpaqueProperties properties, RegionRange regions,
-      SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+      SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
     SmallVector<Type> inferredReturnTypes;
     if (failed(inferReturnTypes(context, location, operands.getValues(),
                                 attributes, properties, regions,

@@ -29,6 +29,7 @@ limitations under the License.
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Quant/IR/QuantTypes.h"
@@ -779,6 +780,14 @@ bool isValidQuantizedDimension(Type type) {
   return quantDim < rankedType.getRank() &&
          (rankedType.isDynamicDim(quantDim) ||
           numScales == rankedType.getDimSize(quantDim));
+}
+
+bool isBoundedDynamic(Type type) {
+  RankedTensorType rankedType = dyn_cast<RankedTensorType>(type);
+  if (!rankedType) return false;
+  auto boundedAttr =
+      mlir::dyn_cast_if_present<BoundedAttrInterface>(rankedType.getEncoding());
+  return boundedAttr != nullptr;
 }
 
 bool hasSingleBoundedDimension(Type type) {
