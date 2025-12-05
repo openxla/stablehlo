@@ -101,6 +101,9 @@ bool isValidStablehloQuantizedElementType(Type elementType);
 // mentioned in the StableHLO specification.
 bool isValidQuantizedDimension(Type type);
 
+// Returns true if the given type is a bounded dynamic tensor.
+bool isBoundedDynamic(Type type);
+
 // Returns true if the given type has a single bounded dimension.
 bool hasSingleBoundedDimension(Type type);
 

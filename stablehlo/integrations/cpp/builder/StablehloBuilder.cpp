@@ -67,6 +67,7 @@ MlirOp ConvertElementType(MlirOp input, Type resultElementType) {
   MlirOp operand = input;
   auto inputType = mlir::cast<RankedTensorType>(input.getType());
   auto resultType = inputType.clone(resultElementType);
+  if (inputType == resultType) return input;  // skip no-op convert
   if (isa<ComplexType>(inputType.getElementType()) &&
       !isa<ComplexType>(resultElementType)) {
     operand = stablehlo::Real(operand);
