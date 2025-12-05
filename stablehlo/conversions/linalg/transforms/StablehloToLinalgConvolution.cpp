@@ -248,10 +248,12 @@ struct NormalConvolutionOpConversion final
                                 resultType.getElementType(), dynSizes);
     Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
     linalg::LinalgOp res;
-    Attribute strides;
-    if (auto s = op.getWindowStrides()) strides = rewriter.getI64TensorAttr(*s);
-    Attribute dilations;
-    if (auto d = op.getRhsDilation()) dilations = rewriter.getI64TensorAttr(*d);
+    auto s = op.getWindowStrides();
+    Attribute strides =
+        s ? rewriter.getI64TensorAttr(*s) : rewriter.getI64TensorAttr({1});
+    auto d = op.getRhsDilation();
+    Attribute dilations =
+        d ? rewriter.getI64TensorAttr(*d) : rewriter.getI64TensorAttr({1});
 
     // Apply padding and input dilation.
     llvm::SmallVector<int64_t> spatialDimMapping(rank - 2);
@@ -268,42 +270,24 @@ struct NormalConvolutionOpConversion final
         break;
       }
       case 3: {
-        if (strides && dilations) {
-          res = linalg::Conv1DNwcWcfOp::create(
-              rewriter, loc, resultType, ValueRange{input, filter},
-              ValueRange{zeroTensor}, strides, dilations,
-              linalg::getPrunedAttributeList(op));
-        } else {
-          res = linalg::Conv1DNwcWcfOp::create(
-              rewriter, loc, resultType, ValueRange{input, filter},
-              ValueRange{zeroTensor}, linalg::getPrunedAttributeList(op));
-        }
+        res = linalg::Conv1DNwcWcfOp::create(
+            rewriter, loc, resultType, ValueRange{input, filter},
+            ValueRange{zeroTensor}, strides, dilations,
+            linalg::getPrunedAttributeList(op));
         break;
       }
       case 4: {
-        if (strides && dilations) {
-          res = linalg::Conv2DNhwcHwcfOp::create(
-              rewriter, loc, resultType, ValueRange{input, filter},
-              ValueRange{zeroTensor}, strides, dilations,
-              linalg::getPrunedAttributeList(op));
-        } else {
-          res = linalg::Conv2DNhwcHwcfOp::create(
-              rewriter, loc, resultType, ValueRange{input, filter},
-              ValueRange{zeroTensor}, linalg::getPrunedAttributeList(op));
-        }
+        res = linalg::Conv2DNhwcHwcfOp::create(
+            rewriter, loc, resultType, ValueRange{input, filter},
+            ValueRange{zeroTensor}, strides, dilations,
+            linalg::getPrunedAttributeList(op));
         break;
       }
       case 5: {
-        if (strides && dilations) {
-          res = linalg::Conv3DNdhwcDhwcfOp::create(
-              rewriter, loc, resultType, ValueRange{input, filter},
-              ValueRange{zeroTensor}, strides, dilations,
-              linalg::getPrunedAttributeList(op));
-        } else {
-          res = linalg::Conv3DNdhwcDhwcfOp::create(
-              rewriter, loc, resultType, ValueRange{input, filter},
-              ValueRange{zeroTensor}, linalg::getPrunedAttributeList(op));
-        }
+        res = linalg::Conv3DNdhwcDhwcfOp::create(
+            rewriter, loc, resultType, ValueRange{input, filter},
+            ValueRange{zeroTensor}, strides, dilations,
+            linalg::getPrunedAttributeList(op));
         break;
       }
       default: {
