@@ -558,6 +558,45 @@ struct ConvertStablehloFloatDivideOp
   }
 };
 
+struct ConvertStablehloDynamicSliceOp
+    : public OpRewritePattern<stablehlo::DynamicSliceOp> {
+  using OpRewritePattern<stablehlo::DynamicSliceOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(stablehlo::DynamicSliceOp op,
+                                PatternRewriter& rewriter) const override {
+    auto operandType = dyn_cast<RankedTensorType>(op.getOperand().getType());
+    if (!operandType) {
+      return rewriter.notifyMatchFailure(op, "expected ranked tensor type");
+    }
+
+    if (operandType.getRank() < 1) {
+      return rewriter.notifyMatchFailure(
+          op, "tosa.slice requires input tensor of at least rank 1");
+    }
+
+    SmallVector<int64_t> startIndices;
+    for (Value startIndex : op.getStartIndices()) {
+      DenseIntElementsAttr startAttr;
+      if (auto constOp = startIndex.getDefiningOp<stablehlo::ConstantOp>()) {
+        startAttr = dyn_cast<DenseIntElementsAttr>(constOp.getValue());
+      }
+
+      if (!startAttr || startAttr.getNumElements() != 1) {
+        return rewriter.notifyMatchFailure(
+            op, "tosa.slice requires constant start indices");
+      }
+
+      startIndices.push_back((*startAttr.value_begin<APInt>()).getSExtValue());
+    }
+
+    rewriter.replaceOpWithNewOp<tosa::SliceOp>(
+        op, op.getType(), op.getOperand(),
+        getTosaConstShape(rewriter, op.getLoc(), startIndices),
+        getTosaConstShape(rewriter, op.getLoc(), op.getSliceSizes()));
+    return success();
+  }
+};
+
 LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
   RewritePatternSet patternList(ctx);
   populateGeneratedPDLLPatterns(patternList);
@@ -573,6 +612,8 @@ LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
   patternList.addWithLabel<ConvertStablehloReduceOp>({"StablehloReduce"}, ctx);
   patternList.addWithLabel<ConvertStablehloReturnOp>({"StablehloReturn"}, ctx);
   patternList.addWithLabel<ConvertStablehloSliceOp>({"StablehloSlice"}, ctx);
+  patternList.addWithLabel<ConvertStablehloDynamicSliceOp>(
+      {"StablehloDynamicSlice"}, ctx);
   patternList.addWithLabel<ConvertStablehloTransposeOp>({"StablehloTranspose"},
                                                         ctx);
   patternList.addWithLabel<ConvertStablehloWhileOp>({"StablehloWhile"}, ctx);
