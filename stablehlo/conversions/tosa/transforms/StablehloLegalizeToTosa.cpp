@@ -505,16 +505,7 @@ struct ConvertStablehloReshapeOp
     auto resultShape = resultType.getShape();
     SmallVector<int64_t, 8> dimensions(resultShape.begin(), resultShape.end());
 
-    RankedTensorType shapeTensorType = RankedTensorType::get(
-        {static_cast<int64_t>(dimensions.size())}, rewriter.getIndexType());
-
-    auto denseAttr = DenseIntElementsAttr::get(shapeTensorType, dimensions);
-    auto shapeType =
-        tosa::shapeType::get(rewriter.getContext(), dimensions.size());
-
-    auto constShapeOp =
-        tosa::ConstShapeOp::create(rewriter, op.getLoc(), shapeType, denseAttr);
-
+    auto constShapeOp = getTosaConstShape(rewriter, op.getLoc(), dimensions);
     auto reshapeOp = tosa::ReshapeOp::create(rewriter, op.getLoc(), resultType,
                                              op.getOperand(), constShapeOp);
 
