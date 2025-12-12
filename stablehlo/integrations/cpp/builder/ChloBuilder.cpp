@@ -31,5 +31,15 @@ namespace chlo {
 
 #include "stablehlo/integrations/cpp/builder/ChloBuilder.cpp.inc"
 
+/////////////////
+// MANUAL APIs
+/////////////////
+
+MlirOp ConstantLike(MlirOp input, DenseElementsAttr val) {
+  MlirBuilder& builder = input.getBuilder();
+  auto splat_val = val.getSplatValue<TypedAttr>();
+  return builder.create<chlo::ConstantLikeOp>(splat_val, input.getValue());
+}
+
 }  // namespace chlo
 }  // namespace mlir

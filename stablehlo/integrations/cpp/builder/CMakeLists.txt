@@ -137,6 +137,7 @@ if (TARGET llvm_gtest)
     set_target_properties(check-stablehlo-ci PROPERTIES FOLDER "Tests")
     add_unittest(check-stablehlo-ci "unittests"
       MlirBuilderTest.cpp
+      ChloBuilderTest.cpp
       StablehloBuilderTest.cpp
       AttrTypeBuilderUtilTest.cpp
     )

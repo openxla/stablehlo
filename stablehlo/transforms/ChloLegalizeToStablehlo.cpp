@@ -35,7 +35,6 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
@@ -51,6 +50,7 @@
 #include "stablehlo/transforms/ChloDecompositionUtils.h"
 #include "stablehlo/transforms/PassUtils.h"
 #include "stablehlo/transforms/Passes.h"
+#include "stablehlo/transforms/StablehloBroadcastLowering.h"
 
 // This must precede all other headers, otherwise during Windows cross
 // compilation, M_PI will not be defined.
@@ -201,34 +201,13 @@ static Value getConstantLikeSmallestNormalizedValue(OpBuilder& b, Location loc,
       val);
 }
 
-// Broadcast using numpy-style broadcasting semantics.
-// This is only valid if the CHLO op has static shaped operands, and no
-// explicitly specified broadcast_dimensions.
-//
-// Asserts that input is ranked tensor type.
-Value numpyBroadcastIfNeeded(Value op, RankedTensorType opResultType,
-                             PatternRewriter& rewriter) {
-  RankedTensorType inputType = cast<RankedTensorType>(op.getType());
-  RankedTensorType broadcastedResultType =
-      opResultType.clone(inputType.getElementType());
-
-  // No broadcasting needed if input type matches broadcasted result type.
-  if (inputType == broadcastedResultType) return op;
-
-  // broadcast dims are the last dims for numpy style broadcasting.
-  int64_t inputRank = inputType.getRank();
-  int64_t resultRank = opResultType.getRank();
-  auto broadcastDimensions =
-      llvm::to_vector(llvm::seq<int64_t>(resultRank - inputRank, resultRank));
-  return stablehlo::BroadcastInDimOp::create(rewriter, op.getLoc(),
-                                             broadcastedResultType, op,
-                                             broadcastDimensions)
-      .getResult();
-}
-
 //===----------------------------------------------------------------------===//
 // Broadcasting Patterns.
 //===----------------------------------------------------------------------===//
+
+bool isStaticOrBoundedDynamicTensor(RankedTensorType type) {
+  return type.hasStaticShape() || hlo::isBoundedDynamic(type);
+}
 
 // Converts binary ops that statically are determined to not broadcast directly
 // to the corresponding stablehlo non-broadcasting op.
@@ -243,12 +222,14 @@ struct ConvertTrivialNonBroadcastBinaryOp final
     // Only rewrite for statically determinable non-broadcasting cases.
     auto lhsType = dyn_cast<RankedTensorType>(adaptor.getLhs().getType());
     auto rhsType = dyn_cast<RankedTensorType>(adaptor.getRhs().getType());
-    if (!lhsType || !rhsType || lhsType.getShape() != rhsType.getShape() ||
-        !lhsType.hasStaticShape() || !rhsType.hasStaticShape())
+    if (!lhsType || !rhsType || !isStaticOrBoundedDynamicTensor(lhsType) ||
+        !isStaticOrBoundedDynamicTensor(rhsType) ||
+        lhsType.getShape() != rhsType.getShape() ||
+        lhsType.getEncoding() != rhsType.getEncoding())
       return rewriter.notifyMatchFailure(
           op,
           "expected LHS and RHS to be ranked tensors with matching shapes that "
-          "are all static");
+          "are all static or bounded dynamic");
 
     rewriter.replaceOp(
         op, ValueRange{Adaptor::createOp(op, op.getType(),
@@ -270,41 +251,46 @@ struct ConvertTrivialNumpyBroadcastBinaryOp final
     // Only rewrite for statically determinable non-broadcasting cases.
     auto lhsType = dyn_cast<RankedTensorType>(adaptor.getLhs().getType());
     auto rhsType = dyn_cast<RankedTensorType>(adaptor.getRhs().getType());
-    if (!lhsType || !rhsType || !lhsType.hasStaticShape() ||
-        !rhsType.hasStaticShape())
+    if (!lhsType || !rhsType || !isStaticOrBoundedDynamicTensor(lhsType) ||
+        !isStaticOrBoundedDynamicTensor(rhsType))
       return rewriter.notifyMatchFailure(
           op,
-          "expected LHS and RHS to be ranked tensor types with static "
-          "shape");
+          "expected LHS and RHS to be ranked tensor types with static or "
+          "bounded dynamic shape");
 
     // Rely on CHLO type inference to figure out the proper broadcasted shape.
     auto resultType = dyn_cast<RankedTensorType>(op.getResult().getType());
-    if (!resultType || !resultType.hasStaticShape())
+    if (!resultType || !isStaticOrBoundedDynamicTensor(resultType))
       return rewriter.notifyMatchFailure(
-          op, "expected result to be a ranked tensor type with static shape");
+          op,
+          "expected result to be a ranked tensor type with static or bounded "
+          "dynamic shape");
 
     auto lhs = adaptor.getLhs();
     auto rhs = adaptor.getRhs();
     auto broadcastDimensions = adaptor.getBroadcastDimensions();
     if (broadcastDimensions &&
-        !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, *broadcastDimensions))
+        !hlo::isLegalNumpyRankedBroadcast(lhs, rhs, *broadcastDimensions)) {
       return rewriter.notifyMatchFailure(
           op,
           "expected implicit broadcast_dimensions or numpy-style broadcasting");
+    }
 
     LLVM_DEBUG(llvm::dbgs()
                << "CHLO Decomposing " << op->getName() << " with broadcast "
                << lhsType << " x " << rhsType << " -> " << resultType << "\n");
 
-    // If operands are static directly create stablehlo broadcasting ops.
-    // Use numpy-style broadcasting with using StableHLO broadcast ops,
-    // when user didn't specify broadcast_dimensions.
-    auto lhsBroadcast =
-        numpyBroadcastIfNeeded(adaptor.getLhs(), resultType, rewriter);
-    auto rhsBroadcast =
-        numpyBroadcastIfNeeded(adaptor.getRhs(), resultType, rewriter);
-    auto result = Adaptor::createOp(op, resultType,
-                                    {lhsBroadcast, rhsBroadcast}, rewriter);
+    // If operands are static or bounded dynamic, directly create stablehlo
+    // broadcasting ops. Use numpy-style broadcasting with using StableHLO
+    // broadcast ops. Can leave off broadcast_dimensions since the above
+    // logic verifies that they are the default for numpy-style broadcasting.
+    mlir::SmallVector<Value> broadcastOperands = {lhs, rhs};
+    auto broadcasted_values =
+        stablehlo::numpyBroadcastIfNeeded(rewriter, broadcastOperands);
+    if (failed(broadcasted_values)) return failure();
+
+    auto result =
+        Adaptor::createOp(op, resultType, *broadcasted_values, rewriter);
     rewriter.replaceOp(op, {result.getResult()});
     return success();
   }
@@ -425,7 +411,21 @@ struct ConvertConstantLikeOp final
       return success();
     }
 
-    // Lower to broadcasted constant.
+    // Lower to cst -> broadcast -> set_dimension_size if bounded dynamic.
+    if (hlo::isBoundedDynamic(resultTy)) {
+      Value constant = mlir::stablehlo::ConstantOp::create(
+          rewriter, op.getLoc(), op.getValue());
+      mlir::FailureOr<stablehlo::Dimensions> operandDims =
+          getDimensions(adaptor.getOperand());
+      if (failed(operandDims)) return failure();
+      mlir::FailureOr<Value> broadcast =
+          stablehlo::numpyBroadcastIfNeeded(rewriter, constant, *operandDims);
+      if (failed(broadcast)) return failure();
+      rewriter.replaceOp(op, *broadcast);
+      return success();
+    }
+
+    // Lower unbounded dynamic to broadcasted constant.
     Location loc = op.getLoc();
     Value constant =
         mlir::stablehlo::ConstantOp::create(rewriter, loc, op.getValue());
