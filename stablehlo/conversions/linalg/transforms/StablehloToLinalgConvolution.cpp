@@ -248,10 +248,12 @@ struct NormalConvolutionOpConversion final
                                 resultType.getElementType(), dynSizes);
     Value zeroTensor = fillTensorWithZeros(rewriter, loc, emptyTensor);
     linalg::LinalgOp res;
-    Attribute strides;
-    if (auto s = op.getWindowStrides()) strides = rewriter.getI64TensorAttr(*s);
-    Attribute dilations;
-    if (auto d = op.getRhsDilation()) dilations = rewriter.getI64TensorAttr(*d);
+    auto s = op.getWindowStrides();
+    Attribute strides =
+        s ? rewriter.getI64TensorAttr(*s) : rewriter.getI64TensorAttr({1});
+    auto d = op.getRhsDilation();
+    Attribute dilations =
+        d ? rewriter.getI64TensorAttr(*d) : rewriter.getI64TensorAttr({1});
 
     // Apply padding and input dilation.
     llvm::SmallVector<int64_t> spatialDimMapping(rank - 2);
