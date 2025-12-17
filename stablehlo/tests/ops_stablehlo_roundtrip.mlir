@@ -316,7 +316,7 @@ func.func @test_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
 // Serialized string:
 //   "\08\03\1A\02\01\02\22\02\00\01"
 func.func @test_custom_call2(%arg0: tensor<16x16xf32>) -> tensor<16x16xf32> {
-  %0 = "stablehlo.custom_call"(%arg0) {backend_config = "", call_target_name = "Sharding", stablehlo.sharding = "\08\03\1A\02\01\02\22\02\00\01"} : (tensor<16x16xf32>) -> tensor<16x16xf32>
+  %0 = "stablehlo.custom_call"(%arg0) {backend_config = "", call_target_name = "Sharding", mhlo.sharding = "\08\03\1A\02\01\02\22\02\00\01"} : (tensor<16x16xf32>) -> tensor<16x16xf32>
   func.return %0 : tensor<16x16xf32>
 }
 

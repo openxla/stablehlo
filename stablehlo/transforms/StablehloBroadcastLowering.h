@@ -47,6 +47,14 @@ struct DimensionInfo {
 using Dimensions = SmallVector<DimensionInfo>;
 std::string toString(const Dimensions& dims);
 
+// Returns the dimensions of the given op, or failure if the op's type is not a
+// ranked tensor.
+FailureOr<Dimensions> getDimensions(Value op);
+
+// Returns the ranked tensor type with the given dimensions and element type.
+mlir::RankedTensorType getRankedTensorType(const Dimensions& dims,
+                                           mlir::Type element_type);
+
 // Returns the common shape these ops would broadcast to, or an error if the
 // ops are not broadcastable.
 FailureOr<Dimensions> getNumpyBroadcastShape(OpBuilder& builder,

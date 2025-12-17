@@ -222,6 +222,21 @@ func.func @compare_fold_int()
 
 // -----
 
+// CHECK-LABEL: func.func @compare_fold_with_implicit_comparison_type
+func.func @compare_fold_with_implicit_comparison_type() -> (tensor<3xi1>, tensor<3xi1>) {
+  %c_0 = stablehlo.constant dense<0> : tensor<3xi64>
+  %c = stablehlo.constant dense<[-1, 0, 1]> : tensor<3xi64>
+  %c_1 = stablehlo.constant dense<0.0> : tensor<3xf64>
+  %c_2 = stablehlo.constant dense<[-1.0, 0.0, 1.0]> : tensor<3xf64>
+  %0 = stablehlo.compare GE, %c, %c_0 : (tensor<3xi64>, tensor<3xi64>) -> tensor<3xi1>
+  %1 = stablehlo.compare GE, %c_2, %c_1 : (tensor<3xf64>, tensor<3xf64>) -> tensor<3xi1>
+  // CHECK-DAG:  [[RES:%.+]] = stablehlo.constant dense<[false, true, true]> : tensor<3xi1>
+  // CHECK-NEXT: return [[RES]], [[RES]] : tensor<3xi1>, tensor<3xi1>
+  return %0, %1 : tensor<3xi1>, tensor<3xi1>
+}
+
+// -----
+
 // CHECK-LABEL: func.func @compare_fold_float
 func.func @compare_fold_float()
   -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {

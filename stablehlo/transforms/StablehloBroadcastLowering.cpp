@@ -59,26 +59,6 @@ DimensionInfo getDimensionInfo(Value op, mlir::RankedTensorType tensorType,
   };
 }
 
-FailureOr<Dimensions> getDimensions(Value op) {
-  // Get tensor type
-  mlir::RankedTensorType tensor_type = dyn_cast<RankedTensorType>(op.getType());
-  if (!tensor_type)
-    return emitError(op.getLoc(),
-                     "expected ranked tensor type for broadcast inputs");
-
-  auto encoding =
-      mlir::dyn_cast_if_present<mlir::stablehlo::TypeExtensionsAttr>(
-          tensor_type.getEncoding());
-
-  Dimensions dimensions;
-  dimensions.reserve(tensor_type.getRank());
-  for (int64_t idx = 0; idx < tensor_type.getRank(); ++idx) {
-    auto dimInfo = getDimensionInfo(op, tensor_type, encoding, idx);
-    dimensions.push_back(dimInfo);
-  }
-  return dimensions;
-}
-
 FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(Value op,
                                                        const Dimensions& a,
                                                        const Dimensions& b) {
@@ -132,6 +112,28 @@ FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(Value op,
   return result;
 }
 
+}  // namespace
+
+FailureOr<Dimensions> getDimensions(Value op) {
+  // Get tensor type
+  mlir::RankedTensorType tensor_type = dyn_cast<RankedTensorType>(op.getType());
+  if (!tensor_type)
+    return emitError(op.getLoc(),
+                     "expected ranked tensor type for broadcast inputs");
+
+  auto encoding =
+      mlir::dyn_cast_if_present<mlir::stablehlo::TypeExtensionsAttr>(
+          tensor_type.getEncoding());
+
+  Dimensions dimensions;
+  dimensions.reserve(tensor_type.getRank());
+  for (int64_t idx = 0; idx < tensor_type.getRank(); ++idx) {
+    auto dimInfo = getDimensionInfo(op, tensor_type, encoding, idx);
+    dimensions.push_back(dimInfo);
+  }
+  return dimensions;
+}
+
 mlir::RankedTensorType getRankedTensorType(const Dimensions& dims,
                                            mlir::Type element_type) {
   mlir::SmallVector<int64_t> shape;
@@ -155,7 +157,6 @@ mlir::RankedTensorType getRankedTensorType(const Dimensions& dims,
   return mlir::RankedTensorType::get(shape, element_type, encoding);
 }
 
-}  // namespace
 
 FailureOr<Dimensions> getNumpyBroadcastShape(OpBuilder& builder,
                                              ArrayRef<Value> ops) {
