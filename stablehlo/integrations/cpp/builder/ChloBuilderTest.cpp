@@ -29,8 +29,8 @@ limitations under the License.
 #include "stablehlo/integrations/cpp/builder/ChloBuilder.h"
 #include "stablehlo/integrations/cpp/builder/FuncBuilder.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
-#include "testing/base/public/gunit.h"
 #include "stablehlo/integrations/cpp/builder/StablehloBuilder.h"
+#include "testing/base/public/gunit.h"
 
 namespace mlir {
 namespace chlo {

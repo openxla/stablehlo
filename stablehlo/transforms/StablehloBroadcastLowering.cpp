@@ -157,7 +157,6 @@ mlir::RankedTensorType getRankedTensorType(const Dimensions& dims,
   return mlir::RankedTensorType::get(shape, element_type, encoding);
 }
 
-
 FailureOr<Dimensions> getNumpyBroadcastShape(OpBuilder& builder,
                                              ArrayRef<Value> ops) {
   if (ops.empty())

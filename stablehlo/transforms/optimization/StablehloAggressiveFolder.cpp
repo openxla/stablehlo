@@ -735,8 +735,7 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
   }
 
   struct FoldCompare {
-    FoldCompare(ComparisonDirection direction,
-                ComparisonType kind)
+    FoldCompare(ComparisonDirection direction, ComparisonType kind)
         : direction(direction), kind(kind) {}
     ComparisonDirection direction;
     ComparisonType kind;
