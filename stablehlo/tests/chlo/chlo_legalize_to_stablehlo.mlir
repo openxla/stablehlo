@@ -622,6 +622,10 @@ func.func @asinh_complex_f32(%arg : tensor<complex<f32>>) -> tensor<complex<f32>
   func.return %result : tensor<complex<f32>>
 }
 
+//////
+// Broadcast binary elementwise ops tests are located in
+// chlo_legalize_to_stablehlo_broadcast.mlir
+
 // -----
 
 // Lower statically shaped `constant_like` to constant.
@@ -632,6 +636,24 @@ func.func @constant_like_static_shape(%arg : tensor<1x2xi64>) -> tensor<1x2xf32>
   %result = "chlo.constant_like"(%arg) { value = 3.2 : f32 }
       : (tensor<1x2xi64>) -> tensor<1x2xf32>
   func.return %result : tensor<1x2xf32>
+}
+
+// -----
+
+// Lower dynamically shaped `constant_like` to broadcasted constant.
+// CHECK-LABEL: constant_like_bounded_dynamic_shape
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<2xi64>, %[[ARG1:.*]]: tensor<i32>)
+func.func @constant_like_bounded_dynamic_shape(%arg0: tensor<2xi64>, %arg1: tensor<i32>) -> tensor<?xi32, #stablehlo.bounds<2>> {
+  %0 = stablehlo.set_dimension_size %arg0, %arg1, dim = 0 : (tensor<2xi64>, tensor<i32>) -> tensor<?xi64, #stablehlo.bounds<2>>
+  // CHECK-NOT: chlo.constant_like
+  // CHECK: %[[ARG0_DYN:.*]] = stablehlo.set_dimension_size %[[ARG0]], %[[ARG1]], dim = 0 : (tensor<2xi64>, tensor<i32>) -> tensor<?xi64, #stablehlo.bounds<2>>
+  // CHECK: %[[CST:.*]] = stablehlo.constant dense<1> : tensor<i32>
+  // CHECK-NEXT: %[[BCAST:.*]] = stablehlo.broadcast_in_dim %[[CST]], dims = [] : (tensor<i32>) -> tensor<2xi32>
+  // CHECK-NEXT: %[[GDS:.*]] = stablehlo.get_dimension_size %[[ARG0_DYN]], dim = 0 : (tensor<?xi64, #stablehlo.bounds<2>>) -> tensor<i32>
+  // CHECK-NEXT: %[[SDS:.*]] = stablehlo.set_dimension_size %[[BCAST]], %[[GDS]], dim = 0 : (tensor<2xi32>, tensor<i32>) -> tensor<?xi32, #stablehlo.bounds<2>>
+  // CHECK-NEXT: return %[[SDS]] : tensor<?xi32, #stablehlo.bounds<2>>
+  %1 = "chlo.constant_like"(%0) <{value = 1 : i32}> : (tensor<?xi64, #stablehlo.bounds<2>>) -> tensor<?xi32, #stablehlo.bounds<2>>
+  return %1 : tensor<?xi32, #stablehlo.bounds<2>>
 }
 
 // -----

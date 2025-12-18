@@ -701,22 +701,49 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
     if (failed(validateShapeFoldDtype(rewriter, op, resultType)))
       return failure();
 
+    ComparisonType comparisonType = getComparisonType(op);
+    if (comparisonType == ComparisonType::NOTYPE)
+      return rewriter.notifyMatchFailure(
+          op, "Could not determine comparison type.");
+
+    LLVM_DEBUG(llvm::dbgs() << "comparisonType: " << comparisonType << "\n");
+
     auto res = foldBinaryOpIntOrFloat<FoldCompare, IntegerAttr, IntegerAttr>(
-        rewriter, op,
-        FoldCompare(op.getComparisonDirection(), op.getCompareType()));
+        rewriter, op, FoldCompare(op.getComparisonDirection(), comparisonType));
     if (failed(res)) return failure();
     rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
     return success();
   }
 
+  // Return the comparison type if set, else return the assumed comparison type
+  // according to the StableHLO spec.
+  ComparisonType getComparisonType(CompareOp op) const {
+    auto compareType = op.getCompareType();
+    if (compareType.has_value() &&
+        compareType.value() != ComparisonType::NOTYPE)
+      return *compareType;
+
+    Type elementType = op.getLhs().getType().getElementType();
+    if (elementType.isUnsignedInteger() || elementType.isSignlessInteger(1))
+      return ComparisonType::UNSIGNED;
+    if (elementType.isSignlessInteger())
+      return ComparisonType::SIGNED;
+    else if (elementType.isFloat() || mlir::isa<ComplexType>(elementType))
+      return ComparisonType::FLOAT;
+    else
+      return ComparisonType::NOTYPE;
+  }
+
   struct FoldCompare {
-    FoldCompare(ComparisonDirection direction,
-                std::optional<ComparisonType> kind)
+    FoldCompare(ComparisonDirection direction, ComparisonType kind)
         : direction(direction), kind(kind) {}
     ComparisonDirection direction;
-    std::optional<ComparisonType> kind;
+    ComparisonType kind;
 
     APInt operator()(APFloat lhs, APFloat rhs) {
+      if (kind != ComparisonType::FLOAT && kind != ComparisonType::TOTALORDER)
+        llvm::report_fatal_error("invalid float comparison");
+
       bool result = false;
       switch (direction) {
         case ComparisonDirection::EQ:
@@ -741,6 +768,9 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
       return APInt(/*bitwidth=*/1, result);
     }
     APInt operator()(APInt lhs, APInt rhs) {
+      if (kind != ComparisonType::UNSIGNED && kind != ComparisonType::SIGNED)
+        llvm::report_fatal_error("invalid integer comparison");
+
       bool result = false;
       switch (direction) {
         case ComparisonDirection::EQ:

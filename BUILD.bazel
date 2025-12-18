@@ -1183,6 +1183,7 @@ cc_library(
         ":chlo_ops",
         ":chlo_rewriters_inc_gen",
         ":stablehlo_aggressive_simplification_inc_gen",
+        ":stablehlo_broadcast_lowering",
         ":stablehlo_create_compatibility_expander_inc_gen",
         ":stablehlo_create_complex_math_expander_inc_gen",
         ":stablehlo_legalize_deprecated_ops_inc_gen",
@@ -1919,6 +1920,24 @@ cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_test(
+    name = "chlo_builder_test",
+    srcs = ["stablehlo/integrations/cpp/builder/ChloBuilderTest.cpp"],
+    deps = [
+        ":attr_type_builder_util",
+        ":chlo_builder",
+        ":func_builder",
+        ":mlir_builder",
+        ":register",
+        ":stablehlo_builder",
+        ":stablehlo_ops",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//third-party/unittest:gmock",
+        "@llvm-project//third-party/unittest:gtest",
     ],
 )
 
