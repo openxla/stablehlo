@@ -92,7 +92,6 @@ FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(Value op,
 
     // If both LHS and RHS are not 1, dim size must match.
     if (dim_a.size != dim_b.size) {
-      // FIXME
       return emitError(op.getLoc(), "incompatible shapes for broadcasting ")
              << dim_a.size << " and " << dim_b.size;
     }
@@ -157,11 +156,10 @@ mlir::RankedTensorType getRankedTensorType(const Dimensions& dims,
   return mlir::RankedTensorType::get(shape, element_type, encoding);
 }
 
-FailureOr<Dimensions> getNumpyBroadcastShape(OpBuilder& builder,
+FailureOr<Dimensions> getNumpyBroadcastShape(Location loc,
                                              ArrayRef<Value> ops) {
   if (ops.empty())
-    return emitError(builder.getInsertionPoint()->getLoc(),
-                     "requires at least one operand to broadcast");
+    return emitError(loc, "requires at least one operand to broadcast");
 
   Value first = ops[0];
   auto bcastShapeOrFail = getDimensions(first);
@@ -197,7 +195,8 @@ std::string toString(const Dimensions& dims) {
 FailureOr<SmallVector<Value>> numpyBroadcastIfNeeded(OpBuilder& builder,
                                                      ArrayRef<Value> operands) {
   // Figure out the broadcast shape
-  auto bcastShapeOrFail = getNumpyBroadcastShape(builder, operands);
+  auto errLoc = builder.getInsertionPoint()->getLoc();
+  auto bcastShapeOrFail = getNumpyBroadcastShape(errLoc, operands);
   if (failed(bcastShapeOrFail)) return failure();
   Dimensions bcastShape = std::move(*bcastShapeOrFail);
 

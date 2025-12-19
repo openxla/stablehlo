@@ -19,14 +19,14 @@ limitations under the License.
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <iostream>
 #include <iterator>
 #include <optional>
 #include <string>
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/TypeSwitch.h"
+#include "llvm/ADT/TypeSwitch.h"  // IWYU pragma: keep
+#include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Traits.h"
 #include "mlir/IR/Attributes.h"
@@ -51,6 +51,7 @@ limitations under the License.
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloBytecode.h"
 #include "stablehlo/dialect/TypeInference.h"
+#include "stablehlo/transforms/StablehloBroadcastLowering.h"
 
 // Include order matters
 #include "stablehlo/dialect/ChloEnums.cpp.inc"
@@ -104,54 +105,95 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ZetaOp)
 //===----------------------------------------------------------------------===//
 
 namespace {
+
+bool isStaticOrBoundedDynamicTensor(RankedTensorType type) {
+  return type.hasStaticShape() || hlo::isBoundedDynamic(type);
+}
+
 // Gets the resulting type from a broadcast between two types.
-ShapedTypeComponents getBroadcastType(
-    Type x, Type y, Type elementType,
-    std::optional<ArrayRef<int64_t>> broadcastDimensionsAttr) {
-  auto xRanked = dyn_cast<RankedTensorType>(x);
-  auto yRanked = dyn_cast<RankedTensorType>(y);
-  if (!xRanked || !yRanked) return {elementType};
+ShapedTypeComponents getNumpyBroadcastType(ArrayRef<Value> operands,
+                                           Type elementType) {
+  if (operands.empty())
+    llvm::report_fatal_error("Called getNumpyBroadcastType with no operands");
 
-  auto shapeX = xRanked.getShape();
-  auto shapeY = yRanked.getShape();
+  // Handle unranked tensors
+  if (llvm::any_of(operands,
+                   [](Value v) { return !isa<RankedTensorType>(v.getType()); }))
+    return {elementType};
 
-  // If no broadcast dimensions, assume "numpy" broadcasting.
-  if (shapeX.size() == shapeY.size() || !broadcastDimensionsAttr.has_value()) {
-    llvm::SmallVector<int64_t, 4> outShape;
-    if (!mlir::OpTrait::util::getBroadcastedShape(shapeX, shapeY, outShape)) {
+  // All static or bounded, use bounded dynamic aware broadcasting.
+  bool allStaticOrBounded = llvm::all_of(operands, [](Value v) {
+    return isStaticOrBoundedDynamicTensor(cast<RankedTensorType>(v.getType()));
+  });
+  if (allStaticOrBounded) {
+    Location errorLoc = operands[0].getLoc();
+    FailureOr<stablehlo::Dimensions> outShape =
+        stablehlo::getNumpyBroadcastShape(errorLoc, operands);
+    if (failed(outShape)) {
       // Signal illegal broadcast_dimensions as unranked.
       return {elementType};
     }
-    return {outShape, elementType};
+    RankedTensorType outType =
+        stablehlo::getRankedTensorType(*outShape, elementType);
+    return {outType.getShape(), outType.getElementType(),
+            outType.getEncoding()};
   }
 
-  auto shapeLarge = shapeX.size() > shapeY.size() ? shapeX : shapeY;
-  auto shapeSmall = shapeX.size() <= shapeY.size() ? shapeX : shapeY;
+  // Fall back to non-bounded dynamic aware broadcasting
+  // Will pick more lenient output shapes `x . ? => ?`
+  llvm::SmallVector<int64_t, 4> outShape =
+      llvm::to_vector(cast<RankedTensorType>(operands[0].getType()).getShape());
+  for (Value operand : operands) {
+    // Make a copy of current shape since `getBroadcastedShape` will modify it.
+    llvm::SmallVector<int64_t, 4> currentShape = outShape;
+    auto operandShape = cast<RankedTensorType>(operand.getType()).getShape();
+    if (!mlir::OpTrait::util::getBroadcastedShape(currentShape, operandShape,
+                                                  outShape)) {
+      return {elementType};
+    }
+  }
+  return {outShape, elementType};
+}
+
+ShapedTypeComponents getBroadcastTypeWithBroadcastDimensions(
+    Value x, Value y, Type elementType,
+    std::optional<ArrayRef<int64_t>> broadcastDimensionsAttr) {
+  if (!broadcastDimensionsAttr.has_value())
+    return getNumpyBroadcastType({x, y}, elementType);
+
+  // Only support two operands if broadcast_dimensions is specified.
+  auto shapeX = dyn_cast<RankedTensorType>(x.getType());
+  auto shapeY = dyn_cast<RankedTensorType>(y.getType());
+
+  // Handle unranked tensors
+  if (!shapeX || !shapeY) return {elementType};
+
+  auto shapeLarge = shapeX.getRank() > shapeY.getRank() ? shapeX : shapeY;
+  auto shapeSmall = shapeX.getRank() <= shapeY.getRank() ? shapeX : shapeY;
 
   auto broadcastDimensions = broadcastDimensionsAttr.value();
-  if (broadcastDimensions.size() != shapeSmall.size()) {
+  if (broadcastDimensions.size() != static_cast<size_t>(shapeSmall.getRank())) {
     // Signal illegal broadcast_dimensions as unranked.
     return {elementType};
   }
   llvm::SmallVector<int64_t, 4> shapeLargeFiltered;
-  shapeLargeFiltered.reserve(shapeSmall.size());
+  shapeLargeFiltered.reserve(shapeSmall.getRank());
   for (const auto& dim : broadcastDimensions) {
-    if (dim >= static_cast<int64_t>(shapeLarge.size())) return {elementType};
-    shapeLargeFiltered.push_back(shapeLarge[dim]);
+    if (dim >= static_cast<int64_t>(shapeLarge.getRank())) return {elementType};
+    shapeLargeFiltered.push_back(shapeLarge.getDimSize(dim));
   }
   llvm::SmallVector<int64_t, 4> outShapeFiltered;
-  if (!mlir::OpTrait::util::getBroadcastedShape(shapeSmall, shapeLargeFiltered,
-                                                outShapeFiltered))
+  if (!mlir::OpTrait::util::getBroadcastedShape(
+          shapeSmall.getShape(), shapeLargeFiltered, outShapeFiltered))
     // Signal illegal broadcast_dimensions as unranked.
     return {elementType};
 
   // Update according to the broadcast dimensions.
-  llvm::SmallVector<int64_t, 4> outShape(shapeLarge.begin(), shapeLarge.end());
+  llvm::SmallVector<int64_t, 4> outShape(shapeLarge.getShape());
   for (const auto& indexPair : llvm::enumerate(broadcastDimensions)) {
     auto newValue = outShapeFiltered[indexPair.index()];
     outShape[indexPair.value()] = newValue;
   }
-
   return {outShape, elementType};
 }
 
@@ -160,6 +202,7 @@ LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
     DictionaryAttr attributes, OpaqueProperties properties,
     std::optional<ArrayRef<int64_t>> broadcastDimensions, Type elementType,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // Handle unranked.
   ShapedType lhsType = cast<ShapedType>(operands[0].getType());
   ShapedType rhsType = cast<ShapedType>(operands[1].getType());
   if (!lhsType || !rhsType ||
@@ -167,8 +210,8 @@ LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
           lhsType.getElementType(), rhsType.getElementType()))
     return emitOptionalError(location, "mismatched operand types");
   if (!elementType) elementType = lhsType.getElementType();
-  inferredReturnShapes.push_back(
-      getBroadcastType(lhsType, rhsType, elementType, broadcastDimensions));
+  inferredReturnShapes.push_back(getBroadcastTypeWithBroadcastDimensions(
+      operands[0], operands[1], elementType, broadcastDimensions));
   return success();
 }
 
@@ -397,7 +440,6 @@ LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
     DictionaryAttr, OpaqueProperties, RegionRange,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BroadcastSelectOp::Adaptor op(operands.getValues());
-  auto predType = cast<ShapedType>(op.getPred().getType());
   auto onTrueType = cast<ShapedType>(op.getOnTrue().getType());
   auto onFalseType = cast<ShapedType>(op.getOnFalse().getType());
 
@@ -407,12 +449,8 @@ LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
   Type elementType = onTrueType.getElementType();
 
   // Compute the result shape as two binary broadcasts.
-  ShapedTypeComponents& components = inferredReturnShapes.emplace_back(
-      getBroadcastType(onTrueType, onFalseType, elementType, std::nullopt));
-  if (components.hasRank())
-    components = getBroadcastType(
-        RankedTensorType::get(components.getDims(), elementType), predType,
-        elementType, std::nullopt);
+  inferredReturnShapes.emplace_back(
+      getNumpyBroadcastType(llvm::to_vector(op.getOperands()), elementType));
   return success();
 }
 

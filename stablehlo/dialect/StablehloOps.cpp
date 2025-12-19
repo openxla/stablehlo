@@ -1569,7 +1569,8 @@ mlir::Speculation::Speculatability ConvolutionOp::getSpeculatability() {
 void ConvertOp::build(OpBuilder& builder, OperationState& result, Value operand,
                       Type resultElementTy) {
   auto rankedTy = cast<RankedTensorType>(operand.getType());
-  auto resultTy = RankedTensorType::get(rankedTy.getShape(), resultElementTy);
+  auto resultTy = RankedTensorType::get(rankedTy.getShape(), resultElementTy,
+                                        rankedTy.getEncoding());
   build(builder, result, resultTy, operand);
 }
 

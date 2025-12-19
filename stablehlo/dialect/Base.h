@@ -486,9 +486,12 @@ class CompatibleOperandsAndResultType
                                 inferredReturnTypes)))
       return failure();
     if (inferredReturnTypes.size() != 1) return failure();
-    auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
+    auto inferredReturnType =
+        dyn_cast<RankedTensorType>(inferredReturnTypes[0]);
     if (!inferredReturnType) return failure();
-    inferredReturnShapes.push_back(inferredReturnType);
+    inferredReturnShapes.emplace_back(inferredReturnType.getShape(),
+                                      inferredReturnType.getElementType(),
+                                      inferredReturnType.getEncoding());
     return success();
   }
 };
