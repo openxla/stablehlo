@@ -172,7 +172,7 @@ ShapedTypeComponents getBroadcastTypeWithBroadcastDimensions(
   auto shapeSmall = shapeX.getRank() <= shapeY.getRank() ? shapeX : shapeY;
 
   auto broadcastDimensions = broadcastDimensionsAttr.value();
-  if (broadcastDimensions.size() != shapeSmall.getRank()) {
+  if (broadcastDimensions.size() != static_cast<size_t>(shapeSmall.getRank())) {
     // Signal illegal broadcast_dimensions as unranked.
     return {elementType};
   }
