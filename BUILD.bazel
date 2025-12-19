@@ -257,6 +257,7 @@ cc_library(
         ":chlo_enums_inc_gen",
         ":chlo_ops_inc_gen",
         ":stablehlo_assembly_format",
+        ":stablehlo_broadcast_lowering",
         ":stablehlo_type_inference",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:BytecodeOpInterface",

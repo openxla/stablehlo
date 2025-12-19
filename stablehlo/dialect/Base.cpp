@@ -25,7 +25,6 @@ limitations under the License.
 #include <utility>
 
 #include "llvm/ADT/APInt.h"
-#include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
@@ -47,7 +46,6 @@ limitations under the License.
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
-#include "mlir/Support/TypeID.h"
 
 // Include order matters
 #include "stablehlo/dialect/BaseAttrInterfaces.cpp.inc"
@@ -246,7 +244,7 @@ LogicalResult verifyBounds(ArrayRef<int64_t> bounds, RankedTensorType type,
   if (boundsLen != rank)
     return emitError() << "Bounds length is " << boundsLen
                        << ", expected to be equal to rank(" << rank
-                       << ") of the tensor";
+                       << ") of the tensor " << type;
 
   for (int64_t dim = 0; dim < rank; ++dim) {
     int64_t bound = bounds[dim];
@@ -254,7 +252,8 @@ LogicalResult verifyBounds(ArrayRef<int64_t> bounds, RankedTensorType type,
     if (bound != ShapedType::kDynamic && dimSize != ShapedType::kDynamic)
       return emitError() << "Static dimension " << dim
                          << " cannot have a bound, use ShapedType::kDynamic to "
-                            "indicate a missing bound";
+                            "indicate a missing bound in tensor "
+                         << type;
   }
 
   return success();

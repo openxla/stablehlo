@@ -2013,12 +2013,12 @@ LogicalResult inferCompareOp(
     MLIRContext* context, std::optional<Location>, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // compare_c1
-  ShapedTypeComponents& components =
-      inferredReturnShapes.emplace_back(IntegerType::get(context, /*width=*/1));
-  auto argTy = cast<ShapedType>(lhs.getType());
+  ShapedTypeComponents& components = inferredReturnShapes.emplace_back();
+  auto argTy = cast<RankedTensorType>(lhs.getType());
+  auto resElementTy = IntegerType::get(context, /*width=*/1);
   // compare_c2
   components =
-      ShapedTypeComponents(argTy.getShape(), components.getElementType());
+      ShapedTypeComponents(argTy.getShape(), resElementTy, argTy.getEncoding());
   return success();
 }
 
@@ -2119,9 +2119,10 @@ LogicalResult inferConstantOp(std::optional<Location>, ElementsAttr value,
 LogicalResult inferConvertOp(
     std::optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto operandType = cast<ShapedType>(operand.getType());
+  auto operandType = cast<RankedTensorType>(operand.getType());
   // convert_c1
-  inferredReturnShapes.emplace_back(operandType.getShape());
+  inferredReturnShapes.emplace_back(operandType.getShape(), nullptr,
+                                    operandType.getEncoding());
   return success();
 }
 

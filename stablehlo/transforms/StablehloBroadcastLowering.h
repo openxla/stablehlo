@@ -22,6 +22,7 @@ limitations under the License.
 #include <string>
 
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/Location.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Support/LLVM.h"
 
@@ -57,8 +58,7 @@ mlir::RankedTensorType getRankedTensorType(const Dimensions& dims,
 
 // Returns the common shape these ops would broadcast to, or an error if the
 // ops are not broadcastable.
-FailureOr<Dimensions> getNumpyBroadcastShape(OpBuilder& builder,
-                                             ArrayRef<Value> ops);
+FailureOr<Dimensions> getNumpyBroadcastShape(Location loc, ArrayRef<Value> ops);
 
 // Apply numpy broadcasting to the given operands, returning an error if any
 // operands are not broadcastable.

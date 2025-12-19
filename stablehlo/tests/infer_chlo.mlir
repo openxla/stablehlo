@@ -239,3 +239,41 @@ func.func @infer_type_components_from_operands(%arg : tensor<2xf32>) -> tensor<2
   %r17 = "hlo_test_infer.get_return_types"(%17) : (tensor<2xf32>) -> tensor<2xf32>
   func.return %r17 : tensor<2xf32>
 }
+
+// -----
+
+/////
+// Bounded dynamic
+
+// [<=10] x [1] => [<=10]
+// CHECK-LABEL: @bounded_dynamic_broadcast_scalar
+func.func @bounded_dynamic_broadcast_scalar(%arg0: tensor<?xf64, #stablehlo.bounds<10>>, %arg1: tensor<f64>) -> tensor<?xf64, #stablehlo.bounds<10>> {
+  %0 = chlo.broadcast_add %arg0, %arg1 : (tensor<?xf64, #stablehlo.bounds<10>>, tensor<f64>) -> tensor<?xf64, #stablehlo.bounds<10>>
+  // CHECK: types0 = tensor<?xf64, #stablehlo.bounds<10>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?xf64, #stablehlo.bounds<10>>) -> tensor<?xf64, #stablehlo.bounds<10>>
+  return %1 : tensor<?xf64, #stablehlo.bounds<10>>
+}
+
+// -----
+
+// [<=10] x [?] => [?]
+// CHECK-LABEL: @bounded_dynamic_broadcast_unbounded
+!bounded_type = tensor<?xf64, #stablehlo.bounds<10>>
+!unbounded_type = tensor<?xf64>
+func.func @bounded_dynamic_broadcast_unbounded(%arg0: !bounded_type, %arg1: !unbounded_type) -> !unbounded_type {
+  %0 = chlo.broadcast_add %arg0, %arg1 : (!bounded_type, !unbounded_type) -> !unbounded_type
+  // CHECK: types0 = tensor<?xf64>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (!unbounded_type) -> !unbounded_type
+  return %1 : !unbounded_type
+}
+
+// -----
+
+// CHECK-LABEL: @broadcast_select_types_bounded
+!bounded_type = tensor<?xf64, #stablehlo.bounds<10>>
+func.func @broadcast_select_types_bounded(%arg0: tensor<i1>, %arg1: !bounded_type, %arg2: !bounded_type) -> !bounded_type {
+  %0 = "chlo.broadcast_select"(%arg0, %arg1, %arg2) : (tensor<i1>, !bounded_type, !bounded_type) -> !bounded_type
+  // CHECK: types0 = tensor<?xf64, #stablehlo.bounds<10>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (!bounded_type) -> !bounded_type
+  return %1: !bounded_type
+}
