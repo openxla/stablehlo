@@ -433,7 +433,7 @@ class RefineShapeState {
     // Return a cleanup function that will pop the function from the stack
     // when it goes out of scope. This can only use values that will have the
     // same lifetime as cleanup fn. In this case, `this` and `key` are safe.
-    return llvm::make_scope_exit([this, &key]() {
+    return llvm::scope_exit([this, &key]() {
       if (key.getFunc().getName() != functionsBeingRefined.back())
         llvm::report_fatal_error(
             "Stack mismatch in createScopedFunctionRefinement");
