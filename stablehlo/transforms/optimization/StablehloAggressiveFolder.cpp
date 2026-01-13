@@ -1058,14 +1058,14 @@ struct FoldMax {
   std::function<APInt(APInt, APInt)> foldIntFn;
 
   APFloat operator()(APFloat lhs, APFloat rhs) {
-    return lhs >= rhs ? lhs : rhs;
+    return llvm::maximum(lhs, rhs);
   }
   APInt operator()(APInt lhs, APInt rhs) { return foldIntFn(lhs, rhs); }
   static APInt foldUint(APInt lhs, APInt rhs) {
-    return lhs.uge(rhs) ? lhs : rhs;
+    return llvm::APIntOps::umax(lhs, rhs);
   }
   static APInt foldSint(APInt lhs, APInt rhs) {
-    return lhs.sge(rhs) ? lhs : rhs;
+    return llvm::APIntOps::smax(lhs, rhs);
   }
 };
 
@@ -1075,14 +1075,14 @@ struct FoldMin {
   std::function<APInt(APInt, APInt)> foldIntFn;
 
   APFloat operator()(APFloat lhs, APFloat rhs) {
-    return lhs <= rhs ? lhs : rhs;
+    return llvm::minimum(lhs, rhs);
   }
   APInt operator()(APInt lhs, APInt rhs) { return foldIntFn(lhs, rhs); }
   static APInt foldUint(APInt lhs, APInt rhs) {
-    return lhs.ule(rhs) ? lhs : rhs;
+    return llvm::APIntOps::umin(lhs, rhs);
   }
   static APInt foldSint(APInt lhs, APInt rhs) {
-    return lhs.sle(rhs) ? lhs : rhs;
+    return llvm::APIntOps::smin(lhs, rhs);
   }
 };
 
@@ -1533,7 +1533,9 @@ struct FoldNegOpPattern : public FoldUnaryOpPattern<FoldNegOpPattern, NegOp> {
   using FoldUnaryOpPattern::FoldUnaryOpPattern;
 
   static std::optional<APInt> EvaluateOp(APInt operand) { return -operand; }
-  static std::optional<APFloat> EvaluateOp(APFloat operand) { return -operand; }
+  static std::optional<APFloat> EvaluateOp(APFloat operand) {
+    return llvm::neg(operand);
+  }
 };
 
 struct FoldNotOpPattern : public FoldUnaryOpPattern<FoldNotOpPattern, NotOp> {

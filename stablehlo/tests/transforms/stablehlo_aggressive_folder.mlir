@@ -586,6 +586,56 @@ func.func @div_fold_cst() -> (tensor<i32>, tensor<ui32>, tensor<f32>) {
   return %0, %1, %2 : tensor<i32>, tensor<ui32>, tensor<f32>
 }
 
+// CHECK-LABEL: @div_fold_cst_zero_nan
+func.func @div_fold_cst_zero_nan() -> (tensor<f32>) {
+  %cst = stablehlo.constant dense<3.000000e+00> : tensor<f32>
+  %cst_0 = stablehlo.constant dense<0.000000e+00> : tensor<f32>
+  %0 = stablehlo.divide %cst, %cst_0 : tensor<f32>
+  // CHECK: stablehlo.constant dense<0x7F800000> : tensor<f32> 
+  // CHECK-NOT: stablehlo.divide
+  return %0 : tensor<f32>
+}
+
+// CHECK-LABEL: @div_fold_cst_nan
+func.func @div_fold_cst_nan() -> (tensor<f32>) {
+  %cst = stablehlo.constant dense<3.000000e+00> : tensor<f32>
+  %cst_0 = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+  %0 = stablehlo.divide %cst, %cst_0 : tensor<f32>
+  // CHECK: stablehlo.constant dense<0x7FC00000> : tensor<f32>
+  // CHECK-NOT: stablehlo.divide
+  return %0 : tensor<f32>
+}
+
+// -----
+
+////////
+// MaximumOp
+
+// CHECK-LABEL: @max_fold_cst_nan
+func.func @max_fold_cst_nan() -> (tensor<f32>) {
+  %cst = stablehlo.constant dense<3.000000e+00> : tensor<f32>
+  %cst_0 = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+  %0 = stablehlo.maximum %cst, %cst_0 : tensor<f32>
+  // CHECK: stablehlo.constant dense<0x7FC00000> : tensor<f32>
+  // CHECK-NOT: stablehlo.maximum
+  return %0 : tensor<f32>
+}
+
+// -----
+
+////////
+// MinimumOp
+
+// CHECK-LABEL: @min_fold_cst_nan
+func.func @min_fold_cst_nan() -> (tensor<f32>) {
+  %cst = stablehlo.constant dense<3.000000e+00> : tensor<f32>
+  %cst_0 = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+  %0 = stablehlo.minimum %cst, %cst_0 : tensor<f32>
+  // CHECK: stablehlo.constant dense<0x7FC00000> : tensor<f32>
+  // CHECK-NOT: stablehlo.minimum
+  return %0 : tensor<f32>
+}
+
 // -----
 
 ////////
