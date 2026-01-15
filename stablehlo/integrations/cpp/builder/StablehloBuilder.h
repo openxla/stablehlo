@@ -58,6 +58,12 @@ MlirOp ConvertElementType(MlirOp input, Type resultElementType);
 MlirOp Constant(MlirBuilder& builder, int64_t value);
 MlirOp Constant(MlirBuilder& builder, std::vector<int64_t> value);
 
+// IotaLike is a sugar API for iota that accounts for bounded dynamism in the
+// input tensor. Eventually this should be a chlo.iota_like op with a StableHLO
+// decomposition, but for now it will be housed as a builder API.
+MlirOp IotaLike(MlirOp input, int64_t dim, ElementType elementType);
+MlirOp IotaLike(MlirOp input, int64_t dim, Type elementType);
+
 // Better Dot / DotGeneral builders.
 // These ops don't support full type inference because the result element type
 // cannot be inferred from operands, however the result shape can be.
