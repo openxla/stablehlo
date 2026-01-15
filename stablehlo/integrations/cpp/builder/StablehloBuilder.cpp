@@ -96,7 +96,6 @@ MlirOp Constant(MlirBuilder& builder, std::vector<int64_t> value) {
       value));
 }
 
-
 MlirOp IotaLike(MlirOp input, int64_t dim, Type elementType) {
   auto inputType = mlir::cast<RankedTensorType>(input.getType());
   if (inputType.hasStaticShape()) {
@@ -106,8 +105,9 @@ MlirOp IotaLike(MlirOp input, int64_t dim, Type elementType) {
 
   // Use input's static shape and slice to the dynamic shape.
   auto dims = mlir::stablehlo::getDimensions(input.getValue());
-  if (mlir::failed(dims)) llvm::report_fatal_error(
-      "failed to create dynamically shaped iota op, with MLIR error: ");
+  if (mlir::failed(dims))
+    llvm::report_fatal_error(
+        "failed to create dynamically shaped iota op, with MLIR error: ");
 
   mlir::SmallVector<int64_t> iotaShape = llvm::map_to_vector(
       *dims,
