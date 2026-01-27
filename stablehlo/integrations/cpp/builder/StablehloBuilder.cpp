@@ -18,6 +18,7 @@ limitations under the License.
 #include <cstdint>
 #include <optional>
 
+#include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -30,6 +31,7 @@ limitations under the License.
 #include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/integrations/cpp/builder/AttrTypeBuilderUtil.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
+#include "stablehlo/transforms/StablehloBroadcastLowering.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -92,6 +94,49 @@ MlirOp Constant(MlirBuilder& builder, std::vector<int64_t> value) {
   return builder.create<stablehlo::ConstantOp>(DenseIntElementsAttr::get(
       RankedTensorType::get({numel}, builder.getOpBuilder().getI64Type()),
       value));
+}
+
+
+MlirOp IotaLike(MlirOp input, int64_t dim, Type elementType) {
+  auto inputType = mlir::cast<RankedTensorType>(input.getType());
+  if (inputType.getRank() == 0) {
+    // Need to construct 1-D iota and reshape to 0-D.
+    auto iota = stablehlo::Iota(input.getBuilder(),
+                                inputType.clone({1}, elementType), dim);
+    return stablehlo::Reshape(iota, {});
+  }
+  if (inputType.hasStaticShape()) {
+    return stablehlo::Iota(input.getBuilder(), inputType.clone(elementType),
+                           dim);
+  }
+
+  // Use input's static shape and slice to the dynamic shape.
+  auto dims = mlir::stablehlo::getDimensions(input.getValue());
+  if (mlir::failed(dims)) llvm::report_fatal_error(
+      "failed to create dynamically shaped iota op, with MLIR error: ");
+
+  mlir::SmallVector<int64_t> iotaShape = llvm::map_to_vector(
+      *dims,
+      [&](mlir::stablehlo::DimensionInfo dim_size) { return dim_size.size; });
+  auto iotaType =
+      mlir::makeTensorType(input.getContext(), iotaShape, elementType);
+  mlir::MlirOp iota = mlir::stablehlo::Iota(input.getBuilder(), iotaType, dim);
+
+  // Slice bounded dimensions to the dynamic shape.
+  for (const mlir::stablehlo::DimensionInfo& dim : *dims) {
+    if (!dim.boundOp.has_value()) continue;
+
+    auto runtime_dim_size =
+        mlir::stablehlo::GetDimensionSize(input, dim.boundOpDim);
+    iota = mlir::stablehlo::SetDimensionSize(iota, runtime_dim_size,
+                                             dim.boundOpDim);
+  }
+  return iota;
+}
+
+MlirOp IotaLike(MlirOp input, int64_t dim, ElementType elementType) {
+  auto resultElementType = getElementType(input.getContext(), elementType);
+  return IotaLike(input, dim, resultElementType);
 }
 
 namespace {

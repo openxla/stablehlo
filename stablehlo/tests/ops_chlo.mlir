@@ -417,3 +417,90 @@ func.func @erf_inv(%arg0 : tensor<16x16xf32>) {
   %0 = chlo.erf_inv %arg0 : tensor<16x16xf32> -> tensor<16x16xf32>
   return
 }
+
+// -----
+
+// CHECK-LABEL: func @scan
+func.func @scan(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2x3xf32> {
+  // CHECK: chlo.scan
+  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 {
+  ^bb0(%input0: tensor<3xf32>, %carry0: tensor<3xf32>):
+    %2 = stablehlo.add %input0, %carry0 : tensor<3xf32>
+    stablehlo.return %2, %2 : tensor<3xf32>, tensor<3xf32>
+  } : (tensor<2x3xf32>, tensor<3xf32>) -> (tensor<2x3xf32>, tensor<3xf32>)
+  func.return %0 : tensor<2x3xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @scan_variadic
+func.func @scan_variadic(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>, %arg2: tensor<2x3xi32>, %arg3: tensor<3xi32>) -> (tensor<2x3xf32>, tensor<2x3xi32>) {
+  // CHECK: chlo.scan
+  %0:4 = chlo.scan(%arg0, %arg2) inits (%arg1, %arg3) dimension = 0 {
+  ^bb0(%arg4: tensor<3xf32>, %arg5: tensor<3xi32>, %arg6: tensor<3xf32>, %arg7: tensor<3xi32>):
+    %1 = stablehlo.add %arg4, %arg6 : tensor<3xf32>
+    %2 = stablehlo.add %arg5, %arg7 : tensor<3xi32>
+    stablehlo.return %1, %2, %1, %2 : tensor<3xf32>, tensor<3xi32>, tensor<3xf32>, tensor<3xi32>
+  } : (tensor<2x3xf32>, tensor<2x3xi32>, tensor<3xf32>, tensor<3xi32>) -> (tensor<2x3xf32>, tensor<2x3xi32>, tensor<3xf32>, tensor<3xi32>)
+  func.return %0#0, %0#1 : tensor<2x3xf32>, tensor<2x3xi32>
+}
+
+// -----
+
+func.func @scan_size_mismatch(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2x3xf32> {
+  // expected-error @+1 {{'chlo.scan' op expects 1 arguments in the body, but got 2}}
+  %0 = chlo.scan(%arg0) inits () dimension = 0 {
+  ^bb0(%arg2: tensor<3xf32>, %arg3: tensor<3xf32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<3xf32>
+    stablehlo.return %1 : tensor<3xf32>
+  } : (tensor<2x3xf32>) -> tensor<2x3xf32>
+  func.return %0 : tensor<2x3xf32>
+}
+
+// -----
+
+func.func @scan_element_type_mismatch(%arg0: tensor<2x3xf32>, %arg1: tensor<3xi32>) -> tensor<2x3xf32> {
+  // expected-error @+1 {{'chlo.scan' op operand and body argument 1 are incompatible}}
+  %0:2 = chlo.scan(%arg0) inits (%arg1) dimension = 0 {
+  ^bb0(%arg2: tensor<3xf32>, %arg3: tensor<3xf32>):
+    // This body is invalid given the types but checking the verifier first.
+    stablehlo.return %arg2, %arg2 : tensor<3xf32>, tensor<3xf32>
+  } : (tensor<2x3xf32>, tensor<3xi32>) -> (tensor<2x3xf32>, tensor<3xf32>)
+  func.return %0#0 : tensor<2x3xf32>
+}
+
+// -----
+
+func.func @scan_dim_out_of_bounds(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2x3xf32> {
+  // expected-error @+1 {{'chlo.scan' op scan dimension of operand 0 is out of bounds}}
+  %0:2 = chlo.scan(%arg0) inits (%arg1) dimension = 2 {
+  ^bb0(%arg2: tensor<3xf32>, %arg3: tensor<3xf32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<3xf32>
+    stablehlo.return %1, %1 : tensor<3xf32>, tensor<3xf32>
+  } : (tensor<2x3xf32>, tensor<3xf32>) -> (tensor<2x3xf32>, tensor<3xf32>)
+  func.return %0#0 : tensor<2x3xf32>
+}
+
+// -----
+
+func.func @scan_init_rank_mismatch(%arg0: tensor<2x3xf32>, %arg1: tensor<2x3xf32>) -> tensor<2x3xf32> {
+  // expected-error @+1 {{'chlo.scan' op operand and body argument 1 are incompatible}}
+  %0:2 = chlo.scan(%arg0) inits (%arg1) dimension = 0 {
+  ^bb0(%arg2: tensor<3xf32>, %arg3: tensor<3xf32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<3xf32>
+    stablehlo.return %1, %1 : tensor<3xf32>, tensor<3xf32>
+  } : (tensor<2x3xf32>, tensor<2x3xf32>) -> (tensor<2x3xf32>, tensor<2x3xf32>)
+  func.return %0#0 : tensor<2x3xf32>
+}
+
+// -----
+
+func.func @scan_init_shape_mismatch(%arg0: tensor<2x3xf32>, %arg1: tensor<2xf32>) -> tensor<2x3xf32> {
+  // expected-error @+1 {{'chlo.scan' op operand and body argument 1 are incompatible}}
+  %0:2 = chlo.scan(%arg0) inits (%arg1) dimension = 0 {
+  ^bb0(%arg2: tensor<3xf32>, %arg3: tensor<3xf32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<3xf32>
+    stablehlo.return %1, %1 : tensor<3xf32>, tensor<3xf32>
+  } : (tensor<2x3xf32>, tensor<2xf32>) -> (tensor<2x3xf32>, tensor<2xf32>)
+  func.return %0#0 : tensor<2x3xf32>
+}
