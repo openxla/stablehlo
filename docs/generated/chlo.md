@@ -1755,6 +1755,49 @@ Effects: `MemoryEffects::Effect{}`
 
 
 
+### `chlo.scan` (chlo::ScanOp)
+
+_Scan operation_
+
+Applies a reduction function `body` to `inputs` and `inits` along the
+`dimension` and produces `results` (comprising `outputs` and `carries`).
+
+If `is_reverse` is true, the scan is performed in reverse order.
+`is_associative` indicates whether the reduction function is associative.
+
+See: https://www.tensorflow.org/xla/operation_semantics#scan
+
+ScanOp currently does not have a decomposition to StableHLO.
+
+Traits: `AttrSizedOperandSegments`, `AttrSizedResultSegments`, `InferTensorType`, `IsolatedFromAbove`, `RecursiveMemoryEffects`
+
+Interfaces: `InferShapedTypeOpInterface`, `InferTypeOpInterface`, `OpAsmOpInterface`
+
+#### Attributes:
+
+<table>
+<tr><th>Attribute</th><th>MLIR Type</th><th>Description</th></tr>
+<tr><td><code>dimension</code></td><td>::mlir::IntegerAttr</td><td>64-bit signless integer attribute whose value is non-negative</td></tr>
+<tr><td><code>is_reverse</code></td><td>::mlir::BoolAttr</td><td>bool attribute</td></tr>
+<tr><td><code>is_associative</code></td><td>::mlir::BoolAttr</td><td>bool attribute</td></tr>
+</table>
+
+#### Operands:
+
+| Operand | Description |
+| :-----: | ----------- |
+| `inputs` | variadic of tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `inits` | variadic of tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+
+#### Results:
+
+| Result | Description |
+| :----: | ----------- |
+| `outputs` | variadic of tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+| `carries` | variadic of tensor of 4/6/8/16/32/64-bit float or bool or 2/4/8/16/32/64-bit integer or complex type with 32/64-bit float elements or per-tensor integer quantized or per-axis integer quantized values |
+
+
+
 ### `chlo.sinh` (chlo::SinhOp)
 
 _Sinh operation_
