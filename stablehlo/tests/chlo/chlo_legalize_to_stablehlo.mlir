@@ -753,6 +753,17 @@ func.func @conj(%arg0: tensor<3xcomplex<f32>>) -> tensor<3xcomplex<f32>> {
 
 // -----
 
+// CHECK-LABEL:   func.func @conj_real(
+// CHECK-SAME:                    %[[ARG0:.*]]: tensor<3xf32>) -> tensor<3xf32> {
+// CHECK:           return %[[ARG0]] : tensor<3xf32>
+// CHECK:         }
+func.func @conj_real(%arg0: tensor<3xf32>) -> tensor<3xf32> {
+  %1 = "chlo.conj"(%arg0) : (tensor<3xf32>) -> tensor<3xf32>
+  func.return %1 : tensor<3xf32>
+}
+
+// -----
+
 // CHECK-LABEL:   func.func @erf_f64(
 // CHECK-SAME:      %[[ARG0:.*]]: tensor<f64>) -> tensor<f64> {
 // CHECK:           %[[MULTIPLY_0:.*]] = stablehlo.multiply %[[ARG0]], %[[ARG0]] : tensor<f64>
