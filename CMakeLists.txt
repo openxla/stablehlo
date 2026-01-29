@@ -191,10 +191,9 @@ if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
   include(MLIRDetectPythonEnv)
   mlir_configure_python_dev_packages()
 
-  # Workaround for MLIR_BINDINGS_PYTHON_DOMAIN macro redefinition error in upstream 
-  # AddMLIRPython.cmake. This variable is not exported by MLIRConfig.cmake.
+  # Fix: Use a UNIQUE domain name to avoid collisions with other MLIR packages.
   if(NOT MLIR_BINDINGS_PYTHON_NB_DOMAIN)
-    set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "mlir" CACHE STRING "nanobind domain for MLIR python bindings.")
+    set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "stablehlo" CACHE STRING "nanobind domain for StableHLO")
   endif()
 endif()
 
