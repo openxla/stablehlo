@@ -442,3 +442,5 @@ Unable to generate builder for the following operations:
 
  - [`chlo.constant_like`](https://openxla.org/stablehlo/generated/chlo#chloconstant_like_chloconstant_likeop)
 
+ - [`chlo.scan`](https://openxla.org/stablehlo/generated/chlo#chloscan_chloscanop)
+

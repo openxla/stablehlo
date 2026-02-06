@@ -206,6 +206,79 @@ TEST(MlirBuilderTest, DotGeneralOp) {
   EXPECT_EQ(expected, debugString(*module));
 }
 
+TEST(MlirBuilderTest, IotaLikeStatic) {
+  std::string expected = R"mlir(module {
+  func.func @main(%arg0: tensor<2x3xi64>) -> tensor<2x3xi64> {
+    %0 = stablehlo.iota dim = 1 : tensor<2x3xi64>
+    return %0 : tensor<2x3xi64>
+  }
+})mlir";
+  StablehloModuleBuilder mb;
+  {  // Build Main Func
+    func::FunctionBuilder fb(mb.get(), "main");
+    auto& ctx = fb.getContext();
+    auto type2x3xi64 = makeTensorType(ctx, {2, 3}, ElementType::I64);
+    auto arg0 = func::Argument(fb, type2x3xi64);
+    auto iota = stablehlo::IotaLike(arg0, 1, type2x3xi64.getElementType());
+    func::Return(fb, iota);
+  }
+
+  OwningOpRef<ModuleOp> module = mb->build();
+  EXPECT_TRUE(succeeded(mlir::verify(*module)));
+  EXPECT_EQ(expected, debugString(*module));
+}
+
+TEST(MlirBuilderTest, IotaLikeScalar) {
+  std::string expected = R"mlir(module {
+  func.func @main(%arg0: tensor<i64>) -> tensor<i64> {
+    %0 = stablehlo.iota dim = 0 : tensor<1xi64>
+    %1 = stablehlo.reshape %0 : (tensor<1xi64>) -> tensor<i64>
+    return %1 : tensor<i64>
+  }
+})mlir";
+  StablehloModuleBuilder mb;
+  {  // Build Main Func
+    func::FunctionBuilder fb(mb.get(), "main");
+    auto& ctx = fb.getContext();
+    auto typei64 = makeTensorType(ctx, {}, ElementType::I64);
+    auto arg0 = func::Argument(fb, typei64);
+    auto iota = stablehlo::IotaLike(arg0, 0, typei64.getElementType());
+    func::Return(fb, iota);
+  }
+
+  OwningOpRef<ModuleOp> module = mb->build();
+  EXPECT_TRUE(succeeded(mlir::verify(*module)));
+  EXPECT_EQ(expected, debugString(*module));
+}
+
+TEST(MlirBuilderTest, IotaLikeDynamic) {
+  std::string expected = R"mlir(module {
+  func.func @main(%arg0: tensor<2x3xi64>, %arg1: tensor<i32>) -> tensor<?x3xi64, #stablehlo.bounds<2, ?>> {
+    %0 = stablehlo.set_dimension_size %arg0, %arg1, dim = 0 : (tensor<2x3xi64>, tensor<i32>) -> tensor<?x3xi64, #stablehlo.bounds<2, ?>>
+    %1 = stablehlo.iota dim = 1 : tensor<2x3xi64>
+    %2 = stablehlo.get_dimension_size %0, dim = 0 : (tensor<?x3xi64, #stablehlo.bounds<2, ?>>) -> tensor<i32>
+    %3 = stablehlo.set_dimension_size %1, %2, dim = 0 : (tensor<2x3xi64>, tensor<i32>) -> tensor<?x3xi64, #stablehlo.bounds<2, ?>>
+    return %3 : tensor<?x3xi64, #stablehlo.bounds<2, ?>>
+  }
+})mlir";
+  StablehloModuleBuilder mb;
+  {  // Build Main Func
+    func::FunctionBuilder fb(mb.get(), "main");
+    auto& ctx = fb.getContext();
+    auto type2x3xi64 = makeTensorType(ctx, {2, 3}, ElementType::I64);
+    auto typei32 = makeTensorType(ctx, {}, ElementType::I32);
+    auto arg0 = func::Argument(fb, type2x3xi64);
+    auto arg1 = func::Argument(fb, typei32);
+    auto sds = stablehlo::SetDimensionSize(arg0, arg1, 0);
+    auto iota = stablehlo::IotaLike(sds, 1, type2x3xi64.getElementType());
+    func::Return(fb, iota);
+  }
+
+  OwningOpRef<ModuleOp> module = mb->build();
+  EXPECT_TRUE(succeeded(mlir::verify(*module)));
+  EXPECT_EQ(expected, debugString(*module));
+}
+
 TEST(MlirBuilderTest, ReduceOp) {
   std::string expected = R"mlir(module {
   func.func @main(%arg0: tensor<2xi64>) -> tensor<i64> {
