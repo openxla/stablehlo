@@ -190,6 +190,16 @@ setup_sanitizers()
 if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
   include(MLIRDetectPythonEnv)
   mlir_configure_python_dev_packages()
+  if(NOT MLIR_PYTHON_PACKAGE_PREFIX)
+    set(MLIR_PYTHON_PACKAGE_PREFIX "stablehlo" CACHE STRING "" FORCE)
+  endif()
+  if(NOT MLIR_BINDINGS_PYTHON_NB_DOMAIN)
+    set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "stablehlo" CACHE STRING "" FORCE)
+  endif()
+  if(NOT MLIR_BINDINGS_PYTHON_INSTALL_PREFIX)
+    set(MLIR_BINDINGS_PYTHON_INSTALL_PREFIX "python_packages/standalone/${MLIR_PYTHON_PACKAGE_PREFIX}" CACHE STRING "" FORCE)
+  endif()
+
 endif()
 
 #-------------------------------------------------------------------------------

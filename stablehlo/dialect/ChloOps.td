@@ -31,6 +31,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_CHLO_OPS
 
 include "mlir/IR/BuiltinAttributeInterfaces.td"
+include "mlir/IR/OpAsmInterface.td"
 include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
@@ -932,6 +933,55 @@ row for matrices).}]>:$k
     `(`$operand `,` `k` `=` $k`)` attr-dict `:`
     type($operand) `->` `(`type($values)`,` type($indices)`)`
   }];
+}
+
+def CHLO_ScanOp : CHLO_Op<"scan", [
+      AttrSizedOperandSegments,
+      AttrSizedResultSegments,
+      InferTensorTypeWithReify,
+      IsolatedFromAbove,
+      OpAsmOpInterface,
+      RecursiveMemoryEffects,
+    ]> {
+  string summary = "Scan operation";
+
+  string description = [{
+    Applies a reduction function `body` to `inputs` and `inits` along the
+    `dimension` and produces `results` (comprising `outputs` and `carries`).
+
+    If `is_reverse` is true, the scan is performed in reverse order.
+    `is_associative` indicates whether the reduction function is associative.
+
+    See: https://www.tensorflow.org/xla/operation_semantics#scan
+
+    ScanOp currently does not have a decomposition to StableHLO.
+  }];
+
+  let arguments = (ins
+    Variadic<HLO_AnyTensor>:$inputs,
+    Variadic<HLO_AnyTensor>:$inits,
+    ConfinedAttr<I64Attr, [IntNonNegative]>:$dimension,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_reverse,
+    OptionalAttr<BoolAttr>:$is_associative
+  );
+
+  let results = (outs
+    Variadic<HLO_AnyTensor>:$outputs,
+    Variadic<HLO_AnyTensor>:$carries
+  );
+
+  let regions = (region SizedRegion<1>:$body);
+
+  let extraClassDeclaration = [{
+    void getAsmBlockArgumentNames(Region &region, OpAsmSetValueNameFn setNameFn) {
+      for (size_t i = 0; i < region.getNumArguments(); ++i) {
+        setNameFn(region.getArgument(i), i < getInputs().size() ? "input" : "carry");
+      }
+    }
+  }];
+
+  let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
 }
 
 #endif  // STABLEHLO_DIALECT_CHLO_OPS

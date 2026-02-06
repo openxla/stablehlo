@@ -2000,6 +2000,7 @@ cc_library(
     deps = [
         ":attr_type_builder_util",
         ":mlir_builder",
+        ":stablehlo_broadcast_lowering",
         ":stablehlo_builder_inc",
         ":stablehlo_ops",
         ":stablehlo_type_inference",
