@@ -271,7 +271,7 @@ def test_api_version():
 
 
 def is_semver_format(version_str):
-  return re.match("^\d+\.\d+\.\d+$", version_str)
+  return re.match(r"^\d+\.\d+\.\d+$", version_str)
 
 
 @run
