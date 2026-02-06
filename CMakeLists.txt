@@ -191,7 +191,9 @@ if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
   include(MLIRDetectPythonEnv)
   mlir_configure_python_dev_packages()
   if(NOT MLIR_BINDINGS_PYTHON_NB_DOMAIN)
-    set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "stablehlo" CACHE STRING "" FORCE)
+    set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "stablehlo"
+        CACHE STRING "nanobind domain for StableHLO"
+        FORCE)
   endif()
 endif()
 
