@@ -132,7 +132,7 @@ declare_mlir_python_extension(StablehloPythonExtensions.Main
   EMBED_CAPI_LINK_LIBS
     StablehloCAPI
   PRIVATE_LINK_LIBS
-    StablehloCAPI
+    # StablehloCAPI
     LLVMSupport
 )
 

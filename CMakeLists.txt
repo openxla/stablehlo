@@ -193,7 +193,7 @@ if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
 
   # Fix: Use a UNIQUE domain name to avoid collisions with other MLIR packages.
   if(NOT MLIR_BINDINGS_PYTHON_NB_DOMAIN)
-    set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "stablehlo" CACHE STRING "nanobind domain for StableHLO")
+    set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "stablehlo" CACHE STRING "nanobind domain for StableHLO" FORCE)
   endif()
 endif()
 
