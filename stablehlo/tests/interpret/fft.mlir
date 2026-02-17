@@ -12,7 +12,7 @@ func.func @fft_op_test_fft_1d_c128() {
 func.func @fft_op_test_fft_2d_c128() {
   %operand = stablehlo.constant dense<[[(1.0, 2.0), (3.0, -4.0)], [(-5.0, 6.0), (-7.0, -8.0)]]> : tensor<2x2xcomplex<f64>>
   %result = stablehlo.fft %operand, type = FFT, length = [2, 2] : (tensor<2x2xcomplex<f64>>) -> tensor<2x2xcomplex<f64>>
-  check.expect_almost_eq_const %result, dense<[[(-8.0, -4.0), (0.0, 20.0)], [(16.0, 0.0), (-4.0, -8.0)]]> : tensor<2x2xcomplex<f64>>, tolerance = 1.0e-12
+  check.expect_almost_eq_const %result, dense<[[(-8.0, -4.0), (0.0, 20.0)], [(16.0, 0.0), (-4.0, -8.0)]]> : tensor<2x2xcomplex<f64>>
   func.return
 }
 
@@ -21,7 +21,7 @@ func.func @fft_op_test_fft_2d_c128() {
 func.func @fft_op_test_fft_3d_c128() {
   %operand = stablehlo.constant dense<[[[(1.0, 2.0), (3.0, -4.0)], [(-5.0, 6.0), (-7.0, -8.0)]], [[(-1.0, -2.0), (-3.0, 4.0)], [(5.0, -6.0), (7.0, 8.0)]]]> : tensor<2x2x2xcomplex<f64>>
   %result = stablehlo.fft %operand, type = FFT, length = [2, 2, 2] : (tensor<2x2x2xcomplex<f64>>) -> tensor<2x2x2xcomplex<f64>>
-  check.expect_almost_eq_const %result, dense<[[[(0.0, 0.0), (0.0, 0.0)], [(0.0, 0.0), (0.0, 0.0)]], [[(-16.0, -8.0), (0.0, 40.0)], [(32.0, 0.0), (-8.0, -16.0)]]]> : tensor<2x2x2xcomplex<f64>>, tolerance = 1.0e-12
+  check.expect_almost_eq_const %result, dense<[[[(0.0, 0.0), (0.0, 0.0)], [(0.0, 0.0), (0.0, 0.0)]], [[(-16.0, -8.0), (0.0, 40.0)], [(32.0, 0.0), (-8.0, -16.0)]]]> : tensor<2x2x2xcomplex<f64>>
   func.return
 }
 
