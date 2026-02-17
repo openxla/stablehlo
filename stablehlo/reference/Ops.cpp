@@ -1831,7 +1831,8 @@ Tensor fftOp(const Tensor &operand, const FftType fftType, const ArrayRef<int64_
     // compute IFFT as conjugation, FFT, conjugation and normalization
     Tensor result(operand);
     for (auto d = fftDims.begin(); d != fftDims.end(); ++d) {
-      auto divisor = constantOp(mlir::DenseElementsAttr::get(resultType, resultType.getDimSize(*d)));
+      auto divisorValue = std::complex<APFloat>(APFloat(static_cast<double>(resultType.getDimSize(*d))), APFloat(0.0));
+      auto divisor = constantOp(mlir::DenseElementsAttr::get(resultType, divisorValue));
       result = divideOp(conjugate(__fft_1d(conjugate(result), resultType, *d)), divisor, resultType);
     }
     return result;
