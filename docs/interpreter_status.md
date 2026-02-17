@@ -8,7 +8,7 @@ to the semantics of even the most involved operations like `Convolution`,
 `Gather`/`Scatter`, and `DotGeneral`.
 
 At the moment, OpenXLA supports the interpretation of 91 out of 96 specced
-StableHLO ops. The remaining 3 ops (`FftOp`, `RngOp`, `RngBitGeneratorOp`) have
+StableHLO ops. The remaining 2 ops (`RngOp` and `RngBitGeneratorOp`) have
 their semantics documented in
 [spec.md](https://github.com/openxla/stablehlo/blob/main/docs/spec.md), and have
 completed initial investigations on how to move forward (see
@@ -41,13 +41,8 @@ This category has decomposable ops whose future is unclear at the moment. There
 are three specced ops in this category that the interpreter does not support at
 the moment:
 
-* `FftOp`
 * `RngOp`
 * `RngBitGeneratorOp`
-
-`FftOp` is categorized as Miscellaneous, but unlike other ops in this category,
-this op does not have an expander pass, and supporting this in StableHLO is a
-WIP.
 
 `RngOp` and `RngBitGeneratorOp` can be decomposed into MHLO ops, but the
 decomposition introduces a `XlaRngGetAndUpdateStateOp` which is an MHLO specific
