@@ -735,6 +735,12 @@ SmallVector<InterpreterValue> eval(Region &region,
       auto operand = scope.findTensor(op.getOperand());
       auto result = expm1Op(operand, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<FftOp>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto fftType = op.getFftType();
+      auto fftLength = op.getFftLength();
+      auto result = fftOp(operand, fftType, op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<FloorOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto result = floorOp(operand, op.getType());
@@ -1774,6 +1780,20 @@ Tensor exponentialOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, exponential(operand.get(*it)));
+  return result;
+}
+
+Tensor fftOp(const Tensor &operand, FftType fftType, Axes fftLength, ShapedType resultType) {
+  Tensor result(resultType);
+  if (fftType == FftType::FFT) {
+    // TODO implement FFT
+  } else if (fftType == FftType::IFFT) {
+    // TODO implement IFFT
+  } else if (fftType == FftType::RFFT) {
+    // TODO implement RFFT
+  } else if (fftType == FftType::IRFFT) {
+    // TODO implement IRFFT
+  }
   return result;
 }
 
