@@ -181,7 +181,7 @@ bool areApproximatelyEqual(APFloat f, APFloat g, APFloat tolerance) {
   }
 
   // Both f and g are finite (zero, subnormal, or normal) values.
-  if (f.isNegative() != g.isNegative()) return false;
+  if (!f.isFinite() || !g.isFinite()) return false;
   return std::fabs(f.convertToDouble() - g.convertToDouble()) <=
          tolerance.convertToDouble();
 }
