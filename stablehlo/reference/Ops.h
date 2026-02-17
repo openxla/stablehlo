@@ -99,7 +99,7 @@ Tensor dynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
 Tensor expm1Op(const Tensor &operand, ShapedType resultType);
 Tensor exponentialOp(const Tensor &operand, ShapedType resultType);
 Tensor fftOp(const Tensor &operand, const FftType fftType,
-             const Axes &fftLength, ShapedType resultType);
+             const ArrayRef<int64_t> &fftLength, ShapedType resultType);
 Tensor floorOp(const Tensor &operand, ShapedType resultType);
 Tensor gatherOp(const Tensor &operand, const Tensor &startIndices,
                 const Axes &offsetDims, const Axes &collapsedSliceDims,

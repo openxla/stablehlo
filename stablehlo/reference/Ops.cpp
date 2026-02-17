@@ -738,8 +738,8 @@ SmallVector<InterpreterValue> eval(Region &region,
     } else if (auto op = dyn_cast<FftOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto fftType = op.getFftType();
-      auto fftLength = op.getFftLength();
-      auto result = fftOp(operand, fftType, op.getType());
+      auto fftLength = op.getFftLength().asArrayRef();
+      auto result = fftOp(operand, fftType, fftLength, op.getType());
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<FloorOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
