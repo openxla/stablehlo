@@ -1783,8 +1783,9 @@ Tensor exponentialOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
-Tensor fftOp(const Tensor &operand, FftType fftType, Axes fftLength, ShapedType resultType) {
+Tensor fftOp(const Tensor &operand, FftType fftType, ArrayRef<int64_t> fftLength, ShapedType resultType) {
   Tensor result(resultType);
+  auto fftRank = fftLength.size();
   if (fftType == FftType::FFT) {
     // TODO implement FFT
   } else if (fftType == FftType::IFFT) {
