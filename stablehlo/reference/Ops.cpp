@@ -1843,31 +1843,42 @@ Tensor fftOp(const Tensor &operand, const FftType fftType, const ArrayRef<int64_
     result = __fft_1d(result, result.getType(), d);
     result = sliceOp(result, Sizes(operand.getRank(), 0), Sizes(operand.getRank(), 1), resultType);
     
+    // compute remaining FFT steps
     fftDims.pop_back();
     for (auto d = fftDims.rbegin(); d != fftDims.rend(); ++d) {
       result = __fft_1d(result, resultType, *d);
     }
     return result;
   } else if (fftType == FftType::IRFFT) {
-    // compute IRFFT as conjugation, FFT with slicing, conjugation and normalization
     Tensor result(operand);
-    
-    auto d_irfft = fftDims.back();
-    fftDims.pop_back();
-    auto divisor = constantOp(mlir::DenseElementsAttr::get(resultType, resultType.getDimSize(d_irfft)));
+    auto renormFactor = std::transform_reduce(fftDims.begin(), fftDims.end(), 1, std::multiplies<int64_t>(), [&](int64_t d) {
+      return resultType.getDimSize(d);
+    });
+
+    // use FFT to compute the IFFT steps
+    auto d_irfft = fftDims.pop_back_val();
     for (auto d = fftDims.begin(); d != fftDims.end(); ++d) {
-      result = divideOp(conjugate(__fft_1d(conjugate(result), resultType, *d)), divisor, resultType);
+      result = conjugate(__fft_1d(conjugate(result), result.getType(), *d));
     }
 
-    // undo slicing
+    // undo slicing done in RFFT by concatenating a complex-conjugate replica
     auto replicaShape = result.getShape();
     replicaShape.back() -= 1;
-    auto replica = conjugate(reverseOp(sliceOp(result, Sizes(result.getRank(), 0), Sizes(result.getRank(), 1), replicaShape), Axes(d_irfft), result.getType()));
-    result = concatenateOp({result, replica}, d_irfft, resultType);
+    auto startIndices = Sizes(result.getRank(), 0);
+    startIndices.back() = 1;
+    auto strides = Sizes(result.getRank(), 1);
+    auto replica = sliceOp(result, startIndices, replicaShape, strides);
+    replica = conjugate(reverseOp(replica, Axes{d_irfft}, replica.getType()));
+    auto complexType = ComplexType::get(cast<FloatType>(resultType.getElementType()));
+    result = concatenateOp({result, replica}, Axis{d_irfft}, resultType.cloneWith(std::nullopt, complexType));
 
-    divisor = constantOp(mlir::DenseElementsAttr::get(resultType, resultType.getDimSize(d_irfft)));
-    result = divideOp(realOp(__fft_1d(conjugate(result), result.getType(), d_irfft), resultType), divisor, resultType);
-    return result;
+    // compute IRFFT as the real-part of conjugated FFT
+    result = realOp(__fft_1d(conjugate(result), result.getType(), d_irfft), resultType);
+
+    // normalize result of inverse transformation
+    auto divisorValue = APFloat(static_cast<double>(renormFactor));
+    auto divisor = constantOp(mlir::DenseElementsAttr::get(resultType, divisorValue));
+    return divideOp(result,divisor,resultType);
   } else {
     llvm::report_fatal_error(invalidArgument("Unsupported FFT type: %d", static_cast<int>(fftType)));
   }
