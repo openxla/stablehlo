@@ -1783,21 +1783,26 @@ Tensor exponentialOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
-Tensor __fft_1d(const Tensor &operand, ShapedType resultType, int64_t dimension) {
+Tensor __fft_1d(const Tensor &operand, ShapedType resultType,
+                int64_t dimension) {
   Tensor result(resultType);
 
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end(); ++resultIt) {
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt) {
     auto resultIndex = *resultIt;
     auto N = operand.getShape()[dimension];
 
-    Element X(resultType.getElementType(), std::complex<APFloat>(APFloat(0.0), APFloat(0.0)));
+    Element X(resultType.getElementType(),
+              std::complex<APFloat>(APFloat(0.0), APFloat(0.0)));
 
     for (int n = 0; n < N; n++) {
       auto operandIndex = Index(resultIndex);
       operandIndex[dimension] = n;
 
-      auto floatType = cast<ComplexType>(operand.getElementType()).getElementType();
-      Element phase(floatType, APFloat(- 2 * M_PI * n * resultIndex[dimension] / N));
+      auto floatType =
+          cast<ComplexType>(operand.getElementType()).getElementType();
+      Element phase(floatType,
+                    APFloat(-2 * M_PI * n * resultIndex[dimension] / N));
       auto rotator = complex(cosine(phase), sine(phase));
       X = X + operand.get(operandIndex) * rotator;
     }
@@ -1815,7 +1820,8 @@ Tensor conjugate(const Tensor &operand) {
   return complexOp(real, negOp(imag, floatResultType), operand.getType());
 }
 
-Tensor fftOp(const Tensor &operand, const FftType fftType, const ArrayRef<int64_t> &fftLength, ShapedType resultType) {
+Tensor fftOp(const Tensor &operand, const FftType fftType,
+             const ArrayRef<int64_t> &fftLength, ShapedType resultType) {
   auto fftRank = fftLength.size();
   auto nBatchDims = resultType.getRank() - fftRank;
   Axes fftDims(fftRank);
@@ -1831,18 +1837,25 @@ Tensor fftOp(const Tensor &operand, const FftType fftType, const ArrayRef<int64_
     // compute IFFT as conjugation, FFT, conjugation and normalization
     Tensor result(operand);
     for (auto d = fftDims.begin(); d != fftDims.end(); ++d) {
-      auto divisorValue = std::complex<APFloat>(APFloat(static_cast<double>(resultType.getDimSize(*d))), APFloat(0.0));
-      auto divisor = constantOp(mlir::DenseElementsAttr::get(resultType, divisorValue));
-      result = divideOp(conjugate(__fft_1d(conjugate(result), resultType, *d)), divisor, resultType);
+      auto divisorValue = std::complex<APFloat>(
+          APFloat(static_cast<double>(resultType.getDimSize(*d))),
+          APFloat(0.0));
+      auto divisor =
+          constantOp(mlir::DenseElementsAttr::get(resultType, divisorValue));
+      result = divideOp(conjugate(__fft_1d(conjugate(result), resultType, *d)),
+                        divisor, resultType);
     }
     return result;
   } else if (fftType == FftType::RFFT) {
     // compute RFFT as FFT with slicing
-    auto result = convertOp(operand, operand.getType().cloneWith(std::nullopt, resultType.getElementType()));
+    auto result = convertOp(
+        operand,
+        operand.getType().cloneWith(std::nullopt, resultType.getElementType()));
     auto d = fftDims.back();
     result = __fft_1d(result, result.getType(), d);
-    result = sliceOp(result, Sizes(operand.getRank(), 0), Sizes(operand.getRank(), 1), resultType);
-    
+    result = sliceOp(result, Sizes(operand.getRank(), 0),
+                     Sizes(operand.getRank(), 1), resultType);
+
     // compute remaining FFT steps
     fftDims.pop_back();
     for (auto d = fftDims.rbegin(); d != fftDims.rend(); ++d) {
@@ -1851,9 +1864,9 @@ Tensor fftOp(const Tensor &operand, const FftType fftType, const ArrayRef<int64_
     return result;
   } else if (fftType == FftType::IRFFT) {
     Tensor result(operand);
-    auto renormFactor = std::transform_reduce(fftDims.begin(), fftDims.end(), 1, std::multiplies<int64_t>(), [&](int64_t d) {
-      return resultType.getDimSize(d);
-    });
+    auto renormFactor = std::transform_reduce(
+        fftDims.begin(), fftDims.end(), 1, std::multiplies<int64_t>(),
+        [&](int64_t d) { return resultType.getDimSize(d); });
 
     // use FFT to compute the IFFT steps
     auto d_irfft = fftDims.pop_back_val();
@@ -1869,18 +1882,23 @@ Tensor fftOp(const Tensor &operand, const FftType fftType, const ArrayRef<int64_
     auto strides = Sizes(result.getRank(), 1);
     auto replica = sliceOp(result, startIndices, replicaShape, strides);
     replica = conjugate(reverseOp(replica, Axes{d_irfft}, replica.getType()));
-    auto complexType = ComplexType::get(cast<FloatType>(resultType.getElementType()));
-    result = concatenateOp({result, replica}, Axis{d_irfft}, resultType.cloneWith(std::nullopt, complexType));
+    auto complexType =
+        ComplexType::get(cast<FloatType>(resultType.getElementType()));
+    result = concatenateOp({result, replica}, Axis{d_irfft},
+                           resultType.cloneWith(std::nullopt, complexType));
 
     // compute IRFFT as the real-part of conjugated FFT
-    result = realOp(__fft_1d(conjugate(result), result.getType(), d_irfft), resultType);
+    result = realOp(__fft_1d(conjugate(result), result.getType(), d_irfft),
+                    resultType);
 
     // normalize result of inverse transformation
     auto divisorValue = APFloat(static_cast<double>(renormFactor));
-    auto divisor = constantOp(mlir::DenseElementsAttr::get(resultType, divisorValue));
-    return divideOp(result,divisor,resultType);
+    auto divisor =
+        constantOp(mlir::DenseElementsAttr::get(resultType, divisorValue));
+    return divideOp(result, divisor, resultType);
   } else {
-    llvm::report_fatal_error(invalidArgument("Unsupported FFT type: %d", static_cast<int>(fftType)));
+    llvm::report_fatal_error(
+        invalidArgument("Unsupported FFT type: %d", static_cast<int>(fftType)));
   }
 }
 
