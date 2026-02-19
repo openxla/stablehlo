@@ -81,8 +81,12 @@ def : Pat<(CHLO_AtanhOp NonComplexElementType:$input),
 
 // Express `conj` as
 //   conj(x) = (re(x), -im(x)).
-def : Pat<(CHLO_ConjOp $v),
+def : Pat<(CHLO_ConjOp ComplexElementType:$v),
           (StableHLO_ComplexOp (StableHLO_RealOp $v), (StableHLO_NegOp (StableHLO_ImagOp $v)))>;
+
+//   conj(x) = x if x is real
+def : Pat<(CHLO_ConjOp NonComplexElementType:$v),
+          (replaceWithValue $v)>;
 
 // Express `is_inf` as
 //   is_inf(x) = is_pos_inf(|x|)
