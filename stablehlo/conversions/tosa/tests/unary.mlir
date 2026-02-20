@@ -114,6 +114,28 @@ func.func @slice_rank_seven(%arg : tensor<2x3x4x5x6x7x8xf32>) -> tensor<1x2x3x4x
   return %0 : tensor<1x2x3x4x5x6x7xf32>
 }
 
+// CHECK-LABEL: @dynamic_slice_constant_start
+func.func @dynamic_slice_constant_start(%arg : tensor<10x10xf32>) -> tensor<2x3xf32> {
+  // CHECK-DAG: %[[START:.*]] = tosa.const_shape {values = dense<[1, 2]> : tensor<2xindex>} : () -> !tosa.shape<2>
+  // CHECK-DAG: %[[SIZE:.*]] = tosa.const_shape {values = dense<[2, 3]> : tensor<2xindex>} : () -> !tosa.shape<2>
+  // CHECK: tosa.slice %arg0, %[[START]], %[[SIZE]]
+  %start0 = "stablehlo.constant"() {value = dense<1> : tensor<i32>} : () -> tensor<i32>
+  %start1 = "stablehlo.constant"() {value = dense<2> : tensor<i32>} : () -> tensor<i32>
+  %0 = "stablehlo.dynamic_slice"(%arg, %start0, %start1) {
+    slice_sizes = array<i64: 2, 3>
+  } : (tensor<10x10xf32>, tensor<i32>, tensor<i32>) -> tensor<2x3xf32>
+  return %0 : tensor<2x3xf32>
+}
+
+// CHECK-LABEL: @dynamic_slice_runtime_start
+func.func @dynamic_slice_runtime_start(%arg0 : tensor<10x10xf32>, %arg1 : tensor<i32>, %arg2 : tensor<i32>) -> tensor<2x3xf32> {
+  // CHECK: stablehlo.dynamic_slice
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {
+    slice_sizes = array<i64: 2, 3>
+  } : (tensor<10x10xf32>, tensor<i32>, tensor<i32>) -> tensor<2x3xf32>
+  return %0 : tensor<2x3xf32>
+}
+
 // CHECK-LABEL: @tanh
 func.func @tanh(%arg : tensor<10xf32>) -> tensor<10xf32> {
   // CHECK: tosa.tanh
