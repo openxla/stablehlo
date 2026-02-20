@@ -1,3 +1,4 @@
+// REQUIRES: asserts
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
 // RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
 // RUN: stablehlo-opt %s > %t.1
