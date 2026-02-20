@@ -978,6 +978,9 @@ def CHLO_ScanOp : CHLO_Op<"scan", [
         setNameFn(region.getArgument(i), i < getInputs().size() ? "input" : "carry");
       }
     }
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      return succeeded(mlir::verifyCompatibleShapes(l, r));
+    }
   }];
 
   let hasCustomAssemblyFormat = 1;

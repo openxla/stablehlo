@@ -5134,3 +5134,47 @@ func.func @ragged_dot_mode_1(%lhs : tensor<2x11x5xf32>, %rhs : tensor<3x2x5x7xf3
   } : (tensor<2x11x5xf32>, tensor<3x2x5x7xf32>, tensor<3xi64>) -> tensor<2x11x7xf32>
   func.return %0 : tensor<2x11x7xf32>
 }
+
+// -----
+
+// CHECK-LABEL:   func.func @scan(
+// CHECK-SAME:      %[[ARG0:.*]]: tensor<2xi32>,
+// CHECK-SAME:      %[[ARG1:.*]]: tensor<i32>) -> (tensor<2xi32>, tensor<i32>) {
+// CHECK-DAG:       %[[GET_DIMENSION_SIZE:.*]] = stablehlo.get_dimension_size %[[ARG0]], dim = 0 : (tensor<2xi32>) -> tensor<i32>
+// CHECK-DAG:       %[[CONVERT:.*]] = stablehlo.convert %[[GET_DIMENSION_SIZE]] : (tensor<i32>) -> tensor<i64>
+// CHECK-DAG:       %[[C0_I64:.*]] = stablehlo.constant dense<0> : tensor<i64>
+// CHECK-DAG:       %[[C0_I32:.*]] = stablehlo.constant dense<0> : tensor<i32>
+// CHECK-DAG:       %[[BROADCAST:.*]] = stablehlo.broadcast %[[C0_I32]], sizes = [2] : (tensor<i32>) -> tensor<2xi32>
+// CHECK:           %[[WHILE:.*]]:3 = stablehlo.while(%[[ITER:.*]] = %[[C0_I64]], %[[ACC:.*]] = %[[ARG1]], %[[OUT:.*]] = %[[BROADCAST]]) : tensor<i64>, tensor<i32>, tensor<2xi32>
+// CHECK:             cond {
+// CHECK:               %[[CMP:.*]] = stablehlo.compare  LT, %[[ITER]], %[[CONVERT]] : (tensor<i64>, tensor<i64>) -> tensor<i1>
+// CHECK:               stablehlo.return %[[CMP]] : tensor<i1>
+// CHECK:             } do {
+// CHECK-DAG:           %[[C0_I64_2:.*]] = stablehlo.constant dense<0> : tensor<i64>
+// CHECK-DAG:           %[[RESHAPE_ITER:.*]] = stablehlo.reshape %[[ITER]] : (tensor<i64>) -> tensor<1xi64>
+// CHECK-DAG:           %[[CONCAT_START:.*]] = stablehlo.concatenate %[[RESHAPE_ITER]], dim = 0 : (tensor<1xi64>) -> tensor<1xi64>
+// CHECK-DAG:           %[[C1_I64:.*]] = stablehlo.constant dense<1> : tensor<i64>
+// CHECK-DAG:           %[[ITER_PLUS_1:.*]] = stablehlo.add %[[ITER]], %[[C1_I64]] : tensor<i64>
+// CHECK-DAG:           %[[RESHAPE_LIMIT:.*]] = stablehlo.reshape %[[ITER_PLUS_1]] : (tensor<i64>) -> tensor<1xi64>
+// CHECK-DAG:           %[[CONCAT_LIMIT:.*]] = stablehlo.concatenate %[[RESHAPE_LIMIT]], dim = 0 : (tensor<1xi64>) -> tensor<1xi64>
+// CHECK-DAG:           %[[STRIDES:.*]] = stablehlo.constant dense<1> : tensor<1xi64>
+// CHECK-DAG:           %[[SLICE:.*]] = stablehlo.real_dynamic_slice %[[ARG0]], %[[CONCAT_START]], %[[CONCAT_LIMIT]], %[[STRIDES]] : (tensor<2xi32>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<1xi32>
+// CHECK-DAG:           %[[INPUT_ELEM:.*]] = stablehlo.reshape %[[SLICE]] : (tensor<1xi32>) -> tensor<i32>
+// CHECK-DAG:           %[[ADD_RES:.*]] = stablehlo.add %[[INPUT_ELEM]], %[[ACC]] : tensor<i32>
+// CHECK-DAG:           %[[RESHAPE_RES:.*]] = stablehlo.reshape %[[ADD_RES]] : (tensor<i32>) -> tensor<1xi32>
+// CHECK-DAG:           %[[C0_I64_3:.*]] = stablehlo.constant dense<0> : tensor<i64>
+// CHECK-DAG:           %[[UPDATE:.*]] = stablehlo.dynamic_update_slice %[[OUT]], %[[RESHAPE_RES]], %[[ITER]] : (tensor<2xi32>, tensor<1xi32>, tensor<i64>) -> tensor<2xi32>
+// CHECK-DAG:           %[[C1_I64_2:.*]] = stablehlo.constant dense<1> : tensor<i64>
+// CHECK-DAG:           %[[NEXT_ITER:.*]] = stablehlo.add %[[ITER]], %[[C1_I64_2]] : tensor<i64>
+// CHECK:               stablehlo.return %[[NEXT_ITER]], %[[ADD_RES]], %[[UPDATE]] : tensor<i64>, tensor<i32>, tensor<2xi32>
+// CHECK:             }
+// CHECK:           return %[[WHILE]]#2, %[[WHILE]]#1 : tensor<2xi32>, tensor<i32>
+// CHECK:         }
+func.func @scan(%arg0: tensor<2xi32>, %arg1: tensor<i32>) -> (tensor<2xi32>, tensor<i32>) {
+  %0:2 = chlo.scan(%arg0) inits(%arg1) dimension=0 {
+  ^bb0(%scan_arg0: tensor<i32>, %scan_arg1: tensor<i32>):
+    %1 = stablehlo.add %scan_arg0, %scan_arg1 : tensor<i32>
+    stablehlo.return %1, %1 : tensor<i32>, tensor<i32>
+  } : (tensor<2xi32>, tensor<i32>) -> (tensor<2xi32>, tensor<i32>)
+  func.return %0#0, %0#1 : tensor<2xi32>, tensor<i32>
+}

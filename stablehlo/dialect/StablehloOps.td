@@ -56,9 +56,9 @@ include "stablehlo/dialect/StablehloEnums.td"
 include "stablehlo/dialect/StablehloAttrs.td"
 include "stablehlo/dialect/StablehloTypes.td"
 
-class StableHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits> :
+class StableHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits, list<string> extraMethodOverrides = []> :
     StableHLO_Op<mnemonic, traits # [DeclareOpInterfaceMethods<InferShapedTypeOpInterface,
-    ["reifyReturnTypeShapes"]>]> {}
+    ["reifyReturnTypeShapes"] # extraMethodOverrides>]> {}
 
 class StableHLO_ResourceBase<string resourceKind> :
     Resource<!strconcat("::mlir::stablehlo::side_effects::", resourceKind)> {}
@@ -2557,7 +2557,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   }];
 }
 
-def StableHLO_DotOp: StableHLO_Op<"dot", [Pure]> {
+def StableHLO_DotOp: StableHLO_Op<"dot", [Pure, DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>]> {
   let summary = "Dot operation";
   let description = [{
     This operation is on its way out of StableHLO, so it is not included in
@@ -2587,7 +2587,8 @@ def StableHLO_DotOp: StableHLO_Op<"dot", [Pure]> {
 }
 
 def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
-    [ConditionallySpeculatable, NoMemoryEffect]> {
+    [ConditionallySpeculatable, NoMemoryEffect,
+     DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>]> {
   let summary = "DotGeneral operation";
   let description = [{
     Computes dot products between slices of `lhs` and slices of `rhs` and
