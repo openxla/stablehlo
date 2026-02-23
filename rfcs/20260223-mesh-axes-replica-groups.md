@@ -3,7 +3,7 @@
 Status: In Review<br/>
 Initial version: 02/23/2026<br/>
 Last updated: 02/23/2026<br/>
-Discussion thread: https://github.com/openxla/stablehlo/pull/2903
+Discussion thread: N/A
 
 ## Overview
 
