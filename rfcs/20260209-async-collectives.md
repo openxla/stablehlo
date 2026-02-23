@@ -2,8 +2,8 @@
 
 Status: In Review<br/>
 Initial version: 02/09/2026<br/>
-Last updated: 02/09/2026<br/>
-Discussion thread: N/A
+Last updated: 02/23/2026<br/>
+Discussion thread: https://github.com/openxla/stablehlo/pull/2897/changes
 
 ## Motivation
 
@@ -15,8 +15,8 @@ whenever possible.
 
 Today, StableHLO doesn't implement any kind of communication-compute overlap,
 though [XLA does][async_hlo]. The six StableHLO collective
-operations---all_gather, all_reduce, all_to_all, collective_broadcast,
-collective_permute, and reduce_scatter---are lowered to HLO equivalents.
+operations---`all_gather`, `all_reduce`, `all_to_all`, `collective_broadcast`,
+`collective_permute`, and `reduce_scatter`---are lowered to HLO equivalents.
 Internally, [the XLA compiler splits these operations into asynchronous
 start/done pairs][async_collective_creator]. For example, an `all-reduce`
 operation because a pair of an `all-reduce-start` and `all-reduce-done`. Then,
@@ -39,11 +39,9 @@ all_reduce_done(future)
 
 ## Overview
 
-This RFC introduces asynchronous versions of the six existing StableHLO
-collective ops. For example, we introduce `all_gather_start` and
-`all_gather_done` ops to go along with the existing `all_gather` op. We also
-introduce a new future type (e.g., `future<tensor<2xf32>>`) to represent the
-output to a start operation.
+This RFC introduces an `async_start` op and an `async_done` op that allow you to
+run a collective asynchronously.  We also introduce a new future type (e.g.,
+`future<tensor<2xf32>>`) to represent the output of a start operation.
 
 ## Proposed Type Changes
 
@@ -57,7 +55,62 @@ FutureValueType ::= TensorType | QuantizedTensorType
 
 ## Proposed Op Changes
 
-We introduce six new **start ops**:
+We introduce an `async_start` op that takes a variadic number of tensors as
+arguments. The op also has a single region that must contain only a call to one
+of the six collective ops. `async_start` returns a variadic number of futures.
+Here's an example:
+
+```
+"stablehlo.async_start"(%x) ({
+  %y = "stablehlo.all_gather"(%x) {
+    all_gather_dim = 1 : i64,
+    replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>
+  } : (tensor<8x2xf32>) -> tensor<8x8xf32>
+  "stablehlo.return"(%y) : (tensor<8x8xf32>) -> ()
+}) : (tensor<8x2xf32>) -> !stablehlo.future<tensor<8x8xf32>>
+```
+
+It is an error if the region contains anything other than a call to a
+collective.
+
+We also introduce an `async_done` op which takes a variadic number of futures
+and unwraps them. Here's an example.
+
+```
+"stablehlo.async_done"(%f1, %f2) : (!stablehlo.future<tensor<4x4xf32>>, !stablehlo.future<tensor<2xf32>>) -> (tensor<4x4xf32>, tensor<2xf32>)
+```
+
+## Alternatives
+
+### Fully Generic Async Ops
+
+https://github.com/openxla/stablehlo/pull/2551 is a StableHLO RFC that proposes
+adding generic `async_start` and `async_done` ops that can be used to call *any*
+function asynchronously, not just collectives. Here's an example from the RFC
+that performs an asynchronous add:
+
+```
+// %init_i: 2
+// %init_sum: 3
+%future = "stablehlo.async_start"(
+    %init_i as %arg0: tensor<i64>,
+    %init_sum as %arg1: tensor<i64>)
+{
+    %new_sum = stablehlo.add %arg1, %arg0 : tensor<i64>
+    stablehlo.return %new_sum : tensor<i64>
+} : (tensor<i64>, tensor<i64>) -> async<tensor<i64>>
+
+%result = "stablehlo.async_done"(%future): async<tensor<i64>> -> tensor<i64>
+// %result: 5
+```
+
+This RFC proposes something simpler yet less powerful. In the future, we
+could migrate to fully generic async ops.
+
+### Explicit Start/Done Pairs
+
+Rather than introducing `async_start` and `async_done`, we could introduce six
+new **start ops**:
 
 - `all_gather_start`
 - `all_reduce_start`
@@ -77,7 +130,7 @@ return futures. Here's an example:
 } : (tensor<2x2xi64>) -> future<tensor<2x2xi64>>
 ```
 
-We also introduce six **done ops**.
+We could also introduce six **done ops**.
 
 - `all_gather_done`
 - `all_reduce_done`
@@ -92,36 +145,6 @@ example above:
 ```
 %result = "stablehlo.collective_permute_done"(%future) : (future<tensor<2x2xi64>>) -> tensor<2x2xi64>
 ```
-
-Start and done ops must be matched in the obvious way. It is an error to pass
-the output of an `all_gather_start`, for example, to `reduce_scatter_done`.
-
-## Alternatives
-
-### Generic Async Ops
-
-https://github.com/openxla/stablehlo/pull/2551 is a StableHLO RFC that proposes
-adding generic `async_start` and `async_done` ops that can be used to call any
-function asynchronously. Here's an example from the RFC that performs an
-asynchronous add:
-
-```
-// %init_i: 2
-// %init_sum: 3
-%future = "stablehlo.async_start"(
-    %init_i as %arg0: tensor<i64>,
-    %init_sum as %arg1: tensor<i64>)
-{
-    %new_sum = stablehlo.add %arg1, %arg0 : tensor<i64>
-    stablehlo.return %new_sum : tensor<i64>
-} : (tensor<i64>, tensor<i64>) -> async<tensor<i64>>
-
-%result = "stablehlo.async_done"(%future): async<tensor<i64>> -> tensor<i64>
-// %result: 5
-```
-
-This RFC proposes something much simpler yet less powerful. In the future, we
-could migrate to generic async ops.
 
 ### Tensors Instead of Futures
 
