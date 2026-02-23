@@ -2,7 +2,7 @@
 Status: In Review<br/>
 Initial version: 02/23/2026<br/>
 Last updated: 02/23/2026<br/>
-Discussion thread: N/A
+Discussion thread: https://github.com/openxla/stablehlo/pull/2903
 
 ## Overview
 
@@ -12,7 +12,7 @@ Currently, collective operations like `all_gather`, `all_reduce`, `reduce_scatte
 
 ## Proposal
 
-To support mesh-axes Replica Groups natively in StableHLO, we add new attributes to capture mesh and axis configurations, and we update the existing definition of replica groups to allow for either the legacy `I64ElementsAttr` or the new `ReplicaGroupV3` format.
+To support mesh-axes Replica Groups natively in StableHLO, we add new attributes to capture mesh and axis configurations, and we update the existing definition of replica groups to allow for either the legacy `I64ElementsAttr` or the new `ReplicaGroupMeshAxes` format.
 
 ### New Attributes
 
@@ -33,13 +33,13 @@ It is primarily described by a string `name` and optional `sub_axis_info`.
 #stablehlo.axis_ref<name = "foo", sub_axis_info = (1)2>
 ```
 
-#### 3. ReplicaGroupV3
+#### 3. ReplicaGroupMeshAxes
 
 Represents an overall mesh-axes based replica group.
 It contains a `FlatSymbolRefAttr` for the `mesh_name` and an `ArrayAttr` containing `AxisRef` attributes for the `axes`.
 
 ```mlir
-#stablehlo.replica_group_v3<
+#stablehlo.replica_group_mesh_axes<
   mesh_name = @mesh,
   axes = [
     #stablehlo.axis_ref<name = "foo">,
@@ -50,9 +50,9 @@ It contains a `FlatSymbolRefAttr` for the `mesh_name` and an `ArrayAttr` contain
 
 ### Updates to Operations
 
-The type definition for `replica_groups` currently used by collective operations will be updated to `AnyAttrOf<[I64ElementsAttr, StableHLO_ReplicaGroupV3]>`.
+The type definition for `replica_groups` currently used by collective operations will be updated to `AnyAttrOf<[I64ElementsAttr, StableHLO_ReplicaGroupMeshAxes]>`.
 
-Affected operations that will now accept the `replica_group_v3` layout:
+Affected operations that will now accept the `replica_group_mesh_axes` layout:
 - `stablehlo.all_gather`
 - `stablehlo.all_reduce`
 - `stablehlo.reduce_scatter`
@@ -62,13 +62,13 @@ Affected operations that will now accept the `replica_group_v3` layout:
 #### Example
 
 ```mlir
-// Using the new V3 format inside a standard collective op
+// Using the new format inside a standard collective op
 %result = "stablehlo.all_reduce"(%operand) ({
 ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
   %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
   "stablehlo.return"(%0) : (tensor<f32>) -> ()
 }) {
-  replica_groups = #stablehlo.replica_group_v3<
+  replica_groups = #stablehlo.replica_group_mesh_axes<
     mesh_name = @mesh,
     axes = [
       #stablehlo.axis_ref<name = "foo">, 
@@ -82,6 +82,6 @@ Affected operations that will now accept the `replica_group_v3` layout:
 
 The rollout logic can be broken into corresponding CL phases:
 
-1. **Schema & Types**: Add the StableHLO and MHLO IR definitions for `#stablehlo.replica_group_v3` and its dependent types (`#stablehlo.axis_ref`, `#stablehlo.sub_axis_info`). Update operations to widen the types to include either representation format. Checks are explicitly added to ensure RGV3 is not fully un-lowered (temporarily) until the following steps.
-2. **Verification & Constraints**: Add logic + full verification for the custom constraints on the new V3 layout attributes.
+1. **Schema & Types**: Add the StableHLO and MHLO IR definitions for `#stablehlo.replica_group_mesh_axes` and its dependent types (`#stablehlo.axis_ref`, `#stablehlo.sub_axis_info`). Update operations to widen the types to include either representation format. Checks are explicitly added to ensure new representation is not fully un-lowered (temporarily) until the following steps.
+2. **Verification & Constraints**: Add logic + full verification for the new format.
 3. **Roundtripping & Integration**: Add round-tripping support into translation paths. Native operations and XLA pipelines will be updated to map this new IR format natively.
