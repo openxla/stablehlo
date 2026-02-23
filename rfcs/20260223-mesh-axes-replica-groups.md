@@ -1,5 +1,4 @@
-# [RFC] StableHLO Support for Replica Groups V3
-
+# [RFC] StableHLO Support for Mesh-Axes Replica Groups
 Status: In Review<br/>
 Initial version: 02/23/2026<br/>
 Last updated: 02/23/2026<br/>
@@ -7,13 +6,13 @@ Discussion thread: N/A
 
 ## Overview
 
-This RFC proposes extending StableHLO to support a new representation for `replica_groups`. The traditional representation of replica groups uses a dense tensor (or integer arrays). The new V3 representation utilizes a mesh and axes-based description, which is more concise and interpretable.
+This RFC proposes extending StableHLO to support a new representation for `replica_groups`. The traditional representation of replica groups uses a dense tensor (or integer arrays). The new representation utilizes a mesh and axes-based description, which is more concise and interpretable.
 
-Currently, collective operations like `all_gather`, `all_reduce`, `reduce_scatter`, `all_to_all`, and `collective_broadcast` accept a dense integer array for `replica_groups`. We propose extending this definition to accept the new `replica_group_v3` attribute format, alongside the existing representation.
+Currently, collective operations like `all_gather`, `all_reduce`, `reduce_scatter`, `all_to_all`, and `collective_broadcast` accept the dense integer array for `replica_groups`. We propose extending this definition to accept the new mesh-axes format, alongside the existing representation.
 
 ## Proposal
 
-To support Replica Groups V3 natively in StableHLO, we add new attributes to capture mesh and axis configurations, and we update the existing definition of replica groups to allow for either the legacy `I64ElementsAttr` or the new `ReplicaGroupV3` format.
+To support mesh-axes Replica Groups natively in StableHLO, we add new attributes to capture mesh and axis configurations, and we update the existing definition of replica groups to allow for either the legacy `I64ElementsAttr` or the new `ReplicaGroupV3` format.
 
 ### New Attributes
 
