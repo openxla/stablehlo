@@ -93,14 +93,14 @@ Affected operations that will now accept the `replica_group_mesh_axes` layout: -
 
 The rollout logic can be broken into corresponding CL phases:
 
-1.  **Schema & Types**: Add the StableHLO and MHLO IR definitions for
-    `#stablehlo.replica_group_mesh_axes` and its dependent types
-    (`#stablehlo.axis_ref`, `#stablehlo.sub_axis_info`). Update operations to
-    widen the types to include either representation format. Checks are
-    explicitly added to ensure new representation is not fully un-lowered
-    (temporarily) until the following steps.
-2.  **Verification & Constraints**: Add logic + full verification for the new
-    format.
-3.  **Roundtripping & Integration**: Add round-tripping support into translation
-    paths. Native operations and XLA pipelines will be updated to map this new
-    IR format natively.
+1. **Schema & Types**: Add the StableHLO and MHLO IR definitions for
+   `#stablehlo.replica_group_mesh_axes` and its dependent types
+   (`#stablehlo.axis_ref`, `#stablehlo.sub_axis_info`). Update operations to
+   widen the types to include either representation format. Checks are
+   explicitly added to ensure new representation is not fully un-lowered
+   (temporarily) until the following steps.
+2. **Verification & Constraints**: Add logic + full verification for the new
+   format.
+3. **Roundtripping & Integration**: Add round-tripping support into translation
+   paths. Native operations and XLA pipelines will be updated to map this new
+   IR format natively.
