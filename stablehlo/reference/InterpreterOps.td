@@ -31,7 +31,6 @@ def Interpreter_Dialect : Dialect {
     Dialect to implement interpreter-specific functionality, outside of the
     StableHLO spec.
   }];
-
 }
 
 def Interpreter_ArrayOfFlatSymbolRefArrayAttr :
