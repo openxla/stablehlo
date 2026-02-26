@@ -1,10 +1,10 @@
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
-// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
-// RUN: stablehlo-opt %s > %t.1
+// RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=1.13.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-opt > %t.0
+// RUN: stablehlo-opt --strip-debuginfo %s > %t.1
 // RUN: diff %t.0 %t.1
-// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-opt --pass-pipeline='builtin.module(stablehlo-deserialize)' > %t.0
-// RUN: stablehlo-opt %s > %t.1
-// RUN: diff %t.0 %t.1
+// RUN: stablehlo-translate --serialize --target=1.13.0 --strip-debuginfo %s > %t.2
+// RUN: diff %s.bc %t.2
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 
@@ -416,6 +416,21 @@ func.func @attr_frontend_attributes(%arg0: tensor<f32>) -> tensor<f32> {
   // CHECK: some.unregistered_attr
   %1 = stablehlo.cosine %arg0 {some.unregistered_attr = 1 : i32} : tensor<f32>
   return %1 : tensor<f32>
+}
+
+// Builtin attriubute tests
+
+// CHECK-LABEL: "byte_packed_boolean"
+func.func @byte_packed_boolean() -> (tensor<8xi1>, tensor<8xi1>, tensor<4xi1>, tensor<16xi1>) {
+  // CHECK: #vhlo.tensor_v1<dense<[true, false, false, false, false, false, false, false]
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<true> : tensor<8xi1>>
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<[true, false, false, false]> : tensor<4xi1>>
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<[true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false]> : tensor<16xi1>>
+  %c = stablehlo.constant dense<[true, false, false, false, false, false, false, false]> : tensor<8xi1>
+  %c_0 = stablehlo.constant dense<true> : tensor<8xi1>
+  %c_1 = stablehlo.constant dense<[true, false, false, false]> : tensor<4xi1>
+  %c_2 = stablehlo.constant dense<[true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false]> : tensor<16xi1>
+  return %c, %c_0, %c_1, %c_2 : tensor<8xi1>, tensor<8xi1>, tensor<4xi1>, tensor<16xi1>
 }
 
 // ============ DEFAULTS ============

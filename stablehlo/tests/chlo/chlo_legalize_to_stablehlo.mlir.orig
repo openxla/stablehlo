@@ -238,168 +238,168 @@ func.func @asin_complex_f32(%arg : tensor<complex<f32>>) -> tensor<complex<f32>>
 // CHECK:           %[[MAXIMUM_0:.*]] = stablehlo.maximum %[[ABS_0]], %[[ABS_1]] : tensor<?xf64>
 // CHECK:           %[[CONSTANT_0:.*]] = stablehlo.constant dense<1.7976931348623157E+308> : tensor<f64>
 // CHECK:           %[[SHAPE_OF_0:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[ASSUMING_0:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_0]], %[[SHAPE_OF_0]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[SQRT_0:.*]] = stablehlo.sqrt %[[ASSUMING_0]] : tensor<?xf64>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_0:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_0]], %[[SHAPE_OF_0]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[SQRT_0:.*]] = stablehlo.sqrt %[[DYNAMIC_BROADCAST_IN_DIM_0]] : tensor<?xf64>
 // CHECK:           %[[CONSTANT_1:.*]] = stablehlo.constant dense<8.000000e+00> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_3:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[ASSUMING_1:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_1]], %[[SHAPE_OF_3]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[DIVIDE_0:.*]] = stablehlo.divide %[[SQRT_0]], %[[ASSUMING_1]] : tensor<?xf64>
+// CHECK:           %[[SHAPE_OF_1:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_1:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_1]], %[[SHAPE_OF_1]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[DIVIDE_0:.*]] = stablehlo.divide %[[SQRT_0]], %[[DYNAMIC_BROADCAST_IN_DIM_1]] : tensor<?xf64>
 // CHECK:           %[[COMPARE_0:.*]] = stablehlo.compare  GE, %[[MAXIMUM_0]], %[[DIVIDE_0]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[CONSTANT_2:.*]] = stablehlo.constant dense<1.000000e+00> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_5:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[ASSUMING_2:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_2]], %[[SHAPE_OF_5]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare  LE, %[[ABS_0]], %[[ASSUMING_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[SHAPE_OF_2:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_2:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_2]], %[[SHAPE_OF_2]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare  LE, %[[ABS_0]], %[[DYNAMIC_BROADCAST_IN_DIM_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[CONSTANT_3:.*]] = stablehlo.constant dense<5.000000e-01> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_7:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[ASSUMING_3:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_3]], %[[SHAPE_OF_7]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[ADD_0:.*]] = stablehlo.add %[[ABS_0]], %[[ASSUMING_2]] : tensor<?xf64>
+// CHECK:           %[[SHAPE_OF_3:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_3:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_3]], %[[SHAPE_OF_3]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[ADD_0:.*]] = stablehlo.add %[[ABS_0]], %[[DYNAMIC_BROADCAST_IN_DIM_2]] : tensor<?xf64>
 // CHECK:           %[[ABS_2:.*]] = stablehlo.abs %[[ADD_0]] : tensor<?xf64>
 // CHECK:           %[[MAXIMUM_1:.*]] = stablehlo.maximum %[[ABS_2]], %[[ABS_1]] : tensor<?xf64>
 // CHECK:           %[[MINIMUM_0:.*]] = stablehlo.minimum %[[ABS_2]], %[[ABS_1]] : tensor<?xf64>
 // CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare  EQ, %[[MAXIMUM_1]], %[[MINIMUM_0]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[CONSTANT_4:.*]] = stablehlo.constant dense<1.4142135623730951> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_9:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[ASSUMING_4:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_4]], %[[SHAPE_OF_9]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[MULTIPLY_0:.*]] = stablehlo.multiply %[[ASSUMING_4]], %[[MAXIMUM_1]] : tensor<?xf64>
+// CHECK:           %[[SHAPE_OF_4:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_4:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_4]], %[[SHAPE_OF_4]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[MULTIPLY_0:.*]] = stablehlo.multiply %[[DYNAMIC_BROADCAST_IN_DIM_4]], %[[MAXIMUM_1]] : tensor<?xf64>
 // CHECK:           %[[DIVIDE_1:.*]] = stablehlo.divide %[[MINIMUM_0]], %[[MAXIMUM_1]] : tensor<?xf64>
 // CHECK:           %[[MULTIPLY_1:.*]] = stablehlo.multiply %[[DIVIDE_1]], %[[DIVIDE_1]] : tensor<?xf64>
-// CHECK:           %[[ADD_1:.*]] = stablehlo.add %[[ASSUMING_2]], %[[MULTIPLY_1]] : tensor<?xf64>
+// CHECK:           %[[ADD_1:.*]] = stablehlo.add %[[DYNAMIC_BROADCAST_IN_DIM_2]], %[[MULTIPLY_1]] : tensor<?xf64>
 // CHECK:           %[[SQRT_1:.*]] = stablehlo.sqrt %[[ADD_1]] : tensor<?xf64>
-// CHECK:           %[[COMPARE_3:.*]] = stablehlo.compare  EQ, %[[SQRT_1]], %[[ASSUMING_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[COMPARE_3:.*]] = stablehlo.compare  EQ, %[[SQRT_1]], %[[DYNAMIC_BROADCAST_IN_DIM_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[CONSTANT_5:.*]] = stablehlo.constant dense<0.000000e+00> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_11:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[ASSUMING_5:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_5]], %[[SHAPE_OF_11]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[COMPARE_4:.*]] = stablehlo.compare  GT, %[[MULTIPLY_1]], %[[ASSUMING_5]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[SHAPE_OF_5:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_5:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_5]], %[[SHAPE_OF_5]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[COMPARE_4:.*]] = stablehlo.compare  GT, %[[MULTIPLY_1]], %[[DYNAMIC_BROADCAST_IN_DIM_5]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_3]], %[[COMPARE_4]] : tensor<?xi1>
 // CHECK:           %[[MULTIPLY_2:.*]] = stablehlo.multiply %[[MAXIMUM_1]], %[[MULTIPLY_1]] : tensor<?xf64>
 // CHECK:           %[[CONSTANT_6:.*]] = stablehlo.constant dense<2.000000e+00> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_13:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[ASSUMING_6:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_6]], %[[SHAPE_OF_13]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[DIVIDE_2:.*]] = stablehlo.divide %[[MULTIPLY_2]], %[[ASSUMING_6]] : tensor<?xf64>
+// CHECK:           %[[SHAPE_OF_6:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_6:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_6]], %[[SHAPE_OF_6]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[DIVIDE_2:.*]] = stablehlo.divide %[[MULTIPLY_2]], %[[DYNAMIC_BROADCAST_IN_DIM_6]] : tensor<?xf64>
 // CHECK:           %[[ADD_2:.*]] = stablehlo.add %[[MAXIMUM_1]], %[[DIVIDE_2]] : tensor<?xf64>
 // CHECK:           %[[MULTIPLY_3:.*]] = stablehlo.multiply %[[MAXIMUM_1]], %[[SQRT_1]] : tensor<?xf64>
-// CHECK:           %[[ASSUMING_7:.*]] = stablehlo.select %[[AND_0]], %[[ADD_2]], %[[MULTIPLY_3]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[ASSUMING_8:.*]] = stablehlo.select %[[COMPARE_2]], %[[MULTIPLY_0]], %[[ASSUMING_7]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[SUBTRACT_0:.*]] = stablehlo.subtract %[[ABS_0]], %[[ASSUMING_2]] : tensor<?xf64>
+// CHECK:           %[[SELECT_0:.*]] = stablehlo.select %[[AND_0]], %[[ADD_2]], %[[MULTIPLY_3]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[SELECT_1:.*]] = stablehlo.select %[[COMPARE_2]], %[[MULTIPLY_0]], %[[SELECT_0]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[SUBTRACT_0:.*]] = stablehlo.subtract %[[ABS_0]], %[[DYNAMIC_BROADCAST_IN_DIM_2]] : tensor<?xf64>
 // CHECK:           %[[ABS_3:.*]] = stablehlo.abs %[[SUBTRACT_0]] : tensor<?xf64>
 // CHECK:           %[[MAXIMUM_2:.*]] = stablehlo.maximum %[[ABS_3]], %[[ABS_1]] : tensor<?xf64>
 // CHECK:           %[[MINIMUM_1:.*]] = stablehlo.minimum %[[ABS_3]], %[[ABS_1]] : tensor<?xf64>
 // CHECK:           %[[COMPARE_5:.*]] = stablehlo.compare  EQ, %[[MAXIMUM_2]], %[[MINIMUM_1]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
-// CHECK:           %[[MULTIPLY_4:.*]] = stablehlo.multiply %[[ASSUMING_4]], %[[MAXIMUM_2]] : tensor<?xf64>
+// CHECK:           %[[MULTIPLY_4:.*]] = stablehlo.multiply %[[DYNAMIC_BROADCAST_IN_DIM_4]], %[[MAXIMUM_2]] : tensor<?xf64>
 // CHECK:           %[[DIVIDE_3:.*]] = stablehlo.divide %[[MINIMUM_1]], %[[MAXIMUM_2]] : tensor<?xf64>
 // CHECK:           %[[MULTIPLY_5:.*]] = stablehlo.multiply %[[DIVIDE_3]], %[[DIVIDE_3]] : tensor<?xf64>
-// CHECK:           %[[ADD_3:.*]] = stablehlo.add %[[ASSUMING_2]], %[[MULTIPLY_5]] : tensor<?xf64>
+// CHECK:           %[[ADD_3:.*]] = stablehlo.add %[[DYNAMIC_BROADCAST_IN_DIM_2]], %[[MULTIPLY_5]] : tensor<?xf64>
 // CHECK:           %[[SQRT_2:.*]] = stablehlo.sqrt %[[ADD_3]] : tensor<?xf64>
-// CHECK:           %[[COMPARE_6:.*]] = stablehlo.compare  EQ, %[[SQRT_2]], %[[ASSUMING_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
-// CHECK:           %[[COMPARE_7:.*]] = stablehlo.compare  GT, %[[MULTIPLY_5]], %[[ASSUMING_5]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[COMPARE_6:.*]] = stablehlo.compare  EQ, %[[SQRT_2]], %[[DYNAMIC_BROADCAST_IN_DIM_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[COMPARE_7:.*]] = stablehlo.compare  GT, %[[MULTIPLY_5]], %[[DYNAMIC_BROADCAST_IN_DIM_5]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[AND_1:.*]] = stablehlo.and %[[COMPARE_6]], %[[COMPARE_7]] : tensor<?xi1>
 // CHECK:           %[[MULTIPLY_6:.*]] = stablehlo.multiply %[[MAXIMUM_2]], %[[MULTIPLY_5]] : tensor<?xf64>
-// CHECK:           %[[DIVIDE_4:.*]] = stablehlo.divide %[[MULTIPLY_6]], %[[ASSUMING_6]] : tensor<?xf64>
+// CHECK:           %[[DIVIDE_4:.*]] = stablehlo.divide %[[MULTIPLY_6]], %[[DYNAMIC_BROADCAST_IN_DIM_6]] : tensor<?xf64>
 // CHECK:           %[[ADD_4:.*]] = stablehlo.add %[[MAXIMUM_2]], %[[DIVIDE_4]] : tensor<?xf64>
 // CHECK:           %[[MULTIPLY_7:.*]] = stablehlo.multiply %[[MAXIMUM_2]], %[[SQRT_2]] : tensor<?xf64>
-// CHECK:           %[[ASSUMING_9:.*]] = stablehlo.select %[[AND_1]], %[[ADD_4]], %[[MULTIPLY_7]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[ASSUMING_10:.*]] = stablehlo.select %[[COMPARE_5]], %[[MULTIPLY_4]], %[[ASSUMING_9]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[ADD_5:.*]] = stablehlo.add %[[ASSUMING_8]], %[[ASSUMING_10]] : tensor<?xf64>
-// CHECK:           %[[MULTIPLY_8:.*]] = stablehlo.multiply %[[ASSUMING_3]], %[[ADD_5]] : tensor<?xf64>
+// CHECK:           %[[SELECT_2:.*]] = stablehlo.select %[[AND_1]], %[[ADD_4]], %[[MULTIPLY_7]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[SELECT_3:.*]] = stablehlo.select %[[COMPARE_5]], %[[MULTIPLY_4]], %[[SELECT_2]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[ADD_5:.*]] = stablehlo.add %[[SELECT_1]], %[[SELECT_3]] : tensor<?xf64>
+// CHECK:           %[[MULTIPLY_8:.*]] = stablehlo.multiply %[[DYNAMIC_BROADCAST_IN_DIM_3]], %[[ADD_5]] : tensor<?xf64>
 // CHECK:           %[[ADD_6:.*]] = stablehlo.add %[[MULTIPLY_8]], %[[ABS_0]] : tensor<?xf64>
-// CHECK:           %[[MULTIPLY_9:.*]] = stablehlo.multiply %[[ASSUMING_3]], %[[ADD_6]] : tensor<?xf64>
+// CHECK:           %[[MULTIPLY_9:.*]] = stablehlo.multiply %[[DYNAMIC_BROADCAST_IN_DIM_3]], %[[ADD_6]] : tensor<?xf64>
 // CHECK:           %[[MULTIPLY_10:.*]] = stablehlo.multiply %[[ABS_1]], %[[ABS_1]] : tensor<?xf64>
-// CHECK:           %[[ADD_7:.*]] = stablehlo.add %[[ASSUMING_8]], %[[ADD_0]] : tensor<?xf64>
+// CHECK:           %[[ADD_7:.*]] = stablehlo.add %[[SELECT_1]], %[[ADD_0]] : tensor<?xf64>
 // CHECK:           %[[DIVIDE_5:.*]] = stablehlo.divide %[[MULTIPLY_10]], %[[ADD_7]] : tensor<?xf64>
-// CHECK:           %[[SUBTRACT_1:.*]] = stablehlo.subtract %[[ASSUMING_10]], %[[SUBTRACT_0]] : tensor<?xf64>
+// CHECK:           %[[SUBTRACT_1:.*]] = stablehlo.subtract %[[SELECT_3]], %[[SUBTRACT_0]] : tensor<?xf64>
 // CHECK:           %[[ADD_8:.*]] = stablehlo.add %[[DIVIDE_5]], %[[SUBTRACT_1]] : tensor<?xf64>
 // CHECK:           %[[MULTIPLY_11:.*]] = stablehlo.multiply %[[MULTIPLY_9]], %[[ADD_8]] : tensor<?xf64>
 // CHECK:           %[[SQRT_3:.*]] = stablehlo.sqrt %[[MULTIPLY_11]] : tensor<?xf64>
 // CHECK:           %[[DIVIDE_6:.*]] = stablehlo.divide %[[MULTIPLY_9]], %[[ADD_7]] : tensor<?xf64>
-// CHECK:           %[[ADD_9:.*]] = stablehlo.add %[[ASSUMING_10]], %[[SUBTRACT_0]] : tensor<?xf64>
+// CHECK:           %[[ADD_9:.*]] = stablehlo.add %[[SELECT_3]], %[[SUBTRACT_0]] : tensor<?xf64>
 // CHECK:           %[[DIVIDE_7:.*]] = stablehlo.divide %[[MULTIPLY_9]], %[[ADD_9]] : tensor<?xf64>
 // CHECK:           %[[ADD_10:.*]] = stablehlo.add %[[DIVIDE_6]], %[[DIVIDE_7]] : tensor<?xf64>
 // CHECK:           %[[SQRT_4:.*]] = stablehlo.sqrt %[[ADD_10]] : tensor<?xf64>
 // CHECK:           %[[MULTIPLY_12:.*]] = stablehlo.multiply %[[ABS_1]], %[[SQRT_4]] : tensor<?xf64>
-// CHECK:           %[[ASSUMING_11:.*]] = stablehlo.select %[[COMPARE_1]], %[[SQRT_3]], %[[MULTIPLY_12]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[ASSUMING_12:.*]] = stablehlo.select %[[COMPARE_0]], %[[ABS_1]], %[[ASSUMING_11]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[SELECT_4:.*]] = stablehlo.select %[[COMPARE_1]], %[[SQRT_3]], %[[MULTIPLY_12]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[SELECT_5:.*]] = stablehlo.select %[[COMPARE_0]], %[[ABS_1]], %[[SELECT_4]] : tensor<?xi1>, tensor<?xf64>
 // CHECK:           %[[CONSTANT_7:.*]] = stablehlo.constant dense<1.000000e+12> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_50:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_25:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_7]], %[[SHAPE_OF_50]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[MULTIPLY_13:.*]] = stablehlo.multiply %[[DIVIDE_0]], %[[DYNAMIC_BROADCAST_IN_DIM_25]] : tensor<?xf64>
+// CHECK:           %[[SHAPE_OF_7:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_7:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_7]], %[[SHAPE_OF_7]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[MULTIPLY_13:.*]] = stablehlo.multiply %[[DIVIDE_0]], %[[DYNAMIC_BROADCAST_IN_DIM_7]] : tensor<?xf64>
 // CHECK:           %[[COMPARE_8:.*]] = stablehlo.compare  LT, %[[ABS_0]], %[[MULTIPLY_13]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[CONSTANT_8:.*]] = stablehlo.constant dense<9.9999999999999995E-7> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_51:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_26:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_8]], %[[SHAPE_OF_51]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[MULTIPLY_14:.*]] = stablehlo.multiply %[[DIVIDE_0]], %[[DYNAMIC_BROADCAST_IN_DIM_26]] : tensor<?xf64>
+// CHECK:           %[[SHAPE_OF_8:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_8:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_8]], %[[SHAPE_OF_8]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[MULTIPLY_14:.*]] = stablehlo.multiply %[[DIVIDE_0]], %[[DYNAMIC_BROADCAST_IN_DIM_8]] : tensor<?xf64>
 // CHECK:           %[[CONSTANT_9:.*]] = stablehlo.constant dense<1.000000e+02> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_52:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_27:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_9]], %[[SHAPE_OF_52]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[MULTIPLY_15:.*]] = stablehlo.multiply %[[DIVIDE_0]], %[[DYNAMIC_BROADCAST_IN_DIM_27]] : tensor<?xf64>
-// CHECK:           %[[ASSUMING_13:.*]] = stablehlo.select %[[COMPARE_8]], %[[MULTIPLY_14]], %[[MULTIPLY_15]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[COMPARE_9:.*]] = stablehlo.compare  GE, %[[ABS_1]], %[[ASSUMING_13]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
-// CHECK:           %[[ASSUMING_14:.*]] = stablehlo.select %[[COMPARE_9]], %[[ABS_1]], %[[ABS_0]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[ASSUMING_15:.*]] = stablehlo.select %[[COMPARE_9]], %[[ASSUMING_13]], %[[DIVIDE_0]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[COMPARE_10:.*]] = stablehlo.compare  GE, %[[ASSUMING_14]], %[[ASSUMING_15]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
-// CHECK:           %[[LOG_0:.*]] = stablehlo.log %[[ASSUMING_6]] : tensor<?xf64>
-// CHECK:           %[[LOG_1:.*]] = stablehlo.log %[[ASSUMING_14]] : tensor<?xf64>
+// CHECK:           %[[SHAPE_OF_9:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_9:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_9]], %[[SHAPE_OF_9]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[MULTIPLY_15:.*]] = stablehlo.multiply %[[DIVIDE_0]], %[[DYNAMIC_BROADCAST_IN_DIM_9]] : tensor<?xf64>
+// CHECK:           %[[SELECT_6:.*]] = stablehlo.select %[[COMPARE_8]], %[[MULTIPLY_14]], %[[MULTIPLY_15]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[COMPARE_9:.*]] = stablehlo.compare  GE, %[[ABS_1]], %[[SELECT_6]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[SELECT_7:.*]] = stablehlo.select %[[COMPARE_9]], %[[ABS_1]], %[[ABS_0]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[SELECT_8:.*]] = stablehlo.select %[[COMPARE_9]], %[[SELECT_6]], %[[DIVIDE_0]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[COMPARE_10:.*]] = stablehlo.compare  GE, %[[SELECT_7]], %[[SELECT_8]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[LOG_0:.*]] = stablehlo.log %[[DYNAMIC_BROADCAST_IN_DIM_6]] : tensor<?xf64>
+// CHECK:           %[[LOG_1:.*]] = stablehlo.log %[[SELECT_7]] : tensor<?xf64>
 // CHECK:           %[[ADD_11:.*]] = stablehlo.add %[[LOG_0]], %[[LOG_1]] : tensor<?xf64>
 // CHECK:           %[[CONSTANT_10:.*]] = stablehlo.constant dense<0x7FF0000000000000> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_71:.*]] = shape.shape_of %[[IMAG_0]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_37:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_10]], %[[SHAPE_OF_71]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[COMPARE_11:.*]] = stablehlo.compare  EQ, %[[ABS_1]], %[[DYNAMIC_BROADCAST_IN_DIM_37]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[SHAPE_OF_10:.*]] = shape.shape_of %[[IMAG_0]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_10:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_10]], %[[SHAPE_OF_10]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[COMPARE_11:.*]] = stablehlo.compare  EQ, %[[ABS_1]], %[[DYNAMIC_BROADCAST_IN_DIM_10]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[NOT_0:.*]] = stablehlo.not %[[COMPARE_11]] : tensor<?xi1>
 // CHECK:           %[[AND_2:.*]] = stablehlo.and %[[COMPARE_9]], %[[NOT_0]] : tensor<?xi1>
 // CHECK:           %[[DIVIDE_8:.*]] = stablehlo.divide %[[ABS_0]], %[[ABS_1]] : tensor<?xf64>
-// CHECK:           %[[ASSUMING_16:.*]] = stablehlo.select %[[AND_2]], %[[DIVIDE_8]], %[[ASSUMING_5]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[MULTIPLY_16:.*]] = stablehlo.multiply %[[ASSUMING_16]], %[[ASSUMING_16]] : tensor<?xf64>
+// CHECK:           %[[SELECT_9:.*]] = stablehlo.select %[[AND_2]], %[[DIVIDE_8]], %[[DYNAMIC_BROADCAST_IN_DIM_5]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[MULTIPLY_16:.*]] = stablehlo.multiply %[[SELECT_9]], %[[SELECT_9]] : tensor<?xf64>
 // CHECK:           %[[LOG_PLUS_ONE_0:.*]] = stablehlo.log_plus_one %[[MULTIPLY_16]] : tensor<?xf64>
-// CHECK:           %[[MULTIPLY_17:.*]] = stablehlo.multiply %[[ASSUMING_3]], %[[LOG_PLUS_ONE_0]] : tensor<?xf64>
+// CHECK:           %[[MULTIPLY_17:.*]] = stablehlo.multiply %[[DYNAMIC_BROADCAST_IN_DIM_3]], %[[LOG_PLUS_ONE_0]] : tensor<?xf64>
 // CHECK:           %[[ADD_12:.*]] = stablehlo.add %[[ADD_11]], %[[MULTIPLY_17]] : tensor<?xf64>
 // CHECK:           %[[CONSTANT_11:.*]] = stablehlo.constant dense<2.2250738585072014E-308> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_78:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_41:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_11]], %[[SHAPE_OF_78]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[SQRT_5:.*]] = stablehlo.sqrt %[[DYNAMIC_BROADCAST_IN_DIM_41]] : tensor<?xf64>
+// CHECK:           %[[SHAPE_OF_11:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_11:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_11]], %[[SHAPE_OF_11]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[SQRT_5:.*]] = stablehlo.sqrt %[[DYNAMIC_BROADCAST_IN_DIM_11]] : tensor<?xf64>
 // CHECK:           %[[CONSTANT_12:.*]] = stablehlo.constant dense<4.000000e+00> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_79:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_42:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_12]], %[[SHAPE_OF_79]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[MULTIPLY_18:.*]] = stablehlo.multiply %[[SQRT_5]], %[[DYNAMIC_BROADCAST_IN_DIM_42]] : tensor<?xf64>
+// CHECK:           %[[SHAPE_OF_12:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_12:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_12]], %[[SHAPE_OF_12]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[MULTIPLY_18:.*]] = stablehlo.multiply %[[SQRT_5]], %[[DYNAMIC_BROADCAST_IN_DIM_12]] : tensor<?xf64>
 // CHECK:           %[[COMPARE_12:.*]] = stablehlo.compare  LT, %[[ABS_1]], %[[MULTIPLY_18]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
-// CHECK:           %[[COMPARE_13:.*]] = stablehlo.compare  LT, %[[ABS_0]], %[[ASSUMING_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[COMPARE_13:.*]] = stablehlo.compare  LT, %[[ABS_0]], %[[DYNAMIC_BROADCAST_IN_DIM_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[AND_3:.*]] = stablehlo.and %[[COMPARE_12]], %[[COMPARE_13]] : tensor<?xi1>
 // CHECK:           %[[MULTIPLY_19:.*]] = stablehlo.multiply %[[ADD_0]], %[[SUBTRACT_0]] : tensor<?xf64>
-// CHECK:           %[[ADD_13:.*]] = stablehlo.add %[[MULTIPLY_8]], %[[ASSUMING_2]] : tensor<?xf64>
+// CHECK:           %[[ADD_13:.*]] = stablehlo.add %[[MULTIPLY_8]], %[[DYNAMIC_BROADCAST_IN_DIM_2]] : tensor<?xf64>
 // CHECK:           %[[DIVIDE_9:.*]] = stablehlo.divide %[[MULTIPLY_19]], %[[ADD_13]] : tensor<?xf64>
 // CHECK:           %[[NEGATE_0:.*]] = stablehlo.negate %[[DIVIDE_9]] : tensor<?xf64>
-// CHECK:           %[[COMPARE_14:.*]] = stablehlo.compare  GE, %[[ABS_0]], %[[ASSUMING_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
-// CHECK:           %[[MULTIPLY_20:.*]] = stablehlo.multiply %[[ASSUMING_3]], %[[MULTIPLY_10]] : tensor<?xf64>
+// CHECK:           %[[COMPARE_14:.*]] = stablehlo.compare  GE, %[[ABS_0]], %[[DYNAMIC_BROADCAST_IN_DIM_2]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[MULTIPLY_20:.*]] = stablehlo.multiply %[[DYNAMIC_BROADCAST_IN_DIM_3]], %[[MULTIPLY_10]] : tensor<?xf64>
 // CHECK:           %[[DIVIDE_10:.*]] = stablehlo.divide %[[MULTIPLY_20]], %[[ADD_7]] : tensor<?xf64>
-// CHECK:           %[[MULTIPLY_21:.*]] = stablehlo.multiply %[[ASSUMING_3]], %[[ADD_9]] : tensor<?xf64>
+// CHECK:           %[[MULTIPLY_21:.*]] = stablehlo.multiply %[[DYNAMIC_BROADCAST_IN_DIM_3]], %[[ADD_9]] : tensor<?xf64>
 // CHECK:           %[[ADD_14:.*]] = stablehlo.add %[[DIVIDE_10]], %[[MULTIPLY_21]] : tensor<?xf64>
 // CHECK:           %[[CONSTANT_13:.*]] = stablehlo.constant dense<1.500000e+00> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_80:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_43:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_13]], %[[SHAPE_OF_80]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[COMPARE_15:.*]] = stablehlo.compare  LE, %[[MULTIPLY_8]], %[[DYNAMIC_BROADCAST_IN_DIM_43]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[SHAPE_OF_13:.*]] = shape.shape_of %[[REAL_1]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_13:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_13]], %[[SHAPE_OF_13]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[COMPARE_15:.*]] = stablehlo.compare  LE, %[[MULTIPLY_8]], %[[DYNAMIC_BROADCAST_IN_DIM_13]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[DIVIDE_11:.*]] = stablehlo.divide %[[MULTIPLY_20]], %[[SUBTRACT_1]] : tensor<?xf64>
 // CHECK:           %[[ADD_15:.*]] = stablehlo.add %[[DIVIDE_10]], %[[DIVIDE_11]] : tensor<?xf64>
-// CHECK:           %[[SUBTRACT_2:.*]] = stablehlo.subtract %[[MULTIPLY_8]], %[[ASSUMING_2]] : tensor<?xf64>
-// CHECK:           %[[ASSUMING_17:.*]] = stablehlo.select %[[COMPARE_15]], %[[ADD_15]], %[[SUBTRACT_2]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[ASSUMING_18:.*]] = stablehlo.select %[[COMPARE_14]], %[[ADD_14]], %[[ASSUMING_17]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[ASSUMING_19:.*]] = stablehlo.select %[[AND_3]], %[[NEGATE_0]], %[[ASSUMING_18]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[MULTIPLY_22:.*]] = stablehlo.multiply %[[ASSUMING_19]], %[[ADD_13]] : tensor<?xf64>
+// CHECK:           %[[SUBTRACT_2:.*]] = stablehlo.subtract %[[MULTIPLY_8]], %[[DYNAMIC_BROADCAST_IN_DIM_2]] : tensor<?xf64>
+// CHECK:           %[[SELECT_10:.*]] = stablehlo.select %[[COMPARE_15]], %[[ADD_15]], %[[SUBTRACT_2]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[SELECT_11:.*]] = stablehlo.select %[[COMPARE_14]], %[[ADD_14]], %[[SELECT_10]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[SELECT_12:.*]] = stablehlo.select %[[AND_3]], %[[NEGATE_0]], %[[SELECT_11]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[MULTIPLY_22:.*]] = stablehlo.multiply %[[SELECT_12]], %[[ADD_13]] : tensor<?xf64>
 // CHECK:           %[[SQRT_6:.*]] = stablehlo.sqrt %[[MULTIPLY_22]] : tensor<?xf64>
 // CHECK:           %[[DIVIDE_12:.*]] = stablehlo.divide %[[ABS_1]], %[[SQRT_6]] : tensor<?xf64>
-// CHECK:           %[[ADD_16:.*]] = stablehlo.add %[[ASSUMING_19]], %[[SQRT_6]] : tensor<?xf64>
+// CHECK:           %[[ADD_16:.*]] = stablehlo.add %[[SELECT_12]], %[[SQRT_6]] : tensor<?xf64>
 // CHECK:           %[[LOG_PLUS_ONE_1:.*]] = stablehlo.log_plus_one %[[ADD_16]] : tensor<?xf64>
-// CHECK:           %[[ASSUMING_20:.*]] = stablehlo.select %[[AND_3]], %[[DIVIDE_12]], %[[LOG_PLUS_ONE_1]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[ASSUMING_21:.*]] = stablehlo.select %[[COMPARE_10]], %[[ADD_12]], %[[ASSUMING_20]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[COMPLEX_0:.*]] = stablehlo.complex %[[ASSUMING_12]], %[[ASSUMING_21]] : tensor<?xcomplex<f64>>
+// CHECK:           %[[SELECT_13:.*]] = stablehlo.select %[[AND_3]], %[[DIVIDE_12]], %[[LOG_PLUS_ONE_1]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[SELECT_14:.*]] = stablehlo.select %[[COMPARE_10]], %[[ADD_12]], %[[SELECT_13]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[COMPLEX_0:.*]] = stablehlo.complex %[[SELECT_5]], %[[SELECT_14]] : tensor<?xcomplex<f64>>
 // CHECK:           %[[REAL_2:.*]] = stablehlo.real %[[COMPLEX_0]] : (tensor<?xcomplex<f64>>) -> tensor<?xf64>
 // CHECK:           %[[VAL_0:.*]] = stablehlo.atan2 %[[REAL_0]], %[[REAL_2]] : tensor<?xf64>
 // CHECK:           %[[IMAG_1:.*]] = stablehlo.imag %[[ARG0]] : (tensor<?xcomplex<f64>>) -> tensor<?xf64>
 // CHECK:           %[[CONSTANT_14:.*]] = stablehlo.constant dense<0.000000e+00> : tensor<f64>
-// CHECK:           %[[SHAPE_OF_111:.*]] = shape.shape_of %[[REAL_0]] : tensor<?xf64> -> tensor<1xindex>
-// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_59:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_14]], %[[SHAPE_OF_111]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
-// CHECK:           %[[COMPARE_16:.*]] = stablehlo.compare  LT, %[[IMAG_1]], %[[DYNAMIC_BROADCAST_IN_DIM_59]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
+// CHECK:           %[[SHAPE_OF_14:.*]] = shape.shape_of %[[REAL_0]] : tensor<?xf64> -> tensor<1xindex>
+// CHECK:           %[[DYNAMIC_BROADCAST_IN_DIM_14:.*]] = stablehlo.dynamic_broadcast_in_dim %[[CONSTANT_14]], %[[SHAPE_OF_14]], dims = [] : (tensor<f64>, tensor<1xindex>) -> tensor<?xf64>
+// CHECK:           %[[COMPARE_16:.*]] = stablehlo.compare  LT, %[[IMAG_1]], %[[DYNAMIC_BROADCAST_IN_DIM_14]] : (tensor<?xf64>, tensor<?xf64>) -> tensor<?xi1>
 // CHECK:           %[[IMAG_2:.*]] = stablehlo.imag %[[COMPLEX_0]] : (tensor<?xcomplex<f64>>) -> tensor<?xf64>
 // CHECK:           %[[NEGATE_1:.*]] = stablehlo.negate %[[IMAG_2]] : tensor<?xf64>
-// CHECK:           %[[ASSUMING_22:.*]] = stablehlo.select %[[COMPARE_16]], %[[NEGATE_1]], %[[IMAG_2]] : tensor<?xi1>, tensor<?xf64>
-// CHECK:           %[[COMPLEX_1:.*]] = stablehlo.complex %[[VAL_0]], %[[ASSUMING_22]] : tensor<?xcomplex<f64>>
+// CHECK:           %[[SELECT_15:.*]] = stablehlo.select %[[COMPARE_16]], %[[NEGATE_1]], %[[IMAG_2]] : tensor<?xi1>, tensor<?xf64>
+// CHECK:           %[[COMPLEX_1:.*]] = stablehlo.complex %[[VAL_0]], %[[SELECT_15]] : tensor<?xcomplex<f64>>
 // CHECK:           return %[[COMPLEX_1]] : tensor<?xcomplex<f64>>
 // CHECK:         }
 func.func @asin_complex_f64_dynamic(%arg : tensor<?xcomplex<f64>>) -> tensor<?xcomplex<f64>> {
@@ -4075,27 +4075,26 @@ func.func @top_k(%arg : tensor<16x16xf32>) -> (tensor<16x8xf32>, tensor<16x8xi32
 // CHECK-LABEL:   func.func @dyn_top_k(
 // CHECK-SAME:      %[[ARG0:.*]]: tensor<?x5x?xi1>) -> (tensor<?x5x2xi1>, tensor<?x5x2xi32>) {
 // CHECK:           %[[GET_DIMENSION_SIZE_0:.*]] = stablehlo.get_dimension_size %[[ARG0]], dim = 0 : (tensor<?x5x?xi1>) -> tensor<i32>
-// CHECK:           %[[CONVERT_0:.*]] = stablehlo.convert %[[GET_DIMENSION_SIZE_0]] : (tensor<i32>) -> tensor<i64>
-// CHECK:           %[[RESHAPE_0:.*]] = stablehlo.reshape %[[CONVERT_0]] : (tensor<i64>) -> tensor<1xi64>
-// CHECK:           %[[C_1:.*]] = stablehlo.constant dense<5> : tensor<i64>
-// CHECK:           %[[RESHAPE_1:.*]] = stablehlo.reshape %[[C_1]] : (tensor<i64>) -> tensor<1xi64>
+// CHECK:           %[[RESHAPE_0:.*]] = stablehlo.reshape %[[GET_DIMENSION_SIZE_0]] : (tensor<i32>) -> tensor<1xi32>
+// CHECK:           %[[GET_DIMENSION_SIZE_1:.*]] = stablehlo.get_dimension_size %[[ARG0]], dim = 1 : (tensor<?x5x?xi1>) -> tensor<i32>
+// CHECK:           %[[RESHAPE_1:.*]] = stablehlo.reshape %[[GET_DIMENSION_SIZE_1]] : (tensor<i32>) -> tensor<1xi32>
 // CHECK:           %[[GET_DIMENSION_SIZE_2:.*]] = stablehlo.get_dimension_size %[[ARG0]], dim = 2 : (tensor<?x5x?xi1>) -> tensor<i32>
-// CHECK:           %[[CONVERT_2:.*]] = stablehlo.convert %[[GET_DIMENSION_SIZE_2]] : (tensor<i32>) -> tensor<i64>
-// CHECK:           %[[RESHAPE_2:.*]] = stablehlo.reshape %[[CONVERT_2]] : (tensor<i64>) -> tensor<1xi64>
-// CHECK:           %[[CONCATENATE_0:.*]] = stablehlo.concatenate %[[RESHAPE_0]], %[[RESHAPE_1]], %[[RESHAPE_2]], dim = 0 : (tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<3xi64>
-// CHECK:           %[[CONSTANT_0:.*]] = stablehlo.constant dense<2> : tensor<i64>
-// CHECK:           %[[RESHAPE_3:.*]] = stablehlo.reshape %[[CONSTANT_0]] : (tensor<i64>) -> tensor<1xi64>
-// CHECK:           %[[CONCATENATE_1:.*]] = stablehlo.concatenate %[[RESHAPE_0]], %[[RESHAPE_1]], %[[RESHAPE_3]], dim = 0 : (tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<3xi64>
-// CHECK:           %[[DYNAMIC_IOTA_0:.*]] = stablehlo.dynamic_iota %[[CONCATENATE_0]], dim = 2 : (tensor<3xi64>) -> tensor<?x5x?xi32>
+// CHECK:           %[[RESHAPE_2:.*]] = stablehlo.reshape %[[GET_DIMENSION_SIZE_2]] : (tensor<i32>) -> tensor<1xi32>
+// CHECK:           %[[CONCATENATE_0:.*]] = stablehlo.concatenate %[[RESHAPE_0]], %[[RESHAPE_1]], %[[RESHAPE_2]], dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
+// CHECK:           %[[CONSTANT_0:.*]] = stablehlo.constant dense<2> : tensor<i32>
+// CHECK:           %[[RESHAPE_3:.*]] = stablehlo.reshape %[[CONSTANT_0]] : (tensor<i32>) -> tensor<1xi32>
+// CHECK:           %[[CONCATENATE_1:.*]] = stablehlo.concatenate %[[RESHAPE_0]], %[[RESHAPE_1]], %[[RESHAPE_3]], dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
+// CHECK:           %[[DYNAMIC_IOTA_0:.*]] = stablehlo.dynamic_iota %[[CONCATENATE_0]], dim = 2 : (tensor<3xi32>) -> tensor<?x5x?xi32>
 // CHECK:           %[[VAL_0:.*]]:2 = "stablehlo.sort"(%[[ARG0]], %[[DYNAMIC_IOTA_0]]) <{dimension = 2 : i64, is_stable = true}> ({
 // CHECK:           ^bb0(%[[VAL_1:.*]]: tensor<i1>, %[[VAL_2:.*]]: tensor<i1>, %[[VAL_3:.*]]: tensor<i32>, %[[VAL_4:.*]]: tensor<i32>):
 // CHECK:             %[[COMPARE_0:.*]] = stablehlo.compare  GT, %[[VAL_1]], %[[VAL_2]] : (tensor<i1>, tensor<i1>) -> tensor<i1>
 // CHECK:             stablehlo.return %[[COMPARE_0]] : tensor<i1>
 // CHECK:           }) : (tensor<?x5x?xi1>, tensor<?x5x?xi32>) -> (tensor<?x5x?xi1>, tensor<?x5x?xi32>)
 // CHECK:           %[[CONSTANT_1:.*]] = stablehlo.constant dense<0> : tensor<3xi64>
+// CHECK:           %[[CONVERT_0:.*]] = stablehlo.convert %[[CONCATENATE_1]] : (tensor<3xi32>) -> tensor<3xi64>
 // CHECK:           %[[CONSTANT_2:.*]] = stablehlo.constant dense<1> : tensor<3xi64>
-// CHECK:           %[[REAL_DYNAMIC_SLICE_0:.*]] = stablehlo.real_dynamic_slice %[[VAL_5:.*]]#0, %[[CONSTANT_1]], %[[CONCATENATE_1]], %[[CONSTANT_2]] : (tensor<?x5x?xi1>, tensor<3xi64>, tensor<3xi64>, tensor<3xi64>) -> tensor<?x5x2xi1>
-// CHECK:           %[[REAL_DYNAMIC_SLICE_1:.*]] = stablehlo.real_dynamic_slice %[[VAL_5]]#1, %[[CONSTANT_1]], %[[CONCATENATE_1]], %[[CONSTANT_2]] : (tensor<?x5x?xi32>, tensor<3xi64>, tensor<3xi64>, tensor<3xi64>) -> tensor<?x5x2xi32>
+// CHECK:           %[[REAL_DYNAMIC_SLICE_0:.*]] = stablehlo.real_dynamic_slice %[[VAL_5:.*]]#0, %[[CONSTANT_1]], %[[CONVERT_0]], %[[CONSTANT_2]] : (tensor<?x5x?xi1>, tensor<3xi64>, tensor<3xi64>, tensor<3xi64>) -> tensor<?x5x2xi1>
+// CHECK:           %[[REAL_DYNAMIC_SLICE_1:.*]] = stablehlo.real_dynamic_slice %[[VAL_5]]#1, %[[CONSTANT_1]], %[[CONVERT_0]], %[[CONSTANT_2]] : (tensor<?x5x?xi32>, tensor<3xi64>, tensor<3xi64>, tensor<3xi64>) -> tensor<?x5x2xi32>
 // CHECK:           return %[[REAL_DYNAMIC_SLICE_0]], %[[REAL_DYNAMIC_SLICE_1]] : tensor<?x5x2xi1>, tensor<?x5x2xi32>
 // CHECK:         }
 func.func @dyn_top_k(%arg0: tensor<?x5x?xi1>) -> (tensor<?x5x2xi1>, tensor<?x5x2xi32>) {
@@ -5073,51 +5072,53 @@ func.func @square_f32(%arg : tensor<f32>) -> tensor<f32> {
 // CHECK-SAME:      %[[ARG0:.*]]: tensor<2x11x5xf32>,
 // CHECK-SAME:      %[[ARG1:.*]]: tensor<3x2x5x7xf32>,
 // CHECK-SAME:      %[[ARG2:.*]]: tensor<3xi64>) -> tensor<2x11x7xf32> {
-// CHECK-DAG:       %[[IOTA_0:.*]] = stablehlo.iota dim = 1 : tensor<1x11x1xi64>
-// CHECK-DAG:       %[[CONSTANT_0:.*]] = stablehlo.constant dense<0> : tensor<i64>
-// CHECK:           %[[CONSTANT_1:.*]] = stablehlo.constant dense<0.000000e+00> : tensor<2x11x5xf32>
+// CHECK:           %[[IOTA_0:.*]] = stablehlo.iota dim = 1 : tensor<1x11x1xi64>
+// CHECK:           %[[CONSTANT_0:.*]] = stablehlo.constant dense<0> : tensor<1xi64>
+// CHECK:           %[[CONSTANT_1:.*]] = stablehlo.constant dense<0.000000e+00> : tensor<2x11x7xf32>
+// CHECK:           %[[CONSTANT_2:.*]] = stablehlo.constant dense<0.000000e+00> : tensor<2x11x7xf32>
 // CHECK:           %[[SLICE_0:.*]] = stablehlo.slice %[[ARG2]] [0:1] : (tensor<3xi64>) -> tensor<1xi64>
-// CHECK:           %[[RESHAPE_0:.*]] = stablehlo.reshape %[[SLICE_0]] : (tensor<1xi64>) -> tensor<i64>
-// CHECK:           %[[ADD_0:.*]] = stablehlo.add %[[CONSTANT_0]], %[[RESHAPE_0]] : tensor<i64>
-// CHECK:           %[[BROADCAST_IN_DIM_0:.*]] = stablehlo.broadcast_in_dim %[[CONSTANT_0]], dims = [] : (tensor<i64>) -> tensor<2x11x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_1:.*]] = stablehlo.broadcast_in_dim %[[ADD_0]], dims = [] : (tensor<i64>) -> tensor<2x11x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_2:.*]] = stablehlo.broadcast_in_dim %[[IOTA_0]], dims = [0, 1, 2] : (tensor<1x11x1xi64>) -> tensor<2x11x5xi64>
-// CHECK:           %[[COMPARE_0:.*]] = stablehlo.compare  GE, %[[BROADCAST_IN_DIM_2]], %[[BROADCAST_IN_DIM_0]] : (tensor<2x11x5xi64>, tensor<2x11x5xi64>) -> tensor<2x11x5xi1>
-// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare  LT, %[[BROADCAST_IN_DIM_2]], %[[BROADCAST_IN_DIM_1]] : (tensor<2x11x5xi64>, tensor<2x11x5xi64>) -> tensor<2x11x5xi1>
-// CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_0]], %[[COMPARE_1]] : tensor<2x11x5xi1>
-// CHECK:           %[[SELECT_0:.*]] = stablehlo.select %[[AND_0]], %[[ARG0]], %[[CONSTANT_1]] : tensor<2x11x5xi1>, tensor<2x11x5xf32>
+// CHECK:           %[[BROADCAST_IN_DIM_0:.*]] = stablehlo.broadcast_in_dim %[[CONSTANT_0]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK:           %[[COMPARE_0:.*]] = stablehlo.compare  LE, %[[BROADCAST_IN_DIM_0]], %[[IOTA_0]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK:           %[[ADD_0:.*]] = stablehlo.add %[[CONSTANT_0]], %[[SLICE_0]] : tensor<1xi64>
+// CHECK:           %[[BROADCAST_IN_DIM_1:.*]] = stablehlo.broadcast_in_dim %[[ADD_0]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare  LT, %[[IOTA_0]], %[[BROADCAST_IN_DIM_1]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_0]], %[[COMPARE_1]] : tensor<1x11x1xi1>
+// CHECK:           %[[BROADCAST_IN_DIM_2:.*]] = stablehlo.broadcast_in_dim %[[AND_0]], dims = [0, 1, 2] : (tensor<1x11x1xi1>) -> tensor<2x11x7xi1>
 // CHECK:           %[[SLICE_1:.*]] = stablehlo.slice %[[ARG1]] [0:1, 0:2, 0:5, 0:7] : (tensor<3x2x5x7xf32>) -> tensor<1x2x5x7xf32>
-// CHECK:           %[[RESHAPE_1:.*]] = stablehlo.reshape %[[SLICE_1]] : (tensor<1x2x5x7xf32>) -> tensor<2x5x7xf32>
-// CHECK:           %[[DOT_GENERAL_0:.*]] = stablehlo.dot_general %[[SELECT_0]], %[[RESHAPE_1]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x11x5xf32>, tensor<2x5x7xf32>) -> tensor<2x11x7xf32>
+// CHECK:           %[[RESHAPE_0:.*]] = stablehlo.reshape %[[SLICE_1]] : (tensor<1x2x5x7xf32>) -> tensor<2x5x7xf32>
+// CHECK:           %[[DOT_GENERAL_0:.*]] = stablehlo.dot_general %[[ARG0]], %[[RESHAPE_0]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x11x5xf32>, tensor<2x5x7xf32>) -> tensor<2x11x7xf32>
+// CHECK:           %[[SELECT_0:.*]] = stablehlo.select %[[BROADCAST_IN_DIM_2]], %[[DOT_GENERAL_0]], %[[CONSTANT_2]] : tensor<2x11x7xi1>, tensor<2x11x7xf32>
+// CHECK:           %[[ADD_1:.*]] = stablehlo.add %[[CONSTANT_1]], %[[SELECT_0]] : tensor<2x11x7xf32>
+// CHECK:           %[[ADD_2:.*]] = stablehlo.add %[[CONSTANT_0]], %[[SLICE_0]] : tensor<1xi64>
 // CHECK:           %[[SLICE_2:.*]] = stablehlo.slice %[[ARG2]] [1:2] : (tensor<3xi64>) -> tensor<1xi64>
-// CHECK:           %[[RESHAPE_2:.*]] = stablehlo.reshape %[[SLICE_2]] : (tensor<1xi64>) -> tensor<i64>
-// CHECK:           %[[ADD_1:.*]] = stablehlo.add %[[ADD_0]], %[[RESHAPE_2]] : tensor<i64>
-// CHECK:           %[[BROADCAST_IN_DIM_3:.*]] = stablehlo.broadcast_in_dim %[[ADD_0]], dims = [] : (tensor<i64>) -> tensor<2x11x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_4:.*]] = stablehlo.broadcast_in_dim %[[ADD_1]], dims = [] : (tensor<i64>) -> tensor<2x11x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_5:.*]] = stablehlo.broadcast_in_dim %[[IOTA_0]], dims = [0, 1, 2] : (tensor<1x11x1xi64>) -> tensor<2x11x5xi64>
-// CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare  GE, %[[BROADCAST_IN_DIM_5]], %[[BROADCAST_IN_DIM_3]] : (tensor<2x11x5xi64>, tensor<2x11x5xi64>) -> tensor<2x11x5xi1>
-// CHECK:           %[[COMPARE_3:.*]] = stablehlo.compare  LT, %[[BROADCAST_IN_DIM_5]], %[[BROADCAST_IN_DIM_4]] : (tensor<2x11x5xi64>, tensor<2x11x5xi64>) -> tensor<2x11x5xi1>
-// CHECK:           %[[AND_1:.*]] = stablehlo.and %[[COMPARE_2]], %[[COMPARE_3]] : tensor<2x11x5xi1>
-// CHECK:           %[[SELECT_1:.*]] = stablehlo.select %[[AND_1]], %[[ARG0]], %[[CONSTANT_1]] : tensor<2x11x5xi1>, tensor<2x11x5xf32>
+// CHECK:           %[[BROADCAST_IN_DIM_3:.*]] = stablehlo.broadcast_in_dim %[[ADD_2]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare  LE, %[[BROADCAST_IN_DIM_3]], %[[IOTA_0]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK:           %[[ADD_3:.*]] = stablehlo.add %[[ADD_2]], %[[SLICE_2]] : tensor<1xi64>
+// CHECK:           %[[BROADCAST_IN_DIM_4:.*]] = stablehlo.broadcast_in_dim %[[ADD_3]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK:           %[[COMPARE_3:.*]] = stablehlo.compare  LT, %[[IOTA_0]], %[[BROADCAST_IN_DIM_4]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK:           %[[AND_1:.*]] = stablehlo.and %[[COMPARE_2]], %[[COMPARE_3]] : tensor<1x11x1xi1>
+// CHECK:           %[[BROADCAST_IN_DIM_5:.*]] = stablehlo.broadcast_in_dim %[[AND_1]], dims = [0, 1, 2] : (tensor<1x11x1xi1>) -> tensor<2x11x7xi1>
 // CHECK:           %[[SLICE_3:.*]] = stablehlo.slice %[[ARG1]] [1:2, 0:2, 0:5, 0:7] : (tensor<3x2x5x7xf32>) -> tensor<1x2x5x7xf32>
-// CHECK:           %[[RESHAPE_3:.*]] = stablehlo.reshape %[[SLICE_3]] : (tensor<1x2x5x7xf32>) -> tensor<2x5x7xf32>
-// CHECK:           %[[DOT_GENERAL_1:.*]] = stablehlo.dot_general %[[SELECT_1]], %[[RESHAPE_3]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x11x5xf32>, tensor<2x5x7xf32>) -> tensor<2x11x7xf32>
-// CHECK:           %[[ADD_2:.*]] = stablehlo.add %[[DOT_GENERAL_0]], %[[DOT_GENERAL_1]] : tensor<2x11x7xf32>
+// CHECK:           %[[RESHAPE_1:.*]] = stablehlo.reshape %[[SLICE_3]] : (tensor<1x2x5x7xf32>) -> tensor<2x5x7xf32>
+// CHECK:           %[[DOT_GENERAL_1:.*]] = stablehlo.dot_general %[[ARG0]], %[[RESHAPE_1]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x11x5xf32>, tensor<2x5x7xf32>) -> tensor<2x11x7xf32>
+// CHECK:           %[[SELECT_1:.*]] = stablehlo.select %[[BROADCAST_IN_DIM_5]], %[[DOT_GENERAL_1]], %[[CONSTANT_2]] : tensor<2x11x7xi1>, tensor<2x11x7xf32>
+// CHECK:           %[[ADD_4:.*]] = stablehlo.add %[[ADD_1]], %[[SELECT_1]] : tensor<2x11x7xf32>
+// CHECK:           %[[ADD_5:.*]] = stablehlo.add %[[ADD_2]], %[[SLICE_2]] : tensor<1xi64>
 // CHECK:           %[[SLICE_4:.*]] = stablehlo.slice %[[ARG2]] [2:3] : (tensor<3xi64>) -> tensor<1xi64>
-// CHECK:           %[[RESHAPE_4:.*]] = stablehlo.reshape %[[SLICE_4]] : (tensor<1xi64>) -> tensor<i64>
-// CHECK:           %[[ADD_3:.*]] = stablehlo.add %[[ADD_1]], %[[RESHAPE_4]] : tensor<i64>
-// CHECK:           %[[BROADCAST_IN_DIM_6:.*]] = stablehlo.broadcast_in_dim %[[ADD_1]], dims = [] : (tensor<i64>) -> tensor<2x11x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_7:.*]] = stablehlo.broadcast_in_dim %[[ADD_3]], dims = [] : (tensor<i64>) -> tensor<2x11x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_8:.*]] = stablehlo.broadcast_in_dim %[[IOTA_0]], dims = [0, 1, 2] : (tensor<1x11x1xi64>) -> tensor<2x11x5xi64>
-// CHECK:           %[[COMPARE_4:.*]] = stablehlo.compare  GE, %[[BROADCAST_IN_DIM_8]], %[[BROADCAST_IN_DIM_6]] : (tensor<2x11x5xi64>, tensor<2x11x5xi64>) -> tensor<2x11x5xi1>
-// CHECK:           %[[COMPARE_5:.*]] = stablehlo.compare  LT, %[[BROADCAST_IN_DIM_8]], %[[BROADCAST_IN_DIM_7]] : (tensor<2x11x5xi64>, tensor<2x11x5xi64>) -> tensor<2x11x5xi1>
-// CHECK:           %[[AND_2:.*]] = stablehlo.and %[[COMPARE_4]], %[[COMPARE_5]] : tensor<2x11x5xi1>
-// CHECK:           %[[SELECT_2:.*]] = stablehlo.select %[[AND_2]], %[[ARG0]], %[[CONSTANT_1]] : tensor<2x11x5xi1>, tensor<2x11x5xf32>
+// CHECK:           %[[BROADCAST_IN_DIM_6:.*]] = stablehlo.broadcast_in_dim %[[ADD_5]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK:           %[[COMPARE_4:.*]] = stablehlo.compare  LE, %[[BROADCAST_IN_DIM_6]], %[[IOTA_0]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK:           %[[ADD_6:.*]] = stablehlo.add %[[ADD_5]], %[[SLICE_4]] : tensor<1xi64>
+// CHECK:           %[[BROADCAST_IN_DIM_7:.*]] = stablehlo.broadcast_in_dim %[[ADD_6]], dims = [0] : (tensor<1xi64>) -> tensor<1x11x1xi64>
+// CHECK:           %[[COMPARE_5:.*]] = stablehlo.compare  LT, %[[IOTA_0]], %[[BROADCAST_IN_DIM_7]] : (tensor<1x11x1xi64>, tensor<1x11x1xi64>) -> tensor<1x11x1xi1>
+// CHECK:           %[[AND_2:.*]] = stablehlo.and %[[COMPARE_4]], %[[COMPARE_5]] : tensor<1x11x1xi1>
+// CHECK:           %[[BROADCAST_IN_DIM_8:.*]] = stablehlo.broadcast_in_dim %[[AND_2]], dims = [0, 1, 2] : (tensor<1x11x1xi1>) -> tensor<2x11x7xi1>
 // CHECK:           %[[SLICE_5:.*]] = stablehlo.slice %[[ARG1]] [2:3, 0:2, 0:5, 0:7] : (tensor<3x2x5x7xf32>) -> tensor<1x2x5x7xf32>
-// CHECK:           %[[RESHAPE_5:.*]] = stablehlo.reshape %[[SLICE_5]] : (tensor<1x2x5x7xf32>) -> tensor<2x5x7xf32>
-// CHECK:           %[[DOT_GENERAL_2:.*]] = stablehlo.dot_general %[[SELECT_2]], %[[RESHAPE_5]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x11x5xf32>, tensor<2x5x7xf32>) -> tensor<2x11x7xf32>
-// CHECK:           %[[ADD_4:.*]] = stablehlo.add %[[ADD_2]], %[[DOT_GENERAL_2]] : tensor<2x11x7xf32>
-// CHECK:           return %[[ADD_4]] : tensor<2x11x7xf32>
+// CHECK:           %[[RESHAPE_2:.*]] = stablehlo.reshape %[[SLICE_5]] : (tensor<1x2x5x7xf32>) -> tensor<2x5x7xf32>
+// CHECK:           %[[DOT_GENERAL_2:.*]] = stablehlo.dot_general %[[ARG0]], %[[RESHAPE_2]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x11x5xf32>, tensor<2x5x7xf32>) -> tensor<2x11x7xf32>
+// CHECK:           %[[SELECT_2:.*]] = stablehlo.select %[[BROADCAST_IN_DIM_8]], %[[DOT_GENERAL_2]], %[[CONSTANT_2]] : tensor<2x11x7xi1>, tensor<2x11x7xf32>
+// CHECK:           %[[ADD_7:.*]] = stablehlo.add %[[ADD_4]], %[[SELECT_2]] : tensor<2x11x7xf32>
+// CHECK:           %[[ADD_8:.*]] = stablehlo.add %[[ADD_5]], %[[SLICE_4]] : tensor<1xi64>
+// CHECK:           return %[[ADD_7]] : tensor<2x11x7xf32>
 // CHECK:         }
 func.func @ragged_dot_mode_1(%lhs : tensor<2x11x5xf32>, %rhs : tensor<3x2x5x7xf32>, %group_sizes : tensor<3xi64>) -> tensor<2x11x7xf32> {
   %0 = "chlo.ragged_dot"(%lhs, %rhs, %group_sizes) {
@@ -5132,145 +5133,4 @@ func.func @ragged_dot_mode_1(%lhs : tensor<2x11x5xf32>, %rhs : tensor<3x2x5x7xf3
     precision_config = [#chlo<precision DEFAULT>, #chlo<precision DEFAULT>]
   } : (tensor<2x11x5xf32>, tensor<3x2x5x7xf32>, tensor<3xi64>) -> tensor<2x11x7xf32>
   func.return %0 : tensor<2x11x7xf32>
-}
-
-// -----
-
-// CHECK-LABEL:   func.func @ragged_dot_mode_2(
-// CHECK-SAME:      %[[ARG0:.*]]: tensor<2x3x5xf32>,
-// CHECK-SAME:      %[[ARG1:.*]]: tensor<2x5x7xf32>,
-// CHECK-SAME:      %[[ARG2:.*]]: tensor<2x4xi64>) -> tensor<4x2x3x7xf32> {
-// CHECK:           %[[CONSTANT_0:.*]] = stablehlo.constant dense<0> : tensor<2xi64>
-// CHECK:           %[[IOTA_0:.*]] = stablehlo.iota dim = 2 : tensor<1x1x5xi64>
-// CHECK:           %[[CONSTANT_1:.*]] = stablehlo.constant dense<0.000000e+00> : tensor<2x3x5xf32>
-// CHECK:           %[[SLICE_0:.*]] = stablehlo.slice %[[ARG2]] [0:2, 0:1] : (tensor<2x4xi64>) -> tensor<2x1xi64>
-// CHECK:           %[[RESHAPE_0:.*]] = stablehlo.reshape %[[SLICE_0]] : (tensor<2x1xi64>) -> tensor<2xi64>
-// CHECK:           %[[ADD_0:.*]] = stablehlo.add %[[CONSTANT_0]], %[[RESHAPE_0]] : tensor<2xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_0:.*]] = stablehlo.broadcast_in_dim %[[CONSTANT_0]], dims = [0] : (tensor<2xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_1:.*]] = stablehlo.broadcast_in_dim %[[ADD_0]], dims = [0] : (tensor<2xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_2:.*]] = stablehlo.broadcast_in_dim %[[IOTA_0]], dims = [0, 1, 2] : (tensor<1x1x5xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[COMPARE_0:.*]] = stablehlo.compare  GE, %[[BROADCAST_IN_DIM_2]], %[[BROADCAST_IN_DIM_0]] : (tensor<2x3x5xi64>, tensor<2x3x5xi64>) -> tensor<2x3x5xi1>
-// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare  LT, %[[BROADCAST_IN_DIM_2]], %[[BROADCAST_IN_DIM_1]] : (tensor<2x3x5xi64>, tensor<2x3x5xi64>) -> tensor<2x3x5xi1>
-// CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_0]], %[[COMPARE_1]] : tensor<2x3x5xi1>
-// CHECK:           %[[SELECT_0:.*]] = stablehlo.select %[[AND_0]], %[[ARG0]], %[[CONSTANT_1]] : tensor<2x3x5xi1>, tensor<2x3x5xf32>
-// CHECK:           %[[DOT_GENERAL_0:.*]] = stablehlo.dot_general %[[SELECT_0]], %[[ARG1]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x3x5xf32>, tensor<2x5x7xf32>) -> tensor<2x3x7xf32>
-// CHECK:           %[[SLICE_1:.*]] = stablehlo.slice %[[ARG2]] [0:2, 1:2] : (tensor<2x4xi64>) -> tensor<2x1xi64>
-// CHECK:           %[[RESHAPE_1:.*]] = stablehlo.reshape %[[SLICE_1]] : (tensor<2x1xi64>) -> tensor<2xi64>
-// CHECK:           %[[ADD_1:.*]] = stablehlo.add %[[ADD_0]], %[[RESHAPE_1]] : tensor<2xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_3:.*]] = stablehlo.broadcast_in_dim %[[ADD_0]], dims = [0] : (tensor<2xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_4:.*]] = stablehlo.broadcast_in_dim %[[ADD_1]], dims = [0] : (tensor<2xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_5:.*]] = stablehlo.broadcast_in_dim %[[IOTA_0]], dims = [0, 1, 2] : (tensor<1x1x5xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare  GE, %[[BROADCAST_IN_DIM_5]], %[[BROADCAST_IN_DIM_3]] : (tensor<2x3x5xi64>, tensor<2x3x5xi64>) -> tensor<2x3x5xi1>
-// CHECK:           %[[COMPARE_3:.*]] = stablehlo.compare  LT, %[[BROADCAST_IN_DIM_5]], %[[BROADCAST_IN_DIM_4]] : (tensor<2x3x5xi64>, tensor<2x3x5xi64>) -> tensor<2x3x5xi1>
-// CHECK:           %[[AND_1:.*]] = stablehlo.and %[[COMPARE_2]], %[[COMPARE_3]] : tensor<2x3x5xi1>
-// CHECK:           %[[SELECT_1:.*]] = stablehlo.select %[[AND_1]], %[[ARG0]], %[[CONSTANT_1]] : tensor<2x3x5xi1>, tensor<2x3x5xf32>
-// CHECK:           %[[DOT_GENERAL_1:.*]] = stablehlo.dot_general %[[SELECT_1]], %[[ARG1]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x3x5xf32>, tensor<2x5x7xf32>) -> tensor<2x3x7xf32>
-// CHECK:           %[[SLICE_2:.*]] = stablehlo.slice %[[ARG2]] [0:2, 2:3] : (tensor<2x4xi64>) -> tensor<2x1xi64>
-// CHECK:           %[[RESHAPE_2:.*]] = stablehlo.reshape %[[SLICE_2]] : (tensor<2x1xi64>) -> tensor<2xi64>
-// CHECK:           %[[ADD_2:.*]] = stablehlo.add %[[ADD_1]], %[[RESHAPE_2]] : tensor<2xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_6:.*]] = stablehlo.broadcast_in_dim %[[ADD_1]], dims = [0] : (tensor<2xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_7:.*]] = stablehlo.broadcast_in_dim %[[ADD_2]], dims = [0] : (tensor<2xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_8:.*]] = stablehlo.broadcast_in_dim %[[IOTA_0]], dims = [0, 1, 2] : (tensor<1x1x5xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[COMPARE_4:.*]] = stablehlo.compare  GE, %[[BROADCAST_IN_DIM_8]], %[[BROADCAST_IN_DIM_6]] : (tensor<2x3x5xi64>, tensor<2x3x5xi64>) -> tensor<2x3x5xi1>
-// CHECK:           %[[COMPARE_5:.*]] = stablehlo.compare  LT, %[[BROADCAST_IN_DIM_8]], %[[BROADCAST_IN_DIM_7]] : (tensor<2x3x5xi64>, tensor<2x3x5xi64>) -> tensor<2x3x5xi1>
-// CHECK:           %[[AND_2:.*]] = stablehlo.and %[[COMPARE_4]], %[[COMPARE_5]] : tensor<2x3x5xi1>
-// CHECK:           %[[SELECT_2:.*]] = stablehlo.select %[[AND_2]], %[[ARG0]], %[[CONSTANT_1]] : tensor<2x3x5xi1>, tensor<2x3x5xf32>
-// CHECK:           %[[DOT_GENERAL_2:.*]] = stablehlo.dot_general %[[SELECT_2]], %[[ARG1]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x3x5xf32>, tensor<2x5x7xf32>) -> tensor<2x3x7xf32>
-// CHECK:           %[[SLICE_3:.*]] = stablehlo.slice %[[ARG2]] [0:2, 3:4] : (tensor<2x4xi64>) -> tensor<2x1xi64>
-// CHECK:           %[[RESHAPE_3:.*]] = stablehlo.reshape %[[SLICE_3]] : (tensor<2x1xi64>) -> tensor<2xi64>
-// CHECK:           %[[ADD_3:.*]] = stablehlo.add %[[ADD_2]], %[[RESHAPE_3]] : tensor<2xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_9:.*]] = stablehlo.broadcast_in_dim %[[ADD_2]], dims = [0] : (tensor<2xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_10:.*]] = stablehlo.broadcast_in_dim %[[ADD_3]], dims = [0] : (tensor<2xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[BROADCAST_IN_DIM_11:.*]] = stablehlo.broadcast_in_dim %[[IOTA_0]], dims = [0, 1, 2] : (tensor<1x1x5xi64>) -> tensor<2x3x5xi64>
-// CHECK:           %[[COMPARE_6:.*]] = stablehlo.compare  GE, %[[BROADCAST_IN_DIM_11]], %[[BROADCAST_IN_DIM_9]] : (tensor<2x3x5xi64>, tensor<2x3x5xi64>) -> tensor<2x3x5xi1>
-// CHECK:           %[[COMPARE_7:.*]] = stablehlo.compare  LT, %[[BROADCAST_IN_DIM_11]], %[[BROADCAST_IN_DIM_10]] : (tensor<2x3x5xi64>, tensor<2x3x5xi64>) -> tensor<2x3x5xi1>
-// CHECK:           %[[AND_3:.*]] = stablehlo.and %[[COMPARE_6]], %[[COMPARE_7]] : tensor<2x3x5xi1>
-// CHECK:           %[[SELECT_3:.*]] = stablehlo.select %[[AND_3]], %[[ARG0]], %[[CONSTANT_1]] : tensor<2x3x5xi1>, tensor<2x3x5xf32>
-// CHECK:           %[[DOT_GENERAL_3:.*]] = stablehlo.dot_general %[[SELECT_3]], %[[ARG1]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x3x5xf32>, tensor<2x5x7xf32>) -> tensor<2x3x7xf32>
-// CHECK:           %[[RESHAPE_4:.*]] = stablehlo.reshape %[[DOT_GENERAL_0]] : (tensor<2x3x7xf32>) -> tensor<1x2x3x7xf32>
-// CHECK:           %[[RESHAPE_5:.*]] = stablehlo.reshape %[[DOT_GENERAL_1]] : (tensor<2x3x7xf32>) -> tensor<1x2x3x7xf32>
-// CHECK:           %[[RESHAPE_6:.*]] = stablehlo.reshape %[[DOT_GENERAL_2]] : (tensor<2x3x7xf32>) -> tensor<1x2x3x7xf32>
-// CHECK:           %[[RESHAPE_7:.*]] = stablehlo.reshape %[[DOT_GENERAL_3]] : (tensor<2x3x7xf32>) -> tensor<1x2x3x7xf32>
-// CHECK:           %[[CONCATENATE_0:.*]] = stablehlo.concatenate %[[RESHAPE_4]], %[[RESHAPE_5]], %[[RESHAPE_6]], %[[RESHAPE_7]], dim = 0 : (tensor<1x2x3x7xf32>, tensor<1x2x3x7xf32>, tensor<1x2x3x7xf32>, tensor<1x2x3x7xf32>) -> tensor<4x2x3x7xf32>
-// CHECK:           return %[[CONCATENATE_0]] : tensor<4x2x3x7xf32>
-// CHECK:         }
-func.func @ragged_dot_mode_2(%lhs : tensor<2x3x5xf32>, %rhs : tensor<2x5x7xf32>, %group_sizes : tensor<2x4xi64>) -> tensor<4x2x3x7xf32> {
-  %0 = "chlo.ragged_dot"(%lhs, %rhs, %group_sizes) {
-    ragged_dot_dimension_numbers = #chlo.ragged_dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [2],
-      rhs_contracting_dimensions = [1],
-      lhs_ragged_dimensions = [2],
-      rhs_group_dimensions = []
-    >,
-    precision_config = [#chlo<precision DEFAULT>, #chlo<precision DEFAULT>]
-  } : (tensor<2x3x5xf32>, tensor<2x5x7xf32>, tensor<2x4xi64>) -> tensor<4x2x3x7xf32>
-  func.return %0 : tensor<4x2x3x7xf32>
-}
-
-// CHECK-LABEL:   func.func @ragged_dot_mode_3(
-// CHECK-SAME:      %[[ARG0:.*]]: tensor<2x3x5xf32>,
-// CHECK-SAME:      %[[ARG1:.*]]: tensor<2x5x7xf32>,
-// CHECK-SAME:      %[[ARG2:.*]]: tensor<2xi64>) -> tensor<2x3x7xf32> {
-// CHECK:           %[[DOT_GENERAL_0:.*]] = stablehlo.dot_general %[[ARG0]], %[[ARG1]], batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x3x5xf32>, tensor<2x5x7xf32>) -> tensor<2x3x7xf32>
-// CHECK:           return %[[DOT_GENERAL_0]] : tensor<2x3x7xf32>
-// CHECK:         }
-func.func @ragged_dot_mode_3(%lhs : tensor<2x3x5xf32>, %rhs : tensor<2x5x7xf32>, %group_sizes : tensor<2xi64>) -> tensor<2x3x7xf32> {
-  %0 = "chlo.ragged_dot"(%lhs, %rhs, %group_sizes) {
-    ragged_dot_dimension_numbers = #chlo.ragged_dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [2],
-      rhs_contracting_dimensions = [1],
-      lhs_ragged_dimensions = [0],
-      rhs_group_dimensions = []
-    >,
-    precision_config = [#chlo<precision DEFAULT>, #chlo<precision DEFAULT>]
-  } : (tensor<2x3x5xf32>, tensor<2x5x7xf32>, tensor<2xi64>) -> tensor<2x3x7xf32>
-  func.return %0 : tensor<2x3x7xf32>
-}
-
-// -----
-
-// CHECK-LABEL:   func.func @scan(
-// CHECK-SAME:      %[[ARG0:.*]]: tensor<2xi32>,
-// CHECK-SAME:      %[[ARG1:.*]]: tensor<i32>) -> (tensor<2xi32>, tensor<i32>) {
-// CHECK-DAG:       %[[GET_DIMENSION_SIZE:.*]] = stablehlo.get_dimension_size %[[ARG0]], dim = 0 : (tensor<2xi32>) -> tensor<i32>
-// CHECK-DAG:       %[[CONVERT:.*]] = stablehlo.convert %[[GET_DIMENSION_SIZE]] : (tensor<i32>) -> tensor<i64>
-// CHECK-DAG:       %[[C0_I64:.*]] = stablehlo.constant dense<0> : tensor<i64>
-// CHECK-DAG:       %[[C0_I32:.*]] = stablehlo.constant dense<0> : tensor<i32>
-// CHECK-DAG:       %[[BROADCAST:.*]] = stablehlo.broadcast %[[C0_I32]], sizes = [2] : (tensor<i32>) -> tensor<2xi32>
-// CHECK:           %[[WHILE:.*]]:3 = stablehlo.while(%[[ITER:.*]] = %[[C0_I64]], %[[ACC:.*]] = %[[ARG1]], %[[OUT:.*]] = %[[BROADCAST]]) : tensor<i64>, tensor<i32>, tensor<2xi32>
-// CHECK:             cond {
-// CHECK:               %[[CMP:.*]] = stablehlo.compare  LT, %[[ITER]], %[[CONVERT]] : (tensor<i64>, tensor<i64>) -> tensor<i1>
-// CHECK:               stablehlo.return %[[CMP]] : tensor<i1>
-// CHECK:             } do {
-// CHECK-DAG:           %[[C0_I64_2:.*]] = stablehlo.constant dense<0> : tensor<i64>
-// CHECK-DAG:           %[[RESHAPE_ITER:.*]] = stablehlo.reshape %[[ITER]] : (tensor<i64>) -> tensor<1xi64>
-// CHECK-DAG:           %[[CONCAT_START:.*]] = stablehlo.concatenate %[[RESHAPE_ITER]], dim = 0 : (tensor<1xi64>) -> tensor<1xi64>
-// CHECK-DAG:           %[[C1_I64:.*]] = stablehlo.constant dense<1> : tensor<i64>
-// CHECK-DAG:           %[[ITER_PLUS_1:.*]] = stablehlo.add %[[ITER]], %[[C1_I64]] : tensor<i64>
-// CHECK-DAG:           %[[RESHAPE_LIMIT:.*]] = stablehlo.reshape %[[ITER_PLUS_1]] : (tensor<i64>) -> tensor<1xi64>
-// CHECK-DAG:           %[[CONCAT_LIMIT:.*]] = stablehlo.concatenate %[[RESHAPE_LIMIT]], dim = 0 : (tensor<1xi64>) -> tensor<1xi64>
-// CHECK-DAG:           %[[STRIDES:.*]] = stablehlo.constant dense<1> : tensor<1xi64>
-// CHECK-DAG:           %[[SLICE:.*]] = stablehlo.real_dynamic_slice %[[ARG0]], %[[CONCAT_START]], %[[CONCAT_LIMIT]], %[[STRIDES]] : (tensor<2xi32>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<1xi32>
-// CHECK-DAG:           %[[INPUT_ELEM:.*]] = stablehlo.reshape %[[SLICE]] : (tensor<1xi32>) -> tensor<i32>
-// CHECK-DAG:           %[[ADD_RES:.*]] = stablehlo.add %[[INPUT_ELEM]], %[[ACC]] : tensor<i32>
-// CHECK-DAG:           %[[RESHAPE_RES:.*]] = stablehlo.reshape %[[ADD_RES]] : (tensor<i32>) -> tensor<1xi32>
-// CHECK-DAG:           %[[C0_I64_3:.*]] = stablehlo.constant dense<0> : tensor<i64>
-// CHECK-DAG:           %[[UPDATE:.*]] = stablehlo.dynamic_update_slice %[[OUT]], %[[RESHAPE_RES]], %[[ITER]] : (tensor<2xi32>, tensor<1xi32>, tensor<i64>) -> tensor<2xi32>
-// CHECK-DAG:           %[[C1_I64_2:.*]] = stablehlo.constant dense<1> : tensor<i64>
-// CHECK-DAG:           %[[NEXT_ITER:.*]] = stablehlo.add %[[ITER]], %[[C1_I64_2]] : tensor<i64>
-// CHECK:               stablehlo.return %[[NEXT_ITER]], %[[ADD_RES]], %[[UPDATE]] : tensor<i64>, tensor<i32>, tensor<2xi32>
-// CHECK:             }
-// CHECK:           return %[[WHILE]]#2, %[[WHILE]]#1 : tensor<2xi32>, tensor<i32>
-// CHECK:         }
-func.func @scan(%arg0: tensor<2xi32>, %arg1: tensor<i32>) -> (tensor<2xi32>, tensor<i32>) {
-  %0:2 = chlo.scan(%arg0) inits(%arg1) dimension=0 {
-  ^bb0(%scan_arg0: tensor<i32>, %scan_arg1: tensor<i32>):
-    %1 = stablehlo.add %scan_arg0, %scan_arg1 : tensor<i32>
-    stablehlo.return %1, %1 : tensor<i32>, tensor<i32>
-  } : (tensor<2xi32>, tensor<i32>) -> (tensor<2xi32>, tensor<i32>)
-  func.return %0#0, %0#1 : tensor<2xi32>, tensor<i32>
 }

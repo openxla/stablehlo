@@ -2069,6 +2069,156 @@ static Value materializeSinhApproximation(OpBuilder& rewriter, Location loc,
 
 namespace {
 
+Value createInitialStartValue(OpBuilder& builder, Location loc,
+                              Value groupSizes, RankedTensorType groupSizesTy,
+                              ArrayRef<int64_t> batchShape) {
+  int64_t groupSizesRank = groupSizesTy.getRank();
+  if (ShapedType::isDynamicShape(batchShape)) {
+    Value groupSizesShape = shape::ShapeOfOp::create(builder, loc, groupSizes);
+    Value batchShapeVal = mlir::stablehlo::SliceOp::create(
+        builder, loc, groupSizesShape, builder.getDenseI64ArrayAttr({0}),
+        builder.getDenseI64ArrayAttr({groupSizesRank - 1}),
+        builder.getDenseI64ArrayAttr({1}));
+    Value zero = mlir::stablehlo::ConstantOp::create(
+        builder, loc, builder.getZeroAttr(builder.getI64Type()));
+    return mlir::stablehlo::DynamicBroadcastInDimOp::create(
+        builder, loc, RankedTensorType::get(batchShape, builder.getI64Type()),
+        zero, batchShapeVal, builder.getDenseI64ArrayAttr({}));
+  }
+  return mlir::stablehlo::ConstantOp::create(
+      builder, loc,
+      builder.getZeroAttr(
+          RankedTensorType::get(batchShape, builder.getI64Type())));
+}
+
+Value getGroupSize(OpBuilder& builder, Location loc, Value groupSizes,
+                   RankedTensorType groupSizesTy, int64_t index,
+                   ArrayRef<int64_t> batchShape) {
+  int64_t groupSizesRank = groupSizesTy.getRank();
+  int64_t groupDimIdx = groupSizesRank - 1;
+  SmallVector<int64_t> startIndices(groupSizesRank, 0);
+  startIndices[groupDimIdx] = index;
+  SmallVector<int64_t> limitIndices(groupSizesTy.getShape());
+  limitIndices[groupDimIdx] = index + 1;
+  SmallVector<int64_t> strides(groupSizesRank, 1);
+
+  Value groupSizeSlice;
+  if (groupSizesTy.hasStaticShape()) {
+    groupSizeSlice = mlir::stablehlo::SliceOp::create(
+        builder, loc, groupSizes, builder.getDenseI64ArrayAttr(startIndices),
+        builder.getDenseI64ArrayAttr(limitIndices),
+        builder.getDenseI64ArrayAttr(strides));
+  } else {
+    auto startTensor = mlir::stablehlo::ConstantOp::create(
+        builder, loc,
+        DenseIntElementsAttr::get(
+            RankedTensorType::get({groupSizesRank}, builder.getI64Type()),
+            startIndices));
+    auto stridesTensor = mlir::stablehlo::ConstantOp::create(
+        builder, loc,
+        DenseIntElementsAttr::get(
+            RankedTensorType::get({groupSizesRank}, builder.getI64Type()),
+            strides));
+    SmallVector<Value> limitValues;
+    for (int64_t d = 0; d < groupSizesRank; ++d) {
+      if (d == groupDimIdx) {
+        limitValues.push_back(mlir::stablehlo::ConstantOp::create(
+            builder, loc, builder.getI64IntegerAttr(index + 1)));
+      } else {
+        Value dimSize = mlir::stablehlo::GetDimensionSizeOp::create(
+            builder, loc, groupSizes, d);
+        if (!dimSize.getType().isInteger(64)) {
+          dimSize = mlir::stablehlo::ConvertOp::create(
+              builder, loc, builder.getI64Type(), dimSize);
+        }
+        limitValues.push_back(dimSize);
+      }
+    }
+    SmallVector<Value> limitTensorParts;
+    for (Value v : limitValues) {
+      limitTensorParts.push_back(mlir::stablehlo::ReshapeOp::create(
+          builder, loc, RankedTensorType::get({1}, builder.getI64Type()), v));
+    }
+    Value limitTensor = mlir::stablehlo::ConcatenateOp::create(
+        builder, loc,
+        RankedTensorType::get({groupSizesRank}, builder.getI64Type()),
+        limitTensorParts, /*dimension=*/0);
+
+    SmallVector<int64_t> sliceShape(groupSizesTy.getShape());
+    sliceShape[groupDimIdx] = 1;
+    groupSizeSlice = mlir::stablehlo::RealDynamicSliceOp::create(
+        builder, loc,
+        RankedTensorType::get(sliceShape, groupSizesTy.getElementType()),
+        groupSizes, startTensor, limitTensor, stridesTensor);
+  }
+
+  Value groupSize = mlir::stablehlo::ReshapeOp::create(
+      builder, loc,
+      RankedTensorType::get(batchShape, groupSizesTy.getElementType()),
+      groupSizeSlice);
+
+  if (!cast<ShapedType>(groupSize.getType()).getElementType().isInteger(64)) {
+    groupSize = mlir::stablehlo::ConvertOp::create(
+        builder, loc, RankedTensorType::get(batchShape, builder.getI64Type()),
+        groupSize);
+  }
+  return groupSize;
+}
+
+Value applyRaggedMask(OpBuilder& builder, Location loc, Value lhs, Value zero,
+                      Value start, Value limit, Value iota,
+                      RankedTensorType lhsTy,
+                      ArrayRef<int64_t> groupSizesShape) {
+  int64_t groupSizesRank = groupSizesShape.size();
+  SmallVector<int64_t> broadcastDims;
+  for (int64_t d = 0; d < groupSizesRank - 1; ++d) {
+    broadcastDims.push_back(d);
+  }
+
+  auto broadcastToLhs = [&](Value v) -> Value {
+    if (lhsTy.hasStaticShape()) {
+      return mlir::stablehlo::BroadcastInDimOp::create(
+          builder, loc,
+          RankedTensorType::get(lhsTy.getShape(), builder.getI64Type()), v,
+          builder.getDenseI64ArrayAttr(broadcastDims));
+    }
+    Value lhsShape = shape::ShapeOfOp::create(builder, loc, lhs);
+    return mlir::stablehlo::DynamicBroadcastInDimOp::create(
+        builder, loc,
+        RankedTensorType::get(lhsTy.getShape(), builder.getI64Type()), v,
+        lhsShape, builder.getDenseI64ArrayAttr(broadcastDims));
+  };
+
+  Value startBroadcast = broadcastToLhs(start);
+  Value limitBroadcast = broadcastToLhs(limit);
+
+  SmallVector<int64_t> iotaBroadcastDims;
+  for (int64_t d = 0; d < lhsTy.getRank(); ++d) iotaBroadcastDims.push_back(d);
+  Value iotaBroadcast;
+  if (lhsTy.hasStaticShape()) {
+    iotaBroadcast = mlir::stablehlo::BroadcastInDimOp::create(
+        builder, loc,
+        RankedTensorType::get(lhsTy.getShape(), builder.getI64Type()), iota,
+        builder.getDenseI64ArrayAttr(iotaBroadcastDims));
+  } else {
+    Value lhsShape = shape::ShapeOfOp::create(builder, loc, lhs);
+    iotaBroadcast = mlir::stablehlo::DynamicBroadcastInDimOp::create(
+        builder, loc,
+        RankedTensorType::get(lhsTy.getShape(), builder.getI64Type()), iota,
+        lhsShape, builder.getDenseI64ArrayAttr(iotaBroadcastDims));
+  }
+
+  Value geStart = mlir::stablehlo::CompareOp::create(
+      builder, loc, iotaBroadcast, startBroadcast,
+      mlir::stablehlo::ComparisonDirection::GE);
+  Value ltLimit = mlir::stablehlo::CompareOp::create(
+      builder, loc, iotaBroadcast, limitBroadcast,
+      mlir::stablehlo::ComparisonDirection::LT);
+  Value mask = mlir::stablehlo::AndOp::create(builder, loc, geStart, ltLimit);
+
+  return mlir::stablehlo::SelectOp::create(builder, loc, mask, lhs, zero);
+}
+
 ArrayAttr convertPrecisionConfig(mlir::ArrayAttr precisionConfig,
                                  ConversionPatternRewriter& rewriter) {
   std::vector<Attribute> precisions;
@@ -2123,131 +2273,158 @@ LogicalResult handleRaggedDotMode1(mlir::chlo::RaggedDotOp op,
   }
   RankedTensorType lhsTy = cast<RankedTensorType>(lhs.getType());
   RankedTensorType rhsTy = cast<RankedTensorType>(rhs.getType());
-  int64_t lhsRank = lhsTy.getRank();
   int64_t rhsRank = rhsTy.getRank();
-  auto outDType = op.getResult().getType().getElementType();
 
-  int64_t m = lhsTy.getShape()[lhsTy.getRank() - 2];
-  int64_t k = lhsTy.getShape()[lhsTy.getRank() - 1];
-  int64_t g = rhsTy.getShape()[0];
-  int64_t n = rhsTy.getShape()[rhsTy.getRank() - 1];
-
-  std::vector<int64_t> outDims = {m, n};
-  std::vector<int64_t> iotaShape = {m, 1};
-  auto iotaDim = 0;
-  std::vector<int64_t> rhsBatchingDims = {};
-  std::vector<int64_t> rhsContractingDims = {0};
-  std::vector<int64_t> rhsReshapedSliceShape = {k, n};
-
-  // If LHS has batching dimension, then decompose ragged dot based on shape
-  // [b, m, k], otherwise assume shape with no batch [m, k].
-  if (lhsRank == 3) {
-    int64_t b = lhsTy.getShape()[0];
-    outDims = {b, m, n};
-    iotaShape = {1, m, 1};
-    iotaDim = 1;
-    rhsBatchingDims = {0};
-    rhsContractingDims = {1};
-    rhsReshapedSliceShape = {b, k, n};
+  int64_t lhsRaggedDimension =
+      raggedDotDimensionNumbers.getLhsRaggedDimensions()[0];
+  int64_t m = lhsTy.getShape()[lhsRaggedDimension];
+  // rhsGroupDimension identifies the group dimension in rhs.
+  int64_t g = rhsTy.getShape()[rhsGroupDimension];
+  if (g == ShapedType::kDynamic) {
+    return rewriter.notifyMatchFailure(op, "dynamic group count not supported");
   }
 
-  // result_iota = iota of shape [m, 1] or [1, m, 1]
-  Value resultIota = mlir::stablehlo::IotaOp::create(
-      rewriter, op.getLoc(),
-      RankedTensorType::get(iotaShape, rewriter.getI64Type()),
-      /*dimension=*/iotaDim);
-  Value start = mlir::stablehlo::ConstantOp::create(
-      rewriter, op.getLoc(),
-      rewriter.getZeroAttr(RankedTensorType::get({1}, rewriter.getI64Type())));
+  RankedTensorType groupSizesTy = cast<RankedTensorType>(groupSizes.getType());
+  int64_t groupSizesRank = groupSizesTy.getRank();
+  int64_t groupDimIdx = groupSizesRank - 1;
+  SmallVector<int64_t> batchShape;
+  for (int64_t i = 0; i < groupDimIdx; ++i) {
+    batchShape.push_back(groupSizesTy.getDimSize(i));
+  }
 
-  std::vector<int64_t> broadcastDimensions(lhsRank);
-  std::iota(broadcastDimensions.begin(), broadcastDimensions.end(), 0);
+  // lhs is [..., m, k]. ragged dim is m.
+  // Identify ragged dimension in LHS.
+  // RaggedDotDimensionNumbers gives lhsRaggedDimensions.
+  // In Mode 1, it's non-contracting.
+  Value start = createInitialStartValue(rewriter, op.getLoc(), groupSizes,
+                                        groupSizesTy, batchShape);
 
-  Value out = mlir::stablehlo::ConstantOp::create(
-      rewriter, op.getLoc(),
-      rewriter.getZeroAttr(RankedTensorType::get(outDims, outDType)));
+  // Create iota for ragged dimension (m).
+  SmallVector<int64_t> iotaShape(lhsTy.getRank(), 1);
+  iotaShape[lhsRaggedDimension] = m;
+  Value iotaM;
+  if (ShapedType::isDynamic(m)) {
+    SmallVector<Value> dims;
+    auto i64Type = rewriter.getI64Type();
+    for (int64_t d = 0; d < lhsTy.getRank(); ++d) {
+      if (d == lhsRaggedDimension) {
+        Value s = mlir::stablehlo::GetDimensionSizeOp::create(
+            rewriter, op.getLoc(), lhs, d);
+        s = mlir::stablehlo::ConvertOp::create(
+            rewriter, op.getLoc(), RankedTensorType::get({}, i64Type), s);
+        s = mlir::stablehlo::ReshapeOp::create(
+            rewriter, op.getLoc(), RankedTensorType::get({1}, i64Type), s);
+        dims.push_back(s);
+      } else {
+        Value s = mlir::stablehlo::ConstantOp::create(
+            rewriter, op.getLoc(), rewriter.getI64TensorAttr({1}));
+        dims.push_back(s);
+      }
+    }
+    Value iotaShapeVal = mlir::stablehlo::ConcatenateOp::create(
+        rewriter, op.getLoc(),
+        RankedTensorType::get({lhsTy.getRank()}, i64Type), dims, 0);
+    iotaM = mlir::stablehlo::DynamicIotaOp::create(
+        rewriter, op.getLoc(),
+        RankedTensorType::get(iotaShape, rewriter.getI64Type()), iotaShapeVal,
+        rewriter.getI64IntegerAttr(lhsRaggedDimension));
+  } else {
+    iotaM = mlir::stablehlo::IotaOp::create(
+        rewriter, op.getLoc(),
+        RankedTensorType::get(iotaShape, rewriter.getI64Type()),
+        rewriter.getI64IntegerAttr(lhsRaggedDimension));
+  }
 
-  Value outZeros = mlir::stablehlo::ConstantOp::create(
-      rewriter, op.getLoc(),
-      rewriter.getZeroAttr(RankedTensorType::get(outDims, outDType)));
+  Value zero;
+  if (lhsTy.hasStaticShape()) {
+    zero = mlir::stablehlo::ConstantOp::create(rewriter, op.getLoc(),
+                                               rewriter.getZeroAttr(lhsTy));
+  } else {
+    Value scalarZero = mlir::stablehlo::ConstantOp::create(
+        rewriter, op.getLoc(),
+        rewriter.getZeroAttr(
+            RankedTensorType::get({}, lhsTy.getElementType())));
+    Value lhsShape = shape::ShapeOfOp::create(rewriter, op.getLoc(), lhs);
+    zero = mlir::stablehlo::DynamicBroadcastInDimOp::create(
+        rewriter, op.getLoc(), lhsTy, scalarZero, lhsShape,
+        rewriter.getDenseI64ArrayAttr({}));
+  }
+
+  // Calculate DotDimensionNumbers for dot_general (lhs, rhs_slice).
+  auto getAdjustedDim = [&](int64_t dim) {
+    return dim > rhsGroupDimension ? dim - 1 : dim;
+  };
+  SmallVector<int64_t> rhsBatchingDims;
+  for (int64_t d : raggedDotDimensionNumbers.getRhsBatchingDimensions()) {
+    rhsBatchingDims.push_back(getAdjustedDim(d));
+  }
+  SmallVector<int64_t> rhsContractingDims;
+  for (int64_t d : raggedDotDimensionNumbers.getRhsContractingDimensions()) {
+    rhsContractingDims.push_back(getAdjustedDim(d));
+  }
+
+  Value out;
   for (auto i = 0; i < g; ++i) {
-    // groupSize = group_sizes[i]
-    Value groupSize = mlir::stablehlo::SliceOp::create(
-        rewriter, op.getLoc(),
-        RankedTensorType::get({1}, rewriter.getI64Type()), groupSizes,
-        /*startIndices=*/rewriter.getDenseI64ArrayAttr({i}),
-        /*limitIndices=*/rewriter.getDenseI64ArrayAttr({i + 1}),
-        /*strides=*/rewriter.getDenseI64ArrayAttr({1}));
+    Value groupSize = getGroupSize(rewriter, op.getLoc(), groupSizes,
+                                   groupSizesTy, i, batchShape);
 
-    Value startBroadcasted = mlir::stablehlo::BroadcastInDimOp::create(
-        rewriter, op.getLoc(), resultIota.getType(), start,
-        /*broadcast_dimensions=*/
-        rewriter.getDenseI64ArrayAttr(0));
+    Value limit =
+        mlir::stablehlo::AddOp::create(rewriter, op.getLoc(), start, groupSize);
 
-    // start <= result_iota
-    Value startLEResultIota = mlir::stablehlo::CompareOp::create(
-        rewriter, op.getLoc(), startBroadcasted, resultIota,
-        ComparisonDirection::LE);
+    Value lhsMasked =
+        applyRaggedMask(rewriter, op.getLoc(), lhs, zero, start, limit, iotaM,
+                        lhsTy, groupSizesTy.getShape());
 
-    // result_iota < (start + size)
-    Value resultIotaLTStartPlusGroupSize = mlir::stablehlo::CompareOp::create(
-        rewriter, op.getLoc(), resultIota,
-        mlir::stablehlo::BroadcastInDimOp::create(
-            rewriter, op.getLoc(), resultIota.getType(),
-            mlir::stablehlo::AddOp::create(rewriter, op.getLoc(), start,
-                                           groupSize),
-            /*broadcast_dimensions=*/rewriter.getDenseI64ArrayAttr(0)),
-        ComparisonDirection::LT);
-
-    // (start <= result_iota) & (result_iota < (start + size))
-    Value logicalAnd =
-        mlir::stablehlo::AndOp::create(rewriter, op.getLoc(), startLEResultIota,
-                                       resultIotaLTStartPlusGroupSize);
-    Value logicalAndBroadcasted = mlir::stablehlo::BroadcastInDimOp::create(
-        rewriter, op.getLoc(),
-        RankedTensorType::get(op.getResult().getType().getShape(),
-                              rewriter.getI1Type()),
-        logicalAnd,
-        /*broadcast_dimensions=*/
-        rewriter.getDenseI64ArrayAttr(broadcastDimensions));
-
-    // rhs_rehaped_slice = rhs[i, :, :, :]
-    std::vector<int64_t> rhs_start_indices(rhsTy.getRank(), 0);
-    rhs_start_indices[rhsGroupDimension] = i;
-    std::vector<int64_t> rhs_limit_indices = rhsTy.getShape();
-    rhs_limit_indices[rhsGroupDimension] = i + 1;
+    // Slice RHS.
+    SmallVector<int64_t> rhsStartIndices(rhsRank, 0);
+    rhsStartIndices[rhsGroupDimension] = i;
+    SmallVector<int64_t> rhsLimitIndices(rhsTy.getShape());
+    rhsLimitIndices[rhsGroupDimension] = i + 1;
+    SmallVector<int64_t> rhsStrides(rhsRank, 1);
     Value rhsSliced = mlir::stablehlo::SliceOp::create(
         rewriter, op.getLoc(), rhs,
-        /*startIndices=*/rewriter.getDenseI64ArrayAttr(rhs_start_indices),
-        /*limitIndices=*/rewriter.getDenseI64ArrayAttr(rhs_limit_indices),
-        /*strides=*/
-        rewriter.getDenseI64ArrayAttr(std::vector<int64_t>(rhsRank, 1)));
-    Value rhsReshapedSlice = mlir::stablehlo::ReshapeOp::create(
+        rewriter.getDenseI64ArrayAttr(rhsStartIndices),
+        rewriter.getDenseI64ArrayAttr(rhsLimitIndices),
+        rewriter.getDenseI64ArrayAttr(rhsStrides));
+
+    // Reshape RHS to remove group dim.
+    SmallVector<int64_t> rhsReshapedShape;
+    for (int64_t d = 0; d < rhsRank; ++d) {
+      if (d != rhsGroupDimension)
+        rhsReshapedShape.push_back(rhsTy.getShape()[d]);
+    }
+    Value rhsReshaped = mlir::stablehlo::ReshapeOp::create(
         rewriter, op.getLoc(),
-        RankedTensorType::get(rhsReshapedSliceShape, rhsTy.getElementType()),
+        RankedTensorType::get(rhsReshapedShape, rhsTy.getElementType()),
         rhsSliced);
 
-    // Einsum of (b)mk,(b)kn->(b)mn
+    // Dot General.
+    auto resultType = op.getResult().getType();
+    // If output is dynamic, we can't infer result type of dot_general trivially
+    // without shape inference. But dot_general shape inference handles it.
+    // However, if we accumulate, `out` needs to be initialized.
+    // We peel the first iteration to initialize `out`.
+    SmallVector<NamedAttribute, 2> attributes;
+    attributes.push_back(rewriter.getNamedAttr(
+        "dot_dimension_numbers",
+        rewriter.getAttr<mlir::stablehlo::DotDimensionNumbersAttr>(
+            lhsBatchingDimensions, rhsBatchingDims, lhsContractingDimensions,
+            rhsContractingDims)));
+    if (precisionConfig.has_value()) {
+      attributes.push_back(
+          rewriter.getNamedAttr("precision_config", precisionConfig.value()));
+    }
     Value dotGeneral = mlir::stablehlo::DotGeneralOp::create(
-        rewriter, op.getLoc(), TypeRange{out.getType()},
-        ValueRange{lhs, rhsReshapedSlice},
-        ArrayRef<mlir::NamedAttribute>{
-            rewriter.getNamedAttr(
-                "dot_dimension_numbers",
-                rewriter.getAttr<mlir::stablehlo::DotDimensionNumbersAttr>(
-                    /*lhs_batching_dimensions=*/lhsBatchingDimensions,
-                    /*rhs_batching_dimensions=*/rhsBatchingDims,
-                    /*lhs_contracting_dimensions=*/lhsContractingDimensions,
-                    /*rhs_contracting_dimensions=*/rhsContractingDims)),
-            rewriter.getNamedAttr("precision_config",
-                                  precisionConfig.value())});
+        rewriter, op.getLoc(), resultType, ValueRange{lhsMasked, rhsReshaped},
+        attributes);
 
-    // Place the i'th dot_general to the corresponding position in the result.
-    Value select = mlir::stablehlo::SelectOp::create(
-        rewriter, op.getLoc(), logicalAndBroadcasted, dotGeneral, outZeros);
-    out = mlir::stablehlo::AddOp::create(rewriter, op.getLoc(), out, select);
-    start =
-        mlir::stablehlo::AddOp::create(rewriter, op.getLoc(), start, groupSize);
+    if (i == 0) {
+      out = dotGeneral;
+    } else {
+      out = mlir::stablehlo::AddOp::create(rewriter, op.getLoc(), out,
+                                           dotGeneral);
+    }
+    start = limit;
   }
   rewriter.replaceOp(op, {out});
   return success();
@@ -2260,7 +2437,158 @@ LogicalResult handleRaggedDotMode1(mlir::chlo::RaggedDotOp op,
 //   result : [g, b, m, n]
 LogicalResult handleRaggedDotMode2(mlir::chlo::RaggedDotOp op,
                                    ConversionPatternRewriter& rewriter) {
-  return failure();
+  Value lhs = op.getLhs();
+  Value rhs = op.getRhs();
+  chlo::RaggedDotDimensionNumbersAttr raggedDotDimensionNumbers =
+      op.getRaggedDotDimensionNumbers();
+  ArrayRef<int64_t> lhsBatchingDimensions =
+      raggedDotDimensionNumbers.getLhsBatchingDimensions();
+  ArrayRef<int64_t> lhsContractingDimensions =
+      raggedDotDimensionNumbers.getLhsContractingDimensions();
+  ArrayRef<int64_t> rhsContractingDimensions =
+      raggedDotDimensionNumbers.getRhsContractingDimensions();
+  int64_t lhsRaggedDimension =
+      raggedDotDimensionNumbers.getLhsRaggedDimensions()[0];
+
+  auto groupSizes = op.getGroupSizes();
+  auto precisionConfig = op.getPrecisionConfig();
+  if (precisionConfig.has_value()) {
+    precisionConfig = convertPrecisionConfig(precisionConfig.value(), rewriter);
+  }
+  RankedTensorType lhsTy = cast<RankedTensorType>(lhs.getType());
+  RankedTensorType groupSizesTy = cast<RankedTensorType>(groupSizes.getType());
+  auto outDType = op.getResult().getType().getElementType();
+
+  int64_t groupSizesRank = groupSizesTy.getRank();
+  int64_t g = groupSizesTy.getDimSize(groupSizesRank - 1);
+  if (g == ShapedType::kDynamic) {
+    return rewriter.notifyMatchFailure(op, "dynamic group count not supported");
+  }
+
+  // Identify which contracting dimension is the ragged one.
+  int64_t rhsRaggedDimension = -1;
+  for (auto [lhsDim, rhsDim] :
+       llvm::zip(lhsContractingDimensions, rhsContractingDimensions)) {
+    if (lhsDim == lhsRaggedDimension) {
+      rhsRaggedDimension = rhsDim;
+      break;
+    }
+  }
+  if (rhsRaggedDimension == -1) return failure();
+
+  // Initialize start = 0.
+  // We need start to be broadcastable to [b].
+  // groupSizes can be [g] or [b, g].
+  int64_t groupDimIdx = groupSizesRank - 1;
+  SmallVector<int64_t> batchShape;
+  for (int64_t i = 0; i < groupDimIdx; ++i) {
+    batchShape.push_back(groupSizesTy.getDimSize(i));
+  }
+  Value start = createInitialStartValue(rewriter, op.getLoc(), groupSizes,
+                                        groupSizesTy, batchShape);
+
+  // Create iota for the contracting dimension (ragged dimension).
+  // lhs is [..., k].
+  int64_t k = lhsTy.getDimSize(lhsRaggedDimension);
+  // iotaShape: [1, ..., 1, k] (rank equal to lhs).
+  SmallVector<int64_t> iotaShape(lhsTy.getRank(), 1);
+  iotaShape[lhsRaggedDimension] = k;
+  Value iotaK;
+  if (ShapedType::isDynamic(k)) {
+    SmallVector<Value> dims;
+    auto i64Type = rewriter.getI64Type();
+    for (int64_t d = 0; d < lhsTy.getRank(); ++d) {
+      if (d == lhsRaggedDimension) {
+        Value s = mlir::stablehlo::GetDimensionSizeOp::create(
+            rewriter, op.getLoc(), lhs, d);
+        s = mlir::stablehlo::ConvertOp::create(
+            rewriter, op.getLoc(), RankedTensorType::get({}, i64Type), s);
+        s = mlir::stablehlo::ReshapeOp::create(
+            rewriter, op.getLoc(), RankedTensorType::get({1}, i64Type), s);
+        dims.push_back(s);
+      } else {
+        Value s = mlir::stablehlo::ConstantOp::create(
+            rewriter, op.getLoc(), rewriter.getI64TensorAttr({1}));
+        dims.push_back(s);
+      }
+    }
+    Value iotaShapeVal = mlir::stablehlo::ConcatenateOp::create(
+        rewriter, op.getLoc(),
+        RankedTensorType::get({lhsTy.getRank()}, i64Type), dims, 0);
+    iotaK = mlir::stablehlo::DynamicIotaOp::create(
+        rewriter, op.getLoc(),
+        RankedTensorType::get(iotaShape, rewriter.getI64Type()), iotaShapeVal,
+        rewriter.getI64IntegerAttr(lhsRaggedDimension));
+  } else {
+    iotaK = mlir::stablehlo::IotaOp::create(
+        rewriter, op.getLoc(),
+        RankedTensorType::get(iotaShape, rewriter.getI64Type()),
+        rewriter.getI64IntegerAttr(lhsRaggedDimension));
+  }
+
+  Value zero;
+  if (lhsTy.hasStaticShape()) {
+    zero = mlir::stablehlo::ConstantOp::create(rewriter, op.getLoc(),
+                                               rewriter.getZeroAttr(lhsTy));
+  } else {
+    Value scalarZero = mlir::stablehlo::ConstantOp::create(
+        rewriter, op.getLoc(),
+        rewriter.getZeroAttr(
+            RankedTensorType::get({}, lhsTy.getElementType())));
+    Value lhsShape = shape::ShapeOfOp::create(rewriter, op.getLoc(), lhs);
+    zero = mlir::stablehlo::DynamicBroadcastInDimOp::create(
+        rewriter, op.getLoc(), lhsTy, scalarZero, lhsShape,
+        rewriter.getDenseI64ArrayAttr({}));
+  }
+
+  SmallVector<Value> results;
+  for (int64_t i = 0; i < g; ++i) {
+    Value groupSize = getGroupSize(rewriter, op.getLoc(), groupSizes,
+                                   groupSizesTy, i, batchShape);
+
+    Value limit =
+        mlir::stablehlo::AddOp::create(rewriter, op.getLoc(), start, groupSize);
+
+    Value lhsMasked =
+        applyRaggedMask(rewriter, op.getLoc(), lhs, zero, start, limit, iotaK,
+                        lhsTy, groupSizesTy.getShape());
+
+    // Dot general.
+    auto resultShape = op.getResult().getType().getShape().drop_front();
+    SmallVector<NamedAttribute, 2> attributes;
+    attributes.push_back(rewriter.getNamedAttr(
+        "dot_dimension_numbers",
+        rewriter.getAttr<mlir::stablehlo::DotDimensionNumbersAttr>(
+            lhsBatchingDimensions,
+            raggedDotDimensionNumbers.getRhsBatchingDimensions(),
+            lhsContractingDimensions, rhsContractingDimensions)));
+    if (precisionConfig.has_value()) {
+      attributes.push_back(
+          rewriter.getNamedAttr("precision_config", precisionConfig.value()));
+    }
+    Value dotGeneral = mlir::stablehlo::DotGeneralOp::create(
+        rewriter, op.getLoc(), RankedTensorType::get(resultShape, outDType),
+        {lhsMasked, rhs}, attributes);
+
+    results.push_back(dotGeneral);
+    start = limit;
+  }
+
+  // Concatenate results along a new dimension 0.
+  // First broadcast each result to [1, ...].
+  SmallVector<Value> reshapedResults;
+  for (Value res : results) {
+    auto type = cast<RankedTensorType>(res.getType());
+    SmallVector<int64_t> newShape = {1};
+    newShape.append(type.getShape().begin(), type.getShape().end());
+    reshapedResults.push_back(mlir::stablehlo::ReshapeOp::create(
+        rewriter, op.getLoc(),
+        RankedTensorType::get(newShape, type.getElementType()), res));
+  }
+
+  rewriter.replaceOpWithNewOp<mlir::stablehlo::ConcatenateOp>(
+      op, reshapedResults, 0);
+  return success();
 }
 
 // Mode 3, where the ragged dimension is an lhs/rhs batch dim (b).
@@ -2270,7 +2598,31 @@ LogicalResult handleRaggedDotMode2(mlir::chlo::RaggedDotOp op,
 //   result : [b, m, n]
 LogicalResult handleRaggedDotMode3(mlir::chlo::RaggedDotOp op,
                                    ConversionPatternRewriter& rewriter) {
-  return failure();
+  // Mode 3 is semantically equivalent to a batch dot_general because the
+  // grouping does not introduce dependencies between groups.
+  // We can just lower to stablehlo.dot_general.
+  auto precisionConfig = op.getPrecisionConfig();
+  if (precisionConfig.has_value()) {
+    precisionConfig = convertPrecisionConfig(precisionConfig.value(), rewriter);
+  }
+
+  auto raggedDotDimensionNumbers = op.getRaggedDotDimensionNumbers();
+  SmallVector<NamedAttribute, 2> attributes;
+  attributes.push_back(rewriter.getNamedAttr(
+      "dot_dimension_numbers",
+      rewriter.getAttr<mlir::stablehlo::DotDimensionNumbersAttr>(
+          raggedDotDimensionNumbers.getLhsBatchingDimensions(),
+          raggedDotDimensionNumbers.getRhsBatchingDimensions(),
+          raggedDotDimensionNumbers.getLhsContractingDimensions(),
+          raggedDotDimensionNumbers.getRhsContractingDimensions())));
+  if (precisionConfig.has_value()) {
+    attributes.push_back(
+        rewriter.getNamedAttr("precision_config", precisionConfig.value()));
+  }
+  rewriter.replaceOpWithNewOp<mlir::stablehlo::DotGeneralOp>(
+      op, op.getResult().getType(), ValueRange{op.getLhs(), op.getRhs()},
+      attributes);
+  return success();
 }
 
 }  // namespace
@@ -2291,6 +2643,333 @@ struct ConvertRaggedDotOp final : OpConversionPattern<mlir::chlo::RaggedDotOp> {
     } else {
       return handleRaggedDotMode3(op, rewriter);
     }
+  }
+};
+
+struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  static FailureOr<Value> getScanDimensionSize(
+      ConversionPatternRewriter& rewriter, Location loc, mlir::chlo::ScanOp op,
+      ValueRange inputs, int64_t dim) {
+    if (!inputs.empty()) {
+      return GetDimensionSizeOp::create(rewriter, loc, inputs[0], dim)
+          .getResult();
+    }
+    auto resType = cast<RankedTensorType>(op.getResult(0).getType());
+    if (resType.isDynamicDim(dim)) {
+      return rewriter.notifyMatchFailure(
+          op,
+          "cannot determine scan dimension size from empty inputs and "
+          "dynamic result");
+    }
+    auto scan_dim_size = static_cast<int32_t>(resType.getDimSize(dim));
+    auto attr = DenseIntElementsAttr::get(
+        RankedTensorType::get({}, rewriter.getI32Type()), scan_dim_size);
+    return ConstantOp::create(rewriter, loc, attr).getResult();
+  }
+
+  static SmallVector<Value> getLimitScalars(ConversionPatternRewriter& rewriter,
+                                            Location loc, int64_t dim,
+                                            Value index, Value input) {
+    auto inputType = cast<RankedTensorType>(input.getType());
+    int64_t rank = inputType.getRank();
+    SmallVector<Value> limitScalars;
+    for (int64_t d = 0; d < rank; ++d) {
+      if (d == dim) {
+        Value indexPlusOne = AddOp::create(
+            rewriter, loc, index,
+            ConstantOp::create(
+                rewriter, loc,
+                DenseIntElementsAttr::get(
+                    RankedTensorType::get({}, rewriter.getI64Type()), {1LL})));
+        limitScalars.push_back(indexPlusOne);
+      } else {
+        Value dSize;
+        if (inputType.isDynamicDim(d)) {
+          dSize = GetDimensionSizeOp::create(rewriter, loc, input, d);
+        } else {
+          auto attr = DenseIntElementsAttr::get(
+              RankedTensorType::get({}, rewriter.getI32Type()),
+              static_cast<int32_t>(inputType.getDimSize(d)));
+          dSize = ConstantOp::create(rewriter, loc, attr);
+        }
+        dSize = ConvertOp::create(rewriter, loc, dSize, rewriter.getI64Type());
+        limitScalars.push_back(dSize);
+      }
+    }
+    return limitScalars;
+  }
+
+  static SmallVector<Value> createInitialValues(
+      ConversionPatternRewriter& rewriter, Location loc, mlir::chlo::ScanOp op,
+      ValueRange inputs, ValueRange inits) {
+    size_t numInputs = inputs.size();
+    size_t numCarries = inits.size();
+    size_t numScanOutputs = op.getNumResults() - numCarries;
+
+    Value zeroIndex = ConstantOp::create(
+        rewriter, loc,
+        DenseIntElementsAttr::get(
+            RankedTensorType::get({}, rewriter.getI64Type()), {0LL}));
+
+    SmallVector<Value> initialValues;
+    initialValues.reserve(1 + numCarries + numScanOutputs);
+    initialValues.push_back(zeroIndex);
+    initialValues.append(inits.begin(), inits.end());
+
+    // Initialize output arrays.
+    for (size_t i = 0; i < numScanOutputs; ++i) {
+      auto resultType = cast<RankedTensorType>(op.getResult(i).getType());
+      Value zero =
+          ConstantOp::create(rewriter, loc,
+                             rewriter.getZeroAttr(RankedTensorType::get(
+                                 {}, resultType.getElementType())));
+
+      if (resultType.hasStaticShape()) {
+        initialValues.push_back(BroadcastOp::create(
+            rewriter, loc, resultType, zero,
+            rewriter.getDenseI64ArrayAttr(resultType.getShape())));
+      } else {
+        if (numInputs == 0) {
+          // This should be caught by verification or earlier checks, but just
+          // in case.
+          return {};
+        }
+        Value refInput = inputs[i < numInputs ? i : 0];
+        Value refShape = shape::ShapeOfOp::create(rewriter, loc, refInput);
+        initialValues.push_back(DynamicBroadcastInDimOp::create(
+            rewriter, loc, resultType, zero, refShape,
+            rewriter.getDenseI64ArrayAttr({})));
+      }
+    }
+    return initialValues;
+  }
+
+  static void createConditionRegion(ConversionPatternRewriter& rewriter,
+                                    Location loc, WhileOp whileOp,
+                                    Value scanDimSize,
+                                    const SmallVector<Type>& whileTypes) {
+    OpBuilder::InsertionGuard guard(rewriter);
+    Block* condBlock = rewriter.createBlock(&whileOp.getCond());
+    for (Type t : whileTypes) condBlock->addArgument(t, loc);
+
+    Value index = condBlock->getArgument(0);
+    Value cond = CompareOp::create(rewriter, loc, index, scanDimSize,
+                                   ComparisonDirection::LT);
+    ReturnOp::create(rewriter, loc, cond);
+  }
+
+  static SmallVector<Value> sliceInputs(ConversionPatternRewriter& rewriter,
+                                        Location loc, int64_t dim, Value index,
+                                        ValueRange inputs) {
+    SmallVector<Value> slicedInputs;
+    for (Value input : inputs) {
+      auto inputType = cast<RankedTensorType>(input.getType());
+      int64_t rank = inputType.getRank();
+
+      auto build1DTensor = [&](const SmallVector<Value>& scalars) {
+        SmallVector<Value> parts;
+        auto i64Ty = RankedTensorType::get({1}, rewriter.getI64Type());
+        for (Value s : scalars) {
+          parts.push_back(ReshapeOp::create(rewriter, loc, i64Ty, s));
+        }
+        return ConcatenateOp::create(rewriter, loc, parts, 0);
+      };
+
+      Value zero =
+          ConstantOp::create(rewriter, loc, rewriter.getI64IntegerAttr(0));
+      SmallVector<Value> startScalars(rank, zero);
+      startScalars[dim] = index;
+
+      Value startTensor = build1DTensor(startScalars);
+
+      SmallVector<Value> limitScalars =
+          getLimitScalars(rewriter, loc, dim, index, input);
+      Value limitTensor = build1DTensor(limitScalars);
+
+      SmallVector<int64_t> strides(rank, 1);
+      Value stridesTensor = ConstantOp::create(
+          rewriter, loc,
+          DenseIntElementsAttr::get(
+              RankedTensorType::get({rank}, rewriter.getI64Type()), strides));
+
+      SmallVector<int64_t> sliceShape(inputType.getShape().begin(),
+                                      inputType.getShape().end());
+      sliceShape[dim] = 1;
+      auto sliceType =
+          RankedTensorType::get(sliceShape, inputType.getElementType());
+
+      Value slice =
+          RealDynamicSliceOp::create(rewriter, loc, sliceType, input,
+                                     startTensor, limitTensor, stridesTensor);
+
+      SmallVector<int64_t> resultShape;
+      for (int64_t d = 0; d < rank; ++d) {
+        if (d != dim) resultShape.push_back(sliceShape[d]);
+      }
+      Value reshaped = ReshapeOp::create(
+          rewriter, loc,
+          RankedTensorType::get(resultShape, inputType.getElementType()),
+          slice);
+      slicedInputs.push_back(reshaped);
+    }
+    return slicedInputs;
+  }
+
+  static SmallVector<Value> updateOutputs(ConversionPatternRewriter& rewriter,
+                                          Location loc, int64_t dim,
+                                          Value index,
+                                          ValueRange currentOutputs,
+                                          ValueRange newElements) {
+    SmallVector<Value> updatedOutputs;
+    size_t numScanOutputs = currentOutputs.size();
+    for (size_t i = 0; i < numScanOutputs; ++i) {
+      Value currentOutput = currentOutputs[i];
+      Value newElement = newElements[i];
+
+      auto outputType = cast<RankedTensorType>(currentOutput.getType());
+      SmallVector<int64_t> elementShape(outputType.getShape().begin(),
+                                        outputType.getShape().end());
+      elementShape[dim] = 1;
+      Value reshapedElement = ReshapeOp::create(
+          rewriter, loc,
+          RankedTensorType::get(elementShape, outputType.getElementType()),
+          newElement);
+
+      int64_t outRank = outputType.getRank();
+      SmallVector<Value> startScalars;
+      Value zero =
+          ConstantOp::create(rewriter, loc, rewriter.getI64IntegerAttr(0));
+      for (int64_t d = 0; d < outRank; ++d) {
+        if (d == dim)
+          startScalars.push_back(index);
+        else
+          startScalars.push_back(zero);
+      }
+
+      Value updated =
+          DynamicUpdateSliceOp::create(rewriter, loc, outputType, currentOutput,
+                                       reshapedElement, startScalars);
+      updatedOutputs.push_back(updated);
+    }
+    return updatedOutputs;
+  }
+
+  static void createBodyRegion(ConversionPatternRewriter& rewriter,
+                               Location loc, mlir::chlo::ScanOp op,
+                               WhileOp whileOp, ValueRange inputs, int64_t dim,
+                               const SmallVector<Type>& whileTypes) {
+    OpBuilder::InsertionGuard guard(rewriter);
+    Block* bodyBlock = rewriter.createBlock(&whileOp.getBody());
+    for (Type t : whileTypes) bodyBlock->addArgument(t, loc);
+
+    Value index = bodyBlock->getArgument(0);
+    size_t numCarries = op.getInits().size();
+    size_t numScanOutputs = op.getNumResults() - numCarries;
+
+    // Args: index (1), accs (numCarries), outputs (numScanOutputs)
+    size_t offset = 1;
+    auto argAccs = bodyBlock->getArguments().slice(offset, numCarries);
+    offset += numCarries;
+    auto argOutputs = bodyBlock->getArguments().slice(offset, numScanOutputs);
+
+    // Slice inputs.
+    SmallVector<Value> slicedInputs =
+        sliceInputs(rewriter, loc, dim, index, inputs);
+
+    // Inline Body.
+    Block& scanBody = op.getBody().front();
+    IRMapping mapping;
+    // inputs.size() is used as the number of inputs to map.
+    mapping.map(scanBody.getArguments().take_front(inputs.size()),
+                slicedInputs);
+    mapping.map(scanBody.getArguments().drop_front(inputs.size()), argAccs);
+
+    for (auto& nestedOp : scanBody.without_terminator()) {
+      rewriter.clone(nestedOp, mapping);
+    }
+
+    Operation* terminator = scanBody.getTerminator();
+    SmallVector<Value> bodyResults;
+    for (Value operand : terminator->getOperands()) {
+      bodyResults.push_back(mapping.lookup(operand));
+    }
+
+    auto newOutputElements = ArrayRef(bodyResults).take_front(numScanOutputs);
+    auto newAccs = ArrayRef(bodyResults).take_back(numCarries);
+
+    // Update Outputs.
+    SmallVector<Value> updatedOutputs =
+        updateOutputs(rewriter, loc, dim, index, argOutputs, newOutputElements);
+
+    Value oneIndex = ConstantOp::create(
+        rewriter, loc,
+        DenseIntElementsAttr::get(
+            RankedTensorType::get({}, rewriter.getI64Type()), {1LL}));
+    Value nextIndex = AddOp::create(rewriter, loc, index, oneIndex);
+
+    SmallVector<Value> yieldOperands;
+    yieldOperands.push_back(nextIndex);
+    yieldOperands.append(newAccs.begin(), newAccs.end());
+    yieldOperands.append(updatedOutputs.begin(), updatedOutputs.end());
+
+    ReturnOp::create(rewriter, loc, yieldOperands);
+  }
+
+  LogicalResult matchAndRewrite(
+      mlir::chlo::ScanOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter& rewriter) const override {
+    Location loc = op.getLoc();
+    int64_t dim = op.getDimension();
+    ValueRange inputs = adaptor.getInputs();
+    ValueRange inits = adaptor.getInits();
+    size_t numCarries = inits.size();
+    size_t numScanOutputs = op.getNumResults() - numCarries;
+
+    // 1. Determine scan dimension size.
+    FailureOr<Value> scanDimSizeOrError =
+        getScanDimensionSize(rewriter, loc, op, inputs, dim);
+    if (failed(scanDimSizeOrError)) {
+      return failure();
+    }
+    Value scanDimSize = ConvertOp::create(
+        rewriter, loc, RankedTensorType::get({}, rewriter.getI64Type()),
+        *scanDimSizeOrError);
+
+    // 2. Initial values.
+    auto initialValues = createInitialValues(rewriter, loc, op, inputs, inits);
+    if (initialValues.empty() && numScanOutputs > 0) {
+      return rewriter.notifyMatchFailure(
+          op, "cannot determine dynamic output shape without inputs");
+    }
+
+    // 3. Create WhileOp.
+    SmallVector<Type> whileTypes;
+    for (Value v : initialValues) whileTypes.push_back(v.getType());
+
+    auto whileOp = WhileOp::create(rewriter, loc, whileTypes, initialValues);
+
+    // 4. Condition Region.
+    createConditionRegion(rewriter, loc, whileOp, scanDimSize, whileTypes);
+
+    // 5. Body Region.
+    createBodyRegion(rewriter, loc, op, whileOp, inputs, dim, whileTypes);
+
+    // 6. Extract Results.
+    SmallVector<Value> replacements;
+    size_t outputsStart = 1 + numCarries;
+    for (size_t i = 0; i < numScanOutputs; ++i) {
+      replacements.push_back(whileOp.getResult(outputsStart + i));
+    }
+    size_t accsStart = 1;
+    for (size_t i = 0; i < numCarries; ++i) {
+      replacements.push_back(whileOp.getResult(accsStart + i));
+    }
+
+    rewriter.replaceOp(op, replacements);
+    return success();
   }
 };
 
@@ -2361,29 +3040,41 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
             : std::min(static_cast<int64_t>(op.getK()), lastDimSize);
     int64_t isDynamic = !operandType.hasStaticShape();
     auto i32Type = rewriter.getIntegerType(32);
+    auto i64Type = rewriter.getI64Type();
     Value opShapeValue, resultShapeValue;
     if (isDynamic) {
-      SmallVector<Value> sizesI32x1;
+      SmallVector<Value> sizesI64x1;
       for (auto i = 0; i < operandType.getRank(); ++i) {
-        auto sizeI32 = mlir::stablehlo::GetDimensionSizeOp::create(
-            rewriter, op.getLoc(), op.getOperand(), i);
-        auto sizeI32x1 = mlir::stablehlo::ReshapeOp::create(
-            rewriter, op.getLoc(), RankedTensorType::get({1}, i32Type),
-            sizeI32);
-        sizesI32x1.push_back(sizeI32x1);
+        Value sizeI64;
+        if (operandType.isDynamicDim(i)) {
+          auto sizeI32 = mlir::stablehlo::GetDimensionSizeOp::create(
+              rewriter, op.getLoc(), op.getOperand(), i);
+          sizeI64 = mlir::stablehlo::ConvertOp::create(
+              rewriter, op.getLoc(), RankedTensorType::get({}, i64Type),
+              sizeI32);
+        } else {
+          auto attr = DenseIntElementsAttr::get(
+              RankedTensorType::get({}, i64Type),
+              static_cast<int64_t>(operandType.getDimSize(i)));
+          sizeI64 =
+              mlir::stablehlo::ConstantOp::create(rewriter, op.getLoc(), attr);
+        }
+        auto sizeI64x1 = mlir::stablehlo::ReshapeOp::create(
+            rewriter, op.getLoc(), RankedTensorType::get({1}, i64Type),
+            sizeI64);
+        sizesI64x1.push_back(sizeI64x1);
       }
       opShapeValue = mlir::stablehlo::ConcatenateOp::create(
-          rewriter, op.getLoc(), sizesI32x1,
+          rewriter, op.getLoc(), sizesI64x1,
           /*dimension=*/0);
-      auto lastDimI32 = mlir::stablehlo::ConstantOp::create(
-          rewriter, op.getLoc(),
-          rewriter.getI32IntegerAttr(static_cast<int32_t>(lastDimResultSize)));
-      auto lastDimI32x1 = mlir::stablehlo::ReshapeOp::create(
-          rewriter, op.getLoc(), RankedTensorType::get({1}, i32Type),
-          lastDimI32);
-      sizesI32x1.back() = lastDimI32x1;
+      auto lastDimI64 = mlir::stablehlo::ConstantOp::create(
+          rewriter, op.getLoc(), rewriter.getI64IntegerAttr(lastDimResultSize));
+      auto lastDimI64x1 = mlir::stablehlo::ReshapeOp::create(
+          rewriter, op.getLoc(), RankedTensorType::get({1}, i64Type),
+          lastDimI64);
+      sizesI64x1.back() = lastDimI64x1;
       resultShapeValue = mlir::stablehlo::ConcatenateOp::create(
-          rewriter, op.getLoc(), sizesI32x1,
+          rewriter, op.getLoc(), sizesI64x1,
           /*dimension=*/0);
     }
 
@@ -2426,18 +3117,12 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
       Value startIndices = mlir::stablehlo::ConstantOp::create(
           rewriter, op.getLoc(),
           DenseIntElementsAttr::get(indicesTy, beginIndices));
-      Value lastIndices = mlir::stablehlo::ConvertOp::create(
-          rewriter, op.getLoc(), resultShapeValue, rewriter.getI64Type());
+      Value lastIndices = resultShapeValue;
       Value stridesOp = mlir::stablehlo::ConstantOp::create(
           rewriter, op.getLoc(), DenseIntElementsAttr::get(indicesTy, strides));
 
-      SmallVector<int64_t> resultShape =
-          llvm::to_vector(operandType.getShape());
-      resultShape.back() = lastDimResultSize;
-      RankedTensorType resultType = RankedTensorType::get(
-          resultShape, elementType, operandType.getEncoding());
-      RankedTensorType indexResultType =
-          RankedTensorType::get(resultShape, i32Type);
+      auto resultType = cast<RankedTensorType>(op.getResult(0).getType());
+      auto indexResultType = cast<RankedTensorType>(op.getResult(1).getType());
 
       values = mlir::stablehlo::RealDynamicSliceOp::create(
           rewriter, op.getLoc(), resultType, tupleFirstElement, startIndices,
@@ -2531,12 +3216,11 @@ static void populateChloBroadcastingPatterns(MLIRContext* context,
 static void populateChloDecompositionPatterns(MLIRContext* context,
                                               RewritePatternSet* patterns) {
   populateWithGenerated(*patterns);
-  patterns
-      ->add<ConvertConstantOp, ConvertBesselI1eOp, ConvertCoshOp,
-            ConvertDigammaOp, ConvertErfOp, ConvertErfcOp, ConvertErfInvOp,
-            ConvertLgammaOp, ConvertNextAfterOp, ConvertPolygammaOp,
-            ConvertRaggedDotOp, ConvertSinhOp, ConvertTopKOp, ConvertZetaOp>(
-          context);
+  patterns->add<ConvertConstantOp, ConvertBesselI1eOp, ConvertCoshOp,
+                ConvertDigammaOp, ConvertErfOp, ConvertErfcOp, ConvertErfInvOp,
+                ConvertLgammaOp, ConvertNextAfterOp, ConvertPolygammaOp,
+                ConvertRaggedDotOp, ConvertScanOp, ConvertSinhOp, ConvertTopKOp,
+                ConvertZetaOp>(context);
 }
 }  // namespace
 
