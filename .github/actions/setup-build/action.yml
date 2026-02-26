@@ -48,30 +48,11 @@ runs:
   - name: Install Ninja
     uses: llvm/actions/install-ninja@6a57890d0e3f9f35dfc72e7e48bc5e1e527cdd6c
 
-  # Install up-to-date versions of Clang and LLD (plus a few related packages).
-  # - Update Clang to support newer compiler features.
-  # - Install LLD to improve build speed on Linux.
-  - name: Install/update Clang and LLD
+  # Get LLD - Improves build speed on Linux
+  - name: Install LLD
     shell: bash
     run: |
-      wget https://apt.llvm.org/llvm.sh
-      chmod +x llvm.sh
-      sudo ./llvm.sh ${{ inputs.clang-version }}
-      for program_name in "clang" "clang++" "lld"; do
-        link_path="/usr/bin/$program_name"
-        link_target="/usr/bin/$program_name-${{ inputs.clang-version }}"
-        priority=200
-        sudo update-alternatives --install \
-          "$link_path" "$program_name" "$link_target" "$priority"
-      done
-
-  # Update the system C++ headers.
-  - name: Update system C++ headers
-    shell: bash
-    run: |
-      sudo apt-add-repository ppa:ubuntu-toolchain-r/test
-      sudo apt-get update
-      sudo apt-get install libstdc++-13-dev
+      sudo apt-get install -y lld
 
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
