@@ -418,6 +418,23 @@ func.func @attr_frontend_attributes(%arg0: tensor<f32>) -> tensor<f32> {
   return %1 : tensor<f32>
 }
 
+// Builtin attriubute tests
+
+// CHECK-LABEL: "byte_packed_boolean"
+func.func @byte_packed_boolean() -> (tensor<8xi1>, tensor<8xi1>, tensor<4xi1>, tensor<4xi1>, tensor<16xi1>) {
+  // CHECK: #vhlo.tensor_v1<dense<[true, false, false, false, false, false, false, false]
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<true> : tensor<8xi1>>
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<[true, false, false, false]> : tensor<4xi1>>
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<true> : tensor<4xi1>>
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<[true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false]> : tensor<16xi1>>
+  %c = stablehlo.constant dense<[true, false, false, false, false, false, false, false]> : tensor<8xi1>
+  %c_0 = stablehlo.constant dense<true> : tensor<8xi1>
+  %c_1 = stablehlo.constant dense<[true, false, false, false]> : tensor<4xi1>
+  %c_2 = stablehlo.constant dense<true> : tensor<4xi1>
+  %c_3 = stablehlo.constant dense<[true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false]> : tensor<16xi1>
+  return %c, %c_0, %c_1, %c_2, %c_3 : tensor<8xi1>, tensor<8xi1>, tensor<4xi1>, tensor<4xi1>, tensor<16xi1>
+}
+
 // ============ DEFAULTS ============
 
 // CHECK-LABEL: "default_all_gather"

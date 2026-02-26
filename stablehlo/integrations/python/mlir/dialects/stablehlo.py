@@ -17,3 +17,11 @@
 # pylint: disable=wildcard-import,relative-beyond-top-level,g-import-not-at-top
 from ._stablehlo_ops_gen import *
 from .._mlir_libs._stablehlo import *
+
+from . import _stablehlo_ops_gen
+
+class CompositeOp(_stablehlo_ops_gen.CompositeOp):
+  def __init__(self, *args, **kwargs):
+    if "num_composite_regions" not in kwargs:
+      kwargs["num_composite_regions"] = 0
+    super().__init__(*args, **kwargs)

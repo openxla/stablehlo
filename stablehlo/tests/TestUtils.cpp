@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "stablehlo/tests/TestUtils.h"
 
+#include <cstdint>
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
@@ -25,6 +26,7 @@ limitations under the License.
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OperationSupport.h"
@@ -114,6 +116,54 @@ struct ReifyReturnTypeShapesPattern : public RewritePattern {
   }
 };
 
+struct InferReturnShapedTypesPattern : public RewritePattern {
+  explicit InferReturnShapedTypesPattern(MLIRContext* context)
+      : RewritePattern("hlo_test_infer.get_return_type_components", 1,
+                       context) {}
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
+    if (op->getNumOperands() != 1) return failure();
+    auto* definingOp = op->getOperand(0).getDefiningOp();
+    auto definingOpInt =
+        llvm::dyn_cast_or_null<InferShapedTypeOpInterface>(definingOp);
+    if (!definingOpInt)
+      return rewriter.notifyMatchFailure(
+          op, "doesn't implement InferShapedTypeOpInterface");
+
+    SmallVector<ShapedTypeComponents> inferredComponents;
+    if (failed(definingOpInt.inferReturnTypeComponents(
+            op->getContext(), op->getLoc(), definingOp->getOperands(),
+            definingOp->getAttrDictionary(), definingOp->getPropertiesStorage(),
+            definingOp->getRegions(), inferredComponents)))
+      return rewriter.notifyMatchFailure(op,
+                                         "failed to infer return shaped types");
+
+    // Replace the op with another pass-through op with attributes added.
+    OperationState state(op->getLoc(), "hlo_test_infer.return_type_components",
+                         op->getOperands(), op->getResultTypes(),
+                         op->getAttrs());
+    auto* newOp = rewriter.create(state);
+    for (const auto& it : llvm::enumerate(inferredComponents))
+      newOp->setAttr((StringRef("types") + Twine(it.index())).str(),
+                     componentToAttribute(it.value(), rewriter));
+    rewriter.replaceOp(op, {newOp->getResults()});
+    return success();
+  }
+  Attribute componentToAttribute(const ShapedTypeComponents& component,
+                                 PatternRewriter& rewriter) const {
+    SmallVector<NamedAttribute, 2> attrs;
+    // Dummy tensor of index type with the same rank as the shaped type.
+    // use tensor so we get `?` in the printing for dynamic dims
+    ArrayRef<int64_t> shape = component.getDims();
+    Type elementType = component.getElementType();
+    Attribute encoding = component.getAttribute();
+    if (!elementType) {
+      elementType = rewriter.getIndexType();
+    }
+    return TypeAttr::get(RankedTensorType::get(shape, elementType, encoding));
+  }
+};
+
 LogicalResult checkSpeculatability(PatternRewriter& rewriter, Operation* op,
                                    mlir::Speculation::Speculatability spec) {
   if (op->getNumOperands() != 1) return failure();
@@ -190,6 +240,7 @@ struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
     RewritePatternSet patterns(context);
     patterns.add<InferReturnTypesPattern>(context);
     patterns.add<ReifyReturnTypeShapesPattern>(context);
+    patterns.add<InferReturnShapedTypesPattern>(context);
     patterns_ = std::move(patterns);
     return success();
   }
