@@ -98,4 +98,3 @@ llvm("llvm-raw")
 load("//third_party/llvm:setup.bzl", "llvm_setup")
 
 llvm_setup("llvm-project")
-
