@@ -45,7 +45,7 @@ PATH_TO_WORKSPACE="$PATH_TO_STABLEHLO_ROOT/third_party/llvm/workspace.bzl"
 
 # Commit validation functions
 llvm_commit_from_version_txt() {
-  cat "$PATH_TO_LLVM_VERSION_TXT" | xargs
+  cat "$PATH_TO_LLVM_VERSION_TXT"
 }
 llvm_commit_from_workspace() {
   sed -n '/LLVM_COMMIT = /p' "$PATH_TO_WORKSPACE" | sed 's/LLVM_COMMIT = //; s/\"//g' | xargs
