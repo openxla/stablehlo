@@ -99,12 +99,12 @@ NB_MODULE(_chlo, m) {
       m, "RaggedDotDimensionNumbers", chloAttributeIsARaggedDotDimensionNumbers)
       .def_classmethod(
           "get",
-          [](nb::object cls, const std::vector<int64_t> &lhsBatchingDims,
-             const std::vector<int64_t> &rhsBatchingDims,
-             const std::vector<int64_t> &lhsContractingDims,
-             const std::vector<int64_t> &rhsContractingDims,
-             const std::vector<int64_t> &lhsRaggedDims,
-             const std::vector<int64_t> &rhsGroupDims, MlirContext ctx) {
+          [](nb::object cls, const std::vector<int64_t>& lhsBatchingDims,
+             const std::vector<int64_t>& rhsBatchingDims,
+             const std::vector<int64_t>& lhsContractingDims,
+             const std::vector<int64_t>& rhsContractingDims,
+             const std::vector<int64_t>& lhsRaggedDims,
+             const std::vector<int64_t>& rhsGroupDims, MlirContext ctx) {
             return cls(chloRaggedDotDimensionNumbersGet(
                 ctx, lhsBatchingDims.size(), lhsBatchingDims.data(),
                 rhsBatchingDims.size(), rhsBatchingDims.data(),
@@ -168,7 +168,7 @@ NB_MODULE(_chlo, m) {
       m, "PrecisionAttr", chloAttributeIsAPrecisionAttr)
       .def_classmethod(
           "get",
-          [](nb::object cls, const std::string &value, MlirContext ctx) {
+          [](nb::object cls, const std::string& value, MlirContext ctx) {
             return cls(chloPrecisionAttrGet(
                 ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
