@@ -44,9 +44,20 @@ runs:
       path: llvm-project
       fetch-depth: 1
 
+  - name: Toolchain setup, use rules_ml_toolchain
+    shell: bash
+    run: |
+      # Install latest toolchain
+      git clone https://github.com/google-ml-infra/rules_ml_toolchain rules_ml_toolchain
+      cd rules_ml_toolchain
+      bazel build //cc/tests/cpu:all
+      PATH="$(pwd)/bazel-rules_ml_toolchain/external/llvm18_linux_x86_64/bin/:$PATH"
+
   # Get ninja for cmake build.
   - name: Install Ninja
-    uses: llvm/actions/install-ninja@6a57890d0e3f9f35dfc72e7e48bc5e1e527cdd6c
+    shell: bash
+    run: |
+      sudo apt-get install -y ninja-build
 
   # Get LLD - Improves build speed on Linux
   - name: Install LLD
