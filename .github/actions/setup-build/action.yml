@@ -52,9 +52,9 @@ runs:
       cd rules_ml_toolchain
       bazel build //cc/tests/cpu:all
       BIN_DIR="$(pwd)/bazel-rules_ml_toolchain/external/llvm18_linux_x86_64/bin"
-      ln -sfvn $BIN_DIR/clang /usr/bin/clang
-      ln -sfvn $BIN_DIR/clang++ /usr/bin/clang++
-      ln -sfvn $BIN_DIR/lld /usr/bin/lld
+      sudo ln -sfvn $BIN_DIR/clang /usr/bin/clang
+      sudo ln -sfvn $BIN_DIR/clang++ /usr/bin/clang++
+      sudo ln -sfvn $BIN_DIR/lld /usr/bin/lld
 
   # Get ninja for cmake build.
   - name: Install Ninja
