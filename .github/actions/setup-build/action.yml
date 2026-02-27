@@ -51,19 +51,16 @@ runs:
       git clone https://github.com/google-ml-infra/rules_ml_toolchain rules_ml_toolchain
       cd rules_ml_toolchain
       bazel build //cc/tests/cpu:all
-      PATH="$(pwd)/bazel-rules_ml_toolchain/external/llvm18_linux_x86_64/bin/:$PATH"
+      BIN_DIR="$(pwd)/bazel-rules_ml_toolchain/external/llvm18_linux_x86_64/bin"
+      ln -sfvn $BIN_DIR/clang /usr/bin/clang
+      ln -sfvn $BIN_DIR/clang++ /usr/bin/clang++
+      ln -sfvn $BIN_DIR/lld /usr/bin/lld
 
   # Get ninja for cmake build.
   - name: Install Ninja
     shell: bash
     run: |
       sudo apt-get install -y ninja-build
-
-  # Get LLD - Improves build speed on Linux
-  - name: Install LLD
-    shell: bash
-    run: |
-      sudo apt-get install -y lld
 
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
