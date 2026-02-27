@@ -37,6 +37,8 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    # TODO: Use ML OSS Artifacts docker to manage deps needs to package with cmake tooling
+    # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
 
     steps:
     # Checkout StableHLO with all commits in the chain

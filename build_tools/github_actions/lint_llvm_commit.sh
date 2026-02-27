@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
 set -o nounset
 set -o pipefail
 
@@ -40,7 +39,7 @@ fi
 
 PATH_TO_STABLEHLO_ROOT="$1"
 PATH_TO_LLVM_VERSION_TXT="$PATH_TO_STABLEHLO_ROOT/build_tools/llvm_version.txt"
-PATH_TO_WORKSPACE="$PATH_TO_STABLEHLO_ROOT/WORKSPACE.bazel"
+PATH_TO_WORKSPACE="$PATH_TO_STABLEHLO_ROOT/third_party/llvm/workspace.bzl"
 
 ## Helper functions
 
@@ -49,7 +48,7 @@ llvm_commit_from_version_txt() {
   cat "$PATH_TO_LLVM_VERSION_TXT"
 }
 llvm_commit_from_workspace() {
-  sed -n '/LLVM_COMMIT = /p' "$PATH_TO_WORKSPACE" | sed 's/LLVM_COMMIT = //; s/\"//g'
+  sed -n '/LLVM_COMMIT = /p' "$PATH_TO_WORKSPACE" | sed 's/LLVM_COMMIT = //; s/\"//g' | xargs
 }
 llvm_commit_diff() {
   diff <(llvm_commit_from_version_txt) <(llvm_commit_from_workspace)
@@ -57,7 +56,7 @@ llvm_commit_diff() {
 
 # SHA256 validation functions
 llvm_sha256_from_workspace() {
-  sed -n '/LLVM_SHA256 = /p' "$PATH_TO_WORKSPACE"  | sed 's/LLVM_SHA256 = //; s/\"//g'
+  sed -n '/LLVM_SHA256 = /p' "$PATH_TO_WORKSPACE"  | sed 's/LLVM_SHA256 = //; s/\"//g' | xargs
 }
 llvm_sha256_from_archive() {
   LLVM_COMMIT="$1"
@@ -70,7 +69,7 @@ llvm_sha256_from_archive() {
   echo "$LLVM_SHA256"
 }
 llvm_sha256_diff() {
-  diff <(llvm_sha256_from_workspace) <(llvm_sha256_from_archive "$(llvm_commit_from_workspace)")
+  diff <(llvm_sha256_from_archive "$(llvm_commit_from_workspace)") <(llvm_sha256_from_workspace)
 }
 
 # Fix functions
@@ -99,9 +98,9 @@ if [[ $FORMAT_MODE == 'fix' ]]; then
 fi
 
 echo "Validating LLVM commit hash..."
-LLVM_COMMIT_DIFF=$(llvm_commit_diff)
+LLVM_COMMIT_DIFF="$(llvm_commit_diff)"
 if [[ -n "$LLVM_COMMIT_DIFF" ]]; then
-  echo "Commit mismatch:"
+  echo "Commit mismatch: llvm_version.txt < > workspace.bzl"
   echo "$LLVM_COMMIT_DIFF"
   echo
   print_autofix
@@ -111,9 +110,9 @@ echo "Commit hashes match."
 
 if [[ "$VALIDATE_SHA256" == 'true' ]]; then
   echo "Validating LLVM SHA256 hash..."
-  LLVM_SHA256_DIFF=$(llvm_sha256_diff)
+  LLVM_SHA256_DIFF="$(llvm_sha256_diff)"
   if [[ -n "$LLVM_SHA256_DIFF" ]]; then
-    echo "...SHA256 mismatch:"
+    echo "SHA256 mismatch: llvm_version.txt < > workspace.bzl"
     echo "$LLVM_SHA256_DIFF"
     echo
     print_autofix
