@@ -32,7 +32,6 @@ def Interpreter_Dialect : Dialect {
     StableHLO spec.
   }];
 
-  let usePropertiesForAttributes = 1;
 }
 
 def Interpreter_ArrayOfFlatSymbolRefArrayAttr :
