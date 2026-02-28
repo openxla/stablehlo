@@ -1,3 +1,4 @@
+// REQUIRES: asserts
 // RUN: stablehlo-opt %s | stablehlo-opt
 // RUN: stablehlo-opt %s > %t.0
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt > %t.1
