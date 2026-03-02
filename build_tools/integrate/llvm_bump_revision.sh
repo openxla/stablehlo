@@ -29,17 +29,17 @@ PATCH_OPTION="${1:-}"
 bump_to_xla_llvm_version() {
   echo "Downloading XLA archive..."
   ZIP_FILE="$(mktemp -d)/xla_main.zip"
-  wget https://github.com/openxla/xla/archive/refs/heads/main.zip -O $ZIP_FILE
+  wget https://github.com/openxla/xla/archive/refs/heads/main.zip -O "$ZIP_FILE"
 
   echo "Extracting LLVM folder..."
   THIRD_PARTY_PATH="$REPO_ROOT/third_party"
   rm -rfv "$THIRD_PARTY_PATH"/llvm/*
-  unzip -jo $ZIP_FILE "xla-main/.bazelversion" -d "$REPO_ROOT"
-  unzip -jo $ZIP_FILE "xla-main/third_party/repo.bzl" -d "$THIRD_PARTY_PATH"
-  unzip -j $ZIP_FILE "xla-main/third_party/llvm/*" -d "$THIRD_PARTY_PATH/llvm"
+  unzip -jo "$ZIP_FILE" "xla-main/.bazelversion" -d "$REPO_ROOT"
+  unzip -jo "$ZIP_FILE" "xla-main/third_party/repo.bzl" -d "$THIRD_PARTY_PATH"
+  unzip -j "$ZIP_FILE" "xla-main/third_party/llvm/*" -d "$THIRD_PARTY_PATH/llvm"
 
   echo "Cleaning up temporary files..."
-  rm -rf $ZIP_FILE tmp_extract
+  rm -rf "$ZIP_FILE"
 
   "$GH_ACTIONS/lint_llvm_commit.sh" -f .
 }
