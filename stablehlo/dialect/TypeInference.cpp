@@ -48,6 +48,7 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/ADT/iterator_range.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
@@ -73,6 +74,8 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/Base.h"
+
+#define DEBUG_TYPE "stablehlo-type-inference"
 
 namespace mlir {
 namespace hlo {
@@ -1246,9 +1249,11 @@ LogicalResult verifyPrecisionConfig(std::optional<Location> loc,
   if (!arrayAttr) return success();
   return arrayAttr.size() <= 2
              ? success()
-             : emitOptionalError(loc,
-                                 "expects precision config to be empty or have "
-                                 "<= 2 elements.");
+             : emitOptionalError(
+                   loc,
+                   "expects precision config to be empty or have "
+                   "<= 2 elements, got " +
+                       std::to_string(arrayAttr.getValue().size()));
 }
 
 LogicalResult verifyConvolutionAttributes(
@@ -2413,24 +2418,60 @@ LogicalResult inferDotGeneralOp(
   }
 
   // Infer the output dimensions of the operation.
-  SmallVector<int64_t> dimensions;
   auto lhsRankedType = cast<RankedTensorType>(lhsType);
   auto rhsRankedType = cast<RankedTensorType>(rhsType);
   auto lhsShape = lhsRankedType.getShape();
   auto rhsShape = rhsRankedType.getShape();
-  for (const int64_t lhsBatchingDim : lhsBatchingDimensions)
-    dimensions.push_back(lhsShape[lhsBatchingDim]);
-  for (int64_t i = 0; i < lhsRankedType.getRank(); i++)
-    if (!llvm::is_contained(lhsBatchingDimensions, i) &&
-        !llvm::is_contained(lhsContractingDimensions, i))
-      dimensions.push_back(lhsShape[i]);
-  for (int64_t i = 0; i < rhsRankedType.getRank(); i++)
-    if (!llvm::is_contained(rhsBatchingDimensions, i) &&
-        !llvm::is_contained(rhsContractingDimensions, i))
-      dimensions.push_back(rhsShape[i]);
 
-  // dot_general_c12
-  inferredReturnShapes.emplace_back(dimensions);
+  SmallVector<int64_t> lhsBounds =
+      to_vector(encodingToBounds(lhsRankedType.getEncoding()));
+  SmallVector<int64_t> rhsBounds =
+      to_vector(encodingToBounds(rhsRankedType.getEncoding()));
+
+  SmallVector<int64_t> inferredDimensions;
+  SmallVector<int64_t> inferredBounds;
+
+  for (size_t i = 0; i < lhsBatchingDimensions.size(); ++i) {
+    auto lhsDim = lhsBatchingDimensions[i];
+    auto rhsDim = rhsBatchingDimensions[i];
+    int64_t lhsBound =
+        lhsBounds.empty() ? ShapedType::kDynamic : lhsBounds[lhsDim];
+    int64_t rhsBound =
+        rhsBounds.empty() ? ShapedType::kDynamic : rhsBounds[rhsDim];
+    auto inferredDimAndBoundOrErr = inferMostSpecificDimAndBound(
+        location, i, lhsShape[lhsDim], rhsShape[rhsDim], lhsBound, rhsBound);
+    if (failed(inferredDimAndBoundOrErr)) {
+      return failure();
+    }
+    inferredDimensions.push_back(inferredDimAndBoundOrErr->first);
+    inferredBounds.push_back(inferredDimAndBoundOrErr->second);
+  }
+
+  for (int64_t i = 0; i < lhsRankedType.getRank(); i++) {
+    if (!llvm::is_contained(lhsBatchingDimensions, i) &&
+        !llvm::is_contained(lhsContractingDimensions, i)) {
+      inferredDimensions.push_back(lhsShape[i]);
+      inferredBounds.push_back(lhsBounds.empty() ? ShapedType::kDynamic
+                                                 : lhsBounds[i]);
+    }
+  }
+
+  for (int64_t i = 0; i < rhsRankedType.getRank(); i++) {
+    if (!llvm::is_contained(rhsBatchingDimensions, i) &&
+        !llvm::is_contained(rhsContractingDimensions, i)) {
+      inferredDimensions.push_back(rhsShape[i]);
+      inferredBounds.push_back(rhsBounds.empty() ? ShapedType::kDynamic
+                                                 : rhsBounds[i]);
+    }
+  }
+
+  Attribute outputEncoding = lhsRankedType.getEncoding()
+                                 ? lhsRankedType.getEncoding()
+                                 : rhsRankedType.getEncoding();
+
+  Attribute boundsAttr = boundsToEncoding(outputEncoding, inferredBounds);
+  inferredReturnShapes.emplace_back(inferredDimensions, /*elementType=*/nullptr,
+                                    boundsAttr);
   return success();
 }
 

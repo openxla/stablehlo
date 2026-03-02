@@ -47,6 +47,7 @@ limitations under the License.
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/LogicalResult.h"
 #include "llvm/Support/MathExtras.h"
@@ -90,6 +91,8 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloBytecode.h"
 #include "stablehlo/dialect/StablehloOps.h.inc"
 #include "stablehlo/dialect/TypeInference.h"
+
+#define DEBUG_TYPE "stablehlo"
 
 // Include order matters
 #define GET_TYPEDEF_CLASSES
@@ -729,6 +732,16 @@ LogicalResult DotOp::verify() {
                           getPrecisionConfig(), getResult());
 }
 
+LogicalResult DotOp::inferReturnTypeComponents(
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  DotOp::Adaptor adaptor(operands, attributes, properties, regions);
+  auto lhsType = mlir::cast<RankedTensorType>(adaptor.getLhs().getType());
+  auto rhsType = mlir::cast<RankedTensorType>(adaptor.getRhs().getType());
+  return hlo::inferDotOp(location, lhsType, rhsType, {}, inferredReturnShapes);
+}
+
 // PrecisionConfig - std::optional attribute, print the array as raw enums
 //
 // {precision_config = [#stablehlo<precision DEFAULT>,
@@ -856,6 +869,35 @@ LogicalResult DotGeneralOp::verify() {
       getDotDimensionNumbersAttr().getRhsContractingDimensions(),
       getPrecisionConfig(), isDefaultPrecisionConfig, hasAlgorithmSpecified,
       getResult());
+}
+
+LogicalResult DotGeneralOp::inferReturnTypeComponents(
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  DotGeneralOp::Adaptor adaptor(operands, attributes, properties, regions);
+  LLVM_DEBUG(llvm::dbgs() << "DotGeneralOp::inferReturnTypeComponents\n");
+  LLVM_DEBUG(llvm::dbgs() << "attributes: " << attributes << "\n");
+  LLVM_DEBUG(llvm::dbgs() << "properties: " << properties << "\n");
+
+  ArrayRef<int64_t> lhsBatchingDimensions;
+  ArrayRef<int64_t> rhsBatchingDimensions;
+  ArrayRef<int64_t> lhsContractingDimensions;
+  ArrayRef<int64_t> rhsContractingDimensions;
+  if (adaptor.getDotDimensionNumbersAttr()) {
+    lhsBatchingDimensions =
+        adaptor.getDotDimensionNumbersAttr().getLhsBatchingDimensions();
+    rhsBatchingDimensions =
+        adaptor.getDotDimensionNumbersAttr().getRhsBatchingDimensions();
+    lhsContractingDimensions =
+        adaptor.getDotDimensionNumbersAttr().getLhsContractingDimensions();
+    rhsContractingDimensions =
+        adaptor.getDotDimensionNumbersAttr().getRhsContractingDimensions();
+  }
+  return hlo::inferDotGeneralOp(
+      location, adaptor.getLhs().getType(), adaptor.getRhs().getType(),
+      lhsBatchingDimensions, rhsBatchingDimensions, lhsContractingDimensions,
+      rhsContractingDimensions, {}, inferredReturnShapes);
 }
 
 LogicalResult DotGeneralOp::reifyReturnTypeShapes(

@@ -20,16 +20,27 @@ usage_and_exit() {
 }
 
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
-GH_ACTIONS="$SCRIPT_DIR/../github_actions"
-REPO_ROOT="$SCRIPT_DIR/../.."
+GH_ACTIONS=$(realpath "$SCRIPT_DIR/../github_actions")
+REPO_ROOT=$(realpath "$SCRIPT_DIR/../..")
+PATH_TO_WORKSPACE="$REPO_ROOT/third_party/llvm/workspace.bzl"
 PATCH_OPTION="${1:-}"
 
 # Update build files
 bump_to_xla_llvm_version() {
-  LLVM_URL="https://raw.githubusercontent.com/openxla/xla/refs/heads/main/third_party/llvm/workspace.bzl"
-  LLVM_REV=$(curl -s $LLVM_URL | grep 'LLVM_COMMIT =' | cut -d '"' -f 2)
-  echo "Using LLVM commit: $LLVM_REV"
-  echo "$LLVM_REV" > ./build_tools/llvm_version.txt
+  echo "Downloading XLA archive..."
+  ZIP_FILE="$(mktemp -d)/xla_main.zip"
+  wget https://github.com/openxla/xla/archive/refs/heads/main.zip -O "$ZIP_FILE"
+
+  echo "Extracting LLVM folder..."
+  THIRD_PARTY_PATH="$REPO_ROOT/third_party"
+  rm -rfv "$THIRD_PARTY_PATH"/llvm/*
+  unzip -jo "$ZIP_FILE" "xla-main/.bazelversion" -d "$REPO_ROOT"
+  unzip -jo "$ZIP_FILE" "xla-main/third_party/repo.bzl" -d "$THIRD_PARTY_PATH"
+  unzip -j "$ZIP_FILE" "xla-main/third_party/llvm/*" -d "$THIRD_PARTY_PATH/llvm"
+
+  echo "Cleaning up temporary files..."
+  rm -rf "$ZIP_FILE"
+
   "$GH_ACTIONS/lint_llvm_commit.sh" -f .
 }
 
@@ -48,6 +59,10 @@ apply_xla_patch() {
   echo "$PATCH" > "$TMP_PATCH"
   cd "$REPO_ROOT" || exit 1
   patch -p1 < "$TMP_PATCH"
+}
+
+llvm_commit_from_workspace() {
+  sed -n '/LLVM_COMMIT = /p' "$PATH_TO_WORKSPACE" | sed 's/LLVM_COMMIT = //; s/\"//g' | xargs
 }
 
 set -o errexit  # Exit immediately if any command returns a non-zero exit status
@@ -72,6 +87,7 @@ if [[ $APPLY_PATCH -eq 1 ]]; then
 fi
 
 # Print the commit message
+LLVM_REV=$(llvm_commit_from_workspace)
 echo "Commit changes with message:"
 echo "git add ."
 echo "git commit -m \"Integrate LLVM at llvm/llvm-project@${LLVM_REV:0:12}\""

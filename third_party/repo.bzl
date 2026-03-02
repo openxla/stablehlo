@@ -151,4 +151,3 @@ tf_vendored = repository_rule(
     },
     local = True,
 )
-
