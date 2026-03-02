@@ -62,6 +62,7 @@ SKIPPED_SUFFIXES=(
   MODULE.bazel.lock
   llvm_version.txt
   'third_party*'
+  .bazelversion
 )
 
 UNLICENSED_FILES=()
