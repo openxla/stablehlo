@@ -16,6 +16,7 @@ limitations under the License.
 #include "stablehlo/dialect/VhloBytecode.h"
 
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <utility>
 
@@ -26,6 +27,7 @@ limitations under the License.
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/IR/Attributes.h"
@@ -933,12 +935,82 @@ void VhloBytecodeInterface::write(StringV1Attr attr,
 // TensorV1Attr
 //===----------------------------------------------------------------------===//
 
+namespace {
+
+bool isBooleanType(Type type) {
+  auto tensorType = dyn_cast<RankedTensorV1Type>(type);
+  return tensorType && isa<BooleanV1Type>(tensorType.getElementType());
+}
+
+static LogicalResult readVhloTensorV1Attr(DialectBytecodeReader& reader,
+                                          Type type,
+                                          SmallVectorImpl<char>& rawData) {
+  ArrayRef<char> blob;
+  if (failed(reader.readBlob(blob))) return failure();
+
+  // If the type is not i1, just copy the blob.
+
+  if (!isBooleanType(type)) {
+    rawData.append(blob.begin(), blob.end());
+    return success();
+  }
+
+  // Check to see if this is using the packed format.
+  // Note: this could be asserted instead as this should be the case. But we
+  // did have period where the unpacked was being serialized, this enables
+  // consuming those still and the check for which case we are in is pretty
+  // cheap.
+  size_t numElements = cast<RankedTensorV1Type>(type).getNumElements();
+  size_t packedSize = llvm::divideCeil(numElements, 8);
+  if (blob.size() == packedSize && blob.size() != numElements) {
+    // Unpack the blob.
+    rawData.resize(numElements);
+    for (size_t i = 0; i < numElements; ++i)
+      rawData[i] = (blob[i / 8] & (1 << (i % 8))) ? 1 : 0;
+    return success();
+  }
+  // Otherwise, fallback to the default behavior.
+  rawData.append(blob.begin(), blob.end());
+  return success();
+}
+
+static void writeVhloTensorV1Attr(DialectBytecodeWriter& writer,
+                                  vhlo::TensorV1Attr attr) {
+  if (!isBooleanType(attr.getType())) {
+    writer.writeOwnedBlob(attr.getData());
+    return;
+  }
+
+  // Pack the data if i1
+  SmallVector<char> data;
+  ArrayRef<char> rawData = attr.getData();
+  auto numElements = cast<RankedTensorV1Type>(attr.getType()).getNumElements();
+
+  // If the attribute is a splat, we can just splat the value directly.
+  bool isSplat = rawData.size() == 1 && numElements > 1;
+  if (isSplat) {
+    data.resize(1);
+    data[0] = rawData[0] ? 0xFF : 0x00;
+    writer.writeUnownedBlob(data);
+    return;
+  }
+
+  data.resize(llvm::divideCeil(numElements, 8));
+  // Otherwise, pack the data manually.
+  for (size_t i = 0; i < numElements; ++i)
+    if (rawData[i]) data[i / 8] |= (1 << (i % 8));
+  writer.writeUnownedBlob(data);
+}
+
+}  // namespace
+
 TensorV1Attr VhloBytecodeInterface::readTensorV1Attr(
     DialectBytecodeReader& reader) const {
   LOG_READ_CALL;
   Type type;
-  ArrayRef<char> blob;
-  if (failed(reader.readType(type)) || failed(reader.readBlob(blob)))
+  SmallVector<char> blob;
+  if (failed(reader.readType(type)) ||
+      failed(readVhloTensorV1Attr(reader, type, blob)))
     return TensorV1Attr();
   return TensorV1Attr::get(getContext(), type, blob);
 }
@@ -947,7 +1019,7 @@ void VhloBytecodeInterface::write(TensorV1Attr attr,
                                   DialectBytecodeWriter& writer) const {
   writer.writeVarInt(vhlo_encoding::kTensorV1Attr);
   writer.writeType(attr.getType());
-  writer.writeOwnedBlob(attr.getData());
+  writeVhloTensorV1Attr(writer, attr);
 }
 
 //===----------------------------------------------------------------------===//

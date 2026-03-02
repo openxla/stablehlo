@@ -29,6 +29,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
+#include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
@@ -607,7 +608,7 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
       if (!stablehloAttr) return specialFailure();
     }
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CompositeOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::CompositeOpV2>::value) {
     if (vhloName == "decomposition") {
       stablehloAttr = convertSymbol(vhloAttr, typeConverter);
       if (!stablehloAttr) return specialFailure();
@@ -814,7 +815,7 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
                                                vhlo::ComparisonTypeV1::NOTYPE)))
       eraseAttrs(vhloAttrs, "compare_type");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CompositeOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::CompositeOpV2>::value) {
     if (isInteger(vhloOp.getVersionAttr(), 0)) {
       eraseAttrs(vhloAttrs, "version");
     }
@@ -1002,15 +1003,14 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
       }
     }
 
-    // Convert the VHLO operation to a StableHLO equivalent.
-    // This can almost be done in a generic fashion, except for
-    // vhlo.case that uses a variadic number of regions which means an
-    // additional argument for the generic builder.
+    // Convert the VHLO operation to a StableHLO equivalent. This can almost be
+    // done in a generic fashion, except for ops with a variadic number of
+    // regions which means an additional argument for the generic builder.
     VhloToStablehloOp<VhloOpTy> stablehloOp;
-    if constexpr (std::is_same<VhloOpTy, vhlo::CaseOpV1>::value) {
-      stablehloOp = stablehlo::CaseOp::create(
+    if constexpr (VhloOpTy::template hasTrait<OpTrait::VariadicRegions>()) {
+      stablehloOp = VhloToStablehloOp<VhloOpTy>::create(
           rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
-          stablehloAttrs, vhloOp.getBranches().size());
+          stablehloAttrs, vhloOp.getNumRegions());
     } else {
       stablehloOp = VhloToStablehloOp<VhloOpTy>::create(
           rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
@@ -1018,7 +1018,7 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
     }
 
     for (auto [vhloRegion, stablehloRegion] :
-         llvm::zip(vhloOp->getRegions(), stablehloOp->getRegions())) {
+         llvm::zip_equal(vhloOp->getRegions(), stablehloOp->getRegions())) {
       rewriter.inlineRegionBefore(vhloRegion, stablehloRegion,
                                   stablehloRegion.end());
       if (failed(rewriter.convertRegionTypes(&stablehloRegion,

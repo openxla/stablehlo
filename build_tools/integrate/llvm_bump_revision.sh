@@ -33,8 +33,9 @@ bump_to_xla_llvm_version() {
 
   echo "Extracting LLVM folder..."
   THIRD_PARTY_PATH="$REPO_ROOT/third_party"
-  rm -rfv "$THIRD_PARTY_PATH/repo.bzl" "$THIRD_PARTY_PATH"/llvm/*
-  unzip -j $ZIP_FILE "xla-main/third_party/repo.bzl" -d "$THIRD_PARTY_PATH"
+  rm -rfv "$THIRD_PARTY_PATH"/llvm/*
+  unzip -jo $ZIP_FILE "xla-main/.bazelversion" -d "$REPO_ROOT"
+  unzip -jo $ZIP_FILE "xla-main/third_party/repo.bzl" -d "$THIRD_PARTY_PATH"
   unzip -j $ZIP_FILE "xla-main/third_party/llvm/*" -d "$THIRD_PARTY_PATH/llvm"
 
   echo "Cleaning up temporary files..."
