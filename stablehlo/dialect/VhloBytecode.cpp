@@ -997,7 +997,7 @@ static void writeVhloTensorV1Attr(DialectBytecodeWriter& writer,
 
   data.resize(llvm::divideCeil(numElements, 8));
   // Otherwise, pack the data manually.
-  for (size_t i = 0; i < numElements; ++i)
+  for (int64_t i = 0; i < numElements; ++i)
     if (rawData[i]) data[i / 8] |= (1 << (i % 8));
   writer.writeUnownedBlob(data);
 }
