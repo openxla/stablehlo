@@ -847,7 +847,7 @@ Afterwards, within each `process_group`:
 // %operand0@(1, 0): [5, 6, 7, 8]
 // %operand1@(0, 0): [9, 10, 11, 12]
 // %operand1@(1, 0): [13, 14, 15, 16]
-%result:2 = "stablehlo.all_reduce"(%operand0, %operand0) ({
+%result:2 = "stablehlo.all_reduce"(%operand0, %operand1) ({
   ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
     %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
     "stablehlo.return"(%0) : (tensor<i64>) -> ()
