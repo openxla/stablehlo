@@ -1,3 +1,4 @@
+// REQUIRES: asserts
 // RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
 // RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=1.6.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
 // RUN: stablehlo-translate --deserialize %s.bc | stablehlo-opt > %t.0
