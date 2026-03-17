@@ -1864,9 +1864,9 @@ Tensor fftOp(const Tensor &operand, const FftType fftType,
     return result;
   } else if (fftType == FftType::IRFFT) {
     Tensor result(operand);
-    auto renormFactor = std::transform_reduce(
-        fftDims.begin(), fftDims.end(), 1, std::multiplies<int64_t>(),
-        [&](int64_t d) { return resultType.getDimSize(d); });
+    int64_t renormFactor = std::accumulate(
+        fftDims.begin(), fftDims.end(), static_cast<int64_t>(1),
+        [&](int64_t acc, int64_t d) { return acc * resultType.getDimSize(d); });
 
     // use FFT to compute the IFFT steps
     auto d_irfft = fftDims.pop_back_val();

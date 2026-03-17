@@ -1688,6 +1688,74 @@ func.func @subtract_zero(%arg0: tensor<2xi32>, %arg1: tensor<2xf32>) -> (tensor<
 // -----
 
 /////////
+// ReverseOp
+
+// CHECK-LABEL: @reverse_empty_dim
+// CHECK-SAME: [[ARG:%.+]]: tensor<1x2x3xi32>
+func.func @reverse_empty_dim(%arg0: tensor<1x2x3xi32>) -> tensor<1x2x3xi32> {
+  // CHECK-NOT: stablehlo.reverse
+  %0 = stablehlo.reverse %arg0, dims = [] : (tensor<1x2x3xi32>) -> tensor<1x2x3xi32>
+  // CHECK: return [[ARG]] : tensor<1x2x3xi32>
+  return %0 : tensor<1x2x3xi32>
+}
+// -----
+
+// CHECK-LABEL: @reverse_dyn_shape_with_zero_dim
+// CHECK-SAME: [[ARG:%.+]]: tensor<0x?x1xi32>
+func.func @reverse_dyn_shape_with_zero_dim(%arg0: tensor<0x?x1xi32>) -> tensor<0x?x1xi32> {
+  // CHECK: %[[RES:.*]] = stablehlo.reverse
+  %0 = stablehlo.reverse %arg0, dims = [0, 1] : (tensor<0x?x1xi32>) -> tensor<0x?x1xi32>
+  // CHECK: return %[[RES]] : tensor<0x?x1xi32>
+  return %0 : tensor<0x?x1xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @reverse_zero_element_any_dim
+// CHECK-SAME: [[ARG:%.+]]: tensor<1x0x1xi32>
+func.func @reverse_zero_element_any_dim(%arg0: tensor<1x0x1xi32>) -> tensor<1x0x1xi32> {
+  // CHECK-NOT: stablehlo.reverse
+  %0 = stablehlo.reverse %arg0, dims = [0, 1] : (tensor<1x0x1xi32>) -> tensor<1x0x1xi32>
+  // CHECK: return [[ARG]] : tensor<1x0x1xi32>
+  return %0 : tensor<1x0x1xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @reverse_one_element_in_all_dim
+// CHECK-SAME: [[ARG:%.+]]: tensor<1x1x1xi32>
+func.func @reverse_one_element_in_all_dim(%arg0: tensor<1x1x1xi32>) -> tensor<1x1x1xi32> {
+  // CHECK-NOT: stablehlo.reverse
+  %0 = stablehlo.reverse %arg0, dims = [0, 1] : (tensor<1x1x1xi32>) -> tensor<1x1x1xi32>
+  // CHECK: return [[ARG]] : tensor<1x1x1xi32>
+  return %0 : tensor<1x1x1xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @reverse_all_dim_to_reverse_equals_one
+// CHECK-SAME: [[ARG:%.+]]: tensor<1x1x3xi32>
+func.func @reverse_all_dim_to_reverse_equals_one(%arg0: tensor<1x1x3xi32>) -> tensor<1x1x3xi32> {
+  // CHECK-NOT: stablehlo.reverse
+  %0 = stablehlo.reverse %arg0, dims = [0, 1] : (tensor<1x1x3xi32>) -> tensor<1x1x3xi32>
+  // CHECK: return [[ARG]] : tensor<1x1x3xi32>
+  return %0 : tensor<1x1x3xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @reverse_splat_cst
+func.func @reverse_splat_cst() -> tensor<3x2xi32> {
+  // CHECK: stablehlo.constant dense<1> : tensor<3x2xi32>
+  // CHECK-NOT: stablehlo.reverse
+  %operand = stablehlo.constant dense<1> : tensor<3x2xi32>
+  %result = stablehlo.reverse %operand, dims = [0] : tensor<3x2xi32>
+  return %result : tensor<3x2xi32>
+}
+
+// -----
+
+/////////
 // SelectOp
 
 // CHECK-LABEL: func.func @select

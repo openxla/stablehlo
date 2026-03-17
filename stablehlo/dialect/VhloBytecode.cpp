@@ -962,6 +962,16 @@ static LogicalResult readVhloTensorV1Attr(DialectBytecodeReader& reader,
   // cheap.
   size_t numElements = cast<RankedTensorV1Type>(type).getNumElements();
   size_t packedSize = llvm::divideCeil(numElements, 8);
+
+  // Unpack splats to single element 0x01 to match unpacked splat format.
+  if (blob.size() == 1 && blob[0] == (char)~0x00) {
+    rawData.resize(1);
+    rawData[0] = 0x01;
+    return success();
+  }
+  // Unpack the blob if it's packed.
+  // splat and blob.size() == packedSize for all N<=8 elements are ambiguous,
+  // non 0xFF means not splat so must be unpacked.
   if (blob.size() == packedSize && blob.size() != numElements) {
     // Unpack the blob.
     rawData.resize(numElements);
@@ -987,10 +997,11 @@ static void writeVhloTensorV1Attr(DialectBytecodeWriter& writer,
   auto numElements = cast<RankedTensorV1Type>(attr.getType()).getNumElements();
 
   // If the attribute is a splat, we can just splat the value directly.
+  // Use 0xFF to avoid ambiguity with packed format of <=8 elements.
   bool isSplat = rawData.size() == 1 && numElements > 1;
   if (isSplat) {
     data.resize(1);
-    data[0] = rawData[0] ? 0xFF : 0x00;
+    data[0] = rawData[0] ? (char)~0x00 : 0x00;
     writer.writeUnownedBlob(data);
     return;
   }
