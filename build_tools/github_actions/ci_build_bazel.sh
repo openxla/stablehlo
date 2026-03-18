@@ -69,7 +69,7 @@ bazel-test-diff() {
   bazel-diff generate-hashes -w "$WORKSPACE_PATH" -b "$BAZEL_PATH" $FINAL_HASHES_JSON
 
   echo "Determining Impacted Targets"
-  bazel-diff get-impacted-targets -sh $STARTING_HASHES_JSON -fh $FINAL_HASHES_JSON -o $IMPACTED_TARGETS_PATH -w $WORKSPACE_PATH
+  bazel-diff get-impacted-targets -sh $STARTING_HASHES_JSON -fh $FINAL_HASHES_JSON -o $IMPACTED_TARGETS_PATH -w "$WORKSPACE_PATH"
   echo ""
 
   impacted_targets=()
