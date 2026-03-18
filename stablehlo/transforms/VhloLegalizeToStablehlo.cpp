@@ -164,7 +164,7 @@ Attribute convertGeneric(Attribute vhloAttr,
         cast<ShapedType>(typeConverter->convertType(attr.getType()));
     if (!builtinType) return {};
     return DenseTypedElementsAttr::getFromRawBuffer(builtinType,
-                                                      attr.getData());
+                                                    attr.getData());
   }
   if (auto attr = dyn_cast<vhlo::TransposeV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
