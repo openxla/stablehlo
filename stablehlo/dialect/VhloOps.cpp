@@ -186,16 +186,16 @@ ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
 
 void TensorV1Attr::print(mlir::AsmPrinter& odsPrinter) const {
   odsPrinter << '<'
-             << DenseIntOrFPElementsAttr::getFromRawBuffer(
+             << DenseTypedElementsAttr::getFromRawBuffer(
                     llvm::cast<ShapedType>(
                         convertTypeToBuiltinForPrint(getType())),
                     getData())
              << '>';
 }
 
-// Parse tensor elements using DenseIntOrFPElementsAttr printing.
+// Parse tensor elements using DenseTypedElementsAttr printing.
 Attribute TensorV1Attr::parse(AsmParser& parser, mlir::Type) {
-  DenseIntOrFPElementsAttr attr;
+  DenseTypedElementsAttr attr;
   if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||
       failed(parser.parseGreater())) {
     return TensorV1Attr();

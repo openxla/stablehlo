@@ -1114,7 +1114,7 @@ func.func @dynamic_broadcast_in_dim_output_dimensions_compatible_with_result(%ar
 
 // -----
 
-func.func @dynamic_broadcast_in_dim_c1(%arg0: tensor<?x?xi32>, %shape: tensor<3xi64>) -> tensor<?x?x?xi62> {
+func.func @dynamic_broadcast_in_dim_c1(%arg0: tensor<?x?xi32>, %shape: tensor<3xi64>) -> tensor<?x?x?xi64> {
   // expected-error@+1 {{expects operand and result to have compatible element type}}
   %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %shape) {broadcast_dimensions = array<i64: 1, 2>} : (tensor<?x?xi32>, tensor<3xi64>) -> tensor<?x?x?xi64>
   func.return %0 : tensor<?x?x?xi64>
@@ -2009,7 +2009,7 @@ func.func @infeed(%arg0: !stablehlo.token) -> tensor<3x3xi32> {
 
 // -----
 
-func.func @infeed_c1(%token: !stablehlo.token) -> tensor<3x3xi32> {
+func.func @infeed_c1(%token: !stablehlo.token) {
   // expected-error@+1 {{result is expected to be at least of size 1, but got 0}}
   "stablehlo.infeed"(%token) {infeed_config = "foobar", layout=[[[0]], [0]]} : (!stablehlo.token) -> ()
   func.return
@@ -2244,7 +2244,7 @@ func.func @recv_c2(%token: !stablehlo.token) {
 
 // -----
 
-func.func @recv_c3(%token: !stablehlo.token) -> (!stablehlo.token, !stablehlo.token) {
+func.func @recv_c3(%token: !stablehlo.token) -> !stablehlo.token {
   // expected-error@+1 {{everything but the last element of result types is expected to be of tensor type, but got '!stablehlo.token'}}
   %0:2 = "stablehlo.recv"(%token) {
     channel_handle = #stablehlo.channel_handle<
@@ -2296,7 +2296,7 @@ func.func @rng_bit_generator(%arg0: tensor<2xui64>) -> (tensor<2xui64>, tensor<1
 
 // -----
 
-func.func @rng_bit_generator(%arg0: tensor<2xui64>) -> (tensor<2xui64>, tensor<10x12xui32>) {
+func.func @rng_bit_generator(%arg0: tensor<2xui64>) -> (tensor<3xui64>, tensor<10x12xui32>) {
   // expected-error@+1 {{output state shape must be compatible with initial state shape. Got: 'tensor<2xui64>' and 'tensor<3xui64>'}}
   %0, %1 = "stablehlo.rng_bit_generator"(%arg0) {rng_algorithm = #stablehlo<rng_algorithm DEFAULT>} : (tensor<2xui64>) -> (tensor<3xui64>, tensor<10x12xui32>)
   func.return %0, %1 : tensor<3xui64>, tensor<10x12xui32>

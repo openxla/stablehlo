@@ -75,7 +75,7 @@ jobs:
         START_HASH=${{ github.event.pull_request.base.sha }}
         END_HASH=${{ github.event.pull_request.head.sha }}
         BAZEL_DIFF=/tmp/bazel-diff.jar
-        curl -Lo "$BAZEL_DIFF" https://github.com/Tinder/bazel-diff/releases/latest/download/bazel-diff_deploy.jar
+        curl -Lo "$BAZEL_DIFF" https://github.com/Tinder/bazel-diff/releases/download/17.0.2/bazel-diff_deploy.jar
         ./build_tools/github_actions/ci_build_bazel.sh "$BAZEL_DIFF" "$START_HASH" "$END_HASH"
 
     - name: Build and Test StableHLO (All)

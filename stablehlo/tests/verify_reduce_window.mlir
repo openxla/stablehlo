@@ -100,8 +100,7 @@ func.func @reduce_window_with_promotable_quantized_types(%arg0: tensor<4x2x!quan
 // -----
 
 func.func @reduce_window_c1(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
-                    %init0: tensor<f32>, %init1: tensor<i32>) ->
-                      (tensor<2x2xf32>, tensor<2x2xi32>) {
+                    %init0: tensor<f32>, %init1: tensor<i32>) {
   // expected-error@+1 {{requires at least 1 input value}}
   "stablehlo.reduce_window"() ({
     ^bb0():
