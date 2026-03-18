@@ -182,7 +182,7 @@ Attribute convertGeneric(Attribute stablehloAttr,
     }
     return vhlo::ArrayV1Attr::get(stablehloAttrs.getContext(), vhloAttrs);
   }
-  if (auto attr = dyn_cast<DenseIntOrFPElementsAttr>(stablehloAttr)) {
+  if (auto attr = dyn_cast<DenseTypedElementsAttr>(stablehloAttr)) {
     auto vhloType = typeConverter->convertType(attr.getType());
     LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
     if (!vhloType) return {};

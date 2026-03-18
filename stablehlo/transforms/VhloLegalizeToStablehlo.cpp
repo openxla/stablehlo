@@ -163,7 +163,7 @@ Attribute convertGeneric(Attribute vhloAttr,
     auto builtinType =
         cast<ShapedType>(typeConverter->convertType(attr.getType()));
     if (!builtinType) return {};
-    return DenseIntOrFPElementsAttr::getFromRawBuffer(builtinType,
+    return DenseTypedElementsAttr::getFromRawBuffer(builtinType,
                                                       attr.getData());
   }
   if (auto attr = dyn_cast<vhlo::TransposeV1Attr>(vhloAttr)) {

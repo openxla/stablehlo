@@ -245,7 +245,7 @@ FailureOr<TypedAttr> foldBinaryOpIntOrFloat(PatternRewriter& rewriter,
 template <class AttrElementT, class TargetAttrElementT, class CalculationT,
           typename OpType>
 LogicalResult foldConvertHelper(PatternRewriter& rewriter, OpType op,
-                                DenseIntOrFPElementsAttr elements, Type resType,
+                                DenseTypedElementsAttr elements, Type resType,
                                 CalculationT&& calculate) {
   auto result = constFoldCastOp<AttrElementT, TargetAttrElementT,
                                 typename AttrElementT::ValueType,
@@ -265,7 +265,7 @@ LogicalResult foldConvertHelper(PatternRewriter& rewriter, OpType op,
 
 template <typename OpType>
 LogicalResult foldConvert(PatternRewriter& rewriter, OpType op,
-                          DenseIntOrFPElementsAttr elements,
+                          DenseTypedElementsAttr elements,
                           RankedTensorType resultType) {
   auto oldType = getElementTypeOrSelf(elements);
   auto newType = getElementTypeOrSelf(resultType);
@@ -989,7 +989,7 @@ struct FoldConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
         (isa<FloatType>(operandElemType) || isa<FloatType>(resultElemType)))
       return rewriter.notifyMatchFailure(op, "skipping fold of float convert");
 
-    DenseIntOrFPElementsAttr elements;
+    DenseTypedElementsAttr elements;
     if (!matchPattern(operand, m_Constant(&elements)))
       return rewriter.notifyMatchFailure(
           op, "expected constant integer or float operand");
