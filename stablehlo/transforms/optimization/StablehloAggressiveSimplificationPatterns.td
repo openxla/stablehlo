@@ -253,17 +253,18 @@ def BroadcastInDimOp_MergeComposition
 // for bounded dynamism, same for BroadcastInDimOp_ReplaceWithReshape
 def BroadcastInDimOp_ReplaceWithReshape
   : Pat<(StableHLO_BroadcastInDimOp:$op AnyStaticShapeTensor:$operand, SortedDims:$dims),
-        (StableHLO_ReshapeOpWithShape $op, $operand),
+        (StableHLO_ReshapeOpWithShape:$new_op $op, $operand),
         [(NumberOfElementsEqual $op, $operand)],
-        [],
+        [(MergeDiscardableAttributes $op, $new_op)],
         (addBenefit 1)>;
 
 // Pattern: broadcast_in_dim(X, [dims...]) -> transpose(X, [dims...])
 //          [if same numel & rank]
 def BroadcastInDimOp_ReplaceWithTranspose
   : Pat<(StableHLO_BroadcastInDimOp:$op AnyStaticShapeTensor:$operand, $dims),
-        (StableHLO_TransposeOp $operand, (InvertBroadcastDims $dims)),
-        [(NumberOfElementsEqual $op, $operand), (RankEqual $op, $operand)]>;
+        (StableHLO_TransposeOp:$new_op $operand, (InvertBroadcastDims $dims)),
+        [(NumberOfElementsEqual $op, $operand), (RankEqual $op, $operand)],
+        [(MergeDiscardableAttributes $op, $new_op)]>;
 
 ////////
 // CompareOp

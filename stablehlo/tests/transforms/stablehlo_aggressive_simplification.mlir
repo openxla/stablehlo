@@ -2293,3 +2293,28 @@ func.func @generic_op(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> tensor<2xf3
   %0 = "test_dialect.op"(%arg0, %arg1) : (tensor<2xf32>, tensor<2xf32>) -> (tensor<2xf32>)
   return %0 : tensor<2xf32>
 }
+
+
+// -----
+
+// CHECK-LABEL: func.func @broadcast_in_dim_to_reshape_10
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<10xf32>)
+func.func @broadcast_in_dim_to_reshape_10(%arg0: tensor<10xf32>) -> tensor<10x1xf32> {
+  // CHECK: [[R:%.+]] = stablehlo.reshape [[ARG0]] {mhlo.sharding = "{devices=[2,1]<=[2]}"} : (tensor<10xf32>) -> tensor<10x1xf32>
+  // CHECK-NOT: stablehlo.broadcast_in_dim
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [0] {mhlo.sharding = "{devices=[2,1]<=[2]}"} : (tensor<10xf32>) -> tensor<10x1xf32>
+  // CHECK: return [[R]]
+  return %0 : tensor<10x1xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @broadcast_in_dim_to_transpose_10
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<2x5xf32>)
+func.func @broadcast_in_dim_to_transpose_10(%arg0: tensor<2x5xf32>) -> tensor<5x2xf32> {
+  // CHECK: [[R:%.+]] = stablehlo.transpose [[ARG0]], dims = [1, 0] {mhlo.sharding = "{devices=[2,1]<=[2]}"} : (tensor<2x5xf32>) -> tensor<5x2xf32>
+  // CHECK-NOT: stablehlo.broadcast_in_dim
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [1, 0] {mhlo.sharding = "{devices=[2,1]<=[2]}"} : (tensor<2x5xf32>) -> tensor<5x2xf32>
+  // CHECK: return [[R]]
+  return %0 : tensor<5x2xf32>
+}
