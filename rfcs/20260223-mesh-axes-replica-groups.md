@@ -2,7 +2,7 @@
 
 Status: In Review<br/>
 Initial version: 02/23/2026<br/>
-Last updated: 02/23/2026<br/>
+Last updated: 03/19/2026<br/>
 Discussion thread: N/A
 
 ## Overview
@@ -47,16 +47,16 @@ primarily described by a string `name` and optional `sub_axis_info`.
 #### 3. ReplicaGroupMeshAxes
 
 Represents an overall mesh-axes based replica group. It contains a
-`FlatSymbolRefAttr` for the `mesh_name` and an `ArrayAttr` containing `AxisRef`
+`FlatSymbolRefAttr` for the `mesh` and an `ArrayAttr` containing `AxisRef`
 attributes for the `axes`.
 
 ```mlir
 #stablehlo.replica_group_mesh_axes<
-  mesh_name = @mesh,
-  axes = [
-    #stablehlo.axis_ref<name = "foo">,
-    #stablehlo.axis_ref<name = "bar", sub_axis_info = (1)2>
-  ]
+mesh = @mesh,
+axes = [
+#stablehlo.axis_ref<name = "foo">,
+#stablehlo.axis_ref<name = "bar", sub_axis_info = (1)2>
+]
 >
 ```
 
@@ -76,31 +76,15 @@ Affected operations that will now accept the `replica_group_mesh_axes` layout: -
 // Using the new format inside a standard collective op
 %result = "stablehlo.all_reduce"(%operand) ({
 ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
-  "stablehlo.return"(%0) : (tensor<f32>) -> ()
+%0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
+"stablehlo.return"(%0) : (tensor<f32>) -> ()
 }) {
-  replica_groups = #stablehlo.replica_group_mesh_axes<
-    mesh_name = @mesh,
-    axes = [
-      #stablehlo.axis_ref<name = "foo">,
-      #stablehlo.axis_ref<name = "bar", sub_axis_info = (1)2>
-    ]
-  >
+replica_groups = #stablehlo.replica_group_mesh_axes<
+mesh = @mesh,
+axes = [
+#stablehlo.axis_ref<name = "foo">,
+#stablehlo.axis_ref<name = "bar", sub_axis_info = (1)2>
+]
+>
 } : (tensor<1024xf32>) -> tensor<1024xf32>
 ```
-
-## Rollout Plan
-
-The rollout logic can be broken into corresponding CL phases:
-
-1. **Schema & Types**: Add the StableHLO and MHLO IR definitions for
-   `#stablehlo.replica_group_mesh_axes` and its dependent types
-   (`#stablehlo.axis_ref`, `#stablehlo.sub_axis_info`). Update operations to
-   widen the types to include either representation format. Checks are
-   explicitly added to ensure new representation is not fully un-lowered
-   (temporarily) until the following steps.
-2. **Verification & Constraints**: Add logic + full verification for the new
-   format.
-3. **Roundtripping & Integration**: Add round-tripping support into translation
-   paths. Native operations and XLA pipelines will be updated to map this new
-   IR format natively.
