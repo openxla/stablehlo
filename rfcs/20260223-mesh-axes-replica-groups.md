@@ -52,11 +52,11 @@ attributes for the `axes`.
 
 ```mlir
 #stablehlo.replica_group_mesh_axes<
-mesh = @mesh,
-axes = [
-#stablehlo.axis_ref<name = "foo">,
-#stablehlo.axis_ref<name = "bar", sub_axis_info = (1)2>
-]
+  mesh = @mesh,
+  axes = [
+    #stablehlo.axis_ref<name = "foo">,
+    #stablehlo.axis_ref<name = "bar", sub_axis_info = (1)2>
+  ]
 >
 ```
 
@@ -76,15 +76,15 @@ Affected operations that will now accept the `replica_group_mesh_axes` layout: -
 // Using the new format inside a standard collective op
 %result = "stablehlo.all_reduce"(%operand) ({
 ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
-%0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
-"stablehlo.return"(%0) : (tensor<f32>) -> ()
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
+  "stablehlo.return"(%0) : (tensor<f32>) -> ()
 }) {
-replica_groups = #stablehlo.replica_group_mesh_axes<
-mesh = @mesh,
-axes = [
-#stablehlo.axis_ref<name = "foo">,
-#stablehlo.axis_ref<name = "bar", sub_axis_info = (1)2>
-]
->
+  replica_groups = #stablehlo.replica_group_mesh_axes<
+    mesh = @mesh,
+    axes = [
+      #stablehlo.axis_ref<name = "foo">,
+      #stablehlo.axis_ref<name = "bar", sub_axis_info = (1)2>
+    ]
+  >
 } : (tensor<1024xf32>) -> tensor<1024xf32>
 ```
