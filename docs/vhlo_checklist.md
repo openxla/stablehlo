@@ -68,5 +68,5 @@ bytecode file using `stablehlo-translate`:
 ```bash
 export TARGET_VERSION=1.X.0
 export TARGET_FILENAME=${TARGET_VERSION//./_}
-stablehlo-translate --serialize --target=$TARGET_VERSION --strip-debuginfo stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir > stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir.bc
+bazel run //:stablehlo-translate -- --serialize --target=$TARGET_VERSION --strip-debuginfo "$(pwd)/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir" > "$(pwd)/stablehlo/tests/vhlo/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir.bc"
 ```

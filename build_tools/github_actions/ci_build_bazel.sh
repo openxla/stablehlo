@@ -56,13 +56,20 @@ bazel-test-diff() {
   echo "Generating Hashes for Revision '$PREVIOUS_REV'"
   bazel-diff generate-hashes -w "$WORKSPACE_PATH" -b "$BAZEL_PATH" $STARTING_HASHES_JSON
 
+  UNCOMMITTED_CHANGES="$(git status -s)"
+  if [[ -n "$UNCOMMITTED_CHANGES" ]]; then
+    echo "[WARNING] Uncommitted changes found, likely build byproducts:"
+    echo "$UNCOMMITTED_CHANGES"
+  fi
+
+  git reset --hard "$PREVIOUS_REV"
   git -C "$WORKSPACE_PATH" checkout "$FINAL_REV" --quiet
 
   echo "Generating Hashes for Revision '$FINAL_REV'"
   bazel-diff generate-hashes -w "$WORKSPACE_PATH" -b "$BAZEL_PATH" $FINAL_HASHES_JSON
 
   echo "Determining Impacted Targets"
-  bazel-diff get-impacted-targets -sh $STARTING_HASHES_JSON -fh $FINAL_HASHES_JSON -o $IMPACTED_TARGETS_PATH
+  bazel-diff get-impacted-targets -sh $STARTING_HASHES_JSON -fh $FINAL_HASHES_JSON -o $IMPACTED_TARGETS_PATH -w "$WORKSPACE_PATH"
   echo ""
 
   impacted_targets=()

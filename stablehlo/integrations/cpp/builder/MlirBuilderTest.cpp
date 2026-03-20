@@ -203,7 +203,7 @@ TEST(MlirBuilderTest, TestOpWithMultipleRegions) {
     %c = stablehlo.constant dense<1> : tensor<i64>
     %0 = stablehlo.while(%iterArg = %arg0) : tensor<i64>
     cond {
-      %1 = stablehlo.compare  LT, %iterArg, %c : (tensor<i64>, tensor<i64>) -> tensor<i1>
+      %1 = stablehlo.compare LT, %iterArg, %c : (tensor<i64>, tensor<i64>) -> tensor<i1>
       stablehlo.return %1 : tensor<i1>
     } do {
       %1 = stablehlo.subtract %iterArg, %c : tensor<i64>

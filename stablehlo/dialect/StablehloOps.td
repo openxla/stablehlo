@@ -56,9 +56,9 @@ include "stablehlo/dialect/StablehloEnums.td"
 include "stablehlo/dialect/StablehloAttrs.td"
 include "stablehlo/dialect/StablehloTypes.td"
 
-class StableHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits> :
+class StableHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits, list<string> extraMethodOverrides = []> :
     StableHLO_Op<mnemonic, traits # [DeclareOpInterfaceMethods<InferShapedTypeOpInterface,
-    ["reifyReturnTypeShapes"]>]> {}
+    ["reifyReturnTypeShapes"] # extraMethodOverrides>]> {}
 
 class StableHLO_ResourceBase<string resourceKind> :
     Resource<!strconcat("::mlir::stablehlo::side_effects::", resourceKind)> {}
@@ -2369,6 +2369,10 @@ def StableHLO_CompositeOp : StableHLO_Op<"composite", [DeclareOpInterfaceMethods
     The `version` field (defaults to `0`) is used to denote when a composite's
     semantics change.
 
+    The intent of `composite_regions` is to only be used to model ops with
+    bodies, regions are thrown away if the fallback decomposition function gets
+    inlined.
+
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#composite
 
@@ -2391,9 +2395,31 @@ def StableHLO_CompositeOp : StableHLO_Op<"composite", [DeclareOpInterfaceMethods
     FlatSymbolRefAttr:$decomposition, /*composite_i4*/
     DefaultValuedOptionalAttr<I32Attr, "0">:$version /*composite_i5*/
   );
+  let regions = (region VariadicRegion<AnyRegion>:$composite_regions);
   let results = (outs Variadic<HLO_TensorOrPerAxisQuantizedTensorOrTokenOrTuple>);
 
-  let assemblyFormat = "$name $inputs attr-dict `:` functional-type(operands, results)";
+  let builders = [
+    OpBuilder<(ins
+      "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,
+      "::mlir::ArrayRef<::mlir::NamedAttribute>":$attributes
+    ), [{
+      build($_builder, $_state, resultTypes, inputs, attributes,
+            /*regionsCount=*/0);
+    }]>,
+    OpBuilder<(ins
+      "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,
+      "::mlir::StringRef":$name, "::mlir::DictionaryAttr":$attributes,
+      "::mlir::StringRef":$decomposition, CArg<"uint32_t", "0">:$version
+    ), [{
+      build($_builder, $_state, resultTypes, inputs, name, attributes,
+            decomposition, version, /*regionsCount=*/0);
+    }]>
+  ];
+
+  let assemblyFormat = [{
+    $name operands (` ` `(` $composite_regions^ `)`)? attr-dict
+    `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_ConvolutionOp : StableHLO_Op<"convolution",
@@ -2557,7 +2583,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   }];
 }
 
-def StableHLO_DotOp: StableHLO_Op<"dot", [Pure]> {
+def StableHLO_DotOp: StableHLO_Op<"dot", [Pure, DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>]> {
   let summary = "Dot operation";
   let description = [{
     This operation is on its way out of StableHLO, so it is not included in
@@ -2587,7 +2613,8 @@ def StableHLO_DotOp: StableHLO_Op<"dot", [Pure]> {
 }
 
 def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
-    [ConditionallySpeculatable, NoMemoryEffect]> {
+    [ConditionallySpeculatable, NoMemoryEffect,
+     DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>]> {
   let summary = "DotGeneral operation";
   let description = [{
     Computes dot products between slices of `lhs` and slices of `rhs` and

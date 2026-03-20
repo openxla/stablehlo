@@ -28,6 +28,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
@@ -181,7 +182,7 @@ Attribute convertGeneric(Attribute stablehloAttr,
     }
     return vhlo::ArrayV1Attr::get(stablehloAttrs.getContext(), vhloAttrs);
   }
-  if (auto attr = dyn_cast<DenseIntOrFPElementsAttr>(stablehloAttr)) {
+  if (auto attr = dyn_cast<DenseTypedElementsAttr>(stablehloAttr)) {
     auto vhloType = typeConverter->convertType(attr.getType());
     LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
     if (!vhloType) return {};
@@ -1024,17 +1025,18 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
     // stablehlo.case that uses a variadic number of regions which means an
     // additional argument for the generic builder.
     StablehloToVhloOp<StablehloOpTy> vhloOp;
-    if constexpr (std::is_same<StablehloOpTy, stablehlo::CaseOp>::value) {
-      vhloOp = vhlo::CaseOpV1::create(rewriter, stablehloOp.getLoc(), vhloTypes,
-                                      vhloOperands, vhloAttrs,
-                                      stablehloOp.getBranches().size());
+    if constexpr (StablehloOpTy::template hasTrait<
+                      OpTrait::VariadicRegions>()) {
+      vhloOp = StablehloToVhloOp<StablehloOpTy>::create(
+          rewriter, stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs,
+          stablehloOp.getNumRegions());
     } else {
       vhloOp = StablehloToVhloOp<StablehloOpTy>::create(
           rewriter, stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs);
     }
 
     for (auto [stablehloRegion, vhloRegion] :
-         llvm::zip(stablehloOp->getRegions(), vhloOp->getRegions())) {
+         llvm::zip_equal(stablehloOp->getRegions(), vhloOp->getRegions())) {
       rewriter.inlineRegionBefore(stablehloRegion, vhloRegion,
                                   vhloRegion.end());
       if (failed(rewriter.convertRegionTypes(&vhloRegion,

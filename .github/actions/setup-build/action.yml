@@ -44,26 +44,23 @@ runs:
       path: llvm-project
       fetch-depth: 1
 
-  # Get ninja for cmake build.
-  - name: Install Ninja
-    uses: llvm/actions/install-ninja@6a57890d0e3f9f35dfc72e7e48bc5e1e527cdd6c
-
-  # Install up-to-date versions of Clang and LLD (plus a few related packages).
-  # - Update Clang to support newer compiler features.
-  # - Install LLD to improve build speed on Linux.
-  - name: Install/update Clang and LLD
+  - name: Toolchain setup, use rules_ml_toolchain
     shell: bash
     run: |
-      wget https://apt.llvm.org/llvm.sh
-      chmod +x llvm.sh
-      sudo ./llvm.sh ${{ inputs.clang-version }}
-      for program_name in "clang" "clang++" "lld"; do
-        link_path="/usr/bin/$program_name"
-        link_target="/usr/bin/$program_name-${{ inputs.clang-version }}"
-        priority=200
-        sudo update-alternatives --install \
-          "$link_path" "$program_name" "$link_target" "$priority"
-      done
+      # Install latest toolchain
+      git clone https://github.com/google-ml-infra/rules_ml_toolchain rules_ml_toolchain
+      cd rules_ml_toolchain
+      bazel build //cc/tests/cpu:all
+      BIN_DIR="$(pwd)/bazel-rules_ml_toolchain/external/llvm18_linux_x86_64/bin"
+      sudo ln -sfvn $BIN_DIR/clang /usr/bin/clang
+      sudo ln -sfvn $BIN_DIR/clang++ /usr/bin/clang++
+      sudo ln -sfvn $BIN_DIR/lld /usr/bin/lld
+
+  # Get ninja for cmake build.
+  - name: Install Ninja
+    shell: bash
+    run: |
+      sudo apt-get install -y ninja-build
 
   # Update the system C++ headers.
   - name: Update system C++ headers

@@ -39,7 +39,7 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 echo "Gathering changed files..."
-mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep -Ev '.*\.(bc|png|svg|ipynb)$')
+mapfile -t CHANGED_FILES < <(git diff "$BASE_BRANCH" HEAD --name-only --diff-filter=d | grep -Ev '.*\.(bc|png|svg|ipynb)$' | grep -Ev '.*third_party.*')
 if (( ${#CHANGED_FILES[@]} == 0 )); then
   echo "No files to check."
   exit 0

@@ -213,15 +213,6 @@ operation.
 MlirOp Complex(MlirOp &lhs, MlirOp &rhs);
 ```
 
-### `stablehlo::CompositeOp`
-
-Creates a new [`stablehlo.composite`](https://openxla.org/stablehlo/spec#composite)
-operation.
-
-```c++
-SmallVector<MlirOp> Composite(MlirBuilder &builder, TypeRange resultTypes, ArrayRef<MlirOp> inputs, ::llvm::StringRef name, ::llvm::StringRef decomposition, /*optional*/::mlir::DictionaryAttr composite_attributes = {}, /*optional*/uint32_t version = 0);
-```
-
 ### `stablehlo::ConcatenateOp`
 
 Creates a new [`stablehlo.concatenate`](https://openxla.org/stablehlo/spec#concatenate)
@@ -1040,6 +1031,8 @@ MlirOp Xor(MlirOp &lhs, MlirOp &rhs);
 Unable to generate builder for the following operations:
 
  - [`stablehlo.case`](https://openxla.org/stablehlo/spec#case)
+
+ - [`stablehlo.composite`](https://openxla.org/stablehlo/spec#composite)
 
  - [`stablehlo.rng_bit_generator`](https://openxla.org/stablehlo/spec#rng_bit_generator)
 

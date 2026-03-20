@@ -1947,8 +1947,8 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 #### Semantics
 
 Encapsulates an operation made up (composed) of other StableHLO operations,
-taking `inputs` and `composite_attributes` and producing `results`. The
-semantics of the op are implemented by the `decomposition` attribute. The
+taking `inputs`, `composite_attributes` and `regions` and producing `results`.
+The semantics of the op are implemented by the `decomposition` attribute. The
 `composite` op can be replaced with its decomposition without changing program
 semantics. In cases where inlining the decomposition does not provide the same
 op semantics, prefer using `custom_call`.
@@ -1956,15 +1956,20 @@ op semantics, prefer using `custom_call`.
 The `version` field (defaults to `0`) is used to denote when a composite's
 semantics change.
 
+The intent of `regions` is to only be used to model ops with bodies (e.g.
+`my_op` may have a body like `while` or `reduce`). If the decomposition is
+inlined, the `regions` are ignored.
+
 #### Inputs
 
-| Label | Name                   | Type                      |
-|-------|------------------------|---------------------------|
-| (I1)  | `inputs`               | variadic number of values |
-| (I2)  | `name`                 | constant of type `string` |
-| (I3)  | `composite_attributes` | attribute dictionary      |
-| (I4)  | `decomposition`        | constant of type `string` |
-| (I5)  | `version`              | constant of type `si32`   |
+| Label | Name                   | Type                         |
+|-------|------------------------|------------------------------|
+| (I1)  | `inputs`               | variadic number of values    |
+| (I2)  | `name`                 | constant of type `string`    |
+| (I3)  | `composite_attributes` | attribute dictionary         |
+| (I4)  | `decomposition`        | constant of type `string`    |
+| (I5)  | `version`              | constant of type `si32`      |
+| (I6)  | `regions`              | variadic number of functions |
 
 #### Outputs
 

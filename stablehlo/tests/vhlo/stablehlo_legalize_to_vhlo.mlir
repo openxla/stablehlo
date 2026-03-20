@@ -1,3 +1,4 @@
+// REQUIRES: asserts
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
 // RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
 // RUN: stablehlo-opt %s > %t.1
@@ -418,6 +419,23 @@ func.func @attr_frontend_attributes(%arg0: tensor<f32>) -> tensor<f32> {
   return %1 : tensor<f32>
 }
 
+// Builtin attriubute tests
+
+// CHECK-LABEL: "byte_packed_boolean"
+func.func @byte_packed_boolean() -> (tensor<8xi1>, tensor<8xi1>, tensor<4xi1>, tensor<4xi1>, tensor<16xi1>) {
+  // CHECK: #vhlo.tensor_v1<dense<[true, false, false, false, false, false, false, false]
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<true> : tensor<8xi1>>
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<[true, false, false, false]> : tensor<4xi1>>
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<true> : tensor<4xi1>>
+  // CHECK-NEXT: #vhlo.tensor_v1<dense<[true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false]> : tensor<16xi1>>
+  %c = stablehlo.constant dense<[true, false, false, false, false, false, false, false]> : tensor<8xi1>
+  %c_0 = stablehlo.constant dense<true> : tensor<8xi1>
+  %c_1 = stablehlo.constant dense<[true, false, false, false]> : tensor<4xi1>
+  %c_2 = stablehlo.constant dense<true> : tensor<4xi1>
+  %c_3 = stablehlo.constant dense<[true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false]> : tensor<16xi1>
+  return %c, %c_0, %c_1, %c_2, %c_3 : tensor<8xi1>, tensor<8xi1>, tensor<4xi1>, tensor<4xi1>, tensor<16xi1>
+}
+
 // ============ DEFAULTS ============
 
 // CHECK-LABEL: "default_all_gather"
@@ -553,7 +571,7 @@ func.func @default_compare(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1>
 // CHECK-LABEL: "default_composite"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @default_composite(%arg0: tensor<f32>) -> tensor<f32> {
-  //               CHECK: "vhlo.composite_v1"(%[[ARG0]]) <{
+  //               CHECK: "vhlo.composite_v2"(%[[ARG0]]) <{
   //          CHECK-SAME:   composite_attributes = #vhlo.dict_v1<{}>
   //          CHECK-SAME:   decomposition = #vhlo.string_v1<"composite_target">
   //          CHECK-SAME:   name = #vhlo.string_v1<"stablehlo.composite_target">
@@ -1271,7 +1289,7 @@ func.func @op_complex(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<complex<
 // CHECK-LABEL: "op_composite"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @op_composite(%arg0: tensor<f32>) -> tensor<f32> {
-  //               CHECK: "vhlo.composite_v1"(%[[ARG0]]) <{
+  //               CHECK: "vhlo.composite_v2"(%[[ARG0]]) <{
   //          CHECK-SAME:   composite_attributes = #vhlo.dict_v1<{#vhlo.string_v1<"my_int"> = #vhlo.integer_v1<1 : i64>, #vhlo.string_v1<"my_string"> = #vhlo.string_v1<"foo">}>
   //          CHECK-SAME:   decomposition = #vhlo.string_v1<"composite_target">
   //          CHECK-SAME:   name = #vhlo.string_v1<"stablehlo.composite_target">
@@ -1282,9 +1300,32 @@ func.func @op_composite(%arg0: tensor<f32>) -> tensor<f32> {
     decomposition = @composite_target,
     version = 1 : i32,
     composite_attributes = {
-      my_string = "foo",
-      my_int = 1 : i64
+      my_int = 1 : i64,
+      my_string = "foo"
     }
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
+// CHECK-LABEL: "composite_regions"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func @composite_regions(%arg0: tensor<f32>) -> tensor<f32> {
+  //               CHECK: "vhlo.composite_v2"(%[[ARG0]]) <{
+  //          CHECK-SAME:   composite_attributes = #vhlo.dict_v1<{}>
+  //          CHECK-SAME:   decomposition = #vhlo.string_v1<"composite_target">
+  //          CHECK-SAME:   name = #vhlo.string_v1<"stablehlo.composite_target">
+  //          CHECK-SAME:   version = #vhlo.integer_v1<1 : i32>
+  //          CHECK-SAME: }> ({
+  //          CHECK-NEXT: ^bb0(%[[ARG1:.*]]: !vhlo.tensor_v1<!vhlo.f32_v1>):
+  //          CHECK-NEXT:   "vhlo.return_v1"(%[[ARG1]]) : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> ()
+  //          CHECK-NEXT: }) : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+  %0 = "stablehlo.composite"(%arg0) ({
+    ^bb0(%arg1: tensor<f32>):
+      "stablehlo.return"(%arg1) : (tensor<f32>) -> ()
+  }) {
+    name = "stablehlo.composite_target",
+    decomposition = @composite_target,
+    version = 1 : i32
   } : (tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }

@@ -1,6 +1,64 @@
 // RUN: stablehlo-opt --stablehlo-aggressive-folder=fold-op-element-limit=100 --split-input-file --verify-diagnostics %s | FileCheck %s
 
 ////////
+// ReverseOp
+
+// CHECK-LABEL: @reverse_fold_empty_dim_cst
+func.func @reverse_fold_empty_dim_cst() -> tensor<2xi32> {
+  // CHECK: stablehlo.constant dense<[1, 2]>
+  // CHECK-NEXT: stablehlo.reverse
+  %operand = stablehlo.constant dense<[1, 2]> : tensor<2xi32>
+  %result = stablehlo.reverse %operand, dims = [] : tensor<2xi32>
+  return %result : tensor<2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @reverse_fold_single_dim_cst
+func.func @reverse_fold_single_dim_cst() -> tensor<2xi32> {
+  // CHECK: stablehlo.constant dense<[2, 1]>
+  // CHECK-NOT: stablehlo.reverse
+  %operand = stablehlo.constant dense<[1, 2]> : tensor<2xi32>
+  %result = stablehlo.reverse %operand, dims = [0] : tensor<2xi32>
+  return %result : tensor<2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @reverse_fold_multiple_dim_cst
+func.func @reverse_fold_multiple_dim_cst() -> tensor<3x2xf32> {
+  // CHECK: stablehlo.constant dense<{{\[\[6\.0.*, 5\.0.*\], \[4\.0.*, 3\.0.*\], \[2\.0.*, 1\.0.*\]\]}}> : tensor<3x2xf32>
+  // CHECK-NOT: stablehlo.reverse
+  %operand = stablehlo.constant dense<[[1.0, 2.0],[3.0, 4.0],[5.0, 6.0]]> : tensor<3x2xf32>
+  %result = stablehlo.reverse %operand, dims = [0, 1] : (tensor<3x2xf32>) -> tensor<3x2xf32>
+  return %result : tensor<3x2xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @reverse_fold_one_dim_cst
+func.func @reverse_fold_one_dim_cst() -> tensor<1x2xi32> {
+  // CHECK: stablehlo.constant dense<{{\[\[1, 2\]\]}}>
+  // CHECK-NEXT: stablehlo.reverse
+  %operand = stablehlo.constant dense<[[1,2]]> : tensor<1x2xi32>
+  %result = stablehlo.reverse %operand, dims = [0] : tensor<1x2xi32>
+  return %result : tensor<1x2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @reverse_fold_splat_cst
+func.func @reverse_fold_splat_cst() -> tensor<3x2xi32> {
+  // CHECK: stablehlo.constant dense<1> : tensor<3x2xi32>
+  // CHECK-NEXT: stablehlo.reverse
+  %operand = stablehlo.constant dense<1> : tensor<3x2xi32>
+  %result = stablehlo.reverse %operand, dims = [0] : tensor<3x2xi32>
+  return %result : tensor<3x2xi32>
+}
+
+// -----
+
+////////
 // AddOp
 
 // CHECK-LABEL: @add_fold_cst

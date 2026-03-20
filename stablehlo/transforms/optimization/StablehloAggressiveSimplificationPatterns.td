@@ -17,6 +17,11 @@ include "mlir/Dialect/Shape/IR/ShapeOps.td"
 ///////////
 //// Op & Type Constraints
 
+class AllDimSizeEquals<int dimSize> : Constraint<
+    CPred<"llvm::all_of($1.asArrayRef(), [&](int64_t dim) { "
+          "return llvm::cast<ShapedType>($0.getType()).getDimSize(dim) == " # dimSize # "; })">,
+    "all dimensions sizes in dim are " # dimSize>;
+
 class DimSizeEquals<int dimSize> : Constraint<
     CPred<"llvm::cast<ShapedType>($0.getType()).getDimSize($1.getInt()) == " # dimSize>,
     "dim size is " # dimSize>;
@@ -64,10 +69,15 @@ def TensorDimsAllOne : Constraint<CPred<"tensorDimsAllOne($0, $1)">, "all tensor
 
 def TypesEqual : Constraint<CPred<"$0.getType() == $1.getType()">, "operands are equal">;
 
+def ZeroElement : Constraint<CPred<"llvm::cast<ShapedType>($0.getType()).getNumElements() == 0">, "operand has 0 elements">;
+
 ///////////
 //// Attribute Constraints
 
-def AnySplat : AttrConstraint<CPred<"$_self.isSplat()">, "is any splat">;
+def ElementsAttrSplat : AttrConstraint<
+    CPred<"llvm::isa<mlir::ElementsAttr>($_self) && "
+          "llvm::cast<mlir::ElementsAttr>($_self).isSplat()">,
+    "is any splat elements attribute">;
 
 def AnyZero : AttrConstraint<
     CPred<"::mlir::matchPattern($_self, m_AnyAttrOf(m_Zero(), m_AnyZeroFloat()))">,
@@ -191,6 +201,32 @@ def AndOp_RemoveNoop
         [(MergeDiscardableAttributes $op, $lhs)]>;
 
 ////////
+// ReverseOp
+
+// Pattern: reverse(X, dims=[]) -> X
+def ReverseOp_EmptyDim
+  : Pat<(StableHLO_ReverseOp $operands, EmptyI64Array:$dims),
+        (replaceWithValue $operands)>;
+
+// Pattern: reverse(X, dims=[...]) -> X [if X has 0 element]
+def ReverseOp_ZeroElements
+  : Pat<(StableHLO_ReverseOp AnyStaticShapeTensor:$operands, $dims),
+        (replaceWithValue $operands),
+        [(ZeroElement $operands)]>;
+
+// Pattern: reverse(X, dims=[...]) -> X [size of dim in X equals 1]
+def ReverseOp_AllDimsEqualOne
+  : Pat<(StableHLO_ReverseOp AnyStaticShapeTensor:$operands, $dims),
+        (replaceWithValue $operands),
+        [(AllDimSizeEquals<1> $operands, $dims)]>;
+
+
+// Pattern: reverse(X, dims=[...]) -> X
+def ReverseOp_SplatToNoop
+  : Pat<(StableHLO_ReverseOp:$op (StableHLO_ConstantOp:$cst ElementsAttrSplat:$value), $dims),
+        (replaceWithValue $cst)>;
+
+////////
 // BroadcastInDimOp
 
 // Pattern: broadcast_in_dim(X, [iota...]) -> X
@@ -217,17 +253,18 @@ def BroadcastInDimOp_MergeComposition
 // for bounded dynamism, same for BroadcastInDimOp_ReplaceWithReshape
 def BroadcastInDimOp_ReplaceWithReshape
   : Pat<(StableHLO_BroadcastInDimOp:$op AnyStaticShapeTensor:$operand, SortedDims:$dims),
-        (StableHLO_ReshapeOpWithShape $op, $operand),
+        (StableHLO_ReshapeOpWithShape:$new_op $op, $operand),
         [(NumberOfElementsEqual $op, $operand)],
-        [],
+        [(MergeDiscardableAttributes $op, $new_op)],
         (addBenefit 1)>;
 
 // Pattern: broadcast_in_dim(X, [dims...]) -> transpose(X, [dims...])
 //          [if same numel & rank]
 def BroadcastInDimOp_ReplaceWithTranspose
   : Pat<(StableHLO_BroadcastInDimOp:$op AnyStaticShapeTensor:$operand, $dims),
-        (StableHLO_TransposeOp $operand, (InvertBroadcastDims $dims)),
-        [(NumberOfElementsEqual $op, $operand), (RankEqual $op, $operand)]>;
+        (StableHLO_TransposeOp:$new_op $operand, (InvertBroadcastDims $dims)),
+        [(NumberOfElementsEqual $op, $operand), (RankEqual $op, $operand)],
+        [(MergeDiscardableAttributes $op, $new_op)]>;
 
 ////////
 // CompareOp

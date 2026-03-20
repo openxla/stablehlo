@@ -13,6 +13,7 @@ limitations under the License.
 
 #include <vector>
 
+#include "llvm/ADT/STLFunctionalExtras.h"
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"

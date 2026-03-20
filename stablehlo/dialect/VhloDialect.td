@@ -52,11 +52,11 @@ def VHLO_Dialect : Dialect {
       1.11.0: Allow (de)serializing VHLO programs mixed with potentially unstable dialects.
       1.12.0: Add `source_target_pairs` attribute to `send` and `recv` ops.
       1.13.0: Extend `custom_call` op to support `buffer` types.
+      1.14.0: Introduce `composite` op with regions.
   }];
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
-  let usePropertiesForAttributes = 1;
 }
 
 #endif  // STABLEHLO_DIALECT_VHLO_DIALECT
