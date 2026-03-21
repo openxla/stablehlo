@@ -1842,6 +1842,10 @@ LogicalResult inferAllToAllOp(
     int64_t splitDimension, int64_t concatDimension, int64_t splitCount,
     DenseIntElementsAttr replicaGroups,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (operands.empty())
+    return emitOptionalError(location,
+                             "must have at least 1 operand");
+
   // all_to_all_c5, all_to_all_c7, all_to_all_i5
   if (failed(verifyReplicaGroups(location, replicaGroups,
                                  /*allGroupsMustHaveSameSize=*/true,
@@ -3631,6 +3635,10 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location,
                                 DenseIntElementsAttr replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
                                 ValueRange results) {
+  if (operands.empty())
+    return emitOptionalError(location,
+                             "must have at least 1 operand");
+
   // all_gather_i3, all_gather_c2, all_gather_c4
   if (failed(verifyReplicaGroups(location, replicaGroups,
                                  /*allGroupsMustHaveSameSize=*/true,
@@ -3696,6 +3704,10 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location,
                                 DenseIntElementsAttr replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
                                 Region& computation) {
+  if (operands.empty())
+    return emitOptionalError(location,
+                             "must have at least 1 operand");
+
   // TODO(#498): AllReduceOp does not have rank-2 replicaGroups.
   // all_reduce_c1...all_reduce_c3
   if (failed(verifyReplicaGroups(location, replicaGroups,
