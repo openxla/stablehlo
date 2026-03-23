@@ -41,7 +41,11 @@ all_reduce_done(future)
 
 This RFC introduces an `async_start` op and an `async_done` op that allow you to
 run a collective asynchronously.  We also introduce a new future type (e.g.,
-`future<tensor<2xf32>>`) to represent the output of a start operation.
+`future<tensor<2xf32>>`) to represent the output of a start operation. In the
+future, we are likely to consider adding scheduling dependencies between async
+ops and other ops to enforce an execution orderings, but in the meantime async
+ops are used to denote that a backend should use an async decomposition for a
+given op.
 
 ## Proposed Type Changes
 
