@@ -1,4 +1,4 @@
-# [RFC] Async Collectives
+# [RFC] Async Ops
 
 Status: In Review<br/>
 Initial version: 02/09/2026<br/>
@@ -40,7 +40,7 @@ all_reduce_done(future)
 ## Overview
 
 This RFC introduces an `async_start` op and an `async_done` op that allow you to
-run a collective asynchronously.  We also introduce a new future type (e.g.,
+run an operation asynchronously. We also introduce a new future type (e.g.,
 `future<tensor<2xf32>>`) to represent the output of a start operation. In the
 future, we are likely to consider adding scheduling dependencies between async
 ops and other ops to enforce an execution orderings, but in the meantime async
@@ -61,7 +61,8 @@ FutureValueType ::= TensorType | QuantizedTensorType
 
 We introduce an `async_start` op that takes a variadic number of tensors as
 arguments. The op also has a single region that must contain only a call to one
-of the six collective ops. `async_start` returns a variadic number of futures.
+of the six collective ops, or a call to one of the slice ops (`slice`,
+`dynamic_slice`, `dynamic_update_slice`). `async_start` returns a future.
 Here's an example:
 
 ```text
@@ -77,11 +78,11 @@ Here's an example:
 It is an error if the region contains anything other than a single call to a
 collective.
 
-We also introduce an `async_done` op which takes a variadic number of futures
-and unwraps them. Here's an example.
+We also introduce an `async_done` op which takes a future and unwraps it. Here's
+an example.
 
 ```text
-"stablehlo.async_done"(%f1, %f2) : (!stablehlo.future<tensor<4x4xf32>>, !stablehlo.future<tensor<2xf32>>) -> (tensor<4x4xf32>, tensor<2xf32>)
+"stablehlo.async_done"(%f1) : (!stablehlo.future<tensor<4x4xf32>>) -> (tensor<4x4xf32>)
 ```
 
 ## Alternatives
