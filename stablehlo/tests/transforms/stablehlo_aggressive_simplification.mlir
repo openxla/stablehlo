@@ -2318,3 +2318,330 @@ func.func @broadcast_in_dim_to_transpose_10(%arg0: tensor<2x5xf32>) -> tensor<5x
   // CHECK: return [[R]]
   return %0 : tensor<5x2xf32>
 }
+
+// -----
+
+// CHECK-LABEL: func.func @broadcast_in_dim_merge_composition_sharding
+func.func @broadcast_in_dim_merge_composition_sharding(
+    %arg0: tensor<111xf64> {mhlo.sharding = "{devices=[2]<=[2]T(1)}"})
+    -> (tensor<1x111x112xf64> {mhlo.sharding = "{devices=[1,2,2]<=[2,2]T(1,0)}"}) {
+  // Two nested broadcasts with sharding attrs get merged; the merged op inherits
+  // the outer op's sharding ({devices=[1,2,2]...}), not the inner's.
+  // CHECK: [[MERGED:%.+]] = stablehlo.broadcast_in_dim %arg0, dims = [1] {mhlo.sharding = "{devices=[1,2,2]<=[2,2]T(1,0)}"} : (tensor<111xf64>) -> tensor<1x111x112xf64>
+  // CHECK-NOT: stablehlo.broadcast_in_dim
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [0] {mhlo.sharding = "{devices=[2,2]<=[2,2]T(1,0)}"} : (tensor<111xf64>) -> tensor<111x112xf64>
+  %1 = stablehlo.broadcast_in_dim %0, dims = [1, 2] {mhlo.sharding = "{devices=[1,2,2]<=[2,2]T(1,0)}"} : (tensor<111x112xf64>) -> tensor<1x111x112xf64>
+  %c = stablehlo.constant dense<10.000> : tensor<1x111x112xf64>
+  %2 = stablehlo.add %1, %c {mhlo.sharding = "{devices=[1,2,2]<=[2,2]T(1,0)}"} : tensor<1x111x112xf64>
+  // CHECK: stablehlo.add [[MERGED]], {{%.+}} {mhlo.sharding = "{devices=[1,2,2]<=[2,2]T(1,0)}"} : tensor<1x111x112xf64>
+  return %2 : tensor<1x111x112xf64>
+}
+
+// -----
+
+/////////
+// AddOp
+
+// CHECK-LABEL: @add_zero_merge_sharding
+func.func @add_zero_merge_sharding(%arg0: tensor<f32>) -> tensor<f32> {
+  %zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %0 = stablehlo.negate %arg0 : tensor<f32>
+  %1 = stablehlo.add %0, %zero {mhlo.sharding = "{replicated}"} : tensor<f32>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg0 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<f32>
+}
+
+// -----
+
+// CHECK-LABEL: @and_one_merge_sharding
+func.func @and_one_merge_sharding(%arg0: tensor<i32>) -> tensor<i32> {
+  %all_ones = stablehlo.constant dense<-1> : tensor<i32>
+  %0 = stablehlo.negate %arg0 : tensor<i32>
+  %1 = stablehlo.and %0, %all_ones {mhlo.sharding = "{replicated}"} : tensor<i32>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg0 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<i32>
+}
+
+// -----
+
+/////////
+// BroadcastInDimOp
+
+// CHECK-LABEL: @broadcast_in_dim_noop_merge_sharding
+func.func @broadcast_in_dim_noop_merge_sharding(%arg0: tensor<3xi32>) -> tensor<3xi32> {
+  %0 = stablehlo.negate %arg0 : tensor<3xi32>
+  %1 = stablehlo.broadcast_in_dim %0, dims = [0] {mhlo.sharding = "{replicated}"} : (tensor<3xi32>) -> tensor<3xi32>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg0 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<3xi32>
+}
+
+// -----
+
+/////////
+// DynamicBroadcastInDimOp
+
+// CHECK-LABEL: @dynamic_broadcast_in_dim_merge_composition_sharding
+func.func @dynamic_broadcast_in_dim_merge_composition_sharding(
+    %arg0: tensor<?xf32>, %arg1: tensor<2xindex>, %arg2: tensor<2xindex>) -> tensor<?x?xf32> {
+  %0 = stablehlo.dynamic_broadcast_in_dim %arg0, %arg1, dims = [1]
+    : (tensor<?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
+  %1 = stablehlo.dynamic_broadcast_in_dim %0, %arg2, dims = [0, 1]
+    {mhlo.sharding = "{replicated}"} : (tensor<?x?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
+  // CHECK: stablehlo.dynamic_broadcast_in_dim %arg0, %arg2, dims = [1]
+  // CHECK-SAME: mhlo.sharding = "{replicated}"
+  return %1 : tensor<?x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @dynamic_broadcast_in_dim_noop_convert_sharding
+// The DynamicBroadcastInDimOp_ReplaceNoopWithConvert pattern creates a convert
+// op, which is then immediately removed by ConvertOp_RemoveNoop (same type).
+// Since the replacement is a block arg, mhlo.sharding cannot be transferred.
+func.func @dynamic_broadcast_in_dim_noop_convert_sharding(
+    %arg0: tensor<?xf32>, %arg1: tensor<1xindex>) -> tensor<?xf32> {
+  %0 = "stablehlo.dynamic_broadcast_in_dim"(%arg0, %arg1) <{
+    broadcast_dimensions = array<i64: 0>,
+    known_expanding_dimensions = array<i64>,
+    known_nonexpanding_dimensions = array<i64: 0>
+  }> {mhlo.sharding = "{replicated}"} : (tensor<?xf32>, tensor<1xindex>) -> tensor<?xf32>
+  // CHECK: return %arg0
+  return %0 : tensor<?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @dynamic_broadcast_fold_to_reshape_merge_sharding
+func.func @dynamic_broadcast_fold_to_reshape_merge_sharding(
+    %arg0: tensor<?xf32>, %arg1: tensor<2xindex>) -> tensor<?x?xf32> {
+  %0 = stablehlo.dynamic_reshape %arg0, %arg1 : (tensor<?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
+  %1 = stablehlo.dynamic_broadcast_in_dim %0, %arg1, dims = [0, 1]
+    {mhlo.sharding = "{replicated}"} : (tensor<?x?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
+  // CHECK: stablehlo.dynamic_reshape %arg0, %arg1 {mhlo.sharding = "{replicated}"}
+  // CHECK-NOT: stablehlo.dynamic_broadcast_in_dim
+  return %1 : tensor<?x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @dynamic_broadcast_in_dim_noop_merge_sharding
+func.func @dynamic_broadcast_in_dim_noop_merge_sharding(%arg0: tensor<?xf32>) -> tensor<?xf32> {
+  %0 = stablehlo.negate %arg0 : tensor<?xf32>
+  %shape = shape.shape_of %0 : tensor<?xf32> -> tensor<1xindex>
+  %1 = stablehlo.dynamic_broadcast_in_dim %0, %shape, dims = [0]
+    {mhlo.sharding = "{replicated}"} : (tensor<?xf32>, tensor<1xindex>) -> tensor<?xf32>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg0 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<?xf32>
+}
+
+// -----
+
+/////////
+// DynamicGatherOp
+
+// CHECK-LABEL: @simplify_dynamic_gather_merge_sharding
+func.func @simplify_dynamic_gather_merge_sharding(
+    %arg0: tensor<375682x256xf16>, %arg1: tensor<16x64xi64>) -> tensor<16x64x256xf16> {
+  %c = stablehlo.constant dense<[1, 256]> : tensor<2xi64>
+  %0 = "stablehlo.dynamic_gather"(%arg0, %arg1, %c) <{
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [2], collapsed_slice_dims = [0],
+      start_index_map = [0], index_vector_dim = 2>,
+    indices_are_sorted = false
+  }> {mhlo.sharding = "{replicated}"} : (tensor<375682x256xf16>, tensor<16x64xi64>, tensor<2xi64>) -> tensor<16x64x256xf16>
+  // CHECK: "stablehlo.gather"
+  // CHECK-SAME: {mhlo.sharding = "{replicated}"}
+  return %0 : tensor<16x64x256xf16>
+}
+
+// -----
+
+/////////
+// DynamicPadOp
+
+// CHECK-LABEL: @dynamic_pad_merge_sharding
+func.func @dynamic_pad_merge_sharding(%arg0: tensor<2x3xi32>, %arg1: tensor<i32>) -> tensor<5x9xi32> {
+  %low = stablehlo.constant dense<[0, 1]> : tensor<2xi32>
+  %high = stablehlo.constant dense<[2, 1]> : tensor<2xi32>
+  %interior = stablehlo.constant dense<[1, 2]> : tensor<2xi32>
+  %0 = stablehlo.dynamic_pad %arg0, %arg1, %low, %high, %interior
+    {mhlo.sharding = "{replicated}"}
+    : (tensor<2x3xi32>, tensor<i32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<5x9xi32>
+  // CHECK: stablehlo.pad %arg0, %arg1, low = [0, 1], high = [2, 1], interior = [1, 2]
+  // CHECK-SAME: {mhlo.sharding = "{replicated}"}
+  return %0 : tensor<5x9xi32>
+}
+
+// -----
+
+/////////
+// DynamicReshapeOp
+
+// CHECK-LABEL: @dynamic_reshape_merge_composition_sharding
+func.func @dynamic_reshape_merge_composition_sharding(
+    %arg0: tensor<?xf32>, %arg1: tensor<2xi32>, %arg2: tensor<2xi32>) -> tensor<?x?xf32> {
+  %0 = stablehlo.dynamic_reshape %arg0, %arg1
+    : (tensor<?xf32>, tensor<2xi32>) -> tensor<?x?xf32>
+  %1 = stablehlo.dynamic_reshape %0, %arg2
+    {mhlo.sharding = "{replicated}"} : (tensor<?x?xf32>, tensor<2xi32>) -> tensor<?x?xf32>
+  // CHECK: stablehlo.dynamic_reshape %arg0, %arg2 {mhlo.sharding = "{replicated}"}
+  return %1 : tensor<?x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @dynamic_reshape_shape_of_merge_sharding
+func.func @dynamic_reshape_shape_of_merge_sharding(%arg0: tensor<?xf32>) -> tensor<2xindex> {
+  %shape = shape.const_shape [4, 8] : tensor<2xindex>
+  %0 = stablehlo.dynamic_reshape %arg0, %shape : (tensor<?xf32>, tensor<2xindex>) -> tensor<?x?xf32>
+  %1 = shape.shape_of %0 {mhlo.sharding = "{replicated}"} : tensor<?x?xf32> -> tensor<2xindex>
+  // CHECK: [[CST:%.+]] = shape.const_shape  {mhlo.sharding = "{replicated}"}[4, 8] : tensor<2xindex>
+  // CHECK: return [[CST]]
+  return %1 : tensor<2xindex>
+}
+
+// -----
+
+/////////
+// DynamicUpdateSliceOp
+
+// CHECK-LABEL: @dynamic_update_slice_noop_merge_sharding
+func.func @dynamic_update_slice_noop_merge_sharding(%arg0: tensor<3x4xi64>) -> tensor<3x4xi64> {
+  %c = stablehlo.constant dense<0> : tensor<i64>
+  %update = stablehlo.constant dense<> : tensor<3x0xi64>
+  %0 = stablehlo.negate %arg0 : tensor<3x4xi64>
+  %1 = stablehlo.dynamic_update_slice %0, %update, %c, %c
+    {mhlo.sharding = "{replicated}"}
+    : (tensor<3x4xi64>, tensor<3x0xi64>, tensor<i64>, tensor<i64>) -> tensor<3x4xi64>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg0 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<3x4xi64>
+}
+
+// -----
+
+// CHECK-LABEL: @dynamic_update_slice_identity_merge_sharding
+func.func @dynamic_update_slice_identity_merge_sharding(
+    %arg0: tensor<3x4xi64>, %arg1: tensor<3x4xi64>) -> tensor<3x4xi64> {
+  %c = stablehlo.constant dense<0> : tensor<i64>
+  %0 = stablehlo.negate %arg1 : tensor<3x4xi64>
+  %1 = stablehlo.dynamic_update_slice %arg0, %0, %c, %c
+    {mhlo.sharding = "{replicated}"}
+    : (tensor<3x4xi64>, tensor<3x4xi64>, tensor<i64>, tensor<i64>) -> tensor<3x4xi64>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg1 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<3x4xi64>
+}
+
+// -----
+
+/////////
+// ComplexOp / ImagOp / RealOp
+
+// CHECK-LABEL: @complex_collapse_merge_sharding
+func.func @complex_collapse_merge_sharding(%arg0: tensor<4xcomplex<f32>>) -> tensor<4xcomplex<f32>> {
+  %0 = stablehlo.real %arg0 : (tensor<4xcomplex<f32>>) -> tensor<4xf32>
+  %1 = stablehlo.imag %arg0 : (tensor<4xcomplex<f32>>) -> tensor<4xf32>
+  %2 = stablehlo.complex %0, %1 {mhlo.sharding = "{replicated}"} : tensor<4xcomplex<f32>>
+  // The complex op is replaced by %arg0 (a block arg); mhlo.sharding cannot
+  // be transferred to a block arg (mergeDiscardableAttributes is a no-op).
+  // CHECK: return %arg0
+  return %2 : tensor<4xcomplex<f32>>
+}
+
+// -----
+
+// CHECK-LABEL: @or_zero_merge_sharding
+func.func @or_zero_merge_sharding(%arg0: tensor<i32>) -> tensor<i32> {
+  %zero = stablehlo.constant dense<0> : tensor<i32>
+  %0 = stablehlo.negate %arg0 : tensor<i32>
+  %1 = stablehlo.or %0, %zero {mhlo.sharding = "{replicated}"} : tensor<i32>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg0 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<i32>
+}
+
+// -----
+
+/////////
+// ReshapeOp
+
+// CHECK-LABEL: @reshape_merge_composition_sharding
+func.func @reshape_merge_composition_sharding(%arg0: tensor<4xi32>) -> tensor<2x2xi32> {
+  %0 = stablehlo.reshape %arg0 : (tensor<4xi32>) -> tensor<4x1xi32>
+  %1 = stablehlo.reshape %0 {mhlo.sharding = "{replicated}"} : (tensor<4x1xi32>) -> tensor<2x2xi32>
+  // CHECK: stablehlo.reshape %arg0 {mhlo.sharding = "{replicated}"} : (tensor<4xi32>) -> tensor<2x2xi32>
+  return %1 : tensor<2x2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @reshape_noop_merge_sharding
+func.func @reshape_noop_merge_sharding(%arg0: tensor<4xi32>) -> tensor<4xi32> {
+  %0 = stablehlo.negate %arg0 : tensor<4xi32>
+  %1 = stablehlo.reshape %0 {mhlo.sharding = "{replicated}"} : (tensor<4xi32>) -> tensor<4xi32>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg0 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<4xi32>
+}
+
+// -----
+
+/////////
+// SelectOp
+
+// CHECK-LABEL: @select_invert_pred_merge_sharding
+func.func @select_invert_pred_merge_sharding(
+    %arg0: tensor<i1>, %arg1: tensor<f32>, %arg2: tensor<f32>) -> tensor<f32> {
+  %not = stablehlo.not %arg0 : tensor<i1>
+  %0 = stablehlo.select %not, %arg1, %arg2
+    {mhlo.sharding = "{replicated}"} : tensor<i1>, tensor<f32>
+  // CHECK: stablehlo.select %arg0, %arg2, %arg1 {mhlo.sharding = "{replicated}"}
+  return %0 : tensor<f32>
+}
+
+// -----
+
+/////////
+// SliceOp
+
+// CHECK-LABEL: @slice_noop_merge_sharding
+func.func @slice_noop_merge_sharding(%arg0: tensor<4x8xi32>) -> tensor<4x8xi32> {
+  %0 = stablehlo.negate %arg0 : tensor<4x8xi32>
+  %1 = stablehlo.slice %0 [0:4, 0:8] {mhlo.sharding = "{replicated}"} : (tensor<4x8xi32>) -> tensor<4x8xi32>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg0 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<4x8xi32>
+}
+
+// -----
+
+/////////
+// TransposeOp
+
+// CHECK-LABEL: @transpose_noop_merge_sharding
+func.func @transpose_noop_merge_sharding(%arg0: tensor<3x4xi32>) -> tensor<3x4xi32> {
+  %0 = stablehlo.negate %arg0 : tensor<3x4xi32>
+  %1 = stablehlo.transpose %0, dims = [0, 1] {mhlo.sharding = "{replicated}"} : (tensor<3x4xi32>) -> tensor<3x4xi32>
+  // CHECK: [[NEG:%.+]] = stablehlo.negate %arg0 {mhlo.sharding = "{replicated}"}
+  // CHECK: return [[NEG]]
+  return %1 : tensor<3x4xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @transpose_of_transpose_merge_sharding
+func.func @transpose_of_transpose_merge_sharding(%arg0: tensor<3x4x5xi32>) -> tensor<5x4x3xi32> {
+  // child_dims=[1,0,2], outer_dims=[2,0,1]
+  // merged[j] = child_dims[outer_dims[j]]: merged = [2, 1, 0]
+  %0 = stablehlo.transpose %arg0, dims = [1, 0, 2]
+    : (tensor<3x4x5xi32>) -> tensor<4x3x5xi32>
+  %1 = stablehlo.transpose %0, dims = [2, 0, 1]
+    {mhlo.sharding = "{replicated}"} : (tensor<4x3x5xi32>) -> tensor<5x4x3xi32>
+  // CHECK: stablehlo.transpose %arg0, dims = [2, 1, 0] {mhlo.sharding = "{replicated}"} : (tensor<3x4x5xi32>) -> tensor<5x4x3xi32>
+  return %1 : tensor<5x4x3xi32>
+}
