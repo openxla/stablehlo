@@ -632,8 +632,8 @@ def SubtractOp_FoldToZero
 // Pattern: subtract(X, 0) -> X
 def SubtractOp_RemoveNoop
   : Pat<(StableHLO_SubtractOp:$op $lhs, (StableHLO_ConstantOp AnyZero:$value)),
-        (replaceWithValue $lhs)>, [],
-        [(MergeDiscardableAttributes $op, $lhs)];
+        (replaceWithValue $lhs), [],
+        [(MergeDiscardableAttributes $op, $lhs)]>;
 
 ////////
 // SliceOp
