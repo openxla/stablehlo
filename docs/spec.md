@@ -4380,7 +4380,7 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 
 #### Constraints
 
-* (C1) `baseline_type(operand) = baseline_type(result)`.
+* (C1) `baseline_type(lhs) = baseline_type(rhs) = baseline_type(result)`.
 
 #### Examples
 
@@ -4750,7 +4750,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 #### Constraints
 
-* (C1) `baseline_type(operand) = baseline_type(result)`.
+* (C1) `baseline_type(lhs) = baseline_type(rhs) = baseline_type(result)`.
 
 #### Examples
 
@@ -5218,7 +5218,7 @@ nearest to the exact value of `lhs/rhs` with ties to even.
 
 #### Constraints
 
-* (C1) `baseline_type(operand) = baseline_type(result)`.
+* (C1) `baseline_type(lhs) = baseline_type(rhs) = baseline_type(result)`.
 
 #### Examples
 
