@@ -166,6 +166,17 @@ def VHLO_AndOpV1 : VHLO_Op<"and_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
+def VHLO_AsyncStartOpV1 : VHLO_Op<"async_start_v1", "1.15.0", "current"> {
+  let arguments = (ins Variadic<VHLO_AnyType>:$operands);
+  let regions = (region VHLO_AnyRegion:$collective);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_AsyncDoneOpV1 : VHLO_Op<"async_done_v1", "1.15.0", "current"> {
+  let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
 def VHLO_Atan2OpV1 : VHLO_Op<"atan2_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);

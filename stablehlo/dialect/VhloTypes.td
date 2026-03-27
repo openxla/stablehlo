@@ -210,6 +210,20 @@ def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor_v1", "0.9.0", "
 // Corresponds to TokenType from the StableHLO spec.
 def VHLO_TokenV1 : VHLO_TypeDef<"TokenV1", "token_v1", "0.9.0", "current">;
 
+// Corresponds to FutureType from the StableHLO spec.
+def VHLO_FutureV1 : VHLO_TypeDef<"FutureV1", "future_v1", "1.15.0", "current"> {
+  let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult FutureV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, ArrayRef<mlir::Type> types) {
+      if (!allFromVhlo(types)) return errFn() << "expected VHLO types";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` $types `>`";
+}
+
 // Corresponds to TupleType from the StableHLO spec.
 def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple_v1", "0.9.0", "current"> {
   let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);

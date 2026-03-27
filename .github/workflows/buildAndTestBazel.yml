@@ -68,6 +68,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-stablehlo_bazelbuild-
 
+    - name: Build and check docs
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_docs.sh -c
+
     - name: Build and Test StableHLO (Diff Only)
       if: ${{ github.event_name == 'pull_request' }}
       shell: bash
@@ -84,7 +89,3 @@ jobs:
       run: |
         ./build_tools/github_actions/ci_build_bazel.sh
 
-    - name: Build and check docs
-      shell: bash
-      run: |
-        ./build_tools/github_actions/ci_build_docs.sh -c

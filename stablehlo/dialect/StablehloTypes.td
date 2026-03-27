@@ -27,4 +27,11 @@ class StableHLO_Type<string name, string typeMnemonic, list<Trait> traits = []>
 // Corresponds to TokenType from the StableHLO spec.
 def StableHLO_Token : StableHLO_Type<"Token", "token">;
 
+// Corresponds to FutureType from the StableHLO spec.
+def StableHLO_Future : StableHLO_Type<"Future", "future"> {
+  let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
+  let assemblyFormat = "`<` $types `>`";
+  let genVerifyDecl = 1;
+}
+
 #endif  // STABLEHLO_DIALECT_STABLEHLO_TYPES

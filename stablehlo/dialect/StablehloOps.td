@@ -1704,6 +1704,63 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
 }
 
 //===----------------------------------------------------------------------===//
+// StableHLO async op definitions.
+//===----------------------------------------------------------------------===//
+
+def StableHLO_AsyncStartOp : StableHLO_Op<"async_start",
+    [SingleBlockImplicitTerminator<"ReturnOp">,
+     HLO_RecursivelySpeculatableIfAllInputsStatic,
+     IsolatedFromAbove,
+     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+  let summary = "AsyncStart operation";
+  let description = [{
+    Starts an asynchronous execution of an operation.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#async_start
+
+    Example:
+    ```mlir
+    %0 = "stablehlo.async_start"(%arg0) ({
+      %1 = "stablehlo.all_gather"(%arg0) {
+        all_gather_dim = 1 : i64,
+        replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>
+      } : (tensor<8x2xf32>) -> tensor<8x8xf32>
+      "stablehlo.return"(%1) : (tensor<8x8xf32>) -> ()
+    }) : (tensor<8x2xf32>) -> !stablehlo.future<tensor<8x8xf32>>
+    ```
+  }];
+  let arguments = (ins Variadic<HLO_Tensor>:$operands);
+  let regions = (region SizedRegion<1>:$body);
+  let results = (outs HLO_Future);
+}
+
+def StableHLO_AsyncDoneOp : StableHLO_Op<"async_done",
+    [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+  let summary = "AsyncDone operation";
+  let description = [{
+    Waits for the completion of an asynchronous execution of an operation.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#async_done
+
+    Example:
+    ```mlir
+    %0 = "stablehlo.async_start"(%arg0) ({
+      %1 = "stablehlo.all_gather"(%arg0) {
+        all_gather_dim = 1 : i64,
+        replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>
+      } : (tensor<8x2xf32>) -> tensor<8x8xf32>
+      "stablehlo.return"(%1) : (tensor<8x8xf32>) -> ()
+    }) : (tensor<8x2xf32>) -> !stablehlo.future<tensor<8x8xf32>>
+    %2 = "stablehlo.async_done"(%0) : (!stablehlo.future<tensor<8x8xf32>>) -> tensor<8x8xf32>
+    ```
+  }];
+  let arguments = (ins HLO_Future:$operand);
+  let results = (outs HLO_Tensor);
+}
+
+//===----------------------------------------------------------------------===//
 // StableHLO tuple op definitions.
 //===----------------------------------------------------------------------===//
 def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,

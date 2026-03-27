@@ -132,6 +132,18 @@ LogicalResult TypeExtensionsAttr::verifyEncoding(
       getBounds(), RankedTensorType::get(shape, elementType), emitError);
 }
 
+LogicalResult FutureType::verify(
+    llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
+    ::mlir::ArrayRef<::mlir::Type> types) {
+  for (auto elementType : types) {
+    if (!llvm::isa<RankedTensorType>(elementType))
+      return emitError()
+             << "future element type must be a ranked tensor, but got "
+             << elementType;
+  }
+  return success();
+}
+
 ArrayAttr PrecisionConfigAttr::get(MLIRContext* context,
                                    ArrayRef<Precision> precisions) {
   SmallVector<Attribute> precisionAttrs =
@@ -1732,6 +1744,102 @@ LogicalResult AllReduceOp::inferReturnTypeComponents(
 }
 
 //===----------------------------------------------------------------------===//
+// AsyncStartOp
+//===----------------------------------------------------------------------===//
+
+// TODO: Move to TypeInference.h and TypeInference.cpp. Those files should not
+// reference any StableHLO specific bits since they are also used by MHLO, but
+// async_start references stablehlo.futures.
+LogicalResult AsyncStartOp::inferReturnTypes(
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
+    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  if (regions.empty()) {
+    return emitOptionalError(
+        location, "'stablehlo.async_start' op expected at least one region");
+  }
+  Region* body = regions[0];
+  if (body->empty()) {
+    return emitOptionalError(
+        location, "'stablehlo.async_start' op region must not be empty");
+  }
+  Block& block = body->front();
+  if (block.getOperations().size() != 2) {
+    return emitOptionalError(location,
+                             "'stablehlo.async_start' op region must contain "
+                             "exactly one operation and a return");
+  }
+
+  Operation* collectiveOp = &block.front();
+  if (!isa<AllGatherOp, AllReduceOp, AllToAllOp, CollectiveBroadcastOp,
+           CollectivePermuteOp, ReduceScatterOp, SliceOp, DynamicSliceOp,
+           DynamicUpdateSliceOp>(collectiveOp)) {
+    return emitOptionalError(location,
+                             "'stablehlo.async_start' op region must contain a "
+                             "collective or slice operation");
+  }
+
+  if (operands.size() != block.getNumArguments()) {
+    return emitOptionalError(
+        location, "'stablehlo.async_start' op number of operands (",
+        operands.size(), ") must match number of region arguments (",
+        block.getNumArguments(), ")");
+  }
+
+  for (unsigned i = 0; i < operands.size(); ++i) {
+    if (operands[i].getType() != block.getArgument(i).getType()) {
+      return emitOptionalError(
+          location, "'stablehlo.async_start' op operand type ",
+          operands[i].getType(), " at index ", i,
+          " must match region argument type ", block.getArgument(i).getType());
+    }
+  }
+
+  Operation* terminator = block.getTerminator();
+  if (!terminator) {
+    return emitOptionalError(
+        location, "'stablehlo.async_start' op region must have a terminator");
+  }
+
+  if (terminator->getNumOperands() != 1) {
+    return emitOptionalError(location,
+                             "'stablehlo.async_start' op region must return "
+                             "exactly one value, but got ",
+                             terminator->getNumOperands());
+  }
+
+  inferredReturnTypes.push_back(
+      FutureType::get(context, {terminator->getOperand(0).getType()}));
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// AsyncDoneOp
+//===----------------------------------------------------------------------===//
+
+// TODO: Move to TypeInference.h and TypeInference.cpp. See TODO above.
+LogicalResult AsyncDoneOp::inferReturnTypes(
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
+    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  auto futureType = dyn_cast<FutureType>(operands[0].getType());
+  if (!futureType) {
+    return emitOptionalError(
+        location, "'stablehlo.async_done' op operand must be a future type");
+  }
+
+  if (futureType.getTypes().size() != 1) {
+    return emitOptionalError(location,
+                             "'stablehlo.async_done' op future must have "
+                             "exactly one type parameter, but got ",
+                             futureType.getTypes().size());
+  }
+
+  inferredReturnTypes.push_back(futureType.getTypes()[0]);
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // BatchNormGradOp
 //===----------------------------------------------------------------------===//
 
@@ -3213,6 +3321,7 @@ using mlir::hlo::printTupleOpType;
 using mlir::hlo::printVariadicOperandWithAttribute;
 using mlir::hlo::printVariadicSameOperandsAndResultType;
 
+using mlir::stablehlo::FutureType;
 using mlir::stablehlo::TokenType;
 #define GET_OP_CLASSES
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
@@ -3274,7 +3383,7 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
   addInterfaces<StablehloDialectInlinerInterface>();
   addInterfaces<StablehloHloDialectInterface>();
   addBytecodeInterface(this);
-  addTypes<TokenType>();
+  addTypes<TokenType, FutureType>();
   addAttributes<
 #define GET_ATTRDEF_LIST
 #include "stablehlo/dialect/StablehloAttrs.cpp.inc"
@@ -3284,8 +3393,30 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
 Type StablehloDialect::parseType(DialectAsmParser& parser) const {
   StringRef mnemonic;
   Type type;
+
+  // generatedTypeParser attempts to parse a stablehlo type like
+  // `!stablehlo.token` or `!stablehlo.future<2x2xf32>`. It returns
+  // parseResultOpt, which is essentially an optional of a LogicalResult. There
+  // are three cases:
+  //
+  // 1. parseReduceOp is nullopt. In this case, the stablehlo type itself was
+  //    not found; e.g., `!stablehlo.foo`.
+  // 2. parseReduceOp has a value that is a failure. In this case, the stablehlo
+  //    type was found, but the inner type was invalid; e.g.,
+  //    `!stablehlo.future<bad>`.
+  // 3. parseReduceOp has a value that is a success. In this case, everything
+  //    parsed correctly.
   auto parseResultOpt = generatedTypeParser(parser, &mnemonic, type);
-  if (parseResultOpt.has_value() && succeeded(*parseResultOpt)) return type;
+  if (parseResultOpt.has_value()) {
+    if (succeeded(*parseResultOpt)) {
+      // Case 3.
+      return type;
+    }
+    // Case 2. Note that generatedTypeParser already emitted an error, so we
+    // don't have to.
+    return nullptr;
+  }
+  // Case 1.
   parser.emitError(parser.getNameLoc())
       << "unknown stablehlo type: " << mnemonic;
   return nullptr;

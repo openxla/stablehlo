@@ -89,7 +89,7 @@ completely numeric to simplify generation of StableHLO programs.
 
 ```ebnf
 Type         ::= ValueType | NonValueType
-ValueType    ::= TensorType | QuantizedTensorType | TokenType | TupleType | BufferType
+ValueType    ::= TensorType | QuantizedTensorType | TokenType | TupleType | BufferType | FutureType
 NonValueType ::= TensorElementType | QuantizedTensorElementType | FunctionType | StringType
 ```
 
@@ -243,6 +243,14 @@ Buffers can be allocated using a `custom_call` to `CreateBuffer` or `Pin` and
 deallocated via a `custom_call` to `Unpin`. Only `custom_call` ops can read and
 write the content inside buffers. See [custom_call](#custom_call) for more
 detail.
+
+```ebnf
+FutureType ::= 'future' '<' FutureElementTypes '>'
+FutureElementTypes ::= TensorType {',' TensorType}
+```
+
+**Future types** represent futures, i.e. values produced by an asynchronous
+operation that become available at some point in the future.
 
 **Tuple types** represent tuples, i.e. heterogeneous lists. Tuples are a legacy
 feature which only exists for compatibility with HLO. In HLO, tuples are
@@ -991,6 +999,93 @@ tensor. Depending on the element type, does the following:
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/and.mlir)
+
+### async_done
+
+#### Semantics
+
+Waits for an asynchronous operation to complete and returns its value.
+
+#### Inputs
+
+| Label | Name      | Type            | Constraints |
+|-------|-----------|-----------------|-------------|
+| (I1)  | `operand` | a tensor future | (C1)        |
+
+#### Outputs
+
+| Name     | Type                                                                    | Constraints |
+|----------|-------------------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
+
+#### Constraints
+
+* (C1) If `async_done` receives a `future<T>`, then `async_done` returns `T`.
+
+#### Examples
+
+```mlir
+%0 = "stablehlo.async_start"(%arg0) ({
+  %1 = "stablehlo.all_gather"(%arg0) {
+    all_gather_dim = 1 : i64,
+    replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>
+  } : (tensor<8x2xf32>) -> tensor<8x8xf32>
+  "stablehlo.return"(%1) : (tensor<8x8xf32>) -> ()
+}) : (tensor<8x2xf32>) -> !stablehlo.future<tensor<8x8xf32>>
+%2 = "stablehlo.async_done"(%0) : (!stablehlo.future<tensor<8x8xf32>>) -> tensor<8x8xf32>
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/atan2.mlir)
+
+### async_start
+
+#### Semantics
+
+Performs a computation asynchronously.
+
+By default, StableHLO operations are performed synchronously. `async_start`
+indicates that an operation should instead be performed asynchronously. The
+asynchrony is not guaranteed. A backend may still choose to perform the
+operation synchronously. You can use operations like `optimization_barrier` to
+coerce the scheduling of asynchronous operations to run concurrently with other
+operations, but again, this scheduling is not guaranteed.
+
+#### Inputs
+
+| Label | Name       | Type                                                       | Constraints            |
+|-------|------------|------------------------------------------------------------|------------------------|
+| (I1)  | `operands` | variadic number of tensors or per-tensor quantized tensors | (C3)                   |
+| (I2)  | `body`     | a region with a single operation                           | (C1), (C2), (C3), (C4) |
+
+#### Outputs
+
+| Name     | Type            | Constraints |
+|----------|-----------------|-------------|
+| `result` | a tensor future | (C4)        |
+
+#### Constraints
+
+* (C1) `body` must contain a single operation and a return.
+* (C2) The operation in `body` can only be a collective (`all_reduce`,
+       `all_gather`, `all_to_all`, `collective_permute`, `reduce_scatter`,
+       `collective_broadcast`) or a slice (`slice`, `dynamic_slice`,
+       `dynamic_update_slice`).
+* (C3) The arguments to `async_start` must match the ones passed to the operation
+       in `body`.
+* (C4) If the op in `body` returns type `T`, then `async_start` returns
+       `future<T>`.
+
+#### Examples
+
+```mlir
+%0 = "stablehlo.async_start"(%arg0) ({
+  %1 = "stablehlo.all_gather"(%arg0) {
+    all_gather_dim = 1 : i64,
+    replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>
+  } : (tensor<8x2xf32>) -> tensor<8x8xf32>
+  "stablehlo.return"(%1) : (tensor<8x8xf32>) -> ()
+}) : (tensor<8x2xf32>) -> !stablehlo.future<tensor<8x8xf32>>
+```
 
 ### atan2
 

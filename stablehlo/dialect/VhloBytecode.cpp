@@ -203,7 +203,7 @@ enum AttributeCode {
 /// location is updated.
 enum TypeCode {
   // TO ADD TYPE: Add an enum value with doc string for new type.
-  // Next available code: 42
+  // Next available code: 43
 
   ///   BooleanV1Type {
   ///   }
@@ -397,6 +397,11 @@ enum TypeCode {
   /// NoneV1Type {
   /// }
   kNoneV1Type = 33,
+
+  ///   FutureV1Type {
+  ///     elementType: Type
+  ///   }
+  kFutureV1Type = 42,
 };
 
 }  // namespace vhlo_encoding
@@ -499,6 +504,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   RankedTensorV1Type readRankedTensorV1Type(DialectBytecodeReader& reader,
                                             bool hasEncoding) const;
   TokenV1Type readTokenV1Type(DialectBytecodeReader& reader) const;
+  FutureV1Type readFutureV1Type(DialectBytecodeReader& reader) const;
   TupleV1Type readTupleV1Type(DialectBytecodeReader& reader) const;
   UniformQuantizedPerAxisV1Type readUniformQuantizedPerAxisV1Type(
       DialectBytecodeReader& reader) const;
@@ -515,6 +521,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   void write(FunctionV1Type type, DialectBytecodeWriter& writer) const;
   void write(RankedTensorV1Type type, DialectBytecodeWriter& writer) const;
   void write(TokenV1Type type, DialectBytecodeWriter& writer) const;
+  void write(FutureV1Type type, DialectBytecodeWriter& writer) const;
   void write(TupleV1Type type, DialectBytecodeWriter& writer) const;
   void write(UniformQuantizedPerAxisV1Type type,
              DialectBytecodeWriter& writer) const;
@@ -1170,6 +1177,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader& reader) const {
       return readRankedTensorV1Type(reader, /*hasEncoding=*/true);
     case vhlo_encoding::kTokenV1Type:
       return readTokenV1Type(reader);
+    case vhlo_encoding::kFutureV1Type:
+      return readFutureV1Type(reader);
     case vhlo_encoding::kTupleV1Type:
       return readTupleV1Type(reader);
     case vhlo_encoding::kUniformQuantizedPerAxisV1Type:
@@ -1193,8 +1202,9 @@ LogicalResult VhloBytecodeInterface::writeType(
     Type type, DialectBytecodeWriter& writer) const {
   return TypeSwitch<Type, LogicalResult>(type)
       .Case<ComplexV1Type, FunctionV1Type, RankedTensorV1Type, TokenV1Type,
-            TupleV1Type, UnrankedTensorV1Type, UniformQuantizedPerAxisV1Type,
-            UniformQuantizedV1Type, RankedBufferV1Type>([&](auto type) {
+            FutureV1Type, TupleV1Type, UnrankedTensorV1Type,
+            UniformQuantizedPerAxisV1Type, UniformQuantizedV1Type,
+            RankedBufferV1Type>([&](auto type) {
         LOG_WRITE_CALL;
         return write(type, writer), success();
       })
@@ -1425,6 +1435,24 @@ TokenV1Type VhloBytecodeInterface::readTokenV1Type(
 void VhloBytecodeInterface::write(TokenV1Type type,
                                   DialectBytecodeWriter& writer) const {
   writer.writeVarInt(vhlo_encoding::kTokenV1Type);
+}
+
+//===----------------------------------------------------------------------===//
+// FutureV1Type
+//===----------------------------------------------------------------------===//
+
+FutureV1Type VhloBytecodeInterface::readFutureV1Type(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  SmallVector<Type> types;
+  if (failed(reader.readTypes(types))) return FutureV1Type();
+  return FutureV1Type::get(getContext(), types);
+}
+
+void VhloBytecodeInterface::write(FutureV1Type type,
+                                  DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(vhlo_encoding::kFutureV1Type);
+  writer.writeTypes(type.getTypes());
 }
 
 //===----------------------------------------------------------------------===//
