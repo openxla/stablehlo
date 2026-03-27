@@ -135,33 +135,56 @@ def StablehloComplexMathExpanderPass : Pass<"stablehlo-complex-math-expander", "
   let summary = "Expander for StableHLO complex math operations.";
 
   let description = [{
-    StableHLO complex math operations are decompositions using
-    StableHLO real math operations.
+    Decomposes StableHLO operations on complex tensors into equivalent
+    sequences of real-valued StableHLO operations.
 
-    This statement is based on the assumption that no hardware exists
-    that supports complex numbers nor complex math operations
-    natively. This means that the fallback mechanisms on complex math
-    operations that compilers may implement, are redundant. With
-    enabling this pass, all StableHLO complex math operations will be
-    expanded.
+    Two modes are available:
 
+    - `precision` (default): Expands only precision-sensitive transcendental
+      operations (log, sqrt, exp, log_plus_one) using numerically stable
+      algorithms (Dekker products, 2Sum, etc.).
+
+    - `all`: In addition to precision expansions, also decomposes basic
+      complex arithmetic (add, subtract, multiply, divide, negate) into
+      real-valued operations. This is useful for hardware backends that
+      lack native complex number support.
+
+    Example (mode=all):
     ```mlir
-    func.func @sqrt_op_complex(%arg0: tensor<4xcomplex<f64>>) -> tensor<4xcomplex<f64>> {
-      %1 = stablehlo.sqrt %arg0 : tensor<4xcomplex<f64>>
-      func.return %1 : tensor<4xcomplex<f64>>
+    func.func @mul(%lhs: tensor<4xcomplex<f64>>, %rhs: tensor<4xcomplex<f64>>)
+        -> tensor<4xcomplex<f64>> {
+      %0 = stablehlo.multiply %lhs, %rhs : tensor<4xcomplex<f64>>
+      func.return %0 : tensor<4xcomplex<f64>>
     }
 
     ==>
 
-    func.func @sqrt_op_complex(%arg0: tensor<4xcomplex<f64>>) -> tensor<4xcomplex<f64>> {
-      TBD
-      return %2 : tensor<4xcomplex<f64>>
+    func.func @mul(%lhs: tensor<4xcomplex<f64>>, %rhs: tensor<4xcomplex<f64>>)
+        -> tensor<4xcomplex<f64>> {
+      %a = stablehlo.real %lhs
+      %b = stablehlo.imag %lhs
+      %c = stablehlo.real %rhs
+      %d = stablehlo.imag %rhs
+      %ac = stablehlo.multiply %a, %c
+      %bd = stablehlo.multiply %b, %d
+      %ad = stablehlo.multiply %a, %d
+      %bc = stablehlo.multiply %b, %c
+      %real = stablehlo.subtract %ac, %bd
+      %imag = stablehlo.add %ad, %bc
+      %result = stablehlo.complex %real, %imag
+      func.return %result
     }
     ```
   }];
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
     "mlir::chlo::ChloDialect",
+  ];
+  let options = [
+    Option<"mode", "mode", "std::string", /*default=*/"\"precision\"",
+           "Expansion mode: 'precision' (default) expands only "
+           "precision-sensitive transcendental ops; 'all' additionally "
+           "decomposes basic complex arithmetic into real-valued operations.">,
   ];
 }
 
