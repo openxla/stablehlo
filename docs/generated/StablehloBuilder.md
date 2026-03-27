@@ -69,6 +69,26 @@ operation.
 MlirOp And(MlirOp &lhs, MlirOp &rhs);
 ```
 
+### `stablehlo::AsyncDoneOp`
+
+Creates a new [`stablehlo.async_done`](https://openxla.org/stablehlo/spec#async_done)
+operation.
+
+```c++
+MlirOp AsyncDone(MlirOp &operand);
+```
+
+### `stablehlo::AsyncStartOp`
+
+Creates a new [`stablehlo.async_start`](https://openxla.org/stablehlo/spec#async_start)
+operation.
+
+This operation has a body region built via a callback function.
+
+```c++
+MlirOp AsyncStart(MlirBuilder &builder, ArrayRef<MlirOp> operands, const RegionBuilderCallback &body);
+```
+
 ### `stablehlo::Atan2Op`
 
 Creates a new [`stablehlo.atan2`](https://openxla.org/stablehlo/spec#atan2)
