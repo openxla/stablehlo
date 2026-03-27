@@ -208,6 +208,11 @@ enum TypeCode {
   ///   TokenType {
   ///   }
   kTokenType = 0,
+
+  ///   FutureType {
+  ///     elementType: Type
+  ///   }
+  kFutureType = 1,
 };
 
 }  // namespace stablehlo_encoding
@@ -302,10 +307,12 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   // TO ADD TYPE: Include a read method for each type in StableHLO
   // Ex: SomeType readSomeType(DialectBytecodeReader &reader) const;
   TokenType readTokenType(DialectBytecodeReader &reader) const;
+  FutureType readFutureType(DialectBytecodeReader& reader) const;
 
   // TO ADD TYPE: Include a write method for each type in StableHLO
   // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
   void write(TokenType type, DialectBytecodeWriter &writer) const;
+  void write(FutureType type, DialectBytecodeWriter& writer) const;
 
   //===--------------------------------------------------------------------===//
   // Version
@@ -766,6 +773,9 @@ Type StablehloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
     case stablehlo_encoding::kTokenType:
       return readTokenType(reader);
 
+    case stablehlo_encoding::kFutureType:
+      return readFutureType(reader);
+
     default:
       reader.emitError() << "unknown builtin type code: " << code;
       return Type();
@@ -775,7 +785,7 @@ Type StablehloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
 LogicalResult StablehloBytecodeInterface::writeType(
     Type type, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Type, LogicalResult>(type)
-      .Case<TokenType>([&](auto type) {
+      .Case<TokenType, FutureType>([&](auto type) {
         LOG_WRITE_CALL;
         write(type, writer);
         return success();
@@ -798,6 +808,23 @@ TokenType StablehloBytecodeInterface::readTokenType(
 void StablehloBytecodeInterface::write(TokenType type,
                                        DialectBytecodeWriter &writer) const {
   writer.writeVarInt(stablehlo_encoding::kTokenType);
+}
+
+//===----------------------------------------------------------------------===//
+// FutureType
+
+FutureType StablehloBytecodeInterface::readFutureType(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  llvm::SmallVector<Type> elementTypes;
+  if (failed(reader.readTypes(elementTypes))) return FutureType();
+  return FutureType::get(getContext(), elementTypes);
+}
+
+void StablehloBytecodeInterface::write(FutureType type,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kFutureType);
+  writer.writeTypes(type.getTypes());
 }
 
 std::unique_ptr<DialectVersion> StablehloBytecodeInterface::readVersion(

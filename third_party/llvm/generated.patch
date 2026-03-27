@@ -1,67 +1,61 @@
 Auto generated patch. Do not edit or delete it, even if empty.
-diff -ruN --strip-trailing-cr a/clang/lib/Format/Format.cpp b/clang/lib/Format/Format.cpp
---- a/clang/lib/Format/Format.cpp
-+++ b/clang/lib/Format/Format.cpp
-@@ -2011,11 +2011,6 @@
-   GoogleStyle.IncludeStyle.IncludeIsMainRegex = "([-_](test|unittest))?$";
-   GoogleStyle.IndentCaseLabels = true;
-   GoogleStyle.KeepEmptyLines.AtStartOfBlock = false;
--
--  GoogleStyle.Macros.push_back("ASSIGN_OR_RETURN(a, b)=a = (b)");
--  GoogleStyle.Macros.push_back(
--      "ASSIGN_OR_RETURN(a, b, c)=a = (b); if (x) return c");
--
-   GoogleStyle.ObjCBinPackProtocolList = FormatStyle::BPS_Never;
-   GoogleStyle.ObjCSpaceAfterProperty = false;
-   GoogleStyle.ObjCSpaceBeforeProtocolList = true;
-diff -ruN --strip-trailing-cr a/clang/unittests/Format/ConfigParseTest.cpp b/clang/unittests/Format/ConfigParseTest.cpp
---- a/clang/unittests/Format/ConfigParseTest.cpp
-+++ b/clang/unittests/Format/ConfigParseTest.cpp
-@@ -1043,13 +1043,6 @@
-               StatementAttributeLikeMacros,
-               std::vector<std::string>({"emit", "Q_EMIT"}));
+diff -ruN --strip-trailing-cr a/libcxx/include/__hash_table b/libcxx/include/__hash_table
+--- a/libcxx/include/__hash_table
++++ b/libcxx/include/__hash_table
+@@ -19,6 +19,7 @@
+ #include <__cstddef/ptrdiff_t.h>
+ #include <__cstddef/size_t.h>
+ #include <__functional/hash.h>
++#include <__fwd/pair.h>
+ #include <__iterator/iterator_traits.h>
+ #include <__math/rounding_functions.h>
+ #include <__memory/addressof.h>
+@@ -1042,15 +1043,22 @@
  
--  Style.Macros.clear();
--  CHECK_PARSE("{Macros: [foo]}", Macros, std::vector<std::string>({"foo"}));
--  std::vector<std::string> GoogleMacros;
--  GoogleMacros.push_back("ASSIGN_OR_RETURN(a, b)=a = (b)");
--  GoogleMacros.push_back("ASSIGN_OR_RETURN(a, b, c)=a = (b); if (x) return c");
--  CHECK_PARSE("BasedOnStyle: Google", Macros, GoogleMacros);
--
-   Style.StatementMacros.clear();
-   CHECK_PARSE("StatementMacros: [QUNUSED]", StatementMacros,
-               std::vector<std::string>{"QUNUSED"});
-@@ -1057,6 +1050,7 @@
-               std::vector<std::string>({"QUNUSED", "QT_REQUIRE_VERSION"}));
+   _LIBCPP_HIDE_FROM_ABI __next_pointer __detach() _NOEXCEPT;
  
-   CHECK_PARSE_LIST(JavaImportGroups);
-+  CHECK_PARSE_LIST(Macros);
-   CHECK_PARSE_LIST(MacrosSkippedByRemoveParentheses);
-   CHECK_PARSE_LIST(NamespaceMacros);
-   CHECK_PARSE_LIST(ObjCPropertyAttributeOrder);
-diff -ruN --strip-trailing-cr a/clang/unittests/Format/FormatTestMacroExpansion.cpp b/clang/unittests/Format/FormatTestMacroExpansion.cpp
---- a/clang/unittests/Format/FormatTestMacroExpansion.cpp
-+++ b/clang/unittests/Format/FormatTestMacroExpansion.cpp
-@@ -58,18 +58,10 @@
-   verifyFormat("ASSIGN_OR_RETURN(MySomewhatLongType *variable,\n"
-                "                 MySomewhatLongFunction(SomethingElse()));",
-                Style);
--  verifyFormat(
--      "ASSIGN_OR_RETURN(MySomewhatLongType *variable,\n"
--      "                 MySomewhatLongFunction(SomethingElse()), RetMe());",
--      Style);
--
--  verifyFormat(
--      "void f() {\n"
--      "  ASSIGN_OR_RETURN(MySomewhatLongType* variable,\n"
--      "                   MySomewhatLongFunction(SomethingElse()));\n"
--      "  ASSIGN_OR_RETURN(MySomewhatLongType* variable,\n"
--      "                   MySomewhatLongFunction(SomethingElse()), RetMe());",
--      getGoogleStyle());
-+  verifyFormat("ASSIGN_OR_RETURN(MySomewhatLongType *variable,\n"
-+               "                 MySomewhatLongFunction(SomethingElse()), "
-+               "ReturnMe());",
-+               Style);
+-  template <class _From, class _ValueT = _Tp, __enable_if_t<__is_hash_value_type<_ValueT>::value, int> = 0>
++  template <class _From,
++            class _ValueT                                                                    = _Tp,
++            __enable_if_t<__is_hash_value_type<_ValueT>::value || __is_pair_v<_ValueT>, int> = 0>
+   _LIBCPP_HIDE_FROM_ABI void __assign_value(__get_hash_node_value_type_t<_Tp>& __lhs, _From&& __rhs) {
+     // This is technically UB, since the object was constructed as `const`.
+     // Clang doesn't optimize on this currently though.
+-    const_cast<key_type&>(__lhs.first) = const_cast<__copy_cvref_t<_From, key_type>&&>(__rhs.first);
+-    __lhs.second                       = std::forward<_From>(__rhs).second;
++    //
++    // The enable_if check for __is_pair_v is only needed to support
++    // __gnu_cxx::hash_map and may be removed if hash_map is removed.
++    const_cast<__remove_const_t<decltype(__lhs.first)>&>(__lhs.first) = std::forward<_From>(__rhs).first;
++    __lhs.second                                                      = std::forward<_From>(__rhs).second;
+   }
  
-   verifyFormat(R"(
- #define MACRO(a, b) ID(a + b)
+-  template <class _From, class _ValueT = _Tp, __enable_if_t<!__is_hash_value_type<_ValueT>::value, int> = 0>
++  template <class _From,
++            class _ValueT                                                                      = _Tp,
++            __enable_if_t<!__is_hash_value_type<_ValueT>::value && !__is_pair_v<_ValueT>, int> = 0>
+   _LIBCPP_HIDE_FROM_ABI void __assign_value(_Tp& __lhs, _From&& __rhs) {
+     __lhs = std::forward<_From>(__rhs);
+   }
+diff -ruN --strip-trailing-cr a/libcxx/test/extensions/gnu/hash_map/copy.pass.cpp b/libcxx/test/extensions/gnu/hash_map/copy.pass.cpp
+--- a/libcxx/test/extensions/gnu/hash_map/copy.pass.cpp
++++ b/libcxx/test/extensions/gnu/hash_map/copy.pass.cpp
+@@ -6,7 +6,7 @@
+ //
+ //===----------------------------------------------------------------------===//
+ 
+-// ADDITIONAL_COMPILE_FLAGS: -Wno-deprecated
++// ADDITIONAL_COMPILE_FLAGS: -Wno-deprecated -Wno-deprecated-copy
+ 
+ // hash_map::hash_map(const hash_map&)
+ 
+@@ -23,5 +23,9 @@
+ 
+   assert(map2.size() == 2);
+ 
++  map.insert(std::make_pair(3, 1));
++  map2 = map;
++  assert(map2.size() == 3);
++
+   return 0;
+ }

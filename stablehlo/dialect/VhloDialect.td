@@ -53,6 +53,7 @@ def VHLO_Dialect : Dialect {
       1.12.0: Add `source_target_pairs` attribute to `send` and `recv` ops.
       1.13.0: Extend `custom_call` op to support `buffer` types.
       1.14.0: Introduce `composite` op with regions.
+      1.15.0: Introduce `async_start` and `async_done` ops and `future` types.
   }];
 
   let useDefaultAttributePrinterParser = 0;

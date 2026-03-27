@@ -67,6 +67,16 @@ class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return stablehlo::TokenType::get(token.getContext());
     });
+    addConversion([this](vhlo::FutureV1Type future) -> Type {
+      LLVM_DEBUG(llvm::dbgs() << "Converting FutureType\n");
+      SmallVector<Type> types;
+      for (auto type : future.getTypes()) {
+        auto convertedType = convertType(type);
+        if (!convertedType) return {};
+        types.push_back(convertedType);
+      }
+      return stablehlo::FutureType::get(future.getContext(), types);
+    });
     addVhloToBuiltinConversions();
     addUnrealizedMaterializations();
   }
