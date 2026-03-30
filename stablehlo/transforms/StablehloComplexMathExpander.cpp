@@ -10,8 +10,6 @@
 namespace mlir {
 namespace stablehlo {
 
-// --- 1. Helper Functions (Must be in mlir::stablehlo for TableGen) ---
-
 Value getConstantLikeMaxFiniteValue(OpBuilder &b, Location loc, Value val) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(b, loc, llvm::APFloat::getLargest(ty.getFloatSemantics()), val);
@@ -22,28 +20,23 @@ Value getConstantLikeInfValue(OpBuilder &b, Location loc, Value val, bool negati
   return getConstantLike(b, loc, llvm::APFloat::getInf(ty.getFloatSemantics(), negative), val);
 }
 
-// --- 2. Forward Declarations for Population ---
-
-void populateStablehloComplexMathExpanderPatterns(MLIRContext *context,
-                                                  RewritePatternSet *patterns);
-void populateStablehloComplexFullMathExpanderPatterns(MLIRContext *context,
-                                                      RewritePatternSet *patterns);
-
 #define GEN_PASS_DEF_STABLEHLOCOMPLEXMATHEXPANDERPASS
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
 
-// --- 3. Include Patterns (Generated code uses helpers above) ---
-
+namespace default_patterns {
 #include "stablehlo/transforms/StablehloComplexMathExpanderPatterns.h.inc"
+} // namespace default_patterns
 
-// --- 4. Pass Implementation ---
+namespace full_patterns {
+#include "stablehlo/transforms/StablehloComplexFullMathExpanderPatterns.h.inc"
+} // namespace full_patterns
+
 
 struct StablehloComplexMathExpanderPass
     : public impl::StablehloComplexMathExpanderPassBase<StablehloComplexMathExpanderPass> {
   
-  // Use the Base class constructor to properly initialize 'enableFullExpansion'
   using StablehloComplexMathExpanderPassBase::StablehloComplexMathExpanderPassBase;
 
   void runOnOperation() override {
@@ -51,15 +44,14 @@ struct StablehloComplexMathExpanderPass
     MLIRContext *context = &getContext();
     RewritePatternSet patterns(context);
 
-    // Default accuracy patterns
-    populateStablehloComplexMathExpanderPatterns(context, &patterns);
-
-    // Full expansion (Mul/Div) logic
+    default_patterns::populateWithGenerated(patterns);
     if (enableFullExpansion) {
-      populateStablehloComplexFullMathExpanderPatterns(context, &patterns);
+      full_patterns::populateWithGenerated(patterns);
     }
 
-    if (failed(applyPatternsGreedily(func, std::move(patterns)))) {
+    GreedyRewriteConfig config;
+    
+    if (failed(applyPatternsGreedily(func, std::move(patterns), config))) {
       func.emitError("Failed to converge StableHLOComplexMathExpanderPass");
       signalPassFailure();
     }
@@ -68,19 +60,15 @@ struct StablehloComplexMathExpanderPass
 
 } // namespace
 
-// --- 5. Definition of Population Functions ---
 
 void populateStablehloComplexMathExpanderPatterns(MLIRContext *context,
                                                   RewritePatternSet *patterns) {
-  // Logic to populate standard patterns
-  populateWithGenerated(*patterns);
+  default_patterns::populateWithGenerated(*patterns);
 }
 
 void populateStablehloComplexFullMathExpanderPatterns(MLIRContext *context,
                                                       RewritePatternSet *patterns) {
-  // If you split the .td files later, this would call populateFullWithGenerated.
-  // For now, it shares the same generated pool.
-  populateWithGenerated(*patterns);
+  full_patterns::populateWithGenerated(*patterns);
 }
 
 } // namespace stablehlo

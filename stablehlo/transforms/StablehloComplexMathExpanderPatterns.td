@@ -722,23 +722,3 @@ def ExpOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_ExpOp ComplexEl
             (StableHLO_SineOp:$sn $y, ConstDefaultResultAccuracyAttr)),
           $e2),
         (StableHLO_MulOp $e, $sn))))>;
-
-// Multiplication on complex inputs:
-//
-//       (a + bi) * (c + di) = (ac - bd) + (bc + ad)i
-//
-//     where a, b are real/imaginary parts of lhs, and c, d are real/imaginary
-//     parts of rhs.
-//
-def MulOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_MulOp ComplexElementType:$lhs, ComplexElementType:$rhs),
-  (StableHLO_ComplexOp
-    (StableHLO_SubtractOp
-      (StableHLO_MulOp
-        (StableHLO_RealOp:$a $lhs),
-        (StableHLO_RealOp:$c $rhs)),
-      (StableHLO_MulOp
-        (StableHLO_ImagOp:$b $lhs),
-        (StableHLO_ImagOp:$d $rhs))),
-    (StableHLO_AddOp
-      (StableHLO_MulOp $b, $c),
-      (StableHLO_MulOp $a, $d)))>;
