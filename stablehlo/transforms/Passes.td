@@ -135,30 +135,17 @@ def StablehloComplexMathExpanderPass : Pass<"stablehlo-complex-math-expander", "
   let summary = "Expander for StableHLO complex math operations.";
 
   let description = [{
-    StableHLO complex math operations are decompositions using
-    StableHLO real math operations.
-
-    This statement is based on the assumption that no hardware exists
-    that supports complex numbers nor complex math operations
-    natively. This means that the fallback mechanisms on complex math
-    operations that compilers may implement, are redundant. With
-    enabling this pass, all StableHLO complex math operations will be
-    expanded.
-
-    ```mlir
-    func.func @sqrt_op_complex(%arg0: tensor<4xcomplex<f64>>) -> tensor<4xcomplex<f64>> {
-      %1 = stablehlo.sqrt %arg0 : tensor<4xcomplex<f64>>
-      func.return %1 : tensor<4xcomplex<f64>>
-    }
-
-    ==>
-
-    func.func @sqrt_op_complex(%arg0: tensor<4xcomplex<f64>>) -> tensor<4xcomplex<f64>> {
-      TBD
-      return %2 : tensor<4xcomplex<f64>>
-    }
-    ```
+    Expands StableHLO complex math operations into real-domain operations. 
+    By default, it expands operations like 'log' and 'sqrt' using high-accuracy 
+    algorithms. If 'enable-full-expansion' is true, it also expands basic 
+    arithmetic (Mul, Div) for backends without native complex support.
   }];
+
+  let options = [
+    Option<"enableFullExpansion", "enable-full-expansion", "bool", 
+           /*default=*/"false", "Enable expansion of basic complex arithmetic (Mul, Div)">
+  ];
+
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
     "mlir::chlo::ChloDialect",
