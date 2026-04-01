@@ -55,7 +55,6 @@ jobs:
       with:
         path: "openxla/stablehlo"
         persist-credentials: false
-      with:
         fetch-depth: $(( ${{ github.event_name == 'pull_request' && github.event.pull_request.commits || 0 }} + 1 ))
 
     - name: "Wait For Connection"
