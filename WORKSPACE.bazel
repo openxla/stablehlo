@@ -17,6 +17,26 @@ workspace(name = "stablehlo")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+# Initialize toolchains for ML projects.
+#
+# A hermetic build system is designed to produce completely reproducible builds for C++.
+# Details: https://github.com/google-ml-infra/rules_ml_toolchain
+http_archive(
+    name = "rules_ml_toolchain",
+    sha256 = "9bd46bc5e06a56a9335897be630d4b820c678281aa88302518c250921338ad22",
+    strip_prefix = "rules_ml_toolchain-40efd07eb8e6565e506562f36d7dc43cd83e5b32",
+    url = "https://github.com/google-ml-infra/rules_ml_toolchain/archive/40efd07eb8e6565e506562f36d7dc43cd83e5b32.tar.gz",
+)
+
+load(
+    "@rules_ml_toolchain//cc/deps:cc_toolchain_deps.bzl",
+    "cc_toolchain_deps",
+)
+
+cc_toolchain_deps()
+
+register_toolchains("@rules_ml_toolchain//cc:linux_x86_64_linux_x86_64")
+
 http_archive(
     name = "bazel_skylib",
     sha256 = "74d544d96f4a5bb630d465ca8bbcfe231e3594e5aae57e1edbf17a6eb3ca2506",
