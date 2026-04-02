@@ -74,6 +74,10 @@ jobs:
     - name: Build and check docs
       shell: bash
       run: |
+        git config --global --add safe.directory .
+        echo "$PWD" >> $GITHUB_OUTPUT
+        echo "$PWD"
+        git status
         ./build_tools/github_actions/ci_build_docs.sh -c
 
     - name: Build and Test StableHLO (Diff Only)
@@ -94,4 +98,9 @@ jobs:
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_bazel.sh
+
+    - name: "Wait For Connection"
+      uses: google-ml-infra/actions/ci_connection@7f5ca0c263a81ed09ea276524c1b9192f1304e3c
+      with:
+        halt-dispatch-input: ${{ inputs.halt-for-connection }}
 
