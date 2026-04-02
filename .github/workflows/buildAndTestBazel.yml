@@ -83,7 +83,6 @@ jobs:
       if: ${{ github.event_name == 'pull_request' }}
       shell: bash
       run: |
-        echo "$PWD" >> $GITHUB_OUTPUT
         echo "$PWD"
         git status
         START_HASH=${{ github.event.pull_request.base.sha }}
