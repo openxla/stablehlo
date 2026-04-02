@@ -53,6 +53,7 @@ jobs:
     - name: Checkout StableHLO
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
+        path: "openxla/stablehlo"
         fetch-depth: $(( ${{ github.event_name == 'pull_request' && github.event.pull_request.commits || 0 }} + 1 ))
         set-safe-directory: true
 
@@ -63,6 +64,7 @@ jobs:
 
     - name: Validate LLVM Commit
       run: |
+        cd openxla/stablehlo
         git config --global --add safe.directory .
         ./build_tools/github_actions/lint_llvm_commit.sh .
 
@@ -81,6 +83,9 @@ jobs:
       if: ${{ github.event_name == 'pull_request' }}
       shell: bash
       run: |
+        echo "$PWD" >> $GITHUB_OUTPUT
+        echo "$PWD"
+        git status
         START_HASH=${{ github.event.pull_request.base.sha }}
         END_HASH=${{ github.event.pull_request.head.sha }}
         BAZEL_DIFF=/tmp/bazel-diff.jar
