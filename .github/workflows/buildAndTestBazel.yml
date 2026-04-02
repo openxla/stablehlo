@@ -74,7 +74,7 @@ jobs:
     - name: Build and check docs
       shell: bash
       run: |
-        git config --global --add safe.directory .
+        git config --global --add safe.directory "$(pwd)"
         echo "$PWD" >> $GITHUB_OUTPUT
         echo "$PWD"
         git status
