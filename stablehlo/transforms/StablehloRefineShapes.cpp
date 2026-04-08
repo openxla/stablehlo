@@ -45,6 +45,7 @@ limitations under the License.
 #include "mlir/IR/Value.h"
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
@@ -566,13 +567,21 @@ struct RefineCallOpPattern : public OpRewritePattern<func::CallOp> {
     std::optional<SmallVector<DenseIntElementsAttr>> constantAttrs =
         isConstantFunction(callee);
     if (constantAttrs.has_value()) {
-      SmallVector<Value> constants;
-      for (auto constAttr : constantAttrs.value()) {
-        constants.push_back(
-            ConstantOp::create(rewriter, op.getLoc(), constAttr));
+      auto sideEffectResult = callee.walk([](Operation* nestedOp) {
+        auto effectInterface = dyn_cast<MemoryEffectOpInterface>(nestedOp);
+        if (effectInterface && !effectInterface.hasNoEffect())
+          return WalkResult::interrupt();
+        return WalkResult::advance();
+      });
+      if (!sideEffectResult.wasInterrupted()) {
+        SmallVector<Value> constants;
+        for (auto constAttr : constantAttrs.value()) {
+          constants.push_back(
+              ConstantOp::create(rewriter, op.getLoc(), constAttr));
+        }
+        rewriter.replaceOp(op, constants);
+        return success();
       }
-      rewriter.replaceOp(op, constants);
-      return success();
     }
     if (!refinementKey->getGlobalConstants().empty()) {
       // Drop the global-constant arguments, but only if necessary, or else we
