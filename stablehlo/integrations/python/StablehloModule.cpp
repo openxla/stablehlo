@@ -100,6 +100,26 @@ NB_MODULE(_stablehlo, m) {
           nb::arg("cls"), nb::arg("context").none() = nb::none(),
           "Creates a Token type.");
 
+  mlir::python::nanobind_adaptors::mlir_type_subclass(m, "FutureType",
+                                                      stablehloTypeIsAFuture)
+      .def_classmethod(
+          "get",
+          [](nb::object cls, const std::vector<MlirType>& types,
+             MlirContext ctx) {
+            return cls(stablehloFutureTypeGet(ctx, types.size(), types.data()));
+          },
+          nb::arg("cls"), nb::arg("types"),
+          nb::arg("context").none() = nb::none(), "Creates a Future type.")
+      .def_property_readonly("types", [](MlirType self) {
+        std::vector<MlirType> types;
+        intptr_t numTypes = stablehloFutureTypeGetNumTypes(self);
+        types.reserve(numTypes);
+        for (intptr_t i = 0; i < numTypes; ++i) {
+          types.push_back(stablehloFutureTypeGetType(self, i));
+        }
+        return types;
+      });
+
   //
   // Attributes.
   //
