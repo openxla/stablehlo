@@ -456,7 +456,7 @@ class CompatibleOperandsAndResultType
   static LogicalResult inferReturnTypes(
       MLIRContext* /*context*/, std::optional<Location> location,
       ValueRange operands, DictionaryAttr /*attributes*/,
-      OpaqueProperties /*properties*/, RegionRange /*regions*/,
+      PropertyRef /*properties*/, RegionRange /*regions*/,
       SmallVectorImpl<Type>& inferredReturnTypes) {
     // TODO(b/231358795): Review the use of InferTypeOpInterface for ops that
     // support quantization or sparsity.
@@ -478,7 +478,7 @@ class CompatibleOperandsAndResultType
   static LogicalResult inferReturnTypeComponentsFromOperands(
       MLIRContext* context, std::optional<Location> location,
       ValueShapeRange operands, DictionaryAttr attributes,
-      OpaqueProperties properties, RegionRange regions,
+      PropertyRef properties, RegionRange regions,
       SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
     SmallVector<Type> inferredReturnTypes;
     if (failed(inferReturnTypes(context, location, operands.getValues(),

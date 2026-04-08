@@ -850,7 +850,7 @@ def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add", [HLO_Commutative,
     static LogicalResult inferReturnTypes(
         MLIRContext * /*context*/, std::optional<Location> location,
         ValueRange operands, DictionaryAttr /*attributes*/,
-        OpaqueProperties /*properties*/, RegionRange /*regions*/,
+        PropertyRef /*properties*/, RegionRange /*regions*/,
         SmallVectorImpl<Type> &inferredReturnTypes) {
       if (operands.empty())
         return emitOptionalError(
