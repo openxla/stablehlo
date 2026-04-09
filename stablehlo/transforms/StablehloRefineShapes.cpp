@@ -51,6 +51,7 @@ limitations under the License.
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/ChloOps.h"
+#include "stablehlo/dialect/ReplicaGroupUtils.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/transforms/Passes.h"
@@ -66,11 +67,12 @@ namespace stablehlo {
 
 LogicalResult refineValues(PatternRewriter& rewriter, Operation* op,
                            ValueRange values, TypeRange types) {
-  if (values.size() != types.size())
+  if (values.size() != types.size()) {
     return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
       diag << "refineValues failed for " << types << ": expected "
            << values.size() << " types, got " << types.size();
     });
+  }
 
   // Check whether `types` contain any new information with respect to
   // existing return types. Even if just a single dimension size out of an
@@ -113,9 +115,6 @@ LogicalResult refineValues(PatternRewriter& rewriter, Operation* op,
       // verification of the op.
       if (isa<chlo::ChloDialect, StablehloDialect>(user->getDialect()))
         continue;
-      // TODO(bartchr): Consider if the dialect allow-listing approach is too
-      // strict. In the meantime, allow some shape interop with the shardy
-      // dialect.
       if (user->getDialect()->getNamespace() == "sdy") continue;
 
       // Simply changing operand type of `func.return` won't work because
@@ -171,11 +170,12 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
   SmallVector<Type> flattenedTypes;
   hlo::flattenTupleTypes(op->getResultTypes(), flattenedTypes);
   auto flattenedSize = flattenedTypes.size();
-  if (flattenedSize != refinements.size())
+  if (flattenedSize != refinements.size()) {
     return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
       diag << "refineReturnTypes failed: expected " << flattenedSize
            << " refinements, got " << refinements.size();
     });
+  }
 
   SmallVector<Type> flattenedRefinedTypes;
   for (auto it : llvm::zip(flattenedTypes, refinements)) {
@@ -510,8 +510,23 @@ struct RefineAllGatherOpPattern : public OpRewritePattern<AllGatherOp> {
       // don't know num_partitions at this point, we error out.
       if (op.getChannelHandle() && !op.getUseGlobalDeviceIds())
         return rewriter.notifyMatchFailure(op, "unsupported strategy");
-      DenseIntElementsAttr replicaGroups = op.getReplicaGroups();
-      auto shardCount = replicaGroups.getType().getDimSize(1);
+      int64_t shardCount = 0;
+      Attribute replicaGroupsAttr = op.getReplicaGroups();
+      if (auto denseGroups =
+              dyn_cast<DenseIntElementsAttr>(replicaGroupsAttr)) {
+        shardCount = denseGroups.getType().getDimSize(1);
+      } else {
+        auto meshAxesAttr = cast<ReplicaGroupMeshAxesAttr>(replicaGroupsAttr);
+        auto flattenedGroupsOr = flattenReplicaGroupMeshAxes(
+            meshAxesAttr.getMesh(), meshAxesAttr.getAxes(), op.getLoc());
+        if (failed(flattenedGroupsOr))
+          return rewriter.notifyMatchFailure(
+              op, "failed to flatten replica groups");
+        if (flattenedGroupsOr->empty())
+          return rewriter.notifyMatchFailure(op,
+                                             "empty flattened replica groups");
+        shardCount = (*flattenedGroupsOr)[0].size();
+      }
       SmallVector<int64_t> refinement(operandType.getShape());
       if (!operandType.isDynamicDim(op.getAllGatherDim()))
         refinement[op.getAllGatherDim()] *= shardCount;
@@ -876,8 +891,22 @@ struct RefineReduceScatterOpPattern : public OpRewritePattern<ReduceScatterOp> {
     // num_partitions at this point, we error out.
     if (op.getChannelHandle() && !op.getUseGlobalDeviceIds())
       return rewriter.notifyMatchFailure(op, "unsupported strategy");
-    DenseIntElementsAttr replicaGroups = op.getReplicaGroups();
-    auto shardCount = replicaGroups.getType().getDimSize(1);
+    int64_t shardCount = 0;
+    Attribute replicaGroupsAttr = op.getReplicaGroups();
+    if (auto denseGroups = dyn_cast<DenseIntElementsAttr>(replicaGroupsAttr)) {
+      shardCount = denseGroups.getType().getDimSize(1);
+    } else {
+      auto meshAxesAttr = cast<ReplicaGroupMeshAxesAttr>(replicaGroupsAttr);
+      auto flattenedGroupsOr = flattenReplicaGroupMeshAxes(
+          meshAxesAttr.getMesh(), meshAxesAttr.getAxes(), op.getLoc());
+      if (failed(flattenedGroupsOr))
+        return rewriter.notifyMatchFailure(op,
+                                           "failed to flatten replica groups");
+      if (flattenedGroupsOr->empty())
+        return rewriter.notifyMatchFailure(op,
+                                           "empty flattened replica groups");
+      shardCount = (*flattenedGroupsOr)[0].size();
+    }
 
     SmallVector<int64_t> refinement(operandType.getShape());
     if (!operandType.isDynamicDim(op.getScatterDimension()))

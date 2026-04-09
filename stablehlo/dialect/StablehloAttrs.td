@@ -233,4 +233,59 @@ def StableHLO_ResultAccuracyAttr : AttrDef<StableHLO_Dialect, "ResultAccuracy"> 
   ];
 }
 
+def StableHLO_SubAxisInfo : AttrDef<StableHLO_Dialect, "SubAxisInfo"> {
+  let mnemonic = "sub_axis_info";
+  let summary = "Info about how this sub-axis is derived from the full axis";
+  let parameters = (ins
+      "int64_t":$pre_size,
+      "int64_t":$size
+  );
+  let assemblyFormat = "`(` $pre_size `)` `` $size";
+}
+
+def StableHLO_AxisRef : AttrDef<StableHLO_Dialect, "AxisRef"> {
+  let mnemonic = "axis_ref";
+  let summary = "Reference to either a full axis or a split sub-axis";
+  let parameters = (ins
+      StringRefParameter<"name of this axis">:$name,
+      OptionalParameter<"SubAxisInfoAttr", "additional info if this is a sub axis">:$sub_axis_info
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+def StableHLO_MeshAxis : AttrDef<StableHLO_Dialect, "MeshAxis"> {
+  let mnemonic = "mesh_axis";
+  let summary = "A single axis of a mesh";
+  let parameters = (ins
+    StringRefParameter<"name">:$name,
+    "int64_t":$size
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+def StableHLO_Mesh : AttrDef<StableHLO_Dialect, "Mesh"> {
+  let mnemonic = "mesh";
+  let summary = "A named mesh definition with device IDs";
+  let parameters = (ins
+    ArrayRefParameter<"stablehlo::MeshAxisAttr">:$axes,
+    OptionalParameter<"DenseIntElementsAttr">:$device_ids
+  );
+  let assemblyFormat = [{
+    `<` `axes` `` `=` `` `[` $axes `]` (`,` `device_ids` `` `=` `` $device_ids^)? `>`
+  }];
+}
+
+def StableHLO_ReplicaGroupMeshAxes : AttrDef<StableHLO_Dialect, "ReplicaGroupMeshAxes"> {
+  let mnemonic = "replica_group_mesh_axes";
+  let summary = "mesh and axes based replica groups representation.";
+  let parameters = (ins
+    "Attribute":$mesh,
+    "ArrayAttr":$axes
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+  let genVerifyDecl = 1;
+}
+
+
+
 #endif // STABLEHLO_DIALECT_STABLEHLO_ATTRS

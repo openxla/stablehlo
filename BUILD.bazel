@@ -649,6 +649,7 @@ cc_library(
         ":reference_token",
         ":reference_types",
         ":reference_value",
+        ":replica_group_utils",
         ":stablehlo_ops",
         ":stablehlo_type_inference",
         "@llvm-project//llvm:Support",
@@ -1183,6 +1184,7 @@ cc_library(
         ":broadcast_utils",
         ":chlo_ops",
         ":chlo_rewriters_inc_gen",
+        ":replica_group_utils",
         ":stablehlo_aggressive_simplification_inc_gen",
         ":stablehlo_broadcast_lowering",
         ":stablehlo_create_compatibility_expander_inc_gen",
@@ -1354,6 +1356,23 @@ cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:QuantOps",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_library(
+    name = "replica_group_utils",
+    srcs = [
+        "stablehlo/dialect/ReplicaGroupUtils.cpp",
+    ],
+    hdrs = [
+        "stablehlo/dialect/ReplicaGroupUtils.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":stablehlo_ops",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
     ],
 )

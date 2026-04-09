@@ -1021,6 +1021,35 @@ LogicalResult ResultAccuracyAttr::verify(
       stringifyResultAccuracyMode(mode.getValue()));
 }
 
+LogicalResult ReplicaGroupMeshAxesAttr::verify(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError,
+    Attribute mesh, ArrayAttr axes) {
+  if (!isa<FlatSymbolRefAttr, MeshAttr>(mesh)) {
+    return emitError() << "mesh must be a FlatSymbolRefAttr or MeshAttr";
+  }
+  if (auto meshAttr = dyn_cast<MeshAttr>(mesh)) {
+    for (auto axis : axes) {
+      auto axisRef = dyn_cast<AxisRefAttr>(axis);
+      if (!axisRef) {
+        return emitError() << "expected AxisRefAttr in axes list";
+      }
+      auto axisStr = axisRef.getName();
+      bool found = false;
+      for (auto meshAxis : meshAttr.getAxes()) {
+        if (meshAxis.getName() == axisStr) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        return emitError() << "axis '" << axisStr
+                           << "' not found in mesh definition";
+      }
+    }
+  }
+  return success();
+}
+
 // ===---------------------------------------------------------------------===//
 // CbrtOp
 //===----------------------------------------------------------------------===//
@@ -1463,7 +1492,7 @@ LogicalResult AbsOp::inferReturnTypes(
 void CollectiveBroadcastOp::build(OpBuilder& odsBuilder,
                                   OperationState& odsState, Type resultType,
                                   Value operand,
-                                  DenseIntElementsAttr replica_groups) {
+                                  Attribute replica_groups) {
   CollectiveBroadcastOp::build(odsBuilder, odsState, resultType, operand,
                                replica_groups, /*channel_handle=*/nullptr);
 }
@@ -1647,7 +1676,7 @@ void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                        Type resultType, Value operand,
                        IntegerAttr splitDimension, IntegerAttr concatDimension,
                        IntegerAttr splitCount,
-                       DenseIntElementsAttr replicaGroups) {
+                       Attribute replicaGroups) {
   AllToAllOp::build(odsBuilder, odsState, resultType, operand, splitDimension,
                     concatDimension, splitCount, replicaGroups,
                     /*channel_handle=*/nullptr);
@@ -1717,7 +1746,7 @@ mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
 
 void AllReduceOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                         Type resultType, Value operand,
-                        DenseIntElementsAttr replicaGroups,
+                        Attribute replicaGroups,
                         ChannelHandleAttr channelHandle,
                         bool useGlobalDeviceIds) {
   build(odsBuilder, odsState, resultType, ValueRange(operand), replicaGroups,
