@@ -1491,8 +1491,7 @@ LogicalResult AbsOp::inferReturnTypes(
 
 void CollectiveBroadcastOp::build(OpBuilder& odsBuilder,
                                   OperationState& odsState, Type resultType,
-                                  Value operand,
-                                  Attribute replica_groups) {
+                                  Value operand, Attribute replica_groups) {
   CollectiveBroadcastOp::build(odsBuilder, odsState, resultType, operand,
                                replica_groups, /*channel_handle=*/nullptr);
 }
@@ -1675,8 +1674,7 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
 void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
                        Type resultType, Value operand,
                        IntegerAttr splitDimension, IntegerAttr concatDimension,
-                       IntegerAttr splitCount,
-                       Attribute replicaGroups) {
+                       IntegerAttr splitCount, Attribute replicaGroups) {
   AllToAllOp::build(odsBuilder, odsState, resultType, operand, splitDimension,
                     concatDimension, splitCount, replicaGroups,
                     /*channel_handle=*/nullptr);
@@ -1745,8 +1743,7 @@ mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
 //===----------------------------------------------------------------------===//
 
 void AllReduceOp::build(OpBuilder& odsBuilder, OperationState& odsState,
-                        Type resultType, Value operand,
-                        Attribute replicaGroups,
+                        Type resultType, Value operand, Attribute replicaGroups,
                         ChannelHandleAttr channelHandle,
                         bool useGlobalDeviceIds) {
   build(odsBuilder, odsState, resultType, ValueRange(operand), replicaGroups,

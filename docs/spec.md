@@ -7144,7 +7144,6 @@ which the process grid is split into process groups are shared between these ops
 and are described in this section. More formally, StableHLO supports the
 following four strategies.
 
-
 #### Replica groups
 
 Collective operations use `replica_groups` to define the groups of devices the
@@ -7189,38 +7188,38 @@ In addition to a mesh definition, `ReplicaGroupMeshAxes`, `AxisRef`, and
 
 A `Mesh` defines a named grid of devices. `Mesh` fields include:
 
-*   `axes`, a list of `MeshAxis` objects representing the dimensions of the
+* `axes`, a list of `MeshAxis` objects representing the dimensions of the
     device grid.
-*   `device_ids`, an optional 1-dimensional tensor constant of type `si64`
+* `device_ids`, an optional 1-dimensional tensor constant of type `si64`
     representing the mapping of grid coordinates to device IDs. If not
     specified, device IDs are assigned in the lexicographical order of
     coordinates.
 
 A `MeshAxis` defines a single dimension of a mesh. `MeshAxis` fields include:
 
-*   `name`, a constant of type `string` representing the name of this axis.
-*   `size`, a constant of type `si64` representing the size of this axis.
+* `name`, a constant of type `string` representing the name of this axis.
+* `size`, a constant of type `si64` representing the size of this axis.
 
 A `ReplicaGroupMeshAxes` defines the replica groups based on a StableHLO mesh.
 `ReplicaGroupMeshAxes` fields include:
 
-*   `mesh`, an `attribute` representing the StableHLO mesh to be used (either an
+* `mesh`, an `attribute` representing the StableHLO mesh to be used (either an
     inlined `#stablehlo.mesh` or a symbol reference to a mesh definition).
-*   `axes`, a list of `AxisRef` elements.
+* `axes`, a list of `AxisRef` elements.
 
 An `AxisRef` defines a reference to either a full axis or a split sub-axis.
 `AxisRef` fields include:
 
-*   `name`, a constant of type `string` representing the name of this axis.
-*   `sub_axis_info`, an optional `SubAxisInfo` object that provides additional
+* `name`, a constant of type `string` representing the name of this axis.
+* `sub_axis_info`, an optional `SubAxisInfo` object that provides additional
     information if this is a sub axis.
 
 A `SubAxisInfo` defines how this sub-axis is derived from the full axis.
 `SubAxisInfo` fields include:
 
-*   `pre_size`, a constant of type `si64` representing the product of sizes of
+* `pre_size`, a constant of type `si64` representing the product of sizes of
     sub-axes that come before this one in the split.
-*   `size`, a constant of type `si64` representing the size of this sub-axis.
+* `size`, a constant of type `si64` representing the size of this sub-axis.
 
 #### cross_replica
 

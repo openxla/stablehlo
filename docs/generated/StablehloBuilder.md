@@ -37,7 +37,7 @@ Creates a new [`stablehlo.all_gather`](https://openxla.org/stablehlo/spec#all_ga
 operation.
 
 ```c++
-SmallVector<MlirOp> AllGather(MlirBuilder &builder, TypeRange resultTypes, ArrayRef<MlirOp> operands, uint64_t all_gather_dim, ::mlir::DenseIntElementsAttr replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
+SmallVector<MlirOp> AllGather(MlirBuilder &builder, TypeRange resultTypes, ArrayRef<MlirOp> operands, uint64_t all_gather_dim, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
 ```
 
 ### `stablehlo::AllReduceOp`
@@ -48,7 +48,7 @@ operation.
 This operation has a body region built via a callback function.
 
 ```c++
-SmallVector<MlirOp> AllReduce(MlirBuilder &builder, ArrayRef<MlirOp> operands, const RegionBuilderCallback &computation, ::mlir::DenseIntElementsAttr replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
+SmallVector<MlirOp> AllReduce(MlirBuilder &builder, ArrayRef<MlirOp> operands, const RegionBuilderCallback &computation, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
 ```
 
 ### `stablehlo::AllToAllOp`
@@ -57,7 +57,7 @@ Creates a new [`stablehlo.all_to_all`](https://openxla.org/stablehlo/spec#all_to
 operation.
 
 ```c++
-SmallVector<MlirOp> AllToAll(MlirBuilder &builder, ArrayRef<MlirOp> operands, uint64_t split_dimension, uint64_t concat_dimension, uint64_t split_count, ::mlir::DenseIntElementsAttr replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {});
+SmallVector<MlirOp> AllToAll(MlirBuilder &builder, ArrayRef<MlirOp> operands, uint64_t split_dimension, uint64_t concat_dimension, uint64_t split_count, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {});
 ```
 
 ### `stablehlo::AndOp`
@@ -203,7 +203,7 @@ Creates a new [`stablehlo.collective_broadcast`](https://openxla.org/stablehlo/s
 operation.
 
 ```c++
-MlirOp CollectiveBroadcast(MlirOp &operand, ::mlir::DenseIntElementsAttr replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {});
+MlirOp CollectiveBroadcast(MlirOp &operand, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {});
 ```
 
 ### `stablehlo::CollectivePermuteOp`
@@ -724,7 +724,7 @@ operation.
 This operation has a body region built via a callback function.
 
 ```c++
-MlirOp ReduceScatter(Type resultType, MlirOp &operand, const RegionBuilderCallback &computation, uint64_t scatter_dimension, ::mlir::DenseIntElementsAttr replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
+MlirOp ReduceScatter(Type resultType, MlirOp &operand, const RegionBuilderCallback &computation, uint64_t scatter_dimension, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false);
 ```
 
 ### `stablehlo::ReduceWindowOp`
