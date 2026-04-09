@@ -14,7 +14,10 @@
 
 include(TableGen)
 
-set(MLIR_BUILDER_TABLEGEN_EXE mlir_builder_tblgen)
+# We specifically declare this as a cache variable in order to allow users
+# to override this (e.g. for cross compilation builds).
+set(MLIR_BUILDER_TABLEGEN_EXE mlir_builder_tblgen CACHE STRING
+     "The target name or path to the executable to use for mlir_builder_tblgen")
 
 function(mlir_builder_tblgen ofn)
   tablegen(MLIR_BUILDER ${ARGV})
