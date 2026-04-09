@@ -181,17 +181,48 @@ enum AttributeCode {
   ///   }
   kTypeExtensionsV1Attr = 18,
 
-  // ResultAccuracyModeV1Attr {
-  //   mode: varint (encoded enum)
-  // }
+  ///   ResultAccuracyModeV1Attr {
+  ///     mode: varint (encoded enum)
+  ///   }
   kResultAccuracyModeV1Attr = 19,
 
-  // ResultAccuracyV1Attr {
-  //   atol: APFloat
-  //   rtol: APFloat
-  //   ulps: svarint
-  // }
+  ///   ResultAccuracyV1Attr {
+  ///     atol: APFloat
+  ///     rtol: APFloat
+  ///     ulps: svarint
+  ///     mode: Attribute
+  ///   }
   kResultAccuracyV1Attr = 20,
+
+  ///   SubAxisInfoV1Attr {
+  ///     preSize: svarint
+  ///     size: svarint
+  ///   }
+  kSubAxisInfoV1Attr = 21,
+
+  ///   AxisRefV1Attr {
+  ///     name: Attribute
+  ///     subAxisInfo: Attribute (optional)
+  ///   }
+  kAxisRefV1Attr = 22,
+
+  ///   ReplicaGroupMeshAxesV1Attr {
+  ///     mesh: Attribute
+  ///     axes: Attribute
+  ///   }
+  kReplicaGroupMeshAxesV1Attr = 23,
+
+  ///   MeshAxisV1Attr {
+  ///     name: Attribute
+  ///     size: svarint
+  ///   }
+  kMeshAxisV1Attr = 24,
+
+  ///   MeshV1Attr {
+  ///     axes: Attribute
+  ///     device_ids: Attribute (optional)
+  ///   }
+  kMeshV1Attr = 25,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -460,6 +491,12 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
       DialectBytecodeReader& reader) const;
   ResultAccuracyV1Attr readResultAccuracyV1Attr(
       DialectBytecodeReader& reader) const;
+  SubAxisInfoV1Attr readSubAxisInfoV1Attr(DialectBytecodeReader& reader) const;
+  AxisRefV1Attr readAxisRefV1Attr(DialectBytecodeReader& reader) const;
+  ReplicaGroupMeshAxesV1Attr readReplicaGroupMeshAxesV1Attr(
+      DialectBytecodeReader& reader) const;
+  MeshAxisV1Attr readMeshAxisV1Attr(DialectBytecodeReader& reader) const;
+  MeshV1Attr readMeshV1Attr(DialectBytecodeReader& reader) const;
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in VHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
@@ -487,6 +524,12 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   void write(ResultAccuracyModeV1Attr attr,
              DialectBytecodeWriter& writer) const;
   void write(ResultAccuracyV1Attr attr, DialectBytecodeWriter& writer) const;
+  void write(SubAxisInfoV1Attr attr, DialectBytecodeWriter& writer) const;
+  void write(AxisRefV1Attr attr, DialectBytecodeWriter& writer) const;
+  void write(ReplicaGroupMeshAxesV1Attr attr,
+             DialectBytecodeWriter& writer) const;
+  void write(MeshAxisV1Attr attr, DialectBytecodeWriter& writer) const;
+  void write(MeshV1Attr attr, DialectBytecodeWriter& writer) const;
 
   //===--------------------------------------------------------------------===//
   // Types
@@ -580,6 +623,16 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readResultAccuracyModeV1Attr(reader);
     case vhlo_encoding::kResultAccuracyV1Attr:
       return readResultAccuracyV1Attr(reader);
+    case vhlo_encoding::kSubAxisInfoV1Attr:
+      return readSubAxisInfoV1Attr(reader);
+    case vhlo_encoding::kAxisRefV1Attr:
+      return readAxisRefV1Attr(reader);
+    case vhlo_encoding::kReplicaGroupMeshAxesV1Attr:
+      return readReplicaGroupMeshAxesV1Attr(reader);
+    case vhlo_encoding::kMeshAxisV1Attr:
+      return readMeshAxisV1Attr(reader);
+    case vhlo_encoding::kMeshV1Attr:
+      return readMeshV1Attr(reader);
     default:
       reader.emitError() << "unknown vhlo attribute code: " << code;
       return Attribute();
@@ -598,11 +651,13 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
             PrecisionV1Attr, RngAlgorithmV1Attr, RngDistributionV1Attr,
             StringV1Attr, TensorV1Attr, TransposeV1Attr, TypeV1Attr,
             TypeExtensionsV1Attr, ResultAccuracyV1Attr,
-            ResultAccuracyModeV1Attr>([&](auto attr) {
-        LOG_WRITE_CALL;
-        write(attr, writer);
-        return success();
-      })
+            ResultAccuracyModeV1Attr, SubAxisInfoV1Attr, AxisRefV1Attr,
+            ReplicaGroupMeshAxesV1Attr, MeshAxisV1Attr, MeshV1Attr>(
+          [&](auto attr) {
+            LOG_WRITE_CALL;
+            write(attr, writer);
+            return success();
+          })
       .Default([&](Attribute attr) {
         LOG_NOT_IMPLEMENTED(attr);
         return failure();
@@ -1664,6 +1719,125 @@ void VhloBytecodeInterface::write(ResultAccuracyV1Attr attr,
   writer.writeAPFloatWithKnownSemantics(attr.getRtol());
   writer.writeSignedVarInt(attr.getUlps());
   writer.writeAttribute(attr.getMode());
+}
+
+//===----------------------------------------------------------------------===//
+// SubAxisInfoV1Attr
+
+SubAxisInfoV1Attr VhloBytecodeInterface::readSubAxisInfoV1Attr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  int64_t preSize, size;
+  if (failed(reader.readSignedVarInt(preSize)) ||
+      failed(reader.readSignedVarInt(size))) {
+    return SubAxisInfoV1Attr();
+  }
+  return SubAxisInfoV1Attr::get(getContext(), preSize, size);
+}
+
+void VhloBytecodeInterface::write(SubAxisInfoV1Attr attr,
+                                  DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(vhlo_encoding::kSubAxisInfoV1Attr);
+  writer.writeSignedVarInt(attr.getPreSize());
+  writer.writeSignedVarInt(attr.getSize());
+}
+
+//===----------------------------------------------------------------------===//
+// AxisRefV1Attr
+
+AxisRefV1Attr VhloBytecodeInterface::readAxisRefV1Attr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  Attribute name;
+  if (failed(reader.readAttribute(name))) return AxisRefV1Attr();
+  uint64_t hasSubAxisInfo;
+  if (failed(reader.readVarInt(hasSubAxisInfo))) return AxisRefV1Attr();
+  Attribute subAxisInfo;
+  if (hasSubAxisInfo) {
+    if (failed(reader.readAttribute(subAxisInfo))) return AxisRefV1Attr();
+  }
+  return AxisRefV1Attr::get(getContext(), name, subAxisInfo);
+}
+
+void VhloBytecodeInterface::write(AxisRefV1Attr attr,
+                                  DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(vhlo_encoding::kAxisRefV1Attr);
+  writer.writeAttribute(attr.getName());
+  if (attr.getSubAxisInfo()) {
+    writer.writeVarInt(1);
+    writer.writeAttribute(attr.getSubAxisInfo());
+  } else {
+    writer.writeVarInt(0);
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// ReplicaGroupMeshAxesV1Attr
+
+ReplicaGroupMeshAxesV1Attr
+VhloBytecodeInterface::readReplicaGroupMeshAxesV1Attr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  Attribute mesh, axes;
+  if (failed(reader.readAttribute(mesh)) ||
+      failed(reader.readAttribute(axes))) {
+    return ReplicaGroupMeshAxesV1Attr();
+  }
+  return ReplicaGroupMeshAxesV1Attr::get(getContext(), mesh, axes);
+}
+
+void VhloBytecodeInterface::write(ReplicaGroupMeshAxesV1Attr attr,
+                                  DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(vhlo_encoding::kReplicaGroupMeshAxesV1Attr);
+  writer.writeAttribute(attr.getMesh());
+  writer.writeAttribute(attr.getAxes());
+}
+
+//===----------------------------------------------------------------------===//
+// MeshAxisV1Attr
+
+MeshAxisV1Attr VhloBytecodeInterface::readMeshAxisV1Attr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  Attribute name;
+  int64_t size;
+  if (failed(reader.readAttribute(name)) ||
+      failed(reader.readSignedVarInt(size))) {
+    return MeshAxisV1Attr();
+  }
+  return MeshAxisV1Attr::get(getContext(), name, size);
+}
+
+void VhloBytecodeInterface::write(MeshAxisV1Attr attr,
+                                  DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(vhlo_encoding::kMeshAxisV1Attr);
+  writer.writeAttribute(attr.getName());
+  writer.writeSignedVarInt(attr.getSize());
+}
+
+//===----------------------------------------------------------------------===//
+// MeshV1Attr
+
+MeshV1Attr VhloBytecodeInterface::readMeshV1Attr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  Attribute axes;
+  Attribute device_ids;
+  if (failed(reader.readAttribute(axes))) {
+    return MeshV1Attr();
+  }
+  // Try to read optional device_ids.
+  if (failed(reader.readOptionalAttribute(device_ids))) {
+    return MeshV1Attr();
+  }
+  return MeshV1Attr::get(getContext(), axes, device_ids);
+}
+
+void VhloBytecodeInterface::write(MeshV1Attr attr,
+                                  DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(vhlo_encoding::kMeshV1Attr);
+  writer.writeAttribute(attr.getAxes());
+  writer.writeOptionalAttribute(attr.getDeviceIds());
 }
 
 }  // namespace

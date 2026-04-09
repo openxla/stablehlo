@@ -6821,3 +6821,12 @@ func.func @custom_call_buffer_output_not_in_output_operand_aliases(%arg0: memref
   } : (tuple<tuple<memref<2xf32>>, memref<2xf32>>) -> (memref<2xf32>, memref<2xf32>, memref<2xf32>)
   func.return %2#0, %2#1, %2#2 : memref<2xf32>, memref<2xf32>, memref<2xf32>
 }
+
+func.func @all_gather_with_mesh_axes_replica_group(%operand: tensor<16x8xf32>) -> tensor<16x16xf32> {
+  %result = "stablehlo.all_gather"(%operand) {
+    all_gather_dim = 1 : i64,
+    replica_groups = #stablehlo.replica_group_mesh_axes<mesh = @mesh, axes = [0 : i64, 1 : i64]>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<16x8xf32>) -> tensor<16x16xf32>
+  func.return %result : tensor<16x16xf32>
+}

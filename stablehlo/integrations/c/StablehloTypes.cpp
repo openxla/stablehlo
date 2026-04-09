@@ -46,3 +46,24 @@ MlirType stablehloFutureTypeGetType(MlirType type, intptr_t pos) {
   return wrap(
       llvm::cast<mlir::stablehlo::FutureType>(unwrap(type)).getTypes()[pos]);
 }
+
+MlirType stablehloFutureTypeGet(MlirContext ctx, intptr_t nTypes,
+                                MlirType const* types) {
+  llvm::SmallVector<mlir::Type, 4> mlirTypes;
+  return wrap(mlir::stablehlo::FutureType::get(
+      unwrap(ctx), unwrapList(nTypes, types, mlirTypes)));
+}
+
+bool stablehloTypeIsAFuture(MlirType type) {
+  return llvm::isa<mlir::stablehlo::FutureType>(unwrap(type));
+}
+
+intptr_t stablehloFutureTypeGetNumTypes(MlirType type) {
+  return static_cast<intptr_t>(
+      llvm::cast<mlir::stablehlo::FutureType>(unwrap(type)).getTypes().size());
+}
+
+MlirType stablehloFutureTypeGetType(MlirType type, intptr_t pos) {
+  return wrap(
+      llvm::cast<mlir::stablehlo::FutureType>(unwrap(type)).getTypes()[pos]);
+}

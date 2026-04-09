@@ -153,6 +153,18 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
     return isLegalType(typeAttr.getValue(), targetVersion);
   if (auto resultAccuracyAttr = dyn_cast<ResultAccuracyV1Attr>(attr))
     return isLegalAttribute(resultAccuracyAttr.getMode(), targetVersion);
+  if (auto axisRefAttr = dyn_cast<AxisRefV1Attr>(attr)) {
+    return success(
+        succeeded(isLegalAttribute(axisRefAttr.getName(), targetVersion)) &&
+        (!axisRefAttr.getSubAxisInfo() ||
+         succeeded(
+             isLegalAttribute(axisRefAttr.getSubAxisInfo(), targetVersion))));
+  }
+  if (auto meshAxesAttr = dyn_cast<ReplicaGroupMeshAxesV1Attr>(attr)) {
+    return success(
+        succeeded(isLegalAttribute(meshAxesAttr.getMesh(), targetVersion)) &&
+        succeeded(isLegalAttribute(meshAxesAttr.getAxes(), targetVersion)));
+  }
 
   // Is VHLO and valid version, success.
   return success();

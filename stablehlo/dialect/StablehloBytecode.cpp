@@ -193,6 +193,36 @@ enum AttributeCode {
   //   ulps: svarint
   // }
   kResultAccuracyAttr = 17,
+
+  // ReplicaGroupMeshAxesAttr {
+  //   mesh: Attribute
+  //   axes: Attribute[]
+  // }
+  kReplicaGroupMeshAxesAttr = 18,
+
+  // SubAxisInfoAttr {
+  //   preSize: svarint
+  //   size: svarint
+  // }
+  kSubAxisInfoAttr = 19,
+
+  // AxisRefAttr {
+  //   name: string
+  //   subAxisInfo: Attribute (optional)
+  // }
+  kAxisRefAttr = 20,
+
+  // MeshAxisAttr {
+  //   name: string
+  //   size: svarint
+  // }
+  kMeshAxisAttr = 21,
+
+  // MeshAttr {
+  //   axes: Attribute[]
+  //   device_ids: DenseIntElementsAttr (optional)
+  // }
+  kMeshAttr = 22,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -271,6 +301,12 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   TransposeAttr readTransposeAttr(DialectBytecodeReader& reader) const;
   TypeExtensionsAttr readTypeExtensionsAttr(
       DialectBytecodeReader& reader) const;
+  ReplicaGroupMeshAxesAttr readReplicaGroupMeshAxesAttr(
+      DialectBytecodeReader& reader) const;
+  SubAxisInfoAttr readSubAxisInfoAttr(DialectBytecodeReader& reader) const;
+  AxisRefAttr readAxisRefAttr(DialectBytecodeReader& reader) const;
+  MeshAxisAttr readMeshAxisAttr(DialectBytecodeReader& reader) const;
+  MeshAttr readMeshAttr(DialectBytecodeReader& reader) const;
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in StableHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
@@ -294,6 +330,12 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
              DialectBytecodeWriter& writer) const;
   void write(TransposeAttr attr, DialectBytecodeWriter& writer) const;
   void write(TypeExtensionsAttr attr, DialectBytecodeWriter& writer) const;
+  void write(ReplicaGroupMeshAxesAttr attr,
+             DialectBytecodeWriter& writer) const;
+  void write(SubAxisInfoAttr attr, DialectBytecodeWriter& writer) const;
+  void write(AxisRefAttr attr, DialectBytecodeWriter& writer) const;
+  void write(MeshAxisAttr attr, DialectBytecodeWriter& writer) const;
+  void write(MeshAttr attr, DialectBytecodeWriter& writer) const;
 
   //===--------------------------------------------------------------------===//
   // Types
@@ -367,6 +409,16 @@ Attribute StablehloBytecodeInterface::readAttribute(
       return readTransposeAttr(reader);
     case stablehlo_encoding::kTypeExtensionsAttr:
       return readTypeExtensionsAttr(reader);
+    case stablehlo_encoding::kReplicaGroupMeshAxesAttr:
+      return readReplicaGroupMeshAxesAttr(reader);
+    case stablehlo_encoding::kSubAxisInfoAttr:
+      return readSubAxisInfoAttr(reader);
+    case stablehlo_encoding::kAxisRefAttr:
+      return readAxisRefAttr(reader);
+    case stablehlo_encoding::kMeshAxisAttr:
+      return readMeshAxisAttr(reader);
+    case stablehlo_encoding::kMeshAttr:
+      return readMeshAttr(reader);
     default:
       reader.emitError() << "unknown stablehlo attribute code: " << code;
       return Attribute();
@@ -384,11 +436,13 @@ LogicalResult StablehloBytecodeInterface::writeAttribute(
             FftTypeAttr, GatherDimensionNumbersAttr, OutputOperandAliasAttr,
             PrecisionAttr, ResultAccuracyAttr, ResultAccuracyModeAttr,
             RngAlgorithmAttr, RngDistributionAttr, ScatterDimensionNumbersAttr,
-            TransposeAttr, TypeExtensionsAttr>([&](auto attr) {
-        LOG_WRITE_CALL;
-        write(attr, writer);
-        return success();
-      })
+            TransposeAttr, TypeExtensionsAttr, ReplicaGroupMeshAxesAttr,
+            SubAxisInfoAttr, AxisRefAttr, MeshAxisAttr, MeshAttr>(
+          [&](auto attr) {
+            LOG_WRITE_CALL;
+            write(attr, writer);
+            return success();
+          })
       .Default([&](Attribute) {
         LOG_NOT_IMPLEMENTED;
         return failure();
@@ -758,6 +812,162 @@ void StablehloBytecodeInterface::write(TypeExtensionsAttr attr,
                                        DialectBytecodeWriter& writer) const {
   writer.writeVarInt(stablehlo_encoding::kTypeExtensionsAttr);
   writer.writeSignedVarInts(attr.getBounds());
+}
+
+//===----------------------------------------------------------------------===//
+// ReplicaGroupMeshAxesAttr
+
+//===----------------------------------------------------------------------===//
+// SubAxisInfoAttr
+
+SubAxisInfoAttr StablehloBytecodeInterface::readSubAxisInfoAttr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  int64_t preSize, size;
+  if (failed(reader.readSignedVarInt(preSize)) ||
+      failed(reader.readSignedVarInt(size)))
+    return SubAxisInfoAttr();
+  return SubAxisInfoAttr::get(getContext(), preSize, size);
+}
+
+void StablehloBytecodeInterface::write(SubAxisInfoAttr attr,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kSubAxisInfoAttr);
+  writer.writeSignedVarInt(attr.getPreSize());
+  writer.writeSignedVarInt(attr.getSize());
+}
+
+//===----------------------------------------------------------------------===//
+// AxisRefAttr
+
+AxisRefAttr StablehloBytecodeInterface::readAxisRefAttr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  StringRef name;
+  if (failed(reader.readString(name))) return AxisRefAttr();
+  bool hasSubAxisInfo;
+  if (failed(reader.readBool(hasSubAxisInfo))) return AxisRefAttr();
+  SubAxisInfoAttr subAxisInfo;
+  if (hasSubAxisInfo) {
+    Attribute attr;
+    if (failed(reader.readAttribute(attr))) return AxisRefAttr();
+    subAxisInfo = llvm::dyn_cast<SubAxisInfoAttr>(attr);
+    if (!subAxisInfo) return AxisRefAttr();
+  }
+  return AxisRefAttr::get(getContext(), name, subAxisInfo);
+}
+
+void StablehloBytecodeInterface::write(AxisRefAttr attr,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kAxisRefAttr);
+  writer.writeOwnedString(attr.getName());
+  bool hasSubAxisInfo = (bool)attr.getSubAxisInfo();
+  writer.writeOwnedBool(hasSubAxisInfo);
+  if (hasSubAxisInfo) {
+    writer.writeAttribute(attr.getSubAxisInfo());
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// ReplicaGroupMeshAxesAttr
+
+ReplicaGroupMeshAxesAttr
+StablehloBytecodeInterface::readReplicaGroupMeshAxesAttr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  Attribute meshAttr;
+  if (failed(reader.readAttribute(meshAttr))) return ReplicaGroupMeshAxesAttr();
+
+  uint64_t axesSize;
+  if (failed(reader.readVarInt(axesSize))) return ReplicaGroupMeshAxesAttr();
+
+  SmallVector<Attribute> axes;
+  axes.reserve(axesSize);
+  for (uint64_t i = 0; i < axesSize; ++i) {
+    Attribute axis;
+    if (failed(reader.readAttribute(axis))) return ReplicaGroupMeshAxesAttr();
+    axes.push_back(axis);
+  }
+
+  return ReplicaGroupMeshAxesAttr::get(getContext(), meshAttr,
+                                       ArrayAttr::get(getContext(), axes));
+}
+
+void StablehloBytecodeInterface::write(ReplicaGroupMeshAxesAttr attr,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kReplicaGroupMeshAxesAttr);
+  writer.writeAttribute(attr.getMesh());
+
+  auto axes = attr.getAxes();
+  writer.writeVarInt(axes.size());
+  for (auto axis : axes) {
+    writer.writeAttribute(axis);
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// MeshAxisAttr
+
+MeshAxisAttr StablehloBytecodeInterface::readMeshAxisAttr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  StringRef name;
+  int64_t size;
+  if (failed(reader.readString(name)) || failed(reader.readSignedVarInt(size)))
+    return MeshAxisAttr();
+  return MeshAxisAttr::get(getContext(), name, size);
+}
+
+void StablehloBytecodeInterface::write(MeshAxisAttr attr,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kMeshAxisAttr);
+  writer.writeOwnedString(attr.getName());
+  writer.writeSignedVarInt(attr.getSize());
+}
+
+//===----------------------------------------------------------------------===//
+// MeshAttr
+
+MeshAttr StablehloBytecodeInterface::readMeshAttr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  Attribute axesAttr;
+  if (failed(reader.readAttribute(axesAttr))) return MeshAttr();
+  auto axesArrayAttr = llvm::dyn_cast<ArrayAttr>(axesAttr);
+  if (!axesArrayAttr) return MeshAttr();
+
+  SmallVector<stablehlo::MeshAxisAttr> axes;
+  for (auto attr : axesArrayAttr) {
+    auto axisAttr = llvm::dyn_cast<stablehlo::MeshAxisAttr>(attr);
+    if (!axisAttr) return MeshAttr();
+    axes.push_back(axisAttr);
+  }
+
+  bool hasDeviceIds;
+  if (failed(reader.readBool(hasDeviceIds))) return MeshAttr();
+  DenseIntElementsAttr deviceIds;
+  if (hasDeviceIds) {
+    Attribute deviceIdsAttr;
+    if (failed(reader.readAttribute(deviceIdsAttr))) return MeshAttr();
+    deviceIds = llvm::dyn_cast<DenseIntElementsAttr>(deviceIdsAttr);
+    if (!deviceIds) return MeshAttr();
+  }
+
+  return MeshAttr::get(getContext(), axes, deviceIds);
+}
+
+void StablehloBytecodeInterface::write(MeshAttr attr,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kMeshAttr);
+  SmallVector<Attribute> axesAttrs;
+  for (auto axis : attr.getAxes()) axesAttrs.push_back(axis);
+  writer.writeAttribute(ArrayAttr::get(getContext(), axesAttrs));
+
+  bool hasDeviceIds = (bool)attr.getDeviceIds();
+  writer.writeOwnedBool(hasDeviceIds);
+  if (hasDeviceIds) {
+    writer.writeAttribute(attr.getDeviceIds());
+  }
 }
 
 //===----------------------------------------------------------------------===//

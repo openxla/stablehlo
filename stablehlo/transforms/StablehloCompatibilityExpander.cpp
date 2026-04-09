@@ -42,6 +42,7 @@ limitations under the License.
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "stablehlo/dialect/ReplicaGroupUtils.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/transforms/PassUtils.h"  // IWYU pragma: keep
@@ -310,6 +311,67 @@ struct FileLineColRangeToLoc : public OpRewritePattern<ModuleOp> {
   }
 };
 
+// ReplicaGroupMeshAxesExpander handles the conversion of
+// #stablehlo.replica_group_mesh_axes to a dense I64ElementsAttr for target
+// versions that do not support it.
+struct ReplicaGroupMeshAxesExpander : public RewritePattern {
+  ReplicaGroupMeshAxesExpander(MLIRContext* context)
+      : RewritePattern(MatchAnyOpTypeTag(), 1, context) {}
+
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
+    auto replicaGroupsAttr = op->getAttrOfType<Attribute>("replica_groups");
+    if (!replicaGroupsAttr) return failure();
+
+    auto meshAxesAttr = dyn_cast<ReplicaGroupMeshAxesAttr>(replicaGroupsAttr);
+    if (!meshAxesAttr) return failure();
+
+    // Resolve Mesh.
+    auto meshSpec = meshAxesAttr.getMesh();
+    auto meshAttr = llvm::dyn_cast_or_null<stablehlo::MeshAttr>(meshSpec);
+    if (!meshAttr) {
+      auto symbolOp = SymbolTable::lookupNearestSymbolFrom(
+          op, llvm::cast<SymbolRefAttr>(meshSpec));
+      if (!symbolOp) {
+        return op->emitError("Failed to find mesh symbol");
+      }
+      meshAttr = symbolOp->getAttrOfType<stablehlo::MeshAttr>("mesh");
+      if (!meshAttr) {
+        meshAttr =
+            symbolOp->getAttrOfType<stablehlo::MeshAttr>("stablehlo.mesh");
+      }
+      if (!meshAttr) {
+        return op->emitError("Failed to find mesh attribute on symbol");
+      }
+    }
+
+    // Flattening logic.
+    auto commAxes = meshAxesAttr.getAxes();
+    auto groupsOrFailure =
+        flattenReplicaGroupMeshAxes(meshAttr, commAxes, op->getLoc());
+    if (failed(groupsOrFailure)) return failure();
+
+    const auto& groups = groupsOrFailure.value();
+
+    int64_t numGroups = groups.size();
+    int64_t groupSize = groups.empty() ? 0 : groups[0].size();
+
+    // Create the dense attribute.
+    SmallVector<int64_t> flattenedGroups;
+    for (const auto& group : groups) {
+      flattenedGroups.append(group.begin(), group.end());
+    }
+    auto type =
+        RankedTensorType::get({numGroups, groupSize}, rewriter.getI64Type());
+    auto newDenseAttr = DenseIntElementsAttr::get(type, flattenedGroups);
+
+    rewriter.modifyOpInPlace(
+        op, [&] { op->setAttr("replica_groups", newDenseAttr); });
+
+    return success();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Pass
 //===----------------------------------------------------------------------===//
@@ -380,6 +442,10 @@ void populateStablehloCompatibilityExpanderPatterns(
   // incompats.
   if (targetVersion < vhlo::Version(1, 9, 0))
     patterns->add<FileLineColRangeToLoc>(context);
+
+  // StableHLO RGV3 (replica_group_mesh_axes) is introduced in v1.16.0 or later.
+  if (targetVersion < vhlo::Version(1, 16, 0))
+    patterns->add<ReplicaGroupMeshAxesExpander>(context);
 }
 
 }  // namespace stablehlo
