@@ -736,13 +736,13 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name                    | Type                                                                                    | Constraints |
-|-------|-------------------------|-----------------------------------------------------------------------------------------|-------------|
-| (I1)  | `operands`              | variadic number of tensors or per-tensor quantized tensors                              | (C1), (C6)  |
-| (I2)  | `all_gather_dim`        | constant of type `si64`                                                                 | (C1), (C6)  |
-| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` or `ReplicaGroupMeshAxes`             | (C2-C4)     |
-| (I4)  | `channel_id`            | constant of type `si64`                                                                 | (C5)        |
-| (I5)  | `use_global_device_ids` | constant of type `i1`                                                                   | (C5)        |
+| Label | Name                    | Type                                                                   | Constraints |
+|-------|-------------------------|------------------------------------------------------------------------|-------------|
+| (I1)  | `operands`              | variadic number of tensors or per-tensor quantized tensors             | (C1), (C6)  |
+| (I2)  | `all_gather_dim`        | constant of type `si64`                                                | (C1), (C6)  |
+| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` or `ReplicaGroupMeshAxes` | (C2-C4)     |
+| (I4)  | `channel_id`            | constant of type `si64`                                                | (C5)        |
+| (I5)  | `use_global_device_ids` | constant of type `i1`                                                  | (C5)        |
 
 #### Outputs
 
@@ -818,19 +818,19 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name                    | Type                                                                                                        | Constraints |
-|-------|-------------------------|-------------------------------------------------------------------------------------------------------------|-------------|
-| (I1)  | `operands`              | variadic number of tensors or per-tensor quantized tensors                                                  | (C5), (C6)  |
-| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes`             | (C1-C3)     |
-| (I3)  | `channel_id`            | constant of type `si64`                                                                                     | (C4)        |
-| (I4)  | `use_global_device_ids` | constant of type `i1`                                                                                       | (C4)        |
-| (I5)  | `computation`           | function                                                                                                    | (C5)        |
+| Label | Name                    | Type                                                                                       | Constraints |
+|-------|-------------------------|--------------------------------------------------------------------------------------------|-------------|
+| (I1)  | `operands`              | variadic number of tensors or per-tensor quantized tensors                                 | (C5), (C6)  |
+| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes` | (C1-C3)     |
+| (I3)  | `channel_id`            | constant of type `si64`                                                                    | (C4)        |
+| (I4)  | `use_global_device_ids` | constant of type `i1`                                                                      | (C4)        |
+| (I5)  | `computation`           | function                                                                                   | (C5)        |
 
 #### Outputs
 
-| Name      | Type                                                        | Constraints |
-|-----------|-------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors or per-tensor quantized tensors  | (C6-C7)     |
+| Name      | Type                                                       | Constraints |
+|-----------|------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C6-C7)     |
 
 #### Constraints
 
@@ -900,20 +900,20 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name               | Type                                                                                    | Constraints            |
-|-------|--------------------|-----------------------------------------------------------------------------------------|------------------------|
-| (I1)  | `operands`         |  variadic number of tensors or per-tensor quantized tensors                             | (C1-C3), (C9)          |
-| (I2)  | `split_dimension`  | constant of type `si64`                                                                 | (C1), (C2), (C9)       |
-| (I3)  | `concat_dimension` | constant of type `si64`                                                                 | (C3), (C9)             |
-| (I4)  | `split_count`      | constant of type `si64`                                                                 | (C2), (C4), (C8), (C9) |
-| (I5)  | `replica_groups`   | 2-dimensional tensor constant of type `si64` or `ReplicaGroupMeshAxes`             | (C5-C8)                |
-| (I6)  | `channel_id`       | constant of type `si64`                                                                 |                        |
+| Label | Name               | Type                                                                   | Constraints            |
+|-------|--------------------|------------------------------------------------------------------------|------------------------|
+| (I1)  | `operands`         | variadic number of tensors or per-tensor quantized tensors             | (C1-C3), (C9)          |
+| (I2)  | `split_dimension`  | constant of type `si64`                                                | (C1), (C2), (C9)       |
+| (I3)  | `concat_dimension` | constant of type `si64`                                                | (C3), (C9)             |
+| (I4)  | `split_count`      | constant of type `si64`                                                | (C2), (C4), (C8), (C9) |
+| (I5)  | `replica_groups`   | 2-dimensional tensor constant of type `si64` or `ReplicaGroupMeshAxes` | (C5-C8)                |
+| (I6)  | `channel_id`       | constant of type `si64`                                                |                        |
 
 #### Outputs
 
-| Name      | Type                                                        | Constraints |
-|-----------|-------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors or per-tensor quantized tensors  | (C9)        |
+| Name      | Type                                                       | Constraints |
+|-----------|------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C9)        |
 
 #### Constraints
 
@@ -1811,11 +1811,11 @@ Afterwards, `result@process` is given by:
 
 #### Inputs
 
-| Label | Name             | Type                                                                                                        | Constraints |
-|-------|------------------|-------------------------------------------------------------------------------------------------------------|-------------|
-| (I1)  | `operand`        | tensor or per-tensor quantized tensor                                                                       | (C3)        |
-| (I2)  | `replica_groups` | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes`             | (C1), (C2)  |
-| (I3)  | `channel_id`     | constant of type `si64`                                                                                     |             |
+| Label | Name             | Type                                                                                       | Constraints |
+|-------|------------------|--------------------------------------------------------------------------------------------|-------------|
+| (I1)  | `operand`        | tensor or per-tensor quantized tensor                                                      | (C3)        |
+| (I2)  | `replica_groups` | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes` | (C1), (C2)  |
+| (I3)  | `channel_id`     | constant of type `si64`                                                                    |             |
 
 #### Outputs
 
@@ -2550,15 +2550,15 @@ the XLA compiler. In the future, we are planning to unify this metadata
 
 #### Inputs
 
-| Label | Name                     | Type                                                       |
-|-------|--------------------------|------------------------------------------------------------|
-| (I1)  | `inputs`                 | variadic number of values                                  |
-| (I2)  | `call_target_name`       | constant of type `string`                                  |
-| (I3)  | `has_side_effect`        | constant of type `i1`                                      |
-| (I4)  | `backend_config`         | constant of type `string` or attribute dictionary          |
-| (I5)  | `api_version`            | constant of type `si32`                                    |
-| (I6)  | `called_computations`    | variadic number of constants of type `string`              |
-| (I7)  | `output_operand_aliases` | specify the aliasing parts in the outputs and operands     |
+| Label | Name                     | Type                                                   |
+|-------|--------------------------|--------------------------------------------------------|
+| (I1)  | `inputs`                 | variadic number of values                              |
+| (I2)  | `call_target_name`       | constant of type `string`                              |
+| (I3)  | `has_side_effect`        | constant of type `i1`                                  |
+| (I4)  | `backend_config`         | constant of type `string` or attribute dictionary      |
+| (I5)  | `api_version`            | constant of type `si32`                                |
+| (I6)  | `called_computations`    | variadic number of constants of type `string`          |
+| (I7)  | `output_operand_aliases` | specify the aliasing parts in the outputs and operands |
 
 #### Outputs
 
@@ -2912,12 +2912,12 @@ If not specified, all dimensions are assumed to be possibly expanding.
 
 #### Inputs
 
-| Label | Name                             | Type                                          | Constraints            |
-|-------|----------------------------------|-----------------------------------------------|------------------------|
-| (I1)  | `operand`                        | tensor or quantized tensor                    | (C1-C2), (C5-C6), (C9) |
-| (I2)  | `output_dimensions`              | 1-dimensional tensor of integer type          | (C7)                   |
-| (I3)  | `broadcast_dimensions`           | 1-dimensional constant tensor of integer type | (C2-C6)                |
-| (I4)  | `known_expanding_dimensions`     | 1-dimensional constant tensor of integer type | (C8-C9)                |
+| Label | Name                            | Type                                          | Constraints            |
+|-------|---------------------------------|-----------------------------------------------|------------------------|
+| (I1)  | `operand`                       | tensor or quantized tensor                    | (C1-C2), (C5-C6), (C9) |
+| (I2)  | `output_dimensions`             | 1-dimensional tensor of integer type          | (C7)                   |
+| (I3)  | `broadcast_dimensions`          | 1-dimensional constant tensor of integer type | (C2-C6)                |
+| (I4)  | `known_expanding_dimensions`    | 1-dimensional constant tensor of integer type | (C8-C9)                |
 | (I5)  | `known_nonexpanding_dimensions` | 1-dimensional constant tensor of integer type | (C8-C9)                |
 
 #### Outputs
@@ -3949,9 +3949,9 @@ Extracts element at `index` position of the `operand` tuple and produces a
 
 #### Outputs
 
-| Name     | Type                   | Constraints |
-|----------|------------------------|-------------|
-| `result` | any value              | (C2)        |
+| Name     | Type      | Constraints |
+|----------|-----------|-------------|
+| `result` | any value | (C2)        |
 
 #### Constraints
 
@@ -4922,7 +4922,7 @@ separate outputs to improve clarity
 | (I2)  | `channel_id`          | constant of type `si64`                         |               |
 | (I3)  | `channel_type`        | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C5)          |
 | (I4)  | `is_host_transfer`    | constant of type `i1`                           | (C5-C6)       |
-| (I5)  | `source_target_pairs` | 2-dimensional tensor constant of type `si64`    | (C1-C4), (C6)       |
+| (I5)  | `source_target_pairs` | 2-dimensional tensor constant of type `si64`    | (C1-C4), (C6) |
 
 #### Outputs
 
@@ -5124,14 +5124,14 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name                    | Type                                                                                    | Constraints            |
-|-------|-------------------------|-----------------------------------------------------------------------------------------|------------------------|
-| (I1)  | `operand`               | tensor or per-tensor quantized tensor                                                   | (C1), (C2), (C7), (C8) |
-| (I2)  | `scatter_dimension`     | constant of type `si64`                                                                 | (C1), (C2), (C8)       |
-| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` or `ReplicaGroupMeshAxes`             | (C3-C5)                |
-| (I4)  | `channel_id`            | constant of type `si64`                                                                 | (C6)                   |
-| (I5)  | `use_global_device_ids` | constant of type `i1`                                                                   | (C6)                   |
-| (I6)  | `computation`           | function                                                                                | (C7)                   |
+| Label | Name                    | Type                                                                   | Constraints            |
+|-------|-------------------------|------------------------------------------------------------------------|------------------------|
+| (I1)  | `operand`               | tensor or per-tensor quantized tensor                                  | (C1), (C2), (C7), (C8) |
+| (I2)  | `scatter_dimension`     | constant of type `si64`                                                | (C1), (C2), (C8)       |
+| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` or `ReplicaGroupMeshAxes` | (C3-C5)                |
+| (I4)  | `channel_id`            | constant of type `si64`                                                | (C6)                   |
+| (I5)  | `use_global_device_ids` | constant of type `i1`                                                  | (C6)                   |
+| (I6)  | `computation`           | function                                                               | (C7)                   |
 
 #### Outputs
 
@@ -5744,20 +5744,20 @@ undefined.
 
 #### Inputs
 
-| Label | Name                                  | Type                                                       | Constraints                                                |
-|-------|---------------------------------------|------------------------------------------------------------|------------------------------------------------------------|
-| (I1)  | `inputs`                              | variadic number of tensors or per-tensor quantized tensors | (C1), (C2), (C4-C6), (C11), (C13), (C18), (C21), (C23-C24) |
-| (I2)  | `scatter_indices`                     | tensor of integer type                                     | (C4), (C15), (C19), (C22)                                  |
-| (I3)  | `updates`                             | variadic number of tensors or per-tensor quantized tensors | (C3-C6), (C8)                                              |
-| (I4)  | `update_window_dims`                  | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C7-C8)                                        |
-| (I5)  | `inserted_window_dims`                | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9-C11)                                       |
-| (I6)  | `input_batching_dims`                 | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9), (C12-13), (C17-18), (C20)                |
-| (I7)  | `scatter_indices_batching_dims`       | 1-dimensional tensor constant of type `si64`               | (C14-C18)                                                  |
-| (I8)  | `scatter_dims_to_operand_dims`        | 1-dimensional tensor constant of type `si64`               | (C19-C21)                                                  |
-| (I9)  | `index_vector_dim`                    | constant of type `si64`                                    | (C4), (C16), (C19), (C22)                                  |
-| (I10) | `indices_are_sorted`                  | constant of type `i1`                                      |                                                            |
-| (I11) | `unique_indices`                      | constant of type `i1`                                      |                                                            |
-| (I12) | `update_computation`                  | function                                                   | (C23)                                                      |
+| Label | Name                            | Type                                                       | Constraints                                                |
+|-------|---------------------------------|------------------------------------------------------------|------------------------------------------------------------|
+| (I1)  | `inputs`                        | variadic number of tensors or per-tensor quantized tensors | (C1), (C2), (C4-C6), (C11), (C13), (C18), (C21), (C23-C24) |
+| (I2)  | `scatter_indices`               | tensor of integer type                                     | (C4), (C15), (C19), (C22)                                  |
+| (I3)  | `updates`                       | variadic number of tensors or per-tensor quantized tensors | (C3-C6), (C8)                                              |
+| (I4)  | `update_window_dims`            | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C7-C8)                                        |
+| (I5)  | `inserted_window_dims`          | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9-C11)                                       |
+| (I6)  | `input_batching_dims`           | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9), (C12-13), (C17-18), (C20)                |
+| (I7)  | `scatter_indices_batching_dims` | 1-dimensional tensor constant of type `si64`               | (C14-C18)                                                  |
+| (I8)  | `scatter_dims_to_operand_dims`  | 1-dimensional tensor constant of type `si64`               | (C19-C21)                                                  |
+| (I9)  | `index_vector_dim`              | constant of type `si64`                                    | (C4), (C16), (C19), (C22)                                  |
+| (I10) | `indices_are_sorted`            | constant of type `i1`                                      |                                                            |
+| (I11) | `unique_indices`                | constant of type `i1`                                      |                                                            |
+| (I12) | `update_computation`            | function                                                   | (C23)                                                      |
 
 #### Outputs
 
@@ -6861,17 +6861,17 @@ The behavior of an infinite loop is TBD
 
 #### Inputs
 
-| Label | Name      | Type                                    | Constraints |
-|-------|-----------|-----------------------------------------|-------------|
-| (I1)  | `operand` | variadic number of values               | (C1-C3)     |
-| (I2)  | `cond`    | function                                | (C1)        |
-| (I3)  | `body`    | function                                | (C2)        |
+| Label | Name      | Type                      | Constraints |
+|-------|-----------|---------------------------|-------------|
+| (I1)  | `operand` | variadic number of values | (C1-C3)     |
+| (I2)  | `cond`    | function                  | (C1)        |
+| (I3)  | `body`    | function                  | (C2)        |
 
 #### Outputs
 
-| Name      | Type                                            | Constraints |
-|-----------|-------------------------------------------------|-------------|
-| `results` | variadic number of values                       | (C3)        |
+| Name      | Type                      | Constraints |
+|-----------|---------------------------|-------------|
+| `results` | variadic number of values | (C3)        |
 
 #### Constraints
 
