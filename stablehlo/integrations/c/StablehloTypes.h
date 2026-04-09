@@ -27,6 +27,21 @@ MLIR_CAPI_EXPORTED MlirType stablehloTokenTypeGet(MlirContext ctx);
 // Returns true if the type is a token type.
 MLIR_CAPI_EXPORTED bool stablehloTypeIsAToken(MlirType type);
 
+// Creates a future type with the given element types.
+MLIR_CAPI_EXPORTED MlirType stablehloFutureTypeGet(MlirContext ctx,
+                                                   intptr_t nTypes,
+                                                   MlirType const* types);
+
+// Returns true if the type is a future type.
+MLIR_CAPI_EXPORTED bool stablehloTypeIsAFuture(MlirType type);
+
+// Returns the number of element types in the future type.
+MLIR_CAPI_EXPORTED intptr_t stablehloFutureTypeGetNumTypes(MlirType type);
+
+// Returns the pos-th element type in the future type.
+MLIR_CAPI_EXPORTED MlirType stablehloFutureTypeGetType(MlirType type,
+                                                       intptr_t pos);
+
 #ifdef __cplusplus
 }
 #endif
