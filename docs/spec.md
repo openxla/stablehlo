@@ -7224,7 +7224,8 @@ A `SubAxisInfo` defines how this sub-axis is derived from the full axis.
 #### cross_replica
 
 Only cross-replica communications happen within each process group. This
-strategy takes `replica_groups` and computes a Cartesian product of `replica_groups` by `partition_ids`. `replica_groups`
+strategy takes `replica_groups` and computes a Cartesian product of
+`replica_groups` by `partition_ids`. `replica_groups`
 must have unique elements and cover all `replica_ids`. More formally, using
 Python syntax:
 
@@ -7267,7 +7268,8 @@ For example, for `partition_groups = [[0, 1]]` and `num_replicas = 4`,
 #### cross_replica_and_partition
 
 Both cross-replica and cross-partition communications may happen within each
-process group. This strategy takes `replica_groups` and computes Cartesian products of each `replica_group` by
+process group. This strategy takes `replica_groups` and computes Cartesian
+products of each `replica_group` by
 `partition_ids`. `replica_groups` must have unique elements and cover all
 `replica_ids`. More formally, using Python syntax:
 
