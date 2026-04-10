@@ -143,6 +143,7 @@ add_mlir_library(StablehloReferenceOps
   MLIRInferTypeOpInterface
   StablehloBase
   StablehloOps
+  StablehloReplicaGroupUtils
   StablehloReferenceAxes
   StablehloReferenceElement
   StablehloReferenceScope
