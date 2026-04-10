@@ -51,6 +51,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/ReplicaGroupUtils.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/reference/Axes.h"
@@ -224,19 +225,54 @@ DenseIntElementsAttr getDenseIntElementsAttr(Type elementType, T values,
       RankedTensorType::get(valuesShape, elementType), values);
 }
 
-SmallVector<SmallVector<uint32_t>> getReplicaGroups(
-    DenseIntElementsAttr replicaGroupsAttr) {
-  auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
-  SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
-  auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
-  for (auto& replicaGroup : replicaGroups) {
-    for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt) {
-      auto replicaId = *replicaGroupsIt;
-      if (replicaId == -1) continue;
-      replicaGroup.push_back(replicaId);
+SmallVector<SmallVector<uint32_t>> getReplicaGroups(Attribute replicaGroupsAttr,
+                                                    Operation* op) {
+  if (auto denseAttr =
+          llvm::dyn_cast_or_null<DenseIntElementsAttr>(replicaGroupsAttr)) {
+    auto replicaGroupsShape = denseAttr.getShapedType().getShape();
+    SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
+    auto replicaGroupsIt = denseAttr.getValues<int64_t>().begin();
+    for (auto& replicaGroup : replicaGroups) {
+      for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt) {
+        auto replicaId = *replicaGroupsIt;
+        if (replicaId == -1) continue;
+        replicaGroup.push_back(replicaId);
+      }
     }
+    return replicaGroups;
   }
-  return replicaGroups;
+  if (auto meshAxesAttr =
+          llvm::dyn_cast_or_null<ReplicaGroupMeshAxesAttr>(replicaGroupsAttr)) {
+    auto meshSpec = meshAxesAttr.getMesh();
+    auto meshAttr = llvm::dyn_cast_or_null<stablehlo::MeshAttr>(meshSpec);
+    if (!meshAttr) {
+      auto symbolOp = SymbolTable::lookupNearestSymbolFrom(
+          op, llvm::cast<SymbolRefAttr>(meshSpec));
+      if (!symbolOp) {
+        llvm::report_fatal_error("Failed to find mesh symbol");
+      }
+      meshAttr = symbolOp->getAttrOfType<stablehlo::MeshAttr>("mesh");
+      if (!meshAttr) {
+        meshAttr =
+            symbolOp->getAttrOfType<stablehlo::MeshAttr>("stablehlo.mesh");
+      }
+      if (!meshAttr) {
+        llvm::report_fatal_error("Failed to find mesh attribute on symbol");
+      }
+    }
+    auto groupsOrFailure = flattenReplicaGroupMeshAxes(
+        meshAttr, meshAxesAttr.getAxes(), op->getLoc());
+    if (failed(groupsOrFailure)) {
+      llvm::report_fatal_error("Failed to flatten replica group mesh axes");
+    }
+
+    SmallVector<SmallVector<uint32_t>> u32Groups;
+    for (const auto& group : groupsOrFailure.value()) {
+      u32Groups.push_back(SmallVector<uint32_t>(group.begin(), group.end()));
+    }
+    return u32Groups;
+  }
+  return {};
 }
 
 Tensor convolutionOp(
@@ -383,13 +419,8 @@ SmallVector<InterpreterValue> eval(Region& region,
     } else if (auto op = dyn_cast<AllGatherOp>(operation)) {
       auto operands = scope.findTensors(op.getOperands());
 
-      auto replicaGroupsAttr = op.getReplicaGroups();
-      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
-      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
-      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
-      for (auto& replicaGroup : replicaGroups)
-        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt)
-          replicaGroup.push_back(*replicaGroupsIt);
+      SmallVector<SmallVector<uint32_t>> replicaGroups =
+          getReplicaGroups(op.getReplicaGroups(), op);
 
       ChannelId channelId = 0;
       if (auto channelHandle = op.getChannelHandle())
@@ -402,7 +433,8 @@ SmallVector<InterpreterValue> eval(Region& region,
       scope.add(op.getResults(), results);
     } else if (auto op = dyn_cast<AllReduceOp>(operation)) {
       auto operands = scope.findTensors(op.getOperands());
-      auto replicaGroups = getReplicaGroups(op.getReplicaGroups());
+      SmallVector<SmallVector<uint32_t>> replicaGroups =
+          getReplicaGroups(op.getReplicaGroups(), op);
 
       ChannelId channelId = 0;
       if (auto channelHandle = op.getChannelHandle())
@@ -415,13 +447,8 @@ SmallVector<InterpreterValue> eval(Region& region,
       scope.add(op.getResults(), results);
     } else if (auto op = dyn_cast<AllToAllOp>(operation)) {
       auto operands = scope.findTensors(op.getOperands());
-      auto replicaGroupsAttr = op.getReplicaGroups();
-      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
-      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
-      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
-      for (auto& replicaGroup : replicaGroups)
-        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt)
-          replicaGroup.push_back(*replicaGroupsIt);
+      SmallVector<SmallVector<uint32_t>> replicaGroups =
+          getReplicaGroups(op.getReplicaGroups(), op);
 
       ChannelId channelId = 0;
       if (auto channelHandle = op.getChannelHandle())
@@ -493,13 +520,8 @@ SmallVector<InterpreterValue> eval(Region& region,
     } else if (auto op = dyn_cast<CollectiveBroadcastOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
 
-      auto replicaGroupsAttr = op.getReplicaGroups();
-      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
-      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
-      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
-      for (auto& replicaGroup : replicaGroups)
-        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt)
-          replicaGroup.push_back(*replicaGroupsIt);
+      SmallVector<SmallVector<uint32_t>> replicaGroups =
+          getReplicaGroups(op.getReplicaGroups(), op);
 
       ChannelId channelId = 0;
       if (auto channelHandle = op.getChannelHandle())
@@ -892,7 +914,8 @@ SmallVector<InterpreterValue> eval(Region& region,
     } else if (auto op = dyn_cast<ReduceScatterOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       int64_t scatterDimension = op.getScatterDimension();
-      auto replicaGroups = getReplicaGroups(op.getReplicaGroups());
+      SmallVector<SmallVector<uint32_t>> replicaGroups =
+          getReplicaGroups(op.getReplicaGroups(), op);
 
       ChannelId channelId = 0;
       if (auto channelHandle = op.getChannelHandle())

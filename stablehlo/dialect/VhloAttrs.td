@@ -195,4 +195,46 @@ def VHLO_ResultAccuracyAttrV1 : VHLO_AttrDef<"ResultAccuracyV1", "1.9.0", "curre
   }];
 }
 
+def VHLO_SubAxisInfoV1Attr : VHLO_AttrDef<"SubAxisInfoV1", "1.16.0", "current"> {
+  let mnemonic = "sub_axis_info_v1";
+  let parameters = (ins "int64_t":$pre_size, "int64_t":$size);
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+def VHLO_AxisRefV1Attr : VHLO_AttrDef<"AxisRefV1", "1.16.0", "current"> {
+  let mnemonic = "axis_ref_v1";
+  let parameters = (ins
+    "mlir::Attribute":$name,
+    OptionalParameter<"mlir::Attribute">:$sub_axis_info
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+def VHLO_ReplicaGroupMeshAxesV1Attr : VHLO_AttrDef<"ReplicaGroupMeshAxesV1", "1.16.0", "current"> {
+  let mnemonic = "replica_group_mesh_axes_v1";
+  let parameters = (ins
+    "mlir::Attribute":$mesh,
+    "mlir::Attribute":$axes
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+def VHLO_MeshAxisV1Attr : VHLO_AttrDef<"MeshAxisV1", "1.16.0", "current"> {
+  let mnemonic = "mesh_axis_v1";
+  let parameters = (ins
+    "mlir::Attribute":$name,
+    "int64_t":$size
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+def VHLO_MeshV1Attr : VHLO_AttrDef<"MeshV1", "1.16.0", "current"> {
+  let mnemonic = "mesh_v1";
+  let parameters = (ins
+    "mlir::Attribute":$axes,
+    OptionalParameter<"mlir::Attribute">:$device_ids
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
 #endif // STABLEHLO_DIALECT_VHLO_ATTRS

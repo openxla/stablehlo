@@ -175,6 +175,62 @@ Attribute convertGeneric(Attribute stablehloAttr,
                                            attr.getRtol(), attr.getUlps(),
                                            modeAttr);
   }
+  if (auto attr = dyn_cast<stablehlo::SubAxisInfoAttr>(stablehloAttr)) {
+    return vhlo::SubAxisInfoV1Attr::get(attr.getContext(), attr.getPreSize(),
+                                        attr.getSize());
+  }
+  if (auto attr = dyn_cast<stablehlo::AxisRefAttr>(stablehloAttr)) {
+    auto vhloName = convertGeneric(
+        StringAttr::get(attr.getContext(), attr.getName()), typeConverter);
+    auto vhloSubAxisInfo =
+        attr.getSubAxisInfo()
+            ? convertGeneric(attr.getSubAxisInfo(), typeConverter)
+            : Attribute();
+    return vhlo::AxisRefV1Attr::get(attr.getContext(), vhloName,
+                                    vhloSubAxisInfo);
+  }
+  if (auto attr = dyn_cast<stablehlo::MeshAxisAttr>(stablehloAttr)) {
+    auto vhloName = convertGeneric(
+        StringAttr::get(attr.getContext(), attr.getName()), typeConverter);
+    return vhlo::MeshAxisV1Attr::get(attr.getContext(), vhloName,
+                                     attr.getSize());
+  }
+  if (auto attr = dyn_cast<stablehlo::MeshAttr>(stablehloAttr)) {
+    SmallVector<Attribute> vhloAxesAttrs;
+    for (auto axis : attr.getAxes()) {
+      auto vhloAxis = convertGeneric(axis, typeConverter);
+      if (!vhloAxis) return {};
+      vhloAxesAttrs.push_back(vhloAxis);
+    }
+    auto vhloAxes = vhlo::ArrayV1Attr::get(attr.getContext(), vhloAxesAttrs);
+    auto vhloDeviceIds =
+        attr.getDeviceIds() ? convertGeneric(attr.getDeviceIds(), typeConverter)
+                            : Attribute();
+    return vhlo::MeshV1Attr::get(attr.getContext(), vhloAxes, vhloDeviceIds);
+  }
+  if (auto attr =
+          dyn_cast<stablehlo::ReplicaGroupMeshAxesAttr>(stablehloAttr)) {
+    Attribute vhloMesh;
+    if (auto symbolRef = dyn_cast<FlatSymbolRefAttr>(attr.getMesh())) {
+      vhloMesh =
+          vhlo::StringV1Attr::get(attr.getContext(), symbolRef.getValue());
+    } else {
+      vhloMesh = convertGeneric(attr.getMesh(), typeConverter);
+    }
+    if (!vhloMesh) return {};
+
+    SmallVector<Attribute> vhloAxesAttrs;
+    for (auto axis : attr.getAxes()) {
+      auto vhloAxis = convertGeneric(axis, typeConverter);
+      if (!vhloAxis) return {};
+      vhloAxesAttrs.push_back(vhloAxis);
+    }
+    auto vhloAxes = vhlo::ArrayV1Attr::get(attr.getContext(), vhloAxesAttrs);
+
+    return vhlo::ReplicaGroupMeshAxesV1Attr::get(attr.getContext(), vhloMesh,
+                                                 vhloAxes);
+  }
+
   if (llvm::isa<stablehlo::StablehloDialect>(stablehloAttr.getDialect())) {
     // All StableHLO attributes must have counterparts in VHLO.
     return {};

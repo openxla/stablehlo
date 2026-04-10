@@ -94,7 +94,7 @@ SmallVector<int64_t> inferWindowOutputShape(ArrayRef<int64_t> baseShape,
                                             ArrayRef<WindowDimension> window);
 
 LogicalResult verifyReplicaGroups(std::optional<Location> location,
-                                  DenseIntElementsAttr replicaGroups,
+                                  Attribute replicaGroups,
                                   bool allGroupsMustHaveSameSize,
                                   bool useGlobalDeviceIds,
                                   std::optional<size_t> expectedGroupSize);
@@ -134,7 +134,7 @@ LogicalResult inferAfterAllOp(HloDialectInterface* dialect,
 LogicalResult inferAllToAllOp(
     std::optional<Location> location, ValueRange operands,
     int64_t splitDimension, int64_t concatDimension, int64_t splitCount,
-    DenseIntElementsAttr replicaGroups,
+    Attribute replicaGroups,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferAllReduceOp(
@@ -426,13 +426,11 @@ LogicalResult verifyAddOp(std::optional<Location> location, Operation* op,
 
 LogicalResult verifyAllGatherOp(std::optional<Location> location,
                                 ValueRange operands, int64_t allGatherDim,
-                                DenseIntElementsAttr replicaGroups,
-                                int64_t channelId, bool useGlobalDeviceIds,
-                                ValueRange results);
+                                Attribute replicaGroups, int64_t channelId,
+                                bool useGlobalDeviceIds, ValueRange results);
 
 LogicalResult verifyAllReduceOp(std::optional<Location> location,
-                                ValueRange operands,
-                                DenseIntElementsAttr replicaGroups,
+                                ValueRange operands, Attribute replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
                                 Region& computation);
 
@@ -445,7 +443,7 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                                      Value result);
 
 LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
-                                          DenseIntElementsAttr replicaGroups);
+                                          Attribute replicaGroups);
 
 LogicalResult verifyCollectivePermuteOp(std::optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
@@ -549,8 +547,8 @@ LogicalResult verifyReduceOpInputsAndInferShape(
 
 LogicalResult verifyReduceScatterOp(std::optional<Location> location,
                                     Value operand, int64_t scatterDimension,
-                                    DenseIntElementsAttr replicaGroups,
-                                    int64_t channelId, bool useGlobalDeviceIds,
+                                    Attribute replicaGroups, int64_t channelId,
+                                    bool useGlobalDeviceIds,
                                     Region& computation, Value result);
 
 LogicalResult verifyReduceWindowOp(

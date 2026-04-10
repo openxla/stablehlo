@@ -44,6 +44,16 @@ add_mlir_library(StablehloBroadcastUtils
   MLIRSupport
 )
 
+add_mlir_dialect_library(StablehloReplicaGroupUtils
+  PARTIAL_SOURCES_INTENDED
+  ReplicaGroupUtils.cpp
+
+  LINK_LIBS PUBLIC
+  StablehloOps
+  MLIRIR
+  MLIRSupport
+)
+
 set(LLVM_TARGET_DEFINITIONS ChloOps.td)
 mlir_tablegen(ChloOps.h.inc -gen-op-decls)
 mlir_tablegen(ChloOps.cpp.inc -gen-op-defs)

@@ -561,3 +561,25 @@ func.func @scatter_batching_dim_dynamic_scatter_indices(%arg0: tensor<?x2x4x7x9x
   }) : (tensor<?x2x4x7x9xi32>, tensor<4x?x5x2xi32>, tensor<4x?x5x8xi32>) -> tensor<?x2x4x7x9xi32>
   func.return %0 : tensor<?x2x4x7x9xi32>
 }
+
+// -----
+
+
+// CHECK-LABEL: @all_reduce_mesh_axes_expansion
+func.func @all_reduce_mesh_axes_expansion(%arg0: tensor<4xf32>) -> tensor<4xf32> {
+  // CHECK: %{{.*}} = "stablehlo.all_reduce"(%arg0) <{
+  // CHECK-SAME{LITERAL}: replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  // CHECK-SAME: }>
+  %0 = "stablehlo.all_reduce"(%arg0) <{
+    replica_groups = #stablehlo.replica_group_mesh_axes<
+      mesh = #stablehlo.mesh<axes = [#stablehlo.mesh_axis<name = "x", size = 2>]>,
+      axes = [#stablehlo.axis_ref<name = "x">]
+    >
+  }> ({
+  ^bb0(%arg1: tensor<f32>, %arg2: tensor<f32>):
+    %1 = stablehlo.add %arg1, %arg2 : tensor<f32>
+    stablehlo.return %1 : tensor<f32>
+  }) : (tensor<4xf32>) -> tensor<4xf32>
+  return %0 : tensor<4xf32>
+}
+

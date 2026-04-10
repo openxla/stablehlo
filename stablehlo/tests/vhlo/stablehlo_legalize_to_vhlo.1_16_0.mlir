@@ -1,11 +1,10 @@
-// REQUIRES: asserts
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
-// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
-// RUN: stablehlo-opt %s > %t.1
+// RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=1.16.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-opt > %t.0
+// RUN: stablehlo-opt --strip-debuginfo %s > %t.1
 // RUN: diff %t.0 %t.1
-// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-opt --pass-pipeline='builtin.module(stablehlo-deserialize)' > %t.0
-// RUN: stablehlo-opt %s > %t.1
-// RUN: diff %t.0 %t.1
+// RUN: stablehlo-translate --serialize --target=1.16.0 --strip-debuginfo %s > %t.2
+// RUN: diff %s.bc %t.2
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
 
@@ -487,31 +486,6 @@ func.func @default_all_reduce(%arg0: tensor<f32>) -> tensor<f32> {
   } : (tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
-
-// CHECK-LABEL: "attr_replica_group_mesh_axes"
-func.func @attr_replica_group_mesh_axes(%arg0: tensor<f32>) -> tensor<f32> {
-  // CHECK: "vhlo.all_reduce_v2"
-  // CHECK-SAME: replica_groups = #vhlo.replica_group_mesh_axes_v1<
-  // CHECK-SAME:   mesh = #vhlo.string_v1<"mesh">,
-  // CHECK-SAME:   axes = #vhlo.array_v1<[#vhlo.axis_ref_v1<name = #vhlo.string_v1<"x">, sub_axis_info = #vhlo.sub_axis_info_v1<pre_size = 1, size = 2>>, #vhlo.axis_ref_v1<name = #vhlo.string_v1<"y">>]>
-  // CHECK-SAME: >
-  %0 = "stablehlo.all_reduce"(%arg0) ({
-    ^bb0(%arg1: tensor<f32>, %arg2: tensor<f32>):
-      %1 = "stablehlo.add"(%arg1, %arg2) : (tensor<f32>, tensor<f32>) -> tensor<f32>
-      "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {
-    replica_groups = #stablehlo.replica_group_mesh_axes<
-      mesh = @mesh,
-      axes = [
-        #stablehlo.axis_ref<name = "x", sub_axis_info = (1)2>,
-        #stablehlo.axis_ref<name = "y">
-      ]
-    >
-  } : (tensor<f32>) -> tensor<f32>
-  func.return %0 : tensor<f32>
-}
-
-
 
 // CHECK-LABEL: "default_all_to_all"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
@@ -3253,4 +3227,27 @@ func.func @op_async_done(%arg0: tensor<4x4xf32>) -> tensor<4x4xf32> {
 
 func.func @composite_target(%arg0: tensor<f32>) -> tensor<f32> {
   return %arg0: tensor<f32>
+}
+
+// CHECK-LABEL: "attr_replica_group_mesh_axes"
+func.func @attr_replica_group_mesh_axes(%arg0: tensor<f32>) -> tensor<f32> {
+  // CHECK: "vhlo.all_reduce_v2"
+  // CHECK-SAME: replica_groups = #vhlo.replica_group_mesh_axes_v1<
+  // CHECK-SAME:   mesh = #vhlo.string_v1<"mesh">,
+  // CHECK-SAME:   axes = #vhlo.array_v1<[#vhlo.axis_ref_v1<name = #vhlo.string_v1<"x">, sub_axis_info = #vhlo.sub_axis_info_v1<pre_size = 1, size = 2>>, #vhlo.axis_ref_v1<name = #vhlo.string_v1<"y">>]>
+  // CHECK-SAME: >
+  %0 = "stablehlo.all_reduce"(%arg0) ({
+    ^bb0(%arg1: tensor<f32>, %arg2: tensor<f32>):
+      %1 = "stablehlo.add"(%arg1, %arg2) : (tensor<f32>, tensor<f32>) -> tensor<f32>
+      "stablehlo.return"(%1) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = #stablehlo.replica_group_mesh_axes<
+      mesh = @mesh,
+      axes = [
+        #stablehlo.axis_ref<name = "x", sub_axis_info = (1)2>,
+        #stablehlo.axis_ref<name = "y">
+      ]
+    >
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
 }
