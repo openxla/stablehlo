@@ -167,14 +167,19 @@ if(STABLEHLO_ENABLE_SPLIT_DWARF)
     endif()
 endif()
 
-#TODO: Where should these be?
+# This is the typical out-of-tree configuration sequence, see
+# https://llvm.org/docs/CMake.html#embedding-llvm-in-your-project.
+# These lines just need tobe positioned after the find_package({MLIR,LLVM})
+# calls and prior to any new targets being defined.
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
-add_definitions(${LLVM_DEFINITIONS})
-
+# Note LLVM_DEFINITIONS needs to be transformed into semicolon-separated list.
+# LLVM defines it as a space-separated list.
+separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+add_definitions(${LLVM_DEFINITIONS_LIST})
 
 #-------------------------------------------------------------------------------
 # Sanitizer configuration
