@@ -24,7 +24,6 @@
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/Builders.h"
@@ -506,12 +505,16 @@ struct DynamicIotaOpToBroadcast
 
     Value iotaShape = iota.getOutputShape();
     auto iotaShapeType = cast<ShapedType>(iotaShape.getType());
+    if (iotaShapeType.getElementType().isIndex())
+      return rewriter.notifyMatchFailure(
+          iota, "index-typed shapes not supported; run "
+                "shape-legalize-to-stablehlo first");
+
     auto iotaShapeI64Type =
         RankedTensorType::get(iotaShapeType.getShape(), rewriter.getI64Type());
     Value iotaShapeI64;
-    if (iotaShapeType.getElementType().isIndex()) {
-      iotaShapeI64 = arith::IndexCastOp::create(rewriter, iotaLoc,
-                                                iotaShapeI64Type, iotaShape);
+    if (iotaShapeType.getElementType().isInteger(64)) {
+      iotaShapeI64 = iotaShape;
     } else {
       iotaShapeI64 = stablehlo::ConvertOp::create(rewriter, iotaLoc,
                                                   iotaShapeI64Type, iotaShape);
@@ -1268,6 +1271,55 @@ struct SliceOpConcatSimplify : public SimplifyOpRewritePattern<SliceOp> {
 };
 
 //////////////////////////////////
+// ScatterOp
+/////////////////////////////////
+
+// Pattern: scatter(inputs, indices, updates) -> inputs
+//   [when scatter_indices has 0 scatter points]
+struct ScatterOpEmptyIndices : public SimplifyOpRewritePattern<ScatterOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOp op,
+                                PatternRewriter& rewriter) const override {
+    auto indicesType = cast<ShapedType>(op.getScatterIndices().getType());
+    if (!indicesType.hasStaticShape()) return failure();
+
+    auto scatterDimNums = op.getScatterDimensionNumbers();
+    int64_t indexVectorDim = scatterDimNums.getIndexVectorDim();
+
+    bool hasZeroScatterPoints = false;
+    for (int64_t i = 0; i < indicesType.getRank(); ++i) {
+      if (i != indexVectorDim && indicesType.getDimSize(i) == 0) {
+        hasZeroScatterPoints = true;
+        break;
+      }
+    }
+    if (!hasZeroScatterPoints) return failure();
+
+    rewriter.replaceOp(op, op.getInputs());
+    return success();
+  }
+};
+
+// Pattern: scatter(inputs, indices, updates) -> inputs
+//   [when all updates have zero extent]
+struct ScatterOpZeroExtentUpdates : public SimplifyOpRewritePattern<ScatterOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOp op,
+                                PatternRewriter& rewriter) const override {
+    bool allZeroExtent = llvm::all_of(op.getUpdates(), [](Value update) {
+      auto type = cast<ShapedType>(update.getType());
+      return type.hasStaticShape() && type.getNumElements() == 0;
+    });
+    if (!allZeroExtent) return failure();
+
+    rewriter.replaceOp(op, op.getInputs());
+    return success();
+  }
+};
+
+//////////////////////////////////
 // SortOp
 /////////////////////////////////
 
@@ -1670,6 +1722,7 @@ void populateStablehloCanonicalizationPatterns(
       GatherOpCanon, IotaOpBroadcast, PadOpBroadcastEmptyTensor,
       RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
       ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon, SelectOpCanon,
+      ScatterOpEmptyIndices, ScatterOpZeroExtentUpdates,
       SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
       TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
       context, options, benefit);
