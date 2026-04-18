@@ -364,12 +364,15 @@ TensorV1Attr getEmptyI64Tensor(OpBuilder& builder) {
   auto shape = vhlo::RankedTensorV1Type::get(
       builder.getContext(), {0},
       vhlo::IntegerSI64V1Type::get(builder.getContext()), {});
-  return vhlo::TensorV1Attr::get(builder.getContext(), shape, {});
+  auto denseElements = DenseIntElementsAttr::get(
+      RankedTensorType::get({0}, builder.getI64Type()),
+      llvm::ArrayRef<int64_t>{});
+  return vhlo::TensorV1Attr::get(builder.getContext(), shape, denseElements);
 }
 
 bool isEmptyTensor(Attribute attr) {
   auto tensor = dyn_cast<TensorV1Attr>(attr);
-  if (tensor) return tensor.getData().empty();
+  if (tensor) return tensor.getData().getRawData().empty();
   return false;
 }
 
@@ -400,7 +403,7 @@ TensorV1Attr getDefaultConvPadding(OpBuilder& builder, Value lhs) {
       RankedTensorV1Type::get(builder.getContext(), paddingShape,
                               IntegerSI64V1Type::get(builder.getContext()),
                               nullptr),
-      denseElements.getRawData());
+      denseElements);
 }
 
 bool isDefaultResultAccuracy(Attribute attr) {

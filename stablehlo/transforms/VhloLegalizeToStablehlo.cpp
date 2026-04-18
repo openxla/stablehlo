@@ -173,8 +173,7 @@ Attribute convertGeneric(Attribute vhloAttr,
     auto builtinType =
         cast<ShapedType>(typeConverter->convertType(attr.getType()));
     if (!builtinType) return {};
-    return DenseTypedElementsAttr::getFromRawBuffer(builtinType,
-                                                    attr.getData());
+    return attr.getData();
   }
   if (auto attr = dyn_cast<vhlo::TransposeV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
@@ -619,7 +618,8 @@ SpecialResult convertDenseArray(const vhlo::VhloTypeConverter* typeConverter,
       typeConverter->convertType(tensorAttr.getType()));
   if (!type) return specialFailure();
 
-  auto elems = DenseElementsAttr::getFromRawBuffer(type, tensorAttr.getData());
+  auto elems = DenseElementsAttr::getFromRawBuffer(
+      type, tensorAttr.getData().getRawData());
 
   stablehloAttrs.emplace_back(
       vhloName, DenseArrayAttr::get(vhloAttr.getContext(),
@@ -806,7 +806,7 @@ bool isEmptyString(Attribute vhloAttr) {
 
 bool isEmptyTensor(Attribute vhloAttr) {
   auto attr = dyn_cast_or_null<vhlo::TensorV1Attr>(vhloAttr);
-  return attr && attr.getData().empty();
+  return attr && attr.getData().getRawData().empty();
 }
 
 bool isEnum(Attribute vhloAttr, Attribute value) { return vhloAttr == value; }
