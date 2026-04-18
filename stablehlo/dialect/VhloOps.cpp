@@ -185,12 +185,7 @@ ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
 }
 
 void TensorV1Attr::print(mlir::AsmPrinter& odsPrinter) const {
-  odsPrinter << '<'
-             << DenseTypedElementsAttr::getFromRawBuffer(
-                    llvm::cast<ShapedType>(
-                        convertTypeToBuiltinForPrint(getType())),
-                    getData())
-             << '>';
+  odsPrinter << '<' << getData() << '>';
 }
 
 // Parse tensor elements using DenseTypedElementsAttr printing.
@@ -202,7 +197,7 @@ Attribute TensorV1Attr::parse(AsmParser& parser, mlir::Type) {
   }
   return TensorV1Attr::get(parser.getContext(),
                            convertTypeToVhloForParse(attr.getType()),
-                           attr.getRawData());
+                           attr);
 }
 
 void printEscapedString(AsmPrinter& p, llvm::StringRef value) {
