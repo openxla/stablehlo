@@ -618,7 +618,8 @@ SpecialResult convertDenseArray(const vhlo::VhloTypeConverter* typeConverter,
       typeConverter->convertType(tensorAttr.getType()));
   if (!type) return specialFailure();
 
-  auto elems = DenseElementsAttr::getFromRawBuffer(type, tensorAttr.getData().getRawData());
+  auto elems = DenseElementsAttr::getFromRawBuffer(
+      type, tensorAttr.getData().getRawData());
 
   stablehloAttrs.emplace_back(
       vhloName, DenseArrayAttr::get(vhloAttr.getContext(),

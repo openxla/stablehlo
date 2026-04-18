@@ -196,8 +196,7 @@ Attribute TensorV1Attr::parse(AsmParser& parser, mlir::Type) {
     return TensorV1Attr();
   }
   return TensorV1Attr::get(parser.getContext(),
-                           convertTypeToVhloForParse(attr.getType()),
-                           attr);
+                           convertTypeToVhloForParse(attr.getType()), attr);
 }
 
 void printEscapedString(AsmPrinter& p, llvm::StringRef value) {
