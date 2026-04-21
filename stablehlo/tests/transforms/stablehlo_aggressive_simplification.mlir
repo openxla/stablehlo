@@ -2100,12 +2100,78 @@ func.func @reduce_zero_ext(%arg0: tensor<0xi1>) -> tensor<i32> {
 /////////
 // XorOp
 
-// CHECK-LABEL: @xor_cst_on_rhs
-func.func @xor_cst_on_rhs(%arg0: tensor<2xi1>) -> tensor<2xi1> {
+// CHECK-LABEL: @xor_cst_false_on_rhs
+// CHECK-SAME: [[ARG:%.+]]: tensor<2xi1>
+func.func @xor_cst_false_on_rhs(%arg0: tensor<2xi1>) -> tensor<2xi1> {
+  // CHECK-NOT: stablehlo-constant
   %cst = stablehlo.constant dense<false> : tensor<2xi1>
+  // CHECK-NOT: stablehlo-xor
   %0 = stablehlo.xor %cst, %arg0 : tensor<2xi1>
-  // CHECK: stablehlo.xor %arg0, %c : tensor<2xi1>
+  // CHECK: return [[ARG]] : tensor<2xi1>
   return %0 : tensor<2xi1>
+}
+
+// -----
+
+// CHECK-LABEL: @xor_cst_true_on_rhs
+// CHECK-SAME: [[ARG:%.+]]: tensor<2xi1>
+func.func @xor_cst_true_on_rhs(%arg0: tensor<2xi1>) -> tensor<2xi1> {
+  // CHECK: [[CST:%.+]] = stablehlo.constant dense<true> : tensor<2xi1>
+  %cst = stablehlo.constant dense<true> : tensor<2xi1>
+  // CHECK: [[RES:%.+]] = stablehlo.xor [[ARG]], [[CST]] : tensor<2xi1>
+  %0 = stablehlo.xor %cst, %arg0 : tensor<2xi1>
+  // CHECK: return [[RES]]
+  return %0 : tensor<2xi1>
+}
+
+// -----
+
+// CHECK-LABEL: @xor_cst_int_on_rhs
+// CHECK-SAME: [[ARG:%.+]]: tensor<2xi32>
+func.func @xor_cst_int_on_rhs(%arg0: tensor<2xi32>) -> tensor<2xi32> {
+  // CHECK: [[CST:%.+]] = stablehlo.constant dense<[1, 2]> : tensor<2xi32>
+  %cst = stablehlo.constant dense<[1, 2]> : tensor<2xi32>
+  // CHECK: [[RES:%.+]] = stablehlo.xor [[ARG]], [[CST]] : tensor<2xi32>
+  %0 = stablehlo.xor %cst, %arg0 : tensor<2xi32>
+  // CHECK: return [[RES]]
+  return %0 : tensor<2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @xor_same_lhs_rhs
+// CHECK-SAME: [[ARG:%.+]]: tensor<2xi32>
+func.func @xor_same_lhs_rhs(%arg0: tensor<2xi32>) -> tensor<2xi32> {
+  // CHECK: [[RES:%.+]] = stablehlo.constant dense<0> : tensor<2xi32>
+  %0 = stablehlo.xor %arg0, %arg0 : tensor<2xi32>
+  // CHECK: return [[RES]]
+  return %0 : tensor<2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @xor_zero_like_lhs
+// CHECK-SAME: [[ARG:%.+]]: tensor<3xi32>
+func.func @xor_zero_like_lhs(%arg0: tensor<3xi32>) -> tensor<3xi32> {
+  // CHECK-NOT: stablehlo.constant
+  %0 = stablehlo.constant dense<0> : tensor<3xi32>
+  // CHECK-NOT: stablehlo.xor
+  %1 = stablehlo.xor %0, %arg0 : tensor<3xi32>
+  // CHECK: return [[ARG]]
+  return %1 : tensor<3xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @xor_zero_like_rhs
+// CHECK-SAME: [[ARG:%.+]]: tensor<3xi32>
+func.func @xor_zero_like_rhs(%arg0: tensor<3xi32>) -> tensor<3xi32> {
+  // CHECK-NOT: stablehlo.constant
+  %0 = stablehlo.constant dense<0> : tensor<3xi32>
+  // CHECK-NOT: stablehlo.xor
+  %1 = stablehlo.xor %arg0, %0 : tensor<3xi32>
+  // CHECK: return [[ARG]]
+  return %1 : tensor<3xi32>
 }
 
 // -----

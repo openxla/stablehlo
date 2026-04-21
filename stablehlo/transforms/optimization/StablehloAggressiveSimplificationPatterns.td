@@ -682,10 +682,17 @@ def GetTupleElementOp_UnpackTuple
 def XorOp_CanonicalizeConstantToRhs
   : CanonicalizeConstantToRhs<StableHLO_XorOp>;
 
-// To consider: xor(X, X) -> 0
-//
-// It's unclear if this is beneficial on hardware vs. adding another constant.
-//
-// def XorOp_FoldToZero
-//   : Pat<(StableHLO_XorOp AnyStaticShapeTensor:$operand, $operand),
-//         (StableHLO_ConstantLike<"0"> $operand)>;
+// Pattern: xor(X, X) -> 0
+def XorOp_FoldToZero
+  : Pat<(StableHLO_XorOp AnyStaticShapeTensor:$operand, $operand),
+        (StableHLO_ConstantLike<"0"> $operand)>;
+
+// Pattern: xor(X, 0) -> X
+def XorOp_RemoveNoop
+  : Pat<(StableHLO_XorOp:$op $lhs, (ConstantLikeMatcher IntZero:$value)),
+        (replaceWithValue $lhs)>;
+
+
+
+
+
