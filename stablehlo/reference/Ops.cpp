@@ -1136,6 +1136,7 @@ SmallVector<InterpreterValue> eval(Region& region,
       auto transposeA = op.getTransposeA();
       auto result = triangularSolveOp(A, b, leftSide, lower, unitDiagonal,
                                       transposeA, op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<TupleOp>(operation)) {
       auto val = scope.find(op.getVal());
       auto result = tupleOp(val, cast<TupleType>(op.getType()));
