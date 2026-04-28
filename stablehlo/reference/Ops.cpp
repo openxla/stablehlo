@@ -1127,8 +1127,15 @@ SmallVector<InterpreterValue> eval(Region& region,
       auto permutation = Axes(op.getPermutation());
       auto result = transposeOp(operand, permutation, op.getType());
       scope.add(op.getResult(), result);
-    } else if (isa<TriangularSolveOp>(operation)) {
-      failOnDecomposableOp(operation);
+    } else if (auto op = dyn_cast<TriangularSolveOp>(operation)) {
+      auto A = scope.findTensor(op.getA());
+      auto b = scope.findTensor(op.getB());
+      auto leftSide = op.getLeftSide();
+      auto lower = op.getLower();
+      auto unitDiagonal = op.getUnitDiagonal();
+      auto transposeA = op.getTransposeA();
+      auto result = triangularSolveOp(A, b, leftSide, lower, unitDiagonal,
+                                      transposeA, op.getType());
     } else if (auto op = dyn_cast<TupleOp>(operation)) {
       auto val = scope.find(op.getVal());
       auto result = tupleOp(val, cast<TupleType>(op.getType()));
@@ -2671,6 +2678,45 @@ Tensor transposeOp(const Tensor& operand, const Axes& permutation,
       resultIndex[d] = operandIndex[permutation[d]];
     result.set(resultIndex, operand.get(operandIndex));
   }
+  return result;
+}
+
+Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
+                         bool lower, bool unitDiagonal, Transpose transposeA,
+                         ShapedType resultType) {
+  Tensor result(resultType);
+  Tensor scratchA(A), scratchB(b);
+  Tensor &tA = scratchA;
+
+  if (transposeA == Transpose::ADJOINT)
+    tA = conjugate(A);
+
+  if (transposeA == Transpose::TRANSPOSE || transposeA == Transpose::ADJOINT) {
+    auto permutation = A.getAxes();
+    auto rank = A.getRank();
+    auto tmp = permutation[rank - 1];
+    permutation[rank - 1] = permutation[rank - 2];
+    permutation[rank - 2] = tmp;
+    tA = transposeOp(A, permutation, A.getType());
+  }
+
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    auto index = *it;
+    auto row = leftSide ? index[0] : index[1];
+    auto col = leftSide ? index[1] : index[0];
+    Element value = b.get(index);
+    for (int64_t k = 0; k < (leftSide ? col : row); k++) {
+      auto aValue = A.get(leftSide ? Index{row, k} : Index{k, col});
+      auto xValue = result.get(leftSide ? Index{k, index[1]} :
+      Index{index[0], k}); value = value - aValue * xValue;
+    }
+    if (!unitDiagonal) {
+      auto aValue = A.get(Index{row, col});
+      value = value / aValue;
+    }
+    result.set(index, value);
+  }
+
   return result;
 }
 
