@@ -2688,10 +2688,7 @@ Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
   llvm::errs() << "[@] trSolve: leftSide=" << leftSide << ", lower=" << lower << ", unitDiagonal=" << unitDiagonal << ", A.shape=" << A.getShape() << ", b.shape=" << b.getShape() << "\n";
   Tensor result(resultType);
   Tensor tA(A);
-  
-  if (transposeA == Transpose::ADJOINT)
-    tA = conjugate(A);
-  
+
   if (transposeA == Transpose::TRANSPOSE || transposeA == Transpose::ADJOINT) {
     auto permutation = A.getAxes();
     auto rank = A.getRank();
@@ -2701,7 +2698,9 @@ Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
     tA = transposeOp(A, permutation, A.getType());
     lower = !lower;
   }
-  
+
+  if (transposeA == Transpose::ADJOINT) tA = conjugate(tA);
+
   const auto rank = A.getRank();
   const auto N = A.getShape()[A.getRank() - 1];
   const int64_t dim_i = leftSide ? rank - 2 : rank - 1;
@@ -2791,7 +2790,7 @@ Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
           llvm::errs().flush();
         }
         if (!unitDiagonal) {
-          auto a = A.get(Index{i, i});
+          auto a = tA.get(Index{i, i});
           x = x / a;
           llvm::errs() << "\tunitDiagonal: A: " << a << ", final x: " << x << "\n";
         }
