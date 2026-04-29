@@ -2685,7 +2685,6 @@ Tensor transposeOp(const Tensor& operand, const Axes& permutation,
 Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
                          bool lower, bool unitDiagonal, Transpose transposeA,
                          ShapedType resultType) {
-  llvm::errs() << "[@] trSolve: leftSide=" << leftSide << ", lower=" << lower << ", unitDiagonal=" << unitDiagonal << ", A.shape=" << A.getShape() << ", b.shape=" << b.getShape() << "\n";
   Tensor result(resultType);
   Tensor tA(A);
 
@@ -2708,30 +2707,21 @@ Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
   const auto dim_j = dim_k;
   const int64_t size_k = b.getShape()[dim_k];
 
-  auto i_init = [&]() {
-    return leftSide ^ lower ? N-1 : 0;
-  };
+  auto i_init = [&]() { return leftSide ^ lower ? N - 1 : 0; };
   auto i_predicate = [&](int64_t i) {
     return leftSide ^ lower ? i >= 0 : i < N;
   };
-  auto i_update = [&](int64_t& i) {
-    leftSide ^ lower ? i-- : i++;
-  };
+  auto i_update = [&](int64_t& i) { leftSide ^ lower ? i-- : i++; };
 
-  auto j_init = [&](int64_t i) {
-    return leftSide ^ lower ? N-1 : 0;
-  };
+  auto j_init = [&](int64_t i) { return leftSide ^ lower ? N - 1 : 0; };
   auto j_predicate = [&](int64_t j, int64_t i) {
     return leftSide ^ lower ? j > i : j < i;
   };
-  auto j_update = [&](int64_t& j) {
-    leftSide ^ lower ? j-- : j++;
-  };
+  auto j_update = [&](int64_t& j) { leftSide ^ lower ? j-- : j++; };
 
   auto result_index = [&](Index batchIndex, int64_t i, int64_t k) {
     Index index(rank);
-    for (size_t d = 0; d < batchIndex.size(); d++)
-      index[d] = batchIndex[d];
+    for (size_t d = 0; d < batchIndex.size(); d++) index[d] = batchIndex[d];
 
     index[dim_k] = k;
     index[dim_i] = i;
@@ -2740,8 +2730,7 @@ Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
 
   auto a_index = [&](Index batchIndex, int64_t i, int64_t j) {
     Index index(rank);
-    for (size_t d = 0; d < batchIndex.size(); d++)
-      index[d] = batchIndex[d];
+    for (size_t d = 0; d < batchIndex.size(); d++) index[d] = batchIndex[d];
 
     index[dim_i] = i;
     index[dim_j] = j;
@@ -2754,76 +2743,31 @@ Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
       batchShape[d] = result.getShape()[d];
   }
 
-  for (auto batchIndexIt = batchShape.index_begin(); batchIndexIt != batchShape.index_end(); ++batchIndexIt) {
+  for (auto batchIndexIt = batchShape.index_begin();
+       batchIndexIt != batchShape.index_end(); ++batchIndexIt) {
     auto batchIndex = *batchIndexIt;
-    llvm::errs() << "[@] batchIndex: " << batchIndex << "\n";
-    llvm::errs().flush();
 
     for (int64_t k = 0; k < size_k; k++) {
       for (int64_t i = i_init(); i_predicate(i); i_update(i)) {
-        llvm::errs() << "\ti: " << i;
-        llvm::errs().flush();
-
         auto index = result_index(batchIndex, i, k);
-        llvm::errs() << ", index: " << index;
-        llvm::errs().flush();
 
         Element x = b.get(index);
-        llvm::errs() << ", b: " << x << "\n";
-        llvm::errs().flush();
 
-        // left_side xor lower: k in [0, i)
-        // otherwise:  k in (i, N-1]
+        // left_side xor lower: j in [0, i)
+        // otherwise:  j in (i, N-1]
         for (int64_t j = j_init(i); j_predicate(j, i); j_update(j)) {
-          llvm::errs() << "\t\tj: " << j;
-          llvm::errs().flush();
-
           auto a = tA.get(a_index(batchIndex, i, j));
-          llvm::errs() << ", A: " << a;
-          llvm::errs().flush();
-
           auto xj = result.get(result_index(batchIndex, j, k));
-          llvm::errs() << ", xj: " << xj;
-
           x = x - a * xj;
-          llvm::errs() << ", final x: " << x << "\n";
-          llvm::errs().flush();
         }
         if (!unitDiagonal) {
           auto a = tA.get(Index{i, i});
           x = x / a;
-          llvm::errs() << "\tunitDiagonal: A: " << a << ", final x: " << x << "\n";
         }
 
         result.set(index, x);
       }
     }
-
-  //   llvm::errs() << "index: " << index << ", row: " << row << ", col: " << col;
-  //   llvm::errs().flush();
-  //   Element value = b.get(index);
-  //   for (int64_t k = 0; k < (lower ? row : col); k++) {
-  //     llvm::errs() << ", k: " << k;
-  //     llvm::errs() << ", A.get(" << (lower ? Index{row, k} : Index{k, col}) << "): ";
-  //     llvm::errs().flush();
-  //     llvm::errs() << A.get(lower ? Index{row, k} : Index{k, col});
-  //     llvm::errs() << ", result.get(" << (lower ? Index{k, index[1]} : Index{index[0], k}) << "): ";
-  //     llvm::errs().flush();
-  //     llvm::errs() << result.get(lower ? Index{k, index[1]} : Index{index[0], k});
-  //     auto aValue = A.get(lower ? Index{row, k} : Index{k, col});
-  //     auto xValue = result.get(lower ? Index{k, index[1]} : Index{index[0], k});
-  //     value = value - aValue * xValue;
-  //     llvm::errs() << ", aValue: " << aValue << ", xValue: " << xValue;
-  //   }
-  //   if (!unitDiagonal) {
-  //     llvm::errs() << ", A.get(" << Index{row, col} << "): ";
-  //     llvm::errs().flush();
-  //     llvm::errs() << A.get(Index{row, col});
-  //     auto aValue = A.get(Index{row, col});
-  //     value = value / aValue;
-  //   }
-  //   llvm::errs() << ", final value: " << value << "\n";
-  //   result.set(index, value);
   }
 
   return result;
