@@ -209,11 +209,13 @@ TypedAttr foldBinaryOpIntOrFloat(Type resultType, TypedAttr lhs, TypedAttr rhs,
 
   Attribute res;
   if (isa<IntegerType>(elemTy))
-    res = constFoldBinaryOp<IntegerAttr, IntegerAttr::ValueType, void,
-                            IntResultType>(operands, resultType, folder);
+    res = constFoldBinaryOp<IntegerAttr, IntegerAttr, IntegerAttr::ValueType,
+                            IntegerAttr::ValueType, void, IntResultType>(
+        operands, resultType, folder);
   if (isa<FloatType>(elemTy))
-    res = constFoldBinaryOp<FloatAttr, FloatAttr::ValueType, void,
-                            FloatResultType>(operands, resultType, folder);
+    res = constFoldBinaryOp<FloatAttr, FloatAttr, FloatAttr::ValueType,
+                            FloatAttr::ValueType, void, FloatResultType>(
+        operands, resultType, folder);
   if (res) return cast<TypedAttr>(res);
 
   return nullptr;

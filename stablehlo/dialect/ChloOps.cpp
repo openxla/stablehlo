@@ -805,6 +805,9 @@ LogicalResult ScanOp::inferReturnTypeComponents(
   // output dimension size will be dynamic as well.
   int64_t dim = adaptor.getDimension();
   int64_t dimSize = ShapedType::kDynamic;
+  if (adaptor.getScanDimSize().has_value()) {
+    dimSize = adaptor.getScanDimSize().value();
+  }
   for (auto [i, type] : llvm::enumerate(adaptor.getInputs().getTypes())) {
     auto inputType = dyn_cast<RankedTensorType>(type);
     if (!inputType) {
@@ -814,9 +817,8 @@ LogicalResult ScanOp::inferReturnTypeComponents(
       return emitOptionalError(location, "scan dimension of operand ", i,
                                " is out of bounds");
     }
-    dimSize = inputType.getDimSize(dim);
     if (dimSize == ShapedType::kDynamic) {
-      break;
+      dimSize = inputType.getDimSize(dim);
     }
   }
 
@@ -837,34 +839,6 @@ LogicalResult ScanOp::inferReturnTypeComponents(
   return success();
 }
 
-LogicalResult ScanOp::reifyReturnTypeShapes(
-    OpBuilder& builder, ValueRange operands,
-    SmallVectorImpl<Value>& reifiedReturnShapes) {
-  ScanOp::Adaptor adaptor(operands, getOperation()->getAttrDictionary(),
-                          getOperation()->getPropertiesStorage());
-  auto inputs = adaptor.getInputs();
-  size_t k = adaptor.getInits().size();
-  size_t numResults = getOperation()->getNumResults();
-  size_t numOutputs = numResults - k;
-
-  for (size_t i = 0; i < numOutputs; ++i) {
-    size_t inputIdx = i;
-    Value inputVal = (inputIdx < inputs.size()) ? inputs[inputIdx] : inputs[0];
-    if (failed(hlo::deriveShapeFromOperand(&builder, getOperation(), inputVal,
-                                           &reifiedReturnShapes))) {
-      return failure();
-    }
-  }
-
-  for (auto init : adaptor.getInits()) {
-    if (failed(hlo::deriveShapeFromOperand(&builder, getOperation(), init,
-                                           &reifiedReturnShapes))) {
-      return failure();
-    }
-  }
-  return success();
-}
-
 LogicalResult ScanOp::verify() {
   if (getInputs().empty() && getOutputs().empty()) {
     return emitOpError() << "at least one of inputs or outputs must be present";
@@ -873,7 +847,7 @@ LogicalResult ScanOp::verify() {
   // Check that the scan dimension is in bounds for all operands. Also check
   // that all operands have the same scan dimension size.
   int64_t dim = getDimension();
-  int64_t dimSize = ShapedType::kDynamic;
+  std::optional<uint64_t> dimSize = getScanDimSize();
   for (auto [i, type] : llvm::enumerate(getInputs().getTypes())) {
     auto inputType = dyn_cast<RankedTensorType>(type);
     if (!inputType) {
@@ -886,13 +860,11 @@ LogicalResult ScanOp::verify() {
     if (inputType.isDynamicDim(dim)) {
       continue;
     }
-    dimSize = inputType.getDimSize(dim);
-    if (dimSize != ShapedType::kDynamic &&
-        dimSize != inputType.getDimSize(dim)) {
-      return emitOpError() << "scan dimension size of operand " << i
-                           << " does not match previous operands";
+    uint64_t currentDimSize = inputType.getDimSize(dim);
+    if (dimSize.has_value() && dimSize.value() != currentDimSize) {
+      return emitOpError() << "invalid scan dimension size of operand " << i;
     }
-    dimSize = inputType.getDimSize(dim);
+    dimSize = currentDimSize;
   }
 
   Block& bodyBlock = getBody().front();
@@ -936,20 +908,21 @@ ParseResult ScanOp::parse(OpAsmParser& parser, OperationState& result) {
       parser.parseKeyword("inits") ||
       parser.parseOperandList(inits, OpAsmParser::Delimiter::Paren) ||
       parser.parseKeyword("dimension") || parser.parseEqual() ||
-      parser.parseInteger(dimension) || parser.parseRegion(*body) ||
-      parser.parseOptionalAttrDict(result.attributes) ||
-      parser.parseColonType(funcType)) {
+      parser.parseInteger(dimension) ||
+      parser.parseOptionalAttrDictWithKeyword(result.attributes) ||
+      parser.parseRegion(*body) || parser.parseColonType(funcType)) {
     return failure();
   }
 
-  size_t numInputs = inputs.size();
-  size_t numCarries = inits.size();
+  int32_t numInputs = inputs.size();
+  int32_t numCarries = inits.size();
+  int32_t numOutputs = funcType.getNumResults() - numCarries;
   if (funcType.getInputs().size() != numInputs + numCarries) {
     return parser.emitError(
         parser.getNameLoc(),
         "operand types must match the number of inputs and inits");
   }
-  if (funcType.getResults().size() < numCarries) {
+  if (numOutputs < 0) {
     return parser.emitError(
         parser.getNameLoc(),
         "not enough result types to cover the required carries");
@@ -968,13 +941,10 @@ ParseResult ScanOp::parse(OpAsmParser& parser, OperationState& result) {
   Builder& builder = parser.getBuilder();
   result.addAttribute(ScanOp::getDimensionAttrName(result.name),
                       builder.getI64IntegerAttr(dimension));
-  result.addAttribute(
-      ScanOp::getOperandSegmentSizeAttr(),
-      builder.getDenseI32ArrayAttr({(int32_t)numInputs, (int32_t)numCarries}));
-  size_t numOutputs = funcType.getNumResults() - numCarries;
-  result.addAttribute(
-      ScanOp::getResultSegmentSizeAttr(),
-      builder.getDenseI32ArrayAttr({(int32_t)numOutputs, (int32_t)numCarries}));
+  result.addAttribute(ScanOp::getOperandSegmentSizeAttr(),
+                      builder.getDenseI32ArrayAttr({numInputs, numCarries}));
+  result.addAttribute(ScanOp::getResultSegmentSizeAttr(),
+                      builder.getDenseI32ArrayAttr({numOutputs, numCarries}));
 
   return success();
 }
@@ -985,10 +955,12 @@ void ScanOp::print(OpAsmPrinter& p) {
   p << ") inits (";
   p.printOperands(getInits());
   p << ") dimension=" << getDimension() << " ";
+  p.printOptionalAttrDictWithKeyword(
+      getOperation()->getAttrs(),
+      /*elidedAttrs=*/{"dimension", "operandSegmentSizes",
+                       "resultSegmentSizes"});
+  p << " ";
   p.printRegion(getBody(), /*printEntryBlockArgs=*/true);
-  p.printOptionalAttrDict(getOperation()->getAttrs(),
-                          /*elidedAttrs=*/{"dimension", "operandSegmentSizes",
-                                           "resultSegmentSizes"});
   p << " : ";
   p.printFunctionalType(*this);
 }

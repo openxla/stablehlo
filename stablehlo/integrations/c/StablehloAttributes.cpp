@@ -754,3 +754,136 @@ MlirAttribute stablehloResultAccuracyAttrGetMode(MlirAttribute attr) {
       llvm::cast<mlir::stablehlo::ResultAccuracyAttr>(unwrap(attr)).getMode();
   return wrap(modeAttr);
 }
+
+//===----------------------------------------------------------------------===//
+// SubAxisInfo
+//===----------------------------------------------------------------------===//
+
+MlirAttribute stablehloSubAxisInfoAttrGet(MlirContext ctx, int64_t preSize,
+                                          int64_t size) {
+  return wrap(
+      mlir::stablehlo::SubAxisInfoAttr::get(unwrap(ctx), preSize, size));
+}
+
+bool stablehloAttributeIsASubAxisInfoAttr(MlirAttribute attr) {
+  return llvm::isa<mlir::stablehlo::SubAxisInfoAttr>(unwrap(attr));
+}
+
+int64_t stablehloSubAxisInfoAttrGetPreSize(MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::SubAxisInfoAttr>(unwrap(attr))
+      .getPreSize();
+}
+
+int64_t stablehloSubAxisInfoAttrGetSize(MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::SubAxisInfoAttr>(unwrap(attr)).getSize();
+}
+
+//===----------------------------------------------------------------------===//
+// AxisRef
+//===----------------------------------------------------------------------===//
+
+MlirAttribute stablehloAxisRefAttrGet(MlirContext ctx, MlirStringRef name,
+                                      MlirAttribute subAxisInfo) {
+  return wrap(mlir::stablehlo::AxisRefAttr::get(
+      unwrap(ctx), unwrap(name),
+      llvm::cast_or_null<mlir::stablehlo::SubAxisInfoAttr>(
+          unwrap(subAxisInfo))));
+}
+
+bool stablehloAttributeIsAnAxisRefAttr(MlirAttribute attr) {
+  return llvm::isa<mlir::stablehlo::AxisRefAttr>(unwrap(attr));
+}
+
+MlirStringRef stablehloAxisRefAttrGetName(MlirAttribute attr) {
+  return wrap(llvm::cast<mlir::stablehlo::AxisRefAttr>(unwrap(attr)).getName());
+}
+
+MlirAttribute stablehloAxisRefAttrGetSubAxisInfo(MlirAttribute attr) {
+  return wrap(
+      llvm::cast<mlir::stablehlo::AxisRefAttr>(unwrap(attr)).getSubAxisInfo());
+}
+
+//===----------------------------------------------------------------------===//
+// ReplicaGroupMeshAxes
+//===----------------------------------------------------------------------===//
+
+MlirAttribute stablehloReplicaGroupMeshAxesAttrGet(MlirContext ctx,
+                                                   MlirAttribute mesh,
+                                                   MlirAttribute axes) {
+  return wrap(mlir::stablehlo::ReplicaGroupMeshAxesAttr::get(
+      unwrap(ctx), unwrap(mesh), llvm::cast<mlir::ArrayAttr>(unwrap(axes))));
+}
+
+bool stablehloAttributeIsAReplicaGroupMeshAxesAttr(MlirAttribute attr) {
+  return llvm::isa<mlir::stablehlo::ReplicaGroupMeshAxesAttr>(unwrap(attr));
+}
+
+MlirAttribute stablehloReplicaGroupMeshAxesAttrGetMesh(MlirAttribute attr) {
+  return wrap(
+      llvm::cast<mlir::stablehlo::ReplicaGroupMeshAxesAttr>(unwrap(attr))
+          .getMesh());
+}
+
+MlirAttribute stablehloReplicaGroupMeshAxesAttrGetAxes(MlirAttribute attr) {
+  return wrap(
+      llvm::cast<mlir::stablehlo::ReplicaGroupMeshAxesAttr>(unwrap(attr))
+          .getAxes());
+}
+
+//===----------------------------------------------------------------------===//
+// MeshAxis
+//===----------------------------------------------------------------------===//
+
+MlirAttribute stablehloMeshAxisAttrGet(MlirContext ctx, MlirStringRef name,
+                                       int64_t size) {
+  return wrap(
+      mlir::stablehlo::MeshAxisAttr::get(unwrap(ctx), unwrap(name), size));
+}
+
+bool stablehloAttributeIsAMeshAxisAttr(MlirAttribute attr) {
+  return llvm::isa<mlir::stablehlo::MeshAxisAttr>(unwrap(attr));
+}
+
+MlirStringRef stablehloMeshAxisAttrGetName(MlirAttribute attr) {
+  return wrap(
+      llvm::cast<mlir::stablehlo::MeshAxisAttr>(unwrap(attr)).getName());
+}
+
+int64_t stablehloMeshAxisAttrGetSize(MlirAttribute attr) {
+  return llvm::cast<mlir::stablehlo::MeshAxisAttr>(unwrap(attr)).getSize();
+}
+
+//===----------------------------------------------------------------------===//
+// Mesh
+//===----------------------------------------------------------------------===//
+
+MlirAttribute stablehloMeshAttrGet(MlirContext ctx, MlirAttribute axes,
+                                   MlirAttribute deviceIds) {
+  auto axesAttr = llvm::cast<mlir::ArrayAttr>(unwrap(axes));
+  llvm::SmallVector<mlir::stablehlo::MeshAxisAttr> meshAxes;
+  for (auto attr : axesAttr) {
+    meshAxes.push_back(llvm::cast<mlir::stablehlo::MeshAxisAttr>(attr));
+  }
+  return wrap(mlir::stablehlo::MeshAttr::get(
+      unwrap(ctx), meshAxes,
+      llvm::cast_or_null<mlir::DenseIntElementsAttr>(unwrap(deviceIds))));
+}
+
+bool stablehloAttributeIsAMeshAttr(MlirAttribute attr) {
+  return llvm::isa<mlir::stablehlo::MeshAttr>(unwrap(attr));
+}
+
+MlirAttribute stablehloMeshAttrGetAxes(MlirAttribute attr) {
+  auto meshAttr = llvm::cast<mlir::stablehlo::MeshAttr>(unwrap(attr));
+  llvm::SmallVector<mlir::Attribute> attrs;
+  for (auto axis : meshAttr.getAxes()) {
+    attrs.push_back(axis);
+  }
+  return wrap(mlir::ArrayAttr::get(meshAttr.getContext(), attrs));
+}
+
+MlirAttribute stablehloMeshAttrGetDeviceIds(MlirAttribute attr) {
+  auto deviceIds =
+      llvm::cast<mlir::stablehlo::MeshAttr>(unwrap(attr)).getDeviceIds();
+  return wrap(deviceIds);
+}

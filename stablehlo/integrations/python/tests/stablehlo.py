@@ -264,6 +264,41 @@ def test_type_extensions():
 
 
 @run
+def test_replica_group_mesh_axes_attr():
+  sub_axis = stablehlo.SubAxisInfoAttr.get(pre_size=2, size=4)
+  assert sub_axis is not None
+  assert str(sub_axis) == "#stablehlo<sub_axis_info(2)4>"
+  assert sub_axis.pre_size == 2
+  assert sub_axis.size == 4
+
+  axis_ref = stablehlo.AxisRefAttr.get(name="x", sub_axis_info=sub_axis)
+  assert axis_ref is not None
+  assert (
+      str(axis_ref) == '#stablehlo.axis_ref<name = "x", sub_axis_info = (2)4>'
+  )
+  assert axis_ref.name == "x"
+  assert axis_ref.sub_axis_info == sub_axis
+
+  axis_ref_simple = stablehlo.AxisRefAttr.get(name="y")
+  assert axis_ref_simple is not None
+  assert str(axis_ref_simple) == '#stablehlo.axis_ref<name = "y">'
+  assert axis_ref_simple.name == "y"
+
+  mesh_name = ir.FlatSymbolRefAttr.get("mesh")
+  axes = ir.ArrayAttr.get([axis_ref, axis_ref_simple])
+  rg_attr = stablehlo.ReplicaGroupMeshAxesAttr.get(mesh=mesh_name, axes=axes)
+  assert rg_attr is not None
+  assert rg_attr.mesh == mesh_name
+  assert rg_attr.axes == axes
+  assert (
+      str(rg_attr)
+      == "#stablehlo.replica_group_mesh_axes<mesh = @mesh, axes ="
+      ' [#stablehlo.axis_ref<name = "x", sub_axis_info = (2)4>,'
+      ' #stablehlo.axis_ref<name = "y">]>'
+  )
+
+
+@run
 def test_api_version():
   api_version = stablehlo.get_api_version()
   assert type(api_version) == int
@@ -271,7 +306,7 @@ def test_api_version():
 
 
 def is_semver_format(version_str):
-  return re.match("^\d+\.\d+\.\d+$", version_str)
+  return re.match(r"^\d+\.\d+\.\d+$", version_str)
 
 
 @run
@@ -462,17 +497,18 @@ def _run_probe_test(tensor_type, arg):
         metadata_file
     ), f"Metadata file not found: {metadata_file}"
 
+
 # Disabling to avoid jax dependency.
-#@run
-#def test_reference_api_with_probe():
+# @run
+# def test_reference_api_with_probe():
 #  from jax.interpreters import mlir
 #  import jax.numpy as jnp
 #  """Tests that probe files are created in the specified directory."""
 #  _run_probe_test("f32", np.asarray(2, np.float32))
 
 # Disabling to avoid jax dependency.
-#@run
-#def test_reference_api_with_probe_bf16():
+# @run
+# def test_reference_api_with_probe_bf16():
 #  from jax.interpreters import mlir
 #  import jax.numpy as jnp
 #  """Tests that probe files are created for bf16 tensors."""
