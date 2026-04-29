@@ -45,8 +45,8 @@ jobs:
   bazel-build:
     strategy:
       fail-fast: false
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' ||  'ubuntu-22.04'  }}
-    container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' || 'ubuntu-22.04'  }}
+    container: "mcr.microsoft.com/devcontainers/universal:linux"
 
     steps:
     # Checkout StableHLO with all commits in the chain
