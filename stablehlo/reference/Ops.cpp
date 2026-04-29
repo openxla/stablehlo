@@ -2685,13 +2685,13 @@ Tensor transposeOp(const Tensor& operand, const Axes& permutation,
 Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
                          bool lower, bool unitDiagonal, Transpose transposeA,
                          ShapedType resultType) {
+  llvm::errs() << "[@] trSolve: leftSide=" << leftSide << ", lower=" << lower << ", unitDiagonal=" << unitDiagonal << ", A.shape=" << A.getShape() << ", b.shape=" << b.getShape() << "\n";
   Tensor result(resultType);
-  Tensor scratchA(A), scratchB(b);
-  Tensor &tA = scratchA;
-
+  Tensor tA(A);
+  
   if (transposeA == Transpose::ADJOINT)
     tA = conjugate(A);
-
+  
   if (transposeA == Transpose::TRANSPOSE || transposeA == Transpose::ADJOINT) {
     auto permutation = A.getAxes();
     auto rank = A.getRank();
@@ -2700,22 +2700,134 @@ Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
     permutation[rank - 2] = tmp;
     tA = transposeOp(A, permutation, A.getType());
   }
+  
+  const auto rank = A.getRank();
+  const auto N = A.getShape()[A.getRank() - 1];
 
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    auto index = *it;
-    auto row = leftSide ? index[0] : index[1];
-    auto col = leftSide ? index[1] : index[0];
-    Element value = b.get(index);
-    for (int64_t k = 0; k < (leftSide ? col : row); k++) {
-      auto aValue = A.get(leftSide ? Index{row, k} : Index{k, col});
-      auto xValue = result.get(leftSide ? Index{k, index[1]} :
-      Index{index[0], k}); value = value - aValue * xValue;
+  auto i_init = [&]() {
+    return leftSide ^ lower ? N-1 : 0;
+  };
+  auto i_predicate = [&](int64_t i) {
+    return leftSide ^ lower ? i >= 0 : i < N;
+  };
+  auto i_update = [&](int64_t& i) {
+    leftSide ^ lower ? i-- : i++;
+  };
+
+  auto j_init = [&](int64_t i) {
+    return leftSide ^ lower ? N-1 : 0;
+  };
+  auto j_predicate = [&](int64_t j, int64_t i) {
+    return leftSide ^ lower ? j > i : j < i;
+  };
+  auto j_update = [&](int64_t& j) {
+    leftSide ^ lower ? j-- : j++;
+  };
+
+  auto result_index = [&](Index batchIndex, int64_t i) {
+    Index index(rank);
+    for (size_t d = 0; d < batchIndex.size(); d++)
+      index[d] = batchIndex[d];
+
+    if (leftSide) {
+      index[rank - 2] = i;
+      index[rank - 1] = 0;
+    } else {
+      index[rank - 2] = 0;
+      index[rank - 1] = i;
     }
-    if (!unitDiagonal) {
-      auto aValue = A.get(Index{row, col});
-      value = value / aValue;
+    return index;
+  };
+
+  auto a_index = [&](Index batchIndex, int64_t i, int64_t j) {
+    Index index(rank);
+    for (size_t d = 0; d < batchIndex.size(); d++)
+      index[d] = batchIndex[d];
+
+    if (leftSide) {
+      index[rank - 2] = i;
+      index[rank - 1] = j;
+    } else {
+      index[rank - 2] = j;
+      index[rank - 1] = i;
     }
-    result.set(index, value);
+    return index;
+  };
+
+  Sizes batchShape(rank - 2);
+  if (rank > 2) {
+    for (size_t d = 0; d < (size_t)(rank - 2); d++)
+      batchShape[d] = result.getShape()[d];
+  }
+
+  for (auto batchIndexIt = batchShape.index_begin(); batchIndexIt != batchShape.index_end(); ++batchIndexIt) {
+    auto batchIndex = *batchIndexIt;
+    llvm::errs() << "[@] batchIndex: " << batchIndex << "\n";
+    llvm::errs().flush();
+
+    for (int64_t i = i_init(); i_predicate(i); i_update(i)) {
+      llvm::errs() << "\ti: " << i;
+      llvm::errs().flush();
+
+      auto index = result_index(batchIndex, i);
+      llvm::errs() << ", index: " << index;
+      llvm::errs().flush();
+
+      Element x = b.get(index);
+      llvm::errs() << ", b: " << x << "\n";
+      llvm::errs().flush();
+
+      // left_side xor lower: k in [0, i)
+      // otherwise:  k in (i, N-1]
+      for (int64_t j = j_init(i); j_predicate(j, i); j_update(j)) {
+        llvm::errs() << "\t\tj: " << j;
+        llvm::errs().flush();
+
+        auto a = tA.get(a_index(batchIndex, i, j));
+        llvm::errs() << ", A: " << a;
+        llvm::errs().flush();
+
+        auto xj = result.get(result_index(batchIndex, j));
+        llvm::errs() << ", xj: " << xj;
+
+        x = x - a * xj;
+        llvm::errs() << ", final x: " << x << "\n";
+        llvm::errs().flush();
+      }
+      if (!unitDiagonal) {
+        auto a = A.get(Index{i, i});
+        x = x / a;
+        llvm::errs() << "\tunitDiagonal: A: " << a << ", final x: " << x << "\n";
+      }
+
+      result.set(index, x);
+    }
+
+  //   llvm::errs() << "index: " << index << ", row: " << row << ", col: " << col;
+  //   llvm::errs().flush();
+  //   Element value = b.get(index);
+  //   for (int64_t k = 0; k < (lower ? row : col); k++) {
+  //     llvm::errs() << ", k: " << k;
+  //     llvm::errs() << ", A.get(" << (lower ? Index{row, k} : Index{k, col}) << "): ";
+  //     llvm::errs().flush();
+  //     llvm::errs() << A.get(lower ? Index{row, k} : Index{k, col});
+  //     llvm::errs() << ", result.get(" << (lower ? Index{k, index[1]} : Index{index[0], k}) << "): ";
+  //     llvm::errs().flush();
+  //     llvm::errs() << result.get(lower ? Index{k, index[1]} : Index{index[0], k});
+  //     auto aValue = A.get(lower ? Index{row, k} : Index{k, col});
+  //     auto xValue = result.get(lower ? Index{k, index[1]} : Index{index[0], k});
+  //     value = value - aValue * xValue;
+  //     llvm::errs() << ", aValue: " << aValue << ", xValue: " << xValue;
+  //   }
+  //   if (!unitDiagonal) {
+  //     llvm::errs() << ", A.get(" << Index{row, col} << "): ";
+  //     llvm::errs().flush();
+  //     llvm::errs() << A.get(Index{row, col});
+  //     auto aValue = A.get(Index{row, col});
+  //     value = value / aValue;
+  //   }
+  //   llvm::errs() << ", final value: " << value << "\n";
+  //   result.set(index, value);
   }
 
   return result;
