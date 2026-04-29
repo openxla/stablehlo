@@ -44,6 +44,13 @@ runs:
       path: llvm-project
       fetch-depth: 1
 
+  # Install Bazel (via Bazelisk).
+  - name: Install Bazel
+    shell: bash
+    run: |
+      sudo curl -Lo /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
+      sudo chmod +x /usr/local/bin/bazel
+
   - name: Toolchain setup, use rules_ml_toolchain
     shell: bash
     run: |

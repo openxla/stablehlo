@@ -71,6 +71,13 @@ jobs:
       run: |
         echo "version=$(cat ./build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
 
+    # Install Bazel (via Bazelisk).
+    - name: Install Bazel
+      shell: bash
+      run: |
+        sudo curl -Lo /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
+        sudo chmod +x /usr/local/bin/bazel
+
     - name: Build and check docs
       shell: bash
       run: |
