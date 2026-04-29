@@ -917,7 +917,8 @@ ParseResult ScanOp::parse(OpAsmParser& parser, OperationState& result) {
   int32_t numInputs = inputs.size();
   int32_t numCarries = inits.size();
   int32_t numOutputs = funcType.getNumResults() - numCarries;
-  if (funcType.getInputs().size() != numInputs + numCarries) {
+  if (static_cast<int64_t>(funcType.getInputs().size()) !=
+      static_cast<int64_t>(numInputs + numCarries)) {
     return parser.emitError(
         parser.getNameLoc(),
         "operand types must match the number of inputs and inits");
