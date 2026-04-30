@@ -885,6 +885,22 @@ module @refine_call_dimension_argument_not_integer {
 
 // -----
 
+// CHECK-LABEL: module @refine_call_side_effecting_callee
+module @refine_call_side_effecting_callee {
+  func.func public @main() {
+    // CHECK: call @callee()
+    call @callee() : () -> ()
+    return
+  }
+  func.func private @callee() {
+    %0 = stablehlo.constant dense<0> : tensor<i32>
+    stablehlo.custom_call @side_effect(%0) {has_side_effect = true} : (tensor<i32>) -> ()
+    return
+  }
+}
+
+// -----
+
 // CHECK-LABEL: func @refine_convert
 func.func @refine_convert(%arg0 : tensor<4xf32>) -> tensor<?xi32> {
   // CHECK: stablehlo.convert{{.*}} -> tensor<4xi32>
