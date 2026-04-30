@@ -46,9 +46,7 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' || 'ubuntu-22.04'  }}
-    container:
-      image: mcr.microsoft.com/devcontainers/universal:linux
-      options: --user vscode
+    container: "ubuntu:22.04"
 
     steps:
     # Checkout StableHLO with all commits in the chain
