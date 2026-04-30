@@ -663,6 +663,121 @@ NB_MODULE(_stablehlo, m) {
       });
 
   mlir::python::nanobind_adaptors::mlir_attribute_subclass(
+      m, "SubAxisInfoAttr", stablehloAttributeIsASubAxisInfoAttr)
+      .def_classmethod(
+          "get",
+          [](nb::object cls, int64_t preSize, int64_t size, MlirContext ctx) {
+            return cls(stablehloSubAxisInfoAttrGet(ctx, preSize, size));
+          },
+          nb::arg("cls"), nb::arg("pre_size"), nb::arg("size"),
+          nb::arg("context").none() = nb::none(),
+          "Creates a SubAxisInfoAttr with the given pre_size and size.")
+      .def_property_readonly("pre_size",
+                             [](MlirAttribute self) {
+                               return stablehloSubAxisInfoAttrGetPreSize(self);
+                             })
+      .def_property_readonly("size", [](MlirAttribute self) {
+        return stablehloSubAxisInfoAttrGetSize(self);
+      });
+
+  mlir::python::nanobind_adaptors::mlir_attribute_subclass(
+      m, "AxisRefAttr", stablehloAttributeIsAnAxisRefAttr)
+      .def_classmethod(
+          "get",
+          [](nb::object cls, const std::string& name,
+             std::optional<MlirAttribute> subAxisInfo, MlirContext ctx) {
+            return cls(stablehloAxisRefAttrGet(
+                ctx, mlirStringRefCreate(name.c_str(), name.size()),
+                subAxisInfo.has_value() ? *subAxisInfo
+                                        : MlirAttribute{nullptr}));
+          },
+          nb::arg("cls"), nb::arg("name"),
+          nb::arg("sub_axis_info").none() = nb::none(),
+          nb::arg("context").none() = nb::none(),
+          "Creates an AxisRefAttr with the given name and optional "
+          "sub_axis_info.")
+      .def_property_readonly(
+          "name",
+          [](MlirAttribute self) {
+            return toPyString(stablehloAxisRefAttrGetName(self));
+          })
+      .def_property_readonly("sub_axis_info", [](MlirAttribute self) {
+        MlirAttribute subAxisInfo = stablehloAxisRefAttrGetSubAxisInfo(self);
+        if (mlirAttributeIsNull(subAxisInfo)) {
+          return nb::cast(std::optional<MlirAttribute>(std::nullopt));
+        }
+        return nb::cast(std::optional<MlirAttribute>(subAxisInfo));
+      });
+
+  mlir::python::nanobind_adaptors::mlir_attribute_subclass(
+      m, "ReplicaGroupMeshAxesAttr",
+      stablehloAttributeIsAReplicaGroupMeshAxesAttr)
+      .def_classmethod(
+          "get",
+          [](nb::object cls, MlirAttribute mesh, MlirAttribute axes,
+             MlirContext ctx) {
+            return cls(stablehloReplicaGroupMeshAxesAttrGet(ctx, mesh, axes));
+          },
+          nb::arg("cls"), nb::arg("mesh"), nb::arg("axes"),
+          nb::arg("context").none() = nb::none(),
+          "Creates a ReplicaGroupMeshAxesAttr with the given mesh and "
+          "axes.")
+      .def_property_readonly(
+          "mesh",
+          [](MlirAttribute self) {
+            return stablehloReplicaGroupMeshAxesAttrGetMesh(self);
+          })
+      .def_property_readonly("axes", [](MlirAttribute self) {
+        return stablehloReplicaGroupMeshAxesAttrGetAxes(self);
+      });
+
+  mlir::python::nanobind_adaptors::mlir_attribute_subclass(
+      m, "MeshAxisAttr", stablehloAttributeIsAMeshAxisAttr)
+      .def_classmethod(
+          "get",
+          [](nb::object cls, const std::string& name, int64_t size,
+             MlirContext ctx) {
+            return cls(stablehloMeshAxisAttrGet(
+                ctx, mlirStringRefCreate(name.c_str(), name.size()), size));
+          },
+          nb::arg("cls"), nb::arg("name"), nb::arg("size"),
+          nb::arg("context").none() = nb::none(),
+          "Creates a MeshAxisAttr with the given name and size.")
+      .def_property_readonly(
+          "name",
+          [](MlirAttribute self) {
+            return toPyString(stablehloMeshAxisAttrGetName(self));
+          })
+      .def_property_readonly("size", [](MlirAttribute self) {
+        return stablehloMeshAxisAttrGetSize(self);
+      });
+
+  mlir::python::nanobind_adaptors::mlir_attribute_subclass(
+      m, "MeshAttr", stablehloAttributeIsAMeshAttr)
+      .def_classmethod(
+          "get",
+          [](nb::object cls, MlirAttribute axes,
+             std::optional<MlirAttribute> deviceIds, MlirContext ctx) {
+            return cls(stablehloMeshAttrGet(
+                ctx, axes,
+                deviceIds.has_value() ? *deviceIds : MlirAttribute{nullptr}));
+          },
+          nb::arg("cls"), nb::arg("axes"),
+          nb::arg("device_ids").none() = nb::none(),
+          nb::arg("context").none() = nb::none(),
+          "Creates a MeshAttr with the given axes and optional device_ids.")
+      .def_property_readonly(
+          "axes",
+          [](MlirAttribute self) { return stablehloMeshAttrGetAxes(self); })
+      .def_property_readonly("device_ids", [](MlirAttribute self) {
+        MlirAttribute deviceIds = stablehloMeshAttrGetDeviceIds(self);
+        if (mlirAttributeIsNull(deviceIds)) {
+          return nb::cast(std::optional<MlirAttribute>(std::nullopt));
+        }
+        return nb::cast(std::optional<MlirAttribute>(deviceIds));
+      });
+
+  mlir::python::nanobind_adaptors::mlir_attribute_subclass(
       m, "ResultAccuracyModeAttr", stablehloAttributeIsAResultAccuracyModeAttr)
       .def_classmethod(
           "get",

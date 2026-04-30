@@ -2110,11 +2110,22 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
       inferredBounds[dim] = inferredDimAndBound.second;
     }
   }
+  Attribute witnessEncoding;
+  for (auto inputType : inputTypes) {
+    if (auto rankedType = dyn_cast<RankedTensorType>(inputType)) {
+      if (rankedType.getEncoding()) {
+        witnessEncoding = rankedType.getEncoding();
+        break;
+      }
+    }
+  }
+  if (!witnessEncoding) witnessEncoding = witnessType.getEncoding();
+
   // concatenate_c5, concatenate_c6
   inferredReturnTypes.push_back(RankedTensorType::get(
       inferredSizes, witnessType.getElementType(),
       boundsToEncoding(
-          witnessType.getEncoding(),
+          witnessEncoding,
           // Empty array as argument is an indicator to boundsToEncoding()
           // that there are no bounds at all in inputs, thus sparsity
           // attributes will be included in the return type

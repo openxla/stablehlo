@@ -127,16 +127,13 @@ def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1", "0.9.0", "current"> {
 }
 
 // Corresponds to TensorConstant from the StableHLO spec.
-def VHLO_TensorDataV1 : AttrParameter<"::llvm::ArrayRef<char>", ""> {
-  let allocator = "$_dst = $_allocator.copyInto($_self);";
-}
 def VHLO_TensorAttrV1 : VHLO_AttrDef<"TensorV1", "0.9.0", "current"> {
   let mnemonic = "tensor_v1";
-  let parameters = (ins "::mlir::Type":$type, VHLO_TensorDataV1:$data);
+  let parameters = (ins "::mlir::Type":$type, "DenseElementsAttr":$data);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult TensorV1Attr::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, ArrayRef<char>) {
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, DenseElementsAttr) {
       if (!isFromVhlo(type)) errFn() << "expected VHLO type";
       return success();
     }

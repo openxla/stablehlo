@@ -938,7 +938,7 @@ row for matrices).}]>:$k
 def CHLO_ScanOp : CHLO_Op<"scan", [
       AttrSizedOperandSegments,
       AttrSizedResultSegments,
-      InferTensorTypeWithReify,
+      InferTensorType,
       IsolatedFromAbove,
       OpAsmOpInterface,
       RecursiveMemoryEffects,
@@ -961,6 +961,7 @@ def CHLO_ScanOp : CHLO_Op<"scan", [
     Variadic<HLO_AnyTensor>:$inputs,
     Variadic<HLO_AnyTensor>:$inits,
     ConfinedAttr<I64Attr, [IntNonNegative]>:$dimension,
+    OptionalAttr<ConfinedAttr<I64Attr, [IntNonNegative]>>:$scan_dim_size,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$is_reverse,
     OptionalAttr<BoolAttr>:$is_associative
   );

@@ -252,8 +252,8 @@ Attribute convertGeneric(Attribute stablehloAttr,
     auto vhloType = typeConverter->convertType(attr.getType());
     LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
     if (!vhloType) return {};
-    return vhlo::TensorV1Attr::get(attr.getContext(), vhloType,
-                                   attr.getRawData());
+
+    return vhlo::TensorV1Attr::get(attr.getContext(), vhloType, attr);
   }
   if (auto attr = dyn_cast<DenseI64ArrayAttr>(stablehloAttr)) {
     // Leverage the serialization for DenseElements.

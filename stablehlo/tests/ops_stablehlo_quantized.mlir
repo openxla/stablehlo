@@ -437,7 +437,7 @@ func.func @negative_cholesky_quantization(%arg0: tensor<1x2x2x!quant.uniform<i8:
 // -----
 
 func.func @negative_clamp_quantization(%arg0: tensor<1x!quant.uniform<ui8:f32:0, {0.1:-30}>>) -> tensor<1x!quant.uniform<ui8:f32:0, {0.1:-30}>> {
-  // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}}, but got 'tensor<1x!quant.uniform<u8:f32:0, {1.000000e-01:-30}>>'}}
+  // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}}, but got 'tensor<1x!quant.uniform<ui8:f32:0, {1.000000e-01:-30}>>'}}
   %0 = "stablehlo.clamp"(%arg0, %arg0, %arg0) : (tensor<1x!quant.uniform<ui8:f32:0, {0.1:-30}>>, tensor<1x!quant.uniform<ui8:f32:0, {0.1:-30}>>, tensor<1x!quant.uniform<ui8:f32:0, {0.1:-30}>>) -> tensor<1x!quant.uniform<ui8:f32:0, {0.1:-30}>>
   func.return %0: tensor<1x!quant.uniform<ui8:f32:0, {0.1:-30}>>
 }
@@ -888,7 +888,7 @@ func.func @negative_select_and_scatter_quantization(%arg0: tensor<10x24x24x64x!q
 // -----
 
 func.func @illegal_storage_type_for_quantized_element_type(%arg0: tensor<4x!quant.uniform<si8:f32, 1.000000e+00>>) -> tensor<4xf32> {
-  // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}}, but got 'tensor<4x!quant.uniform<i8:f32, 1.000000e+00>>}}
+  // expected-error-re@+1 {{operand #0 must be ranked tensor of {{.*}}, but got 'tensor<4x!quant.uniform<si8:f32, 1.000000e+00>>}}
   %0 = "stablehlo.uniform_dequantize"(%arg0) : (tensor<4x!quant.uniform<si8:f32, 1.000000e+00>>) -> tensor<4xf32>
   func.return %0 : tensor<4xf32>
 }

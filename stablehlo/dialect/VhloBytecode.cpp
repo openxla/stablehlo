@@ -1049,13 +1049,13 @@ static LogicalResult readVhloTensorV1Attr(DialectBytecodeReader& reader,
 static void writeVhloTensorV1Attr(DialectBytecodeWriter& writer,
                                   vhlo::TensorV1Attr attr) {
   if (!isBooleanType(attr.getType())) {
-    writer.writeOwnedBlob(attr.getData());
+    writer.writeOwnedBlob(attr.getData().getRawData());
     return;
   }
 
   // Pack the data if i1
   SmallVector<char> data;
-  ArrayRef<char> rawData = attr.getData();
+  ArrayRef<char> rawData = attr.getData().getRawData();
   auto numElements = cast<RankedTensorV1Type>(attr.getType()).getNumElements();
 
   // If the attribute is a splat, we can just splat the value directly.
@@ -1085,7 +1085,18 @@ TensorV1Attr VhloBytecodeInterface::readTensorV1Attr(
   if (failed(reader.readType(type)) ||
       failed(readVhloTensorV1Attr(reader, type, blob)))
     return TensorV1Attr();
-  return TensorV1Attr::get(getContext(), type, blob);
+  struct VhloToBuiltinPrintConverter : VhloTypeConverter {
+    VhloToBuiltinPrintConverter() : VhloTypeConverter() {
+      addVhloToBuiltinConversions();
+    }
+    Attribute convertEncoding(Attribute attr) const override { return attr; }
+  };
+
+  VhloToBuiltinPrintConverter conv;
+  auto builtinType = cast<ShapedType>(conv.convertType(type));
+  return TensorV1Attr::get(
+      getContext(), type,
+      DenseElementsAttr::getFromRawBuffer(builtinType, blob));
 }
 
 void VhloBytecodeInterface::write(TensorV1Attr attr,

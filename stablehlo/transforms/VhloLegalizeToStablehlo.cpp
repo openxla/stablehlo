@@ -25,6 +25,7 @@ limitations under the License.
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/AttrTypeSubElements.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -173,8 +174,7 @@ Attribute convertGeneric(Attribute vhloAttr,
     auto builtinType =
         cast<ShapedType>(typeConverter->convertType(attr.getType()));
     if (!builtinType) return {};
-    return DenseTypedElementsAttr::getFromRawBuffer(builtinType,
-                                                    attr.getData());
+    return attr.getData();
   }
   if (auto attr = dyn_cast<vhlo::TransposeV1Attr>(vhloAttr)) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
@@ -619,7 +619,8 @@ SpecialResult convertDenseArray(const vhlo::VhloTypeConverter* typeConverter,
       typeConverter->convertType(tensorAttr.getType()));
   if (!type) return specialFailure();
 
-  auto elems = DenseElementsAttr::getFromRawBuffer(type, tensorAttr.getData());
+  auto elems = DenseElementsAttr::getFromRawBuffer(
+      type, tensorAttr.getData().getRawData());
 
   stablehloAttrs.emplace_back(
       vhloName, DenseArrayAttr::get(vhloAttr.getContext(),
@@ -806,7 +807,7 @@ bool isEmptyString(Attribute vhloAttr) {
 
 bool isEmptyTensor(Attribute vhloAttr) {
   auto attr = dyn_cast_or_null<vhlo::TensorV1Attr>(vhloAttr);
-  return attr && attr.getData().empty();
+  return attr && attr.getData().getRawData().empty();
 }
 
 bool isEnum(Attribute vhloAttr, Attribute value) { return vhloAttr == value; }
@@ -1158,10 +1159,28 @@ struct VhloLegalizeToStablehloPass
   }
 
   void runOnOperation() override {
-    // Upgraded VHLO should always be convertible to StableHLO.
-    // Arbitrary VHLO might not be convertible if it uses deprecated features
-    // which are no longer available in StableHLO.
-    if (failed(applyPartialConversion(getOperation(), *target, patterns))) {
+    // Upgraded VHLO types should always be convertible to StableHLO.
+    mlir::AttrTypeReplacer replacer;
+    replacer.addReplacement([&](Type type) -> std::optional<Type> {
+      Type newType = converter.convertType(type);
+      if (newType && newType != type) return newType;
+      return std::nullopt;
+    });
+    // Only types are updated here, as attribute creation with StableHLO types
+    // would trigger VHLO assertion. This is used to avoid need for signature
+    // conversion which results in invalidating the blocks and triggering
+    // recomputing the order of operations, as well as inserting many
+    // unrealized conversion casts.
+    replacer.recursivelyReplaceElementsIn(getOperation(),
+                                          /*replaceAttrs=*/false,
+                                          /*replaceLocs=*/false,
+                                          /*replaceTypes=*/true);
+
+    ConversionConfig config;
+    config.allowPatternRollback = false;
+    config.foldingMode = mlir::DialectConversionFoldingMode::Never;
+    if (failed(applyPartialConversion(getOperation(), *target, patterns,
+                                      config))) {
       return signalPassFailure();
     }
 
