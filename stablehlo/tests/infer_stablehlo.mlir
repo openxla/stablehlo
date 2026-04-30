@@ -2076,3 +2076,15 @@ func.func @reverse(%a : tensor<?x?x?x?xf32>) -> tensor<4xindex> {
   %1 = "hlo_test_infer.reify_return_type_shapes"(%0) : (tensor<?x?x?x?xf32>) -> tensor<4xindex>
   func.return %1 : tensor<4xindex>
 }
+
+// CHECK-LABEL: @concat_bounds_mixed_static_first
+func.func @concat_bounds_mixed_static_first(
+  %arg0: tensor<5x2xi32>,
+  %arg1: tensor<5x?xi32, #stablehlo.bounds<?, 4>>)  -> tensor<?x?xindex> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 1 : i64 } : (
+    tensor<5x2xi32>,
+    tensor<5x?xi32, #stablehlo.bounds<?, 4>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x?xi32, #stablehlo.bounds<?, 6>>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<?x?xi32>) -> tensor<?x?xindex>
+  func.return %1 : tensor<?x?xindex>
+}

@@ -413,6 +413,73 @@ stablehloResultAccuracyAttrGetUlps(MlirAttribute attr);
 MLIR_CAPI_EXPORTED MlirAttribute
 stablehloResultAccuracyAttrGetMode(MlirAttribute attr);
 
+//===----------------------------------------------------------------------===//
+// SubAxisInfo
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute stablehloSubAxisInfoAttrGet(MlirContext ctx,
+                                                             int64_t preSize,
+                                                             int64_t size);
+
+MLIR_CAPI_EXPORTED bool stablehloAttributeIsASubAxisInfoAttr(
+    MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t
+stablehloSubAxisInfoAttrGetPreSize(MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t stablehloSubAxisInfoAttrGetSize(MlirAttribute attr);
+
+//===----------------------------------------------------------------------===//
+// AxisRef
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute stablehloAxisRefAttrGet(
+    MlirContext ctx, MlirStringRef name, MlirAttribute subAxisInfo);
+
+MLIR_CAPI_EXPORTED bool stablehloAttributeIsAnAxisRefAttr(MlirAttribute attr);
+MLIR_CAPI_EXPORTED MlirStringRef
+stablehloAxisRefAttrGetName(MlirAttribute attr);
+MLIR_CAPI_EXPORTED MlirAttribute
+stablehloAxisRefAttrGetSubAxisInfo(MlirAttribute attr);
+
+//===----------------------------------------------------------------------===//
+// ReplicaGroupMeshAxes
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute stablehloReplicaGroupMeshAxesAttrGet(
+    MlirContext ctx, MlirAttribute mesh, MlirAttribute axes);
+
+MLIR_CAPI_EXPORTED bool stablehloAttributeIsAReplicaGroupMeshAxesAttr(
+    MlirAttribute attr);
+MLIR_CAPI_EXPORTED MlirAttribute
+stablehloReplicaGroupMeshAxesAttrGetMesh(MlirAttribute attr);
+MLIR_CAPI_EXPORTED MlirAttribute
+stablehloReplicaGroupMeshAxesAttrGetAxes(MlirAttribute attr);
+
+//===----------------------------------------------------------------------===//
+// MeshAxis
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute stablehloMeshAxisAttrGet(MlirContext ctx,
+                                                          MlirStringRef name,
+                                                          int64_t size);
+
+MLIR_CAPI_EXPORTED bool stablehloAttributeIsAMeshAxisAttr(MlirAttribute attr);
+MLIR_CAPI_EXPORTED MlirStringRef
+stablehloMeshAxisAttrGetName(MlirAttribute attr);
+MLIR_CAPI_EXPORTED int64_t stablehloMeshAxisAttrGetSize(MlirAttribute attr);
+
+//===----------------------------------------------------------------------===//
+// Mesh
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute stablehloMeshAttrGet(MlirContext ctx,
+                                                      MlirAttribute axes,
+                                                      MlirAttribute deviceIds);
+
+MLIR_CAPI_EXPORTED bool stablehloAttributeIsAMeshAttr(MlirAttribute attr);
+MLIR_CAPI_EXPORTED MlirAttribute stablehloMeshAttrGetAxes(MlirAttribute attr);
+MLIR_CAPI_EXPORTED MlirAttribute
+stablehloMeshAttrGetDeviceIds(MlirAttribute attr);
+
 #ifdef __cplusplus
 }
 #endif

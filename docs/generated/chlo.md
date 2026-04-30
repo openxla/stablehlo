@@ -1778,6 +1778,7 @@ Interfaces: `InferShapedTypeOpInterface`, `InferTypeOpInterface`, `OpAsmOpInterf
 <table>
 <tr><th>Attribute</th><th>MLIR Type</th><th>Description</th></tr>
 <tr><td><code>dimension</code></td><td>::mlir::IntegerAttr</td><td>64-bit signless integer attribute whose value is non-negative</td></tr>
+<tr><td><code>scan_dim_size</code></td><td>::mlir::IntegerAttr</td><td>64-bit signless integer attribute whose value is non-negative</td></tr>
 <tr><td><code>is_reverse</code></td><td>::mlir::BoolAttr</td><td>bool attribute</td></tr>
 <tr><td><code>is_associative</code></td><td>::mlir::BoolAttr</td><td>bool attribute</td></tr>
 </table>

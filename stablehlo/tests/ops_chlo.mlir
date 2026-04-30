@@ -423,7 +423,49 @@ func.func @erf_inv(%arg0 : tensor<16x16xf32>) {
 // CHECK-LABEL: func @scan
 func.func @scan(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2x3xf32> {
   // CHECK: chlo.scan
-  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 {
+  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 attributes {} {
+  ^bb0(%input0: tensor<3xf32>, %carry0: tensor<3xf32>):
+    %2 = stablehlo.add %input0, %carry0 : tensor<3xf32>
+    stablehlo.return %2, %2 : tensor<3xf32>, tensor<3xf32>
+  } : (tensor<2x3xf32>, tensor<3xf32>) -> (tensor<2x3xf32>, tensor<3xf32>)
+  func.return %0 : tensor<2x3xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @scan_explicit_size
+func.func @scan_explicit_size(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2x3xf32> {
+  // CHECK: chlo.scan
+  // CHECK: scan_dim_size = 2 : i64
+  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 attributes { scan_dim_size = 2 : i64 } {
+  ^bb0(%input0: tensor<3xf32>, %carry0: tensor<3xf32>):
+    %2 = stablehlo.add %input0, %carry0 : tensor<3xf32>
+    stablehlo.return %2, %2 : tensor<3xf32>, tensor<3xf32>
+  } : (tensor<2x3xf32>, tensor<3xf32>) -> (tensor<2x3xf32>, tensor<3xf32>)
+  func.return %0 : tensor<2x3xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @scan_is_reverse
+func.func @scan_is_reverse(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2x3xf32> {
+  // CHECK: chlo.scan
+  // CHECK: is_reverse = true
+  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 attributes { is_reverse = true } {
+  ^bb0(%input0: tensor<3xf32>, %carry0: tensor<3xf32>):
+    %2 = stablehlo.add %input0, %carry0 : tensor<3xf32>
+    stablehlo.return %2, %2 : tensor<3xf32>, tensor<3xf32>
+  } : (tensor<2x3xf32>, tensor<3xf32>) -> (tensor<2x3xf32>, tensor<3xf32>)
+  func.return %0 : tensor<2x3xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @scan_is_associative
+func.func @scan_is_associative(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2x3xf32> {
+  // CHECK: chlo.scan
+  // CHECK: is_associative = true
+  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 attributes { is_associative = true } {
   ^bb0(%input0: tensor<3xf32>, %carry0: tensor<3xf32>):
     %2 = stablehlo.add %input0, %carry0 : tensor<3xf32>
     stablehlo.return %2, %2 : tensor<3xf32>, tensor<3xf32>
@@ -443,6 +485,18 @@ func.func @scan_variadic(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>, %arg2: te
     stablehlo.return %1, %2, %1, %2 : tensor<3xf32>, tensor<3xi32>, tensor<3xf32>, tensor<3xi32>
   } : (tensor<2x3xf32>, tensor<2x3xi32>, tensor<3xf32>, tensor<3xi32>) -> (tensor<2x3xf32>, tensor<2x3xi32>, tensor<3xf32>, tensor<3xi32>)
   func.return %0#0, %0#1 : tensor<2x3xf32>, tensor<2x3xi32>
+}
+
+// -----
+
+func.func @scan_explicit_size_mismatch(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2x3xf32> {
+  // expected-error @+1 {{'chlo.scan' op invalid scan dimension size of operand 0}}
+  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 attributes { scan_dim_size = 3 : i64 } {
+  ^bb0(%input0: tensor<3xf32>, %carry0: tensor<3xf32>):
+    %2 = stablehlo.add %input0, %carry0 : tensor<3xf32>
+    stablehlo.return %2, %2 : tensor<3xf32>, tensor<3xf32>
+  } : (tensor<2x3xf32>, tensor<3xf32>) -> (tensor<2x3xf32>, tensor<3xf32>)
+  func.return %0 : tensor<2x3xf32>
 }
 
 // -----
