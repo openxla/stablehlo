@@ -45,8 +45,9 @@ jobs:
   bazel-build:
     strategy:
       fail-fast: false
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' || 'ubuntu-22.04'  }}
-    container: "ubuntu:22.04"
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' ||  'ubuntu-22.04'  }}
+    # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
+    container: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build:908471636"
 
     steps:
     # Checkout StableHLO with all commits in the chain
@@ -70,13 +71,6 @@ jobs:
       shell: bash
       run: |
         echo "version=$(cat ./build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
-
-    # Install Bazel (via Bazelisk).
-    - name: Install Bazel
-      shell: bash
-      run: |
-        sudo curl -Lo /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
-        sudo chmod +x /usr/local/bin/bazel
 
     - name: Build and check docs
       shell: bash

@@ -44,32 +44,6 @@ runs:
       path: llvm-project
       fetch-depth: 1
 
-  # Install Bazel (via Bazelisk).
-  - name: Install Bazel
-    shell: bash
-    run: |
-      sudo curl -Lo /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
-      sudo chmod +x /usr/local/bin/bazel
-
-  - name: Toolchain setup, use rules_ml_toolchain
-    shell: bash
-    run: |
-      # Install latest toolchain
-      git clone https://github.com/google-ml-infra/rules_ml_toolchain rules_ml_toolchain
-      cd rules_ml_toolchain
-      bazel build //cc/tests/cpu:all
-      BIN_DIR="$(pwd)/bazel-rules_ml_toolchain/external/llvm18_linux_x86_64/bin"
-      sudo ln -sfvn $BIN_DIR/clang /usr/bin/clang
-      sudo ln -sfvn $BIN_DIR/clang++ /usr/bin/clang++
-      sudo ln -sfvn $BIN_DIR/lld /usr/bin/lld
-
-  # Get ninja for cmake build.
-  - name: Install Ninja
-    shell: bash
-    run: |
-      sudo apt-get update
-      sudo apt-get install -y ninja-build
-
   # Update the system C++ headers.
   - name: Update system C++ headers
     shell: bash
