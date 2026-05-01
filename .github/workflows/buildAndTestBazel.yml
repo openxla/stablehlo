@@ -23,29 +23,43 @@ on:
     # Run once a day
     - cron:  '0 12 * * *'
   workflow_dispatch:
+    inputs:
+      halt-for-connection:
+        description: 'Should this workflow run wait for a remote connection?'
+        type: choice
+        required: true
+        default: 'no'
+        options:
+          - 'yes'
+          - 'no'
 
 # Ensure that only a single job or workflow using the same
 # concurrency group will run at a time. This would cancel
 # any in-progress jobs in the same github workflow and github
 # ref (e.g. refs/heads/main or refs/pull/<pr_number>/merge).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'main' }}
 
 jobs:
   bazel-build:
     strategy:
       fail-fast: false
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
-    # TODO: Use ML OSS Artifacts docker to manage deps needs to package with cmake tooling
-    # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' ||  'ubuntu-22.04'  }}
+    container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
 
     steps:
     # Checkout StableHLO with all commits in the chain
     - name: Checkout StableHLO
-      uses: actions/checkout@v4
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         fetch-depth: $(( ${{ github.event_name == 'pull_request' && github.event.pull_request.commits || 0 }} + 1 ))
+        set-safe-directory: true
+
+    - name: "Wait For Connection"
+      uses: google-ml-infra/actions/ci_connection@7f5ca0c263a81ed09ea276524c1b9192f1304e3c
+      with:
+        halt-dispatch-input: ${{ inputs.halt-for-connection }}
 
     - name: Validate LLVM Commit
       run: |
@@ -55,28 +69,22 @@ jobs:
       id: llvm-version
       shell: bash
       run: |
-        echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
-
-    - name: Setup Bazelisk
-      uses: bazelbuild/setup-bazelisk@v3
-
-    - name: Mount Bazel Cache
-      uses: actions/cache@v4
-      with:
-        path: "~/.cache/bazel"
-        key: ${{ runner.os }}-stablehlo_bazelbuild-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
-        restore-keys: |
-          ${{ runner.os }}-stablehlo_bazelbuild-
+        echo "version=$(cat ./build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
 
     - name: Build and check docs
       shell: bash
       run: |
+        git config --global --add safe.directory "$(pwd)"
+        echo "$PWD"
+        git status
         ./build_tools/github_actions/ci_build_docs.sh -c
 
     - name: Build and Test StableHLO (Diff Only)
       if: ${{ github.event_name == 'pull_request' }}
       shell: bash
       run: |
+        echo "$PWD"
+        git status
         START_HASH=${{ github.event.pull_request.base.sha }}
         END_HASH=${{ github.event.pull_request.head.sha }}
         BAZEL_DIFF=/tmp/bazel-diff.jar
@@ -88,4 +96,10 @@ jobs:
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_bazel.sh
+
+    - name: "Wait For Connection - On Error"
+      if: failure()
+      uses: google-ml-infra/actions/ci_connection@7f5ca0c263a81ed09ea276524c1b9192f1304e3c
+      with:
+        halt-dispatch-input: ${{ inputs.halt-for-connection }}
 
