@@ -44,13 +44,7 @@ runs:
       path: llvm-project
       fetch-depth: 1
 
-  # Update the system C++ headers.
-  - name: Update system C++ headers
-    shell: bash
-    run: |
-      sudo apt-add-repository ppa:ubuntu-toolchain-r/test
-      sudo apt-get update
-      sudo apt-get install libstdc++-13-dev
+
 
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
