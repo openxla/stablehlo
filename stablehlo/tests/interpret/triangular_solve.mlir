@@ -265,8 +265,6 @@ func.func @triangular_solve_op_test_complex_example_adjoint() {
   %b = stablehlo.constant dense<[[(7.0, -2.0)], [(8.0, 4.0)], [(9.0, -5.0)]]> : tensor<3x1xcomplex<f32>>
   %result = "stablehlo.triangular_solve"(%a, %b) {left_side = true, lower = true, unit_diagonal = false, transpose_a = #stablehlo<transpose ADJOINT>} : (tensor<3x3xcomplex<f32>>, tensor<3x1xcomplex<f32>>) -> tensor<3x1xcomplex<f32>>
 
-  interpreter.print %result : tensor<3x1xcomplex<f32>>
-
   check.expect_almost_eq_const %result, dense<[[(7.18, 2.679999)], [(-0.08, 3.16)], [(0.14, -1.02)]]> : tensor<3x1xcomplex<f32>>
   func.return
 }
