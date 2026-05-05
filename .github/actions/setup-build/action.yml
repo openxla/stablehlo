@@ -44,8 +44,6 @@ runs:
       path: llvm-project
       fetch-depth: 1
 
-
-
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
   - name: Ccache for C++ compilation
@@ -54,14 +52,7 @@ runs:
       key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-version }}
       max-size: 4G
 
-  # Install Python/Numpy for API tests
-  - name: Install Python and Pip
-    uses: actions/setup-python@v5
-    with:
-      python-version: ${{ inputs.python-version }}
-      cache: 'pip' # caching pip dependencies
-
   - name: Install MLIR python requirements
     shell: bash
     run: |
-      pip install -r $GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt
+      python3.11 -m pip install -r $GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt
