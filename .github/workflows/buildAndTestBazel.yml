@@ -60,6 +60,12 @@ jobs:
         fetch-depth: $(( ${{ github.event_name == 'pull_request' && github.event.pull_request.commits || 0 }} + 1 ))
         set-safe-directory: true
 
+    - name: Pre-create Bazelisk cache directory
+      shell: bash
+      run: |
+        sudo mkdir -p /__w/.cache/bazel/bazelisk
+        sudo chmod -R 777 /__w/.cache
+
     - name: "Wait For Connection"
       uses: google-ml-infra/actions/ci_connection@7f5ca0c263a81ed09ea276524c1b9192f1304e3c
       with:
