@@ -31,6 +31,11 @@ build --repo_env=CC=clang
 # this separates the debug information and can improve link times
 build --fission=dbg
 
+# Config to disable hermetic toolchain and use local tools.
+# Useful for local builds and CI on self-hosted runners without RBE.
+build:clang_local --@rules_ml_toolchain//common:enable_hermetic_cc=False
+build:clang_local --repo_env=USE_HERMETIC_CC_TOOLCHAIN=0
+
 build:san-common --strip=never --copt=-fno-omit-frame-pointer
 
 # Some of this is from "Can I run AddressSanitizer with more aggressive diagnostics enabled?"
