@@ -64,7 +64,7 @@ jobs:
         if [[ $USE_LLVM_HEAD = true ]]; then
           echo "version=main" >> $GITHUB_OUTPUT
         else
-          echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
+          echo "version=$(cat ./build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
         fi;
 
     - name: Setup workspace
