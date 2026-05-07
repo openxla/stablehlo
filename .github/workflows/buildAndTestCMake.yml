@@ -48,7 +48,7 @@ jobs:
     # TODO: Use ML OSS Artifacts docker to manage deps needs to package with cmake tooling
     # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
     container:
-      image: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build@sha256:6d2d8b777550dc6cd6d17363a74125c75e5269e4e366b892ca79e319e1698091"
+      image: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build@sha256:35efa21038d461634d30f1e66d73332add15d9e2c97aac1636afef459ad7e5ce"
       env:
         HOME: /home/builduser
 
