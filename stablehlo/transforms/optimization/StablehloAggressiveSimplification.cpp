@@ -1386,7 +1386,14 @@ struct TransposeIsReshape final : SimplifyOpRewritePattern<TransposeOp> {
       if (nonZeroPerms[i - 1] > nonZeroPerms[i])
         return rewriter.notifyMatchFailure(op, "memory layout change");
 
-    rewriter.replaceOpWithNewOp<ReshapeOp>(op, op.getType(), input);
+    // Preserve discardable attributes (e.g. mhlo.frontend_attributes that
+    // carry _xla_compute_type for host offloading). replaceOpWithNewOp does
+    // not copy them, and dropping them silently breaks downstream consumers
+    // that group ops by frontend attribute.
+    DictionaryAttr discardableAttrs = op->getDiscardableAttrDictionary();
+    auto reshape =
+        rewriter.replaceOpWithNewOp<ReshapeOp>(op, op.getType(), input);
+    if (discardableAttrs) reshape->setDiscardableAttrs(discardableAttrs);
     return success();
   }
 };

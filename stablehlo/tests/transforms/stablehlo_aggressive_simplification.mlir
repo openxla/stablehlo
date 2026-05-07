@@ -1971,6 +1971,14 @@ func.func @transpose_is_reshape(%arg0: tensor<1x4x5x1xf32>) -> tensor<1x4x1x5xf3
   return %0 : tensor<1x4x1x5xf32>
 }
 
+// CHECK-LABEL: @transpose_is_reshape_preserves_discardable_attrs
+func.func @transpose_is_reshape_preserves_discardable_attrs(%arg0: tensor<99x1xf32>) -> tensor<1x99xf32> {
+  // CHECK: stablehlo.reshape
+  // CHECK-SAME: mhlo.frontend_attributes = {_xla_compute_type = "host"}
+  %0 = stablehlo.transpose %arg0, dims = [1, 0] {mhlo.frontend_attributes = {_xla_compute_type = "host"}} : (tensor<99x1xf32>) -> tensor<1x99xf32>
+  return %0 : tensor<1x99xf32>
+}
+
 // CHECK-LABEL: @transpose_is_not_reshape
 func.func @transpose_is_not_reshape(%arg0: tensor<1x4x5x2xf32>) -> tensor<2x4x1x5xf32> {
   // CHECK-NOT: stablehlo.reshape
