@@ -58,7 +58,7 @@ cmake -GNinja \
   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-  -DPython3_EXECUTABLE=/usr/bin/python3.11
+  -DPython3_EXECUTABLE=/usr/bin/python3.12
 
 # Build LLVM/MLIR
 cmake --build "$LLVM_BUILD_DIR" --target all

@@ -55,4 +55,4 @@ runs:
   - name: Install MLIR python requirements
     shell: bash
     run: |
-      python3.11 -m pip install -r $GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt
+      python3 -m pip install -r $GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt
