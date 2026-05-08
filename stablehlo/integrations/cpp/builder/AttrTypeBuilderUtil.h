@@ -163,22 +163,22 @@ SmallVector<Attribute> getFloatAttrs(ArrayRef<T> values, FloatType type) {
 //////////////////////
 template <typename T>
 typename std::enable_if<std::is_floating_point_v<T>,
-                        std::complex<APFloat>>::type
+                        mlir::Complex<APFloat>>::type
 getComplexValue(std::complex<T> value, FloatType floatType) {
   FloatAttr realAttr = getFloatAttr(value.real(), floatType);
   FloatAttr imagAttr = getFloatAttr(value.imag(), floatType);
-  return std::complex<APFloat>(realAttr.getValue(), imagAttr.getValue());
+  return mlir::Complex<APFloat>(realAttr.getValue(), imagAttr.getValue());
 }
 template <typename T>
-std::complex<APFloat> getComplexValue(T value, FloatType floatType) {
+mlir::Complex<APFloat> getComplexValue(T value, FloatType floatType) {
   FloatAttr realAttr = getFloatAttr(value, floatType);
-  return std::complex<APFloat>(realAttr.getValue(), toAPFloat(0.0, floatType));
+  return mlir::Complex<APFloat>(realAttr.getValue(), toAPFloat(0.0, floatType));
 }
 template <typename T>
-SmallVector<std::complex<APFloat>> getComplexValues(ArrayRef<T> values,
+SmallVector<mlir::Complex<APFloat>> getComplexValues(ArrayRef<T> values,
                                                     FloatType floatType) {
   return llvm::to_vector(
-      llvm::map_range(values, [&](T value) -> std::complex<APFloat> {
+      llvm::map_range(values, [&](T value) -> mlir::Complex<APFloat> {
         return getComplexValue(value, floatType);
       }));
 }
@@ -225,7 +225,7 @@ DenseElementsAttr makeConstant(T value, RankedTensorType tensorType) {
           llvm::report_fatal_error(
               "makeConstant with non-float complex type is unsupported.");
 
-        std::complex<APFloat> complexValue =
+        mlir::Complex<APFloat> complexValue =
             detail::getComplexValue(value, floatType);
         return DenseElementsAttr::get(tensorType, complexValue);
       })
@@ -262,7 +262,7 @@ DenseElementsAttr makeConstant(ArrayRef<T> values,
           llvm::report_fatal_error(
               "makeConstant with non-float complex type is unsupported.");
 
-        SmallVector<std::complex<APFloat>> complexValues =
+        SmallVector<mlir::Complex<APFloat>> complexValues =
             detail::getComplexValues(values, floatType);
         return DenseElementsAttr::get(tensorType, complexValues);
       })

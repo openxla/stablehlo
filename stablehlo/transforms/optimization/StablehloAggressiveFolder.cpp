@@ -112,7 +112,7 @@ class LazyPlaceholderValue {
         bool losesInfo;
         apFloatZero.convert(realImagComponentFloatType.getFloatSemantics(),
                             llvm::RoundingMode::NearestTiesToEven, &losesInfo);
-        std::complex<APFloat> complexZeroScalar(apFloatZero, apFloatZero);
+        mlir::Complex<APFloat> complexZeroScalar(apFloatZero, apFloatZero);
         auto complexZeroSplat =
             SplatElementsAttr::get(shapedType, complexZeroScalar);
         return LazyPlaceholderValue(

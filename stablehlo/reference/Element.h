@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
+#include "mlir/Support/Complex.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -48,7 +49,7 @@ class Element {
 
   /// Initializes Element object with type `type` and value `value`. `type` must
   /// be a complex type of the same semantics as `value`.
-  Element(Type type, std::complex<APFloat> value);
+  Element(Type type, mlir::Complex<APFloat> value);
 
   Element(const Element &other) = default;
   /// @}
@@ -73,7 +74,7 @@ class Element {
 
   /// Returns the underlying complex value stored in an Element object with
   /// complex type.
-  std::complex<APFloat> getComplexValue() const;
+  mlir::Complex<APFloat> getComplexValue() const;
 
   /// Returns the implementation-defined bits of the underlying value.
   APInt toBits() const;
@@ -213,7 +214,7 @@ Element convert(Type type, double value);
 /// destination type), then then the behavior is TBD (#180). If the real part of
 /// `value` cannot be exactly represented in the non-complex destination type,
 /// then the behavior is also TBD (#180).
-Element convert(Type type, std::complex<APFloat> value);
+Element convert(Type type, mlir::Complex<APFloat> value);
 
 /// Returns converted Element object of type `type` from source complex<double>
 /// `value`. Only the real part of `value` is used to convert to non-complex
@@ -222,7 +223,7 @@ Element convert(Type type, std::complex<APFloat> value);
 /// destination type), then then the behavior is TBD (#180). If the real part of
 /// `value` cannot be exactly represented in the non-complex destination type,
 /// then the behavior is also TBD (#180).
-Element convert(Type type, std::complex<double> value);
+Element convert(Type type, mlir::Complex<double> value);
 
 /// Returns Element object of type `type` from zero `value`
 Element getZeroValueOfType(Type type);

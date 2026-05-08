@@ -1816,7 +1816,7 @@ Tensor __fft_1d(const Tensor& operand, ShapedType resultType,
     auto N = operand.getShape()[dimension];
 
     Element X(resultType.getElementType(),
-              std::complex<APFloat>(APFloat(0.0), APFloat(0.0)));
+              mlir::Complex<APFloat>(APFloat(0.0), APFloat(0.0)));
 
     for (int n = 0; n < N; n++) {
       auto operandIndex = Index(resultIndex);
@@ -1860,7 +1860,7 @@ Tensor fftOp(const Tensor& operand, const FftType fftType,
     // compute IFFT as conjugation, FFT, conjugation and normalization
     Tensor result(operand);
     for (auto d = fftDims.begin(); d != fftDims.end(); ++d) {
-      auto divisorValue = std::complex<APFloat>(
+      auto divisorValue = mlir::Complex<APFloat>(
           APFloat(static_cast<double>(resultType.getDimSize(*d))),
           APFloat(0.0));
       auto divisor =
