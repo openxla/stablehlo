@@ -150,7 +150,7 @@ one of the following tracking labels.
 | tanh                     | yes           | yes          | yes            | yes             | yes         |
 | torch_index_select       | no            | revisit      | no             | no              | revisit     |
 | transpose                | yes           | yes          | yes            | yes             | yes         |
-| triangular_solve         | yes           | revisit      | yes            | no              | revisit     |
+| triangular_solve         | yes           | revisit      | yes            | no              | yes         |
 | tuple                    | yes           | yes          | yes            | yes             | yes         |
 | unary_einsum             | no            | revisit      | no             | yes             | revisit     |
 | uniform_dequantize       | yes           | yes          | yes            | yes             | yes         |

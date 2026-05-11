@@ -203,6 +203,9 @@ Tensor tanOp(const Tensor &operand, ShapedType resultType);
 Tensor tanhOp(const Tensor &operand, ShapedType resultType);
 Tensor transposeOp(const Tensor &operand, const Axes &permutation,
                    ShapedType resultType);
+Tensor triangularSolveOp(const Tensor &A, const Tensor &b, bool leftSide,
+                         bool lower, bool unitDiagonal, Transpose transposeA,
+                         ShapedType resultType);
 Tuple tupleOp(ArrayRef<InterpreterValue> val, TupleType resultType);
 SmallVector<InterpreterValue> whileOp(SmallVector<InterpreterValue> operand,
                                       Region &cond, Region &body,

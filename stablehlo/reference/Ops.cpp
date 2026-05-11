@@ -1127,8 +1127,16 @@ SmallVector<InterpreterValue> eval(Region& region,
       auto permutation = Axes(op.getPermutation());
       auto result = transposeOp(operand, permutation, op.getType());
       scope.add(op.getResult(), result);
-    } else if (isa<TriangularSolveOp>(operation)) {
-      failOnDecomposableOp(operation);
+    } else if (auto op = dyn_cast<TriangularSolveOp>(operation)) {
+      auto A = scope.findTensor(op.getA());
+      auto b = scope.findTensor(op.getB());
+      auto leftSide = op.getLeftSide();
+      auto lower = op.getLower();
+      auto unitDiagonal = op.getUnitDiagonal();
+      auto transposeA = op.getTransposeA();
+      auto result = triangularSolveOp(A, b, leftSide, lower, unitDiagonal,
+                                      transposeA, op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<TupleOp>(operation)) {
       auto val = scope.find(op.getVal());
       auto result = tupleOp(val, cast<TupleType>(op.getType()));
@@ -2671,6 +2679,97 @@ Tensor transposeOp(const Tensor& operand, const Axes& permutation,
       resultIndex[d] = operandIndex[permutation[d]];
     result.set(resultIndex, operand.get(operandIndex));
   }
+  return result;
+}
+
+Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
+                         bool lower, bool unitDiagonal, Transpose transposeA,
+                         ShapedType resultType) {
+  Tensor result(resultType);
+  Tensor tA(A);
+
+  if (transposeA == Transpose::TRANSPOSE || transposeA == Transpose::ADJOINT) {
+    auto permutation = A.getAxes();
+    auto rank = A.getRank();
+    auto tmp = permutation[rank - 1];
+    permutation[rank - 1] = permutation[rank - 2];
+    permutation[rank - 2] = tmp;
+    tA = transposeOp(A, permutation, A.getType());
+    lower = !lower;
+  }
+
+  if (transposeA == Transpose::ADJOINT) tA = conjugate(tA);
+
+  const auto rank = A.getRank();
+  const auto N = A.getShape()[A.getRank() - 1];
+  const int64_t dim_i = leftSide ? rank - 2 : rank - 1;
+  const int64_t dim_k = leftSide ? rank - 1 : rank - 2;
+  const auto dim_j = dim_k;
+  const int64_t size_k = b.getShape()[dim_k];
+
+  auto i_init = [&]() { return leftSide ^ lower ? N - 1 : 0; };
+  auto i_predicate = [&](int64_t i) {
+    return leftSide ^ lower ? i >= 0 : i < N;
+  };
+  auto i_update = [&](int64_t& i) { leftSide ^ lower ? i-- : i++; };
+
+  auto j_init = [&](int64_t i) { return leftSide ^ lower ? N - 1 : 0; };
+  auto j_predicate = [&](int64_t j, int64_t i) {
+    return leftSide ^ lower ? j > i : j < i;
+  };
+  auto j_update = [&](int64_t& j) { leftSide ^ lower ? j-- : j++; };
+
+  auto result_index = [&](Index batchIndex, int64_t i, int64_t k) {
+    Index index(rank);
+    for (size_t d = 0; d < batchIndex.size(); d++) index[d] = batchIndex[d];
+
+    index[dim_k] = k;
+    index[dim_i] = i;
+    return index;
+  };
+
+  auto a_index = [&](Index batchIndex, int64_t i, int64_t j) {
+    Index index(rank);
+    for (size_t d = 0; d < batchIndex.size(); d++) index[d] = batchIndex[d];
+
+    index[dim_i] = i;
+    index[dim_j] = j;
+    return index;
+  };
+
+  Sizes batchShape(rank - 2);
+  if (rank > 2) {
+    for (size_t d = 0; d < (size_t)(rank - 2); d++)
+      batchShape[d] = result.getShape()[d];
+  }
+
+  for (auto batchIndexIt = batchShape.index_begin();
+       batchIndexIt != batchShape.index_end(); ++batchIndexIt) {
+    auto batchIndex = *batchIndexIt;
+
+    for (int64_t k = 0; k < size_k; k++) {
+      for (int64_t i = i_init(); i_predicate(i); i_update(i)) {
+        auto index = result_index(batchIndex, i, k);
+
+        Element x = b.get(index);
+
+        // left_side xor lower: j in [0, i)
+        // otherwise:  j in (i, N-1]
+        for (int64_t j = j_init(i); j_predicate(j, i); j_update(j)) {
+          auto a = tA.get(a_index(batchIndex, i, j));
+          auto xj = result.get(result_index(batchIndex, j, k));
+          x = x - a * xj;
+        }
+        if (!unitDiagonal) {
+          auto a = tA.get(Index{i, i});
+          x = x / a;
+        }
+
+        result.set(index, x);
+      }
+    }
+  }
+
   return result;
 }
 
