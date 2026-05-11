@@ -44,7 +44,7 @@ namespace {
 
 template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>
-Element map(const Element &el, IntegerFn integerFn, BooleanFn boolFn,
+Element map(const Element& el, IntegerFn integerFn, BooleanFn boolFn,
             FloatFn floatFn, ComplexFn complexFn) {
   auto type = el.getType();
 
@@ -75,7 +75,7 @@ Element map(const Element &el, IntegerFn integerFn, BooleanFn boolFn,
 
 template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>
-Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
+Element map(const Element& lhs, const Element& rhs, IntegerFn integerFn,
             BooleanFn boolFn, FloatFn floatFn, ComplexFn complexFn) {
   auto type = lhs.getType();
   if (lhs.getType() != rhs.getType())
@@ -112,7 +112,7 @@ Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
 }
 
 template <typename FloatFn, typename ComplexFn>
-Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
+Element mapWithUpcastToDouble(const Element& el, FloatFn floatFn,
                               ComplexFn complexFn) {
   auto type = el.getType();
 
@@ -129,7 +129,7 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
 }
 
 template <typename FloatFn, typename ComplexFn>
-Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
+Element mapWithUpcastToDouble(const Element& lhs, const Element& rhs,
                               FloatFn floatFn, ComplexFn complexFn) {
   auto type = lhs.getType();
   if (lhs.getType() != rhs.getType())
@@ -317,11 +317,11 @@ Element Element::operator!() const {
                  !getBooleanValue());
 }
 
-Element Element::operator!=(const Element &other) const {
+Element Element::operator!=(const Element& other) const {
   return !(*this == other);
 }
 
-Element Element::operator&(const Element &other) const {
+Element Element::operator&(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs & rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
@@ -334,7 +334,7 @@ Element Element::operator&(const Element &other) const {
       });
 }
 
-Element Element::operator*(const Element &other) const {
+Element Element::operator*(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs * rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
@@ -347,7 +347,7 @@ Element Element::operator*(const Element &other) const {
       });
 }
 
-Element Element::operator+(const Element &other) const {
+Element Element::operator+(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs + rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
@@ -370,7 +370,7 @@ Element Element::operator-() const {
       [](mlir::Complex<APFloat> val) { return -val; });
 }
 
-Element Element::operator-(const Element &other) const {
+Element Element::operator-(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs - rhs; },
       [](bool lhs, bool rhs) -> bool {
@@ -385,7 +385,7 @@ Element Element::operator-(const Element &other) const {
       });
 }
 
-Element Element::operator/(const Element &other) const {
+Element Element::operator/(const Element& other) const {
   auto lhs = *this;
   auto rhs = other;
 
@@ -413,7 +413,7 @@ Element Element::operator/(const Element &other) const {
     // TODO(#226): Use mlir::Complex::operator/
     auto lhsVal = lhs.getComplexValue();
     auto rhsVal = rhs.getComplexValue();
-    const llvm::fltSemantics &elSemantics = lhsVal.real().getSemantics();
+    const llvm::fltSemantics& elSemantics = lhsVal.real().getSemantics();
     auto resultVal = mlir::Complex<double>(lhsVal.real().convertToDouble(),
                                            lhsVal.imag().convertToDouble()) /
                      mlir::Complex<double>(rhsVal.real().convertToDouble(),
@@ -430,7 +430,7 @@ Element Element::operator/(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-Element Element::operator<(const Element &other) const {
+Element Element::operator<(const Element& other) const {
   auto type = other.getType();
   auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
@@ -462,11 +462,11 @@ Element Element::operator<(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-Element Element::operator<=(const Element &other) const {
+Element Element::operator<=(const Element& other) const {
   return (*this < other) || (*this == other);
 }
 
-Element Element::operator==(const Element &other) const {
+Element Element::operator==(const Element& other) const {
   auto type = other.getType();
   auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
@@ -503,7 +503,7 @@ Element Element::operator==(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-Element Element::operator>(const Element &other) const {
+Element Element::operator>(const Element& other) const {
   auto type = other.getType();
   auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
@@ -535,11 +535,11 @@ Element Element::operator>(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-Element Element::operator>=(const Element &other) const {
+Element Element::operator>=(const Element& other) const {
   return (*this > other) || (*this == other);
 }
 
-Element Element::operator^(const Element &other) const {
+Element Element::operator^(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs ^ rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs ^ rhs; },
@@ -552,7 +552,7 @@ Element Element::operator^(const Element &other) const {
       });
 }
 
-Element Element::operator|(const Element &other) const {
+Element Element::operator|(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs | rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
@@ -565,7 +565,7 @@ Element Element::operator|(const Element &other) const {
       });
 }
 
-Element Element::operator||(const Element &other) const {
+Element Element::operator||(const Element& other) const {
   return Element(IntegerType::get(getType().getContext(), 1),
                  getBooleanValue() || other.getBooleanValue());
 }
@@ -582,7 +582,7 @@ Element Element::operator~() const {
       });
 }
 
-Element abs(const Element &el) {
+Element abs(const Element& el) {
   auto type = el.getType();
 
   if (isSupportedIntegerType(el.getType())) {
@@ -606,7 +606,7 @@ Element abs(const Element &el) {
                                      debugString(type).c_str()));
 }
 
-Element areApproximatelyEqual(const Element &e1, const Element &e2,
+Element areApproximatelyEqual(const Element& e1, const Element& e2,
                               APFloat tolerance) {
   auto type = e1.getType();
   auto i1Type = IntegerType::get(e1.getType().getContext(), 1);
@@ -634,7 +634,7 @@ Element areApproximatelyEqual(const Element &e1, const Element &e2,
                                      debugString(type).c_str()));
 }
 
-Element atan2(const Element &e1, const Element &e2) {
+Element atan2(const Element& e1, const Element& e2) {
   auto type = e1.getType();
   if (isSupportedFloatType(e1.getType()))
     return convert(type, std::atan2(e1.getFloatValue().convertToDouble(),
@@ -661,7 +661,7 @@ Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
         debugString(elements[0].getType()).c_str(), debugString(type).c_str()));
 
   APInt resultBits(resultNumBits, 0);
-  for (const auto &element : llvm::reverse(elements)) {
+  for (const auto& element : llvm::reverse(elements)) {
     if (operandNumBits != numBits(element.getType()))
       llvm::report_fatal_error("All elements must have the same numBits");
     auto operandBits = element.toBits();
@@ -671,7 +671,7 @@ Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
   return Element::fromBits(type, resultBits);
 }
 
-SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
+SmallVector<Element> bitcastConvertOneToMany(Type type, const Element& el) {
   SmallVector<Element> results;
 
   auto resultNumBits = numBits(type);
@@ -688,7 +688,7 @@ SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
   return results;
 }
 
-Element bitcastConvertOneToOne(Type type, const Element &el) {
+Element bitcastConvertOneToOne(Type type, const Element& el) {
   if (numBits(type) != numBits(el.getType()))
     report_fatal_error(invalidArgument(
         "Unsupported bitcast conversion from %s to %s",
@@ -696,7 +696,7 @@ Element bitcastConvertOneToOne(Type type, const Element &el) {
   return Element::fromBits(type, el.toBits());
 }
 
-Element cbrt(const Element &el) {
+Element cbrt(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::cbrt(e); },
       [](mlir::Complex<double> e) {
@@ -707,13 +707,13 @@ Element cbrt(const Element &el) {
       });
 }
 
-Element ceil(const Element &el) {
+Element ceil(const Element& el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardPositive);
   return Element(el.getType(), val);
 }
 
-Element complex(const Element &e1, const Element &e2) {
+Element complex(const Element& e1, const Element& e2) {
   auto complexType = ComplexType::get(e1.getType());
   if (isSupportedComplexType(complexType))
     return Element(complexType, mlir::Complex<APFloat>(e1.getFloatValue(),
@@ -722,7 +722,7 @@ Element complex(const Element &e1, const Element &e2) {
                                      debugString(complexType).c_str()));
 }
 
-Element convert(Type type, const Element &e) {
+Element convert(Type type, const Element& e) {
   if (isSupportedBooleanType(e.getType()))
     return convert(type, e.getBooleanValue());
   if (isSupportedSignedIntegerType(e.getType()))
@@ -830,13 +830,13 @@ Element getZeroValueOfType(Type type) {
                                      debugString(type).c_str()));
 }
 
-Element exponential(const Element &el) {
+Element exponential(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::exp(e); },
       [](mlir::Complex<double> e) { return std::exp(e); });
 }
 
-Element exponentialMinusOne(const Element &el) {
+Element exponentialMinusOne(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::expm1(e); },
       [](mlir::Complex<double> e) {
@@ -844,15 +844,15 @@ Element exponentialMinusOne(const Element &el) {
       });
 }
 
-Element floor(const Element &el) {
+Element floor(const Element& el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardNegative);
   return Element(el.getType(), val);
 }
 
-Element imag(const Element &el) {
+Element imag(const Element& el) {
   if (isSupportedFloatType(el.getType())) {
-    const llvm::fltSemantics &elSemantics = el.getFloatValue().getSemantics();
+    const llvm::fltSemantics& elSemantics = el.getFloatValue().getSemantics();
     bool roundingErr;
     APFloat resultImag(0.0);
     resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
@@ -865,24 +865,24 @@ Element imag(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
-Element isFinite(const Element &el) {
+Element isFinite(const Element& el) {
   return Element(IntegerType::get(el.getType().getContext(), 1),
                  el.getFloatValue().isFinite());
 }
 
-Element cosine(const Element &el) {
+Element cosine(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::cos(e); },
       [](mlir::Complex<double> e) { return std::cos(e); });
 }
 
-Element log(const Element &el) {
+Element log(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::log(e); },
       [](mlir::Complex<double> e) { return std::log(e); });
 }
 
-Element logPlusOne(const Element &el) {
+Element logPlusOne(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::log1p(e); },
       [](mlir::Complex<double> e) {
@@ -890,12 +890,12 @@ Element logPlusOne(const Element &el) {
       });
 }
 
-Element logistic(const Element &el) {
+Element logistic(const Element& el) {
   auto one = convert(el.getType(), 1.0);
   return one / (one + exponential(-el));
 }
 
-Element max(const Element &e1, const Element &e2) {
+Element max(const Element& e1, const Element& e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
@@ -913,7 +913,7 @@ Element max(const Element &e1, const Element &e2) {
       });
 }
 
-Element min(const Element &e1, const Element &e2) {
+Element min(const Element& e1, const Element& e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
@@ -931,12 +931,12 @@ Element min(const Element &e1, const Element &e2) {
       });
 }
 
-Element popcnt(const Element &el) {
+Element popcnt(const Element& el) {
   return convert(el.getType(),
                  static_cast<uint64_t>(el.getIntegerValue().popcount()));
 }
 
-Element power(const Element &e1, const Element &e2) {
+Element power(const Element& e1, const Element& e2) {
   auto type = e1.getType();
 
   if (isSupportedIntegerType(type)) {
@@ -965,7 +965,7 @@ Element power(const Element &e1, const Element &e2) {
       });
 }
 
-Element real(const Element &el) {
+Element real(const Element& el) {
   if (isSupportedFloatType(el.getType())) return el;
   if (isSupportedComplexType(el.getType()))
     return Element(cast<ComplexType>(el.getType()).getElementType(),
@@ -974,7 +974,7 @@ Element real(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
-Element reducePrecision(const Element &el, int32_t exponentBits,
+Element reducePrecision(const Element& el, int32_t exponentBits,
                         int32_t mantissaBits) {
   auto intVal = el.getFloatValue().bitcastToAPInt().getZExtValue();
   auto type = cast<FloatType>(el.getType());
@@ -1039,7 +1039,7 @@ Element reducePrecision(const Element &el, int32_t exponentBits,
   return reducedResult;
 }
 
-Element rem(const Element &e1, const Element &e2) {
+Element rem(const Element& e1, const Element& e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
@@ -1063,39 +1063,39 @@ Element rem(const Element &e1, const Element &e2) {
       });
 }
 
-Element roundNearestAfz(const Element &el) {
+Element roundNearestAfz(const Element& el) {
   auto type = el.getType();
   auto val = el.getFloatValue();
   val.roundToIntegral(llvm::RoundingMode::NearestTiesToAway);
   return Element(type, val);
 }
 
-Element roundNearestEven(const Element &el) {
+Element roundNearestEven(const Element& el) {
   auto type = el.getType();
   auto val = el.getFloatValue();
   val.roundToIntegral(llvm::RoundingMode::NearestTiesToEven);
   return Element(type, val);
 }
 
-Element rsqrt(const Element &el) {
+Element rsqrt(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return 1.0 / std::sqrt(e); },
       [](mlir::Complex<double> e) { return 1.0 / std::sqrt(e); });
 }
 
-Element shiftLeft(const Element &e1, const Element &e2) {
+Element shiftLeft(const Element& e1, const Element& e2) {
   return Element(e1.getType(), e1.getIntegerValue() << e2.getIntegerValue());
 }
 
-Element shiftRightLogical(const Element &e1, const Element &e2) {
+Element shiftRightLogical(const Element& e1, const Element& e2) {
   return Element(e1.getType(), e1.getIntegerValue().lshr(e2.getIntegerValue()));
 }
 
-Element shiftRightArithmetic(const Element &e1, const Element &e2) {
+Element shiftRightArithmetic(const Element& e1, const Element& e2) {
   return Element(e1.getType(), e1.getIntegerValue().ashr(e2.getIntegerValue()));
 }
 
-Element sign(const Element &el) {
+Element sign(const Element& el) {
   auto type = el.getType();
 
   if (isSupportedIntegerType(type)) {
@@ -1116,7 +1116,7 @@ Element sign(const Element &el) {
 
   if (isSupportedComplexType(type)) {
     auto elVal = el.getComplexValue();
-    const llvm::fltSemantics &elSemantics = elVal.real().getSemantics();
+    const llvm::fltSemantics& elSemantics = elVal.real().getSemantics();
 
     if (elVal.real().isNaN() || elVal.imag().isNaN())
       return Element(type,
@@ -1135,31 +1135,31 @@ Element sign(const Element &el) {
                                      debugString(type).c_str()));
 }
 
-Element sine(const Element &el) {
+Element sine(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::sin(e); },
       [](mlir::Complex<double> e) { return std::sin(e); });
 }
 
-Element sqrt(const Element &el) {
+Element sqrt(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::sqrt(e); },
       [](mlir::Complex<double> e) { return std::sqrt(e); });
 }
 
-Element tan(const Element &el) {
+Element tan(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::tan(e); },
       [](mlir::Complex<double> e) { return std::tan(e); });
 }
 
-Element tanh(const Element &el) {
+Element tanh(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::tanh(e); },
       [](mlir::Complex<double> e) { return std::tanh(e); });
 }
 
-void Element::print(raw_ostream &os, bool elideType) const {
+void Element::print(raw_ostream& os, bool elideType) const {
   if (isSupportedIntegerType(type_)) {
     IntegerAttr::get(type_, getIntegerValue()).print(os, elideType);
     return;

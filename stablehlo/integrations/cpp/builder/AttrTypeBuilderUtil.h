@@ -176,7 +176,7 @@ mlir::Complex<APFloat> getComplexValue(T value, FloatType floatType) {
 }
 template <typename T>
 SmallVector<mlir::Complex<APFloat>> getComplexValues(ArrayRef<T> values,
-                                                    FloatType floatType) {
+                                                     FloatType floatType) {
   return llvm::to_vector(
       llvm::map_range(values, [&](T value) -> mlir::Complex<APFloat> {
         return getComplexValue(value, floatType);

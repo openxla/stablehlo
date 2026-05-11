@@ -51,11 +51,11 @@ class Element {
   /// be a complex type of the same semantics as `value`.
   Element(Type type, mlir::Complex<APFloat> value);
 
-  Element(const Element &other) = default;
+  Element(const Element& other) = default;
   /// @}
 
   /// Assignment operator.
-  Element &operator=(const Element &other) = default;
+  Element& operator=(const Element& other) = default;
 
   /// Returns type of the Element object.
   Type getType() const { return type_; }
@@ -86,55 +86,55 @@ class Element {
   Element operator!() const;
 
   /// Overloaded inequality operator.
-  Element operator!=(const Element &other) const;
+  Element operator!=(const Element& other) const;
 
   /// Overloaded and (bitwise) operator.
-  Element operator&(const Element &other) const;
+  Element operator&(const Element& other) const;
 
   /// Overloaded multiply operator.
-  Element operator*(const Element &other) const;
+  Element operator*(const Element& other) const;
 
   /// Overloaded add operator.
-  Element operator+(const Element &other) const;
+  Element operator+(const Element& other) const;
 
   /// Overloaded negate operator.
   Element operator-() const;
 
   /// Overloaded subtract operator.
-  Element operator-(const Element &other) const;
+  Element operator-(const Element& other) const;
 
   /// Overloaded divide operator.
-  Element operator/(const Element &other) const;
+  Element operator/(const Element& other) const;
 
   /// Overloaded less-than operator.
-  Element operator<(const Element &other) const;
+  Element operator<(const Element& other) const;
 
   /// Overloaded less-than-or-equal-to operator.
-  Element operator<=(const Element &other) const;
+  Element operator<=(const Element& other) const;
 
   /// Overloaded equality operator.
-  Element operator==(const Element &other) const;
+  Element operator==(const Element& other) const;
 
   /// Overloaded greater-than operator.
-  Element operator>(const Element &other) const;
+  Element operator>(const Element& other) const;
 
   /// Overloaded greater-than-or-equal-to operator.
-  Element operator>=(const Element &other) const;
+  Element operator>=(const Element& other) const;
 
   /// Overloaded xor (bitwise) operator.
-  Element operator^(const Element &other) const;
+  Element operator^(const Element& other) const;
 
   /// Overloaded or (bitwise) operator.
-  Element operator|(const Element &other) const;
+  Element operator|(const Element& other) const;
 
   /// Overloaded or (logical) operator.
-  Element operator||(const Element &other) const;
+  Element operator||(const Element& other) const;
 
   /// Overloaded not (bitwise) operator.
   Element operator~() const;
 
   /// Print utilities for Element objects.
-  void print(raw_ostream &os, bool elideType = true) const;
+  void print(raw_ostream& os, bool elideType = true) const;
 
   /// Print utilities for Element objects.
   void dump() const;
@@ -145,34 +145,34 @@ class Element {
 };
 
 /// Returns abs of Element object.
-Element abs(const Element &e);
+Element abs(const Element& e);
 
 /// Returns atan2 of Element object.
-Element atan2(const Element &e1, const Element &e2);
+Element atan2(const Element& e1, const Element& e2);
 
 /// For floating point type T, checks if two normal values f1 and f2 are equal
 /// within a set tolerance (default 0.0001).
 /// For complex element type, checks if both real and imaginary parts are
 /// individually equal modulo the tolerance.
-Element areApproximatelyEqual(const Element &e1, const Element &e2,
+Element areApproximatelyEqual(const Element& e1, const Element& e2,
                               APFloat tolerance = APFloat(0.0001));
 
 /// Various flavors of bitcast conversion as defined in the specification.
-Element bitcastConvertOneToOne(Type type, const Element &e);
-SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &e);
+Element bitcastConvertOneToOne(Type type, const Element& e);
+SmallVector<Element> bitcastConvertOneToMany(Type type, const Element& e);
 Element bitcastConvertManyToOne(Type type, ArrayRef<Element> es);
 
 /// Returns cube root of Element object.
-Element cbrt(const Element &e);
+Element cbrt(const Element& e);
 
 /// Returns ceil of Element object.
-Element ceil(const Element &e);
+Element ceil(const Element& e);
 
 /// Returns a complex type Element object.
-Element complex(const Element &e1, const Element &e2);
+Element complex(const Element& e1, const Element& e2);
 
 /// Returns converted Element object.
-Element convert(Type type, const Element &e);
+Element convert(Type type, const Element& e);
 
 /// Returns converted Element object of type `type` from source boolean `value`.
 Element convert(Type type, bool value);
@@ -229,93 +229,93 @@ Element convert(Type type, mlir::Complex<double> value);
 Element getZeroValueOfType(Type type);
 
 /// Returns cosine of Element object.
-Element cosine(const Element &e);
+Element cosine(const Element& e);
 
 /// Returns exponential of Element object.
-Element exponential(const Element &el);
+Element exponential(const Element& el);
 
 /// Returns exponential_minus_one of Element object.
-Element exponentialMinusOne(const Element &el);
+Element exponentialMinusOne(const Element& el);
 
 /// Returns floor of Element object.
-Element floor(const Element &e);
+Element floor(const Element& e);
 
 /// Returns the imaginary part extracted from the Element object with
 /// floating-point or complex type.
-Element imag(const Element &el);
+Element imag(const Element& el);
 
 /// Returns if the floating-point element object is finite.
-Element isFinite(const Element &el);
+Element isFinite(const Element& el);
 
 /// Returns log of Element object.
-Element log(const Element &el);
+Element log(const Element& el);
 
 /// Returns log1p of Element object.
-Element logPlusOne(const Element &el);
+Element logPlusOne(const Element& el);
 
 /// Returns logistic of Element object.
-Element logistic(const Element &el);
+Element logistic(const Element& el);
 
 /// Returns the maximum between two Element objects.
-Element max(const Element &e1, const Element &e2);
+Element max(const Element& e1, const Element& e2);
 
 /// Returns the minimum between two Element objects.
-Element min(const Element &e1, const Element &e2);
+Element min(const Element& e1, const Element& e2);
 
 /// Returns the population count of Element object.
-Element popcnt(const Element &el);
+Element popcnt(const Element& el);
 
 /// Returns the exponentiation of first element to the power of second element.
-Element power(const Element &e1, const Element &e2);
+Element power(const Element& e1, const Element& e2);
 
 /// Returns the real part extracted from the Element object with floating-point
 /// or complex type.
-Element real(const Element &e);
+Element real(const Element& e);
 
 /// Returns the Element object rounded to the specified precision type.
-Element reducePrecision(const Element &el, int32_t exponentBits,
+Element reducePrecision(const Element& el, int32_t exponentBits,
                         int32_t mantissaBits);
 
 /// Returns the remainder for two Element objects.
-Element rem(const Element &e1, const Element &e2);
+Element rem(const Element& e1, const Element& e2);
 
 /// Returns the value rounded to the nearest integer, breaking ties away from
 /// zero, of Element object.
-Element roundNearestAfz(const Element &el);
+Element roundNearestAfz(const Element& el);
 
 /// Returns the value rounded to nearest integer, breaking ties towards the
 /// even, of Element object.
-Element roundNearestEven(const Element &el);
+Element roundNearestEven(const Element& el);
 
 /// Returns reverse square root of Element object.
-Element rsqrt(const Element &e);
+Element rsqrt(const Element& e);
 
 /// Returns left-shift of Element object e1 by e2.
-Element shiftLeft(const Element &e1, const Element &e2);
+Element shiftLeft(const Element& e1, const Element& e2);
 
 /// Returns arithmetic right-shift of Element object e1 by e2.
-Element shiftRightArithmetic(const Element &e1, const Element &e2);
+Element shiftRightArithmetic(const Element& e1, const Element& e2);
 
 /// Returns logical right-shift of Element object e1 by e2.
-Element shiftRightLogical(const Element &e1, const Element &e2);
+Element shiftRightLogical(const Element& e1, const Element& e2);
 
 /// Returns sign of Element object.
-Element sign(const Element &e);
+Element sign(const Element& e);
 
 /// Returns sine of Element object.
-Element sine(const Element &e);
+Element sine(const Element& e);
 
 /// Returns square root of Element object.
-Element sqrt(const Element &e);
+Element sqrt(const Element& e);
 
 /// Returns tan of Element object.
-Element tan(const Element &e);
+Element tan(const Element& e);
 
 /// Returns tanh of Element object.
-Element tanh(const Element &e);
+Element tanh(const Element& e);
 
 /// Print utilities for Element objects.
-inline raw_ostream &operator<<(raw_ostream &os, Element element) {
+inline raw_ostream& operator<<(raw_ostream& os, Element element) {
   element.print(os, /*elideType=*/true);
   return os;
 }

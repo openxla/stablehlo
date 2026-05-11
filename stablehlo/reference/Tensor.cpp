@@ -64,7 +64,7 @@ int64_t getSizeInBytes(Type type) {
 
 // Flattens multi-dimensional index 'index' of a tensor to a linearized index
 // into the underlying storage where elements are laid out in canonical order.
-int64_t flattenIndex(const Sizes &shape, const Index &index) {
+int64_t flattenIndex(const Sizes& shape, const Index& index) {
   if (!index.inBounds(shape))
     llvm::report_fatal_error(
         "Incompatible index and shape found while flattening index");
@@ -111,40 +111,40 @@ Tensor::Tensor(ShapedType type)
 Tensor::Tensor(ShapedType type, AsmResourceBlob blob)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type, std::move(blob))) {}
 
-Element Tensor::get(const Index &index) const {
+Element Tensor::get(const Index& index) const {
   Type elementType = getType().getElementType();
-  const char *elementPtr =
+  const char* elementPtr =
       impl_->getData().data() +
       getSizeInBytes(elementType) * flattenIndex(getShape(), index);
 
   // Handle floating-point types.
   if (isSupportedFloatType(elementType) &&
       cast<FloatType>(elementType).getWidth() <= 8) {
-    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
+    auto elementData = reinterpret_cast<const uint8_t*>(elementPtr);
     auto floatTy = cast<FloatType>(elementType);
     return Element(elementType,
                    APFloat(floatTy.getFloatSemantics(),
                            APInt(floatTy.getWidth(), *elementData)));
   }
   if (elementType.isF16()) {
-    auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<const uint16_t*>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::IEEEhalf(),
                                         APInt(16, *elementData)));
   }
 
   if (elementType.isBF16()) {
-    auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<const uint16_t*>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::BFloat(),
                                         APInt(16, *elementData)));
   }
 
   if (elementType.isF32()) {
-    auto elementData = reinterpret_cast<const float *>(elementPtr);
+    auto elementData = reinterpret_cast<const float*>(elementPtr);
     return Element(elementType, APFloat(*elementData));
   }
 
   if (elementType.isF64()) {
-    auto elementData = reinterpret_cast<const double *>(elementPtr);
+    auto elementData = reinterpret_cast<const double*>(elementPtr);
     return Element(elementType, APFloat(*elementData));
   }
 
@@ -157,26 +157,26 @@ Element Tensor::get(const Index &index) const {
     IntegerType intTy = cast<IntegerType>(elementType);
     const unsigned int bitwidth = intTy.getWidth();
     if (bitwidth == 2 || bitwidth == 4 || bitwidth == 8) {
-      auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint8_t*>(elementPtr);
       // Set implicitTrunc to ignore garbage bits on 2-bit and 4-bit types.
       const bool implicitTrunc = bitwidth == 2 || bitwidth == 4;
       return Element(elementType, APInt(bitwidth, *elementData,
                                         /*isSigned=*/false, implicitTrunc));
     } else if (bitwidth == 16) {
-      auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint16_t*>(elementPtr);
       return Element(elementType, APInt(bitwidth, *elementData));
     } else if (bitwidth == 32) {
-      auto elementData = reinterpret_cast<const uint32_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint32_t*>(elementPtr);
       return Element(elementType, APInt(bitwidth, *elementData));
     } else if (bitwidth == 64) {
-      auto elementData = reinterpret_cast<const uint64_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint64_t*>(elementPtr);
       return Element(elementType, APInt(bitwidth, *elementData));
     }
   }
 
   // Handle boolean type.
   if (isSupportedBooleanType(elementType)) {
-    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
+    auto elementData = reinterpret_cast<const uint8_t*>(elementPtr);
     if (*elementData == 0) return Element(elementType, false);
     if (*elementData == 1) return Element(elementType, true);
 
@@ -189,7 +189,7 @@ Element Tensor::get(const Index &index) const {
 
     if (complexElemTy.isF32()) {
       auto elementData =
-          reinterpret_cast<const std::complex<float> *>(elementPtr);
+          reinterpret_cast<const std::complex<float>*>(elementPtr);
       return Element(elementType,
                      mlir::Complex<APFloat>(APFloat(elementData->real()),
                                             APFloat(elementData->imag())));
@@ -197,7 +197,7 @@ Element Tensor::get(const Index &index) const {
 
     if (complexElemTy.isF64()) {
       auto elementData =
-          reinterpret_cast<const std::complex<double> *>(elementPtr);
+          reinterpret_cast<const std::complex<double>*>(elementPtr);
       return Element(elementType,
                      mlir::Complex<APFloat>(APFloat(elementData->real()),
                                             APFloat(elementData->imag())));
@@ -208,37 +208,37 @@ Element Tensor::get(const Index &index) const {
                                      debugString(elementType).c_str()));
 }
 
-void Tensor::set(const Index &index, const Element &element) {
+void Tensor::set(const Index& index, const Element& element) {
   Type elementType = getType().getElementType();
-  char *elementPtr =
+  char* elementPtr =
       impl_->getMutableData().data() +
       getSizeInBytes(elementType) * flattenIndex(getShape(), index);
 
   // Handle floating-point types.
   if (isSupportedFloatType(elementType) &&
       cast<FloatType>(elementType).getWidth() <= 8) {
-    auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
+    auto elementData = reinterpret_cast<uint8_t*>(elementPtr);
     auto value = element.getFloatValue();
     *elementData = (uint8_t)value.bitcastToAPInt().getZExtValue();
     return;
   }
 
   if (elementType.isF16() || elementType.isBF16()) {
-    auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<uint16_t*>(elementPtr);
     auto value = element.getFloatValue();
     *elementData = (uint16_t)value.bitcastToAPInt().getZExtValue();
     return;
   }
 
   if (elementType.isF32()) {
-    auto elementData = reinterpret_cast<float *>(elementPtr);
+    auto elementData = reinterpret_cast<float*>(elementPtr);
     auto value = element.getFloatValue();
     *elementData = value.convertToFloat();
     return;
   }
 
   if (elementType.isF64()) {
-    auto elementData = reinterpret_cast<double *>(elementPtr);
+    auto elementData = reinterpret_cast<double*>(elementPtr);
     auto value = element.getFloatValue();
     *elementData = value.convertToDouble();
     return;
@@ -251,28 +251,28 @@ void Tensor::set(const Index &index, const Element &element) {
   // integer variants.
   if (elementType.isSignlessInteger(2) || elementType.isSignlessInteger(4) ||
       elementType.isSignlessInteger(8)) {
-    auto elementData = reinterpret_cast<int8_t *>(elementPtr);
+    auto elementData = reinterpret_cast<int8_t*>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (int8_t)value.getSExtValue();
     return;
   }
 
   if (elementType.isSignlessInteger(16)) {
-    auto elementData = reinterpret_cast<int16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<int16_t*>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (int16_t)value.getSExtValue();
     return;
   }
 
   if (elementType.isSignlessInteger(32)) {
-    auto elementData = reinterpret_cast<int32_t *>(elementPtr);
+    auto elementData = reinterpret_cast<int32_t*>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (int32_t)value.getSExtValue();
     return;
   }
 
   if (elementType.isSignlessInteger(64)) {
-    auto elementData = reinterpret_cast<int64_t *>(elementPtr);
+    auto elementData = reinterpret_cast<int64_t*>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (int64_t)value.getSExtValue();
     return;
@@ -281,28 +281,28 @@ void Tensor::set(const Index &index, const Element &element) {
   // Handle unsigned integer types.
   if (elementType.isUnsignedInteger(2) || elementType.isUnsignedInteger(4) ||
       elementType.isUnsignedInteger(8)) {
-    auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
+    auto elementData = reinterpret_cast<uint8_t*>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (uint8_t)value.getZExtValue();
     return;
   }
 
   if (elementType.isUnsignedInteger(16)) {
-    auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<uint16_t*>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (uint16_t)value.getZExtValue();
     return;
   }
 
   if (elementType.isUnsignedInteger(32)) {
-    auto elementData = reinterpret_cast<uint32_t *>(elementPtr);
+    auto elementData = reinterpret_cast<uint32_t*>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (uint32_t)value.getZExtValue();
     return;
   }
 
   if (elementType.isUnsignedInteger(64)) {
-    auto elementData = reinterpret_cast<uint64_t *>(elementPtr);
+    auto elementData = reinterpret_cast<uint64_t*>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (uint64_t)value.getZExtValue();
     return;
@@ -310,7 +310,7 @@ void Tensor::set(const Index &index, const Element &element) {
 
   // Handle boolean type.
   if (isSupportedBooleanType(elementType)) {
-    auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
+    auto elementData = reinterpret_cast<uint8_t*>(elementPtr);
     auto value = element.getBooleanValue();
     *elementData = value ? 1 : 0;
     return;
@@ -322,14 +322,14 @@ void Tensor::set(const Index &index, const Element &element) {
     auto complexValue = element.getComplexValue();
 
     if (complexElemTy.isF32()) {
-      auto elementData = reinterpret_cast<std::complex<float> *>(elementPtr);
+      auto elementData = reinterpret_cast<std::complex<float>*>(elementPtr);
       *elementData = std::complex<float>(complexValue.real().convertToFloat(),
                                          complexValue.imag().convertToFloat());
       return;
     }
 
     if (complexElemTy.isF64()) {
-      auto elementData = reinterpret_cast<std::complex<double> *>(elementPtr);
+      auto elementData = reinterpret_cast<std::complex<double>*>(elementPtr);
       *elementData =
           std::complex<double>(complexValue.real().convertToDouble(),
                                complexValue.imag().convertToDouble());
@@ -349,12 +349,12 @@ IndexSpaceIterator Tensor::index_end() const { return getShape().index_end(); }
 
 namespace {
 
-void printNewlineIndent(llvm::raw_ostream &os, int64_t n) {
+void printNewlineIndent(llvm::raw_ostream& os, int64_t n) {
   os << '\n';
   for (int64_t i = 0; i < n; ++i) os << "  ";
 }
 
-bool isEndOfIterationSpace(const Index &idx, const Sizes &shape) {
+bool isEndOfIterationSpace(const Index& idx, const Sizes& shape) {
   // Check if this is the last index of the right-most dimension
   // I.e.
   //   Index{0, 3} vs Shape{0, 4, 9} ==> true
@@ -364,8 +364,8 @@ bool isEndOfIterationSpace(const Index &idx, const Sizes &shape) {
   return idx.back() == dimSize - 1;
 }
 
-void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
-                 const Sizes &shape, Index &currIdx, int64_t indent) {
+void printHelper(llvm::raw_ostream& os, const Tensor& tensor,
+                 const Sizes& shape, Index& currIdx, int64_t indent) {
   // Base case: We have a full index, print the item
   if (currIdx.size() == shape.size()) {
     os << tensor.get(currIdx);
@@ -393,7 +393,7 @@ void printHelper(llvm::raw_ostream &os, const Tensor &tensor,
 
 }  // namespace
 
-void Tensor::print(raw_ostream &os) const {
+void Tensor::print(raw_ostream& os) const {
   getType().print(os);
   os << " {";
   Index idx{};
@@ -626,7 +626,7 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
 
     if (complexElemTy.isF32()) {
       auto elementData =
-          reinterpret_cast<const std::complex<float> *>(tensor.getData());
+          reinterpret_cast<const std::complex<float>*>(tensor.getData());
       ArrayRef<std::complex<float>> elementDataRef(elementData,
                                                    tensor.getNumElements());
       return DenseElementsAttr::get(tensor.getType(), elementDataRef);
@@ -634,7 +634,7 @@ DenseElementsAttr makeDenseElementsAttr(Tensor tensor) {
 
     if (complexElemTy.isF64()) {
       auto elementData =
-          reinterpret_cast<const std::complex<double> *>(tensor.getData());
+          reinterpret_cast<const std::complex<double>*>(tensor.getData());
       ArrayRef<std::complex<double>> elementDataRef(elementData,
                                                     tensor.getNumElements());
       return DenseElementsAttr::get(tensor.getType(), elementDataRef);
