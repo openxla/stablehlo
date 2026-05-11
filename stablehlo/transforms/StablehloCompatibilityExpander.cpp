@@ -311,6 +311,31 @@ struct FileLineColRangeToLoc : public OpRewritePattern<ModuleOp> {
   }
 };
 
+stablehlo::MeshAttr resolveMeshAttrFromDict(DictionaryAttr dictAttr) {
+  MLIRContext* ctx = dictAttr.getContext();
+
+  // Extract axes
+  auto axesAttr = dictAttr.getAs<ArrayAttr>("axes");
+  if (!axesAttr) return {};
+
+  SmallVector<stablehlo::MeshAxisAttr> axes;
+  for (Attribute attr : axesAttr) {
+    auto axisDict = dyn_cast<DictionaryAttr>(attr);
+    if (!axisDict) return {};
+    auto nameAttr = axisDict.getAs<StringAttr>("name");
+    auto sizeAttr = axisDict.getAs<IntegerAttr>("size");
+    if (!nameAttr || !sizeAttr) return {};
+    axes.push_back(stablehlo::MeshAxisAttr::get(ctx, nameAttr.getValue(),
+                                                sizeAttr.getInt()));
+  }
+
+  // Extract device_ids
+  DenseIntElementsAttr deviceIds =
+      dictAttr.getAs<DenseIntElementsAttr>("device_ids");
+
+  return stablehlo::MeshAttr::get(ctx, axes, deviceIds);
+}
+
 // ReplicaGroupMeshAxesExpander handles the conversion of
 // #stablehlo.replica_group_mesh_axes to a dense I64ElementsAttr for target
 // versions that do not support it.
@@ -339,6 +364,12 @@ struct ReplicaGroupMeshAxesExpander : public RewritePattern {
       if (!meshAttr) {
         meshAttr =
             symbolOp->getAttrOfType<stablehlo::MeshAttr>("stablehlo.mesh");
+      }
+      if (!meshAttr) {
+        if (auto dictAttr =
+                symbolOp->getAttrOfType<DictionaryAttr>("stablehlo.mesh")) {
+          meshAttr = resolveMeshAttrFromDict(dictAttr);
+        }
       }
       if (!meshAttr) {
         return op->emitError("Failed to find mesh attribute on symbol");

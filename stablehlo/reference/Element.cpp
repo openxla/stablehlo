@@ -44,7 +44,7 @@ namespace {
 
 template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>
-Element map(const Element &el, IntegerFn integerFn, BooleanFn boolFn,
+Element map(const Element& el, IntegerFn integerFn, BooleanFn boolFn,
             FloatFn floatFn, ComplexFn complexFn) {
   auto type = el.getType();
 
@@ -75,7 +75,7 @@ Element map(const Element &el, IntegerFn integerFn, BooleanFn boolFn,
 
 template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>
-Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
+Element map(const Element& lhs, const Element& rhs, IntegerFn integerFn,
             BooleanFn boolFn, FloatFn floatFn, ComplexFn complexFn) {
   auto type = lhs.getType();
   if (lhs.getType() != rhs.getType())
@@ -112,7 +112,7 @@ Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
 }
 
 template <typename FloatFn, typename ComplexFn>
-Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
+Element mapWithUpcastToDouble(const Element& el, FloatFn floatFn,
                               ComplexFn complexFn) {
   auto type = el.getType();
 
@@ -120,7 +120,7 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
     return convert(type, floatFn(el.getFloatValue().convertToDouble()));
 
   if (isSupportedComplexType(type))
-    return convert(type, complexFn(std::complex<double>(
+    return convert(type, complexFn(mlir::Complex<double>(
                              el.getComplexValue().real().convertToDouble(),
                              el.getComplexValue().imag().convertToDouble())));
 
@@ -129,7 +129,7 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
 }
 
 template <typename FloatFn, typename ComplexFn>
-Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
+Element mapWithUpcastToDouble(const Element& lhs, const Element& rhs,
                               FloatFn floatFn, ComplexFn complexFn) {
   auto type = lhs.getType();
   if (lhs.getType() != rhs.getType())
@@ -144,10 +144,10 @@ Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
 
   if (isSupportedComplexType(type)) {
     return convert(
-        type, complexFn(std::complex<double>(
+        type, complexFn(mlir::Complex<double>(
                             lhs.getComplexValue().real().convertToDouble(),
                             lhs.getComplexValue().imag().convertToDouble()),
-                        std::complex<double>(
+                        mlir::Complex<double>(
                             rhs.getComplexValue().real().convertToDouble(),
                             rhs.getComplexValue().imag().convertToDouble())));
   }
@@ -223,7 +223,7 @@ Element::Element(Type type, APFloat value) {
   value_ = value;
 }
 
-Element::Element(Type type, std::complex<APFloat> value) {
+Element::Element(Type type, mlir::Complex<APFloat> value) {
   if (!isSupportedComplexType(type))
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
@@ -264,12 +264,12 @@ APFloat Element::getFloatValue() const {
   return std::get<APFloat>(value_);
 }
 
-std::complex<APFloat> Element::getComplexValue() const {
+mlir::Complex<APFloat> Element::getComplexValue() const {
   if (!isSupportedComplexType(type_))
     llvm::report_fatal_error("Element is not a complex value");
 
   auto floatPair = std::get<std::pair<APFloat, APFloat>>(value_);
-  return std::complex<APFloat>(floatPair.first, floatPair.second);
+  return mlir::Complex<APFloat>(floatPair.first, floatPair.second);
 }
 
 APInt Element::toBits() const {
@@ -317,46 +317,46 @@ Element Element::operator!() const {
                  !getBooleanValue());
 }
 
-Element Element::operator!=(const Element &other) const {
+Element Element::operator!=(const Element& other) const {
   return !(*this == other);
 }
 
-Element Element::operator&(const Element &other) const {
+Element Element::operator&(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs & rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
       [](APFloat lhs, APFloat rhs) -> APFloat {
         llvm::report_fatal_error("float & float is unsupported");
       },
-      [](std::complex<APFloat> lhs,
-         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+      [](mlir::Complex<APFloat> lhs,
+         mlir::Complex<APFloat> rhs) -> mlir::Complex<APFloat> {
         llvm::report_fatal_error("complex & complex is unsupported");
       });
 }
 
-Element Element::operator*(const Element &other) const {
+Element Element::operator*(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs * rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
       [](APFloat lhs, APFloat rhs) { return lhs * rhs; },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        // TODO(#226): Use std::complex::operator*
+      [](mlir::Complex<APFloat> lhs, mlir::Complex<APFloat> rhs) {
+        // TODO(#226): Use mlir::Complex::operator*
         auto resultReal = lhs.real() * rhs.real() - lhs.imag() * rhs.imag();
         auto resultImag = lhs.real() * rhs.imag() + lhs.imag() * rhs.real();
-        return std::complex<APFloat>(resultReal, resultImag);
+        return mlir::Complex<APFloat>(resultReal, resultImag);
       });
 }
 
-Element Element::operator+(const Element &other) const {
+Element Element::operator+(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs + rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
       [](APFloat lhs, APFloat rhs) { return lhs + rhs; },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        // TODO(#226): Use std::complex::operator+
+      [](mlir::Complex<APFloat> lhs, mlir::Complex<APFloat> rhs) {
+        // TODO(#226): Use mlir::Complex::operator+
         auto resultReal = lhs.real() + rhs.real();
         auto resultImag = lhs.imag() + rhs.imag();
-        return std::complex<APFloat>(resultReal, resultImag);
+        return mlir::Complex<APFloat>(resultReal, resultImag);
       });
 }
 
@@ -367,25 +367,25 @@ Element Element::operator-() const {
         llvm::report_fatal_error("-bool is unsupported");
       },
       [&](APFloat val) { return -val; },
-      [](std::complex<APFloat> val) { return -val; });
+      [](mlir::Complex<APFloat> val) { return -val; });
 }
 
-Element Element::operator-(const Element &other) const {
+Element Element::operator-(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs - rhs; },
       [](bool lhs, bool rhs) -> bool {
         llvm::report_fatal_error("bool - bool is unsupported");
       },
       [](APFloat lhs, APFloat rhs) { return lhs - rhs; },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        // TODO(#226): Use std::complex::operator-
+      [](mlir::Complex<APFloat> lhs, mlir::Complex<APFloat> rhs) {
+        // TODO(#226): Use mlir::Complex::operator-
         auto resultReal = lhs.real() - rhs.real();
         auto resultImag = lhs.imag() - rhs.imag();
-        return std::complex<APFloat>(resultReal, resultImag);
+        return mlir::Complex<APFloat>(resultReal, resultImag);
       });
 }
 
-Element Element::operator/(const Element &other) const {
+Element Element::operator/(const Element& other) const {
   auto lhs = *this;
   auto rhs = other;
 
@@ -410,27 +410,27 @@ Element Element::operator/(const Element &other) const {
   }
 
   if (isSupportedComplexType(type)) {
-    // TODO(#226): Use std::complex::operator/
+    // TODO(#226): Use mlir::Complex::operator/
     auto lhsVal = lhs.getComplexValue();
     auto rhsVal = rhs.getComplexValue();
-    const llvm::fltSemantics &elSemantics = lhsVal.real().getSemantics();
-    auto resultVal = std::complex<double>(lhsVal.real().convertToDouble(),
-                                          lhsVal.imag().convertToDouble()) /
-                     std::complex<double>(rhsVal.real().convertToDouble(),
-                                          rhsVal.imag().convertToDouble());
+    const llvm::fltSemantics& elSemantics = lhsVal.real().getSemantics();
+    auto resultVal = mlir::Complex<double>(lhsVal.real().convertToDouble(),
+                                           lhsVal.imag().convertToDouble()) /
+                     mlir::Complex<double>(rhsVal.real().convertToDouble(),
+                                           rhsVal.imag().convertToDouble());
     bool roundingErr;
     APFloat resultReal(resultVal.real());
     resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
     APFloat resultImag(resultVal.imag());
     resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, std::complex<APFloat>(resultReal, resultImag));
+    return Element(type, mlir::Complex<APFloat>(resultReal, resultImag));
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
 }
 
-Element Element::operator<(const Element &other) const {
+Element Element::operator<(const Element& other) const {
   auto type = other.getType();
   auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
@@ -462,11 +462,11 @@ Element Element::operator<(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-Element Element::operator<=(const Element &other) const {
+Element Element::operator<=(const Element& other) const {
   return (*this < other) || (*this == other);
 }
 
-Element Element::operator==(const Element &other) const {
+Element Element::operator==(const Element& other) const {
   auto type = other.getType();
   auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
@@ -503,7 +503,7 @@ Element Element::operator==(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-Element Element::operator>(const Element &other) const {
+Element Element::operator>(const Element& other) const {
   auto type = other.getType();
   auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
@@ -535,37 +535,37 @@ Element Element::operator>(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-Element Element::operator>=(const Element &other) const {
+Element Element::operator>=(const Element& other) const {
   return (*this > other) || (*this == other);
 }
 
-Element Element::operator^(const Element &other) const {
+Element Element::operator^(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs ^ rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs ^ rhs; },
       [](APFloat lhs, APFloat rhs) -> APFloat {
         llvm::report_fatal_error("float ^ float is unsupported");
       },
-      [](std::complex<APFloat> lhs,
-         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+      [](mlir::Complex<APFloat> lhs,
+         mlir::Complex<APFloat> rhs) -> mlir::Complex<APFloat> {
         llvm::report_fatal_error("complex ^ complex is unsupported");
       });
 }
 
-Element Element::operator|(const Element &other) const {
+Element Element::operator|(const Element& other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs | rhs; },
       [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
       [](APFloat lhs, APFloat rhs) -> APFloat {
         llvm::report_fatal_error("float | float is unsupported");
       },
-      [](std::complex<APFloat> lhs,
-         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+      [](mlir::Complex<APFloat> lhs,
+         mlir::Complex<APFloat> rhs) -> mlir::Complex<APFloat> {
         llvm::report_fatal_error("complex | complex is unsupported");
       });
 }
 
-Element Element::operator||(const Element &other) const {
+Element Element::operator||(const Element& other) const {
   return Element(IntegerType::get(getType().getContext(), 1),
                  getBooleanValue() || other.getBooleanValue());
 }
@@ -577,12 +577,12 @@ Element Element::operator~() const {
       [](APFloat val) -> APFloat {
         llvm::report_fatal_error("~float is unsupported");
       },
-      [](std::complex<APFloat> val) -> std::complex<APFloat> {
+      [](mlir::Complex<APFloat> val) -> mlir::Complex<APFloat> {
         llvm::report_fatal_error("~complex is unsupported");
       });
 }
 
-Element abs(const Element &el) {
+Element abs(const Element& el) {
   auto type = el.getType();
 
   if (isSupportedIntegerType(el.getType())) {
@@ -597,7 +597,7 @@ Element abs(const Element &el) {
 
   if (isSupportedComplexType(type)) {
     auto elVal = el.getComplexValue();
-    auto resultVal = std::abs(std::complex<double>(
+    auto resultVal = std::abs(mlir::Complex<double>(
         elVal.real().convertToDouble(), elVal.imag().convertToDouble()));
     return convert(cast<ComplexType>(type).getElementType(), resultVal);
   }
@@ -606,7 +606,7 @@ Element abs(const Element &el) {
                                      debugString(type).c_str()));
 }
 
-Element areApproximatelyEqual(const Element &e1, const Element &e2,
+Element areApproximatelyEqual(const Element& e1, const Element& e2,
                               APFloat tolerance) {
   auto type = e1.getType();
   auto i1Type = IntegerType::get(e1.getType().getContext(), 1);
@@ -634,7 +634,7 @@ Element areApproximatelyEqual(const Element &e1, const Element &e2,
                                      debugString(type).c_str()));
 }
 
-Element atan2(const Element &e1, const Element &e2) {
+Element atan2(const Element& e1, const Element& e2) {
   auto type = e1.getType();
   if (isSupportedFloatType(e1.getType()))
     return convert(type, std::atan2(e1.getFloatValue().convertToDouble(),
@@ -642,7 +642,7 @@ Element atan2(const Element &e1, const Element &e2) {
 
   if (isSupportedComplexType(type)) {
     // atan2(y, x) = -i * log((x + i * y) / sqrt(x**2+y**2))
-    auto i = convert(type, std::complex<double>(0.0, 1.0));
+    auto i = convert(type, mlir::Complex<double>(0.0, 1.0));
     return -i * log((e2 + i * e1) / sqrt(e2 * e2 + e1 * e1));
   }
 
@@ -661,7 +661,7 @@ Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
         debugString(elements[0].getType()).c_str(), debugString(type).c_str()));
 
   APInt resultBits(resultNumBits, 0);
-  for (const auto &element : llvm::reverse(elements)) {
+  for (const auto& element : llvm::reverse(elements)) {
     if (operandNumBits != numBits(element.getType()))
       llvm::report_fatal_error("All elements must have the same numBits");
     auto operandBits = element.toBits();
@@ -671,7 +671,7 @@ Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
   return Element::fromBits(type, resultBits);
 }
 
-SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
+SmallVector<Element> bitcastConvertOneToMany(Type type, const Element& el) {
   SmallVector<Element> results;
 
   auto resultNumBits = numBits(type);
@@ -688,7 +688,7 @@ SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
   return results;
 }
 
-Element bitcastConvertOneToOne(Type type, const Element &el) {
+Element bitcastConvertOneToOne(Type type, const Element& el) {
   if (numBits(type) != numBits(el.getType()))
     report_fatal_error(invalidArgument(
         "Unsupported bitcast conversion from %s to %s",
@@ -696,33 +696,33 @@ Element bitcastConvertOneToOne(Type type, const Element &el) {
   return Element::fromBits(type, el.toBits());
 }
 
-Element cbrt(const Element &el) {
+Element cbrt(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::cbrt(e); },
-      [](std::complex<double> e) {
+      [](mlir::Complex<double> e) {
         auto theta = std::atan2(e.imag(), e.real()) / 3.0;
         return std::pow(std::pow(e.real(), 2.0) + std::pow(e.imag(), 2.0),
                         1.0 / 6.0) *
-               std::complex<double>(std::cos(theta), std::sin(theta));
+               mlir::Complex<double>(std::cos(theta), std::sin(theta));
       });
 }
 
-Element ceil(const Element &el) {
+Element ceil(const Element& el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardPositive);
   return Element(el.getType(), val);
 }
 
-Element complex(const Element &e1, const Element &e2) {
+Element complex(const Element& e1, const Element& e2) {
   auto complexType = ComplexType::get(e1.getType());
   if (isSupportedComplexType(complexType))
-    return Element(complexType, std::complex<APFloat>(e1.getFloatValue(),
-                                                      e2.getFloatValue()));
+    return Element(complexType, mlir::Complex<APFloat>(e1.getFloatValue(),
+                                                       e2.getFloatValue()));
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(complexType).c_str()));
 }
 
-Element convert(Type type, const Element &e) {
+Element convert(Type type, const Element& e) {
   if (isSupportedBooleanType(e.getType()))
     return convert(type, e.getBooleanValue());
   if (isSupportedSignedIntegerType(e.getType()))
@@ -791,7 +791,7 @@ Element convert(Type type, APFloat value) {
     return Element(type, value);
   }
   if (isSupportedComplexType(type))
-    return convert(type, std::complex<APFloat>(value, APFloat(0.0)));
+    return convert(type, mlir::Complex<APFloat>(value, APFloat(0.0)));
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
 }
@@ -800,20 +800,20 @@ Element convert(Type type, double value) {
   return convert(type, APFloat(value));
 }
 
-Element convert(Type type, std::complex<APFloat> value) {
+Element convert(Type type, mlir::Complex<APFloat> value) {
   if (isSupportedComplexType(type)) {
     auto elementType = cast<ComplexType>(type).getElementType();
     auto realElement = convert(elementType, value.real());
     auto imagElement = convert(elementType, value.imag());
-    return Element(type, std::complex<APFloat>(realElement.getFloatValue(),
-                                               imagElement.getFloatValue()));
+    return Element(type, mlir::Complex<APFloat>(realElement.getFloatValue(),
+                                                imagElement.getFloatValue()));
   }
   return convert(type, value.real());
 }
 
-Element convert(Type type, std::complex<double> value) {
-  return convert(type, std::complex<APFloat>(APFloat(value.real()),
-                                             APFloat(value.imag())));
+Element convert(Type type, mlir::Complex<double> value) {
+  return convert(type, mlir::Complex<APFloat>(APFloat(value.real()),
+                                              APFloat(value.imag())));
 }
 
 Element getZeroValueOfType(Type type) {
@@ -825,34 +825,34 @@ Element getZeroValueOfType(Type type) {
   if (isSupportedFloatType(type))
     return convert(type, static_cast<APFloat>(0.0));
   if (isSupportedComplexType(type))
-    return convert(type, std::complex<APFloat>(APFloat(0.0), APFloat(0.0)));
+    return convert(type, mlir::Complex<APFloat>(APFloat(0.0), APFloat(0.0)));
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
 }
 
-Element exponential(const Element &el) {
+Element exponential(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::exp(e); },
-      [](std::complex<double> e) { return std::exp(e); });
+      [](mlir::Complex<double> e) { return std::exp(e); });
 }
 
-Element exponentialMinusOne(const Element &el) {
+Element exponentialMinusOne(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::expm1(e); },
-      [](std::complex<double> e) {
-        return std::exp(e) - std::complex<double>(1.0, 0.0);
+      [](mlir::Complex<double> e) {
+        return std::exp(e) - mlir::Complex<double>(1.0, 0.0);
       });
 }
 
-Element floor(const Element &el) {
+Element floor(const Element& el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardNegative);
   return Element(el.getType(), val);
 }
 
-Element imag(const Element &el) {
+Element imag(const Element& el) {
   if (isSupportedFloatType(el.getType())) {
-    const llvm::fltSemantics &elSemantics = el.getFloatValue().getSemantics();
+    const llvm::fltSemantics& elSemantics = el.getFloatValue().getSemantics();
     bool roundingErr;
     APFloat resultImag(0.0);
     resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
@@ -865,37 +865,37 @@ Element imag(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
-Element isFinite(const Element &el) {
+Element isFinite(const Element& el) {
   return Element(IntegerType::get(el.getType().getContext(), 1),
                  el.getFloatValue().isFinite());
 }
 
-Element cosine(const Element &el) {
+Element cosine(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::cos(e); },
-      [](std::complex<double> e) { return std::cos(e); });
+      [](mlir::Complex<double> e) { return std::cos(e); });
 }
 
-Element log(const Element &el) {
+Element log(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::log(e); },
-      [](std::complex<double> e) { return std::log(e); });
+      [](mlir::Complex<double> e) { return std::log(e); });
 }
 
-Element logPlusOne(const Element &el) {
+Element logPlusOne(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::log1p(e); },
-      [](std::complex<double> e) {
-        return std::log(e + std::complex<double>(1.0));
+      [](mlir::Complex<double> e) {
+        return std::log(e + mlir::Complex<double>(1.0));
       });
 }
 
-Element logistic(const Element &el) {
+Element logistic(const Element& el) {
   auto one = convert(el.getType(), 1.0);
   return one / (one + exponential(-el));
 }
 
-Element max(const Element &e1, const Element &e2) {
+Element max(const Element& e1, const Element& e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
@@ -905,7 +905,7 @@ Element max(const Element &e1, const Element &e2) {
       },
       [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
       [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+      [](mlir::Complex<APFloat> lhs, mlir::Complex<APFloat> rhs) {
         auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
                           ? lhs.imag() > rhs.imag()
                           : lhs.real() > rhs.real();
@@ -913,7 +913,7 @@ Element max(const Element &e1, const Element &e2) {
       });
 }
 
-Element min(const Element &e1, const Element &e2) {
+Element min(const Element& e1, const Element& e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
@@ -923,7 +923,7 @@ Element min(const Element &e1, const Element &e2) {
       },
       [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
       [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+      [](mlir::Complex<APFloat> lhs, mlir::Complex<APFloat> rhs) {
         auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
                           ? lhs.imag() < rhs.imag()
                           : lhs.real() < rhs.real();
@@ -931,12 +931,12 @@ Element min(const Element &e1, const Element &e2) {
       });
 }
 
-Element popcnt(const Element &el) {
+Element popcnt(const Element& el) {
   return convert(el.getType(),
                  static_cast<uint64_t>(el.getIntegerValue().popcount()));
 }
 
-Element power(const Element &e1, const Element &e2) {
+Element power(const Element& e1, const Element& e2) {
   auto type = e1.getType();
 
   if (isSupportedIntegerType(type)) {
@@ -960,12 +960,12 @@ Element power(const Element &e1, const Element &e2) {
 
   return mapWithUpcastToDouble(
       e1, e2, [](double lhs, double rhs) { return std::pow(lhs, rhs); },
-      [](std::complex<double> lhs, std::complex<double> rhs) {
+      [](mlir::Complex<double> lhs, mlir::Complex<double> rhs) {
         return std::pow(lhs, rhs);
       });
 }
 
-Element real(const Element &el) {
+Element real(const Element& el) {
   if (isSupportedFloatType(el.getType())) return el;
   if (isSupportedComplexType(el.getType()))
     return Element(cast<ComplexType>(el.getType()).getElementType(),
@@ -974,7 +974,7 @@ Element real(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
-Element reducePrecision(const Element &el, int32_t exponentBits,
+Element reducePrecision(const Element& el, int32_t exponentBits,
                         int32_t mantissaBits) {
   auto intVal = el.getFloatValue().bitcastToAPInt().getZExtValue();
   auto type = cast<FloatType>(el.getType());
@@ -1039,7 +1039,7 @@ Element reducePrecision(const Element &el, int32_t exponentBits,
   return reducedResult;
 }
 
-Element rem(const Element &e1, const Element &e2) {
+Element rem(const Element& e1, const Element& e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
@@ -1056,46 +1056,46 @@ Element rem(const Element &e1, const Element &e2) {
         (void)lhs.mod(rhs);
         return lhs;
       },
-      [](std::complex<APFloat> lhs,
-         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+      [](mlir::Complex<APFloat> lhs,
+         mlir::Complex<APFloat> rhs) -> mlir::Complex<APFloat> {
         // TODO(#997): remove support for complex
         llvm::report_fatal_error("rem(complex, complex) is not implemented");
       });
 }
 
-Element roundNearestAfz(const Element &el) {
+Element roundNearestAfz(const Element& el) {
   auto type = el.getType();
   auto val = el.getFloatValue();
   val.roundToIntegral(llvm::RoundingMode::NearestTiesToAway);
   return Element(type, val);
 }
 
-Element roundNearestEven(const Element &el) {
+Element roundNearestEven(const Element& el) {
   auto type = el.getType();
   auto val = el.getFloatValue();
   val.roundToIntegral(llvm::RoundingMode::NearestTiesToEven);
   return Element(type, val);
 }
 
-Element rsqrt(const Element &el) {
+Element rsqrt(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return 1.0 / std::sqrt(e); },
-      [](std::complex<double> e) { return 1.0 / std::sqrt(e); });
+      [](mlir::Complex<double> e) { return 1.0 / std::sqrt(e); });
 }
 
-Element shiftLeft(const Element &e1, const Element &e2) {
+Element shiftLeft(const Element& e1, const Element& e2) {
   return Element(e1.getType(), e1.getIntegerValue() << e2.getIntegerValue());
 }
 
-Element shiftRightLogical(const Element &e1, const Element &e2) {
+Element shiftRightLogical(const Element& e1, const Element& e2) {
   return Element(e1.getType(), e1.getIntegerValue().lshr(e2.getIntegerValue()));
 }
 
-Element shiftRightArithmetic(const Element &e1, const Element &e2) {
+Element shiftRightArithmetic(const Element& e1, const Element& e2) {
   return Element(e1.getType(), e1.getIntegerValue().ashr(e2.getIntegerValue()));
 }
 
-Element sign(const Element &el) {
+Element sign(const Element& el) {
   auto type = el.getType();
 
   if (isSupportedIntegerType(type)) {
@@ -1116,16 +1116,17 @@ Element sign(const Element &el) {
 
   if (isSupportedComplexType(type)) {
     auto elVal = el.getComplexValue();
-    const llvm::fltSemantics &elSemantics = elVal.real().getSemantics();
+    const llvm::fltSemantics& elSemantics = elVal.real().getSemantics();
 
     if (elVal.real().isNaN() || elVal.imag().isNaN())
-      return Element(type, std::complex<APFloat>(APFloat::getNaN(elSemantics),
-                                                 APFloat::getNaN(elSemantics)));
+      return Element(type,
+                     mlir::Complex<APFloat>(APFloat::getNaN(elSemantics),
+                                            APFloat::getNaN(elSemantics)));
 
     if (elVal.real().isZero() && elVal.imag().isZero())
       return Element(type,
-                     std::complex<APFloat>(APFloat::getZero(elSemantics),
-                                           APFloat::getZero(elSemantics)));
+                     mlir::Complex<APFloat>(APFloat::getZero(elSemantics),
+                                            APFloat::getZero(elSemantics)));
 
     return el / convert(type, abs(el).getFloatValue());
   }
@@ -1134,31 +1135,31 @@ Element sign(const Element &el) {
                                      debugString(type).c_str()));
 }
 
-Element sine(const Element &el) {
+Element sine(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::sin(e); },
-      [](std::complex<double> e) { return std::sin(e); });
+      [](mlir::Complex<double> e) { return std::sin(e); });
 }
 
-Element sqrt(const Element &el) {
+Element sqrt(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::sqrt(e); },
-      [](std::complex<double> e) { return std::sqrt(e); });
+      [](mlir::Complex<double> e) { return std::sqrt(e); });
 }
 
-Element tan(const Element &el) {
+Element tan(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::tan(e); },
-      [](std::complex<double> e) { return std::tan(e); });
+      [](mlir::Complex<double> e) { return std::tan(e); });
 }
 
-Element tanh(const Element &el) {
+Element tanh(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::tanh(e); },
-      [](std::complex<double> e) { return std::tanh(e); });
+      [](mlir::Complex<double> e) { return std::tanh(e); });
 }
 
-void Element::print(raw_ostream &os, bool elideType) const {
+void Element::print(raw_ostream& os, bool elideType) const {
   if (isSupportedIntegerType(type_)) {
     IntegerAttr::get(type_, getIntegerValue()).print(os, elideType);
     return;
