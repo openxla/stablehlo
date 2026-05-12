@@ -51,7 +51,6 @@ runs:
     with:
       key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-version }}
       max-size: 4G
-      update-package-index: true
 
   - name: Install MLIR python requirements
     shell: bash
