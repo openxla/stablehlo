@@ -48,7 +48,7 @@ jobs:
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' ||  'ubuntu-22.04'  }}
     # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
     container:
-      image: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build@sha256:18fb56fb52375aa83f67b7ffaca2debf288275af5bdea2ebd7b02098bbf995c7"
+      image: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build@sha256:1fa02d2a6796370ec87e3ad87599f2ef448647722caa5b5de08f6c08230f5e10"
       env:
         HOME: /home/builduser
 
