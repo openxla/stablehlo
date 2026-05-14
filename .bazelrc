@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Disable Bzlmod for now
+common --noenable_bzlmod
+
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17
 # llvm builds typically without rtti
@@ -23,18 +26,22 @@ build --host_cxxopt=-fno-rtti
 # this only works for Clang toolchain AFAIK
 # https://github.com/bazelbuild/bazel/pull/11440
 build --features=layering_check
-# Set the default compiler to the `clang` binary on the `PATH`.
-# TODO(fzakaria): Make this a toolchain or hermetic somehow
-build --repo_env=CC=clang
 
 # turn on fission https://gcc.gnu.org/wiki/DebugFission
 # this separates the debug information and can improve link times
 build --fission=dbg
 
+common --incompatible_enable_cc_toolchain_resolution
+common --repo_env USE_HERMETIC_CC_TOOLCHAIN=1
+
+common --@rules_python//python/config_settings:precompile=force_disabled
+common --@rules_python//python/config_settings:bootstrap_impl=script --repo_env=RULES_PYTHON_ENABLE_PIPSTAR=0
+
 # Config to disable hermetic toolchain and use local tools.
 # Useful for local builds and CI on self-hosted runners without RBE.
-build:clang_local --@rules_ml_toolchain//common:enable_hermetic_cc=False
-build:clang_local --repo_env=USE_HERMETIC_CC_TOOLCHAIN=0
+common:clang_local --noincompatible_enable_cc_toolchain_resolution
+common:clang_local --@rules_ml_toolchain//common:enable_hermetic_cc=False
+common:clang_local --repo_env=USE_HERMETIC_CC_TOOLCHAIN=0
 
 build:san-common --strip=never --copt=-fno-omit-frame-pointer
 
@@ -77,4 +84,4 @@ build --nolegacy_external_runfiles
 test --nolegacy_external_runfiles
 
 # Disallow empty globs unless explicitly declared using `allow_empty=True`
-common --incompatible_disallow_empty_glob
+common --incompatible_disallow_empty_glob=False
