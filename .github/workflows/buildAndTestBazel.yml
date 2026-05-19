@@ -47,7 +47,7 @@ jobs:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' ||  'ubuntu-22.04'  }}
     # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
-    container: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build@sha256:eb20716328a27a59fdf852d6a9a9e9a999688295e34dab07e6501bcaffdd2825"
+    container: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build@sha256:bfaab87381fefac3e3237fd27a8526895b4d7ef3ff1a473f4430df8cadfcd32a"
 
     steps:
     # Checkout StableHLO with all commits in the chain
