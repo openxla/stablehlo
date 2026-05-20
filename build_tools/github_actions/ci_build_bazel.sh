@@ -91,8 +91,8 @@ bazel-test-diff() {
   # Build and Test impacted targets
   if [[ -s "$FILTERED_TARGETS_PATH" ]]; then
     echo "Building and Testing Impacted (Non-External) Targets..."
-    bazel build --config=clang_local --target_pattern_file="$FILTERED_TARGETS_PATH"
-    bazel test --config=clang_local --target_pattern_file="$FILTERED_TARGETS_PATH"
+    bazel build --target_pattern_file="$FILTERED_TARGETS_PATH"
+    bazel test --target_pattern_file="$FILTERED_TARGETS_PATH"
   else
     echo "No non-external impacted targets to build and test."
   fi
