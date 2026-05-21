@@ -97,7 +97,6 @@ llvm_setup("llvm-project")
 # tell Bazel where to find the system's `strip` tool.
 new_local_repository(
     name = "non_hermetic_toolchain",
-    path = "/usr/bin",
     build_file_content = """
 filegroup(
     name = "strip",
@@ -105,4 +104,5 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 """,
+    path = "/usr/bin",
 )
