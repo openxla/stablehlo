@@ -43,14 +43,12 @@ common:clang_local --noincompatible_enable_cc_toolchain_resolution
 common:clang_local --@rules_ml_toolchain//common:enable_hermetic_cc=False
 common:clang_local --repo_env=USE_HERMETIC_CC_TOOLCHAIN=0
 
-build:san-common --strip=never --copt=-fno-omit-frame-pointer
+build:san-common --copt=-fno-omit-frame-pointer
 
-# Some of this is from "Can I run AddressSanitizer with more aggressive diagnostics enabled?"
-# on https://github.com/google/sanitizers/wiki/AddressSanitizer#faq and some is from
-# https://chromium.googlesource.com/external/github.com/grpc/grpc/+/4e9206f48c91e17f43856b016b12f59dd5118293/tools/bazel.rc
+
 build:asan --config=san-common
 build:asan --features=asan
-build:asan --copt=-fsanitize-address-use-after-scope
+
 # We explicitly disable strict_init_order because LLVM is "hostile to init order"
 # TODO(fzakaria): disabling due to costs of test execution
 # build:asan --action_env=ASAN_OPTIONS=detect_odr_violations=2:detect_leaks=1:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=0
@@ -85,7 +83,3 @@ test --nolegacy_external_runfiles
 
 # Disallow empty globs unless explicitly declared using `allow_empty=True`
 common --incompatible_disallow_empty_glob=False
-
-# `rules_ml_toolchain` doesn't include a hermetic `strip` tool, so we need to
-# tell Bazel where to find the system's `strip` tool.
-common --action_env=STRIP=@non_hermetic_toolchain//:strip
