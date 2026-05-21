@@ -85,3 +85,7 @@ test --nolegacy_external_runfiles
 
 # Disallow empty globs unless explicitly declared using `allow_empty=True`
 common --incompatible_disallow_empty_glob=False
+
+# `rules_ml_toolchain` doesn't include a hermetic `strip` tool, so we need to
+# tell Bazel where to find the system's `strip` tool.
+common --action_env=STRIP=@non_hermetic_toolchain//:strip

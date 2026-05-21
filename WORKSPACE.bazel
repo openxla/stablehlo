@@ -46,8 +46,8 @@ bazel_features_deps()
 
 # Initialize toolchains for ML projects.
 #
-# A hermetic build system is designed to produce completely reproducible builds for C++.
-# Details: https://github.com/google-ml-infra/rules_ml_toolchain
+# A hermetic build system is designed to produce completely reproducible builds
+# for C++. Details: https://github.com/google-ml-infra/rules_ml_toolchain
 http_archive(
     name = "rules_ml_toolchain",
     sha256 = "cfc0e72b41c1391b2d943761e24ebfe451020d7ad360a9abdcdc27dfd5e6a62f",
@@ -83,7 +83,8 @@ http_archive(
     url = "https://github.com/bazelbuild/rules_shell/releases/download/v0.8.0/rules_shell-v0.8.0.tar.gz",
 )
 
-#These need to come in this specific order otherwise bazel complains of missing/circular dependencies.
+# These need to come in this specific order or else Bazel will complain about
+# missing/circular dependencies.
 load("//third_party/llvm:workspace.bzl", llvm = "repo")
 
 llvm("llvm-raw")
@@ -91,3 +92,17 @@ llvm("llvm-raw")
 load("//third_party/llvm:setup.bzl", "llvm_setup")
 
 llvm_setup("llvm-project")
+
+# `rules_ml_toolchain` doesn't include a hermetic `strip` tool, so we need to
+# tell Bazel where to find the system's `strip` tool.
+new_local_repository(
+    name = "non_hermetic_toolchain",
+    path = "/usr/bin",
+    build_file_content = """
+filegroup(
+    name = "strip",
+    srcs = ["strip"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
