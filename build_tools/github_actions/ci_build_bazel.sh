@@ -30,9 +30,10 @@ fi
 
 bazel-test-all() {
   # Build and Test StableHLO
-  bazel build //... \
-    --config=asan --config=ubsan --strip=never --lockfile_mode=error
-  bazel test //... --config=asan --config=ubsan
+  bazel build \
+    --config=asan --config=ubsan --strip=never --lockfile_mode=error //...
+  bazel test \
+    --config=asan --config=ubsan --strip=never //...
 }
 
 bazel-test-diff() {
