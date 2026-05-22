@@ -19,3 +19,12 @@ index 0000000..e3b0923
 +#!/bin/bash
 +
 +"$STRIP_PATH" "$@"
+diff --git a/third_party/rules_cc_toolchain/toolchain_config.bzl b/third_party/rules_cc_toolchain/toolchain_config.bzl
+index 7381bbb..23afe63 100644
+--- a/third_party/rules_cc_toolchain/toolchain_config.bzl
++++ b/third_party/rules_cc_toolchain/toolchain_config.bzl
+@@ -58,3 +58,4 @@ ALL_ACTIONS = [
+     ACTION_NAMES.cpp_link_static_library,
+     ACTION_NAMES.clif_match,
++    ACTION_NAMES.strip,
+ ]
