@@ -83,6 +83,3 @@ test --nolegacy_external_runfiles
 
 # Disallow empty globs unless explicitly declared using `allow_empty=True`
 common --incompatible_disallow_empty_glob=False
-
-# Tell Bazel's toolchain configuration to use the system strip tool
-common --repo_env=STRIP=/usr/bin/strip
