@@ -30,10 +30,8 @@ fi
 
 bazel-test-all() {
   # Build and Test StableHLO
-  bazel build \
-    --config=asan --config=ubsan --strip=never --lockfile_mode=error //...
-  bazel test \
-    --config=asan --config=ubsan --strip=never //...
+  bazel build --lockfile_mode=error //... --config=asan --config=ubsan
+  bazel test //... --config=asan --config=ubsan
 }
 
 bazel-test-diff() {
@@ -93,8 +91,8 @@ bazel-test-diff() {
   # Build and Test impacted targets
   if [[ -s "$FILTERED_TARGETS_PATH" ]]; then
     echo "Building and Testing Impacted (Non-External) Targets..."
-    bazel build --strip=never --target_pattern_file="$FILTERED_TARGETS_PATH"
-    bazel test --strip=never --target_pattern_file="$FILTERED_TARGETS_PATH"
+    bazel build --target_pattern_file="$FILTERED_TARGETS_PATH"
+    bazel test --target_pattern_file="$FILTERED_TARGETS_PATH"
   else
     echo "No non-external impacted targets to build and test."
   fi
