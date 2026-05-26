@@ -46,6 +46,7 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' ||  'ubuntu-22.04'  }}
+    # TODO(gleasonk): Switch to non-transient container image once it's updated.
     # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
     container: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build@sha256:9d9b4196b2bd2719ebc7d129b67835ea72d7882e1e6ef63cb862e281f11eb8c3"
 
@@ -75,17 +76,12 @@ jobs:
     - name: Build and check docs
       shell: bash
       run: |
-        git config --global --add safe.directory "$(pwd)"
-        echo "$PWD"
-        git status
         ./build_tools/github_actions/ci_build_docs.sh -c
 
     - name: Build and Test StableHLO (Diff Only)
       if: ${{ github.event_name == 'pull_request' }}
       shell: bash
       run: |
-        echo "$PWD"
-        git status
         START_HASH=${{ github.event.pull_request.base.sha }}
         END_HASH=${{ github.event.pull_request.head.sha }}
         BAZEL_DIFF=/tmp/bazel-diff.jar

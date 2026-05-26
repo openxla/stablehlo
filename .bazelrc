@@ -34,6 +34,10 @@ build --fission=dbg
 common --incompatible_enable_cc_toolchain_resolution
 common --repo_env USE_HERMETIC_CC_TOOLCHAIN=1
 
+# Some targets have the same py source file, but use different configurations
+# via `requires-` tags. This results in an action conflict when precompiling.
+# Disable to avoid that problem.
+# See https://github.com/bazel-contrib/rules_python/issues/2445
 common --@rules_python//python/config_settings:precompile=force_disabled
 common --@rules_python//python/config_settings:bootstrap_impl=script --repo_env=RULES_PYTHON_ENABLE_PIPSTAR=0
 
@@ -81,5 +85,7 @@ test --nobuild_runfile_links
 build --nolegacy_external_runfiles
 test --nolegacy_external_runfiles
 
-# Disallow empty globs unless explicitly declared using `allow_empty=True`
+# We normally enable this option (which disallows empty globs unless explicitly
+# declared using `allow_empty=True`) but we have to disable it for now due to a
+# dependency that contains an undeclared empty glob. Re-enable it when possible.
 common --incompatible_disallow_empty_glob=False
