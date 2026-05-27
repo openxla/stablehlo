@@ -44,32 +44,6 @@ runs:
       path: llvm-project
       fetch-depth: 1
 
-  - name: Toolchain setup, use rules_ml_toolchain
-    shell: bash
-    run: |
-      # Install latest toolchain
-      git clone https://github.com/google-ml-infra/rules_ml_toolchain rules_ml_toolchain
-      cd rules_ml_toolchain
-      bazel build //cc/tests/cpu:all
-      BIN_DIR="$(pwd)/bazel-rules_ml_toolchain/external/llvm18_linux_x86_64/bin"
-      sudo ln -sfvn $BIN_DIR/clang /usr/bin/clang
-      sudo ln -sfvn $BIN_DIR/clang++ /usr/bin/clang++
-      sudo ln -sfvn $BIN_DIR/lld /usr/bin/lld
-
-  # Get ninja for cmake build.
-  - name: Install Ninja
-    shell: bash
-    run: |
-      sudo apt-get install -y ninja-build
-
-  # Update the system C++ headers.
-  - name: Update system C++ headers
-    shell: bash
-    run: |
-      sudo apt-add-repository ppa:ubuntu-toolchain-r/test
-      sudo apt-get update
-      sudo apt-get install libstdc++-13-dev
-
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
   - name: Ccache for C++ compilation
@@ -78,14 +52,7 @@ runs:
       key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-version }}
       max-size: 4G
 
-  # Install Python/Numpy for API tests
-  - name: Install Python and Pip
-    uses: actions/setup-python@v5
-    with:
-      python-version: ${{ inputs.python-version }}
-      cache: 'pip' # caching pip dependencies
-
   - name: Install MLIR python requirements
     shell: bash
     run: |
-      pip install -r $GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt
+      python3 -m pip install -r $GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt

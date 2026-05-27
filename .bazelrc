@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Disable Bzlmod for now
+common --noenable_bzlmod
+
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17
 # llvm builds typically without rtti
@@ -23,22 +26,33 @@ build --host_cxxopt=-fno-rtti
 # this only works for Clang toolchain AFAIK
 # https://github.com/bazelbuild/bazel/pull/11440
 build --features=layering_check
-# Set the default compiler to the `clang` binary on the `PATH`.
-# TODO(fzakaria): Make this a toolchain or hermetic somehow
-build --repo_env=CC=clang
 
 # turn on fission https://gcc.gnu.org/wiki/DebugFission
 # this separates the debug information and can improve link times
 build --fission=dbg
 
-build:san-common --strip=never --copt=-fno-omit-frame-pointer
+common --incompatible_enable_cc_toolchain_resolution
+common --repo_env USE_HERMETIC_CC_TOOLCHAIN=1
 
-# Some of this is from "Can I run AddressSanitizer with more aggressive diagnostics enabled?"
-# on https://github.com/google/sanitizers/wiki/AddressSanitizer#faq and some is from
-# https://chromium.googlesource.com/external/github.com/grpc/grpc/+/4e9206f48c91e17f43856b016b12f59dd5118293/tools/bazel.rc
+# Some targets have the same py source file, but use different configurations
+# via `requires-` tags. This results in an action conflict when precompiling.
+# Disable to avoid that problem.
+# See https://github.com/bazel-contrib/rules_python/issues/2445
+common --@rules_python//python/config_settings:precompile=force_disabled
+common --@rules_python//python/config_settings:bootstrap_impl=script --repo_env=RULES_PYTHON_ENABLE_PIPSTAR=0
+
+# Config to disable hermetic toolchain and use local tools.
+# Useful for local builds and CI on self-hosted runners without RBE.
+common:clang_local --noincompatible_enable_cc_toolchain_resolution
+common:clang_local --@rules_ml_toolchain//common:enable_hermetic_cc=False
+common:clang_local --repo_env=USE_HERMETIC_CC_TOOLCHAIN=0
+
+build:san-common --copt=-fno-omit-frame-pointer
+
+
 build:asan --config=san-common
 build:asan --features=asan
-build:asan --copt=-fsanitize-address-use-after-scope
+
 # We explicitly disable strict_init_order because LLVM is "hostile to init order"
 # TODO(fzakaria): disabling due to costs of test execution
 # build:asan --action_env=ASAN_OPTIONS=detect_odr_violations=2:detect_leaks=1:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=0
@@ -71,5 +85,7 @@ test --nobuild_runfile_links
 build --nolegacy_external_runfiles
 test --nolegacy_external_runfiles
 
-# Disallow empty globs unless explicitly declared using `allow_empty=True`
-common --incompatible_disallow_empty_glob
+# We normally enable this option (which disallows empty globs unless explicitly
+# declared using `allow_empty=True`) but we have to disable it for now due to a
+# dependency that contains an undeclared empty glob. Re-enable it when possible.
+common --incompatible_disallow_empty_glob=False

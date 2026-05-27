@@ -45,8 +45,9 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
-    # TODO: Use ML OSS Artifacts docker to manage deps needs to package with cmake tooling
-    # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
+    # TODO(gleasonk): Switch to non-transient container image once it's updated.
+    # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build-cmake:latest"
+    container: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build-cmake@sha256:919d60f5c6fd75e9262c15205fd7cb97be0301acb5fdd281991e756bdbd09701"
 
     steps:
     - name: Checkout StableHLO
@@ -60,7 +61,7 @@ jobs:
         if [[ $USE_LLVM_HEAD = true ]]; then
           echo "version=main" >> $GITHUB_OUTPUT
         else
-          echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
+          echo "version=$(cat ./build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
         fi;
 
     - name: Setup workspace
@@ -90,8 +91,8 @@ jobs:
     - name: Build and Test StableHLO (with Python bindings)
       shell: bash
       run: |
-        pip install tensorflow-cpu nanobind==2.9
-        pip install -r "$LLVM_PROJECT_DIR/mlir/python/requirements.txt"
+        python3 -m pip install tensorflow-cpu nanobind==2.9
+        python3 -m pip install -r "$LLVM_PROJECT_DIR/mlir/python/requirements.txt"
         ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
