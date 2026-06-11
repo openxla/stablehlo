@@ -31,6 +31,10 @@ set(LLVM_TARGET_DEFINITIONS StablehloComplexMathExpanderPatterns.td)
 mlir_tablegen(StablehloComplexMathExpanderPatterns.h.inc --gen-rewriters)
 add_public_tablegen_target(StablehloComplexMathExpanderPatternsIncGen)
 
+set(LLVM_TARGET_DEFINITIONS StablehloComplexFullMathExpanderPatterns.td)
+mlir_tablegen(StablehloComplexFullMathExpanderPatterns.h.inc -gen-rewriters)
+add_public_tablegen_target(StablehloComplexFullMathExpanderPatternsIncGen)
+
 set(LLVM_TARGET_DEFINITIONS StablehloLegalizeDeprecatedOpsPatterns.td)
 mlir_tablegen(StablehloLegalizeDeprecatedOpsPatterns.h.inc --gen-rewriters)
 add_public_tablegen_target(StablehloLegalizeDeprecatedOpsPatternsIncGen)
