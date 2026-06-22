@@ -2538,10 +2538,12 @@ func.func @digamma_f16(%arg : tensor<f16>) -> tensor<f16> {
 // CHECK:           %[[ADD_55:.*]] = stablehlo.add %[[ADD_54]], %[[MULTIPLY_36]] : tensor<f32>
 // CHECK:           %[[ABS_0:.*]] = stablehlo.abs %[[POWER_10]] : tensor<f32>
 // CHECK:           %[[ABS_1:.*]] = stablehlo.abs %[[ADD_17]] : tensor<f32>
+// CHECK:           %[[COMPARE_ZETA_EQ:.*]] = stablehlo.compare  EQ, %[[POWER_10]], %[[CONSTANT_0]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
 // CHECK:           %[[CONSTANT_38:.*]] = stablehlo.constant dense<1.401300e-45> : tensor<f32>
 // CHECK:           %[[MULTIPLY_37:.*]] = stablehlo.multiply %[[ABS_1]], %[[CONSTANT_38]] : tensor<f32>
 // CHECK:           %[[COMPARE_0:.*]] = stablehlo.compare  LT, %[[ABS_0]], %[[MULTIPLY_37]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
-// CHECK:           %[[SELECT_0:.*]] = stablehlo.select %[[COMPARE_0]], %[[ADD_17]], %[[ADD_55]] : tensor<i1>, tensor<f32>
+// CHECK:           %[[OR_ZETA:.*]] = stablehlo.or %[[COMPARE_ZETA_EQ]], %[[COMPARE_0]] : tensor<i1>
+// CHECK:           %[[SELECT_0:.*]] = stablehlo.select %[[OR_ZETA]], %[[ADD_17]], %[[ADD_55]] : tensor<i1>, tensor<f32>
 // CHECK:           %[[CONSTANT_39:.*]] = stablehlo.constant dense<0x7FC00000> : tensor<f32>
 // CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare  LT, %[[CONVERT_0]], %[[CONSTANT_2]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
 // CHECK:           %[[SELECT_1:.*]] = stablehlo.select %[[COMPARE_1]], %[[CONSTANT_39]], %[[SELECT_0]] : tensor<i1>, tensor<f32>

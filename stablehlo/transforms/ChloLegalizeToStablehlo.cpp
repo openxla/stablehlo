@@ -1753,16 +1753,28 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
 
   // Use the initial zeta sum without the correction term coming
   // from Euler-Maclaurin if it is accurate enough.
+  //
+  // When `qNegPower` has underflowed to exactly zero (for example when `q` is
+  // +inf, or `q` is so large that `pow(q, -x)` underflows), the Euler-Maclaurin
+  // correction degenerates: `correctionEulerMaclaurin = qNegPower * acc / (x-1)`
+  // becomes `0 * inf = NaN` for `q == +inf`, poisoning `accurateResult`. In
+  // that regime `powerSum` is already the answer, so fall back to it whenever
+  // `qNegPower == 0`. This mirrors the `if (b == 0) return s;` guard in Eigen's
+  // CPU Cephes implementation and fixes `Zeta(x, +inf)` returning NaN instead of
+  // 0 (https://github.com/tensorflow/tensorflow/issues/121501).
   Value absQNegPower = AbsOp::create(rewriter, loc, qNegPower);
   Value absPowerSum = AbsOp::create(rewriter, loc, powerSum);
-  Value output = SelectOp::create(
-      rewriter, loc,
+  Value qNegPowerIsZero =
+      CompareOp::create(rewriter, loc, qNegPower, zero, ComparisonDirection::EQ);
+  Value useSeries = mlir::stablehlo::OrOp::create(
+      rewriter, loc, qNegPowerIsZero,
       CompareOp::create(
           rewriter, loc, absQNegPower,
           MulOp::create(rewriter, loc, absPowerSum,
                         getConstantLikeSmallestFiniteValue(rewriter, loc, acc)),
-          ComparisonDirection::LT),
-      powerSum, accurateResult);
+          ComparisonDirection::LT));
+  Value output =
+      SelectOp::create(rewriter, loc, useSeries, powerSum, accurateResult);
 
   // Function is not defined for x < 1.
   Value nan = getConstantLike(rewriter, loc,
