@@ -84,6 +84,8 @@ operations = [
          mpmath_name="sqrt",
          namespace="stablehlo",
          passes="--stablehlo-complex-math-expander"),
+    dict(name="multiply", namespace="stablehlo", is_binary=True, is_full_expansion=True,
+         passes='--stablehlo-complex-math-expander="enable-full-expansion=true"'),
 ]
 
 
@@ -145,11 +147,15 @@ def main():
 
   flush_subnormals = False
   for op in operations:
+    is_full = op.get("is_full_expansion", False)
+    is_binary = op.get("is_binary", False)
+
     opname = op["name"]
     mpmath_opname = op.get("mpmath_name", opname)
     namespace = op.get("namespace", "chlo")
     size_re = size_im = op.get("size", default_size)
     passes = op.get("passes", "--chlo-legalize-to-stablehlo")
+
     for dtype in [np.complex64, np.complex128, np.float32, np.float64]:
       params = fa.utils.function_validation_parameters(opname, dtype)
       max_ulp_difference = op.get(
@@ -167,11 +173,6 @@ def main():
           flush_subnormals=flush_subnormals,
       )
 
-      fi = np.finfo(dtype)
-
-      float_dtype = to_float_dtype[dtype]
-      finfo = np.finfo(float_dtype)
-
       if dtype in [np.complex64, np.complex128]:
         samples = fa.utils.complex_samples(
             size=(size_re, size_im),
@@ -185,18 +186,45 @@ def main():
             include_subnormal=not flush_subnormals,
         ).flatten()
 
-      samples = np.concatenate((samples, fa.utils.extra_samples(opname, dtype)))
-
-      expected = getattr(nmp, mpmath_opname).call(samples,
-                                                  enable_progressbar=True)
-      expected = np.array(expected, dtype)
+      if is_full:
+        # 1. Filter out non-finite inputs
+        samples = samples[np.isfinite(samples)]
+        
+        if is_binary:
+          samples_lhs = samples
+          samples_rhs = np.roll(samples, 1)
+          
+          with np.errstate(all='ignore'):
+            expected = getattr(np, opname)(samples_lhs, samples_rhs).astype(dtype)
+            
+            # 2. Filter out pairs that result in non-finite outputs (Overflows)
+            finite_mask = np.isfinite(expected)
+            samples_lhs = samples_lhs[finite_mask]
+            samples_rhs = samples_rhs[finite_mask]
+            expected = expected[finite_mask]
+        else:
+          with np.errstate(all='ignore'):
+            expected = getattr(np, opname)(samples).astype(dtype)
+            finite_mask = np.isfinite(expected)
+            samples = samples[finite_mask]
+            expected = expected[finite_mask]
+      else:
+        # Accuracy check: Include Inf/NaN/Subnormals
+        samples = np.concatenate((samples, fa.utils.extra_samples(opname, dtype)))
+        expected = getattr(nmp, mpmath_opname).call(samples)
+        expected = np.array(expected, dtype)
 
       module_name = f"{opname}_{dtype.__name__}"
       m = SSA.make_module(module_name)
 
-      samples_func = m.make_function("samples", "", mlir_type(samples))
-      samples_func.assign(samples)
-      samples_func.return_last()
+      if is_binary and is_full:
+        m.make_function("samples_lhs", "", mlir_type(samples_lhs)).assign(samples_lhs)
+        m.blocks[-1].return_last()
+        m.make_function("samples_rhs", "", mlir_type(samples_rhs)).assign(samples_rhs)
+        m.blocks[-1].return_last()
+      else:
+        m.make_function("samples", "", mlir_type(samples)).assign(samples)
+        m.blocks[-1].return_last()
 
       expected_func = m.make_function("expected", "", mlir_type(expected))
       expected_func.assign(expected)
@@ -204,38 +232,36 @@ def main():
 
       main_func = m.make_function("main", "", "", "public")
 
-      ref_samples = main_func.call("samples")
-      actual = main_func.composite(f"{namespace}.{opname}", ref_samples)
-      expected = main_func.call("expected")
+      if is_binary and is_full:
+        ref_lhs = main_func.call("samples_lhs")
+        ref_rhs = main_func.call("samples_rhs")
+        actual = main_func.composite(f"{namespace}.{opname}", ref_lhs, ref_rhs)
+      else:
+        ref_samples = main_func.call("samples")
+        actual = main_func.composite(f"{namespace}.{opname}", ref_samples)
 
+      expected_val = main_func.call("expected")
       main_func.void_call(
           "check.expect_close",
           actual,
-          expected,
+          expected_val,
           f"max_ulp_difference = {max_ulp_difference}",
-          atypes=", ".join(map(main_func.get_ref_type, [actual, expected])),
+          atypes=", ".join(map(main_func.get_ref_type, [actual, expected_val])),
       )
       main_func.void_call("func.return")
+
       source = str(m).rstrip() + "\n"
       fname = os.path.join(target_dir, f"{module_name}.mlir")
       if os.path.isfile(fname):
-        f = open(fname, "r")
-        content = f.read()
-        f.close()
-        if content.endswith(source):
-          print(f"{fname} is up-to-date.")
-          continue
+        with open(fname, "r") as f:
+          if f.read().endswith(source):
+            print(f"{fname} is up-to-date.")
+            continue
 
-      f = open(fname, "w")
-      f.write(
-          f"// RUN: stablehlo-opt {passes} %s |"
-          " stablehlo-translate --interpret\n"
-      )
-      f.write(
-          "// This file is generated, see build_tools/math/README.md for more"
-          " information.\n")
-      f.write(source)
-      f.close()
+      with open(fname, "w") as f:
+        f.write(f"// RUN: stablehlo-opt {passes} %s | stablehlo-translate --interpret\n")
+        f.write("// This file is generated, see build_tools/math/README.md for more information.\n")
+        f.write(source)
       print(f"Created {fname}")
 
   # Testing ULP difference
