@@ -302,7 +302,7 @@ Creates a new [`stablehlo.custom_call`](https://openxla.org/stablehlo/spec#custo
 operation.
 
 ```c++
-SmallVector<MlirOp> CustomCall(MlirBuilder &builder, TypeRange resultTypes, ArrayRef<MlirOp> inputs, ::llvm::StringRef call_target_name, /*optional*/bool has_side_effect = false, /*optional*/::mlir::Attribute backend_config = {}, /*optional*/::mlir::stablehlo::CustomCallApiVersion api_version = ::mlir::stablehlo::CustomCallApiVersion::API_VERSION_ORIGINAL, /*optional*/::mlir::ArrayAttr called_computations = {}, /*optional*/::mlir::ArrayAttr operand_layouts = {}, /*optional*/::mlir::ArrayAttr result_layouts = {}, /*optional*/::mlir::ArrayAttr output_operand_aliases = {});
+SmallVector<MlirOp> CustomCall(MlirBuilder &builder, TypeRange resultTypes, ArrayRef<MlirOp> inputs, ::llvm::StringRef call_target_name, /*optional*/bool has_side_effect = false, /*optional*/::mlir::Attribute backend_config = {}, /*optional*/::mlir::stablehlo::CustomCallApiVersion api_version = ::mlir::stablehlo::CustomCallApiVersion::API_VERSION_ORIGINAL, /*optional*/::mlir::ArrayAttr called_computations = {}, /*optional*/::mlir::ArrayAttr operand_layouts = {}, /*optional*/::mlir::ArrayAttr result_layouts = {}, /*optional*/::mlir::ArrayAttr output_operand_aliases = {}, /*optional*/::mlir::ArrayAttr result_tilings = {});
 ```
 
 ### `stablehlo::DivOp`
