@@ -41,7 +41,7 @@ class Tuple {
   TupleType getType() const;
 
   /// Prints Tuple objects.
-  void print(raw_ostream &os) const;
+  void print(raw_ostream& os) const;
 
   /// Print utilities for Tuple objects.
   void dump() const;
@@ -56,9 +56,9 @@ class InterpreterValue {
   /// \name Constructors
   /// @{
   InterpreterValue() = default;
-  InterpreterValue(const Tensor &tensor);
-  InterpreterValue(const Token &token);
-  InterpreterValue(const class Tuple &tuple);
+  InterpreterValue(const Tensor& tensor);
+  InterpreterValue(const Token& token);
+  InterpreterValue(const class Tuple& tuple);
   /// @}
 
   /// Getter method for Tensor object.
@@ -83,7 +83,7 @@ class InterpreterValue {
   bool isTuple() const;
 
   /// Print utilities for InterpreterValue objects.
-  void print(raw_ostream &os) const;
+  void print(raw_ostream& os) const;
 
   /// Print utilities for InterpreterValue objects.
   void dump() const;

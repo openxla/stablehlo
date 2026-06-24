@@ -45,22 +45,22 @@ namespace stablehlo {
 #include "stablehlo/transforms/Passes.h.inc"
 
 // Populates --stablehlo-canonicalize-dynamism patterns.
-void populateStablehloCanonicalizeDynamismPatterns(MLIRContext *context,
-                                                   RewritePatternSet *patterns);
+void populateStablehloCanonicalizeDynamismPatterns(MLIRContext* context,
+                                                   RewritePatternSet* patterns);
 
 // Populates --stablehlo-refine-shapes patterns.
-void populateStablehloRefineShapesPatterns(MLIRContext *context,
-                                           RewritePatternSet *patterns);
+void populateStablehloRefineShapesPatterns(MLIRContext* context,
+                                           RewritePatternSet* patterns);
 
 // Populates StableHLO ops to VHLO ops rewriting patterns.
-void populateStablehloToVhloPatterns(MLIRContext *context,
-                                     RewritePatternSet *patterns,
-                                     vhlo::VhloTypeConverter *converter);
+void populateStablehloToVhloPatterns(MLIRContext* context,
+                                     RewritePatternSet* patterns,
+                                     vhlo::VhloTypeConverter* converter);
 
 // Populates VHLO ops to StableHLO ops rewriting patterns.
-void populateVhloToStablehloPatterns(MLIRContext *context,
-                                     RewritePatternSet *patterns,
-                                     vhlo::VhloTypeConverter *converter);
+void populateVhloToStablehloPatterns(MLIRContext* context,
+                                     RewritePatternSet* patterns,
+                                     vhlo::VhloTypeConverter* converter);
 
 // Populates VHLO downgrade rewriting patterns.
 void populateVhloToVersionPatterns(MLIRContext* context,
@@ -69,37 +69,37 @@ void populateVhloToVersionPatterns(MLIRContext* context,
 
 /// Collection of rewrite patterns for lowering of CHLO ops to StableHLO and
 /// Shape ops.
-void populateChloToStablehloPatterns(MLIRContext *context,
-                                     RewritePatternSet *patterns);
+void populateChloToStablehloPatterns(MLIRContext* context,
+                                     RewritePatternSet* patterns);
 
 /// CHLO ConstantLikeOp to StableHLO ConstantOp
 /// May require dynamic shape broadcasting.
-void populateChloConstantLikePattern(MLIRContext *context,
-                                     RewritePatternSet *patterns);
+void populateChloConstantLikePattern(MLIRContext* context,
+                                     RewritePatternSet* patterns);
 
 /// Collection of rewrite patterns for lowering quantized StableHLO operations
 /// using uniform dequantize/quantize operations.
 void populateStablehloLegalizeQuantizedOpToQDQPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
+    MLIRContext* context, RewritePatternSet* patterns,
     PatternBenefit benefit = 1);
 
 /// Collection of rewrite patterns for composing quantized StableHLO operations
 /// using unform dequantize/quantize operations.
 void populateStablehloLegalizeQDQToQuantizedOpPatterns(
-    MLIRContext *context, RewritePatternSet *patterns);
+    MLIRContext* context, RewritePatternSet* patterns);
 
 /// Collection of patterns to upgrade deprecated ops to long-term supported ops.
 void populateStablehloLegalizeDeprecatedOpsPatterns(
-    MLIRContext *context, RewritePatternSet *patterns);
+    MLIRContext* context, RewritePatternSet* patterns);
 
 /// Collection of shape dialect to StableHLO patterns.
-void populateShapeToStablehloPatterns(MLIRContext *context,
-                                      RewritePatternSet *patterns);
+void populateShapeToStablehloPatterns(MLIRContext* context,
+                                      RewritePatternSet* patterns);
 
 /// Collection of patterns to create compatibility expander for StableHLO
 /// operations.
 void populateStablehloCompatibilityExpanderPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
+    MLIRContext* context, RewritePatternSet* patterns,
     vhlo::Version targetVersion);
 
 //// Additional pass constructors ////
@@ -112,11 +112,11 @@ std::unique_ptr<OperationPass<ModuleOp>> createStablehloRefineArgumentsPass(
 /// attributes to be added to the CompositeOp. The pass also takes in a
 /// version number for the CompositeOp.
 using CompositeAttributeProvider =
-    std::function<std::optional<NamedAttrList>(Operation *)>;
+    std::function<std::optional<NamedAttrList>(Operation*)>;
 using CompositeAttributeProviderMap =
     llvm::DenseMap<mlir::TypeID, CompositeAttributeProvider>;
 std::unique_ptr<OperationPass<ModuleOp>> createStablehloWrapInCompositePass(
-    const CompositeAttributeProviderMap &compositeAttributeProviderMap,
+    const CompositeAttributeProviderMap& compositeAttributeProviderMap,
     int32_t compositeVersion);
 
 /// Wraps the given operation in a CompositeOp with the specified NamedAttrs and
@@ -139,9 +139,9 @@ std::unique_ptr<OperationPass<ModuleOp>> createStablehloWrapInCompositePass(
 ///                                             version, module);
 /// addOp.replaceAllUsesWith(compositeOp);
 /// ```
-stablehlo::CompositeOp wrapOperationInComposite(OpBuilder &builder,
-                                                Operation *op,
-                                                const NamedAttrList &attrs,
+stablehlo::CompositeOp wrapOperationInComposite(OpBuilder& builder,
+                                                Operation* op,
+                                                const NamedAttrList& attrs,
                                                 int32_t compositeVersion,
                                                 ModuleOp module);
 //// Pass pipelines ////
@@ -153,7 +153,7 @@ stablehlo::CompositeOp wrapOperationInComposite(OpBuilder &builder,
 // Uses vhlo-to-version and vhlo-legalize-to-stablehlo passes. Does not require
 // an option to specify VHLO target version since it always converts VHLO to
 // the current version in order to legalize to StableHLO.
-void createStablehloDeserializePipeline(OpPassManager &pm);
+void createStablehloDeserializePipeline(OpPassManager& pm);
 
 // Creates a pipeline of StableHLO-specific MLIR passes to remove dynamism from
 // the program. This is achieved via refining the "main" function's arguments
@@ -167,18 +167,18 @@ void createStablehloDeserializePipeline(OpPassManager &pm);
 //   2. Refining shape information of operations within functions.
 //   3. Replaces dynamic StableHLO ops with the corresponding static
 //   counterparts if applicable.
-void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
+void createStablehloRemoveDynamismPipeline(OpPassManager& pm,
                                            TypeRange refinedTypes);
 
 // Decomposes quantized operations within a StableHLO module by
 // applying a series of MLIR passes essentially breaking down the quantized
 // operations into a primitive math operations.
-void createStablehloLowerQuantPipeline(OpPassManager &pm);
+void createStablehloLowerQuantPipeline(OpPassManager& pm);
 
 /// Collection of patterns to create expander for StableHLO complex
 /// math operations.
-void populateStablehloComplexMathExpanderPatterns(MLIRContext *context,
-                                                  RewritePatternSet *patterns);
+void populateStablehloComplexMathExpanderPatterns(MLIRContext* context,
+                                                  RewritePatternSet* patterns);
 
 // Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
 // for opt tools.

@@ -29,13 +29,13 @@ namespace stablehlo {
 /// `Scope` object corresponding to the syntactically enclosing region.
 class Scope {
  public:
-  Scope(Scope *parent) : parent_(parent) {}
+  Scope(Scope* parent) : parent_(parent) {}
 
-  Scope(Scope &&other) = default;
-  Scope &operator=(Scope &&other) = default;
+  Scope(Scope&& other) = default;
+  Scope& operator=(Scope&& other) = default;
 
-  Scope(const Scope &) = delete;
-  Scope &operator=(const Scope &) = delete;
+  Scope(const Scope&) = delete;
+  Scope& operator=(const Scope&) = delete;
 
   /// Add the mapping from SSA value (`ssaValue`), defined in a region, to its
   /// evaluated runtime value (`runtimeValue`).
@@ -100,7 +100,7 @@ class Scope {
   llvm::DenseMap<Value, InterpreterValue> stack_frame_;
 
   /// A handle to the parent's scope.
-  Scope *parent_;
+  Scope* parent_;
 };
 
 }  // namespace stablehlo
