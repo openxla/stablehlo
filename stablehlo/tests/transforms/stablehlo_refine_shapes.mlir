@@ -1296,3 +1296,20 @@ func.func @update_region_type(%arg0: tensor<i32>, %arg1: tensor<4xf32>) -> tenso
   %1 = stablehlo.abs %0 : tensor<?xf32>
   return %1 : tensor<?xf32>
 }
+
+// -----
+
+// CHECK-LABEL: @refine_ragged_dot
+func.func @refine_ragged_dot(%lhs: tensor<5x11x6xf32>, %rhs: tensor<5x6x7xf32>, %group_sizes: tensor<2xi32>) -> tensor<?x?x?xf32> {
+  // CHECK: "chlo.ragged_dot"{{.*}} -> tensor<5x11x7xf32>
+  %0 = "chlo.ragged_dot"(%lhs, %rhs, %group_sizes) <{
+    ragged_dot_dimension_numbers = #chlo.ragged_dot<
+      lhs_batching_dimensions = [0],
+      rhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [2],
+      rhs_contracting_dimensions = [1],
+      lhs_ragged_dimensions = [0]
+    >
+  }> : (tensor<5x11x6xf32>, tensor<5x6x7xf32>, tensor<2xi32>) -> tensor<?x?x?xf32>
+  func.return %0 : tensor<?x?x?xf32>
+}

@@ -558,3 +558,27 @@ func.func @scan_init_shape_mismatch(%arg0: tensor<2x3xf32>, %arg1: tensor<2xf32>
   } : (tensor<2x3xf32>, tensor<2xf32>) -> (tensor<2x3xf32>, tensor<2xf32>)
   func.return %0#0 : tensor<2x3xf32>
 }
+
+// -----
+
+// CHECK-LABEL: func @mulhi_i32
+func.func @mulhi_i32(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> tensor<4xi32> {
+  %0 = "chlo.mulhi"(%arg0, %arg1) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
+  func.return %0: tensor<4xi32>
+}
+
+// -----
+
+func.func @mulhi_boolean(%arg0: tensor<4xi1>, %arg1: tensor<4xi1>) -> tensor<4xi1> {
+  // expected-error @+1 {{'chlo.mulhi' op operand #0 must be ranked tensor of 2/4/8/16/32/64-bit integer values, but got 'tensor<4xi1>'}}
+  %0 = "chlo.mulhi"(%arg0, %arg1) : (tensor<4xi1>, tensor<4xi1>) -> tensor<4xi1>
+  func.return %0: tensor<4xi1>
+}
+
+// -----
+
+// CHECK-LABEL: func @mulhi_i64
+func.func @mulhi_i64(%arg0: tensor<4xi64>, %arg1: tensor<4xi64>) -> tensor<4xi64> {
+  %0 = "chlo.mulhi"(%arg0, %arg1) : (tensor<4xi64>, tensor<4xi64>) -> tensor<4xi64>
+  func.return %0: tensor<4xi64>
+}

@@ -18,6 +18,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_STABLEHLO_ATTRS
 
 include "mlir/IR/OpBase.td"
+include "mlir/IR/SymbolInterfaces.td"
 include "mlir/IR/TensorEncoding.td"
 include "stablehlo/dialect/StablehloTypes.td"
 
@@ -169,20 +170,37 @@ def StableHLO_TypeExtensions : AttrDef<StableHLO_Dialect, "TypeExtensions", [
   let assemblyFormat = "`<` `bounds` `=` ` ` custom<DimSizes>($bounds) `>`";
 }
 
-// A layout attribute (1D tensor of index type)
-def StableHLO_LayoutAttr : Attr<
+// Base class for a 1D tensor of index type.
+class StableHLO_1DIndexTensorAttrBase : Attr<
   And<[IndexElementsAttr.predicate,
        CPred<[{::llvm::cast<::mlir::DenseIntElementsAttr>($_self).getType().getRank()
                == 1}]>]>,
-  "A 1D tensor of index type (layout)"> {
+  "A 1D tensor of index type"> {
   let storageType = IndexElementsAttr.storageType;
   let returnType = IndexElementsAttr.returnType;
   let convertFromStorage = IndexElementsAttr.convertFromStorage;
 }
 
+// A 1D tensor of index type.
+def StableHLO_1DIndexTensorAttr : StableHLO_1DIndexTensorAttrBase;
+
+// A layout attribute (1D tensor of index type)
+def StableHLO_LayoutAttr : StableHLO_1DIndexTensorAttrBase {
+  let summary = "A 1D tensor of index type (layout)";
+}
+
 // An array of layout (1D tensor) attributes.
 def StableHLO_ArrayOfLayoutAttr : TypedArrayAttrBase<StableHLO_LayoutAttr,
     "Array of layout (1D tensor of index type) attributes">;
+
+// A tiling attribute (array of rank 1 tensors).
+// Each tile is a 1D tensor of dimensions.
+def StableHLO_TilingAttr : TypedArrayAttrBase<StableHLO_1DIndexTensorAttr,
+    "TpuTiling (array of rank 1 tensors)">;
+
+// An array of tiling attributes.
+def StableHLO_ArrayOfTilingAttr : TypedArrayAttrBase<StableHLO_TilingAttr,
+    "Array of tiling attributes">;
 
 // An array of FlatSymbolRef attributes that can be used as a default valued
 // attribute.
@@ -275,7 +293,8 @@ def StableHLO_Mesh : AttrDef<StableHLO_Dialect, "Mesh"> {
   }];
 }
 
-def StableHLO_ReplicaGroupMeshAxes : AttrDef<StableHLO_Dialect, "ReplicaGroupMeshAxes"> {
+def StableHLO_ReplicaGroupMeshAxes : AttrDef<StableHLO_Dialect, "ReplicaGroupMeshAxes",
+    [DeclareAttrInterfaceMethods<SymbolUserAttrInterface>]> {
   let mnemonic = "replica_group_mesh_axes";
   let summary = "mesh and axes based replica groups representation.";
   let parameters = (ins

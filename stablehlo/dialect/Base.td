@@ -152,7 +152,7 @@ def HLO_PerAxisQuantizedInt :
     AnyTypeOf<[HLO_PerAxisQuantizedSignedInt, HLO_PerAxisQuantizedUnsignedInt], "per-axis integer quantized">;
 
 // Token type.
-def HLO_Token : Type<CPred<"::llvm::isa<TokenType>($_self)">, "token">;
+def HLO_Token : Type<CPred<"::llvm::isa<::mlir::stablehlo::TokenType>($_self)">, "token">;
 
 // Any integer tensor types
 def HLO_IntTensor : RankedTensorOf<[HLO_Int]>;
@@ -181,7 +181,7 @@ def HLO_PredTensor : RankedTensorOf<[HLO_Pred]>;
 
 def HLO_Tensor : RankedTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
 
-def HLO_Future : Type<CPred<"::llvm::isa<FutureType>($_self)">, "future">;
+def HLO_Future : Type<CPred<"::llvm::isa<::mlir::stablehlo::FutureType>($_self)">, "future">;
 
 def HLO_ScalarTensor: 0DTensorOf<[HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
 
@@ -237,7 +237,7 @@ def HLO_AnyPredOrIntTensor : TensorOf<[HLO_Pred, HLO_Int]>;
 
 def HLO_CustomCallTuple : NestedTupleOf<[HLO_AnyTensor, HLO_Buffer, HLO_Token]>;
 
-def HLO_CustomCallValue : AnyTypeOf<[HLO_AnyTensor, HLO_Buffer, HLO_Token, HLO_CustomCallTuple]>;
+def HLO_CustomCallValue : AnyTypeOf<[HLO_AnyTensor, HLO_Buffer, HLO_Token, HLO_CustomCallTuple, HLO_Future]>;
 
 //===----------------------------------------------------------------------===//
 // HLO combined type definitions.

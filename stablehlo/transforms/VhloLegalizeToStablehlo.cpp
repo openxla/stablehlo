@@ -669,7 +669,7 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
       stablehloAttr = UnitAttr::get(pattern.getContext());
     }
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV2>::value) {
     if (vhloName == "called_computations") {
       stablehloAttr =
           convertCustomCallCalledComputations(vhloAttr, typeConverter);
@@ -910,7 +910,7 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
                                                 vhlo::PrecisionV1::DEFAULT)))
       eraseAttrs(vhloAttrs, "precision_config");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV2>::value) {
     if (isBoolean(vhloOp.getHasSideEffectAttr(), false))
       eraseAttrs(vhloAttrs, "has_side_effect");
     if (isEmptyString(vhloOp.getBackendConfigAttr()) ||
@@ -930,6 +930,8 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     }
     if (isEmptyArray(vhloOp.getOutputOperandAliases()))
       eraseAttrs(vhloAttrs, "output_operand_aliases");
+    if (isEmptyArray(vhloOp.getResultTilings()))
+      eraseAttrs(vhloAttrs, "result_tilings");
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::DotOpV1>::value) {

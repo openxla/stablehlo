@@ -54,6 +54,9 @@ def VHLO_Dialect : Dialect {
       1.13.0: Extend `custom_call` op to support `buffer` types.
       1.14.0: Introduce `composite` op with regions.
       1.15.0: Introduce `async_start` and `async_done` ops and `future` types.
+      1.16.0: Add mesh based replica groups to collective ops.
+      1.17.0: Add `future` type support to `custom_call` op.
+      1.18.0: Add `result_tilings` attribute to `custom_call` op.
   }];
 
   let useDefaultAttributePrinterParser = 0;

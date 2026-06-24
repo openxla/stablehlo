@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
-#include <numeric>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -24,6 +23,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -199,6 +199,42 @@ static Value getConstantLikeSmallestNormalizedValue(OpBuilder& b, Location loc,
   return getConstantLike(
       b, loc, llvm::APFloat::getSmallestNormalized(ty.getFloatSemantics()),
       val);
+}
+
+static Value getConvertOpUpcast(OpBuilder& builder, Location loc, Value val) {
+  auto inputType = cast<ShapedType>(val.getType()).getElementType();
+  auto intType = cast<IntegerType>(inputType);
+  unsigned width = intType.getWidth();
+  Type wideElementType = IntegerType::get(builder.getContext(), width * 2,
+                                          intType.getSignedness());
+  auto wideType = cast<ShapedType>(val.getType()).clone(wideElementType);
+  return ConvertOp::create(builder, loc, wideType, val);
+}
+
+static Value getConvertToUnsigned(OpBuilder& builder, Location loc, Value val) {
+  auto inputType = cast<ShapedType>(val.getType()).getElementType();
+  auto intType = cast<IntegerType>(inputType);
+  Type unsignedElementType = IntegerType::get(
+      builder.getContext(), intType.getWidth(), IntegerType::Unsigned);
+  auto unsignedType =
+      cast<ShapedType>(val.getType()).clone(unsignedElementType);
+  return ConvertOp::create(builder, loc, unsignedType, val);
+}
+
+// Helper to check if the element type of the shaped value is an integer
+// of the specified signedness and with width strictly less than n_bits.
+static bool isIntegerLessThanNBits(Value val, bool isSigned, uint32_t n_bits) {
+  auto shapedType = llvm::cast<ShapedType>(val.getType());
+  auto intType = llvm::cast<IntegerType>(shapedType.getElementType());
+  return (intType.isUnsigned() == !isSigned) && intType.getWidth() < n_bits;
+}
+
+// Helper to check if the element type of the shaped value is an integer
+// of the specified signedness and with width exactly equal to n_bits.
+static bool isIntegerWithNBits(Value val, bool isSigned, uint32_t n_bits) {
+  auto shapedType = llvm::cast<ShapedType>(val.getType());
+  auto intType = llvm::cast<IntegerType>(shapedType.getElementType());
+  return (intType.isUnsigned() == !isSigned) && intType.getWidth() == n_bits;
 }
 
 //===----------------------------------------------------------------------===//
@@ -2375,28 +2411,87 @@ LogicalResult handleRaggedDotMode1(mlir::chlo::RaggedDotOp op,
         applyRaggedMask(rewriter, op.getLoc(), lhs, zero, start, limit, iotaM,
                         lhsTy, groupSizesTy.getShape());
 
-    // Slice RHS.
-    SmallVector<int64_t> rhsStartIndices(rhsRank, 0);
-    rhsStartIndices[rhsGroupDimension] = i;
-    SmallVector<int64_t> rhsLimitIndices(rhsTy.getShape());
-    rhsLimitIndices[rhsGroupDimension] = i + 1;
-    SmallVector<int64_t> rhsStrides(rhsRank, 1);
-    Value rhsSliced = mlir::stablehlo::SliceOp::create(
-        rewriter, op.getLoc(), rhs,
-        rewriter.getDenseI64ArrayAttr(rhsStartIndices),
-        rewriter.getDenseI64ArrayAttr(rhsLimitIndices),
-        rewriter.getDenseI64ArrayAttr(rhsStrides));
+    Value rhsSliced;
+    Value rhsReshaped;
+    if (rhsTy.hasStaticShape()) {
+      SmallVector<int64_t> rhsStartIndices(rhsRank, 0);
+      rhsStartIndices[rhsGroupDimension] = i;
+      SmallVector<int64_t> rhsLimitIndices(rhsTy.getShape());
+      rhsLimitIndices[rhsGroupDimension] = i + 1;
+      SmallVector<int64_t> rhsStrides(rhsRank, 1);
+      rhsSliced = mlir::stablehlo::SliceOp::create(
+          rewriter, op.getLoc(), rhs,
+          rewriter.getDenseI64ArrayAttr(rhsStartIndices),
+          rewriter.getDenseI64ArrayAttr(rhsLimitIndices),
+          rewriter.getDenseI64ArrayAttr(rhsStrides));
 
-    // Reshape RHS to remove group dim.
-    SmallVector<int64_t> rhsReshapedShape;
-    for (int64_t d = 0; d < rhsRank; ++d) {
-      if (d != rhsGroupDimension)
-        rhsReshapedShape.push_back(rhsTy.getShape()[d]);
+      SmallVector<int64_t> rhsReshapedShape;
+      for (int64_t d = 0; d < rhsRank; ++d) {
+        if (d != rhsGroupDimension)
+          rhsReshapedShape.push_back(rhsTy.getShape()[d]);
+      }
+      rhsReshaped = mlir::stablehlo::ReshapeOp::create(
+          rewriter, op.getLoc(),
+          RankedTensorType::get(rhsReshapedShape, rhsTy.getElementType()),
+          rhsSliced);
+    } else {
+      auto i64Type = rewriter.getI64Type();
+      SmallVector<Value> startParts, limitParts;
+      for (int64_t d = 0; d < rhsRank; ++d) {
+        if (d == rhsGroupDimension) {
+          Value sStart = mlir::stablehlo::ConstantOp::create(
+              rewriter, op.getLoc(), rewriter.getI64TensorAttr({i}));
+          startParts.push_back(sStart);
+          Value sLimit = mlir::stablehlo::ConstantOp::create(
+              rewriter, op.getLoc(), rewriter.getI64TensorAttr({i + 1}));
+          limitParts.push_back(sLimit);
+        } else {
+          Value sStart = mlir::stablehlo::ConstantOp::create(
+              rewriter, op.getLoc(), rewriter.getI64TensorAttr({0}));
+          startParts.push_back(sStart);
+          Value sLimit = mlir::stablehlo::GetDimensionSizeOp::create(
+              rewriter, op.getLoc(), rhs, d);
+          sLimit = mlir::stablehlo::ConvertOp::create(
+              rewriter, op.getLoc(), RankedTensorType::get({}, i64Type),
+              sLimit);
+          sLimit = mlir::stablehlo::ReshapeOp::create(
+              rewriter, op.getLoc(), RankedTensorType::get({1}, i64Type),
+              sLimit);
+          limitParts.push_back(sLimit);
+        }
+      }
+      auto rhs1DTy = RankedTensorType::get({rhsRank}, i64Type);
+      Value startTensor = mlir::stablehlo::ConcatenateOp::create(
+          rewriter, op.getLoc(), rhs1DTy, startParts, 0);
+      Value limitTensor = mlir::stablehlo::ConcatenateOp::create(
+          rewriter, op.getLoc(), rhs1DTy, limitParts, 0);
+      SmallVector<int64_t> ones(rhsRank, 1);
+      Value stridesTensor = mlir::stablehlo::ConstantOp::create(
+          rewriter, op.getLoc(), rewriter.getI64TensorAttr(ones));
+
+      SmallVector<int64_t> sliceShape(rhsTy.getShape());
+      sliceShape[rhsGroupDimension] = 1;
+      auto sliceTy = RankedTensorType::get(sliceShape, rhsTy.getElementType());
+      rhsSliced = mlir::stablehlo::RealDynamicSliceOp::create(
+          rewriter, op.getLoc(), sliceTy, rhs, startTensor, limitTensor,
+          stridesTensor);
+
+      SmallVector<Value> reshapeParts;
+      SmallVector<int64_t> newRhsShape;
+      for (int64_t d = 0; d < rhsRank; ++d) {
+        if (d != rhsGroupDimension) {
+          reshapeParts.push_back(limitParts[d]);
+          newRhsShape.push_back(rhsTy.getShape()[d]);
+        }
+      }
+      Value newShapeTensor = mlir::stablehlo::ConcatenateOp::create(
+          rewriter, op.getLoc(), RankedTensorType::get({rhsRank - 1}, i64Type),
+          reshapeParts, 0);
+      auto newRhsTy =
+          RankedTensorType::get(newRhsShape, rhsTy.getElementType());
+      rhsReshaped = mlir::stablehlo::DynamicReshapeOp::create(
+          rewriter, op.getLoc(), newRhsTy, rhsSliced, newShapeTensor);
     }
-    Value rhsReshaped = mlir::stablehlo::ReshapeOp::create(
-        rewriter, op.getLoc(),
-        RankedTensorType::get(rhsReshapedShape, rhsTy.getElementType()),
-        rhsSliced);
 
     // Dot General.
     auto resultType = op.getResult().getType();
@@ -2581,9 +2676,31 @@ LogicalResult handleRaggedDotMode2(mlir::chlo::RaggedDotOp op,
     auto type = cast<RankedTensorType>(res.getType());
     SmallVector<int64_t> newShape = {1};
     newShape.append(type.getShape().begin(), type.getShape().end());
-    reshapedResults.push_back(mlir::stablehlo::ReshapeOp::create(
-        rewriter, op.getLoc(),
-        RankedTensorType::get(newShape, type.getElementType()), res));
+    auto newType = RankedTensorType::get(newShape, type.getElementType());
+    if (type.hasStaticShape()) {
+      reshapedResults.push_back(mlir::stablehlo::ReshapeOp::create(
+          rewriter, op.getLoc(), newType, res));
+    } else {
+      SmallVector<Value> dimSizes;
+      Value one = mlir::stablehlo::ConstantOp::create(
+          rewriter, op.getLoc(), rewriter.getI64TensorAttr({1}));
+      dimSizes.push_back(one);
+      auto i64Type = rewriter.getI64Type();
+      for (int64_t d = 0; d < type.getRank(); ++d) {
+        Value s = mlir::stablehlo::GetDimensionSizeOp::create(
+            rewriter, op.getLoc(), res, d);
+        s = mlir::stablehlo::ConvertOp::create(
+            rewriter, op.getLoc(), RankedTensorType::get({}, i64Type), s);
+        s = mlir::stablehlo::ReshapeOp::create(
+            rewriter, op.getLoc(), RankedTensorType::get({1}, i64Type), s);
+        dimSizes.push_back(s);
+      }
+      Value newShapeTensor = mlir::stablehlo::ConcatenateOp::create(
+          rewriter, op.getLoc(),
+          RankedTensorType::get({type.getRank() + 1}, i64Type), dimSizes, 0);
+      reshapedResults.push_back(mlir::stablehlo::DynamicReshapeOp::create(
+          rewriter, op.getLoc(), newType, res, newShapeTensor));
+    }
   }
 
   rewriter.replaceOpWithNewOp<mlir::stablehlo::ConcatenateOp>(
@@ -2702,7 +2819,7 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
     return limitScalars;
   }
 
-  static SmallVector<Value> createInitialValues(
+  static FailureOr<SmallVector<Value>> createInitialValues(
       ConversionPatternRewriter& rewriter, Location loc, mlir::chlo::ScanOp op,
       ValueRange inputs, ValueRange inits) {
     size_t numInputs = inputs.size();
@@ -2722,20 +2839,40 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
     // Initialize output arrays.
     for (size_t i = 0; i < numScanOutputs; ++i) {
       auto resultType = cast<RankedTensorType>(op.getResult(i).getType());
-      Value zero =
-          ConstantOp::create(rewriter, loc,
-                             rewriter.getZeroAttr(RankedTensorType::get(
-                                 {}, resultType.getElementType())));
+      Type outElementType = resultType.getElementType();
+      auto scalarType = RankedTensorType::get({}, outElementType);
+      // getZeroAttr returns null for complex element types, so build the
+      // complex zero splat explicitly. Any other element type without a zero
+      // attribute is unsupported, so bail out cleanly instead of asserting.
+      TypedAttr zeroAttr = rewriter.getZeroAttr(scalarType);
+      if (!zeroAttr) {
+        auto complexType = dyn_cast<ComplexType>(outElementType);
+        if (!complexType)
+          return rewriter.notifyMatchFailure(
+              op,
+              "scan output element type has no zero value and is not a "
+              "complex type");
+        zeroAttr = DenseElementsAttr::get(
+            scalarType,
+            mlir::complex::NumberAttr::get(complexType, /*real=*/0.0,
+                                           /*imag=*/0.0)
+                .getValue());
+      }
+      Value zero = ConstantOp::create(rewriter, loc, zeroAttr);
 
       if (resultType.hasStaticShape()) {
-        initialValues.push_back(BroadcastOp::create(
-            rewriter, loc, resultType, zero,
-            rewriter.getDenseI64ArrayAttr(resultType.getShape())));
+        // broadcast_in_dim (not the deprecated broadcast op) so the result is
+        // interpretable and spec-compliant; zero is a scalar, so there are no
+        // broadcast dimensions.
+        initialValues.push_back(
+            BroadcastInDimOp::create(rewriter, loc, resultType, zero,
+                                     rewriter.getDenseI64ArrayAttr({})));
       } else {
         if (numInputs == 0) {
           // This should be caught by verification or earlier checks, but just
           // in case.
-          return {};
+          return rewriter.notifyMatchFailure(
+              op, "cannot determine dynamic output shape without inputs");
         }
         Value refInput = inputs[i < numInputs ? i : 0];
         Value refShape = shape::ShapeOfOp::create(rewriter, loc, refInput);
@@ -2769,41 +2906,54 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
       auto inputType = cast<RankedTensorType>(input.getType());
       int64_t rank = inputType.getRank();
 
-      auto build1DTensor = [&](const SmallVector<Value>& scalars) {
-        SmallVector<Value> parts;
-        auto i64Ty = RankedTensorType::get({1}, rewriter.getI64Type());
-        for (Value s : scalars) {
-          parts.push_back(ReshapeOp::create(rewriter, loc, i64Ty, s));
-        }
-        return ConcatenateOp::create(rewriter, loc, parts, 0);
-      };
-
-      Value zero =
-          ConstantOp::create(rewriter, loc, rewriter.getI64IntegerAttr(0));
-      SmallVector<Value> startScalars(rank, zero);
-      startScalars[dim] = index;
-
-      Value startTensor = build1DTensor(startScalars);
-
-      SmallVector<Value> limitScalars =
-          getLimitScalars(rewriter, loc, dim, index, input);
-      Value limitTensor = build1DTensor(limitScalars);
-
-      SmallVector<int64_t> strides(rank, 1);
-      Value stridesTensor = ConstantOp::create(
-          rewriter, loc,
-          DenseIntElementsAttr::get(
-              RankedTensorType::get({rank}, rewriter.getI64Type()), strides));
-
       SmallVector<int64_t> sliceShape(inputType.getShape().begin(),
                                       inputType.getShape().end());
       sliceShape[dim] = 1;
       auto sliceType =
           RankedTensorType::get(sliceShape, inputType.getElementType());
 
-      Value slice =
-          RealDynamicSliceOp::create(rewriter, loc, sliceType, input,
-                                     startTensor, limitTensor, stridesTensor);
+      Value slice;
+      if (inputType.hasStaticShape()) {
+        // Static shapes: dynamic_slice (size 1 at the scan dim) is simpler,
+        // spec-compliant, and interpretable, unlike real_dynamic_slice.
+        Value zero =
+            ConstantOp::create(rewriter, loc, rewriter.getI64IntegerAttr(0));
+        SmallVector<Value> startIndices(rank, zero);
+        startIndices[dim] = index;
+        slice = DynamicSliceOp::create(
+            rewriter, loc, sliceType, input, startIndices,
+            rewriter.getDenseI64ArrayAttr(sliceShape));
+      } else {
+        // Dynamic shapes: real_dynamic_slice with runtime start/limit/stride.
+        auto build1DTensor = [&](const SmallVector<Value>& scalars) {
+          SmallVector<Value> parts;
+          auto i64Ty = RankedTensorType::get({1}, rewriter.getI64Type());
+          for (Value s : scalars) {
+            parts.push_back(ReshapeOp::create(rewriter, loc, i64Ty, s));
+          }
+          return ConcatenateOp::create(rewriter, loc, parts, 0);
+        };
+
+        Value zero =
+            ConstantOp::create(rewriter, loc, rewriter.getI64IntegerAttr(0));
+        SmallVector<Value> startScalars(rank, zero);
+        startScalars[dim] = index;
+        Value startTensor = build1DTensor(startScalars);
+
+        SmallVector<Value> limitScalars =
+            getLimitScalars(rewriter, loc, dim, index, input);
+        Value limitTensor = build1DTensor(limitScalars);
+
+        SmallVector<int64_t> strides(rank, 1);
+        Value stridesTensor = ConstantOp::create(
+            rewriter, loc,
+            DenseIntElementsAttr::get(
+                RankedTensorType::get({rank}, rewriter.getI64Type()), strides));
+
+        slice =
+            RealDynamicSliceOp::create(rewriter, loc, sliceType, input,
+                                       startTensor, limitTensor, stridesTensor);
+      }
 
       SmallVector<int64_t> resultShape;
       for (int64_t d = 0; d < rank; ++d) {
@@ -2860,7 +3010,8 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
   static void createBodyRegion(ConversionPatternRewriter& rewriter,
                                Location loc, mlir::chlo::ScanOp op,
                                WhileOp whileOp, ValueRange inputs, int64_t dim,
-                               const SmallVector<Type>& whileTypes) {
+                               const SmallVector<Type>& whileTypes,
+                               Value scanDimSize, bool isReverse) {
     OpBuilder::InsertionGuard guard(rewriter);
     Block* bodyBlock = rewriter.createBlock(&whileOp.getBody());
     for (Type t : whileTypes) bodyBlock->addArgument(t, loc);
@@ -2869,15 +3020,27 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
     size_t numCarries = op.getInits().size();
     size_t numScanOutputs = op.getNumResults() - numCarries;
 
+    // For a reverse scan the loop counter still runs 0..N-1, but each step
+    // reads and writes position (N-1) - counter.
+    Value posIndex = index;
+    if (isReverse) {
+      Value one = ConstantOp::create(
+          rewriter, loc,
+          DenseIntElementsAttr::get(
+              RankedTensorType::get({}, rewriter.getI64Type()), {1LL}));
+      Value lastIndex = SubtractOp::create(rewriter, loc, scanDimSize, one);
+      posIndex = SubtractOp::create(rewriter, loc, lastIndex, index);
+    }
+
     // Args: index (1), accs (numCarries), outputs (numScanOutputs)
     size_t offset = 1;
     auto argAccs = bodyBlock->getArguments().slice(offset, numCarries);
     offset += numCarries;
     auto argOutputs = bodyBlock->getArguments().slice(offset, numScanOutputs);
 
-    // Slice inputs.
+    // Slice inputs (at the reverse-adjusted position).
     SmallVector<Value> slicedInputs =
-        sliceInputs(rewriter, loc, dim, index, inputs);
+        sliceInputs(rewriter, loc, dim, posIndex, inputs);
 
     // Inline Body.
     Block& scanBody = op.getBody().front();
@@ -2900,9 +3063,9 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
     auto newOutputElements = ArrayRef(bodyResults).take_front(numScanOutputs);
     auto newAccs = ArrayRef(bodyResults).take_back(numCarries);
 
-    // Update Outputs.
-    SmallVector<Value> updatedOutputs =
-        updateOutputs(rewriter, loc, dim, index, argOutputs, newOutputElements);
+    // Update Outputs (at the reverse-adjusted position).
+    SmallVector<Value> updatedOutputs = updateOutputs(
+        rewriter, loc, dim, posIndex, argOutputs, newOutputElements);
 
     Value oneIndex = ConstantOp::create(
         rewriter, loc,
@@ -2939,11 +3102,10 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
         *scanDimSizeOrError);
 
     // 2. Initial values.
-    auto initialValues = createInitialValues(rewriter, loc, op, inputs, inits);
-    if (initialValues.empty() && numScanOutputs > 0) {
-      return rewriter.notifyMatchFailure(
-          op, "cannot determine dynamic output shape without inputs");
-    }
+    auto initialValuesOr =
+        createInitialValues(rewriter, loc, op, inputs, inits);
+    if (failed(initialValuesOr)) return failure();
+    SmallVector<Value> initialValues = std::move(*initialValuesOr);
 
     // 3. Create WhileOp.
     SmallVector<Type> whileTypes;
@@ -2955,7 +3117,8 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
     createConditionRegion(rewriter, loc, whileOp, scanDimSize, whileTypes);
 
     // 5. Body Region.
-    createBodyRegion(rewriter, loc, op, whileOp, inputs, dim, whileTypes);
+    createBodyRegion(rewriter, loc, op, whileOp, inputs, dim, whileTypes,
+                     scanDimSize, op.getIsReverse());
 
     // 6. Extract Results.
     SmallVector<Value> replacements;

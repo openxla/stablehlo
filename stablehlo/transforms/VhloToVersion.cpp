@@ -377,6 +377,16 @@ bool isEmptyTensor(Attribute attr) {
   return false;
 }
 
+ArrayV1Attr getEmptyArray(OpBuilder& builder) {
+  return vhlo::ArrayV1Attr::get(builder.getContext(), {});
+}
+
+bool isEmptyArray(Attribute attr) {
+  auto arrayAttr = dyn_cast<ArrayV1Attr>(attr);
+  if (arrayAttr) return arrayAttr.getValue().empty();
+  return false;
+}
+
 bool isNoneType(Attribute attr) {
   auto typeAttr = llvm::dyn_cast<TypeV1Attr>(attr);
   if (!typeAttr) return false;
@@ -526,6 +536,41 @@ struct CompositeOpV2ToV1 : public OpRewritePattern<CompositeOpV2> {
   }
 };
 
+struct CustomCallOpV1ToV2 : public OpRewritePattern<CustomCallOpV1> {
+  CustomCallOpV1ToV2(MLIRContext* context)
+      : OpRewritePattern<CustomCallOpV1>(context) {}
+
+  LogicalResult matchAndRewrite(CustomCallOpV1 op,
+                                PatternRewriter& rewriter) const override {
+    auto newOp = rewriter.replaceOpWithNewOp<CustomCallOpV2>(
+        op, op->getResultTypes(), op.getInputs(), op.getCallTargetName(),
+        op.getHasSideEffect(), op.getBackendConfig(), op.getApiVersion(),
+        op.getCalledComputations(), op.getOperandLayouts(),
+        op.getResultLayouts(), op.getOutputOperandAliases(),
+        getEmptyArray(rewriter));
+    copyDiscardableAttrs(op, newOp);
+    return success();
+  }
+};
+
+struct CustomCallOpV2ToV1 : public OpRewritePattern<CustomCallOpV2> {
+  using OpRewritePattern<CustomCallOpV2>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(CustomCallOpV2 op,
+                                PatternRewriter& rewriter) const override {
+    if (!isEmptyArray(op.getResultTilings())) {
+      return rewriter.notifyMatchFailure(op, "non-empty result_tilings");
+    }
+    auto newOp = rewriter.replaceOpWithNewOp<CustomCallOpV1>(
+        op, op->getResultTypes(), op.getInputs(), op.getCallTargetName(),
+        op.getHasSideEffect(), op.getBackendConfig(), op.getApiVersion(),
+        op.getCalledComputations(), op.getOperandLayouts(),
+        op.getResultLayouts(), op.getOutputOperandAliases());
+    copyDiscardableAttrs(op, newOp);
+    return success();
+  }
+};
+
 #include "stablehlo/transforms/VhloToVersionPatterns.h.inc"
 
 }  // namespace
@@ -539,6 +584,7 @@ void populateVhloToVersionPatterns(MLIRContext* context,
   patterns->add<vhlo::ScatterOpV1ToV2, vhlo::ScatterOpV2ToV1>(context);
   patterns->add<vhlo::AllReduceOpV1ToV2, vhlo::AllReduceOpV2ToV1>(context);
   patterns->add<vhlo::CompositeOpV1ToV2, vhlo::CompositeOpV2ToV1>(context);
+  patterns->add<vhlo::CustomCallOpV1ToV2, vhlo::CustomCallOpV2ToV1>(context);
 }
 
 }  // namespace stablehlo

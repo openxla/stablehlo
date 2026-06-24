@@ -11,6 +11,8 @@
 
 // CHECK-WARN-NOT: Not Implemented
 
+func.func private @mesh()
+
 // ============ ATTRIBUTES ============
 
 // CHECK-LABEL: "attr_comparison_direction_eq"

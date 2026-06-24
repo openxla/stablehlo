@@ -63,9 +63,9 @@ void populateVhloToStablehloPatterns(MLIRContext *context,
                                      vhlo::VhloTypeConverter *converter);
 
 // Populates VHLO downgrade rewriting patterns.
-void populateVhloToVersionPatterns(MLIRContext *context,
-                                   RewritePatternSet *patterns,
-                                   vhlo::VhloTypeConverter *converter);
+void populateVhloToVersionPatterns(MLIRContext* context,
+                                   RewritePatternSet* patterns,
+                                   vhlo::VhloTypeConverter* converter);
 
 /// Collection of rewrite patterns for lowering of CHLO ops to StableHLO and
 /// Shape ops.

@@ -5022,6 +5022,14 @@ func.func @custom_call_multiple_inputs_outputs(%x: tensor<2xf32>, %token: !stabl
 
 // -----
 
+// CHECK: func @custom_call_future
+func.func @custom_call_future(%arg0: !stablehlo.future<tensor<2xf32>>) -> !stablehlo.future<tensor<2xf32>> {
+  %0 = "stablehlo.custom_call"(%arg0) {call_target_name = "foo"} : (!stablehlo.future<tensor<2xf32>>) -> !stablehlo.future<tensor<2xf32>>
+  func.return %0 : !stablehlo.future<tensor<2xf32>>
+}
+
+// -----
+
 // CHECK: func @custom_call_multiple_inputs_outputs_with_layout
 func.func @custom_call_multiple_inputs_outputs_with_layout(%x: tensor<2xf32>, %token: !stablehlo.token) -> tensor<f32> {
   %0:3 = "stablehlo.custom_call"(%x, %token) {

@@ -21,6 +21,34 @@ class StableHLO_ComparisonDirectionValue<string enumStr> :
 class StableHLO_ConstantLike<string value> : NativeCodeCall<
     "::mlir::stablehlo::getConstantLike($_builder, $_loc, " # value # ", $0)">;
 
+def IsSignedIntegerType : Constraint<CPred<
+  "!llvm::cast<IntegerType>(llvm::cast<ShapedType>($0.getType()).getElementType()).isUnsigned()">>;
+
+def IsSignedIntegerLessThan64Bit : Constraint<CPred<
+  "isIntegerLessThanNBits($0, /*isSigned=*/true, 64)">>;
+
+def IsSigned64BitIntegerType : Constraint<CPred<
+  "isIntegerWithNBits($0, /*isSigned=*/true, 64)">>;
+
+def IsUnsignedIntegerType : Constraint<CPred<
+  "llvm::cast<IntegerType>(llvm::cast<ShapedType>($0.getType()).getElementType()).isUnsigned()">>;
+
+def IsUnsignedIntegerLessThan64Bit : Constraint<CPred<
+  "isIntegerLessThanNBits($0, /*isSigned=*/false, 64)">>;
+
+def IsUnsigned64BitIntegerType : Constraint<CPred<
+  "isIntegerWithNBits($0, /*isSigned=*/false, 64)">>;
+
+def StableHLO_ConvertOpUpcast : NativeCodeCall<
+    "::mlir::stablehlo::getConvertOpUpcast($_builder, $_loc, $0)">;
+
+def StableHLO_ConvertToUnsigned : NativeCodeCall<
+    "::mlir::stablehlo::getConvertToUnsigned($_builder, $_loc, $0)">;
+
+def GetShiftAmountConstant : NativeCodeCall<
+    "::mlir::stablehlo::getConstantLike($_builder, $_loc,"
+    " cast<IntegerType>(cast<ShapedType>($0.getType()).getElementType()).getWidth(), $1)">;
+
 def ComplexElementType : Type<
   CPred<"isa<ComplexType>(cast<ShapedType>($_self).getElementType())">,
   "Complex element type">;
@@ -115,6 +143,118 @@ def : Pat<(CHLO_IsNegInfOp NonComplexElementType:$input),
     (STABLEHLO_DEFAULT_COMPARISON_TYPE)
   )>;
 
+// Signed mulhi_s32 for N-bit integers where N < 64, meaning we can upcast.
+//   downcast((upcast(x, N*2) * upcast(y,N*2)) >> N, N)
+def : Pat<(CHLO_MulhiOp $lhs, $rhs),
+          (StableHLO_ConvertOp
+            (StableHLO_ShiftRightArithmeticOp
+              (StableHLO_MulOp:$wideMul (StableHLO_ConvertOpUpcast $lhs), (StableHLO_ConvertOpUpcast $rhs)),
+              (GetShiftAmountConstant $lhs, $wideMul)
+            )
+          ),
+          [(IsSignedIntegerLessThan64Bit $lhs)]>;
+
+// Signed mulhi_s32 for N-bit integers where N < 64, meaning we can upcast.
+//   downcast((upcast(x, N*2) * upcast(y,N*2)) >> N, N)
+//
+// Unsigned ints use logical shifts.
+def : Pat<(CHLO_MulhiOp $lhs, $rhs),
+          (StableHLO_ConvertOp
+            (StableHLO_ShiftRightLogicalOp
+              (StableHLO_MulOp:$wideMul (StableHLO_ConvertOpUpcast $lhs), (StableHLO_ConvertOpUpcast $rhs)),
+              (GetShiftAmountConstant $lhs, $wideMul)
+            )
+          ),
+          [(IsUnsignedIntegerLessThan64Bit $lhs)]>;
+
+// mulhi_u64 with decomposition into 32 bit parts.
+//
+// 1. Split operands into lower and upper 32-bit halves
+// uint64_t a_hi = a >> 32;
+// uint64_t b_hi = b >> 32;
+// uint64_t a_lo = a & 0xFFFFFFFF;
+// uint64_t b_lo = b & 0xFFFFFFFF;
+
+// // 2. Compute the four 64-bit partial products
+// uint64_t p0 = a_lo * b_lo;
+// uint64_t p1 = a_lo * b_hi;
+// uint64_t p2 = a_hi * b_lo;
+// uint64_t p3 = a_hi * b_hi;
+
+// // 3. Accumulate middle terms and propagate the carry
+// uint32_t carry_p0 = (uint32_t)(p0 >> 32);
+// uint64_t mid1 = p1 + carry_p0;
+// uint64_t mid2 = p2 + (uint32_t)mid1;
+
+// // 4. Sum the high terms
+// return p3 + (mid1 >> 32) + (mid2 >> 32);
+def : Pat<(CHLO_MulhiOp $lhs, $rhs),
+          (StableHLO_AddOp
+            (StableHLO_AddOp
+              (StableHLO_MulOp:$p3
+                (StableHLO_ShiftRightLogicalOp:$a_hi $lhs, (StableHLO_ConstantLike<"32"> $lhs)),
+                (StableHLO_ShiftRightLogicalOp:$b_hi $rhs, (StableHLO_ConstantLike<"32"> $rhs))
+              ),
+              (StableHLO_ShiftRightLogicalOp:$carry_mid1
+                (StableHLO_AddOp:$mid1
+                  (StableHLO_MulOp:$p1
+                    (StableHLO_AndOp:$a_lo $lhs, (StableHLO_ConstantLike<"0xFFFFFFFFULL"> $lhs)),
+                    $b_hi
+                  ),
+                  (StableHLO_ShiftRightLogicalOp:$carry_p0
+                    (StableHLO_MulOp:$p0 $a_lo, (StableHLO_AndOp:$b_lo $rhs, (StableHLO_ConstantLike<"0xFFFFFFFFULL"> $rhs))),
+                    (StableHLO_ConstantLike<"32"> $lhs)
+                  )
+                ),
+                (StableHLO_ConstantLike<"32"> $lhs)
+              )
+            ),
+            (StableHLO_ShiftRightLogicalOp:$carry_mid2
+              (StableHLO_AddOp:$mid2
+                (StableHLO_MulOp:$p2 $a_hi, $b_lo),
+                (StableHLO_AndOp $mid1, (StableHLO_ConstantLike<"0xFFFFFFFFULL"> $lhs))
+              ),
+              (StableHLO_ConstantLike<"32"> $lhs)
+            )
+          ),
+          [(IsUnsigned64BitIntegerType $lhs)]>;
+
+// mulhi_u64 with correction for two's complement sign extension:
+//   res = mulhi_u64((uint64_t)a, (uint64_t)b)
+//   if (a < 0) hi -= b;
+//   if (b < 0) hi -= a;
+def : Pat<(CHLO_MulhiOp $lhs, $rhs),
+          (StableHLO_ConvertOp
+            (StableHLO_SubtractOp
+              (StableHLO_SubtractOp
+                (CHLO_MulhiOp:$hi
+                  (StableHLO_ConvertToUnsigned $lhs),
+                  (StableHLO_ConvertToUnsigned $rhs)
+                ),
+                (StableHLO_SelectOp
+                  (StableHLO_CompareOp
+                    $lhs,
+                    (StableHLO_ConstantLike<"0"> $lhs),
+                    StableHLO_ComparisonDirectionValue<"LT">,
+                    (STABLEHLO_DEFAULT_COMPARISON_TYPE)
+                  ),
+                  (StableHLO_ConvertToUnsigned $rhs),
+                  (StableHLO_ConstantLike<"0"> (StableHLO_ConvertToUnsigned $rhs))
+                )
+              ),
+              (StableHLO_SelectOp
+                (StableHLO_CompareOp
+                  $rhs,
+                  (StableHLO_ConstantLike<"0"> $rhs),
+                  StableHLO_ComparisonDirectionValue<"LT">,
+                  (STABLEHLO_DEFAULT_COMPARISON_TYPE)
+                ),
+                (StableHLO_ConvertToUnsigned $lhs),
+                (StableHLO_ConstantLike<"0"> (StableHLO_ConvertToUnsigned $lhs))
+              )
+            )
+          ),
+          [(IsSigned64BitIntegerType $lhs)]>;
 
 def : Pat<(CHLO_TanOp $input),
           (StableHLO_TanOp $input, ConstDefaultResultAccuracyAttr)>;

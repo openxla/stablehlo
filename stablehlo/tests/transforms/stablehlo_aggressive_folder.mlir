@@ -1469,3 +1469,40 @@ func.func @dce_while_false_condition() -> tensor<i64> {
   }
   return %1 : tensor<i64>
 }
+
+////////
+// XorOp
+
+// CHECK-LABEL: @xor_fold_splat_cst
+func.func @xor_fold_splat_cst() -> tensor<3x2xi32> {
+  // CHECK: stablehlo.constant dense<1> : tensor<3x2xi32>
+  // CHECK-NOT: stablehlo.xor
+  %operand_1 = stablehlo.constant dense<1> : tensor<3x2xi32>
+  %operand_2 = stablehlo.constant dense<0> : tensor<3x2xi32>
+  %result = stablehlo.xor %operand_1, %operand_2 : tensor<3x2xi32>
+  return %result : tensor<3x2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @xor_fold_cst
+func.func @xor_fold_cst() -> tensor<3xi32> {
+  // CHECK: stablehlo.constant dense<[0, 0, 3]> : tensor<3xi32>
+  // CHECK-NOT: stablehlo.xor
+  %operand_1 = stablehlo.constant dense<[1, 2, 1]> : tensor<3xi32>
+  %operand_2 = stablehlo.constant dense<[1, 2, 2]> : tensor<3xi32>
+  %result = stablehlo.xor %operand_1, %operand_2 : tensor<3xi32>
+  return %result : tensor<3xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @xor_fold_boolean_cst
+func.func @xor_fold_boolean_cst() -> tensor<4xi1> {
+  // CHECK: stablehlo.constant dense<[true, false, true, false]> : tensor<4xi1>
+  // CHECK-NOT: stablehlo.xor
+  %operand_1 = stablehlo.constant dense<[true, true, false, false]> : tensor<4xi1>
+  %operand_2 = stablehlo.constant dense<[false, true, true, false]> : tensor<4xi1>
+  %result = stablehlo.xor %operand_1, %operand_2 : tensor<4xi1>
+  return %result : tensor<4xi1>
+}

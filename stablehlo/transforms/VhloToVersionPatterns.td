@@ -23,6 +23,10 @@ def VHLO_GetEmptyTensor : NativeCodeCall<"getEmptyI64Tensor($_builder)">;
 
 def VHLO_EmptyTensor : AttrConstraint<CPred<"isEmptyTensor($_self)">, "Empty dims">;
 
+def VHLO_GetEmptyArray : NativeCodeCall<"getEmptyArray($_builder)">;
+
+def VHLO_EmptyArray : AttrConstraint<CPred<"isEmptyArray($_self)">, "Empty array">;
+
 def VHLO_NoneType : AttrConstraint<CPred<"isNoneType($_self)">, "None type">;
 
 def VHLO_GetNoneType : NativeCodeCall<"getNoneType($_builder)">;

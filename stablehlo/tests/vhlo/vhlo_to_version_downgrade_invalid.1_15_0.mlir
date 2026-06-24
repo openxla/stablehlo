@@ -2,6 +2,8 @@
 
 // Future types cannot be downgraded to v1.15.0 (v1).
 
+func.func private @mesh()
+
 // CHECK: failed to legalize operation
 func.func @attr_replica_group_mesh_axes(%arg0: tensor<f32>) -> tensor<f32> {
   %0 = "stablehlo.all_reduce"(%arg0) ({

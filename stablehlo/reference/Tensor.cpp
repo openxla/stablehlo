@@ -16,6 +16,7 @@ limitations under the License.
 #include "stablehlo/reference/Tensor.h"
 
 #include <algorithm>
+#include <cassert>
 #include <complex>
 #include <cstddef>
 #include <cstdint>
@@ -110,6 +111,14 @@ Tensor::Tensor(ShapedType type)
 
 Tensor::Tensor(ShapedType type, AsmResourceBlob blob)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type, std::move(blob))) {}
+
+Tensor Tensor::clone() const {
+  assert(*this && "Cannot clone an uninitialized Tensor");
+
+  AsmResourceBlob blob = mlir::HeapAsmResourceBlob::allocateAndCopyWithAlign(
+      impl_->getData(), alignof(char));
+  return Tensor(getType(), std::move(blob));
+}
 
 Element Tensor::get(const Index& index) const {
   Type elementType = getType().getElementType();

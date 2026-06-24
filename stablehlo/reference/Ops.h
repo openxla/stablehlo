@@ -109,7 +109,7 @@ Tensor gatherOp(const Tensor &operand, const Tensor &startIndices,
                 bool indicesAreSorted, ShapedType resultType);
 Tensor getDimensionSizeOp(const Tensor &operand, Axis dimension,
                           ShapedType resultType);
-InterpreterValue getTupleElementOp(const Tuple &operand, int32_t index);
+InterpreterValue getTupleElementOp(const class Tuple &operand, int32_t index);
 SmallVector<InterpreterValue> ifOp(const Tensor &pred, Region &trueBranch,
                                    Region &falseBranch, Process *process,
                                    Scope &scope);
@@ -206,7 +206,7 @@ Tensor transposeOp(const Tensor &operand, const Axes &permutation,
 Tensor triangularSolveOp(const Tensor &A, const Tensor &b, bool leftSide,
                          bool lower, bool unitDiagonal, Transpose transposeA,
                          ShapedType resultType);
-Tuple tupleOp(ArrayRef<InterpreterValue> val, TupleType resultType);
+class Tuple tupleOp(ArrayRef<InterpreterValue> val, TupleType resultType);
 SmallVector<InterpreterValue> whileOp(SmallVector<InterpreterValue> operand,
                                       Region &cond, Region &body,
                                       InterpreterFallback *fallback,

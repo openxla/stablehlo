@@ -85,6 +85,13 @@ class Tensor {
   /// Logical not operator.
   bool operator!() const { return !impl_; }
 
+  /// Returns a deep copy of the Tensor with newly allocated storage.
+  ///
+  /// Standard assignment (`a = b`) only copies the reference pointer, meaning
+  /// both tensors share the same data. Use `clone()` to create a standalone
+  /// copy that can be modified independently.
+  Tensor clone() const;
+
   /// Returns type of the Tensor object.
   ShapedType getType() const { return impl_->getType(); };
 

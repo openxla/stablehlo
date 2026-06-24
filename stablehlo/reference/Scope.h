@@ -51,7 +51,7 @@ class Scope {
 
   /// Add the mapping from SSA value (`ssaValue`), defined in a region, to its
   /// evaluated runtime value (`runtimeValue`).
-  void add(Value ssaValue, Tuple runtimeValue);
+  void add(Value ssaValue, class Tuple runtimeValue);
 
   /// Add the mapping from SSA values (`ssaValues`), defined in a region, to its
   /// evaluated runtime values (`runtimeValues`).
@@ -92,7 +92,7 @@ class Scope {
   /// Find the runtime value mapped to SSA value `ssaValue`. The search starts
   /// with the current scope and then recursively continues over to the scope
   /// defined by `parent_`.
-  Tuple findTuple(Value ssaValue) const;
+  class Tuple findTuple(Value ssaValue) const;
 
  private:
   /// Internal store for mapping from SSA values to runtime `InterpreterValue`
