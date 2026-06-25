@@ -1,4 +1,5 @@
-// RUN: stablehlo-translate --interpret --probe-output-dir=$(dirname %t) -split-input-file %s
+// RUN: dirname %t | xargs printf -v temp_dir
+// RUN: stablehlo-translate --interpret --probe-output-dir=$temp_dir -split-input-file %s
 
 // Test an empty module
 
