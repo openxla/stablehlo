@@ -41,7 +41,7 @@ class Tuple {
   TupleType getType() const;
 
   /// Prints Tuple objects.
-  void print(raw_ostream &os) const;
+  void print(raw_ostream& os) const;
 
   /// Print utilities for Tuple objects.
   void dump() const;
@@ -56,9 +56,9 @@ class InterpreterValue {
   /// \name Constructors
   /// @{
   InterpreterValue() = default;
-  InterpreterValue(const Tensor &tensor);
-  InterpreterValue(const Token &token);
-  InterpreterValue(const Tuple &tuple);
+  InterpreterValue(const Tensor& tensor);
+  InterpreterValue(const Token& token);
+  InterpreterValue(const class Tuple& tuple);
   /// @}
 
   /// Getter method for Tensor object.
@@ -68,7 +68,7 @@ class InterpreterValue {
   Token getToken() const;
 
   /// Getter method for Tuple object.
-  Tuple getTuple() const;
+  class Tuple getTuple() const;
 
   /// Getter method for type_;
   Type getType() const;
@@ -83,13 +83,13 @@ class InterpreterValue {
   bool isTuple() const;
 
   /// Print utilities for InterpreterValue objects.
-  void print(raw_ostream &os) const;
+  void print(raw_ostream& os) const;
 
   /// Print utilities for InterpreterValue objects.
   void dump() const;
 
  private:
-  std::variant<Tensor, Token, Tuple> value_;
+  std::variant<Tensor, Token, class Tuple> value_;
 };
 
 }  // namespace stablehlo

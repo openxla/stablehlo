@@ -1485,7 +1485,8 @@ def StableHLO_ReplicaGroups : AnyAttrOf<[I64ElementsAttr, StableHLO_ReplicaGroup
 
 def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
     [ConditionallySpeculatable,
-     HLO_PairwiseSameOperandAndResultElementType, /*all_gather_c6*/]> {
+     HLO_PairwiseSameOperandAndResultElementType /*all_gather_c6*/,
+     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
   string summary = "AllGather operation";
   string description = [{
     Within each process group in the process grid, concatenates the values of the
@@ -1525,7 +1526,8 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
 def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
     [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
      InferTensorType /*all_reduce_c6, all_reduce_c7*/,
-     SingleBlockImplicitTerminator<"ReturnOp">]> {
+     SingleBlockImplicitTerminator<"ReturnOp">,
+     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
   let summary = "AllReduce operation";
   let description = [{
     Within each process group in the process grid, applies a reduction function
@@ -1568,7 +1570,8 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
  ];
 }
 
-def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter", [ConditionallySpeculatable]> {
+def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
+    [ConditionallySpeculatable, DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
   let summary = "ReduceScatter operation";
   let description = [{
      Within each process group in the process grid, performs reduction, using
@@ -1615,7 +1618,8 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter", [ConditionallySpe
 def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
     [ConditionallySpeculatable,
      HLO_PairwiseSameOperandAndResultElementType /*all_to_all_c9*/,
-     InferTensorType /*all_to_all_c9*/]> {
+     InferTensorType /*all_to_all_c9*/,
+     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
   let summary = "AllToAll operation";
   let description = [{
     Within each process group in the process grid, splits the values of the
@@ -2350,7 +2354,8 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
     [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
      SameOperandsAndResultElementType /*collective_broadcast_c3*/,
      DeclareOpInterfaceMethods<InferTypeOpInterface>,
-     DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>
+     DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>,
+     DeclareOpInterfaceMethods<SymbolUserOpInterface>
     ]> {
   let summary = "CollectiveBroadcast operation";
   let description = [{
@@ -2635,7 +2640,8 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
         TypedArrayAttrBase<
             StableHLO_OutputOperandAlias,
             "Aliasing attribute for outputs and operands of CustomCall">,
-        "{}">:$output_operand_aliases
+        "{}">:$output_operand_aliases,
+    OptionalAttr<StableHLO_ArrayOfTilingAttr>:$result_tilings
   );
 
   let results = (outs Variadic<HLO_CustomCallValue>);

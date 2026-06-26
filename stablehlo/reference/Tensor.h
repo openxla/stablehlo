@@ -42,11 +42,11 @@ class Buffer : public llvm::ThreadSafeRefCountedBase<Buffer> {
   /// @{
   explicit Buffer(ShapedType type);
   Buffer(ShapedType type, AsmResourceBlob blob);
-  Buffer(Buffer &&other) = default;
+  Buffer(Buffer&& other) = default;
   /// @}
 
   /// Move assignment operator deleted in RefCountedBase
-  Buffer &operator=(Buffer &&other) = delete;
+  Buffer& operator=(Buffer&& other) = delete;
 
   /// Returns type of the Buffer object.
   ShapedType getType() { return type_; }
@@ -73,17 +73,24 @@ class Tensor {
   Tensor();
   explicit Tensor(ShapedType type);
   explicit Tensor(ShapedType type, AsmResourceBlob blob);
-  Tensor(const Tensor &other) = default;
+  Tensor(const Tensor& other) = default;
   /// @}
 
   /// Assignment operator.
-  Tensor &operator=(const Tensor &other) = default;
+  Tensor& operator=(const Tensor& other) = default;
 
   /// Boolean conversion operator.
   explicit operator bool() const { return (bool)impl_; }
 
   /// Logical not operator.
   bool operator!() const { return !impl_; }
+
+  /// Returns a deep copy of the Tensor with newly allocated storage.
+  ///
+  /// Standard assignment (`a = b`) only copies the reference pointer, meaning
+  /// both tensors share the same data. Use `clone()` to create a standalone
+  /// copy that can be modified independently.
+  Tensor clone() const;
 
   /// Returns type of the Tensor object.
   ShapedType getType() const { return impl_->getType(); };
@@ -108,20 +115,20 @@ class Tensor {
   Type getElementType() const { return impl_->getType().getElementType(); };
 
   /// Provides read access to the tensor element indexed at 'index'.
-  Element get(const Index &index) const;
+  Element get(const Index& index) const;
 
   /// Provides read access to underlying tensor data buffer.
-  const char *getData() const { return impl_->getData().data(); }
+  const char* getData() const { return impl_->getData().data(); }
 
   /// Provides write access to the tensor element indexed at 'index'.
   ///
   /// \param index The multi-dimensional index to write to.
   /// \param element The Element object \a element is used to update the
   /// underlying storage pointed to by \a index.
-  void set(const Index &index, const Element &element);
+  void set(const Index& index, const Element& element);
 
   /// Prints Tensor objects.
-  void print(raw_ostream &os) const;
+  void print(raw_ostream& os) const;
   void dump() const;
 
   /// Iterate over the index space of a Tensor object.
@@ -133,7 +140,7 @@ class Tensor {
 };
 
 /// Print utilities for Tensor objects.
-inline raw_ostream &operator<<(raw_ostream &os, Tensor tensor) {
+inline raw_ostream& operator<<(raw_ostream& os, Tensor tensor) {
   tensor.print(os);
   return os;
 }

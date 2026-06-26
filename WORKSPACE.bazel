@@ -85,6 +85,27 @@ http_archive(
     url = "https://github.com/bazelbuild/rules_shell/releases/download/v0.8.0/rules_shell-v0.8.0.tar.gz",
 )
 
+http_archive(
+    name = "net_zstd",
+    build_file = "//third_party:zstd.BUILD",
+    sha256 = "7897bc5d620580d9b7cd3539c44b59d78f3657d33663fe97a145e07b4ebd69a4",
+    strip_prefix = "zstd-1.5.7",
+    urls = [
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/facebook/zstd/archive/v1.5.7.zip",
+        "https://github.com/facebook/zstd/archive/v1.5.7.zip",
+    ],
+)
+
+http_archive(
+    name = "zlib",
+    build_file = "//third_party:zlib-ng.BUILD",
+    sha256 = "e36bb346c00472a1f9ff2a0a4643e590a254be6379da7cddd9daeb9a7f296731",
+    strip_prefix = "zlib-ng-2.0.7",
+    urls = [
+        "https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.0.7.zip",
+    ],
+)
+
 # These need to come in this specific order or else Bazel will complain about
 # missing/circular dependencies.
 load("//third_party/llvm:workspace.bzl", llvm = "repo")

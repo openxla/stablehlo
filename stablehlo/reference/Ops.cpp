@@ -1460,6 +1460,15 @@ Tensor collectivePermuteOp(const Tensor& operand,
     auto from = processGroup[0];
     auto to = processGroup[1];
     if (from != process->getId() && to != process->getId()) continue;
+
+    // When a self-loop is present, we do not invoke `rendezvous` because
+    // it would result in a deadlock: a process waiting on two processes to
+    // finish when there exists only one.
+    if (from == to) {
+      result = operand;
+      continue;
+    }
+
     auto rendezvousResult =
         process->rendezvous(processGroup, channelId, {operand});
     if (to != process->getId()) continue;
@@ -2392,8 +2401,10 @@ SmallVector<Tensor> scatterOp(
     const Axes& scatterDimsToOperandDims, Axis indexVectorDim,
     Region& updateComputation, Process* process, Scope& scope,
     ArrayRef<ShapedType> resultTypes) {
-  SmallVector<Tensor> results;
-  for (const auto& input : inputs) results.push_back(input);
+  // Copy `inputs` to `results` using `clone()` to make sure that modifying
+  // `results` won't affect `inputs` because SSA values are immutable.
+  SmallVector<Tensor> results = llvm::map_to_vector(
+      inputs, [](const Tensor& input) { return input.clone(); });
 
   Axes updateScatterDims;
   for (auto d : updates[0].getAxes())

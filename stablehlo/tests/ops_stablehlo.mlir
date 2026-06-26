@@ -1,6 +1,5 @@
-// REQUIRES: asserts
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck %s
-// RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect -emit-bytecode -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
+// RUN: stablehlo-opt --help-hidden | grep -q "debug-only" && stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect -emit-bytecode -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s || echo "Skip in release mode"
 
 // CHECK-WARN-NOT: Not Implemented
 
@@ -5018,6 +5017,14 @@ func.func @custom_call_multiple_inputs_outputs(%x: tensor<2xf32>, %token: !stabl
   %0:3 = "stablehlo.custom_call"(%x, %token) {backend_config="", call_target_name = "foo", has_side_effect = false} : (tensor<2xf32>, !stablehlo.token) -> (tensor<2xf32>, tensor<2xf32>, !stablehlo.token)
   %1 = "stablehlo.add"(%0#0, %0#1) : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
   func.return %1 : tensor<2xf32>
+}
+
+// -----
+
+// CHECK: func @custom_call_future
+func.func @custom_call_future(%arg0: !stablehlo.future<tensor<2xf32>>) -> !stablehlo.future<tensor<2xf32>> {
+  %0 = "stablehlo.custom_call"(%arg0) {call_target_name = "foo"} : (!stablehlo.future<tensor<2xf32>>) -> !stablehlo.future<tensor<2xf32>>
+  func.return %0 : !stablehlo.future<tensor<2xf32>>
 }
 
 // -----

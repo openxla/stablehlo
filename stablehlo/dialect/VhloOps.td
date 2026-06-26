@@ -439,7 +439,7 @@ def VHLO_CrossReplicaSumOpV1 : VHLO_Op<"cross-replica-sum_v1", "0.9.0", "current
 // TODO(#740): output_operand_aliases is not part of the spec.
 // CustomCallOp has proven to be one of the trickiest ops to fully spec.
 // We're aiming to address all these todos by the release of StableHLO v1.0.
-def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call_v1", "0.9.0", "current",
+def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call_v1", "0.9.0", "1.17.0",
     [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
@@ -451,6 +451,22 @@ def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call_v1", "0.9.0", "current",
     VHLO_AnyAttr:$operand_layouts,
     VHLO_AnyAttr:$result_layouts,
     VHLO_AnyAttr:$output_operand_aliases
+  );
+  let results = (outs Variadic<VHLO_AnyType>:$results);
+}
+
+def VHLO_CustomCallOpV2 : VHLO_Op<"custom_call_v2", "1.18.0", "current"> {
+  let arguments = (ins
+    Variadic<VHLO_AnyType>:$inputs,
+    VHLO_AnyAttr:$call_target_name,
+    VHLO_AnyAttr:$has_side_effect,
+    VHLO_AnyAttr:$backend_config,
+    VHLO_AnyAttr:$api_version,
+    VHLO_AnyAttr:$called_computations,
+    VHLO_AnyAttr:$operand_layouts,
+    VHLO_AnyAttr:$result_layouts,
+    VHLO_AnyAttr:$output_operand_aliases,
+    VHLO_AnyAttr:$result_tilings
   );
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }

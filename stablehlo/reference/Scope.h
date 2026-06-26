@@ -29,13 +29,13 @@ namespace stablehlo {
 /// `Scope` object corresponding to the syntactically enclosing region.
 class Scope {
  public:
-  Scope(Scope *parent) : parent_(parent) {}
+  Scope(Scope* parent) : parent_(parent) {}
 
-  Scope(Scope &&other) = default;
-  Scope &operator=(Scope &&other) = default;
+  Scope(Scope&& other) = default;
+  Scope& operator=(Scope&& other) = default;
 
-  Scope(const Scope &) = delete;
-  Scope &operator=(const Scope &) = delete;
+  Scope(const Scope&) = delete;
+  Scope& operator=(const Scope&) = delete;
 
   /// Add the mapping from SSA value (`ssaValue`), defined in a region, to its
   /// evaluated runtime value (`runtimeValue`).
@@ -51,7 +51,7 @@ class Scope {
 
   /// Add the mapping from SSA value (`ssaValue`), defined in a region, to its
   /// evaluated runtime value (`runtimeValue`).
-  void add(Value ssaValue, Tuple runtimeValue);
+  void add(Value ssaValue, class Tuple runtimeValue);
 
   /// Add the mapping from SSA values (`ssaValues`), defined in a region, to its
   /// evaluated runtime values (`runtimeValues`).
@@ -92,7 +92,7 @@ class Scope {
   /// Find the runtime value mapped to SSA value `ssaValue`. The search starts
   /// with the current scope and then recursively continues over to the scope
   /// defined by `parent_`.
-  Tuple findTuple(Value ssaValue) const;
+  class Tuple findTuple(Value ssaValue) const;
 
  private:
   /// Internal store for mapping from SSA values to runtime `InterpreterValue`
@@ -100,7 +100,7 @@ class Scope {
   llvm::DenseMap<Value, InterpreterValue> stack_frame_;
 
   /// A handle to the parent's scope.
-  Scope *parent_;
+  Scope* parent_;
 };
 
 }  // namespace stablehlo

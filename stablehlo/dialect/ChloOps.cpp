@@ -93,6 +93,7 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ErfOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ErfcOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ErfInvOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(LgammaOp)
+INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(MulhiOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(NextAfterOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(PolygammaOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(SinhOp)
@@ -749,6 +750,24 @@ LogicalResult RaggedDotOp::verify() {
   }
 
   return success();
+}
+
+LogicalResult RaggedDotOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, PropertyRef properties,
+    RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  RaggedDotOp::Adaptor adaptor(operands, attributes, properties, regions);
+  auto raggedDotDimNums = adaptor.getRaggedDotDimensionNumbers();
+  return inferRaggedDotOp(location, adaptor.getLhs(), adaptor.getRhs(),
+                          adaptor.getGroupSizes(),
+                          raggedDotDimNums.getLhsBatchingDimensions(),
+                          raggedDotDimNums.getRhsBatchingDimensions(),
+                          raggedDotDimNums.getLhsContractingDimensions(),
+                          raggedDotDimNums.getRhsContractingDimensions(),
+                          raggedDotDimNums.getLhsRaggedDimensions(),
+                          raggedDotDimNums.getRhsGroupDimensions(),
+                          adaptor.getPrecisionConfig(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//

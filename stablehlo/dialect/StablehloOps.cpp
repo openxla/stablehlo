@@ -123,6 +123,17 @@ Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
   assert(type.isIndex() || value.getType().isIndex());
   return arith::IndexCastOp::create(b, loc, type, value);
 }
+
+LogicalResult verifyReplicaGroupsSymbolUses(
+    Operation* op, Attribute replicaGroups,
+    SymbolTableCollection& symbolTable) {
+  if (replicaGroups) {
+    if (auto user = dyn_cast<SymbolUserAttrInterface>(replicaGroups)) {
+      return user.verifySymbolUses(op, symbolTable);
+    }
+  }
+  return success();
+}
 }  // namespace
 
 LogicalResult TypeExtensionsAttr::verifyEncoding(
@@ -204,6 +215,11 @@ mlir::Speculation::Speculatability ReduceScatterOp::getSpeculatability() {
       return mlir::Speculation::NotSpeculatable;
   }
   return mlir::Speculation::Speculatable;
+}
+
+LogicalResult ReduceScatterOp::verifySymbolUses(
+    SymbolTableCollection& symbolTable) {
+  return verifyReplicaGroupsSymbolUses(*this, getReplicaGroups(), symbolTable);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1050,6 +1066,17 @@ LogicalResult ReplicaGroupMeshAxesAttr::verify(
   return success();
 }
 
+LogicalResult ReplicaGroupMeshAxesAttr::verifySymbolUses(
+    Operation* op, SymbolTableCollection& symbolTable) const {
+  if (auto symbolRef = dyn_cast<FlatSymbolRefAttr>(getMesh())) {
+    if (!symbolTable.lookupNearestSymbolFrom(op, symbolRef)) {
+      return op->emitOpError() << "replica_groups: mesh symbol '"
+                               << symbolRef.getValue() << "' not found";
+    }
+  }
+  return success();
+}
+
 // ===---------------------------------------------------------------------===//
 // CbrtOp
 //===----------------------------------------------------------------------===//
@@ -1528,6 +1555,11 @@ LogicalResult CollectiveBroadcastOp::verify() {
   return hlo::verifyCollectiveBroadcastOp(getLoc(), getReplicaGroups());
 }
 
+LogicalResult CollectiveBroadcastOp::verifySymbolUses(
+    SymbolTableCollection& symbolTable) {
+  return verifyReplicaGroupsSymbolUses(*this, getReplicaGroups(), symbolTable);
+}
+
 //===----------------------------------------------------------------------===//
 // CollectivePermuteOp
 //===----------------------------------------------------------------------===//
@@ -1703,6 +1735,10 @@ mlir::Speculation::Speculatability AllToAllOp::getSpeculatability() {
   return mlir::Speculation::Speculatable;
 }
 
+LogicalResult AllToAllOp::verifySymbolUses(SymbolTableCollection& symbolTable) {
+  return verifyReplicaGroupsSymbolUses(*this, getReplicaGroups(), symbolTable);
+}
+
 //===----------------------------------------------------------------------===//
 // AllGatherOp
 //===----------------------------------------------------------------------===//
@@ -1738,6 +1774,11 @@ mlir::Speculation::Speculatability AllGatherOp::getSpeculatability() {
   return mlir::Speculation::Speculatable;
 }
 
+LogicalResult AllGatherOp::verifySymbolUses(
+    SymbolTableCollection& symbolTable) {
+  return verifyReplicaGroupsSymbolUses(*this, getReplicaGroups(), symbolTable);
+}
+
 //===----------------------------------------------------------------------===//
 // AllReduceOp
 //===----------------------------------------------------------------------===//
@@ -1758,6 +1799,11 @@ LogicalResult AllReduceOp::verify() {
   return hlo::verifyAllReduceOp(getLoc(), getOperands(), getReplicaGroups(),
                                 channelId, getUseGlobalDeviceIds(),
                                 getComputation());
+}
+
+LogicalResult AllReduceOp::verifySymbolUses(
+    SymbolTableCollection& symbolTable) {
+  return verifyReplicaGroupsSymbolUses(*this, getReplicaGroups(), symbolTable);
 }
 
 LogicalResult AllReduceOp::inferReturnTypeComponents(
@@ -3720,14 +3766,6 @@ enum NonSpatialDim : int64_t {
 };
 
 struct DenseMapInfoNonSpatialDim {
-  static inline NonSpatialDim getEmptyKey() {
-    return NonSpatialDim(DenseMapInfo<int64_t>::getEmptyKey());
-  }
-
-  static inline NonSpatialDim getTombstoneKey() {
-    return NonSpatialDim(DenseMapInfo<int64_t>::getTombstoneKey());
-  }
-
   static unsigned getHashValue(const NonSpatialDim& key) {
     return DenseMapInfo<int64_t>::getHashValue(key);
   }

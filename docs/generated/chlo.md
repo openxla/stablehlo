@@ -1633,6 +1633,45 @@ Effects: `MemoryEffects::Effect{}`
 
 
 
+### `chlo.mulhi` (chlo::MulhiOp)
+
+_Mulhi operation_
+
+Syntax:
+
+```
+operation ::= `chlo.mulhi` $lhs `,` $rhs attr-dict `:` type($lhs) `,` type($rhs) `->` type($result)
+```
+
+Performs element-wise multiplication of two N-bit integer tensors
+`lhs` and `rhs`, returning a N-bit integer `result` tensor containing
+the most significant N bits of the upcasted (N+N-bit) product.
+
+$$
+\text{mulhi}(x, y) = \text{downcast}((\text{upcast}(x) * \text{upcast}(y)) >> N)
+$$
+
+Traits: `AlwaysSpeculatableImplTrait`, `Commutative`, `CompatibleOperandsAndResultType`
+
+Interfaces: `ConditionallySpeculatable`, `InferShapedTypeOpInterface`, `InferTypeOpInterface`, `NoMemoryEffect (MemoryEffectOpInterface)`
+
+Effects: `MemoryEffects::Effect{}`
+
+#### Operands:
+
+| Operand | Description |
+| :-----: | ----------- |
+| `lhs` | ranked tensor of 2/4/8/16/32/64-bit integer values |
+| `rhs` | ranked tensor of 2/4/8/16/32/64-bit integer values |
+
+#### Results:
+
+| Result | Description |
+| :----: | ----------- |
+| `result` | ranked tensor of 2/4/8/16/32/64-bit integer values |
+
+
+
 ### `chlo.next_after` (chlo::NextAfterOp)
 
 _Std::nextafter operator_
@@ -1727,7 +1766,7 @@ the ragged dimension is an lhs/rhs batch dimension (`b`).
 
 Traits: `AlwaysSpeculatableImplTrait`
 
-Interfaces: `ConditionallySpeculatable`, `NoMemoryEffect (MemoryEffectOpInterface)`
+Interfaces: `ConditionallySpeculatable`, `InferShapedTypeOpInterface`, `NoMemoryEffect (MemoryEffectOpInterface)`
 
 Effects: `MemoryEffects::Effect{}`
 
@@ -2008,7 +2047,7 @@ Syntax:
 
 ```
 #chlo.comparison_direction<
-  ::mlir::chlo::ComparisonDirection   # value
+  `EQ` | `NE` | `GE` | `GT` | `LE` | `LT`   # value
 >
 ```
 
@@ -2026,7 +2065,7 @@ Syntax:
 
 ```
 #chlo.comparison_type<
-  ::mlir::chlo::ComparisonType   # value
+  `NOTYPE` | `FLOAT` | `TOTALORDER` | `SIGNED` | `UNSIGNED`   # value
 >
 ```
 
@@ -2044,7 +2083,7 @@ Syntax:
 
 ```
 #chlo.precision<
-  ::mlir::chlo::Precision   # value
+  `DEFAULT` | `HIGH` | `HIGHEST`   # value
 >
 ```
 

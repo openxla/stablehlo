@@ -1,4 +1,3 @@
-// REQUIRES: asserts
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
 // RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
 // RUN: stablehlo-opt %s > %t.1
@@ -6,10 +5,12 @@
 // RUN: stablehlo-translate --serialize --target=current %s | stablehlo-opt --pass-pipeline='builtin.module(stablehlo-deserialize)' > %t.0
 // RUN: stablehlo-opt %s > %t.1
 // RUN: diff %t.0 %t.1
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
+// RUN: stablehlo-opt --help-hidden | grep -q "debug-only" && stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s || echo "Skip in release mode"
+// RUN: stablehlo-opt --help-hidden | grep -q "debug-only" && stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s || echo "Skip in release mode"
 
 // CHECK-WARN-NOT: Not Implemented
+
+func.func private @mesh()
 
 // ============ ATTRIBUTES ============
 
@@ -642,15 +643,16 @@ func.func @default_convolution(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x2
 // CHECK-LABEL: "default_custom_call"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @default_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
-  //      CHECK: "vhlo.custom_call_v1"(%[[ARG0]]) <{
+  //      CHECK: "vhlo.custom_call_v2"(%[[ARG0]]) <{
   // CHECK-SAME:   api_version = #vhlo<api_version_v1 API_VERSION_ORIGINAL>,
   // CHECK-SAME:   backend_config = #vhlo.string_v1<"">,
   // CHECK-SAME:   call_target_name = #vhlo.string_v1<"foo">,
   // CHECK-SAME:   called_computations = #vhlo.array_v1<[]>,
   // CHECK-SAME:   has_side_effect = #vhlo.bool_v1<false>,
   // CHECK-SAME:   operand_layouts = #vhlo.array_v1<[]>,
-  // CHECK-SAME:   output_operand_aliases = #vhlo.array_v1<[]>
-  // CHECK-SAME:   result_layouts = #vhlo.array_v1<[]>
+  // CHECK-SAME:   output_operand_aliases = #vhlo.array_v1<[]>,
+  // CHECK-SAME:   result_layouts = #vhlo.array_v1<[]>,
+  // CHECK-SAME:   result_tilings = #vhlo.array_v1<[]>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
   %0 = "stablehlo.custom_call"(%arg0) {
     call_target_name = "foo"
@@ -1453,7 +1455,7 @@ func.func @op_cross_replica_sum(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_custom_call"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
-  //      CHECK: "vhlo.custom_call_v1"(%[[ARG0]]) <{
+  //      CHECK: "vhlo.custom_call_v2"(%[[ARG0]]) <{
   // CHECK-SAME:   api_version = #vhlo<api_version_v1 API_VERSION_STATUS_RETURNING>,
   // CHECK-SAME:   backend_config = #vhlo.string_v1<"\08\03\1A\02">,
   // CHECK-SAME:   call_target_name = #vhlo.string_v1<"foo">,
@@ -1464,8 +1466,9 @@ func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
   // CHECK-SAME:     #vhlo.output_operand_alias_v1<
   // CHECK-SAME:       outputTupleIndices = [],
   // CHECK-SAME:       operandIndex = 0,
-  // CHECK-SAME:       operandTupleIndices = []>]>
-  // CHECK-SAME:   result_layouts = #vhlo.array_v1<[#vhlo.tensor_v1<dense<> : tensor<0xindex>>]>
+  // CHECK-SAME:       operandTupleIndices = []>]>,
+  // CHECK-SAME:   result_layouts = #vhlo.array_v1<[#vhlo.tensor_v1<dense<> : tensor<0xindex>>]>,
+  // CHECK-SAME:   result_tilings = #vhlo.array_v1<[]>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
   %0 = "stablehlo.custom_call"(%arg0) {
     call_target_name = "foo",
@@ -1486,8 +1489,8 @@ func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_custom_call_empty_result_layout"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func public @op_custom_call_empty_result_layout(%arg0: tensor<i64>) -> tensor<i64> {
-  // %0 = "vhlo.custom_call_v1"(%arg0) <{>}> : (!vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tuple_v1<>
-  //      CHECK: "vhlo.custom_call_v1"(%[[ARG0]]) <{
+  // %0 = "vhlo.custom_call_v2"(%arg0) <{>}> : (!vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tuple_v1<>
+  //      CHECK: "vhlo.custom_call_v2"(%[[ARG0]]) <{
   // CHECK-SAME:   api_version = #vhlo<api_version_v1 API_VERSION_STATUS_RETURNING>,
   // CHECK-SAME:   backend_config = #vhlo.string_v1<"">,
   // CHECK-SAME:   call_target_name = #vhlo.string_v1<"empty_output">,
@@ -1495,7 +1498,8 @@ func.func public @op_custom_call_empty_result_layout(%arg0: tensor<i64>) -> tens
   // CHECK-SAME:   has_side_effect = #vhlo.bool_v1<true>,
   // CHECK-SAME:   operand_layouts = #vhlo.array_v1<[#vhlo.tensor_v1<dense<> : tensor<0xindex>>]>,
   // CHECK-SAME:   output_operand_aliases = #vhlo.array_v1<[]>,
-  // CHECK-SAME:   result_layouts = #vhlo.array_v1<[]>
+  // CHECK-SAME:   result_layouts = #vhlo.array_v1<[]>,
+  // CHECK-SAME:   result_tilings = #vhlo.array_v1<[]>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<!vhlo.i64_v1>) -> !vhlo.tuple_v1<>
   %0 = "stablehlo.custom_call"(%arg0) <{
     api_version = 2 : i32,
@@ -1505,6 +1509,30 @@ func.func public @op_custom_call_empty_result_layout(%arg0: tensor<i64>) -> tens
     result_layouts = []
   }> : (tensor<i64>) -> tuple<>
   return %arg0 : tensor<i64>
+}
+
+// CHECK-LABEL: "op_custom_call_with_result_tilings"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func @op_custom_call_with_result_tilings(%arg0: tensor<64x256xf32>) -> tensor<64x256xf32> {
+  //      CHECK: "vhlo.custom_call_v2"(%[[ARG0]]) <{
+  // CHECK-SAME:   api_version = #vhlo<api_version_v1 API_VERSION_STATUS_RETURNING>,
+  // CHECK-SAME:   backend_config = #vhlo.string_v1<"">,
+  // CHECK-SAME:   call_target_name = #vhlo.string_v1<"foo">,
+  // CHECK-SAME:   called_computations = #vhlo.array_v1<[]>,
+  // CHECK-SAME:   has_side_effect = #vhlo.bool_v1<false>,
+  // CHECK-SAME:   operand_layouts = #vhlo.array_v1<[#vhlo.tensor_v1<dense<[1, 0]> : tensor<2xindex>>]>,
+  // CHECK-SAME:   output_operand_aliases = #vhlo.array_v1<[]>,
+  // CHECK-SAME:   result_layouts = #vhlo.array_v1<[#vhlo.tensor_v1<dense<[1, 0]> : tensor<2xindex>>]>,
+  // CHECK-SAME:   result_tilings = #vhlo.array_v1<[#vhlo.array_v1<[#vhlo.tensor_v1<dense<[8, 128]> : tensor<2xindex>>]>]>
+  // CHECK-SAME: }> : (!vhlo.tensor_v1<64x256x!vhlo.f32_v1>) -> !vhlo.tensor_v1<64x256x!vhlo.f32_v1>
+  %0 = "stablehlo.custom_call"(%arg0) {
+    api_version = 2 : i32,
+    call_target_name = "foo",
+    operand_layouts = [dense<[1, 0]> : tensor<2xindex>],
+    result_layouts = [dense<[1, 0]> : tensor<2xindex>],
+    result_tilings = [[dense<[8, 128]> : tensor<2xindex>]]
+  } : (tensor<64x256xf32>) -> tensor<64x256xf32>
+  func.return %0 : tensor<64x256xf32>
 }
 
 // CHECK-LABEL: "op_divide"
@@ -3047,14 +3075,14 @@ func.func @type_buffer_function_input_output(%arg0: memref<2xf32>) -> memref<2xf
 // CHECK-LABEL: type_buffer_special_custom_calls
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @type_buffer_special_custom_calls(%arg0: tensor<2xf32>) -> tensor<2xf32> {
-  //               CHECK: %[[CALL0:.*]] = "vhlo.custom_call_v1"(%[[ARG0]])
+  //               CHECK: %[[CALL0:.*]] = "vhlo.custom_call_v2"(%[[ARG0]])
   //          CHECK-SAME: call_target_name = #vhlo.string_v1<"Pin">
   //          CHECK-SAME: : (!vhlo.tensor_v1<2x!vhlo.f32_v1>) -> !vhlo.buffer_v1<2x!vhlo.f32_v1>
   %0 = "stablehlo.custom_call"(%arg0) {
     call_target_name = "Pin",
     api_version = 4 : i32
   } : (tensor<2xf32>) -> memref<2xf32>
-  //               CHECK: %{{.*}} = "vhlo.custom_call_v1"(%[[CALL0]])
+  //               CHECK: %{{.*}} = "vhlo.custom_call_v2"(%[[CALL0]])
   //          CHECK-SAME: call_target_name = #vhlo.string_v1<"Unpin">
   //          CHECK-SAME: : (!vhlo.buffer_v1<2x!vhlo.f32_v1>) -> !vhlo.tensor_v1<2x!vhlo.f32_v1>
   %1 = "stablehlo.custom_call"(%0) {

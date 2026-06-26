@@ -859,7 +859,8 @@ def CHLO_RaggedDotDimensionNumbers : AttrDef<CHLO_Dialect, "RaggedDotDimensionNu
   let hasCustomAssemblyFormat = 1;
 }
 
-def CHLO_RaggedDotOp : CHLO_Op<"ragged_dot", [Pure]> {
+def CHLO_RaggedDotOp : CHLO_Op<"ragged_dot", [Pure,
+    DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>]> {
   string summary = "Computes a matmul over a single ragged dimension";
 
   string description = [{
@@ -988,4 +989,26 @@ def CHLO_ScanOp : CHLO_Op<"scan", [
   let hasVerifier = 1;
 }
 
+
+def CHLO_MulhiOp : CHLO_Op<"mulhi", [Commutative, Pure,
+    HLO_CompatibleOperandsAndResultType]> {
+  let summary = "Mulhi operation";
+  let description = [{
+    Performs element-wise multiplication of two N-bit integer tensors
+    `lhs` and `rhs`, returning a N-bit integer `result` tensor containing
+    the most significant N bits of the upcasted (N+N-bit) product.
+
+    $$
+    \text{mulhi}(x, y) = \text{downcast}((\text{upcast}(x) * \text{upcast}(y)) >> N)
+    $$
+  }];
+  let arguments = (ins HLO_IntTensor:$lhs, HLO_IntTensor:$rhs);
+  let results = (outs HLO_IntTensor:$result);
+
+  let assemblyFormat = [{
+    $lhs `,` $rhs attr-dict `:` type($lhs) `,` type($rhs) `->` type($result)
+  }];
+}
+
 #endif  // STABLEHLO_DIALECT_CHLO_OPS
+

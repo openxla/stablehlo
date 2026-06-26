@@ -2114,6 +2114,47 @@ struct FoldWhileOpIfDeadAndPresumedPure : public FoldOpRewritePattern<WhileOp> {
   }
 };
 
+struct FoldXorOpPattern : public ShapeOpRewritePattern<XorOp> {
+  using ShapeOpRewritePattern::ShapeOpRewritePattern;
+
+  LogicalResult matchAndRewrite(XorOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    auto resultElementType = resultType.getElementType();
+    FailureOr<TypedAttr> result;
+
+    if (resultElementType.isInteger(/*width=*/1)) {
+      result = foldBinaryOpIntOrFloat(rewriter, op, FoldLogicalXor{});
+    } else if (resultElementType.isInteger()) {
+      result = foldBinaryOpIntOrFloat(rewriter, op, FoldBitwiseXor{});
+    } else {
+      return rewriter.notifyMatchFailure(op, "Expected integral element type.");
+    }
+
+    if (failed(result)) return failure();
+    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op,
+                                                             result.value());
+    return success();
+  }
+
+  struct FoldLogicalXor {
+    APInt operator()(APInt lhs, APInt rhs) const {
+      return APInt(lhs.getBitWidth(), !lhs.isZero() ^ !rhs.isZero());
+    }
+    std::optional<APFloat> operator()(APFloat lhs, APFloat rhs) const {
+      return std::nullopt;
+    }
+  };
+
+  struct FoldBitwiseXor {
+    APInt operator()(APInt lhs, APInt rhs) const { return lhs ^ rhs; }
+
+    std::optional<APFloat> operator()(APFloat lhs, APFloat rhs) const {
+      return std::nullopt;
+    }
+  };
+};
+
 struct StablehloAggressiveFolderPass
     : public impl::StablehloAggressiveFolderPassBase<
           StablehloAggressiveFolderPass> {
@@ -2178,6 +2219,7 @@ void populateStablehloAggressiveFolderPatterns(
                 FoldTransposeOpPattern,               //
                 FoldWhileOpIfDeadAndPresumedPure,     //
                 FoldWhileOpPattern,                   //
+                FoldXorOpPattern,                     //
                 InlineCaseOpWithConstantBranchIndex,  //
                 LowerBoolSplatConstantsIntoReduceOpRegion>(context, options,
                                                            benefit);

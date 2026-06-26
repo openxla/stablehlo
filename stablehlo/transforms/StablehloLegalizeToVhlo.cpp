@@ -902,6 +902,9 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
     if (!stablehloOp.getOutputOperandAliasesAttr())
       addDefaultAttr("output_operand_aliases",
                      ArrayAttr::get(pattern.getContext(), {}));
+    if (!stablehloOp.getResultTilingsAttr())
+      addDefaultAttr("result_tilings",
+                     ArrayAttr::get(pattern.getContext(), {}));
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::DotGeneralOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::DotOp>::value) {

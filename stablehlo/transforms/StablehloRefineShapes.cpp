@@ -701,6 +701,21 @@ struct RefineDotOpPattern : public OpRewritePattern<DotOp> {
   }
 };
 
+struct RefineRaggedDotOpPattern : public OpRewritePattern<chlo::RaggedDotOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(chlo::RaggedDotOp op,
+                                PatternRewriter& rewriter) const override {
+    SmallVector<ShapedTypeComponents> inferredReturnShapes;
+    if (failed(chlo::RaggedDotOp::inferReturnTypeComponents(
+            op.getContext(), /*location=*/{}, op->getOperands(),
+            op->getAttrDictionary(), op->getPropertiesStorage(),
+            op->getRegions(), inferredReturnShapes)))
+      return rewriter.notifyMatchFailure(op,
+                                         "inferReturnTypeComponents failed");
+    return refineReturnTypes(rewriter, op, inferredReturnShapes);
+  }
+};
+
 struct RefineDynamicBroadcastInDimOpPattern
     : public OpRewritePattern<DynamicBroadcastInDimOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -1224,6 +1239,7 @@ void populateStablehloRefineShapesPatterns(MLIRContext* context,
   patterns->add<RefineCustomCallOpPattern>(context);
   patterns->add<RefineDotGeneralOpPattern>(context);
   patterns->add<RefineDotOpPattern>(context);
+  patterns->add<RefineRaggedDotOpPattern>(context);
   patterns->add<RefineDynamicBroadcastInDimOpPattern>(context);
   patterns->add<RefineDynamicConvOpPattern>(context);
   patterns->add<RefineDynamicIotaOpPattern>(context);
