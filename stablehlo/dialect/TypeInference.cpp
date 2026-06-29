@@ -236,7 +236,7 @@ bool isSameQuantPerAxisScaleZeroPoint(Type ty1, Type ty2) {
       dyn_cast<quant::UniformQuantizedPerAxisType>(getElementTypeOrSelf(ty2));
   if (!qty1 || !qty2) return false;
 
-  if (qty1.getScales().size() != qty1.getScales().size()) return false;
+  if (qty1.getScales().size() != qty2.getScales().size()) return false;
 
   for (auto [lhs, rhs] : llvm::zip(qty1.getScales(), qty2.getScales()))
     if (lhs != rhs) return false;
