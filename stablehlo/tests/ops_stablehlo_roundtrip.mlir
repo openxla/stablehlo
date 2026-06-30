@@ -2,8 +2,8 @@
 // RUN: stablehlo-opt %s > %t.0
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt > %t.1
 // RUN: diff %t.0 %t.1
-// RUN: stablehlo-opt --help-hidden | grep -q "debug-only" && stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s || echo "Skip in release mode"
-// RUN: stablehlo-opt --help-hidden | grep -q "debug-only" && stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s || echo "Skip in release mode"
+// RUN: %if asserts %{ stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
+// RUN: %if asserts %{ stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
 
 // CHECK-WARN-NOT: Not Implemented
 
