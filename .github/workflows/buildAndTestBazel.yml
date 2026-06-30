@@ -46,9 +46,7 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' ||  'ubuntu-22.04'  }}
-    # TODO(gleasonk): Switch to non-transient container image once it's updated.
-    # container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
-    container: "us-docker.pkg.dev/ml-oss-artifacts-transient/ml-public-testing-container/ml-build@sha256:9d9b4196b2bd2719ebc7d129b67835ea72d7882e1e6ef63cb862e281f11eb8c3"
+    container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build:latest"
 
     steps:
     # Checkout StableHLO with all commits in the chain
