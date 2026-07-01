@@ -220,7 +220,8 @@ static llvm::Error readNumpyHeader(std::ifstream& in, size_t& wordSize,
     return llvm::createStringError(llvm::errc::io_error,
                                    "Failed to read NumPy header size.");
 
-  const int headerSize = (headerSizeBuffer[0]) | (headerSizeBuffer[1] << 8);
+  const int headerSize = static_cast<unsigned char>(headerSizeBuffer[0]) |
+                         (static_cast<unsigned char>(headerSizeBuffer[1]) << 8);
   std::string header(headerSize, '\0');
   if (!in.read(header.data(), headerSize) || header.back() != '\n')
     return llvm::createStringError(llvm::errc::invalid_argument,
