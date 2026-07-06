@@ -1662,11 +1662,14 @@ Tensor convolutionOp(
         dotGeneralOp(reversedLhsWindow, rhs, lhsContractingDimensions,
                      rhsContractingDimensions, resultType.getElementType());
 
+    // resultNonSpatialDims is consumed below as [0] = batch, [1] = feature (via
+    // concatAndPermute with resultPermutation), so it must be built in that
+    // order rather than by ascending dimension index -- otherwise an output
+    // layout whose feature dimension precedes its batch dimension swaps the two
+    // (wrong result, or an out-of-bounds index when the sizes differ).
     Sizes resultNonSpatialDims;
-    for (auto i = 0; i < result.getRank(); ++i)
-      if (llvm::find(outputSpatialDimensions, i) ==
-          outputSpatialDimensions.end())
-        resultNonSpatialDims.push_back(result.getShape()[i]);
+    resultNonSpatialDims.push_back(result.getShape()[outputBatchDimension]);
+    resultNonSpatialDims.push_back(result.getShape()[outputFeatureDimension]);
 
     Axes resultPermutation;
     resultPermutation.push_back(outputBatchDimension);
