@@ -666,6 +666,39 @@ func.func @div_fold_cst_nan() -> (tensor<f32>) {
 
 // -----
 
+// Integer division by a zero constant must not be folded (it would crash the
+// folder with a divide-by-zero); the op is left in place.
+// CHECK-LABEL: @div_no_fold_int_zero
+func.func @div_no_fold_int_zero() -> (tensor<i32>, tensor<ui32>) {
+  %cst = stablehlo.constant dense<6> : tensor<i32>
+  %cst_0 = stablehlo.constant dense<0> : tensor<i32>
+  %cst_u = stablehlo.constant dense<6> : tensor<ui32>
+  %cst_u0 = stablehlo.constant dense<0> : tensor<ui32>
+  // CHECK: stablehlo.divide
+  // CHECK: stablehlo.divide
+  %0 = stablehlo.divide %cst, %cst_0 : tensor<i32>
+  %1 = stablehlo.divide %cst_u, %cst_u0 : tensor<ui32>
+  return %0, %1 : tensor<i32>, tensor<ui32>
+}
+
+// -----
+
+// Integer remainder by a zero constant must not be folded.
+// CHECK-LABEL: @rem_no_fold_int_zero
+func.func @rem_no_fold_int_zero() -> (tensor<i32>, tensor<ui32>) {
+  %cst = stablehlo.constant dense<6> : tensor<i32>
+  %cst_0 = stablehlo.constant dense<0> : tensor<i32>
+  %cst_u = stablehlo.constant dense<6> : tensor<ui32>
+  %cst_u0 = stablehlo.constant dense<0> : tensor<ui32>
+  // CHECK: stablehlo.remainder
+  // CHECK: stablehlo.remainder
+  %0 = stablehlo.remainder %cst, %cst_0 : tensor<i32>
+  %1 = stablehlo.remainder %cst_u, %cst_u0 : tensor<ui32>
+  return %0, %1 : tensor<i32>, tensor<ui32>
+}
+
+// -----
+
 ////////
 // MaximumOp
 

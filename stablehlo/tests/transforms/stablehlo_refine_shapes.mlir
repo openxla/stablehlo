@@ -1126,6 +1126,25 @@ func.func @refine_reduce_scatter_cross_replica(%data: tensor<4x16xf32>) -> tenso
 
 // -----
 
+// An empty replica_groups (zero shard count) must not crash the reduce_scatter
+// shape refinement with a divide-by-zero; the result is left unrefined.
+// CHECK-LABEL: @refine_reduce_scatter_empty_replica_groups
+func.func @refine_reduce_scatter_empty_replica_groups(%data: tensor<4x16xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.reduce_scatter"{{.*}}
+  // CHECK: -> tensor<4x?xf32>
+  %0 = "stablehlo.reduce_scatter"(%data) ({
+  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
+    stablehlo.return %1 : tensor<f32>
+  }) {
+    replica_groups = dense<0> : tensor<1x0xi64>,
+    scatter_dimension = 1 : i64
+  } : (tensor<4x16xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
 // CHECK-LABEL: @refine_reduce_scatter_cross_replica_and_partition
 func.func @refine_reduce_scatter_cross_replica_and_partition(%data: tensor<4x16xf32>) -> tensor<4x?xf32> {
   // CHECK: "stablehlo.reduce_scatter"{{.*}}

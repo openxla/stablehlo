@@ -923,6 +923,12 @@ struct RefineReduceScatterOpPattern : public OpRewritePattern<ReduceScatterOp> {
       shardCount = (*flattenedGroupsOr)[0].size();
     }
 
+    // A zero shard count (e.g. an empty-column dense replica_groups) would make
+    // the division below a divide-by-zero; the mesh-axes branch already guards
+    // its empty case above.
+    if (shardCount == 0)
+      return rewriter.notifyMatchFailure(op, "zero shard count");
+
     SmallVector<int64_t> refinement(operandType.getShape());
     if (!operandType.isDynamicDim(op.getScatterDimension()))
       refinement[op.getScatterDimension()] /= shardCount;
