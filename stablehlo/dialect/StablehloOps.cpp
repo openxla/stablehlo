@@ -3765,16 +3765,6 @@ enum NonSpatialDim : int64_t {
   KOFeature = -4,  // Kernel output feature dimensions.
 };
 
-struct DenseMapInfoNonSpatialDim {
-  static unsigned getHashValue(const NonSpatialDim& key) {
-    return DenseMapInfo<int64_t>::getHashValue(key);
-  }
-
-  static bool isEqual(const NonSpatialDim& lhs, const NonSpatialDim& rhs) {
-    return lhs == rhs;
-  }
-};
-
 char nonSpatialDimToString(NonSpatialDim dim) {
   switch (dim) {
     case IOBatch:
@@ -3910,8 +3900,7 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
   // IntegerAttrs (indexed by the NonSpatialDim enum).
   using parse_dim_result_t =
       std::pair<llvm::SmallVector<int64_t>,
-                llvm::SmallDenseMap<NonSpatialDim, int64_t, 4,
-                                    DenseMapInfoNonSpatialDim>>;
+                llvm::SmallDenseMap<NonSpatialDim, int64_t, 4>>;
 
   // Note that the allowedNonSpatialDims is a set (as opposed to unordered
   // set) because its used to print a list of allowed non spatial dims in the
