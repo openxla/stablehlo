@@ -24,3 +24,13 @@ func.func @stablehlo_uint8_add(%arg0: tensor<3xui8>) -> tensor<3xui8> {
   %0 = stablehlo.add %arg0, %cst : tensor<3xui8>
   return %0 : tensor<3xui8>
 }
+
+// -----
+
+func.func @stablehlo_uint8_constant() -> tensor<3xui8> {
+  // CHECK-LABEL: func.func @stablehlo_uint8_constant() -> tensor<3xi8>
+  // CHECK: %[[CST:.*]] = stablehlo.constant dense<[0, 1, -1]> : tensor<3xi8>
+  // CHECK: return %[[CST]] : tensor<3xi8>
+  %cst = stablehlo.constant dense<[0, 1, 255]> : tensor<3xui8>
+  return %cst : tensor<3xui8>
+}
