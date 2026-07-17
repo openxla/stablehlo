@@ -885,6 +885,165 @@ module @refine_call_dimension_argument_not_integer {
 
 // -----
 
+// CHECK-LABEL: module @refine_call_side_effecting_void_callee
+module @refine_call_side_effecting_void_callee {
+  func.func public @main() {
+    // CHECK: call @callee()
+    call @callee() : () -> ()
+    return
+  }
+  func.func private @callee() {
+    %0 = stablehlo.constant dense<0> : tensor<i32>
+    stablehlo.custom_call @side_effect(%0) {has_side_effect = true} : (tensor<i32>) -> ()
+    return
+  }
+}
+
+// -----
+
+// CHECK-LABEL: module @refine_call_side_effecting_constant_callee
+module @refine_call_side_effecting_constant_callee {
+  // CHECK: func.func public @main() -> tensor<4xi32>
+  func.func public @main() -> tensor<?xi32> {
+    // CHECK: %[[SHAPE:.*]] = stablehlo.constant dense<4> : tensor<1xi64>
+    // CHECK-NEXT: %[[CALL_RESULT:.*]] = call @callee()
+    // CHECK-SAME: {arg_attrs = [], no_inline, probe.marker = "keep",
+    // CHECK-SAME: res_attrs = [{probe.result = "keep"}]}
+    // CHECK-SAME: : () -> tensor<1xi64>
+    // CHECK-NEXT: %[[RESULT:.*]] = stablehlo.dynamic_iota %[[SHAPE]], dim = 0
+    // CHECK-SAME: -> tensor<4xi32>
+    // CHECK: return %[[RESULT]] : tensor<4xi32>
+    %0 = stablehlo.constant dense<4> : tensor<i64>
+    %1 = call @callee(%0) {
+      arg_attrs = [{probe.argument = "drop"}],
+      no_inline,
+      probe.marker = "keep",
+      res_attrs = [{probe.result = "keep"}]
+    } : (tensor<i64>) -> tensor<1xi64>
+    %2 = stablehlo.dynamic_iota %1, dim = 0 : (tensor<1xi64>) -> tensor<?xi32>
+    return %2 : tensor<?xi32>
+  }
+  func.func private @callee(%arg0: tensor<i64>) -> tensor<1xi64> {
+    %0 = stablehlo.constant dense<0> : tensor<i32>
+    stablehlo.custom_call @side_effect(%0) {has_side_effect = true} : (tensor<i32>) -> ()
+    %1 = stablehlo.constant dense<[4]> : tensor<1xi64>
+    return %1 : tensor<1xi64>
+  }
+}
+
+// -----
+
+// CHECK-LABEL: module @refine_call_token_and_constant_results
+module @refine_call_token_and_constant_results {
+  // CHECK: func.func public @main() -> tensor<4xi32>
+  func.func public @main() -> tensor<?xi32> {
+    // CHECK-DAG: %[[TOKEN:.*]] = stablehlo.create_token
+    // CHECK-DAG: %[[SHAPE:.*]] = stablehlo.constant dense<4> : tensor<1xi64>
+    // CHECK: %[[CALL:.*]]:2 = call @callee(%[[TOKEN]])
+    // CHECK-SAME: (!stablehlo.token) -> (!stablehlo.token, tensor<1xi64>)
+    // CHECK: stablehlo.custom_call @consume(%[[CALL]]#0)
+    // CHECK: %[[RESULT:.*]] = stablehlo.dynamic_iota %[[SHAPE]], dim = 0
+    // CHECK-SAME: -> tensor<4xi32>
+    // CHECK: return %[[RESULT]] : tensor<4xi32>
+    %token = stablehlo.create_token : !stablehlo.token
+    %next, %shape = call @callee(%token) : (!stablehlo.token) -> (!stablehlo.token, tensor<1xi64>)
+    stablehlo.custom_call @consume(%next) {has_side_effect = true} : (!stablehlo.token) -> ()
+    %result = stablehlo.dynamic_iota %shape, dim = 0 : (tensor<1xi64>) -> tensor<?xi32>
+    return %result : tensor<?xi32>
+  }
+  func.func private @callee(%token: !stablehlo.token) -> (!stablehlo.token, tensor<1xi64>) {
+    stablehlo.custom_call @inside(%token) {has_side_effect = true} : (!stablehlo.token) -> ()
+    %shape = stablehlo.constant dense<[4]> : tensor<1xi64>
+    return %token, %shape : !stablehlo.token, tensor<1xi64>
+  }
+}
+
+// -----
+
+// CHECK-LABEL: module @refine_call_transitive_side_effect
+module @refine_call_transitive_side_effect {
+  // CHECK: func.func public @main() -> tensor<4xi32>
+  func.func public @main() -> tensor<?xi32> {
+    // CHECK-DAG: %[[CALL_RESULT:.*]] = call @callee() : () -> tensor<1xi64>
+    // CHECK-DAG: %[[SHAPE:.*]] = stablehlo.constant dense<4> : tensor<1xi64>
+    // CHECK: %[[RESULT:.*]] = stablehlo.dynamic_iota %[[SHAPE]], dim = 0
+    // CHECK-SAME: -> tensor<4xi32>
+    // CHECK: return %[[RESULT]] : tensor<4xi32>
+    %0 = call @callee() : () -> tensor<?xi64>
+    %1 = stablehlo.convert %0 : (tensor<?xi64>) -> tensor<1xi64>
+    %2 = stablehlo.dynamic_iota %1, dim = 0 : (tensor<1xi64>) -> tensor<?xi32>
+    return %2 : tensor<?xi32>
+  }
+  func.func private @callee() -> tensor<?xi64> {
+    // Transitive effects through func.call must prevent erasing the call.
+    // CHECK: call @effect()
+    call @effect() : () -> ()
+    %0 = stablehlo.constant dense<[4]> : tensor<1xi32>
+    %1 = stablehlo.convert %0 : (tensor<1xi32>) -> tensor<?xi64>
+    return %1 : tensor<?xi64>
+  }
+  func.func private @effect() {
+    %0 = stablehlo.constant dense<0> : tensor<i32>
+    stablehlo.custom_call @side_effect(%0) {has_side_effect = true} : (tensor<i32>) -> ()
+    return
+  }
+}
+
+// -----
+
+// CHECK-LABEL: module @refine_call_unknown_indirect_callee
+module @refine_call_unknown_indirect_callee {
+  // CHECK: func.func public @main() -> tensor<4xi32>
+  func.func public @main() -> tensor<?xi32> {
+    // CHECK-DAG: %[[CALL_RESULT:.*]] = call @callee() : () -> tensor<1xi64>
+    // CHECK-DAG: %[[SHAPE:.*]] = stablehlo.constant dense<4> : tensor<1xi64>
+    // CHECK: %[[RESULT:.*]] = stablehlo.dynamic_iota %[[SHAPE]], dim = 0
+    // CHECK-SAME: -> tensor<4xi32>
+    // CHECK: return %[[RESULT]] : tensor<4xi32>
+    %0 = call @callee() : () -> tensor<1xi64>
+    %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<?xi32>
+    return %1 : tensor<?xi32>
+  }
+  func.func private @callee() -> tensor<1xi64> {
+    %0 = func.constant @indirect : () -> ()
+    // CHECK: call_indirect
+    call_indirect %0() : () -> ()
+    %1 = stablehlo.constant dense<[4]> : tensor<1xi64>
+    return %1 : tensor<1xi64>
+  }
+  func.func private @indirect() {
+    return
+  }
+}
+
+// -----
+
+// CHECK-LABEL: module @refine_call_pure_transitive_callee
+module @refine_call_pure_transitive_callee {
+  // CHECK: func.func public @main() -> tensor<4xi32>
+  // CHECK-NEXT: %[[SHAPE:.*]] = stablehlo.constant dense<4> : tensor<1xi64>
+  // CHECK-NEXT: %[[RESULT:.*]] = stablehlo.dynamic_iota %[[SHAPE]], dim = 0
+  // CHECK-SAME: -> tensor<4xi32>
+  // CHECK-NEXT: return %[[RESULT]] : tensor<4xi32>
+  // CHECK-NEXT: }
+  func.func public @main() -> tensor<?xi32> {
+    %0 = call @callee() : () -> tensor<1xi64>
+    %1 = stablehlo.dynamic_iota %0, dim = 0 : (tensor<1xi64>) -> tensor<?xi32>
+    return %1 : tensor<?xi32>
+  }
+  func.func private @callee() -> tensor<1xi64> {
+    %0 = stablehlo.constant dense<0.> : tensor<f32>
+    %1 = call @identity(%0) : (tensor<f32>) -> tensor<f32>
+    %2 = stablehlo.constant dense<[4]> : tensor<1xi64>
+    return %2 : tensor<1xi64>
+  }
+  func.func private @identity(%arg0: tensor<f32>) -> tensor<f32> {
+    return %arg0 : tensor<f32>
+  }
+}
+
+// -----
+
 // CHECK-LABEL: func @refine_convert
 func.func @refine_convert(%arg0 : tensor<4xf32>) -> tensor<?xi32> {
   // CHECK: stablehlo.convert{{.*}} -> tensor<4xi32>
