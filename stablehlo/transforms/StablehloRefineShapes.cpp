@@ -41,10 +41,13 @@ limitations under the License.
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
 #include "mlir/IR/ValueRange.h"
+#include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
@@ -370,14 +373,76 @@ class RefinementKey {
   SmallVector<Type> functionalArgumentTypes;
 };
 
+// Computes and caches whether functions may have memory effects, including
+// effects reached transitively through call-like operations.
+class FunctionEffectAnalysis {
+ public:
+  explicit FunctionEffectAnalysis(func::FuncOp entryFunction) {
+    computeFunctionEffects(entryFunction);
+    if (ModuleOp module = entryFunction->getParentOfType<ModuleOp>())
+      for (func::FuncOp func : module.getOps<func::FuncOp>())
+        computeFunctionEffects(func);
+  }
+
+  bool isMemoryEffectFree(func::FuncOp func) const {
+    auto it = functionEffects.find(func);
+    return it != functionEffects.end() && it->second == State::EffectFree;
+  }
+
+ private:
+  enum class State { Visiting, EffectFree, MayHaveEffects };
+
+  bool computeFunctionEffects(func::FuncOp func) {
+    auto [it, inserted] = functionEffects.try_emplace(func, State::Visiting);
+    if (!inserted) return it->second == State::EffectFree;
+
+    bool effectFree = !func.isExternal() && isMemoryEffectFree(func.getBody());
+    // Recursive callee analysis may grow the map and invalidate `it`.
+    functionEffects.find(func)->second =
+        effectFree ? State::EffectFree : State::MayHaveEffects;
+    return effectFree;
+  }
+
+  bool isMemoryEffectFree(Region& region) {
+    for (Block& block : region)
+      for (Operation& op : block)
+        if (!isMemoryEffectFree(&op)) return false;
+    return true;
+  }
+
+  bool isMemoryEffectFree(Operation* op) {
+    if (auto call = dyn_cast<CallOpInterface>(op)) {
+      auto callee = dyn_cast_or_null<func::FuncOp>(
+          call.resolveCallableInTable(&symbolTables));
+      return callee && computeFunctionEffects(callee);
+    }
+
+    if (!op->hasTrait<OpTrait::HasRecursiveMemoryEffects>())
+      return mlir::isMemoryEffectFree(op);
+    if (auto effects = dyn_cast<MemoryEffectOpInterface>(op);
+        effects && !effects.hasNoEffect())
+      return false;
+
+    // Recurse locally so call-like operations can use callee summaries.
+    return llvm::all_of(op->getRegions(), [&](Region& region) {
+      return isMemoryEffectFree(region);
+    });
+  }
+
+  DenseMap<func::FuncOp, State> functionEffects;
+  SymbolTableCollection symbolTables;
+};
+
 // Per-module state for shape refinement.
 // An entry is Key is <FuncOp, SmallVector<APSInt>, SmallVector<Type>>
 // Which correlates to <func, sym_int_values, arg_types>
 class RefineShapeState {
  public:
   RefineShapeState(
+      func::FuncOp entryFunction,
       std::optional<AdditionalShapeRefinementPatternsFn> additionalPatternsFn)
-      : additionalPatternsFn(additionalPatternsFn) {}
+      : functionEffects(entryFunction),
+        additionalPatternsFn(additionalPatternsFn) {}
 
   enum class RefinementState {
     NOT_ALREADY_REFINED,
@@ -446,7 +511,12 @@ class RefineShapeState {
       additionalPatternsFn.value()(&patterns);
   }
 
+  bool isMemoryEffectFree(func::FuncOp func) const {
+    return functionEffects.isMemoryEffectFree(func);
+  }
+
  private:
+  FunctionEffectAnalysis functionEffects;
   std::optional<AdditionalShapeRefinementPatternsFn> additionalPatternsFn;
 
   // Maps refined functions to the refinement context: the values of dimension
@@ -471,26 +541,24 @@ class RefineShapeState {
 LogicalResult refineFunction(MLIRContext& context, RefineShapeState& state,
                              RefinementKey& key);
 
-// Check if a function only returns constant values, if so, return the constant
-// values that it returns.
-std::optional<SmallVector<DenseIntElementsAttr>> isConstantFunction(
+// Return a constant attribute for each constant integer-tensor result and
+// std::nullopt for each nonconstant result.
+SmallVector<std::optional<DenseIntElementsAttr>> getConstantResults(
     func::FuncOp func) {
-  LLVM_DEBUG(llvm::dbgs() << "check if " << func.getName()
-                          << " is a constant function\n");
-  SmallVector<DenseIntElementsAttr> returnedConstants;
+  LLVM_DEBUG(llvm::dbgs() << "check constant results of " << func.getName()
+                          << "\n");
+  SmallVector<std::optional<DenseIntElementsAttr>> returnedConstants;
   func::ReturnOp ret = *func.getOps<func::ReturnOp>().begin();
-  bool isConstant = llvm::all_of(ret->getOperands(), [&](auto returnVal) {
+  for (Value returnVal : ret->getOperands()) {
     DenseIntElementsAttr attr;
     Operation* return_operand_def = returnVal.getDefiningOp();
     if (return_operand_def &&
-        matchPattern(return_operand_def, m_Constant(&attr))) {
+        matchPattern(return_operand_def, m_Constant(&attr)))
       returnedConstants.push_back(attr);
-      return true;
-    }
-    return false;
-  });
-  if (isConstant) return returnedConstants;
-  return std::nullopt;
+    else
+      returnedConstants.push_back(std::nullopt);
+  }
+  return returnedConstants;
 }
 
 // The patterns below implement shape refinement of individual ops.
@@ -576,19 +644,29 @@ struct RefineCallOpPattern : public OpRewritePattern<func::CallOp> {
     if (failed(refineFunction(*rewriter.getContext(), state, *refinementKey)))
       return failure();
 
-    // Is the callee a constant function in this refinement context?
+    // Does the callee return constants in this refinement context?
     auto callee = refinementKey->getFunc();
-    std::optional<SmallVector<DenseIntElementsAttr>> constantAttrs =
-        isConstantFunction(callee);
-    if (constantAttrs.has_value()) {
+    SmallVector<std::optional<DenseIntElementsAttr>> constantResults =
+        getConstantResults(callee);
+    bool allResultsConstant = llvm::all_of(
+        constantResults, [](const auto& attr) { return attr.has_value(); });
+    if (allResultsConstant && state.isMemoryEffectFree(callee)) {
       SmallVector<Value> constants;
-      for (auto constAttr : constantAttrs.value()) {
+      for (const auto& constantResult : constantResults) {
         constants.push_back(
-            ConstantOp::create(rewriter, op.getLoc(), constAttr));
+            ConstantOp::create(rewriter, op.getLoc(), *constantResult));
       }
       rewriter.replaceOp(op, constants);
       return success();
     }
+
+    bool callChanged = false;
+    if (!llvm::equal(op.getResultTypes(), callee.getResultTypes())) {
+      if (failed(refineReturnTypes(rewriter, op, callee.getResultTypes())))
+        return failure();
+      callChanged = true;
+    }
+
     if (!refinementKey->getGlobalConstants().empty()) {
       // Drop the global-constant arguments, but only if necessary, or else we
       // will end up trying to refine the new CallOp forever.
@@ -600,10 +678,50 @@ struct RefineCallOpPattern : public OpRewritePattern<func::CallOp> {
       newOperands.append(leadingTokenOperands.begin(),
                          leadingTokenOperands.end());
       newOperands.append(functionalOperands.begin(), functionalOperands.end());
-      op = rewriter.replaceOpWithNewOp<func::CallOp>(
-          op, op.getResultTypes(), callee.getSymName(), newOperands);
-      LLVM_DEBUG(llvm::dbgs() << "Replaced call with " << op << "\n");
+
+      ArrayAttr argAttrs = op.getArgAttrsAttr();
+      SmallVector<Attribute> newArgAttrs;
+      if (argAttrs) {
+        ArrayRef<Attribute> attrs = argAttrs.getValue();
+        ArrayRef<Attribute> leadingTokenAttrs =
+            attrs.take_front(refinementKey->getLeadingTokenOperands());
+        ArrayRef<Attribute> functionalAttrs =
+            attrs.take_back(refinementKey->getFunctionalArgumentTypes().size());
+        newArgAttrs.append(leadingTokenAttrs.begin(), leadingTokenAttrs.end());
+        newArgAttrs.append(functionalAttrs.begin(), functionalAttrs.end());
+      }
+
+      rewriter.modifyOpInPlace(op, [&] {
+        op->setOperands(newOperands);
+        if (argAttrs) op.setArgAttrsAttr(rewriter.getArrayAttr(newArgAttrs));
+      });
+      LLVM_DEBUG(llvm::dbgs() << "Refined call to " << op << "\n");
+      callChanged = true;
     }
+
+    // Preserve a call that may have effects or nonconstant results, but
+    // propagate each used constant result so users can still benefit from
+    // shape refinement.
+    bool hasUsedConstantResult = llvm::any_of(
+        llvm::zip(op.getResults(), constantResults), [](auto resultAndAttr) {
+          return !std::get<0>(resultAndAttr).use_empty() &&
+                 std::get<1>(resultAndAttr).has_value();
+        });
+    if (hasUsedConstantResult) {
+      rewriter.setInsertionPointAfter(op);
+      rewriter.modifyOpInPlace(op, [&] {
+        for (auto [result, constantResult] :
+             llvm::zip(op.getResults(), constantResults)) {
+          if (result.use_empty() || !constantResult.has_value()) continue;
+          Value constant =
+              ConstantOp::create(rewriter, op.getLoc(), *constantResult);
+          rewriter.replaceAllUsesWith(result, constant);
+        }
+      });
+      return success();
+    }
+
+    if (callChanged) return success();
     return refineReturnTypes(rewriter, op, callee.getResultTypes());
   }
 
@@ -1190,7 +1308,7 @@ LogicalResult refineEntryFunction(
     MLIRContext& context, func::FuncOp func,
     std::optional<AdditionalShapeRefinementPatternsFn> additionalPatternsFn) {
   // Start with empty state, and no dim args / token args.
-  RefineShapeState state(additionalPatternsFn);
+  RefineShapeState state(func, additionalPatternsFn);
   RefinementKey key(func, 0, {}, llvm::to_vector(func.getArgumentTypes()));
   if (failed(refineFunction(context, state, key)))
     return func.emitError("Failed to refine entry function");
