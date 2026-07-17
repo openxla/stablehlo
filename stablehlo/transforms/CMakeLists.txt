@@ -43,6 +43,9 @@ add_mlir_library(StablehloBroadcastLowering
   PARTIAL_SOURCES_INTENDED
   StablehloBroadcastLowering.cpp
 
+  DEPENDS
+  StablehloOpsIncGen
+
   LINK_LIBS PUBLIC
   MLIRIR
   MLIRSupport
