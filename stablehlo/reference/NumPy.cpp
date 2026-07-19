@@ -27,6 +27,7 @@ limitations under the License.
 #include <sstream>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "llvm/ADT/bit.h"
@@ -134,14 +135,14 @@ static llvm::Error parseFortranOrderKey(const std::string& header) {
 
 // Parses the NumPy `descr` header, which is in the following format:
 // 'descr': '<i4'
-// Where the first character determines the endianness of the data (< for little
-// endian, > for big endian), the next character determines the data type (i.e.
-// unsigned int, float, bool, etc) and the last number(s) determine the data
-// type size (8, 16, 32, etc). For now, we only support little endian values.
-// Returns the size of the underlying type in bytes (i.e. for '<i4', this will
-// return 4).
-template <typename T>
-static llvm::ErrorOr<int> parseDescrHeader(const std::string& header) {
+// Where the first character determines the endianness of the data (< for
+// little endian, > for big endian, | for not applicable), the next character
+// determines the data type (i.e. unsigned int, float, bool, etc) and the last
+// number(s) determine the data type size (8, 16, 32, etc). For now, we only
+// support little endian values. Returns the type abbreviation and the size of
+// the underlying type in bytes (i.e. for '<i4', this will return ('i', 4)).
+static llvm::ErrorOr<std::pair<char, int>> parseDescr(
+    const std::string& header) {
   constexpr char kDescr[] = "'descr':";
   constexpr int kDescrSize = 8;
 
@@ -160,15 +161,31 @@ static llvm::ErrorOr<int> parseDescrHeader(const std::string& header) {
 
   if (typeString.size() < 3) return llvm::errc::invalid_argument;
 
-  // Check that the serialized type string matches the expected type string.
-  if (getNumPyType<T>() != typeString[1]) return llvm::errc::invalid_argument;
+  if (typeString[0] == '>') return llvm::errc::not_supported;
 
-  return std::stoi(typeString.substr(2));
+  if (!std::isdigit(static_cast<unsigned char>(typeString[2])))
+    return llvm::errc::invalid_argument;
+
+  return std::make_pair(typeString[1], std::stoi(typeString.substr(2)));
+}
+
+// Parses the `descr` key like `parseDescr`, additionally checking that the
+// serialized type abbreviation matches the expected type T. Returns the size
+// of the underlying type in bytes.
+template <typename T>
+static llvm::ErrorOr<int> parseDescrHeader(const std::string& header) {
+  auto descr = parseDescr(header);
+  if (!descr) return descr.getError();
+
+  // Check that the serialized type string matches the expected type string.
+  if (getNumPyType<T>() != descr->first) return llvm::errc::invalid_argument;
+
+  return descr->second;
 }
 
 // Parses the `shape` key of the NumPy file format dictionary. Returns a vector
 // representing the parsed shape or errors otherwise.
-static llvm::ErrorOr<ArrayRef<int64_t>> parseShapeHeader(
+static llvm::ErrorOr<std::vector<int64_t>> parseShapeHeader(
     const std::string& header) {
   const std::size_t shapeOffset = header.find("'shape':");
   const std::size_t dimEnd = header.find(')', shapeOffset);
@@ -181,20 +198,20 @@ static llvm::ErrorOr<ArrayRef<int64_t>> parseShapeHeader(
   // regex matching for dimension integrals.
   std::regex dimRegex("[0-9]+");
   std::smatch dimMatch;
-  std::string shapeString = header.substr(shapeOffset, shapeOffset - dimEnd);
-  std::vector<int64_t> shape(4);
+  std::string shapeString = header.substr(shapeOffset, dimEnd - shapeOffset);
+  std::vector<int64_t> shape;
 
   while (std::regex_search(shapeString, dimMatch, dimRegex)) {
-    shape.push_back(std::stoi(dimMatch[0]));
+    shape.push_back(std::stoll(dimMatch[0]));
     shapeString = dimMatch.suffix();
   }
 
   return shape;
 }
 
-template <typename T>
-static llvm::Error readNumpyHeader(std::ifstream& in, size_t& wordSize,
-                                   ArrayRef<int64_t> shape) {
+// Reads the NumPy header preamble (magic string, version, header size),
+// returning the header dictionary with whitespace removed.
+static llvm::Error readHeaderString(std::ifstream& in, std::string& header) {
   char magicString[kMagicStringSize];
   if (!in.read(magicString, kMagicStringSize))
     return llvm::createStringError(llvm::errc::io_error,
@@ -220,15 +237,26 @@ static llvm::Error readNumpyHeader(std::ifstream& in, size_t& wordSize,
     return llvm::createStringError(llvm::errc::io_error,
                                    "Failed to read NumPy header size.");
 
-  const int headerSize = (headerSizeBuffer[0]) | (headerSizeBuffer[1] << 8);
-  std::string header(headerSize, '\0');
-  if (!in.read(header.data(), headerSize) || header.back() != '\n')
+  const int headerSize = static_cast<unsigned char>(headerSizeBuffer[0]) |
+                         (static_cast<unsigned char>(headerSizeBuffer[1]) << 8);
+  header.assign(headerSize, '\0');
+  if (!headerSize || !in.read(header.data(), headerSize) ||
+      header.back() != '\n')
     return llvm::createStringError(llvm::errc::invalid_argument,
                                    "Invalid NumPy header.");
 
   header.erase(std::remove_if(header.begin(), header.end(),
                               [](char c) { return std::isspace(c); }),
                header.end());
+
+  return llvm::Error::success();
+}
+
+template <typename T>
+static llvm::Error readNumpyHeader(std::ifstream& in, size_t& wordSize,
+                                   std::vector<int64_t>& shape) {
+  std::string header;
+  if (auto headerError = readHeaderString(in, header)) return headerError;
 
   auto wordSizeOrError = parseDescrHeader<T>(header);
   if (!wordSizeOrError)
@@ -278,8 +306,12 @@ class FromNumpy {
   llvm::ErrorOr<Tensor> operator()(StringRef filename, ShapedType type) {
     std::ifstream in(filename.str(), std::ifstream::binary);
     size_t wordSize = 0;
+    std::vector<int64_t> fileShape;
 
-    if (readNumpyHeader<T>(in, wordSize, type.getShape()))
+    if (readNumpyHeader<T>(in, wordSize, fileShape))
+      return llvm::errc::invalid_argument;
+
+    if (ArrayRef<int64_t>(fileShape) != type.getShape())
       return llvm::errc::invalid_argument;
 
     const int64_t numLoadedElements = std::accumulate(
@@ -313,9 +345,9 @@ static decltype(auto) dispatchType(Type type, Args&&... args) {
   if (type.isInteger(32))
     return Functor<uint32_t>()(std::forward<Args>(args)...);
   if (type.isSignlessInteger(64))
-    return Functor<uint64_t>()(std::forward<Args>(args)...);
-  if (type.isInteger(64))
     return Functor<int64_t>()(std::forward<Args>(args)...);
+  if (type.isInteger(64))
+    return Functor<uint64_t>()(std::forward<Args>(args)...);
   if (type.isF16()) return Functor<uint16_t>()(std::forward<Args>(args)...);
   if (type.isF32()) return Functor<float>()(std::forward<Args>(args)...);
   if (type.isF64()) return Functor<double>()(std::forward<Args>(args)...);
@@ -346,6 +378,48 @@ llvm::ErrorOr<Tensor> deserializeTensor(StringRef filename, ShapedType type) {
     llvm::report_fatal_error("Only little endian supported.");
 
   return dispatchType<FromNumpy>(type.getElementType(), filename, type);
+}
+
+// Maps a NumPy `descr` dtype (type abbreviation and size in bytes) to the
+// corresponding MLIR element type. Returns null for unsupported dtypes.
+// Types without a native NumPy representation (bool, f16, bf16, complex) are
+// serialized by `serializeTensor` under a substitute descr and cannot be
+// unambiguously inferred, so they are intentionally left out.
+static Type inferElementType(char numpyType, int wordSize,
+                             MLIRContext* context) {
+  const bool isValidIntSize =
+      wordSize == 1 || wordSize == 2 || wordSize == 4 || wordSize == 8;
+  if (numpyType == 'i' && isValidIntSize)
+    return IntegerType::get(context, wordSize * 8);
+  if (numpyType == 'u' && isValidIntSize)
+    return IntegerType::get(context, wordSize * 8, IntegerType::Unsigned);
+  if (numpyType == 'f' && wordSize == 4) return Float32Type::get(context);
+  if (numpyType == 'f' && wordSize == 8) return Float64Type::get(context);
+  return {};
+}
+
+llvm::ErrorOr<Tensor> deserializeTensor(StringRef filename,
+                                        MLIRContext* context) {
+  if (llvm::endianness::native == llvm::endianness::big)
+    llvm::report_fatal_error("Only little endian supported.");
+
+  std::ifstream in(filename.str(), std::ifstream::binary);
+  if (!in) return llvm::errc::no_such_file_or_directory;
+
+  std::string header;
+  if (readHeaderString(in, header)) return llvm::errc::invalid_argument;
+
+  auto descr = parseDescr(header);
+  if (!descr) return descr.getError();
+
+  auto shape = parseShapeHeader(header);
+  if (!shape) return shape.getError();
+
+  auto elementType = inferElementType(descr->first, descr->second, context);
+  if (!elementType) return llvm::errc::not_supported;
+
+  return deserializeTensor(filename,
+                           RankedTensorType::get(*shape, elementType));
 }
 
 llvm::Error serializeTensor(StringRef filename, ShapedType type,
