@@ -50,6 +50,7 @@ limitations under the License.
 #include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterOps.h"
+#include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
@@ -85,8 +86,9 @@ llvm::cl::opt<bool> allowOtherDialectsOption(
 llvm::cl::opt<std::string> argsOption(
     "args",
     llvm::cl::desc("Arguments to pass to the interpreter, either an inline "
-                   "array attribute or @file pointing to a file containing "
-                   "one"),
+                   "array attribute, @file pointing to a file containing "
+                   "one, or comma-separated @file.npy files providing one "
+                   "input tensor each"),
     llvm::cl::init(""));
 
 llvm::cl::opt<bool> interpreterPrintDense(
@@ -108,7 +110,9 @@ stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
 //   --args=[dense<1> : tensor<2xi32>, ...], where each dense attribute is
 //   interpreted as a tensor, or
 //   --args=@file, where the file contains an array attribute in the same
-//   format.
+//   format, or
+//   --args=@a.npy,@b.npy, where each NumPy file provides one input tensor
+//   whose type is inferred from the file's header.
 mlir::FailureOr<SmallVector<stablehlo::InterpreterValue>>
 parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
   llvm::SmallVector<stablehlo::InterpreterValue> inputs;
@@ -118,6 +122,22 @@ parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
     return emitError(UnknownLoc::get(context), msg) << ", i.e. " << usage;
   };
   if (!argsStr.empty() && argsStr[0] == '@') {
+    if (llvm::StringRef(argsStr).ends_with(".npy")) {
+      llvm::SmallVector<llvm::StringRef> fileNames;
+      llvm::StringRef(argsStr).split(fileNames, ',');
+      for (llvm::StringRef fileName : fileNames) {
+        fileName.consume_front("@");
+        if (!fileName.ends_with(".npy"))
+          return parseError("cannot mix .npy and non-.npy args files ('" +
+                            fileName.str() + "')");
+        auto tensor = stablehlo::numpy::deserializeTensor(fileName, context);
+        if (std::error_code ec = tensor.getError())
+          return parseError("failed to read NumPy args file '" +
+                            fileName.str() + "': " + ec.message());
+        inputs.push_back(stablehlo::InterpreterValue(*tensor));
+      }
+      return inputs;
+    }
     std::string fileName = argsStr.substr(1);
     auto fileOrErr = llvm::MemoryBuffer::getFile(fileName);
     if (std::error_code ec = fileOrErr.getError())
