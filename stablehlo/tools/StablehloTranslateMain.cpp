@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LogicalResult.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -82,7 +83,10 @@ llvm::cl::opt<bool> allowOtherDialectsOption(
     llvm::cl::init(false));
 
 llvm::cl::opt<std::string> argsOption(
-    "args", llvm::cl::desc("Arguments to pass to the interpreter"),
+    "args",
+    llvm::cl::desc("Arguments to pass to the interpreter, either an inline "
+                   "array attribute or @file pointing to a file containing "
+                   "one"),
     llvm::cl::init(""));
 
 llvm::cl::opt<bool> interpreterPrintDense(
@@ -102,14 +106,25 @@ stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
 // Parse `--args` option into a list of interpreter arguments.
 // The format is:
 //   --args=[dense<1> : tensor<2xi32>, ...], where each dense attribute is
-//   interpreted as a tensor.
+//   interpreted as a tensor, or
+//   --args=@file, where the file contains an array attribute in the same
+//   format.
 mlir::FailureOr<SmallVector<stablehlo::InterpreterValue>>
 parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
   llvm::SmallVector<stablehlo::InterpreterValue> inputs;
   auto parseError = [&](llvm::StringRef msg) {
-    std::string usage = "--args=[dense<1> : tensor<2xi32>, ...]";
+    std::string usage =
+        "--args=[dense<1> : tensor<2xi32>, ...] or --args=@file";
     return emitError(UnknownLoc::get(context), msg) << ", i.e. " << usage;
   };
+  if (!argsStr.empty() && argsStr[0] == '@') {
+    std::string fileName = argsStr.substr(1);
+    auto fileOrErr = llvm::MemoryBuffer::getFile(fileName);
+    if (std::error_code ec = fileOrErr.getError())
+      return parseError("failed to read args file '" + fileName +
+                        "': " + ec.message());
+    argsStr = fileOrErr.get()->getBuffer().str();
+  }
   if (!argsStr.empty()) {
     auto arrayAttr =
         dyn_cast_or_null<ArrayAttr>(mlir::parseAttribute(argsStr, context));
