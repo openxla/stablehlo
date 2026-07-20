@@ -28,6 +28,7 @@ match the way all other OpenXLA projects are hosted, e.g.
 
 Aligning StableHLO's contribution process with that of XLA would provide three
 major benefits:
+
 - **Transparency:** Currently, any changes made to StableHLO in Google3 get
   squashed together and integrated into GitHub as part of the weekly LLVM
   integration PR, which results in an obfuscated version history. These
@@ -59,6 +60,7 @@ those projects should feel right at home. Overall, from a contributor
 perspective, very little would change; OSS contributions would of course still
 be welcome, and the contribution process would look mostly the same. The main
 differences you might notice are:
+
 - There would be one additional CI check running on your StableHLO PRs. This
   check would confirm that each PR passed Google's internal integration tests,
   which would help expedite both our review process and our weekly integrations.
