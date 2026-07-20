@@ -9,7 +9,8 @@ Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/2980)
 
 We propose aligning StableHLO's contribution process more closely with XLA and
 other repositories under the OpenXLA organization. Our motivations are to
-increase version-history transparency and to reduce maintenance overhead.
+increase version-history transparency, to reduce maintenance overhead, and to
+streamline the review process.
 
 ## Background
 
