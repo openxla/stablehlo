@@ -74,5 +74,5 @@ differences you might notice are:
 - Under the proposed hosting system, most contributors should see very little
   change in their work with StableHLO.
 - Obviously, GitHub pull requests will remain both welcome and encouraged
-  regardless of the source of truth.
+  regardless of StableHLO's hosting strategy.
 - StableHLO remains a priority, as do its OSS community and ecosystem.
