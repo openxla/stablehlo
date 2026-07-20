@@ -45,7 +45,7 @@ major benefits:
   such integrations. Streamlining integrations would allow the StableHLO team to
   spend our time more productively, improving StableHLO's development velocity.
 - **Velocity:** We currently rely on ad hoc patching and validation to derisk
-  potentially high-impact PRs before approval. Reusing XLA's approach will help
+  potentially high-impact PRs before approval. Reusing XLA's approach would help
   us to validate changes across the stack more easily, putting less burden on
   reviewers and expediting overall review time.
 
