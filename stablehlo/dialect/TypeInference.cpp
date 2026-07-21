@@ -2157,6 +2157,26 @@ LogicalResult inferCollectiveBroadcastOp(
   return success();
 }
 
+LogicalResult inferCollectiveReduceOp(
+    std::optional<Location> location, ValueRange operands, Region& computation,
+    bool hasDynamicRoot,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // When has_dynamic_root=true, last operand is root indices and is excluded
+  // from output shapes.
+  ValueRange dataOperands =
+      hasDynamicRoot ? operands.drop_back(1) : operands;
+  TypeRange inputTypes = dataOperands.getTypes();
+  auto inputArgTensorTypes = llvm::map_to_vector(
+      inputTypes, [](Type t) { return cast<ShapedType>(t); });
+  auto accumulatorTypes = getAccumulatorTypesOrInputTypes(location, computation,
+                                                          inputArgTensorTypes);
+  for (size_t i = 0; i < inputTypes.size(); ++i) {
+    inferredReturnShapes.emplace_back(getSameShapeTensorType(
+        inputArgTensorTypes[i], accumulatorTypes[i].getElementType()));
+  }
+  return success();
+}
+
 LogicalResult inferCollectivePermuteOp(
     std::optional<Location>, ValueRange operands,
     SmallVectorImpl<Type>& inferredReturnTypes) {
@@ -3732,6 +3752,61 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location,
   for (const Value& operand : operands) {
     auto operandType = cast<ShapedType>(operand.getType());
     // all_reduce_c5
+    if (failed(verifyReducerShape(
+            location, computation.front(), {operandType},
+            {RankedTensorType::get({}, operandType.getElementType())},
+            /*allowedDimensions=*/{})))
+      return failure();
+  }
+
+  return success();
+}
+
+LogicalResult verifyCollectiveReduceOp(std::optional<Location> location,
+                                       ValueRange operands,
+                                       Attribute replicaGroups,
+                                       int64_t channelId,
+                                       bool useGlobalDeviceIds,
+                                       bool hasDynamicRoot,
+                                       Region& computation) {
+  if (failed(verifyReplicaGroups(location, replicaGroups,
+                                 /*allGroupsMustHaveSameSize=*/false,
+                                 useGlobalDeviceIds,
+                                 /*expectedGroupSize=*/std::nullopt)))
+    return failure();
+
+  if (useGlobalDeviceIds && channelId <= 0)
+    return emitOptionalError(location,
+                             "channel_id must be positive when "
+                             "useGlobalDeviceIds is set but got: ",
+                             channelId);
+
+  if (hasDynamicRoot) {
+    if (operands.empty())
+      return emitOptionalError(location,
+                               "collective_reduce with has_dynamic_root=true "
+                               "requires at least two operands (data + root)");
+    auto rootType = dyn_cast<ShapedType>(operands.back().getType());
+    if (!rootType || !rootType.getElementType().isInteger(32) ||
+        rootType.getRank() != 1)
+      return emitOptionalError(
+          location,
+          "last operand of collective_reduce with has_dynamic_root=true "
+          "must be a rank-1 i32 tensor, but got ",
+          operands.back().getType());
+    int64_t numDataOperands = static_cast<int64_t>(operands.size()) - 1;
+    if (rootType.getDimSize(0) != numDataOperands)
+      return emitOptionalError(
+          location,
+          "last operand of collective_reduce with has_dynamic_root=true "
+          "must have the same number of elements as data operands (",
+          numDataOperands, "), but got ", rootType.getDimSize(0));
+  }
+
+  ValueRange dataOperands =
+      hasDynamicRoot ? operands.drop_back(1) : operands;
+  for (const Value& operand : dataOperands) {
+    auto operandType = cast<ShapedType>(operand.getType());
     if (failed(verifyReducerShape(
             location, computation.front(), {operandType},
             {RankedTensorType::get({}, operandType.getElementType())},

@@ -313,6 +313,18 @@ def VHLO_CollectiveBroadcastOpV1 : VHLO_Op<"collective_broadcast_v1", "0.16.0", 
   let results = (outs VHLO_AnyType:$result);
 }
 
+def VHLO_CollectiveReduceOpV1 : VHLO_Op<"collective_reduce_v1", "1.19.0", "current"> {
+  let arguments = (ins
+    Variadic<VHLO_AnyType>:$operands,
+    VHLO_AnyAttr:$replica_groups,
+    VHLO_AnyAttr:$channel_id,
+    VHLO_AnyAttr:$use_global_device_ids,
+    VHLO_AnyAttr:$has_dynamic_root
+  );
+  let regions = (region VHLO_AnyRegion:$computation);
+  let results = (outs Variadic<VHLO_AnyType>:$results);
+}
+
 def VHLO_CollectivePermuteOpV1 : VHLO_Op<"collective_permute_v1", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,

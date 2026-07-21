@@ -177,6 +177,11 @@ LogicalResult inferCollectiveBroadcastOp(
     std::optional<Location>, ValueRange operands,
     SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferCollectiveReduceOp(
+    std::optional<Location> location, ValueRange operands, Region& computation,
+    bool hasDynamicRoot,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferCollectivePermuteOp(
     std::optional<Location>, ValueRange operands,
     SmallVectorImpl<Type>& inferredReturnTypes);
@@ -444,6 +449,14 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
 
 LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
                                           Attribute replicaGroups);
+
+LogicalResult verifyCollectiveReduceOp(std::optional<Location> location,
+                                       ValueRange operands,
+                                       Attribute replicaGroups,
+                                       int64_t channelId,
+                                       bool useGlobalDeviceIds,
+                                       bool hasDynamicRoot,
+                                       Region& computation);
 
 LogicalResult verifyCollectivePermuteOp(std::optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);

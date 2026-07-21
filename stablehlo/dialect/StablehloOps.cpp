@@ -1561,6 +1561,47 @@ LogicalResult CollectiveBroadcastOp::verifySymbolUses(
 }
 
 //===----------------------------------------------------------------------===//
+// CollectiveReduceOp
+//===----------------------------------------------------------------------===//
+
+void CollectiveReduceOp::build(OpBuilder& odsBuilder, OperationState& odsState,
+                               Type resultType, Value operand,
+                               Attribute replicaGroups,
+                               ChannelHandleAttr channelHandle,
+                               bool useGlobalDeviceIds, bool hasDynamicRoot) {
+  build(odsBuilder, odsState, resultType, ValueRange(operand), replicaGroups,
+        channelHandle, useGlobalDeviceIds, hasDynamicRoot);
+}
+
+LogicalResult CollectiveReduceOp::verify() {
+  int64_t channelId = 0;
+  if (auto channelHandleAttr = getChannelHandleAttr())
+    channelId = channelHandleAttr.getHandle();
+
+  return hlo::verifyCollectiveReduceOp(getLoc(), getOperands(),
+                                       getReplicaGroups(), channelId,
+                                       getUseGlobalDeviceIds(),
+                                       getHasDynamicRoot(), getComputation());
+}
+
+LogicalResult CollectiveReduceOp::verifySymbolUses(
+    SymbolTableCollection& symbolTable) {
+  return verifyReplicaGroupsSymbolUses(*this, getReplicaGroups(), symbolTable);
+}
+
+LogicalResult CollectiveReduceOp::inferReturnTypeComponents(
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, PropertyRef properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  CollectiveReduceOp::Adaptor adaptor(operands, attributes, properties,
+                                      regions);
+  return hlo::inferCollectiveReduceOp(location, adaptor.getOperands(),
+                                      adaptor.getComputation(),
+                                      adaptor.getHasDynamicRoot(),
+                                      inferredReturnShapes);
+}
+
+//===----------------------------------------------------------------------===//
 // CollectivePermuteOp
 //===----------------------------------------------------------------------===//
 
@@ -1844,8 +1885,8 @@ LogicalResult AsyncStartOp::inferReturnTypes(
 
   Operation* collectiveOp = &block.front();
   if (!isa<AllGatherOp, AllReduceOp, AllToAllOp, CollectiveBroadcastOp,
-           CollectivePermuteOp, ReduceScatterOp, SliceOp, DynamicSliceOp,
-           DynamicUpdateSliceOp>(collectiveOp)) {
+           CollectiveReduceOp, CollectivePermuteOp, ReduceScatterOp, SliceOp,
+           DynamicSliceOp, DynamicUpdateSliceOp>(collectiveOp)) {
     return emitOptionalError(location,
                              "'stablehlo.async_start' op region must contain a "
                              "collective or slice operation");

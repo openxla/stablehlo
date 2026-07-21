@@ -531,6 +531,19 @@ SmallVector<InterpreterValue> eval(Region& region,
       auto result =
           collectiveBroadcastOp(operand, replicaGroups, channelId, process);
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<CollectiveReduceOp>(operation)) {
+      auto operands = scope.findTensors(op.getOperands());
+      SmallVector<SmallVector<uint32_t>> replicaGroups =
+          getReplicaGroups(op.getReplicaGroups(), op);
+      ChannelId channelId = 0;
+      if (auto channelHandle = op.getChannelHandle())
+        channelId = channelHandle->getHandle();
+      SmallVector<ShapedType> resultTypes(op->getResultTypes());
+      auto results =
+          collectiveReduceOp(operands, replicaGroups, channelId,
+                             op.getUseGlobalDeviceIds(), op.getHasDynamicRoot(),
+                             op.getComputation(), process, scope, resultTypes);
+      scope.add(op.getResults(), results);
     } else if (auto op = dyn_cast<CollectivePermuteOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
 
@@ -1441,6 +1454,83 @@ Tensor collectiveBroadcastOp(const Tensor& operand,
   }
   return broadcastInDimOp(constant(0.0, operand.getElementType()), {},
                           operand.getType());
+}
+
+SmallVector<InterpreterValue> collectiveReduceOp(
+    ArrayRef<Tensor> operands, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, bool useGlobalDeviceIds, bool hasDynamicRoot,
+    Region& computation, Process* process, Scope& scope,
+    ArrayRef<ShapedType> resultTypes) {
+  if (!process)
+    llvm::report_fatal_error(
+        "collective_reduce is only supported when run via "
+        "interpreter.run_parallel");
+
+  ProcessGroups processGroups;
+  if (channelId <= 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplica(replicaGroups);
+  if (channelId > 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplicaAndPartition(replicaGroups);
+  if (channelId > 0 && useGlobalDeviceIds)
+    processGroups = process->flattenedIds(replicaGroups);
+
+  // Data operands: all if !hasDynamicRoot, else all but the last.
+  ArrayRef<Tensor> dataOperands =
+      hasDynamicRoot ? operands.drop_back(1) : operands;
+
+  auto processGroup = processGroups.findGroup(process->getId());
+  if (!processGroup) {
+    // Not in any group, return zeros.
+    SmallVector<InterpreterValue> zeroResults;
+    for (const auto& resultType : resultTypes)
+      zeroResults.push_back(
+          broadcastInDimOp(constant(0.0, resultType.getElementType()), {},
+                           resultType));
+    return zeroResults;
+  }
+
+  auto groupOperands =
+      process->rendezvous(*processGroup, channelId, dataOperands)
+          .getSortedTensors();
+
+  SmallVector<InterpreterValue> results(resultTypes.size());
+  for (const auto& [resultIndex, resultType] : llvm::enumerate(resultTypes)) {
+    // Find root process for this operand.
+    ProcessId rootId = (*processGroup)[0];  // default: first in group
+    if (hasDynamicRoot) {
+      // Root index comes from the last operand's resultIndex-th element.
+      const Tensor& rootTensor = operands.back();
+      auto rootIdx = rootTensor.get({static_cast<int64_t>(resultIndex)});
+      rootId = (*processGroup)[static_cast<size_t>(
+          rootIdx.getIntegerValue().getSExtValue())];
+    }
+
+    Tensor resultTensor(resultType);
+    for (auto elementIndex = resultTensor.index_begin();
+         elementIndex != resultTensor.index_end(); ++elementIndex) {
+      Tensor reduced;
+      for (const auto& processOperands : groupOperands) {
+        auto element =
+            constant(processOperands[resultIndex].get(*elementIndex));
+        if (reduced)
+          reduced = eval(computation, {reduced, element},
+                         /*fallback=*/nullptr, process, &scope)[0]
+                        .getTensor();
+        else
+          reduced = element;
+      }
+      resultTensor.set(*elementIndex, reduced.get({}));
+    }
+
+    // Only root gets the reduced result; others get zeros.
+    if (process->getId() == rootId)
+      results[resultIndex] = resultTensor;
+    else
+      results[resultIndex] =
+          broadcastInDimOp(constant(0.0, resultType.getElementType()), {},
+                           resultType);
+  }
+  return results;
 }
 
 Tensor collectivePermuteOp(const Tensor& operand,
