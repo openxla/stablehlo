@@ -48,10 +48,12 @@ major benefits:
   [Copybara](https://github.com/google/copybara)) designed to facilitate such
   integrations. Streamlining integrations would allow the StableHLO team to
   spend our time more productively, improving StableHLO's development velocity.
-- **Velocity:** We currently rely on ad hoc patching and validation to derisk
-  potentially high-impact PRs before approval. Reusing XLA's approach would help
-  us to validate changes across the stack more easily, putting less burden on
-  reviewers and expediting overall review time.
+- **Velocity:** In addition to reducing maintenance overhead, this proposal
+  would streamline our review process for some pull requests. We currently rely
+  on ad hoc patching and validation to derisk potentially high-impact PRs before
+  approval; reusing XLA's approach would help us to validate changes across the
+  stack more easily, putting less burden on reviewers and expediting overall
+  review time.
 
 ## What Would Change
 
