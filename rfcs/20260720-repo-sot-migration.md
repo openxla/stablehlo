@@ -2,7 +2,7 @@
 
 Status: In Review<br/>
 Initial version: 7/20/2026<br/>
-Last updated: 7/20/2026<br/>
+Last updated: 7/21/2026<br/>
 Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/2980)
 
 ## Summary
@@ -37,14 +37,16 @@ major benefits:
   integrating new LLVM changes, they also integrate any new StableHLO changes
   made in Google3. The StableHLO team does try to make our more notable code
   changes through GitHub in order to mitigate this issue, but the current system
-  still misses a lot of context in the version history.
+  still misses a lot of context in the version history. This proposal would
+  allow Google3 changes to be exported as part of the Git version history,
+  improving the transparency of future changes to StableHLO.
 - **Maintenance:** The current hosting structure makes StableHLO's weekly
   integrations much more labor-intensive than necessary, which wastes a lot of
   the StableHLO team's time that could otherwise be spent on improving
   StableHLO. Switching the source of truth to Google3 would allow StableHLO to
-  benefit from a great deal of tooling
-  (e.g.  [Copybara](https://github.com/google/copybara)) designed to facilitate
-  such integrations. Streamlining integrations would allow the StableHLO team to
+  benefit from a great deal of tooling (e.g.
+  [Copybara](https://github.com/google/copybara)) designed to facilitate such
+  integrations. Streamlining integrations would allow the StableHLO team to
   spend our time more productively, improving StableHLO's development velocity.
 - **Velocity:** We currently rely on ad hoc patching and validation to derisk
   potentially high-impact PRs before approval. Reusing XLA's approach would help
