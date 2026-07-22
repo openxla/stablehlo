@@ -32,6 +32,7 @@ limitations under the License.
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Arith/Utils/Utils.h"
 #include "mlir/Dialect/Bufferization/IR/Bufferization.h"
@@ -842,6 +843,61 @@ struct DynamicBroadcastInDimOpToBroadcastConverter final
 
     return RankedTensorType::get(broadcastResultShape,
                                  resultTy.getElementType());
+  }
+};
+
+// If the input and output have a dynamic shape such that the rank of input
+// matches the rank of output and shapes are compatible (i.e. no broadcasting is
+// needed), then the dynamic broadcast in dim is effectively a copying input to
+// output In such cases, we can lower it to a simple linalg.generic operation.
+// It can later be canonicalised and bufferised accordingly.
+struct DynamicBroadcastInDimOpDynamicShapeConverter final
+    : OpConversionPattern<mlir::stablehlo::DynamicBroadcastInDimOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      mlir::stablehlo::DynamicBroadcastInDimOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter& rewriter) const override {
+    auto loc = op.getLoc();
+    Value input = op.getOperand();
+    Value output = op.getResult();
+    auto input_type = dyn_cast<ShapedType>(input.getType());
+    auto output_type = dyn_cast<ShapedType>(output.getType());
+    assert(input_type && output_type && "expected shaped type");
+    if (input_type.getRank() == output_type.getRank() &&
+        input_type.getShape() == output_type.getShape() &&
+        op.getBroadcastDimensions().size() == input_type.getRank()) {
+      if (input_type.hasStaticShape()) {
+        return failure();
+      }
+      if (!llvm::all_of(llvm::seq<int>(0, input_type.getRank()), [&](int i) {
+            return i == op.getBroadcastDimensions()[i];
+          })) {
+        return failure();
+      }
+    }
+    auto mixedSize = tensor::getMixedSizes(rewriter, loc, input);
+    auto resultType = cast<RankedTensorType>(output.getType());
+    auto emptyTensor = rewriter.create<tensor::EmptyOp>(
+        loc, mixedSize, resultType.getElementType());
+    auto map = AffineMap::getMultiDimIdentityMap(resultType.getRank(),
+                                                 rewriter.getContext());
+
+    SmallVector<AffineMap, 2> indexingMaps{map, map};
+    SmallVector<Value, 2> inputs{input};
+    SmallVector<Value, 2> outputs{emptyTensor};
+    auto generic =
+        rewriter
+            .create<linalg::GenericOp>(
+                loc, TypeRange{resultType}, inputs, outputs, indexingMaps,
+                SmallVector<utils::IteratorType, 2>(
+                    resultType.getRank(), utils::IteratorType::parallel),
+                [&](OpBuilder& builder, Location loc, ValueRange blockArgs) {
+                  builder.create<linalg::YieldOp>(loc, blockArgs[0]);
+                })
+            ->getResults();
+    rewriter.replaceOp(op, ValueRange{generic});
+    return success();
   }
 };
 
@@ -2706,6 +2762,7 @@ void populateStablehloToLinalgConversionPatterns(MLIRContext* context,
       BroadcastInDimOpToBroadcastConverter,
       BroadcastOpToBroadcastConverter,
       DynamicBroadcastInDimOpToBroadcastConverter,
+      DynamicBroadcastInDimOpDynamicShapeConverter,
       IotaToMapConverter<mlir::stablehlo::IotaOp>,
       IotaToMapConverter<mlir::stablehlo::DynamicIotaOp>,
       MapOpToMapConverter,
