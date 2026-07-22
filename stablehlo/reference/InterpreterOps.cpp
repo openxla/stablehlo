@@ -172,6 +172,9 @@ LogicalResult RunParallelOp::verify() {
 SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs, std::queue<StringAttr>& infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable) {
+#if (defined(_WIN32) || defined(__CYGWIN__))
+  llvm::report_fatal_error("Op not supported on windows due to std::future");
+#else
   llvm::DefaultThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
 
@@ -205,6 +208,7 @@ SmallVector<InterpreterValue> evalRunParallelOp(
   for (auto& future : futures) results.append(future.get());
   // TODO(#1725): Figure out how to test the outfeed queue.
   return results;
+#endif
 }
 
 llvm::Error evalPrintOp(PrintOp& op, InterpreterValue operand) {
