@@ -1916,6 +1916,101 @@ Afterwards, `result@process` is given by:
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/collective_permute.mlir)
 
+### collective_reduce
+
+#### Semantics
+
+Within each process group in the StableHLO process grid, send the value of the
+`operands` tensor to the source process, applies a reduction
+function `computation` to the values of the `operands` tensors from each process
+and produces `results` tensors and save the
+`results` tensors only on the source process.
+
+If `has_dynamic_root` is set to true, the last operand in `operands` must be
+a flat array of `si32` containing the root values with 1-to-1 mapping to each
+data operands.
+
+The operation splits the StableHLO process grid into `process_groups` which is
+defined as follows:
+
+* `cross_replica(replica_groups)` if `channel_id <= 0`.
+* `cross_partition(replica_groups)` if `channel_id > 0`.
+
+Afterwards, `result@process` is given by:
+
+* `operand@process_groups[i, 0]` if there exists an `i` such that the process is
+  in `process_groups[i]`.
+* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
+  otherwise.
+
+#### Inputs
+
+| Label | Name                    | Type                                                             | Constraints |
+|-------|-------------------------|------------------------------------------------------------------|-------------|
+| (I1)  | `operands`              | variadic number of tensors or per-tensor quantized tensors       | (C3)        |
+| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1), (C2)  |
+| (I3)  | `channel_id`            | constant of type `si64`                                          |             |
+| (I4)  | `has_dynamic_root`      | constant of type `i1`                                            |             |
+| (I5)  | `computation`           | function                                                         | (C4)        |
+
+#### Outputs
+
+| Name     | Type                                                       | Constraints |
+|----------|------------------------------------------------------------|-------------|
+| `results`| variadic number of tensors or per-tensor quantized tensors | (C3)        |
+
+#### Constraints
+
+* (C1) `is_unique(replica_groups)`.
+* (C2) `0 <= replica_groups < N` where `N` is defined as:
+  * `num_replicas` if `cross_replica` is used.
+  * `num_partitions` if `cross_partition` is used.
+* (C3) if `has_dynamic_root` == false, `shape(results) = shape(operands)`;
+  * else, `shape(results) = shape(operands[0, size(operands)-2])`,
+    `dim(operands[size(operands)-1]) == 1` with
+    `num_elements(operands[size(operands)-1]) == size(operands)-1`.
+* (C4) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+  `is_promotable(element_type(operand), E)`.
+
+#### Examples
+
+```mlir
+// num_replicas: 4
+// num_partitions: 1
+// %operand@(0, 0): [[1, 2]]
+// %operand@(1, 0): [[3, 4]]
+// %operand@(2, 0): [[5, 6]]
+// %operand@(3, 0): [[7, 8]]
+%result = "stablehlo.collective_reduce"(%operand) {
+  has_dynamic_root = false
+  replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+} : (tensor1x2xi64>) -> tensor<1x2xi64>
+// %result@(0, 0): [[16, 20]]
+// %result@(1, 0): [[0, 0]]
+// %result@(2, 0): [[0, 0]]
+// %result@(3, 0): [[0, 0]]
+```
+
+```mlir
+// num_replicas: 4
+// num_partitions: 1
+// %operand@(0, 0): [[1, 2]]
+// %operand@(1, 0): [[3, 4]]
+// %operand@(2, 0): [[5, 6]]
+// %operand@(3, 0): [[7, 8]]
+// %root: [3]
+%result = "stablehlo.collective_reduce"(%operand, %root) {
+  has_dynamic_root = true
+  replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+} : (tensor1x2xi64>) -> tensor<1x2xi64>
+// %result@(0, 0): [[0, 0]]
+// %result@(1, 0): [[0, 0]]
+// %result@(2, 0): [[0, 0]]
+// %result@(3, 0): [[16, 20]]
+```
+
 ### compare
 
 #### Semantics
@@ -7121,8 +7216,8 @@ order and what kind of synchronization is introduced by it, is TBD
 ### Collective ops
 
 There are six collective ops in StableHLO: `all_gather`, `all_reduce`,
-`all_to_all`, `collective_broadcast`, `collective_permute`, and
-`reduce_scatter`. All these ops split the processes in the StableHLO process
+`all_to_all`, `collective_broadcast`, `collective_permute`, `reduce_scatter`
+and `collective_reduce`. All these ops split the processes in the StableHLO process
 grid into **StableHLO process groups** and execute a joint computation within
 each process group, independently from other process groups.
 

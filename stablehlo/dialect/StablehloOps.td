@@ -2392,6 +2392,55 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
       "::mlir::Attribute":$replica_groups)>];
 }
 
+def StableHLO_CollectiveReduceOp : StableHLO_Op<"collective_reduce",
+    [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
+     InferTensorType /*collective_reduce_c6, collective_reduce_c7*/,
+     SingleBlockImplicitTerminator<"ReturnOp">,
+     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  let summary = "CollectiveReduce operation";
+  let description = [{
+    Within each process group in the process grid, applies a reduction function
+    `computation` to the values of the `operands` from each process and produces
+    a `result` tensor on the root rank of the group. The root rank is determined
+    by `has_dynamic_root`: if false, the root is the 0-th rank in the replica
+    group; if true, the last operand is an i32 tensor specifying per-operand
+    root indices.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#collective_reduce
+
+    Example:
+    ```mlir
+    %result = "stablehlo.collective_reduce"(%operand) ({
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+        "stablehlo.return"(%0) : (tensor<i64>) -> ()
+    }) {
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<4xi64>) -> tensor<4xi64>
+    ```
+  }];
+
+  let arguments = (ins
+    Variadic<HLO_Tensor>:$operands, /*collective_reduce_i1*/
+    StableHLO_ReplicaGroups:$replica_groups, /*collective_reduce_i2*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*collective_reduce_i3*/
+    UnitAttr:$use_global_device_ids, /*collective_reduce_i4*/
+    UnitAttr:$has_dynamic_root /*collective_reduce_i5*/
+  );
+  let regions = (region SizedRegion<1>:$computation /*collective_reduce_i6*/);
+  let results = (outs Variadic<HLO_Tensor>);
+  let hasVerifier = 1;
+  let builders = [
+    OpBuilder<(ins
+      "::mlir::Type":$result_type, "::mlir::Value":$operand,
+      "::mlir::Attribute":$replica_groups,
+      "::mlir::stablehlo::ChannelHandleAttr":$channel_handle,
+      CArg<"bool", "false">:$use_global_device_ids,
+      CArg<"bool", "false">:$has_dynamic_root)>,
+  ];
+}
+
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
     [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
      SameOperandsAndResultElementType, /*collective_permute_c5*/

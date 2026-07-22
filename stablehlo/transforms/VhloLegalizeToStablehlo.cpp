@@ -669,6 +669,25 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
       stablehloAttr = UnitAttr::get(pattern.getContext());
     }
   }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveReduceOpV1>::value) {
+    if (vhloName == "channel_id") {
+      stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
+      stablehloAttr = convertChannelId(vhloAttr, typeConverter);
+      if (!stablehloAttr) return specialFailure();
+    }
+    if (vhloName == "use_global_device_ids") {
+      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
+      if (!vhloBooleanAttr) return specialFailure();
+      if (!vhloBooleanAttr.getValue()) return specialSuccess();
+      stablehloAttr = UnitAttr::get(pattern.getContext());
+    }
+    if (vhloName == "has_dynamic_root") {
+      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
+      if (!vhloBooleanAttr) return specialFailure();
+      if (!vhloBooleanAttr.getValue()) return specialSuccess();
+      stablehloAttr = UnitAttr::get(pattern.getContext());
+    }
+  }
   if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV2>::value) {
     if (vhloName == "called_computations") {
       stablehloAttr =
@@ -873,6 +892,14 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
                 std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
     if (isInteger(vhloOp.getChannelIdAttr(), 0))
       eraseAttrs(vhloAttrs, "channel_id");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveReduceOpV1>::value) {
+    if (isInteger(vhloOp.getChannelIdAttr(), 0))
+      eraseAttrs(vhloAttrs, "channel_id");
+    if (isBoolean(vhloOp.getUseGlobalDeviceIdsAttr(), false))
+      eraseAttrs(vhloAttrs, "use_global_device_ids");
+    if (isBoolean(vhloOp.getHasDynamicRootAttr(), false))
+      eraseAttrs(vhloAttrs, "has_dynamic_root");
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CholeskyOpV1>::value) {
     if (isBoolean(vhloOp.getLowerAttr(), false)) eraseAttrs(vhloAttrs, "lower");
