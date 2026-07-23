@@ -2773,7 +2773,7 @@ Tensor triangularSolveOp(const Tensor& A, const Tensor& b, bool leftSide,
           x = x - a * xj;
         }
         if (!unitDiagonal) {
-          auto a = tA.get(Index{i, i});
+          auto a = tA.get(a_index(batchIndex, i, i));
           x = x / a;
         }
 
