@@ -2163,8 +2163,7 @@ LogicalResult inferCollectiveReduceOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // When has_dynamic_root=true, last operand is root indices and is excluded
   // from output shapes.
-  ValueRange dataOperands =
-      hasDynamicRoot ? operands.drop_back(1) : operands;
+  ValueRange dataOperands = hasDynamicRoot ? operands.drop_back(1) : operands;
   TypeRange inputTypes = dataOperands.getTypes();
   auto inputArgTensorTypes = llvm::map_to_vector(
       inputTypes, [](Type t) { return cast<ShapedType>(t); });
@@ -3762,13 +3761,10 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location,
   return success();
 }
 
-LogicalResult verifyCollectiveReduceOp(std::optional<Location> location,
-                                       ValueRange operands,
-                                       Attribute replicaGroups,
-                                       int64_t channelId,
-                                       bool useGlobalDeviceIds,
-                                       bool hasDynamicRoot,
-                                       Region& computation) {
+LogicalResult verifyCollectiveReduceOp(
+    std::optional<Location> location, ValueRange operands,
+    Attribute replicaGroups, int64_t channelId, bool useGlobalDeviceIds,
+    bool hasDynamicRoot, Region& computation) {
   if (failed(verifyReplicaGroups(location, replicaGroups,
                                  /*allGroupsMustHaveSameSize=*/false,
                                  useGlobalDeviceIds,
@@ -3803,8 +3799,7 @@ LogicalResult verifyCollectiveReduceOp(std::optional<Location> location,
           numDataOperands, "), but got ", rootType.getDimSize(0));
   }
 
-  ValueRange dataOperands =
-      hasDynamicRoot ? operands.drop_back(1) : operands;
+  ValueRange dataOperands = hasDynamicRoot ? operands.drop_back(1) : operands;
   for (const Value& operand : dataOperands) {
     auto operandType = cast<ShapedType>(operand.getType());
     if (failed(verifyReducerShape(

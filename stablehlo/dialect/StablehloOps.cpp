@@ -1578,10 +1578,9 @@ LogicalResult CollectiveReduceOp::verify() {
   if (auto channelHandleAttr = getChannelHandleAttr())
     channelId = channelHandleAttr.getHandle();
 
-  return hlo::verifyCollectiveReduceOp(getLoc(), getOperands(),
-                                       getReplicaGroups(), channelId,
-                                       getUseGlobalDeviceIds(),
-                                       getHasDynamicRoot(), getComputation());
+  return hlo::verifyCollectiveReduceOp(
+      getLoc(), getOperands(), getReplicaGroups(), channelId,
+      getUseGlobalDeviceIds(), getHasDynamicRoot(), getComputation());
 }
 
 LogicalResult CollectiveReduceOp::verifySymbolUses(
@@ -1595,10 +1594,9 @@ LogicalResult CollectiveReduceOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CollectiveReduceOp::Adaptor adaptor(operands, attributes, properties,
                                       regions);
-  return hlo::inferCollectiveReduceOp(location, adaptor.getOperands(),
-                                      adaptor.getComputation(),
-                                      adaptor.getHasDynamicRoot(),
-                                      inferredReturnShapes);
+  return hlo::inferCollectiveReduceOp(
+      location, adaptor.getOperands(), adaptor.getComputation(),
+      adaptor.getHasDynamicRoot(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//

@@ -1483,9 +1483,8 @@ SmallVector<InterpreterValue> collectiveReduceOp(
     // Not in any group, return zeros.
     SmallVector<InterpreterValue> zeroResults;
     for (const auto& resultType : resultTypes)
-      zeroResults.push_back(
-          broadcastInDimOp(constant(0.0, resultType.getElementType()), {},
-                           resultType));
+      zeroResults.push_back(broadcastInDimOp(
+          constant(0.0, resultType.getElementType()), {}, resultType));
     return zeroResults;
   }
 
@@ -1526,9 +1525,8 @@ SmallVector<InterpreterValue> collectiveReduceOp(
     if (process->getId() == rootId)
       results[resultIndex] = resultTensor;
     else
-      results[resultIndex] =
-          broadcastInDimOp(constant(0.0, resultType.getElementType()), {},
-                           resultType);
+      results[resultIndex] = broadcastInDimOp(
+          constant(0.0, resultType.getElementType()), {}, resultType);
   }
   return results;
 }

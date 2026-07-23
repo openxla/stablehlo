@@ -450,13 +450,10 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
 LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
                                           Attribute replicaGroups);
 
-LogicalResult verifyCollectiveReduceOp(std::optional<Location> location,
-                                       ValueRange operands,
-                                       Attribute replicaGroups,
-                                       int64_t channelId,
-                                       bool useGlobalDeviceIds,
-                                       bool hasDynamicRoot,
-                                       Region& computation);
+LogicalResult verifyCollectiveReduceOp(
+    std::optional<Location> location, ValueRange operands,
+    Attribute replicaGroups, int64_t channelId, bool useGlobalDeviceIds,
+    bool hasDynamicRoot, Region& computation);
 
 LogicalResult verifyCollectivePermuteOp(std::optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);

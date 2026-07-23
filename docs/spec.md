@@ -7216,7 +7216,7 @@ order and what kind of synchronization is introduced by it, is TBD
 ### Collective ops
 
 There are six collective ops in StableHLO: `all_gather`, `all_reduce`,
-`all_to_all`, `collective_broadcast`, `collective_permute`, `reduce_scatter` 
+`all_to_all`, `collective_broadcast`, `collective_permute`, `reduce_scatter`
 and `collective_reduce`. All these ops split the processes in the StableHLO process
 grid into **StableHLO process groups** and execute a joint computation within
 each process group, independently from other process groups.
