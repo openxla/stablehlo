@@ -69,9 +69,11 @@ FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(Value op,
 
   // Iterate from right to left (NumPy-style broadcasting)
   for (size_t i = 1; i <= max_rank; ++i) {
-    size_t a_idx = a.size() - i;
-    size_t b_idx = b.size() - i;
-    size_t res_idx = max_rank - i;
+    ptrdiff_t a_idx = a.size() - i;
+    ptrdiff_t b_idx = b.size() - i;
+    ptrdiff_t res_idx = max_rank - i;
+
+    assert(res_idx >= 0 && res_idx < max_rank);
 
     // Get DimensionInfo for the current index, padding with size 1 if out of
     // bounds.
