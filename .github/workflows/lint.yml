@@ -31,9 +31,8 @@ env:
 jobs:
   clang-format:
     # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
-    # In forks, run this on public GH runners. 64core infra will ignore jobs from forks.
     if: "github.event_name == 'pull_request'"
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Checking out repository
         uses: actions/checkout@v4
@@ -45,7 +44,7 @@ jobs:
 
   whitespace-checks:
     if: "github.event_name == 'pull_request'"
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Checking out repository
         uses: actions/checkout@v4
@@ -57,7 +56,7 @@ jobs:
 
   version-checks:
     if: "github.event_name == 'pull_request'"
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Checking out repository
         uses: actions/checkout@v4
@@ -68,7 +67,7 @@ jobs:
 
   buildifier-check:
     if: "github.event_name == 'pull_request'"
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash
@@ -84,7 +83,7 @@ jobs:
 
   license-check:
     if: "github.event_name == 'pull_request'"
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash
@@ -99,7 +98,7 @@ jobs:
 
   shell-script-check:
     if: "github.event_name == 'pull_request'"
-    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash
