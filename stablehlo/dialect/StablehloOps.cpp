@@ -1883,8 +1883,8 @@ LogicalResult AsyncStartOp::inferReturnTypes(
 
   Operation* collectiveOp = &block.front();
   if (!isa<AllGatherOp, AllReduceOp, AllToAllOp, CollectiveBroadcastOp,
-           CollectiveReduceOp, CollectivePermuteOp, ReduceScatterOp, SliceOp,
-           DynamicSliceOp, DynamicUpdateSliceOp>(collectiveOp)) {
+           CollectivePermuteOp, CollectiveReduceOp, DynamicSliceOp,
+           DynamicUpdateSliceOp, ReduceScatterOp, SliceOp>(collectiveOp)) {
     return emitOptionalError(location,
                              "'stablehlo.async_start' op region must contain a "
                              "collective or slice operation");

@@ -1923,12 +1923,12 @@ Afterwards, `result@process` is given by:
 Within each process group in the StableHLO process grid, send the value of the
 `operands` tensor to the source process, applies a reduction
 function `computation` to the values of the `operands` tensors from each process
-and produces `results` tensors and save the
+and produces `results` tensors and saves the
 `results` tensors only on the source process.
 
 If `has_dynamic_root` is set to true, the last operand in `operands` must be
 a flat array of `si32` containing the root values with 1-to-1 mapping to each
-data operands.
+data operand.
 
 The operation splits the StableHLO process grid into `process_groups` which is
 defined as follows:

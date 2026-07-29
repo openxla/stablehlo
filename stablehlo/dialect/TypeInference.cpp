@@ -2167,11 +2167,13 @@ LogicalResult inferCollectiveReduceOp(
   TypeRange inputTypes = dataOperands.getTypes();
   auto inputArgTensorTypes = llvm::map_to_vector(
       inputTypes, [](Type t) { return cast<ShapedType>(t); });
-  auto accumulatorTypes = getAccumulatorTypesOrInputTypes(location, computation,
-                                                          inputArgTensorTypes);
+  // The computation is applied independently per operand (2 params, 1 return),
+  // so query the accumulator type once per operand rather than in bulk.
   for (size_t i = 0; i < inputTypes.size(); ++i) {
+    auto accTypes = getAccumulatorTypesOrInputTypes(location, computation,
+                                                    {inputArgTensorTypes[i]});
     inferredReturnShapes.emplace_back(getSameShapeTensorType(
-        inputArgTensorTypes[i], accumulatorTypes[i].getElementType()));
+        inputArgTensorTypes[i], accTypes[0].getElementType()));
   }
   return success();
 }

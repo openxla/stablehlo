@@ -1500,8 +1500,14 @@ SmallVector<InterpreterValue> collectiveReduceOp(
       // Root index comes from the last operand's resultIndex-th element.
       const Tensor& rootTensor = operands.back();
       auto rootIdx = rootTensor.get({static_cast<int64_t>(resultIndex)});
-      rootId = (*processGroup)[static_cast<size_t>(
-          rootIdx.getIntegerValue().getSExtValue())];
+      rootId = (*processGroup)[rootIdx.getIntegerValue().getZExtValue()];
+    }
+
+    // Only root gets the reduced result; others get zeros.
+    if (process->getId() != rootId) {
+      results[resultIndex] = broadcastInDimOp(
+          constant(0.0, resultType.getElementType()), {}, resultType);
+      continue;
     }
 
     Tensor resultTensor(resultType);
@@ -1520,13 +1526,7 @@ SmallVector<InterpreterValue> collectiveReduceOp(
       }
       resultTensor.set(*elementIndex, reduced.get({}));
     }
-
-    // Only root gets the reduced result; others get zeros.
-    if (process->getId() == rootId)
-      results[resultIndex] = resultTensor;
-    else
-      results[resultIndex] = broadcastInDimOp(
-          constant(0.0, resultType.getElementType()), {}, resultType);
+    results[resultIndex] = resultTensor;
   }
   return results;
 }
