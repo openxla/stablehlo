@@ -3779,8 +3779,12 @@ LogicalResult verifyCollectiveReduceOp(
                              "useGlobalDeviceIds is set but got: ",
                              channelId);
 
+  if (!hasDynamicRoot && operands.empty())
+    return emitOptionalError(
+        location, "collective_reduce requires at least one data operand");
+
   if (hasDynamicRoot) {
-    if (operands.empty())
+    if (operands.size() < 2)
       return emitOptionalError(location,
                                "collective_reduce with has_dynamic_root=true "
                                "requires at least two operands (data + root)");

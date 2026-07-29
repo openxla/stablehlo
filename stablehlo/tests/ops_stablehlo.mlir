@@ -6976,6 +6976,21 @@ func.func @collective_reduce_c4_zero_channel(%operand: tensor<4xf32>) -> tensor<
 
 // -----
 
+// has_dynamic_root=false requires at least one data operand.
+func.func @collective_reduce_no_operands() -> () {
+  // expected-error@+1 {{collective_reduce requires at least one data operand}}
+  "stablehlo.collective_reduce"() ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : () -> ()
+  func.return
+}
+
+// -----
+
 // has_dynamic_root=true requires at least two operands.
 func.func @collective_reduce_dynamic_root_no_operands() -> () {
   // expected-error@+1 {{collective_reduce with has_dynamic_root=true requires at least two operands (data + root)}}
@@ -6987,6 +7002,22 @@ func.func @collective_reduce_dynamic_root_no_operands() -> () {
     replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
     has_dynamic_root
   } : () -> ()
+  func.return
+}
+
+// -----
+
+// has_dynamic_root=true with only one operand (root only, no data) is invalid.
+func.func @collective_reduce_dynamic_root_only_root(%root: tensor<1xi32>) -> () {
+  // expected-error@+1 {{collective_reduce with has_dynamic_root=true requires at least two operands (data + root)}}
+  "stablehlo.collective_reduce"(%root) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<1xi32>) -> ()
   func.return
 }
 
