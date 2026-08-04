@@ -433,7 +433,7 @@ Creates a new [`chlo.top_k`](https://openxla.org/stablehlo/generated/chlo#chloto
 operation.
 
 ```c++
-SmallVector<MlirOp, 2> TopK(MlirOp &operand, uint64_t k);
+SmallVector<MlirOp, 2> TopK(MlirOp &operand, uint64_t k, /*optional*/bool is_stable = true);
 ```
 
 ### `chlo::ZetaOp`
