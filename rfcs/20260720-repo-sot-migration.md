@@ -1,6 +1,6 @@
 # StableHLO Repo Source-of-Truth Migration
 
-Status: In Review<br/>
+Status: Approved<br/>
 Initial version: 7/20/2026<br/>
 Last updated: 7/21/2026<br/>
 Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/2980)
