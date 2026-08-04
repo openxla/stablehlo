@@ -917,13 +917,16 @@ def CHLO_TopKOp : CHLO_Op<"top_k",
     values.shape = indices.shape = input.shape[:-1] + [k]
     ```
 
-    If two elements are equal, the lower-index element appears first.
+    If `is_stable` is true, the sort is stable: if two elements are equal, the
+    lower-index element appears first. If false, the relative order of equal
+    elements is implementation-defined.
   }];
 
   let arguments = (ins
     Arg<HLO_AnyTensor, [{1-D or higher with last dimension at least `k`.}]>:$operand,
     Arg<I64Attr, [{0-D.  Number of top elements to look for along the last dimension (along each
-row for matrices).}]>:$k
+row for matrices).}]>:$k,
+    DefaultValuedOptionalAttr<BoolAttr, "true">:$is_stable
   );
 
   let results = (outs
@@ -931,7 +934,7 @@ row for matrices).}]>:$k
     HLO_AnyTensor:$indices);
 
   let assemblyFormat = [{
-    `(`$operand `,` `k` `=` $k`)` attr-dict `:`
+    `(`$operand `,` `k` `=` $k (`,` `is_stable` `=` $is_stable^)? `)` attr-dict `:`
     type($operand) `->` `(`type($values)`,` type($indices)`)`
   }];
 }
@@ -1011,4 +1014,3 @@ def CHLO_MulhiOp : CHLO_Op<"mulhi", [Commutative, Pure,
 }
 
 #endif  // STABLEHLO_DIALECT_CHLO_OPS
-

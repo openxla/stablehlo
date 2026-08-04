@@ -95,20 +95,6 @@ func.func @uniform_quantize_and_dequantize_type_exensions(%arg0: tensor<?x?xf32,
 
 // -----
 
-#SV = #sparse_tensor.encoding<{ map = (d0) -> (d0 : compressed) }>
-
-// CHECK: #[[$SV:.*]] = #sparse_tensor.encoding<{ map = (d0) -> (d0 : compressed) }>
-// CHECK-LABEL: func @uniform_quantize_and_dequantize_sparse_tensor_encoding
-func.func @uniform_quantize_and_dequantize_sparse_tensor_encoding(%arg0: tensor<?xf32, #SV>) -> () {
-  // CHECK: %[[QUANTIZED:.*]] = stablehlo.convert %[[VAL0:.*]] : (tensor<?xf32, #[[$SV]]>) -> tensor<?xi8, #[[$SV]]>
-  %0 = stablehlo.uniform_quantize %arg0 : (tensor<?xf32, #SV>) -> tensor<?x!quant.uniform<i8:f32, 1.000000e+00:3>, #SV>
-  // CHECK: %[[DEQUANTIZED:.*]] = chlo.broadcast_multiply %[[VAL1:.*]], %[[CONST_SCALE:.*]] : (tensor<?xf32, #[[$SV]]>, tensor<f32>) -> tensor<?xf32, #[[$SV]]>
-  %1 = stablehlo.uniform_dequantize %0 : (tensor<?x!quant.uniform<i8:f32, 1.000000e+00:3>, #SV>) -> tensor<?xf32, #SV>
-  return
-}
-
-// -----
-
 // CHECK-LABEL: func @quantize_per_channel
 func.func @quantize_per_channel(%arg0: tensor<26x26x3x2xf32>
     ) -> tensor<26x26x3x2x!quant.uniform<i32:f32:3, {1.100000e+00:-10, 1.100000e-01:2}>> {

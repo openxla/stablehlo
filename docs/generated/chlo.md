@@ -1955,7 +1955,7 @@ _Finds values and indices of the `k` largest elements for the last dimension_
 Syntax:
 
 ```
-operation ::= `chlo.top_k` `(`$operand `,` `k` `=` $k`)` attr-dict `:`
+operation ::= `chlo.top_k` `(`$operand `,` `k` `=` $k (`,` `is_stable` `=` $is_stable^)? `)` attr-dict `:`
               type($operand) `->` `(`type($values)`,` type($indices)`)`
 ```
 
@@ -1970,7 +1970,9 @@ row (resp. vector along the last dimension).  Thus,
 values.shape = indices.shape = input.shape[:-1] + [k]
 ```
 
-If two elements are equal, the lower-index element appears first.
+If `is_stable` is true, the sort is stable: if two elements are equal, the
+lower-index element appears first. If false, the relative order of equal
+elements is implementation-defined.
 
 Traits: `AlwaysSpeculatableImplTrait`, `InferTensorType`
 
@@ -1983,6 +1985,7 @@ Effects: `MemoryEffects::Effect{}`
 <table>
 <tr><th>Attribute</th><th>MLIR Type</th><th>Description</th></tr>
 <tr><td><code>k</code></td><td>::mlir::IntegerAttr</td><td>64-bit signless integer attribute</td></tr>
+<tr><td><code>is_stable</code></td><td>::mlir::BoolAttr</td><td>bool attribute</td></tr>
 </table>
 
 #### Operands:

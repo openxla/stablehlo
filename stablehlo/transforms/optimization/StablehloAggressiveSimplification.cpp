@@ -69,16 +69,14 @@ static bool isIotaRange(ArrayRef<int64_t> dims) {
   });
 }
 
-bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
-  Operation* sourceOp = sourceValue.getDefiningOp();
-  Operation* destOp = destValue.getDefiningOp();
+bool mergeDiscardableAttributes(Operation* sourceOp, Operation* destOp) {
   if (!sourceOp || !destOp) return false;
 
   auto sourceAttrs = sourceOp->getDiscardableAttrDictionary();
-  if (!sourceAttrs) return true;
+  if (!sourceAttrs || sourceAttrs.empty()) return true;
 
   auto destAttrs = destOp->getDiscardableAttrDictionary();
-  if (!destAttrs) {
+  if (!destAttrs || destAttrs.empty()) {
     destOp->setDiscardableAttrs(sourceAttrs);
     return true;
   }
@@ -87,16 +85,25 @@ bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
   for (auto attr : sourceAttrs.getValue()) {
     if (attr.getName() == "mhlo.frontend_attributes" &&
         mergedAttrs.get("mhlo.frontend_attributes")) {
-      // Merge frontend attributes, prioritizing source attributes.
-      auto destFrontendAttrs =
-          cast<DictionaryAttr>(mergedAttrs.get("mhlo.frontend_attributes"));
-      auto sourceFrontendAttrs = cast<DictionaryAttr>(attr.getValue());
-      NamedAttrList frontendAttrs(destFrontendAttrs);
-      for (auto sourceAttr : sourceFrontendAttrs) {
-        frontendAttrs.set(sourceAttr.getName(), sourceAttr.getValue());
+      // Merge frontend attributes, prioritizing source attributes except for
+      // `xla_metadata_payload`, which is set by the surviving op.
+      auto destFrontendAttrs = dyn_cast_or_null<DictionaryAttr>(
+          mergedAttrs.get("mhlo.frontend_attributes"));
+      auto sourceFrontendAttrs = dyn_cast<DictionaryAttr>(attr.getValue());
+      if (destFrontendAttrs && sourceFrontendAttrs) {
+        NamedAttrList frontendAttrs(destFrontendAttrs);
+        for (auto sourceAttr : sourceFrontendAttrs) {
+          if (sourceAttr.getName() == "xla_metadata_payload" &&
+              frontendAttrs.get("xla_metadata_payload")) {
+            continue;  // keep the surviving op's own identity
+          }
+          frontendAttrs.set(sourceAttr.getName(), sourceAttr.getValue());
+        }
+        mergedAttrs.set("mhlo.frontend_attributes",
+                        frontendAttrs.getDictionary(destOp->getContext()));
+      } else {
+        mergedAttrs.set(attr.getName(), attr.getValue());
       }
-      mergedAttrs.set("mhlo.frontend_attributes",
-                      frontendAttrs.getDictionary(destOp->getContext()));
     } else {
       // Otherwise prioritize source attributes
       mergedAttrs.set(attr.getName(), attr.getValue());
@@ -105,6 +112,11 @@ bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
 
   destOp->setDiscardableAttrs(mergedAttrs.getDictionary(destOp->getContext()));
   return true;
+}
+
+bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
+  return mergeDiscardableAttributes(sourceValue.getDefiningOp(),
+                                    destValue.getDefiningOp());
 }
 
 template <typename OpType>
@@ -637,8 +649,12 @@ struct DynamicSliceOpToSlice : public SimplifyOpRewritePattern<DynamicSliceOp> {
     auto sliceStrides = rewriter.getDenseI64ArrayAttr(
         SmallVector<int64_t, 4>(inputType.getRank(), 1));
 
-    rewriter.replaceOpWithNewOp<SliceOp>(dynamicSlice, input, sliceStartIndices,
-                                         sliceLimits, sliceStrides);
+    auto sliceOp =
+        SliceOp::create(rewriter, dynamicSlice.getLoc(), input,
+                        sliceStartIndices, sliceLimits, sliceStrides);
+    mergeDiscardableAttributes(dynamicSlice.getOperation(),
+                               sliceOp.getOperation());
+    rewriter.replaceOp(dynamicSlice, sliceOp);
     return success();
   }
 };
@@ -705,9 +721,12 @@ struct RealDynamicSliceOpToDynamicSlice
       startIndices.push_back(startIndex0D);
     }
 
-    rewriter.replaceOpWithNewOp<DynamicSliceOp>(
-        op, op.getOperand(), startIndices,
+    auto dynamicSliceOp = DynamicSliceOp::create(
+        rewriter, op.getLoc(), op.getOperand(), startIndices,
         rewriter.getDenseI64ArrayAttr(sliceSizes));
+    mergeDiscardableAttributes(op.getOperation(),
+                               dynamicSliceOp.getOperation());
+    rewriter.replaceOp(op, dynamicSliceOp);
     return success();
   }
 };

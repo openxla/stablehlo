@@ -20,7 +20,8 @@ func.func @stablehlo_uint8_add(%arg0: tensor<3xui8>) -> tensor<3xui8> {
   // CHECK: %[[CST:.*]] = arith.constant dense<[0, 1, -1]> : tensor<3xi8>
   // CHECK: %[[ADD:.*]] = stablehlo.add %arg0, %[[CST]] : tensor<3xi8>
   // CHECK: return %[[ADD]] : tensor<3xi8>
-  %cst = arith.constant dense<[0, 1, 255]> : tensor<3xui8>
+  %cst_signless = arith.constant dense<[0, 1, 255]> : tensor<3xi8>
+  %cst = builtin.unrealized_conversion_cast %cst_signless : tensor<3xi8> to tensor<3xui8>
   %0 = stablehlo.add %arg0, %cst : tensor<3xui8>
   return %0 : tensor<3xui8>
 }

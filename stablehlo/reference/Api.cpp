@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 #include "stablehlo/reference/Api.h"
 
+#include <atomic>
 #include <cstdint>
 #include <iterator>
 #include <queue>
@@ -81,11 +82,11 @@ FailureOr<func::FuncOp> getMainFunction(ModuleOp module, StringRef mainName) {
 // fallbacks.
 class DefaultInterpreterFallback : public InterpreterFallback {
  public:
-  DefaultInterpreterFallback(const InterpreterConfiguration &config)
+  DefaultInterpreterFallback(const InterpreterConfiguration& config)
       : config(config){};
 
-  virtual llvm::Error operator()(Operation &op, Scope &scope,
-                                 Process *process) final {
+  virtual llvm::Error operator()(Operation& op, Scope& scope,
+                                 Process* process) final {
     llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
 
     if (auto printOp = dyn_cast<stablehlo::interpreter::PrintOp>(op)) {
@@ -112,18 +113,18 @@ class DefaultInterpreterFallback : public InterpreterFallback {
       auto runtimeOperands = scope.find(runParallelOp.getInputs());
       std::queue<StringAttr> infeed;
       if (auto infeedAttr = runParallelOp.getInfeed())
-        for (auto &value : infeedAttr->getValue())
+        for (auto& value : infeedAttr->getValue())
           infeed.push(cast<FlatSymbolRefAttr>(value).getAttr());
 
       SmallVector<SmallVector<StringAttr>> programs(
           runParallelOp.getPrograms().size());
       for (auto [i, replica] : llvm::enumerate(runParallelOp.getPrograms()))
-        for (auto &program : cast<ArrayAttr>(replica))
+        for (auto& program : cast<ArrayAttr>(replica))
           programs[i].push_back(cast<FlatSymbolRefAttr>(program).getAttr());
 
       SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
       auto results = stablehlo::interpreter::evalRunParallelOp(
-          runtimeOperands, infeed, programs, symbolTable);
+          runtimeOperands, infeed, programs, symbolTable, this);
       scope.add(runParallelOp.getResults(), results);
       return wrapFallbackStatus(llvm::Error::success(), funcName,
                                 "interpreter.run_parallel");
@@ -134,11 +135,11 @@ class DefaultInterpreterFallback : public InterpreterFallback {
 
  private:
   /// Interpreter configuration.
-  const InterpreterConfiguration &config;
+  const InterpreterConfiguration& config;
 
   /// Probe instrumentation counter for uniquely identifying instrumented tensor
   /// filenames.
-  int64_t serializedProbeFileId = 0;
+  std::atomic<int64_t> serializedProbeFileId{0};
 };
 
 LogicalResult validateEntrySignature(func::FuncOp func,
@@ -210,7 +211,7 @@ bool isAnyQuantizedTypes(TypeRange types) {
 bool funcUsesQuantType(func::FuncOp func_op) {
   bool usesQuantizedType = false;
 
-  func_op.walk([&](Operation *op) {
+  func_op.walk([&](Operation* op) {
     if (isAnyQuantizedTypes(op->getOperandTypes()) ||
         isAnyQuantizedTypes(op->getResultTypes())) {
       usesQuantizedType = true;
@@ -257,7 +258,7 @@ LogicalResult lowerQuantization(ModuleOp module, func::FuncOp func) {
 
 FailureOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
-    const InterpreterConfiguration &config) {
+    const InterpreterConfiguration& config) {
   // Additional error checking at main function boundary.
   // This is most likely user error, where future errors during interpreting
   // are more likely invalid IR or interpreter bugs.
@@ -288,7 +289,7 @@ FailureOr<SmallVector<InterpreterValue>> evalModule(
 
 FailureOr<SmallVector<DenseElementsAttr>> evalModule(
     ModuleOp module, ArrayRef<DenseElementsAttr> inputs,
-    const InterpreterConfiguration &config) {
+    const InterpreterConfiguration& config) {
   SmallVector<InterpreterValue> valueInputs = llvm::map_to_vector(
       inputs, [](DenseElementsAttr attr) -> InterpreterValue {
         return InterpreterValue(makeTensor(attr));
@@ -305,8 +306,8 @@ FailureOr<SmallVector<DenseElementsAttr>> evalModule(
   return results;
 }
 
-FailureOr<OwningOpRef<ModuleOp>> parseStablehloModule(const std::string &mlir,
-                                                      MLIRContext &context) {
+FailureOr<OwningOpRef<ModuleOp>> parseStablehloModule(const std::string& mlir,
+                                                      MLIRContext& context) {
   llvm::SourceMgr source_mgr;
   source_mgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(mlir),
                                 llvm::SMLoc());

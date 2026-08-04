@@ -275,8 +275,11 @@ struct CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern
       startIndices.push_back(startIndex0D);
     }
 
-    rewriter.replaceOpWithNewOp<DynamicSliceOp>(
-        op, op.getType(), op.getOperand(), startIndices, sliceSizes);
+    auto dynamicSliceOp =
+        DynamicSliceOp::create(rewriter, op.getLoc(), op.getType(),
+                               op.getOperand(), startIndices, sliceSizes);
+    dynamicSliceOp->setDiscardableAttrs(op->getDiscardableAttrDictionary());
+    rewriter.replaceOp(op, dynamicSliceOp);
     return success();
   }
 };
@@ -295,8 +298,11 @@ struct CanonicalizeRealDynamicSliceOpToSliceOpPattern
       return rewriter.notifyMatchFailure(op, "expected static limit");
     if (!succeeded(hlo::matchInts(op.getStrides(), strides)))
       return rewriter.notifyMatchFailure(op, "expected static strides");
-    rewriter.replaceOpWithNewOp<SliceOp>(op, op.getType(), op.getOperand(),
-                                         startIndices, limitIndices, strides);
+    auto sliceOp =
+        SliceOp::create(rewriter, op.getLoc(), op.getType(), op.getOperand(),
+                        startIndices, limitIndices, strides);
+    sliceOp->setDiscardableAttrs(op->getDiscardableAttrDictionary());
+    rewriter.replaceOp(op, sliceOp);
     return success();
   }
 };
