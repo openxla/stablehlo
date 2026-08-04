@@ -215,6 +215,17 @@ operation.
 MlirOp CollectivePermute(MlirOp &operand, ::mlir::DenseIntElementsAttr source_target_pairs, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {});
 ```
 
+### `stablehlo::CollectiveReduceOp`
+
+Creates a new [`stablehlo.collective_reduce`](https://openxla.org/stablehlo/spec#collective_reduce)
+operation.
+
+This operation has a body region built via a callback function.
+
+```c++
+SmallVector<MlirOp> CollectiveReduce(MlirBuilder &builder, ArrayRef<MlirOp> operands, const RegionBuilderCallback &computation, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false, /*optional*/bool has_dynamic_root = false);
+```
+
 ### `stablehlo::CompareOp`
 
 Creates a new [`stablehlo.compare`](https://openxla.org/stablehlo/spec#compare)
