@@ -23,6 +23,7 @@ limitations under the License.
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/LLVM.h"
+#include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Value.h"
 
 #define GET_OP_CLASSES
@@ -39,8 +40,9 @@ class InterpreterDialect : public Dialect {
 };
 
 SmallVector<InterpreterValue> evalRunParallelOp(
-    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
-    SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable);
+    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr>& infeed,
+    SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable,
+    InterpreterFallback* fallback);
 
 // Print the SSA name followed by its type and value like:
 // >>> %0 = tensor<i1> {

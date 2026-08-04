@@ -19,6 +19,7 @@ limitations under the License.
 #include <cstdint>
 #include <functional>
 #include <future>
+#include <mutex>
 #include <queue>
 #include <string>
 
@@ -171,7 +172,8 @@ LogicalResult RunParallelOp::verify() {
 
 SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs, std::queue<StringAttr>& infeed,
-    SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable) {
+    SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable,
+    InterpreterFallback* fallback) {
   llvm::DefaultThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
 
@@ -188,7 +190,7 @@ SmallVector<InterpreterValue> evalRunParallelOp(
       auto evalWrapper = [&](Region& region, ArrayRef<InterpreterValue> args,
                              ProcessId processId) {
         Process process{processId, &processGrid};
-        return eval(region, args, /*config=*/nullptr, &process,
+        return eval(region, args, fallback, &process,
                     /*parent=*/nullptr);
       };
 
@@ -208,6 +210,9 @@ SmallVector<InterpreterValue> evalRunParallelOp(
 }
 
 llvm::Error evalPrintOp(PrintOp& op, InterpreterValue operand) {
+  static std::mutex printing_lock;
+  std::lock_guard<std::mutex> lock(printing_lock);
+
   std::string ssaValueStr;
   llvm::raw_string_ostream stream(ssaValueStr);
   stream << op.getOperand();

@@ -550,16 +550,18 @@ def PadOp_RemoveNoop
 //       -> slice(X, start, limit, strides)
 //          [if start, limit, strides are all constants]
 def RealDynamicSliceOp_ReplaceWithSlice
-  : Pat<(StableHLO_RealDynamicSliceOp
+  : Pat<(StableHLO_RealDynamicSliceOp:$op
             $operand,
             (ConstantLikeMatcher DenseIntElementsAttr:$start_indices),
             (ConstantLikeMatcher DenseIntElementsAttr:$limit_indices),
             (ConstantLikeMatcher DenseIntElementsAttr:$strides)),
-        (StableHLO_SliceOp
+        (StableHLO_SliceOp:$new_op
             $operand,
             (ConvertToI64Array $start_indices),
             (ConvertToI64Array $limit_indices),
-            (ConvertToI64Array $strides))>;
+            (ConvertToI64Array $strides)),
+        [],
+        [(MergeDiscardableAttributes $op, $new_op)]>;
 
 ////////
 // RealOp

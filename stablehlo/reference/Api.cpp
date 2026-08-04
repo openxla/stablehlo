@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 #include "stablehlo/reference/Api.h"
 
+#include <atomic>
 #include <cstdint>
 #include <iterator>
 #include <queue>
@@ -123,7 +124,7 @@ class DefaultInterpreterFallback : public InterpreterFallback {
 
       SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
       auto results = stablehlo::interpreter::evalRunParallelOp(
-          runtimeOperands, infeed, programs, symbolTable);
+          runtimeOperands, infeed, programs, symbolTable, this);
       scope.add(runParallelOp.getResults(), results);
       return wrapFallbackStatus(llvm::Error::success(), funcName,
                                 "interpreter.run_parallel");
@@ -138,7 +139,7 @@ class DefaultInterpreterFallback : public InterpreterFallback {
 
   /// Probe instrumentation counter for uniquely identifying instrumented tensor
   /// filenames.
-  int64_t serializedProbeFileId = 0;
+  std::atomic<int64_t> serializedProbeFileId{0};
 };
 
 LogicalResult validateEntrySignature(func::FuncOp func,
