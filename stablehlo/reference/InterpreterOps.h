@@ -35,7 +35,7 @@ namespace interpreter {
 
 class InterpreterDialect : public Dialect {
  public:
-  explicit InterpreterDialect(MLIRContext *context);
+  explicit InterpreterDialect(MLIRContext* context);
   static StringRef getDialectNamespace() { return "interpreter"; }
 };
 
@@ -48,7 +48,7 @@ SmallVector<InterpreterValue> evalRunParallelOp(
 // >>> %0 = tensor<i1> {
 // ...    [true]
 // ... }
-llvm::Error evalPrintOp(PrintOp &op, InterpreterValue operand);
+llvm::Error evalPrintOp(PrintOp& op, InterpreterValue operand);
 
 llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
                         StringRef probeOutputDir,
