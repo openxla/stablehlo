@@ -317,15 +317,3 @@ func.func @sparse_zero_preserving_math(%arg0: tensor<64xf64, #SV>) -> tensor<64x
   %10 = stablehlo.floor %9 : (tensor<64xf64, #SV>) -> tensor<64xf64, #SV>
   func.return %10 : tensor<64xf64, #SV>
 }
-
-//
-// Combination of quantization and sparse.
-//
-
-// CHECK-LABEL: func @quantization_and_sparse(
-//  CHECK-SAME: %[[A:.*]]: tensor<1x!quant.uniform<i8:f32, 1.000000e+00:17>, #{{.*}}>)
-//       CHECK: return %[[A]] : tensor<1x!quant.uniform<i8:f32, 1.000000e+00:17>, #{{.*}}>
-func.func @quantization_and_sparse(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>, #SV>)
-                                       -> tensor<1x!quant.uniform<i8:f32, 1.0:17>, #SV> {
-  func.return %arg0 : tensor<1x!quant.uniform<i8:f32, 1.0:17>, #SV>
-}

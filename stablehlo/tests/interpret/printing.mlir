@@ -123,3 +123,35 @@ func.func @test_complex() -> (tensor<4xcomplex<f32>>, tensor<4xcomplex<f64>>) {
   %complex_f64 = stablehlo.constant dense<(3.140000e+00, 1.0)> : tensor<4xcomplex<f64>>
   func.return %complex_f32, %complex_f64 : tensor<4xcomplex<f32>>, tensor<4xcomplex<f64>>
 }
+
+// -----
+
+// This test checks that printing works correctly when called from multiple
+// threads in parallel using the `interpreter.run_parallel` op.
+//
+// By "correctly", we mean the following:-
+// 1. `interpreter.print` is recognised as a valid op within the
+//    `interpreter.run_parallel` context (no "Unsupported op" errors).
+// 2. The outputs of different threads are not interleaved, i.e., each output of
+//    an `interpreter.print` is completed before the other thread's output is
+//    printed.
+
+func.func @iota_printing_called_inside_run_parallel() -> tensor<2xi32> {
+  %0 = stablehlo.iota dim = 0 : tensor<2xi32>
+  interpreter.print %0 : tensor<2xi32>
+  return %0 : tensor<2xi32>
+}
+
+func.func @main() {
+  // CHECK:      %0 = tensor<2xi32> {
+  // CHECK-NEXT:   [0, 1]
+  // CHECK-NEXT: }
+  // CHECK:      %0 = tensor<2xi32> {
+  // CHECK-NEXT:   [0, 1]
+  // CHECK-NEXT: }
+
+  %results:2 = "interpreter.run_parallel"() {
+    programs = [[@iota_printing_called_inside_run_parallel, @iota_printing_called_inside_run_parallel]]
+  } : () -> (tensor<2xi32>, tensor<2xi32>)
+  func.return
+}

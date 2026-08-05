@@ -57,6 +57,7 @@ def VHLO_Dialect : Dialect {
       1.16.0: Add mesh based replica groups to collective ops.
       1.17.0: Add `future` type support to `custom_call` op.
       1.18.0: Add `result_tilings` attribute to `custom_call` op.
+      1.19.0: Add CollectiveReduceOp.
   }];
 
   let useDefaultAttributePrinterParser = 0;
