@@ -819,6 +819,10 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::BitcastConvertOp>(
   Type argType = getElementTypeOrSelf(argTypes.front());
   Type resultType = getElementTypeOrSelf(resultTypes.front());
 
+  // stablehlo.bitcast_convert also accepts quantized element types, which have
+  // no bit width in the sense of getIntOrFloatBitWidth (it asserts on them).
+  if (!argType.isIntOrFloat() || !resultType.isIntOrFloat()) return nullptr;
+
   if (resultType.getIntOrFloatBitWidth() != argType.getIntOrFloatBitWidth())
     return nullptr;
 
