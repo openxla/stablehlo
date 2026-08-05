@@ -911,9 +911,13 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                " not seen in replica groups");
 
   // all_to_all_c8
+  // An empty replica_groups (shape[0] == 0) has no groups, so it cannot have
+  // the expected group size; check it explicitly to also avoid dividing by
+  // zero below.
   if (allGroupsMustHaveSameSize && expectedGroupSize &&
-      (replicaIds.size() / replicaGroupType.getShape()[0] !=
-       *expectedGroupSize))
+      (replicaGroupType.getShape()[0] == 0 ||
+       replicaIds.size() / replicaGroupType.getShape()[0] !=
+           *expectedGroupSize))
     return emitOptionalError(location, "group size of replica_groups must be ",
                              *expectedGroupSize);
 
