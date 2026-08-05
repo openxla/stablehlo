@@ -912,6 +912,7 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
 
   // all_to_all_c8
   if (allGroupsMustHaveSameSize && expectedGroupSize &&
+      replicaGroupType.getShape()[0] != 0 &&
       (replicaIds.size() / replicaGroupType.getShape()[0] !=
        *expectedGroupSize))
     return emitOptionalError(location, "group size of replica_groups must be ",
