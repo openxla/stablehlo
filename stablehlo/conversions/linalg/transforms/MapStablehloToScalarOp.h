@@ -819,6 +819,10 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::BitcastConvertOp>(
   Type argType = getElementTypeOrSelf(argTypes.front());
   Type resultType = getElementTypeOrSelf(resultTypes.front());
 
+  if (!isa<IntegerType, FloatType>(argType) ||
+      !isa<IntegerType, FloatType>(resultType))
+    return nullptr;
+
   if (resultType.getIntOrFloatBitWidth() != argType.getIntOrFloatBitWidth())
     return nullptr;
 
