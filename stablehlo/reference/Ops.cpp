@@ -519,7 +519,7 @@ SmallVector<InterpreterValue> eval(Region& region,
       auto result = clzOp(operand, op.getType());
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<CollectiveBroadcastOp>(operation)) {
-      auto operand = scope.findTensor(op.getOperand());
+      auto operands = scope.findTensors(op.getOperands());
 
       SmallVector<SmallVector<uint32_t>> replicaGroups =
           getReplicaGroups(op.getReplicaGroups(), op);
@@ -528,9 +528,9 @@ SmallVector<InterpreterValue> eval(Region& region,
       if (auto channelHandle = op.getChannelHandle())
         channelId = channelHandle->getHandle();
 
-      auto result =
-          collectiveBroadcastOp(operand, replicaGroups, channelId, process);
-      scope.add(op.getResult(), result);
+      auto results = collectiveBroadcastOp(operands, replicaGroups, channelId,
+                                           op.getHasDynamicRoot(), process);
+      scope.add(op.getResults(), results);
     } else if (auto op = dyn_cast<CollectiveReduceOp>(operation)) {
       auto operands = scope.findTensors(op.getOperands());
       SmallVector<SmallVector<uint32_t>> replicaGroups =
@@ -1434,9 +1434,9 @@ Tensor clzOp(const Tensor& operand, ShapedType resultType) {
   return result;
 }
 
-Tensor collectiveBroadcastOp(const Tensor& operand,
-                             SmallVector<SmallVector<uint32_t>> replicaGroups,
-                             ChannelId channelId, Process* process) {
+SmallVector<InterpreterValue> collectiveBroadcastOp(
+    ArrayRef<Tensor> operands, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, bool hasDynamicRoot, Process* process) {
   if (!process)
     llvm::report_fatal_error(
         "collective_broadcast is only supported when run via "
@@ -1446,14 +1446,32 @@ Tensor collectiveBroadcastOp(const Tensor& operand,
   if (channelId <= 0) processGroups = process->crossReplica(replicaGroups);
   if (channelId > 0) processGroups = process->crossPartition(replicaGroups);
 
+  // Data operands: all if !hasDynamicRoot, else all but the last.
+  ArrayRef<Tensor> dataOperands =
+      hasDynamicRoot ? operands.drop_back(1) : operands;
+
   auto processGroup = processGroups.findGroup(process->getId());
-  if (processGroup) {
-    return process->rendezvous(*processGroup, channelId, {operand})
-        .lookup((*processGroup)[0])
-        .front();
+  SmallVector<InterpreterValue> results;
+  for (const auto& [dataIndex, dataOperand] : llvm::enumerate(dataOperands)) {
+    if (!processGroup) {
+      results.push_back(
+          broadcastInDimOp(constant(0.0, dataOperand.getElementType()), {},
+                           dataOperand.getType()));
+      continue;
+    }
+
+    ProcessId rootId = (*processGroup)[0];
+    if (hasDynamicRoot) {
+      const Tensor& rootTensor = operands.back();
+      auto rootIdx = rootTensor.get({static_cast<int64_t>(dataIndex)});
+      rootId = (*processGroup)[rootIdx.getIntegerValue().getZExtValue()];
+    }
+
+    auto rendezResult =
+        process->rendezvous(*processGroup, channelId, {dataOperand});
+    results.push_back(rendezResult.lookup(rootId).front());
   }
-  return broadcastInDimOp(constant(0.0, operand.getElementType()), {},
-                          operand.getType());
+  return results;
 }
 
 SmallVector<InterpreterValue> collectiveReduceOp(

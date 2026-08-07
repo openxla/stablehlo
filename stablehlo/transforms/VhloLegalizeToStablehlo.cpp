@@ -655,14 +655,33 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                 std::is_same<VhloOpTy, vhlo::AllReduceOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::AllToAllOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
+                std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value) {
     if (vhloName == "channel_id") {
       stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
       stablehloAttr = convertChannelId(vhloAttr, typeConverter);
       if (!stablehloAttr) return specialFailure();
     }
     if (vhloName == "use_global_device_ids") {
+      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
+      if (!vhloBooleanAttr) return specialFailure();
+      if (!vhloBooleanAttr.getValue()) return specialSuccess();
+      stablehloAttr = UnitAttr::get(pattern.getContext());
+    }
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
+    if (vhloName == "channel_id") {
+      stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
+      stablehloAttr = convertChannelId(vhloAttr, typeConverter);
+      if (!stablehloAttr) return specialFailure();
+    }
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV2>::value) {
+    if (vhloName == "channel_id") {
+      stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
+      stablehloAttr = convertChannelId(vhloAttr, typeConverter);
+      if (!stablehloAttr) return specialFailure();
+    }
+    if (vhloName == "has_dynamic_root") {
       auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
       if (!vhloBooleanAttr) return specialFailure();
       if (!vhloBooleanAttr.getValue()) return specialSuccess();
@@ -892,6 +911,12 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
                 std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
     if (isInteger(vhloOp.getChannelIdAttr(), 0))
       eraseAttrs(vhloAttrs, "channel_id");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV2>::value) {
+    if (isInteger(vhloOp.getChannelIdAttr(), 0))
+      eraseAttrs(vhloAttrs, "channel_id");
+    if (isBoolean(vhloOp.getHasDynamicRootAttr(), false))
+      eraseAttrs(vhloAttrs, "has_dynamic_root");
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveReduceOpV1>::value) {
     if (isInteger(vhloOp.getChannelIdAttr(), 0))

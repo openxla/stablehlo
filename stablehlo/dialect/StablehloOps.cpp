@@ -1516,13 +1516,6 @@ LogicalResult AbsOp::inferReturnTypes(
 // CollectiveBroadcastOp
 //===----------------------------------------------------------------------===//
 
-void CollectiveBroadcastOp::build(OpBuilder& odsBuilder,
-                                  OperationState& odsState, Type resultType,
-                                  Value operand, Attribute replica_groups) {
-  CollectiveBroadcastOp::build(odsBuilder, odsState, resultType, operand,
-                               replica_groups, /*channel_handle=*/nullptr);
-}
-
 LogicalResult CollectiveBroadcastOp::inferReturnTypes(
     MLIRContext* /*context*/, std::optional<Location> location,
     ValueRange operands, DictionaryAttr attributes, PropertyRef properties,
@@ -1530,6 +1523,7 @@ LogicalResult CollectiveBroadcastOp::inferReturnTypes(
   CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
                                          regions);
   return hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                         adaptor.getHasDynamicRoot(),
                                          inferredReturnTypes);
 }
 
@@ -1542,17 +1536,20 @@ LogicalResult CollectiveBroadcastOp::inferReturnTypeComponents(
   CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
                                          regions);
   if (failed(hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                             adaptor.getHasDynamicRoot(),
                                              inferredReturnTypes)))
     return failure();
-  if (inferredReturnTypes.size() != 1) return failure();
-  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
-  if (!inferredReturnType) return failure();
-  inferredReturnShapes.push_back(inferredReturnType);
+  for (auto inferredReturnType : inferredReturnTypes) {
+    auto shapedType = dyn_cast<ShapedType>(inferredReturnType);
+    if (!shapedType) return failure();
+    inferredReturnShapes.push_back(shapedType);
+  }
   return success();
 }
 
 LogicalResult CollectiveBroadcastOp::verify() {
-  return hlo::verifyCollectiveBroadcastOp(getLoc(), getReplicaGroups());
+  return hlo::verifyCollectiveBroadcastOp(
+      getLoc(), getOperands(), getReplicaGroups(), getHasDynamicRoot());
 }
 
 LogicalResult CollectiveBroadcastOp::verifySymbolUses(

@@ -2352,7 +2352,6 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
 def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
     [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
-     SameOperandsAndResultElementType /*collective_broadcast_c3*/,
      DeclareOpInterfaceMethods<InferTypeOpInterface>,
      DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>,
      DeclareOpInterfaceMethods<SymbolUserOpInterface>
@@ -2362,6 +2361,10 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
     Within each process group in the process grid, send the value of the
     `operand` tensor from the source process to the target processes and produce a
     `result` tensor.
+
+    When `has_dynamic_root` is false (default), the root is the 0-th rank in
+    each replica group. When `has_dynamic_root` is true, the last operand is a
+    rank-1 i32 tensor specifying per-operand root indices within each group.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#collective_broadcast
@@ -2378,18 +2381,13 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand, /*collective_broadcast_i1*/
+    Variadic<HLO_Tensor>:$operands, /*collective_broadcast_i1*/
     StableHLO_ReplicaGroups:$replica_groups, /*collective_broadcast_i2*/
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle /*collective_broadcast_i3*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*collective_broadcast_i3*/
+    UnitAttr:$has_dynamic_root /*collective_broadcast_i4*/
   );
-  let results = (outs HLO_Tensor);
+  let results = (outs Variadic<HLO_Tensor>);
   let hasVerifier = 1;
-  // channel_handle is only used for the SPMD partitioner, so we add a
-  // simplified builder method for convenience.
-  let builders = [
-    OpBuilder<(ins
-      "::mlir::Type":$result_type, "::mlir::Value":$operand,
-      "::mlir::Attribute":$replica_groups)>];
 }
 
 def StableHLO_CollectiveReduceOp : StableHLO_Op<"collective_reduce",

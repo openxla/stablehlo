@@ -2150,9 +2150,12 @@ LogicalResult inferConvertOp(
 }
 
 LogicalResult inferCollectiveBroadcastOp(
-    std::optional<Location>, ValueRange operands,
+    std::optional<Location> location, ValueRange operands, bool hasDynamicRoot,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  for (const auto& resultType : operands.getTypes())
+  // When has_dynamic_root=true, the last operand is the root index tensor and
+  // is excluded from the output types.
+  ValueRange dataOperands = hasDynamicRoot ? operands.drop_back(1) : operands;
+  for (const auto& resultType : dataOperands.getTypes())
     inferredReturnTypes.push_back(resultType);
   return success();
 }
@@ -3942,36 +3945,61 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
 }
 
 LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
-                                          Attribute replicaGroups) {
+                                          ValueRange operands,
+                                          Attribute replicaGroups,
+                                          bool hasDynamicRoot) {
   auto denseGroups = dyn_cast<DenseIntElementsAttr>(replicaGroups);
-  if (!denseGroups) {
-    return success();
-  }
-
-  // collective_permute_i2
-  auto replicaGroupType = cast<RankedTensorType>(denseGroups.getType());
-  if (replicaGroupType.getRank() != 2)
-    return emitOptionalError(
-        location, "replica groups should be a rank 2 tensor,",
-        "but instead it is of rank ", replicaGroupType.getRank());
-
-  auto replicaIds = denseGroups.getValues<int64_t>();
-  llvm::DenseSet<int64_t> replicaIdsSeen;
-  for (int64_t replicaId : replicaIds) {
-    // collective_broadcast_c2
-    // We only check that is is not negative, as it is impossible
-    // to statically know `num_replicas` or `num_partitions`
-    if (replicaId < 0)
+  if (denseGroups) {
+    auto replicaGroupType = cast<RankedTensorType>(denseGroups.getType());
+    if (replicaGroupType.getRank() != 2)
       return emitOptionalError(
-          location, "replica_groups values must be positive, but was given ",
-          replicaId);
+          location, "replica groups should be a rank 2 tensor,",
+          "but instead it is of rank ", replicaGroupType.getRank());
 
-    // collective_broadcast_c1
-    if (!replicaIdsSeen.insert(replicaId).second)
-      return emitOptionalError(location, "replica id #", replicaId,
-                               " seen more than once");
+    auto replicaIds = denseGroups.getValues<int64_t>();
+    llvm::DenseSet<int64_t> replicaIdsSeen;
+    for (int64_t replicaId : replicaIds) {
+      // collective_broadcast_c2
+      // We only check that it is not negative, as it is impossible
+      // to statically know `num_replicas` or `num_partitions`
+      if (replicaId < 0)
+        return emitOptionalError(
+            location, "replica_groups values must be positive, but was given ",
+            replicaId);
+
+      // collective_broadcast_c1
+      if (!replicaIdsSeen.insert(replicaId).second)
+        return emitOptionalError(location, "replica id #", replicaId,
+                                 " seen more than once");
+    }
   }
-  return success();
+
+  if (!hasDynamicRoot && operands.empty())
+    return emitOptionalError(
+        location, "collective_broadcast requires at least one data operand");
+
+  if (hasDynamicRoot) {
+    if (operands.size() < 2)
+      return emitOptionalError(
+          location,
+          "collective_broadcast with has_dynamic_root=true requires at least "
+          "two operands (data + root)");
+    auto rootType = dyn_cast<ShapedType>(operands.back().getType());
+    if (!rootType || !rootType.getElementType().isInteger(32) ||
+        rootType.getRank() != 1)
+      return emitOptionalError(
+          location,
+          "last operand of collective_broadcast with has_dynamic_root=true "
+          "must be a rank-1 i32 tensor, but got ",
+          operands.back().getType());
+    int64_t numDataOperands = static_cast<int64_t>(operands.size()) - 1;
+    if (rootType.getDimSize(0) != numDataOperands)
+      return emitOptionalError(
+          location,
+          "last operand of collective_broadcast with has_dynamic_root=true "
+          "must have the same number of elements as data operands (",
+          numDataOperands, "), but got ", rootType.getDimSize(0));
+  }
 
   return success();
 }

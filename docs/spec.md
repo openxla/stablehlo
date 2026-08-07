@@ -1792,8 +1792,8 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 #### Semantics
 
 Within each process group in the StableHLO process grid, send the value of the
-`operand` tensor from the source process to the target processes and produce a
-`result` tensor.
+`operands` tensors from the source process to the target processes and produce
+`results` tensors.
 
 The operation splits the StableHLO process grid into `process_groups` which is
 defined as follows:
@@ -1801,27 +1801,34 @@ defined as follows:
 * `cross_replica(replica_groups)` if `channel_id <= 0`.
 * `cross_partition(replica_groups)` if `channel_id > 0`.
 
-Afterwards, `result@process` is given by:
+The source process for `process_groups[i]` is determined by `has_dynamic_root`:
 
-* `operand@process_groups[i, 0]` if there exists an `i` such that the process is
+* If `has_dynamic_root = false`: the source is `process_groups[i, 0]`.
+* If `has_dynamic_root = true`: the source is
+  `process_groups[i, root_indices[j]]` for the j-th data operand.
+
+Afterwards, `results[j]@process` is given by:
+
+* `operands[j]@source_process` if there exists an `i` such that the process is
   in `process_groups[i]`.
-* `broadcast_in_dim(constant(is_quantized(result) ? quantize(0,
-  element_type(result)) : 0, element_type(result)), [], type(result))`
+* `broadcast_in_dim(constant(is_quantized(results[j]) ? quantize(0,
+  element_type(results[j])) : 0, element_type(results[j])), [], type(results[j]))`
   otherwise.
 
 #### Inputs
 
-| Label | Name             | Type                                                                                       | Constraints |
-|-------|------------------|--------------------------------------------------------------------------------------------|-------------|
-| (I1)  | `operand`        | tensor or per-tensor quantized tensor                                                      | (C3)        |
-| (I2)  | `replica_groups` | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes` | (C1), (C2)  |
-| (I3)  | `channel_id`     | constant of type `si64`                                                                    |             |
+| Label | Name              | Type                                                                                       | Constraints        |
+|-------|-------------------|--------------------------------------------------------------------------------------------|--------------------|
+| (I1)  | `operands`        | variadic number of tensors or per-tensor quantized tensors                                 | (C3), (C4), (C5)   |
+| (I2)  | `replica_groups`  | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes` | (C1), (C2)         |
+| (I3)  | `channel_id`      | constant of type `si64`                                                                    |                    |
+| (I4)  | `has_dynamic_root` | constant of type `i1`                                                                     | (C3), (C4), (C5)   |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C3)        |
+| Name      | Type                                                       | Constraints |
+|-----------|------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C3)        |
 
 #### Constraints
 
@@ -1829,7 +1836,14 @@ Afterwards, `result@process` is given by:
 * (C2) `0 <= replica_groups < N` where `N` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_partitions` if `cross_partition` is used.
-* (C3) `type(result) = type(operand)`.
+* (C3) If `has_dynamic_root = false`:
+  * `size(operands) >= 1`.
+  * `type(results[j]) = type(operands[j])` for all `j` in `[0, size(operands))`.
+* (C4) If `has_dynamic_root = true`:
+  * `size(operands) >= 2`.
+  * `type(operands[size(operands)-1]) = tensor<[size(operands)-1]xi32>`.
+  * `type(results[j]) = type(operands[j])` for all `j` in `[0, size(operands)-1)`.
+* (C5) `size(results) = size(operands) - (has_dynamic_root ? 1 : 0)`.
 
 #### Examples
 
