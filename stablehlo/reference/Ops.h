@@ -59,9 +59,9 @@ Tensor ceilOp(const Tensor& operand, ShapedType resultType);
 Tensor clampOp(const Tensor& min, const Tensor& operand, const Tensor& max,
                ShapedType resultType);
 Tensor clzOp(const Tensor& operand, ShapedType resultType);
-Tensor collectiveBroadcastOp(const Tensor& operand,
-                             SmallVector<SmallVector<uint32_t>> replicaGroups,
-                             ChannelId channelId, Process* process);
+SmallVector<InterpreterValue> collectiveBroadcastOp(
+    ArrayRef<Tensor> operands, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, bool hasDynamicRoot, Process* process);
 SmallVector<InterpreterValue> collectiveReduceOp(
     ArrayRef<Tensor> operands, SmallVector<SmallVector<uint32_t>> replicaGroups,
     ChannelId channelId, bool useGlobalDeviceIds, bool hasDynamicRoot,

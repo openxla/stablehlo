@@ -174,7 +174,7 @@ LogicalResult inferClampOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferCollectiveBroadcastOp(
-    std::optional<Location>, ValueRange operands,
+    std::optional<Location> location, ValueRange operands, bool hasDynamicRoot,
     SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferCollectiveReduceOp(
@@ -448,7 +448,9 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                                      Value result);
 
 LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
-                                          Attribute replicaGroups);
+                                          ValueRange operands,
+                                          Attribute replicaGroups,
+                                          bool hasDynamicRoot);
 
 LogicalResult verifyCollectiveReduceOp(
     std::optional<Location> location, ValueRange operands,
