@@ -1464,7 +1464,12 @@ SmallVector<InterpreterValue> collectiveBroadcastOp(
     if (hasDynamicRoot) {
       const Tensor& rootTensor = operands.back();
       auto rootIdx = rootTensor.get({static_cast<int64_t>(dataIndex)});
-      rootId = (*processGroup)[rootIdx.getIntegerValue().getZExtValue()];
+      int64_t rootIdxVal = rootIdx.getIntegerValue().getSExtValue();
+      if (rootIdxVal < 0 ||
+          rootIdxVal >= static_cast<int64_t>(processGroup->size()))
+        llvm::report_fatal_error(
+            "collective_broadcast dynamic root index out of bounds");
+      rootId = (*processGroup)[rootIdxVal];
     }
 
     auto rendezResult =

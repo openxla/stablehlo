@@ -1801,11 +1801,12 @@ defined as follows:
 * `cross_replica(replica_groups)` if `channel_id <= 0`.
 * `cross_partition(replica_groups)` if `channel_id > 0`.
 
-The source process for `process_groups[i]` is determined by `has_dynamic_root`:
+Let `N = size(results)`. The source process for `process_groups[i]` computing
+`results[j]` (for `0 <= j < N`) is determined by `has_dynamic_root`:
 
 * If `has_dynamic_root = false`: the source is `process_groups[i, 0]`.
 * If `has_dynamic_root = true`: the source is
-  `process_groups[i, root_indices[j]]` for the j-th data operand.
+  `process_groups[i, operands[N][j]]`.
 
 Afterwards, `results[j]@process` is given by:
 
@@ -1817,12 +1818,12 @@ Afterwards, `results[j]@process` is given by:
 
 #### Inputs
 
-| Label | Name              | Type                                                                                       | Constraints        |
-|-------|-------------------|--------------------------------------------------------------------------------------------|--------------------|
-| (I1)  | `operands`        | variadic number of tensors or per-tensor quantized tensors                                 | (C3), (C4), (C5)   |
-| (I2)  | `replica_groups`  | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes` | (C1), (C2)         |
-| (I3)  | `channel_id`      | constant of type `si64`                                                                    |                    |
-| (I4)  | `has_dynamic_root` | constant of type `i1`                                                                     | (C3), (C4), (C5)   |
+| Label | Name              | Type                                                                                       | Constraints           |
+|-------|-------------------|--------------------------------------------------------------------------------------------|-----------------------|
+| (I1)  | `operands`        | variadic number of tensors or per-tensor quantized tensors                                 | (C3), (C4), (C5), (6) |
+| (I2)  | `replica_groups`  | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes` | (C1), (C2)            |
+| (I3)  | `channel_id`      | constant of type `si64`                                                                    |                       |
+| (I4)  | `has_dynamic_root` | constant of type `i1`                                                                     | (C3), (C4), (C5)      |
 
 #### Outputs
 
@@ -1844,6 +1845,7 @@ Afterwards, `results[j]@process` is given by:
   * `type(operands[size(operands)-1]) = tensor<[size(operands)-1]xi32>`.
   * `type(results[j]) = type(operands[j])` for all `j` in `[0, size(operands)-1)`.
 * (C5) `size(results) = size(operands) - (has_dynamic_root ? 1 : 0)`.
+* (C6) `0 <= operands[size(operands)-1] < shape(replica_groups)[1]`.
 
 #### Examples
 
