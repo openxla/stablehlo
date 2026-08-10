@@ -853,6 +853,21 @@ func.func @all_to_all_c8(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
 
 // -----
 
+func.func @all_to_all_empty_replica_groups(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // An empty replica_groups must be rejected, not divided by zero (all_to_all_c8).
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{group size of replica_groups must be 4}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<0> : tensor<0x2xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
 func.func @all_to_all_c9(%data: tensor<4x16xf32>) -> tensor<16x4xf64> {
   // expected-error@+1 {{op requires the same element type for operand and result at index 0}}
   %0 = "stablehlo.all_to_all"(%data) {
