@@ -6,6 +6,7 @@
 // CHECK-ERROR-MISSING: failed to read NumPy args file
 
 // RUN: not stablehlo-translate --interpret %s --args=@%t/other.mlir,@%t/probe1.npy 2>&1 | FileCheck %s --check-prefixes=CHECK-ERROR-MIXED
+// RUN: not stablehlo-translate --interpret %s --args=@%t/probe1.npy,@%t/other.mlir 2>&1 | FileCheck %s --check-prefixes=CHECK-ERROR-MIXED
 // CHECK-ERROR-MIXED: cannot mix .npy and non-.npy args files
 
 // The probes serialize each argument to <probe-output-dir>/probe<N>.npy on

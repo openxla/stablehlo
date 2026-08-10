@@ -17,6 +17,7 @@ limitations under the License.
 #include <string>
 #include <utility>
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/CommandLine.h"
@@ -117,32 +118,42 @@ mlir::FailureOr<SmallVector<stablehlo::InterpreterValue>>
 parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
   llvm::SmallVector<stablehlo::InterpreterValue> inputs;
   auto parseError = [&](llvm::StringRef msg) {
-    std::string usage =
-        "--args=[dense<1> : tensor<2xi32>, ...] or --args=@file";
+    std::string usage = "--args=[dense<1> : tensor<2xi32>, ...]";
+    return emitError(UnknownLoc::get(context), msg) << ", i.e. " << usage;
+  };
+  auto fileError = [&](llvm::StringRef msg) {
+    std::string usage = "--args=@file or --args=@a.npy,@b.npy";
     return emitError(UnknownLoc::get(context), msg) << ", i.e. " << usage;
   };
   if (!argsStr.empty() && argsStr[0] == '@') {
-    if (llvm::StringRef(argsStr).ends_with(".npy")) {
-      llvm::SmallVector<llvm::StringRef> fileNames;
-      llvm::StringRef(argsStr).split(fileNames, ',');
+    llvm::SmallVector<llvm::StringRef> fileNames;
+    llvm::StringRef(argsStr).split(fileNames, ',');
+    for (llvm::StringRef &fileName : fileNames) fileName.consume_front("@");
+
+    auto isNumPy = [](llvm::StringRef fileName) {
+      return fileName.ends_with(".npy");
+    };
+    if (llvm::all_of(fileNames, isNumPy)) {
       for (llvm::StringRef fileName : fileNames) {
-        fileName.consume_front("@");
-        if (!fileName.ends_with(".npy"))
-          return parseError("cannot mix .npy and non-.npy args files ('" +
-                            fileName.str() + "')");
         auto tensor = stablehlo::numpy::deserializeTensor(fileName, context);
         if (std::error_code ec = tensor.getError())
-          return parseError("failed to read NumPy args file '" +
-                            fileName.str() + "': " + ec.message());
+          return fileError("failed to read NumPy args file '" +
+                           fileName.str() + "': " + ec.message());
         inputs.push_back(stablehlo::InterpreterValue(*tensor));
       }
       return inputs;
     }
-    std::string fileName = argsStr.substr(1);
+    if (llvm::any_of(fileNames, isNumPy))
+      return fileError("cannot mix .npy and non-.npy args files");
+    if (fileNames.size() != 1)
+      return fileError("expected a single args file, multiple files are only "
+                       "supported for .npy args");
+
+    llvm::StringRef fileName = fileNames.front();
     auto fileOrErr = llvm::MemoryBuffer::getFile(fileName);
     if (std::error_code ec = fileOrErr.getError())
-      return parseError("failed to read args file '" + fileName +
-                        "': " + ec.message());
+      return fileError("failed to read args file '" + fileName.str() +
+                       "': " + ec.message());
     argsStr = fileOrErr.get()->getBuffer().str();
   }
   if (!argsStr.empty()) {
