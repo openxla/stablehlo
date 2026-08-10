@@ -519,6 +519,32 @@ func.func @real_dynamic_slice_to_slice_success_static_result_type(%arg0: tensor<
 
 // -----
 
+// CHECK-LABEL: func @real_dynamic_slice_to_slice_discardable_attrs
+func.func @real_dynamic_slice_to_slice_discardable_attrs(%arg0: tensor<4xf32>) -> tensor<1xf32> {
+  //  CHECK-NOT: stablehlo.real_dynamic_slice
+  //      CHECK: stablehlo.slice %arg0 [0:1:2] {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<4xf32>) -> tensor<1xf32>
+  %0 = stablehlo.constant dense<0> : tensor<1xi64>
+  %1 = stablehlo.constant dense<1> : tensor<1xi64>
+  %2 = stablehlo.constant dense<2> : tensor<1xi64>
+  %3 = stablehlo.real_dynamic_slice %arg0, %0, %1, %2 {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<4xf32>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<1xf32>
+  return %3 : tensor<1xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @real_dynamic_slice_to_dynamic_slice_discardable_attrs
+func.func @real_dynamic_slice_to_dynamic_slice_discardable_attrs(%arg0: tensor<?xf32>, %arg1: tensor<1xi64>) -> tensor<1xf32> {
+  //  CHECK-NOT: stablehlo.real_dynamic_slice
+  //      CHECK: stablehlo.dynamic_slice %arg0, %{{.*}}, sizes = [1] {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<?xf32>, tensor<i64>) -> tensor<1xf32>
+  %0 = stablehlo.constant dense<1> : tensor<1xi64>
+  %1 = stablehlo.add %arg1, %0 : tensor<1xi64>
+  %2 = stablehlo.constant dense<1> : tensor<1xi64>
+  %3 = stablehlo.real_dynamic_slice %arg0, %arg1, %1, %2 {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<?xf32>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<1xf32>
+  return %3 : tensor<1xf32>
+}
+
+// -----
+
 // CHECK-LABEL: func @real_dynamic_slice_to_slice_success_dynamic_result_type
 func.func @real_dynamic_slice_to_slice_success_dynamic_result_type(%arg0: tensor<4xf32>) -> tensor<?xf32> {
   //  CHECK-NOT: stablehlo.real_dynamic_slice

@@ -1000,6 +1000,20 @@ struct FoldConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
   }
 };
 
+// Returns true if the divisor (second operand) of `op` is a constant integer
+// tensor with any zero element. Integer udiv/sdiv/urem/srem by zero would crash
+// the constant folder (APInt asserts in debug, SIGFPE in release), so such ops
+// must not be folded.
+static bool integerDivisorHasZeroElement(Operation* op) {
+  TypedAttr rhsAttr;
+  matchPattern(op->getOperand(1), m_Constant(&rhsAttr));
+  auto denseRhs = dyn_cast_or_null<DenseIntElementsAttr>(rhsAttr);
+  if (!denseRhs) return false;
+  for (const APInt& value : denseRhs.getValues<APInt>())
+    if (value.isZero()) return true;
+  return false;
+}
+
 struct FoldDivOpPattern : public ShapeOpRewritePattern<DivOp> {
   using ShapeOpRewritePattern::ShapeOpRewritePattern;
 
@@ -1008,6 +1022,10 @@ struct FoldDivOpPattern : public ShapeOpRewritePattern<DivOp> {
     auto resultType = op.getType();
     if (failed(validateShapeFoldDtype(rewriter, op, resultType)))
       return failure();
+
+    if (isa<IntegerType>(resultType.getElementType()) &&
+        integerDivisorHasZeroElement(op))
+      return rewriter.notifyMatchFailure(op, "integer division by zero");
 
     bool isUnsignedInt = resultType.getElementType().isUnsignedInteger();
     auto res = foldBinaryOpIntOrFloat(rewriter, op, FoldDivide(isUnsignedInt));
@@ -1224,6 +1242,10 @@ struct FoldRemOpPattern : public ShapeOpRewritePattern<RemOp> {
     auto resultType = op.getType();
     if (failed(validateShapeFoldDtype(rewriter, op, resultType)))
       return failure();
+
+    if (isa<IntegerType>(resultType.getElementType()) &&
+        integerDivisorHasZeroElement(op))
+      return rewriter.notifyMatchFailure(op, "integer remainder by zero");
 
     bool isUnsignedInt = resultType.getElementType().isUnsignedInteger();
     auto res = foldBinaryOpIntOrFloat(rewriter, op, FoldRem(isUnsignedInt));

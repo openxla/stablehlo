@@ -3260,8 +3260,7 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
     Type elementType = operandType.getElementType();
     mlir::stablehlo::SortOp sortOp =
         createSortOp(&rewriter, op.getLoc(), {op.getOperand(), iotaOp},
-                     {elementType, i32Type}, lastDimIndex,
-                     /*isStable=*/true,
+                     {elementType, i32Type}, lastDimIndex, op.getIsStable(),
                      /*direction=*/mlir::stablehlo::ComparisonDirection::GT);
 
     // Get the sorted input and index tuple element.

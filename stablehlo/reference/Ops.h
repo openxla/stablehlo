@@ -62,6 +62,11 @@ Tensor clzOp(const Tensor& operand, ShapedType resultType);
 Tensor collectiveBroadcastOp(const Tensor& operand,
                              SmallVector<SmallVector<uint32_t>> replicaGroups,
                              ChannelId channelId, Process* process);
+SmallVector<InterpreterValue> collectiveReduceOp(
+    ArrayRef<Tensor> operands, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, bool useGlobalDeviceIds, bool hasDynamicRoot,
+    Region& computation, Process* process, Scope& scope,
+    ArrayRef<ShapedType> resultTypes);
 Tensor collectivePermuteOp(const Tensor& operand,
                            SmallVector<SmallVector<uint32_t>> sourceTargetPairs,
                            ChannelId channelId, Process* process);

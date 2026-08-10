@@ -738,6 +738,20 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
     if (stablehloName == "use_global_device_ids")
       return convertUseGlobalDeviceIds(pattern, stablehloAttr, vhloAttrs);
   }
+  if constexpr (std::is_same<StablehloOpTy,
+                             stablehlo::CollectiveReduceOp>::value) {
+    if (stablehloName == "channel_handle")
+      return convertChannelId(pattern, stablehloAttr, vhloAttrs);
+    if (stablehloName == "use_global_device_ids")
+      return convertUseGlobalDeviceIds(pattern, stablehloAttr, vhloAttrs);
+    if (stablehloName == "has_dynamic_root") {
+      if (!isa<UnitAttr>(stablehloAttr)) return specialFailure();
+      vhloAttrs.emplace_back(
+          StringAttr::get(pattern.getContext(), "has_dynamic_root"),
+          vhlo::BooleanV1Attr::get(pattern.getContext(), true));
+      return specialSuccess();
+    }
+  }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ConvolutionOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::DynamicConvOp>::value) {
     if (stablehloName == "dimension_numbers")
@@ -823,6 +837,15 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                              stablehlo::CollectiveBroadcastOp>::value) {
     if (!stablehloOp.getChannelHandleAttr())
       addDefaultAttr("channel_id", builder.getI64IntegerAttr(0));
+  }
+  if constexpr (std::is_same<StablehloOpTy,
+                             stablehlo::CollectiveReduceOp>::value) {
+    if (!stablehloOp.getChannelHandleAttr())
+      addDefaultAttr("channel_id", builder.getI64IntegerAttr(0));
+    if (!stablehloOp.getUseGlobalDeviceIdsAttr())
+      addDefaultAttr("use_global_device_ids", builder.getBoolAttr(false));
+    if (!stablehloOp.getHasDynamicRootAttr())
+      addDefaultAttr("has_dynamic_root", builder.getBoolAttr(false));
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::CholeskyOp>::value) {
     if (!stablehloOp.getLowerAttr())

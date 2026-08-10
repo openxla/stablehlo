@@ -1561,6 +1561,45 @@ LogicalResult CollectiveBroadcastOp::verifySymbolUses(
 }
 
 //===----------------------------------------------------------------------===//
+// CollectiveReduceOp
+//===----------------------------------------------------------------------===//
+
+void CollectiveReduceOp::build(OpBuilder& odsBuilder, OperationState& odsState,
+                               Type resultType, Value operand,
+                               Attribute replicaGroups,
+                               ChannelHandleAttr channelHandle,
+                               bool useGlobalDeviceIds, bool hasDynamicRoot) {
+  build(odsBuilder, odsState, resultType, ValueRange(operand), replicaGroups,
+        channelHandle, useGlobalDeviceIds, hasDynamicRoot);
+}
+
+LogicalResult CollectiveReduceOp::verify() {
+  int64_t channelId = 0;
+  if (auto channelHandleAttr = getChannelHandleAttr())
+    channelId = channelHandleAttr.getHandle();
+
+  return hlo::verifyCollectiveReduceOp(
+      getLoc(), getOperands(), getReplicaGroups(), channelId,
+      getUseGlobalDeviceIds(), getHasDynamicRoot(), getComputation());
+}
+
+LogicalResult CollectiveReduceOp::verifySymbolUses(
+    SymbolTableCollection& symbolTable) {
+  return verifyReplicaGroupsSymbolUses(*this, getReplicaGroups(), symbolTable);
+}
+
+LogicalResult CollectiveReduceOp::inferReturnTypeComponents(
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, PropertyRef properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  CollectiveReduceOp::Adaptor adaptor(operands, attributes, properties,
+                                      regions);
+  return hlo::inferCollectiveReduceOp(
+      location, adaptor.getOperands(), adaptor.getComputation(),
+      adaptor.getHasDynamicRoot(), inferredReturnShapes);
+}
+
+//===----------------------------------------------------------------------===//
 // CollectivePermuteOp
 //===----------------------------------------------------------------------===//
 
@@ -1844,8 +1883,8 @@ LogicalResult AsyncStartOp::inferReturnTypes(
 
   Operation* collectiveOp = &block.front();
   if (!isa<AllGatherOp, AllReduceOp, AllToAllOp, CollectiveBroadcastOp,
-           CollectivePermuteOp, ReduceScatterOp, SliceOp, DynamicSliceOp,
-           DynamicUpdateSliceOp>(collectiveOp)) {
+           CollectivePermuteOp, CollectiveReduceOp, DynamicSliceOp,
+           DynamicUpdateSliceOp, ReduceScatterOp, SliceOp>(collectiveOp)) {
     return emitOptionalError(location,
                              "'stablehlo.async_start' op region must contain a "
                              "collective or slice operation");
@@ -3765,16 +3804,6 @@ enum NonSpatialDim : int64_t {
   KOFeature = -4,  // Kernel output feature dimensions.
 };
 
-struct DenseMapInfoNonSpatialDim {
-  static unsigned getHashValue(const NonSpatialDim& key) {
-    return DenseMapInfo<int64_t>::getHashValue(key);
-  }
-
-  static bool isEqual(const NonSpatialDim& lhs, const NonSpatialDim& rhs) {
-    return lhs == rhs;
-  }
-};
-
 char nonSpatialDimToString(NonSpatialDim dim) {
   switch (dim) {
     case IOBatch:
@@ -3910,8 +3939,7 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
   // IntegerAttrs (indexed by the NonSpatialDim enum).
   using parse_dim_result_t =
       std::pair<llvm::SmallVector<int64_t>,
-                llvm::SmallDenseMap<NonSpatialDim, int64_t, 4,
-                                    DenseMapInfoNonSpatialDim>>;
+                llvm::SmallDenseMap<NonSpatialDim, int64_t, 4>>;
 
   // Note that the allowedNonSpatialDims is a set (as opposed to unordered
   // set) because its used to print a list of allowed non spatial dims in the

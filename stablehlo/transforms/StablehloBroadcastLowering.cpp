@@ -19,6 +19,7 @@ limitations under the License.
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -69,16 +70,16 @@ FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(Value op,
 
   // Iterate from right to left (NumPy-style broadcasting)
   for (size_t i = 1; i <= max_rank; ++i) {
-    size_t a_idx = a.size() - i;
-    size_t b_idx = b.size() - i;
+    std::optional<size_t> a_idx =
+        i <= a.size() ? std::optional<size_t>(a.size() - i) : std::nullopt;
+    std::optional<size_t> b_idx =
+        i <= b.size() ? std::optional<size_t>(b.size() - i) : std::nullopt;
     size_t res_idx = max_rank - i;
 
     // Get DimensionInfo for the current index, padding with size 1 if out of
     // bounds.
-    DimensionInfo dim_a =
-        (a_idx >= 0 && a_idx < a.size()) ? a[a_idx] : DimensionInfo{1};
-    DimensionInfo dim_b =
-        (b_idx >= 0 && b_idx < b.size()) ? b[b_idx] : DimensionInfo{1};
+    DimensionInfo dim_a = a_idx.has_value() ? a[*a_idx] : DimensionInfo{1};
+    DimensionInfo dim_b = b_idx.has_value() ? b[*b_idx] : DimensionInfo{1};
 
     // Short circuit on size 1 dimensions.
     if (dim_a.size == 1) {
