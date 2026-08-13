@@ -203,7 +203,7 @@ Creates a new [`stablehlo.collective_broadcast`](https://openxla.org/stablehlo/s
 operation.
 
 ```c++
-MlirOp CollectiveBroadcast(MlirOp &operand, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {});
+SmallVector<MlirOp> CollectiveBroadcast(MlirBuilder &builder, ArrayRef<MlirOp> operands, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool has_dynamic_root = false);
 ```
 
 ### `stablehlo::CollectivePermuteOp`
