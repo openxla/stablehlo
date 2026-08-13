@@ -668,13 +668,6 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
       stablehloAttr = UnitAttr::get(pattern.getContext());
     }
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
-    if (vhloName == "channel_id") {
-      stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
-      stablehloAttr = convertChannelId(vhloAttr, typeConverter);
-      if (!stablehloAttr) return specialFailure();
-    }
-  }
   if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV2>::value) {
     if (vhloName == "channel_id") {
       stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
