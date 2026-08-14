@@ -850,6 +850,14 @@ LogicalResult ScanOp::inferReturnTypeComponents(
     SmallVector<int64_t> shape(resultType.getShape().begin(),
                                resultType.getShape().end());
     if (i < numOutputs) {
+      // `dim` is validated only against the input ranks above (and not at all
+      // when there are no inputs), so guard the insert position against the
+      // output element rank to avoid an out-of-bounds insert.
+      if (dim > static_cast<int64_t>(shape.size())) {
+        return emitOptionalError(
+            location, "scan dimension is out of bounds for terminator operand ",
+            i);
+      }
       shape.insert(std::next(shape.begin(), dim), dimSize);
     }
     inferredReturnShapes.emplace_back(shape, resultType.getElementType());
