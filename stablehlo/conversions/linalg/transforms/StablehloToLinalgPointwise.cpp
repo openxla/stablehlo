@@ -153,16 +153,21 @@ struct PointwiseToLinalgMapConverter : OpConversionPattern<OpTy> {
       OpTy& op, ConversionPatternRewriter& rewriter,
       ArrayRef<Value> mappedInputs, ArrayRef<Value> scalarVals,
       Value emptyTensor, int64_t maxRank) const {
+    bool failed = false;
     Operation* mapOp = linalg::MapOp::create(
         rewriter, op.getLoc(), mappedInputs, emptyTensor,
         [&](OpBuilder& b, Location loc, ValueRange args) {
           Value innerResult = mlir::stablehlo::StablehloOpToStdScalarOp::mapOp(
               op, getElementTypeOrSelf(emptyTensor),
               interleaveScalarAndBlockArgs(scalarVals, args), &b);
-
+          if (!innerResult) {
+            failed = true;
+            return;
+          }
           linalg::YieldOp::create(b, loc, innerResult);
         },
         linalg::getPrunedAttributeList(op));
+    if (failed) return failure();
     return mapOp;
   }
 
