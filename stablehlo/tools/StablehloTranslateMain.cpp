@@ -137,8 +137,8 @@ parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
       for (llvm::StringRef fileName : fileNames) {
         auto tensor = stablehlo::numpy::deserializeTensor(fileName, context);
         if (std::error_code ec = tensor.getError())
-          return fileError("failed to read NumPy args file '" +
-                           fileName.str() + "': " + ec.message());
+          return fileError("failed to read NumPy args file '" + fileName.str() +
+                           "': " + ec.message());
         inputs.push_back(stablehlo::InterpreterValue(*tensor));
       }
       return inputs;
@@ -146,8 +146,9 @@ parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
     if (llvm::any_of(fileNames, isNumPy))
       return fileError("cannot mix .npy and non-.npy args files");
     if (fileNames.size() != 1)
-      return fileError("expected a single args file, multiple files are only "
-                       "supported for .npy args");
+      return fileError(
+          "expected a single args file, multiple files are only "
+          "supported for .npy args");
 
     llvm::StringRef fileName = fileNames.front();
     auto fileOrErr = llvm::MemoryBuffer::getFile(fileName);
