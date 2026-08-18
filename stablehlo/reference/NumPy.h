@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "llvm/Support/ErrorOr.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
+#include "mlir/IR/MLIRContext.h"
 #include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
@@ -31,6 +32,13 @@ constexpr char kInstrumentationMetadataFilename[] = "index.csv";
 // Read a NumPy serialized tensor from disk stored at `filename` with the given
 // `type`.
 llvm::ErrorOr<Tensor> deserializeTensor(StringRef filename, ShapedType type);
+
+// Read a NumPy serialized tensor from disk stored at `filename`, inferring the
+// tensor type from the file's header. Supports little-endian integer and
+// f32/f64 dtypes; types without a native NumPy representation (bool, f16,
+// bf16, complex) cannot be unambiguously inferred and are not supported.
+llvm::ErrorOr<Tensor> deserializeTensor(StringRef filename,
+                                        MLIRContext* context);
 
 // Store a tensor using the NumPy file format with the given `type` to the given
 // `filename`.
