@@ -2752,13 +2752,25 @@ struct ConvertRaggedDotOp final : OpConversionPattern<mlir::chlo::RaggedDotOp> {
   LogicalResult matchAndRewrite(
       mlir::chlo::RaggedDotOp op, OpAdaptor,
       ConversionPatternRewriter& rewriter) const override {
-    if (op.getLhs().getType().getRank() < op.getRhs().getType().getRank()) {
-      return handleRaggedDotMode1(op, rewriter);
-    } else if (op.getLhs().getType().getRank() <
-               op.getResult().getType().getRank()) {
+    chlo::RaggedDotDimensionNumbersAttr raggedDotDimensionNumbers =
+        op.getRaggedDotDimensionNumbers();
+    ArrayRef<int64_t> lhsRaggedDimensions =
+        raggedDotDimensionNumbers.getLhsRaggedDimensions();
+    if (lhsRaggedDimensions.empty()) {
+      return rewriter.notifyMatchFailure(
+          op, "lhs_ragged_dimensions must not be empty");
+    }
+    const int64_t lhsRaggedDim = lhsRaggedDimensions[0];
+    if (llvm::is_contained(
+            raggedDotDimensionNumbers.getLhsContractingDimensions(),
+            lhsRaggedDim)) {
       return handleRaggedDotMode2(op, rewriter);
-    } else {
+    } else if (llvm::is_contained(
+                   raggedDotDimensionNumbers.getLhsBatchingDimensions(),
+                   lhsRaggedDim)) {
       return handleRaggedDotMode3(op, rewriter);
+    } else {
+      return handleRaggedDotMode1(op, rewriter);
     }
   }
 };
