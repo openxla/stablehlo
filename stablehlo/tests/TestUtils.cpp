@@ -94,6 +94,30 @@ struct BroadcastIfNeededPattern : public RewritePattern {
   }
 };
 
+struct CreateSortOpPattern : public RewritePattern {
+  explicit CreateSortOpPattern(MLIRContext* context)
+      : RewritePattern("hlo_test_create_sort.build", 1, context) {}
+
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
+    SmallVector<Value> operands = llvm::to_vector(op->getOperands());
+    SmallVector<Type> elementTypes;
+    elementTypes.reserve(operands.size());
+    for (Value operand : operands) {
+      auto shapedType = dyn_cast<ShapedType>(operand.getType());
+      if (!shapedType)
+        return rewriter.notifyMatchFailure(op, "expected shaped operands");
+      elementTypes.push_back(shapedType.getElementType());
+    }
+
+    auto sort = stablehlo::createSortOp(
+        &rewriter, op->getLoc(), operands, elementTypes, /*dimension=*/0,
+        /*isStable=*/false, stablehlo::ComparisonDirection::LT);
+    rewriter.replaceOp(op, sort.getResults());
+    return success();
+  }
+};
+
 struct InferReturnTypesPattern : public RewritePattern {
   explicit InferReturnTypesPattern(MLIRContext* context)
       : RewritePattern("hlo_test_infer.get_return_types", 1, context) {}
@@ -239,6 +263,7 @@ struct IsNotSpeculatablePattern : public RewritePattern {
 };
 
 #define GEN_PASS_DEF_HLOTESTBROADCASTPASS
+#define GEN_PASS_DEF_HLOTESTCREATESORTPASS
 #define GEN_PASS_DEF_HLOTESTINFERPASS
 #define GEN_PASS_DEF_HLOTESTSPECULATABILITYPASS
 #include "stablehlo/tests/TestUtils.h.inc"
@@ -249,6 +274,24 @@ struct HloTestBroadcastPass
     RewritePatternSet patterns(context);
     patterns.add<BroadcastValuesPattern>(context);
     patterns.add<BroadcastIfNeededPattern>(context);
+    patterns_ = std::move(patterns);
+    return success();
+  }
+
+  void runOnOperation() override {
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns_))))
+      return signalPassFailure();
+  }
+
+ private:
+  FrozenRewritePatternSet patterns_;
+};
+
+struct HloTestCreateSortPass
+    : public impl::HloTestCreateSortPassBase<HloTestCreateSortPass> {
+  LogicalResult initialize(MLIRContext* context) override {
+    RewritePatternSet patterns(context);
+    patterns.add<CreateSortOpPattern>(context);
     patterns_ = std::move(patterns);
     return success();
   }
