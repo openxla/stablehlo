@@ -1418,6 +1418,17 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "stablehlo_ops_test",
+    srcs = ["stablehlo/dialect/StablehloOpsTest.cpp"],
+    deps = [
+        ":stablehlo_ops",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//third-party/unittest:gtest",
+    ],
+)
+
 cc_binary(
     name = "stablehlo-lsp-server",
     srcs = [
