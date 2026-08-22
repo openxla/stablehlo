@@ -15,6 +15,10 @@
 # Disable Bzlmod for now
 common --noenable_bzlmod
 
+# Ensure NDEBUG is undefined so the verifier runs in opt builds
+build --copt=-UNDEBUG
+build --host_copt=-UNDEBUG
+
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17
 # llvm builds typically without rtti
