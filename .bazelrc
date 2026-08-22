@@ -15,7 +15,7 @@
 # Disable Bzlmod for now
 common --noenable_bzlmod
 
-# Enable assertions (matches CMake -DLLVM_ENABLE_ASSERTIONS=ON)
+# Ensure NDEBUG is undefined so the verifier runs in opt builds
 build --copt=-UNDEBUG
 build --host_copt=-UNDEBUG
 
