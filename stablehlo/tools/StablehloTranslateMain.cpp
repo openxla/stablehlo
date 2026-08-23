@@ -42,6 +42,7 @@ limitations under the License.
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
 #include "stablehlo/dialect/Register.h"
+#include "stablehlo/dialect/Revision.h"
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
@@ -354,6 +355,8 @@ TranslateToMLIRRegistration deserializeRegistration(
 }  //  namespace mlir
 
 int main(int argc, char **argv) {
+  llvm::cl::AddExtraVersionPrinter(mlir::stablehlo::printVersion);
+
   return failed(
       mlir::mlirTranslateMain(argc, argv, "StableHLO interpreter driver\n"));
 }

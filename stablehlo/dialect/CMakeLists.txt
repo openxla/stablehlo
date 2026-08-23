@@ -190,6 +190,46 @@ add_mlir_dialect_library(Version
   MLIRSupport
 )
 
+# Generate StablehloRevision.h so the tools can report the StableHLO revision
+# they were built from via `git describe` (see GenerateStablehloRevision.cmake).
+# The header is always generated: when STABLEHLO_APPEND_VC_REV is OFF the script
+# leaves STABLEHLO_REVISION undefined, so the include still resolves and
+# getRevision() returns "".
+set(stablehlo_revision_inc
+    "${STABLEHLO_BINARY_DIR}/stablehlo/dialect/StablehloRevision.h")
+set(stablehlo_gen_rev_script
+    "${STABLEHLO_SOURCE_DIR}/cmake/GenerateStablehloRevision.cmake")
+
+# Regenerate whenever the tracked git HEAD moves (stablehlo_vc), so an
+# incremental rebuild after a checkout re-embeds the correct revision.
+# find_first_existing_vc_file leaves stablehlo_vc undefined for a non-git tree.
+if(STABLEHLO_APPEND_VC_REV)
+  find_first_existing_vc_file("${STABLEHLO_SOURCE_DIR}" stablehlo_vc)
+endif()
+
+add_custom_command(OUTPUT "${stablehlo_revision_inc}"
+  DEPENDS "${stablehlo_vc}" "${stablehlo_gen_rev_script}"
+  COMMAND ${CMAKE_COMMAND}
+      "-DSTABLEHLO_APPEND_VC_REV=${STABLEHLO_APPEND_VC_REV}"
+      "-DSTABLEHLO_SOURCE_DIR=${STABLEHLO_SOURCE_DIR}"
+      "-DHEADER_FILE=${stablehlo_revision_inc}"
+      "-DSTABLEHLO_FORCE_VC_REVISION=${STABLEHLO_FORCE_VC_REVISION}"
+      -P "${stablehlo_gen_rev_script}"
+  COMMENT "Generating StableHLO revision header")
+
+set_source_files_properties("${stablehlo_revision_inc}"
+  PROPERTIES GENERATED TRUE HEADER_FILE_ONLY TRUE)
+
+add_mlir_dialect_library(StablehloRevision
+  PARTIAL_SOURCES_INTENDED
+  Revision.cpp
+  "${stablehlo_revision_inc}"
+
+  LINK_LIBS PUBLIC
+  MLIRSupport
+  Version
+)
+
 set(LLVM_TARGET_DEFINITIONS VhloOps.td)
 mlir_tablegen(VhloOps.h.inc -gen-op-decls)
 mlir_tablegen(VhloOps.cpp.inc -gen-op-defs)
