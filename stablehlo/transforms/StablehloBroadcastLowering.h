@@ -70,12 +70,6 @@ FailureOr<SmallVector<Value>> numpyBroadcastIfNeeded(OpBuilder& builder,
 FailureOr<Value> numpyBroadcastIfNeeded(OpBuilder& builder, Value input,
                                         const Dimensions& shape);
 
-// Apply broadcasting to the given operand using the specified
-// broadcast_dimensions, returning an error if the operand is not broadcastable.
-FailureOr<Value> broadcastIfNeeded(OpBuilder& builder, Value input,
-                                   const Dimensions& shape,
-                                   ArrayRef<int64_t> broadcastDimensions);
-
 }  // namespace stablehlo
 }  // namespace mlir
 

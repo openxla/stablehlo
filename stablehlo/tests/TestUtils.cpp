@@ -68,32 +68,6 @@ struct BroadcastValuesPattern : public RewritePattern {
   }
 };
 
-struct BroadcastIfNeededPattern : public RewritePattern {
-  explicit BroadcastIfNeededPattern(MLIRContext* context)
-      : RewritePattern("hlo_test_broadcast.broadcast_if_needed", 1, context) {}
-  LogicalResult matchAndRewrite(Operation* op,
-                                PatternRewriter& rewriter) const override {
-    if (op->getNumOperands() < 1) return failure();
-    Value input = op->getOperand(0);
-
-    SmallVector<int64_t> broadcastDimensions;
-    if (auto bcastDimsAttr =
-            op->getAttrOfType<DenseI64ArrayAttr>("broadcast_dimensions")) {
-      broadcastDimensions = llvm::to_vector(bcastDimsAttr.asArrayRef());
-    }
-
-    auto targetShape = stablehlo::getDimensions(op->getResult(0));
-    if (failed(targetShape)) return failure();
-
-    auto broadcastedVal = stablehlo::broadcastIfNeeded(
-        rewriter, input, *targetShape, broadcastDimensions);
-    if (failed(broadcastedVal)) return failure();
-
-    rewriter.replaceOp(op, *broadcastedVal);
-    return success();
-  }
-};
-
 struct InferReturnTypesPattern : public RewritePattern {
   explicit InferReturnTypesPattern(MLIRContext* context)
       : RewritePattern("hlo_test_infer.get_return_types", 1, context) {}
@@ -248,7 +222,6 @@ struct HloTestBroadcastPass
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns(context);
     patterns.add<BroadcastValuesPattern>(context);
-    patterns.add<BroadcastIfNeededPattern>(context);
     patterns_ = std::move(patterns);
     return success();
   }

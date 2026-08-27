@@ -5282,32 +5282,6 @@ func.func @ragged_dot_mode_2_dynamic(%lhs : tensor<2x?x5xf32>, %rhs : tensor<2x5
 
 // -----
 
-// CHECK-LABEL:   func.func @ragged_dot_mode_2_rank_lhs_lt_rhs(
-// CHECK-SAME:      %[[ARG0:.*]]: tensor<2x3xf32>,
-// CHECK-SAME:      %[[ARG1:.*]]: tensor<2x3x4xf32>,
-// CHECK-SAME:      %[[ARG2:.*]]: tensor<2xi64>) -> tensor<2x3x3x4xf32> {
-// CHECK:           %[[DOT_GENERAL_0:.*]] = stablehlo.dot_general %{{.*}}, %[[ARG1]], contracting_dims = [0] x [0], precision = [DEFAULT, DEFAULT] : (tensor<2x3xf32>, tensor<2x3x4xf32>) -> tensor<3x3x4xf32>
-// CHECK:           %[[DOT_GENERAL_1:.*]] = stablehlo.dot_general %{{.*}}, %[[ARG1]], contracting_dims = [0] x [0], precision = [DEFAULT, DEFAULT] : (tensor<2x3xf32>, tensor<2x3x4xf32>) -> tensor<3x3x4xf32>
-// CHECK:           %[[CONCATENATE_0:.*]] = stablehlo.concatenate{{.*}}dim = 0 : (tensor<1x3x3x4xf32>, tensor<1x3x3x4xf32>) -> tensor<2x3x3x4xf32>
-// CHECK:           return %[[CONCATENATE_0]] : tensor<2x3x3x4xf32>
-// CHECK:         }
-func.func @ragged_dot_mode_2_rank_lhs_lt_rhs(%lhs : tensor<2x3xf32>, %rhs : tensor<2x3x4xf32>, %group_sizes : tensor<2xi64>) -> tensor<2x3x3x4xf32> {
-  %0 = "chlo.ragged_dot"(%lhs, %rhs, %group_sizes) {
-    ragged_dot_dimension_numbers = #chlo.ragged_dot<
-      lhs_batching_dimensions = [],
-      rhs_batching_dimensions = [],
-      lhs_contracting_dimensions = [0],
-      rhs_contracting_dimensions = [0],
-      lhs_ragged_dimensions = [0],
-      rhs_group_dimensions = []
-    >,
-    precision_config = [#chlo<precision DEFAULT>, #chlo<precision DEFAULT>]
-  } : (tensor<2x3xf32>, tensor<2x3x4xf32>, tensor<2xi64>) -> tensor<2x3x3x4xf32>
-  func.return %0 : tensor<2x3x3x4xf32>
-}
-
-// -----
-
 // CHECK-LABEL:   func.func @ragged_dot_mode_3(
 // CHECK-SAME:      %[[ARG0:.*]]: tensor<2x3x5xf32>,
 // CHECK-SAME:      %[[ARG1:.*]]: tensor<2x5x7xf32>,
