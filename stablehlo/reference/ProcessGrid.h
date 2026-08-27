@@ -191,8 +191,8 @@ class ProcessGroup : public SmallVector<ProcessId> {
   using SmallVector<ProcessId>::SmallVector;
 
   bool operator<(const ProcessGroup &other) const {
-    return static_cast<const SmallVector<ProcessId> &>(*this) <
-           static_cast<const SmallVector<ProcessId> &>(other);
+    return static_cast<const SmallVector &>(*this) <
+           static_cast<const SmallVector &>(other);
   }
 };
 
