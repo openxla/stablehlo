@@ -1668,18 +1668,27 @@ Value materializeDigamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   digamma = mlir::stablehlo::SelectOp::create(rewriter, loc, needToReflect,
                                               reflection, digamma);
 
-  // Digamma has poles at negative integers and zero; return nan for those.
-  Value isLeZero = mlir::stablehlo::CompareOp::create(
-      rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::LE);
+  // Digamma has poles at negative integers and zero; return nan for
+  // negative integers, and -inf for zero.
+  Value isZero = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::EQ);
+  Value isLtZero = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::LT);
   Value isInt = mlir::stablehlo::CompareOp::create(
       rewriter, loc, x, mlir::stablehlo::FloorOp::create(rewriter, loc, x),
       mlir::stablehlo::ComparisonDirection::EQ);
-  Value isPole = mlir::stablehlo::AndOp::create(rewriter, loc, isLeZero, isInt);
-  return mlir::stablehlo::SelectOp::create(
-      rewriter, loc, isPole,
+  Value isNegativeInteger =
+      mlir::stablehlo::AndOp::create(rewriter, loc, isLtZero, isInt);
+  Value resultWithNan = mlir::stablehlo::SelectOp::create(
+      rewriter, loc, isNegativeInteger,
       getConstantLike(rewriter, loc, std::numeric_limits<double>::quiet_NaN(),
                       x),
       digamma);
+  return mlir::stablehlo::SelectOp::create(
+      rewriter, loc, isZero,
+      getConstantLike(rewriter, loc, -std::numeric_limits<double>::infinity(),
+                      x),
+      resultWithNan);
 }
 
 namespace {
