@@ -2141,13 +2141,16 @@ func.func @lgamma_f16(%arg : tensor<f16>) -> tensor<f16> {
 // CHECK:           %[[DIVIDE_19:.*]] = stablehlo.divide %[[MULTIPLY_9]], %[[SINE_0]] : tensor<f64>
 // CHECK:           %[[SUBTRACT_10:.*]] = stablehlo.subtract %[[SUBTRACT_9]], %[[DIVIDE_19]] : tensor<f64>
 // CHECK:           %[[SELECT_1:.*]] = stablehlo.select %[[COMPARE_0]], %[[SUBTRACT_10]], %[[SUBTRACT_9]] : tensor<i1>, tensor<f64>
-// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare LE, %[[ARG0]], %[[CONSTANT_2]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
+// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[CONSTANT_2]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
+// CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare LT, %[[ARG0]], %[[CONSTANT_2]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
 // CHECK:           %[[FLOOR_1:.*]] = stablehlo.floor %[[ARG0]] : tensor<f64>
-// CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[FLOOR_1]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
-// CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_1]], %[[COMPARE_2]] : tensor<i1>
+// CHECK:           %[[COMPARE_3:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[FLOOR_1]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
+// CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_2]], %[[COMPARE_3]] : tensor<i1>
 // CHECK:           %[[CONSTANT_25:.*]] = stablehlo.constant dense<0x7FF8000000000000> : tensor<f64>
 // CHECK:           %[[SELECT_2:.*]] = stablehlo.select %[[AND_0]], %[[CONSTANT_25]], %[[SELECT_1]] : tensor<i1>, tensor<f64>
-// CHECK:           return %[[SELECT_2]] : tensor<f64>
+// CHECK:           %[[CONSTANT_26:.*]] = stablehlo.constant dense<0xFFF0000000000000> : tensor<f64>
+// CHECK:           %[[SELECT_3:.*]] = stablehlo.select %[[COMPARE_1]], %[[CONSTANT_26]], %[[SELECT_2]] : tensor<i1>, tensor<f64>
+// CHECK:           return %[[SELECT_3]] : tensor<f64>
 // CHECK:         }
 func.func @digamma_f64(%arg : tensor<f64>) -> tensor<f64> {
   %1 = chlo.digamma %arg : tensor<f64> -> tensor<f64>
@@ -2254,13 +2257,16 @@ func.func @digamma_f64(%arg : tensor<f64>) -> tensor<f64> {
 // CHECK:           %[[DIVIDE_19:.*]] = stablehlo.divide %[[MULTIPLY_9]], %[[SINE_0]] : tensor<f32>
 // CHECK:           %[[SUBTRACT_10:.*]] = stablehlo.subtract %[[SUBTRACT_9]], %[[DIVIDE_19]] : tensor<f32>
 // CHECK:           %[[SELECT_1:.*]] = stablehlo.select %[[COMPARE_0]], %[[SUBTRACT_10]], %[[SUBTRACT_9]] : tensor<i1>, tensor<f32>
-// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare LE, %[[ARG0]], %[[CONSTANT_2]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[CONSTANT_2]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare LT, %[[ARG0]], %[[CONSTANT_2]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
 // CHECK:           %[[FLOOR_1:.*]] = stablehlo.floor %[[ARG0]] : tensor<f32>
-// CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[FLOOR_1]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
-// CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_1]], %[[COMPARE_2]] : tensor<i1>
+// CHECK:           %[[COMPARE_3:.*]] = stablehlo.compare EQ, %[[ARG0]], %[[FLOOR_1]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_2]], %[[COMPARE_3]] : tensor<i1>
 // CHECK:           %[[CONSTANT_25:.*]] = stablehlo.constant dense<0x7FC00000> : tensor<f32>
 // CHECK:           %[[SELECT_2:.*]] = stablehlo.select %[[AND_0]], %[[CONSTANT_25]], %[[SELECT_1]] : tensor<i1>, tensor<f32>
-// CHECK:           return %[[SELECT_2]] : tensor<f32>
+// CHECK:           %[[CONSTANT_26:.*]] = stablehlo.constant dense<0xFF800000> : tensor<f32>
+// CHECK:           %[[SELECT_3:.*]] = stablehlo.select %[[COMPARE_1]], %[[CONSTANT_26]], %[[SELECT_2]] : tensor<i1>, tensor<f32>
+// CHECK:           return %[[SELECT_3]] : tensor<f32>
 // CHECK:         }
 func.func @digamma_f32(%arg : tensor<f32>) -> tensor<f32> {
   %1 = chlo.digamma %arg : tensor<f32> -> tensor<f32>
@@ -2368,13 +2374,16 @@ func.func @digamma_f32(%arg : tensor<f32>) -> tensor<f32> {
 // CHECK:           %[[DIVIDE_19:.*]] = stablehlo.divide %[[MULTIPLY_9]], %[[SINE_0]] : tensor<f32>
 // CHECK:           %[[SUBTRACT_10:.*]] = stablehlo.subtract %[[SUBTRACT_9]], %[[DIVIDE_19]] : tensor<f32>
 // CHECK:           %[[SELECT_1:.*]] = stablehlo.select %[[COMPARE_0]], %[[SUBTRACT_10]], %[[SUBTRACT_9]] : tensor<i1>, tensor<f32>
-// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare LE, %[[CONVERT_0]], %[[CONSTANT_2]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_1:.*]] = stablehlo.compare EQ, %[[CONVERT_0]], %[[CONSTANT_2]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare LT, %[[CONVERT_0]], %[[CONSTANT_2]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
 // CHECK:           %[[FLOOR_1:.*]] = stablehlo.floor %[[CONVERT_0]] : tensor<f32>
-// CHECK:           %[[COMPARE_2:.*]] = stablehlo.compare EQ, %[[CONVERT_0]], %[[FLOOR_1]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
-// CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_1]], %[[COMPARE_2]] : tensor<i1>
+// CHECK:           %[[COMPARE_3:.*]] = stablehlo.compare EQ, %[[CONVERT_0]], %[[FLOOR_1]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[AND_0:.*]] = stablehlo.and %[[COMPARE_2]], %[[COMPARE_3]] : tensor<i1>
 // CHECK:           %[[CONSTANT_25:.*]] = stablehlo.constant dense<0x7FC00000> : tensor<f32>
 // CHECK:           %[[SELECT_2:.*]] = stablehlo.select %[[AND_0]], %[[CONSTANT_25]], %[[SELECT_1]] : tensor<i1>, tensor<f32>
-// CHECK:           %[[CONVERT_1:.*]] = stablehlo.convert %[[SELECT_2]] : (tensor<f32>) -> tensor<f16>
+// CHECK:           %[[CONSTANT_26:.*]] = stablehlo.constant dense<0xFF800000> : tensor<f32>
+// CHECK:           %[[SELECT_3:.*]] = stablehlo.select %[[COMPARE_1]], %[[CONSTANT_26]], %[[SELECT_2]] : tensor<i1>, tensor<f32>
+// CHECK:           %[[CONVERT_1:.*]] = stablehlo.convert %[[SELECT_3]] : (tensor<f32>) -> tensor<f16>
 // CHECK:           return %[[CONVERT_1]] : tensor<f16>
 // CHECK:         }
 func.func @digamma_f16(%arg : tensor<f16>) -> tensor<f16> {
@@ -2942,17 +2951,20 @@ func.func @zeta_f16(%arg0: tensor<f16>, %arg1: tensor<f16>) -> tensor<f16> {
 // CHECK:           %[[DIVIDE_32:.*]] = stablehlo.divide %[[MULTIPLY_52]], %[[SINE_1]] : tensor<f32>
 // CHECK:           %[[SUBTRACT_18:.*]] = stablehlo.subtract %[[SUBTRACT_17]], %[[DIVIDE_32]] : tensor<f32>
 // CHECK:           %[[SELECT_12:.*]] = stablehlo.select %[[COMPARE_12]], %[[SUBTRACT_18]], %[[SUBTRACT_17]] : tensor<i1>, tensor<f32>
-// CHECK:           %[[COMPARE_13:.*]] = stablehlo.compare LE, %[[ARG1]], %[[CONSTANT_73]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_13:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[CONSTANT_73]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_14:.*]] = stablehlo.compare LT, %[[ARG1]], %[[CONSTANT_73]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
 // CHECK:           %[[FLOOR_5:.*]] = stablehlo.floor %[[ARG1]] : tensor<f32>
-// CHECK:           %[[COMPARE_14:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[FLOOR_5]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
-// CHECK:           %[[AND_3:.*]] = stablehlo.and %[[COMPARE_13]], %[[COMPARE_14]] : tensor<i1>
+// CHECK:           %[[COMPARE_15:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[FLOOR_5]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[AND_3:.*]] = stablehlo.and %[[COMPARE_14]], %[[COMPARE_15]] : tensor<i1>
 // CHECK:           %[[CONSTANT_96:.*]] = stablehlo.constant dense<0x7FC00000> : tensor<f32>
 // CHECK:           %[[SELECT_13:.*]] = stablehlo.select %[[AND_3]], %[[CONSTANT_96]], %[[SELECT_12]] : tensor<i1>, tensor<f32>
-// CHECK:           %[[SELECT_14:.*]] = stablehlo.select %[[COMPARE_11]], %[[SELECT_13]], %[[MULTIPLY_42]] : tensor<i1>, tensor<f32>
+// CHECK:           %[[CONSTANT_98:.*]] = stablehlo.constant dense<0xFF800000> : tensor<f32>
+// CHECK:           %[[SELECT_16:.*]] = stablehlo.select %[[COMPARE_13]], %[[CONSTANT_98]], %[[SELECT_13]] : tensor<i1>, tensor<f32>
+// CHECK:           %[[SELECT_14:.*]] = stablehlo.select %[[COMPARE_11]], %[[SELECT_16]], %[[MULTIPLY_42]] : tensor<i1>, tensor<f32>
 // CHECK:           %[[FLOOR_6:.*]] = stablehlo.floor %[[ARG0]] : tensor<f32>
-// CHECK:           %[[COMPARE_15:.*]] = stablehlo.compare NE, %[[ARG0]], %[[FLOOR_6]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
-// CHECK:           %[[COMPARE_16:.*]] = stablehlo.compare LT, %[[ARG0]], %[[CONSTANT_70]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
-// CHECK:           %[[OR_0:.*]] = stablehlo.or %[[COMPARE_15]], %[[COMPARE_16]] : tensor<i1>
+// CHECK:           %[[COMPARE_16:.*]] = stablehlo.compare NE, %[[ARG0]], %[[FLOOR_6]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_17:.*]] = stablehlo.compare LT, %[[ARG0]], %[[CONSTANT_70]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[OR_0:.*]] = stablehlo.or %[[COMPARE_16]], %[[COMPARE_17]] : tensor<i1>
 // CHECK:           %[[CONSTANT_97:.*]] = stablehlo.constant dense<0x7FC00000> : tensor<f32>
 // CHECK:           %[[SELECT_15:.*]] = stablehlo.select %[[OR_0]], %[[CONSTANT_97]], %[[SELECT_14]] : tensor<i1>, tensor<f32>
 // CHECK:           return %[[SELECT_15]] : tensor<f32>
@@ -3332,17 +3344,20 @@ func.func @polygamma_f32(%lhs : tensor<f32>, %rhs : tensor<f32>) -> tensor<f32> 
 // CHECK:           %[[DIVIDE_32:.*]] = stablehlo.divide %[[MULTIPLY_52]], %[[SINE_1]] : tensor<f64>
 // CHECK:           %[[SUBTRACT_18:.*]] = stablehlo.subtract %[[SUBTRACT_17]], %[[DIVIDE_32]] : tensor<f64>
 // CHECK:           %[[SELECT_12:.*]] = stablehlo.select %[[COMPARE_12]], %[[SUBTRACT_18]], %[[SUBTRACT_17]] : tensor<i1>, tensor<f64>
-// CHECK:           %[[COMPARE_13:.*]] = stablehlo.compare LE, %[[ARG1]], %[[CONSTANT_73]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
+// CHECK:           %[[COMPARE_13:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[CONSTANT_73]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
+// CHECK:           %[[COMPARE_14:.*]] = stablehlo.compare LT, %[[ARG1]], %[[CONSTANT_73]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
 // CHECK:           %[[FLOOR_5:.*]] = stablehlo.floor %[[ARG1]] : tensor<f64>
-// CHECK:           %[[COMPARE_14:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[FLOOR_5]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
-// CHECK:           %[[AND_3:.*]] = stablehlo.and %[[COMPARE_13]], %[[COMPARE_14]] : tensor<i1>
+// CHECK:           %[[COMPARE_15:.*]] = stablehlo.compare EQ, %[[ARG1]], %[[FLOOR_5]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
+// CHECK:           %[[AND_3:.*]] = stablehlo.and %[[COMPARE_14]], %[[COMPARE_15]] : tensor<i1>
 // CHECK:           %[[CONSTANT_96:.*]] = stablehlo.constant dense<0x7FF8000000000000> : tensor<f64>
 // CHECK:           %[[SELECT_13:.*]] = stablehlo.select %[[AND_3]], %[[CONSTANT_96]], %[[SELECT_12]] : tensor<i1>, tensor<f64>
-// CHECK:           %[[SELECT_14:.*]] = stablehlo.select %[[COMPARE_11]], %[[SELECT_13]], %[[MULTIPLY_42]] : tensor<i1>, tensor<f64>
+// CHECK:           %[[CONSTANT_98:.*]] = stablehlo.constant dense<0xFFF0000000000000> : tensor<f64>
+// CHECK:           %[[SELECT_16:.*]] = stablehlo.select %[[COMPARE_13]], %[[CONSTANT_98]], %[[SELECT_13]] : tensor<i1>, tensor<f64>
+// CHECK:           %[[SELECT_14:.*]] = stablehlo.select %[[COMPARE_11]], %[[SELECT_16]], %[[MULTIPLY_42]] : tensor<i1>, tensor<f64>
 // CHECK:           %[[FLOOR_6:.*]] = stablehlo.floor %[[ARG0]] : tensor<f64>
-// CHECK:           %[[COMPARE_15:.*]] = stablehlo.compare NE, %[[ARG0]], %[[FLOOR_6]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
-// CHECK:           %[[COMPARE_16:.*]] = stablehlo.compare LT, %[[ARG0]], %[[CONSTANT_70]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
-// CHECK:           %[[OR_0:.*]] = stablehlo.or %[[COMPARE_15]], %[[COMPARE_16]] : tensor<i1>
+// CHECK:           %[[COMPARE_16:.*]] = stablehlo.compare NE, %[[ARG0]], %[[FLOOR_6]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
+// CHECK:           %[[COMPARE_17:.*]] = stablehlo.compare LT, %[[ARG0]], %[[CONSTANT_70]] : (tensor<f64>, tensor<f64>) -> tensor<i1>
+// CHECK:           %[[OR_0:.*]] = stablehlo.or %[[COMPARE_16]], %[[COMPARE_17]] : tensor<i1>
 // CHECK:           %[[CONSTANT_97:.*]] = stablehlo.constant dense<0x7FF8000000000000> : tensor<f64>
 // CHECK:           %[[SELECT_15:.*]] = stablehlo.select %[[OR_0]], %[[CONSTANT_97]], %[[SELECT_14]] : tensor<i1>, tensor<f64>
 // CHECK:           return %[[SELECT_15]] : tensor<f64>
@@ -3724,17 +3739,20 @@ func.func @polygamma_f64(%lhs : tensor<f64>, %rhs : tensor<f64>) -> tensor<f64> 
 // CHECK:           %[[DIVIDE_32:.*]] = stablehlo.divide %[[MULTIPLY_52]], %[[SINE_1]] : tensor<f32>
 // CHECK:           %[[SUBTRACT_18:.*]] = stablehlo.subtract %[[SUBTRACT_17]], %[[DIVIDE_32]] : tensor<f32>
 // CHECK:           %[[SELECT_12:.*]] = stablehlo.select %[[COMPARE_12]], %[[SUBTRACT_18]], %[[SUBTRACT_17]] : tensor<i1>, tensor<f32>
-// CHECK:           %[[COMPARE_13:.*]] = stablehlo.compare LE, %[[CONVERT_1]], %[[CONSTANT_73]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_13:.*]] = stablehlo.compare EQ, %[[CONVERT_1]], %[[CONSTANT_73]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_14:.*]] = stablehlo.compare LT, %[[CONVERT_1]], %[[CONSTANT_73]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
 // CHECK:           %[[FLOOR_5:.*]] = stablehlo.floor %[[CONVERT_1]] : tensor<f32>
-// CHECK:           %[[COMPARE_14:.*]] = stablehlo.compare EQ, %[[CONVERT_1]], %[[FLOOR_5]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
-// CHECK:           %[[AND_3:.*]] = stablehlo.and %[[COMPARE_13]], %[[COMPARE_14]] : tensor<i1>
+// CHECK:           %[[COMPARE_15:.*]] = stablehlo.compare EQ, %[[CONVERT_1]], %[[FLOOR_5]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[AND_3:.*]] = stablehlo.and %[[COMPARE_14]], %[[COMPARE_15]] : tensor<i1>
 // CHECK:           %[[CONSTANT_96:.*]] = stablehlo.constant dense<0x7FC00000> : tensor<f32>
 // CHECK:           %[[SELECT_13:.*]] = stablehlo.select %[[AND_3]], %[[CONSTANT_96]], %[[SELECT_12]] : tensor<i1>, tensor<f32>
-// CHECK:           %[[SELECT_14:.*]] = stablehlo.select %[[COMPARE_11]], %[[SELECT_13]], %[[MULTIPLY_42]] : tensor<i1>, tensor<f32>
+// CHECK:           %[[CONSTANT_98:.*]] = stablehlo.constant dense<0xFF800000> : tensor<f32>
+// CHECK:           %[[SELECT_16:.*]] = stablehlo.select %[[COMPARE_13]], %[[CONSTANT_98]], %[[SELECT_13]] : tensor<i1>, tensor<f32>
+// CHECK:           %[[SELECT_14:.*]] = stablehlo.select %[[COMPARE_11]], %[[SELECT_16]], %[[MULTIPLY_42]] : tensor<i1>, tensor<f32>
 // CHECK:           %[[FLOOR_6:.*]] = stablehlo.floor %[[CONVERT_0]] : tensor<f32>
-// CHECK:           %[[COMPARE_15:.*]] = stablehlo.compare NE, %[[CONVERT_0]], %[[FLOOR_6]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
-// CHECK:           %[[COMPARE_16:.*]] = stablehlo.compare LT, %[[CONVERT_0]], %[[CONSTANT_70]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
-// CHECK:           %[[OR_0:.*]] = stablehlo.or %[[COMPARE_15]], %[[COMPARE_16]] : tensor<i1>
+// CHECK:           %[[COMPARE_16:.*]] = stablehlo.compare NE, %[[CONVERT_0]], %[[FLOOR_6]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[COMPARE_17:.*]] = stablehlo.compare LT, %[[CONVERT_0]], %[[CONSTANT_70]] : (tensor<f32>, tensor<f32>) -> tensor<i1>
+// CHECK:           %[[OR_0:.*]] = stablehlo.or %[[COMPARE_16]], %[[COMPARE_17]] : tensor<i1>
 // CHECK:           %[[CONSTANT_97:.*]] = stablehlo.constant dense<0x7FC00000> : tensor<f32>
 // CHECK:           %[[SELECT_15:.*]] = stablehlo.select %[[OR_0]], %[[CONSTANT_97]], %[[SELECT_14]] : tensor<i1>, tensor<f32>
 // CHECK:           %[[CONVERT_2:.*]] = stablehlo.convert %[[SELECT_15]] : (tensor<f32>) -> tensor<f16>
@@ -5278,6 +5296,32 @@ func.func @ragged_dot_mode_2_dynamic(%lhs : tensor<2x?x5xf32>, %rhs : tensor<2x5
     precision_config = [#chlo<precision DEFAULT>, #chlo<precision DEFAULT>]
   } : (tensor<2x?x5xf32>, tensor<2x5x7xf32>, tensor<2x4xi64>) -> tensor<4x2x?x7xf32>
   func.return %0 : tensor<4x2x?x7xf32>
+}
+
+// -----
+
+// CHECK-LABEL:   func.func @ragged_dot_mode_2_rank_lhs_lt_rhs(
+// CHECK-SAME:      %[[ARG0:.*]]: tensor<2x3xf32>,
+// CHECK-SAME:      %[[ARG1:.*]]: tensor<2x3x4xf32>,
+// CHECK-SAME:      %[[ARG2:.*]]: tensor<2xi64>) -> tensor<2x3x3x4xf32> {
+// CHECK:           %[[DOT_GENERAL_0:.*]] = stablehlo.dot_general %{{.*}}, %[[ARG1]], contracting_dims = [0] x [0], precision = [DEFAULT, DEFAULT] : (tensor<2x3xf32>, tensor<2x3x4xf32>) -> tensor<3x3x4xf32>
+// CHECK:           %[[DOT_GENERAL_1:.*]] = stablehlo.dot_general %{{.*}}, %[[ARG1]], contracting_dims = [0] x [0], precision = [DEFAULT, DEFAULT] : (tensor<2x3xf32>, tensor<2x3x4xf32>) -> tensor<3x3x4xf32>
+// CHECK:           %[[CONCATENATE_0:.*]] = stablehlo.concatenate{{.*}}dim = 0 : (tensor<1x3x3x4xf32>, tensor<1x3x3x4xf32>) -> tensor<2x3x3x4xf32>
+// CHECK:           return %[[CONCATENATE_0]] : tensor<2x3x3x4xf32>
+// CHECK:         }
+func.func @ragged_dot_mode_2_rank_lhs_lt_rhs(%lhs : tensor<2x3xf32>, %rhs : tensor<2x3x4xf32>, %group_sizes : tensor<2xi64>) -> tensor<2x3x3x4xf32> {
+  %0 = "chlo.ragged_dot"(%lhs, %rhs, %group_sizes) {
+    ragged_dot_dimension_numbers = #chlo.ragged_dot<
+      lhs_batching_dimensions = [],
+      rhs_batching_dimensions = [],
+      lhs_contracting_dimensions = [0],
+      rhs_contracting_dimensions = [0],
+      lhs_ragged_dimensions = [0],
+      rhs_group_dimensions = []
+    >,
+    precision_config = [#chlo<precision DEFAULT>, #chlo<precision DEFAULT>]
+  } : (tensor<2x3xf32>, tensor<2x3x4xf32>, tensor<2xi64>) -> tensor<2x3x3x4xf32>
+  func.return %0 : tensor<2x3x3x4xf32>
 }
 
 // -----
