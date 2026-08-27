@@ -186,7 +186,15 @@ struct ProcessId {
 };
 
 /// StableHLO `process_group`.
-class ProcessGroup : public SmallVector<ProcessId> {};
+class ProcessGroup : public SmallVector<ProcessId> {
+ public:
+  using SmallVector<ProcessId>::SmallVector;
+
+  bool operator<(const ProcessGroup &other) const {
+    return static_cast<const SmallVector<ProcessId> &>(*this) <
+           static_cast<const SmallVector<ProcessId> &>(other);
+  }
+};
 
 /// StableHLO `process_groups`.
 class ProcessGroups : public SmallVector<ProcessGroup> {
