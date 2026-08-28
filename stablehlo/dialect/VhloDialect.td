@@ -58,6 +58,7 @@ def VHLO_Dialect : Dialect {
       1.17.0: Add `future` type support to `custom_call` op.
       1.18.0: Add `result_tilings` attribute to `custom_call` op.
       1.19.0: Add CollectiveReduceOp.
+      1.20.0: Add has_dynamic_root to collective_broadcast op.
       1.20.0: Allow mixed fp8 operands in `convolution` and `dynamic_conv` ops.
   }];
 
