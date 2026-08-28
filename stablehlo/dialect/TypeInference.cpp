@@ -86,6 +86,13 @@ namespace {
 // Utils for quantization specific verifications
 //===----------------------------------------------------------------------===//
 
+bool isFp8Type(mlir::Type type) {
+  return llvm::isa<mlir::Float8E3M4Type, mlir::Float8E4M3Type,
+                   mlir::Float8E4M3FNType, mlir::Float8E5M2Type,
+                   mlir::Float8E4M3FNUZType, mlir::Float8E4M3B11FNUZType,
+                   mlir::Float8E5M2FNUZType, mlir::Float8E8M0FNUType>(type);
+}
+
 template <typename T>
 bool allQuantized(ArrayRef<Type> typeRange) {
   return llvm::all_of(
@@ -2228,11 +2235,14 @@ LogicalResult inferConvolutionOp(
   // convolution_c27
   if (!anyQuantized<quant::QuantizedType>({rankedLhsType, rankedRhsType}) &&
       !isCompatibleForHloTypeInference(rankedLhsType.getElementType(),
-                                       rankedRhsType.getElementType()))
+                                       rankedRhsType.getElementType()) &&
+      !(isFp8Type(rankedLhsType.getElementType()) &&
+        isFp8Type(rankedRhsType.getElementType()))) {
     return emitOptionalError(
         location, "expects lhs and rhs to have compatible element type. Got: ",
         rankedLhsType.getElementType(), " and ",
         rankedRhsType.getElementType());
+  }
 
   if (failed(verifyConvolutionAttributes(
           location, lhsType, rhsType, inputBatchDimension,
@@ -2555,7 +2565,9 @@ LogicalResult inferDynamicConvOp(
   // dynamic_conv_c27
   if (!anyQuantized<quant::QuantizedType>({rankedLhsType, rankedRhsType}) &&
       !isCompatibleForHloTypeInference(rankedLhsType.getElementType(),
-                                       rankedRhsType.getElementType()))
+                                       rankedRhsType.getElementType()) &&
+      !(isFp8Type(rankedLhsType.getElementType()) &&
+        isFp8Type(rankedRhsType.getElementType())))
     return emitOptionalError(
         location, "expects lhs and rhs to have compatible element type. Got: ",
         rankedLhsType.getElementType(), " and ",

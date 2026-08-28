@@ -2509,7 +2509,9 @@ For hybrid quantized types, performs `hybrid_dequantize_then_op(
     * `num_windows = is_empty_window[lhs_dim] ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
 * (C26) `rank(result) = N`.
 * If the operation uses non-quantized tensors:
-  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)`.
+  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)` or
+    (`is_fp8(element_type(lhs))` and `is_fp8(element_type(rhs))` and
+    `element_type(result) = element_type(lhs)`).
 * If the operation uses quantized tensors:
   * (C28) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
   * (C29) If `is_per_axis_quantized(rhs)`,
@@ -3179,7 +3181,9 @@ op, but the padding is specified dynamically via `padding`.
     * `num_windows = is_empty_window[lhs_dim] ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
 * (C26) `rank(result) = N`.
 * If the operation uses non-quantized tensors:
-  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)`.
+  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)` or
+    (`is_fp8(element_type(lhs))` and `is_fp8(element_type(rhs))` and
+    `element_type(result) = element_type(lhs)`).
 * If the operation uses quantized tensors:
   * (C28) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
   * (C29) If `is_per_axis_quantized(rhs)`,
@@ -7666,6 +7670,12 @@ def is_promotable(x: Type, y: Type) -> Value:
 
   return false
 ```
+
+* `is_fp8(x: Value | Placeholder | Type) -> Value` returns `true` if `x` is one
+of `Float8E4M3Type`, `Float8E4M3FNType`, `Float8E4M3B11FNUZType`,
+`Float8E4M3FNUZType`, `Float8E5M2Type`, `Float8E5M2FNUZType`, `Float8E3M4Type`,
+or `Float8E8M0FNUType`. If `x` is a value or placeholder, this function is a
+shortcut for `is_fp8(type(x))`.
 
 * `is_quantized(x: Value | Placeholder | Type) -> Value` is a shortcut for
 `is_quantized_tensor_element_type(x)`.

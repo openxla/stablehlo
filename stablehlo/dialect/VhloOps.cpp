@@ -359,11 +359,44 @@ LogicalResult verifyConstraint_1_17_0(mlir::Operation* op,
   return success();
 }
 
+bool isVhloFp8Type(Type type) {
+  return isa<vhlo::FloatF8E3M4V1Type, vhlo::FloatF8E4M3V1Type,
+             vhlo::FloatF8E4M3FNV1Type, vhlo::FloatF8E5M2V1Type,
+             vhlo::FloatF8E4M3FNUZV1Type, vhlo::FloatF8E4M3B11FNUZV1Type,
+             vhlo::FloatF8E5M2FNUZV1Type, vhlo::FloatF8E8M0FNUV1Type>(type);
+}
+
+LogicalResult verifyConstraint_1_20_0(mlir::Operation* op,
+                                      Version targetVersion) {
+  if (targetVersion < Version(1, 20, 0)) {
+    if (op->getNumOperands() < 2) {
+      return failure();
+    }
+    Type lhsElementType = getVhloElementType(op->getOperand(0).getType());
+    Type rhsElementType = getVhloElementType(op->getOperand(1).getType());
+    if (lhsElementType != rhsElementType && isVhloFp8Type(lhsElementType) &&
+        isVhloFp8Type(rhsElementType)) {
+      return failure();
+    }
+  }
+  return success();
+}
+
 }  // namespace
 
 LogicalResult AllReduceOpV1::validateConstraint(mlir::Operation* op,
                                                 Version targetVersion) {
   return verifyConstraint_0_17_0(op, targetVersion);
+}
+
+LogicalResult ConvolutionOpV1::validateConstraint(mlir::Operation* op,
+                                                  Version targetVersion) {
+  return verifyConstraint_1_20_0(op, targetVersion);
+}
+
+LogicalResult DynamicConvOpV2::validateConstraint(mlir::Operation* op,
+                                                  Version targetVersion) {
+  return verifyConstraint_1_20_0(op, targetVersion);
 }
 
 LogicalResult ReduceOpV1::validateConstraint(mlir::Operation* op,

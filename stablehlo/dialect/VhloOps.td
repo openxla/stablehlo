@@ -400,7 +400,8 @@ def VHLO_ConvertOpV1 : VHLO_Op<"convert_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution_v1", "0.9.0", "current"> {
+def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution_v1", "0.9.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
@@ -582,7 +583,8 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv_v1", "0.9.0", "0.19.0"> {
 
 // Padding should be specified as an operand only, not an attribute.
 // Remove `d_padding` and convert `padding` to an operand.
-def VHLO_DynamicConvOpV2 : VHLO_Op<"dynamic_conv_v2", "0.20.0", "current"> {
+def VHLO_DynamicConvOpV2 : VHLO_Op<"dynamic_conv_v2", "0.20.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
