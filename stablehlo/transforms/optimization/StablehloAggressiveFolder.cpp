@@ -38,6 +38,7 @@ limitations under the License.
 #include "llvm/Support/LogicalResult.h"
 #include "mlir/Dialect/CommonFolders.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
@@ -157,12 +158,36 @@ LogicalResult validateStaticShapeResult(PatternRewriter& rewriter,
   return success();
 }
 
+Type getConstantFoldResultType(Type resultType, TypedAttr operand) {
+  auto shapedResultType = dyn_cast<ShapedType>(resultType);
+  auto shapedOperandType = dyn_cast<ShapedType>(operand.getType());
+  if (!shapedResultType || !shapedOperandType ||
+      shapedResultType.hasStaticShape() ||
+      !shapedOperandType.hasStaticShape() ||
+      shapedResultType.getRank() != shapedOperandType.getRank())
+    return resultType;
+  return shapedResultType.clone(shapedOperandType.getShape());
+}
+
+LogicalResult replaceOpWithConstant(PatternRewriter& rewriter, Operation* op,
+                                    TypedAttr value) {
+  assert(op->getNumResults() == 1 && "expected one result");
+  Value replacement = ConstantOp::create(rewriter, op->getLoc(), value);
+  Type resultType = op->getResult(0).getType();
+  if (replacement.getType() != resultType)
+    replacement =
+        tensor::CastOp::create(rewriter, op->getLoc(), resultType, replacement);
+  rewriter.replaceOp(op, replacement);
+  return success();
+}
+
 /// Unary constant folder that uses a generic folder function to handle both
 /// ints and floats.
 template <typename Fn, typename IntResultType = IntegerAttr,
           typename FloatResultType = FloatAttr>
 TypedAttr foldUnaryOpIntOrFloat(Type resultType, TypedAttr operand,
                                 Fn&& folder) {
+  resultType = getConstantFoldResultType(resultType, operand);
   Type elemTy = getElementTypeOrSelf(operand);
 
   Attribute res;
@@ -204,6 +229,7 @@ template <typename Fn, typename IntResultType = IntegerAttr,
           typename FloatResultType = FloatAttr>
 TypedAttr foldBinaryOpIntOrFloat(Type resultType, TypedAttr lhs, TypedAttr rhs,
                                  Fn&& folder) {
+  resultType = getConstantFoldResultType(resultType, lhs);
   Attribute operands[2] = {lhs, rhs};
   Type elemTy = getElementTypeOrSelf(lhs);
 
@@ -586,8 +612,7 @@ struct FoldUnaryOpPattern : public FoldOpRewritePattern<OpType> {
     }
     if (failed(result)) return failure();
 
-    rewriter.replaceOpWithNewOp<ConstantOp>(op, result.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, result.value());
   }
 };
 
@@ -624,8 +649,7 @@ struct FoldAddOpPattern final
 
     auto res = foldBinaryOpIntOrFloat(rewriter, op, std::plus<>{});
     if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, res.value());
   }
 };
 
@@ -647,9 +671,7 @@ struct FoldAndOpPattern : public ShapeOpRewritePattern<AndOp> {
     }
 
     if (failed(result)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op,
-                                                             result.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, result.value());
   }
 
   struct FoldLogicalAnd {
@@ -713,8 +735,7 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
     auto res = foldBinaryOpIntOrFloat<FoldCompare, IntegerAttr, IntegerAttr>(
         rewriter, op, FoldCompare(op.getComparisonDirection(), comparisonType));
     if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, res.value());
   }
 
   // Return the comparison type if set, else return the assumed comparison type
@@ -1030,8 +1051,7 @@ struct FoldDivOpPattern : public ShapeOpRewritePattern<DivOp> {
     bool isUnsignedInt = resultType.getElementType().isUnsignedInteger();
     auto res = foldBinaryOpIntOrFloat(rewriter, op, FoldDivide(isUnsignedInt));
     if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, res.value());
   }
 
   struct FoldDivide {
@@ -1121,8 +1141,7 @@ struct FoldMaxOpPattern : public ShapeOpRewritePattern<MaxOp> {
     auto res =
         foldBinaryOpIntOrFloat(rewriter, op, FoldMax(isUnsignedIntOrBool));
     if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, res.value());
   }
 };
 
@@ -1141,8 +1160,7 @@ struct FoldMinOpPattern : public ShapeOpRewritePattern<MinOp> {
     auto res =
         foldBinaryOpIntOrFloat(rewriter, op, FoldMin(isUnsignedIntOrBool));
     if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, res.value());
   }
 };
 
@@ -1173,8 +1191,7 @@ struct FoldClampOpPattern : public ShapeOpRewritePattern<ClampOp> {
     res = foldBinaryOpIntOrFloat(resultType, maxAttr, res,
                                  FoldMin(isUnsignedInt));
     if (!res) return rewriter.notifyMatchFailure(op, "failed to fold clamp");
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res);
-    return success();
+    return replaceOpWithConstant(rewriter, op, res);
   }
 };
 
@@ -1188,8 +1205,7 @@ struct FoldMulOpPattern final : ShapeOpRewritePattern<mlir::stablehlo::MulOp> {
 
     auto res = foldBinaryOpIntOrFloat(rewriter, op, std::multiplies<>{});
     if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, res.value());
   }
 };
 
@@ -1211,9 +1227,7 @@ struct FoldOrOpPattern : public ShapeOpRewritePattern<OrOp> {
     }
 
     if (failed(result)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op,
-                                                             result.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, result.value());
   }
 
   struct FoldLogicalOr {
@@ -1250,8 +1264,7 @@ struct FoldRemOpPattern : public ShapeOpRewritePattern<RemOp> {
     bool isUnsignedInt = resultType.getElementType().isUnsignedInteger();
     auto res = foldBinaryOpIntOrFloat(rewriter, op, FoldRem(isUnsignedInt));
     if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, res.value());
   }
 
   struct FoldRem {
@@ -1619,8 +1632,7 @@ struct FoldSubtractOpPattern final
 
     auto res = foldBinaryOpIntOrFloat(rewriter, op, std::minus<>{});
     if (failed(res)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, res.value());
   }
 };
 
@@ -2154,9 +2166,7 @@ struct FoldXorOpPattern : public ShapeOpRewritePattern<XorOp> {
     }
 
     if (failed(result)) return failure();
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op,
-                                                             result.value());
-    return success();
+    return replaceOpWithConstant(rewriter, op, result.value());
   }
 
   struct FoldLogicalXor {
@@ -2188,6 +2198,10 @@ struct StablehloAggressiveFolderPass
 
   explicit StablehloAggressiveFolderPass()
       : StablehloAggressiveFolderPassBase() {}
+
+  void getDependentDialects(DialectRegistry& registry) const override {
+    registry.insert<tensor::TensorDialect>();
+  }
 
   void runOnOperation() override {
     MLIRContext* context = &getContext();
