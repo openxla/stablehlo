@@ -4,11 +4,12 @@ Status: In Review
 Initial version: 2026-09-01
 Last updated: 2026-09-01
 Discussion thread:
-https://github.com/openxla/stablehlo/pull/3003
+[GitHub PR #3003](https://github.com/openxla/stablehlo/pull/3003)
 
 ## Overview
 
 This RFC proposes:
+
 1. Adding `NUMPY` (or `FLOAT_NUMPY`) to `ComparisonType` (`compare_type`
    attribute on `stablehlo.compare`).
 2. Formally deprecating the `SIGNED` and `UNSIGNED` enum values in
@@ -22,6 +23,7 @@ This RFC proposes:
 
 Machine learning frontends (JAX, PyTorch, NumPy) require NumPy sorting and
 ranking semantics:
+
 - -0.0 and +0.0 are treated as equivalent keys (preserving stability in stable
   sorts).
 - All NaNs (both positive and negative) are sorted to the end of the sequence
@@ -58,6 +60,7 @@ integer/boolean operands.
 ### 1. Dialect & Attributes
 
 Update `StableHLO_ComparisonType`:
+
 ```tablegen
 def STABLEHLO_COMPARISON_TYPE_NOTYPE : I32EnumAttrCase<"NOTYPE", 0>;
 def STABLEHLO_COMPARISON_TYPE_FLOAT : I32EnumAttrCase<"FLOAT", 1>;
@@ -83,6 +86,7 @@ def StableHLO_ComparisonType : I32EnumAttr<"ComparisonType",
 ### 2. Specification (`docs/spec.md`)
 
 Update `compare` semantics:
+
 - For floating-point element types with `compare_type = NUMPY`:
   - Implements total weak ordering:
     -infinity < finite < -0.0 == +0.0 < finite < +infinity < NaN.
@@ -108,6 +112,7 @@ Update `compare` semantics:
 
 Rather than extending `ComparisonType`, deprecate `compare_type` entirely and
 introduce `comparison_order` with values `PARTIAL`, `TOTAL`, `NUMPY`.
+
 - **Pros**: Cleaner conceptual model (separates data type from ordering; 1:1
   match with XLA IR's `Comparison::Order`).
 - **Cons**: Substantial churn for all existing StableHLO producers and
@@ -119,5 +124,6 @@ introduce `comparison_order` with values `PARTIAL`, `TOTAL`, `NUMPY`.
 
 Continue lowering NumPy sorts in JAX/PyTorch via select/compare ASTs and
 relying on XLA backend pattern matching.
+
 - **Cons**: Brittle compiler pattern matching logic, risk of having lower
   performance, unnecessary IR complexity.
