@@ -28,9 +28,12 @@ ranking semantics:
   sorts).
 - All NaNs (both positive and negative) are sorted to the end of the sequence
   (> +infinity).
+- Complex numbers are ordered lexicographically by (real, imag).
+
 StableHLO currently supports only `FLOAT` (standard IEEE-754 partial order)
 and `TOTALORDER` (IEEE-754 totalOrder, where -NaN < -infinity and
 -0.0 < +0.0).
+
 Because of this, frontends like JAX must emit a 7+ instruction boilerplate
 subgraph per scalar comparison in every sort comparator to canonicalize zeros
 and NaNs before calling `TOTALORDER`. In turn, downstream compiler backends
@@ -38,6 +41,7 @@ and NaNs before calling `TOTALORDER`. In turn, downstream compiler backends
 detect this subgraph and emit fast CUB `DeviceRadixSort` (see b/376918731).
 If any compiler optimization alters the AST, pattern matching fails and falls
 back to a 10x-25x slower bitonic sort.
+
 Adding `NUMPY` directly to `ComparisonType` eliminates frontend
 canonicalization bloat and provides a clean, robust contract for compiler
 backends.
@@ -48,12 +52,12 @@ In StableHLO and MLIR, operand types explicitly encode signedness
 (`si8`..`si64`, `ui8`..`ui64`, `i1`). Integer comparisons are mathematically
 total, and their sign interpretation is strictly dictated by the operand's
 `IntegerType`.
-Having `SIGNED` and `UNSIGNED` in `ComparisonType` is copied from XLA internals.
-XLA is migrating away from this by separating data type from ordering. In the
-future, the data type will always be derived from the operands of the
-comparison. In StableHLO, `SIGNED` and `UNSIGNED` are redundant and should be
-deprecated in favor of omitting `compare_type` (or using `NOTYPE`) for
-integer/boolean operands.
+
+Having `SIGNED` and `UNSIGNED` in `ComparisonType` is a legacy artifact of
+older XLA IR where operands were signless. XLA is migrating away from this by
+separating data type from ordering (see cl/974361549). In StableHLO, `SIGNED`
+and `UNSIGNED` are redundant and should be deprecated in favor of omitting
+`compare_type` (or using `NOTYPE`) for integer/boolean operands.
 
 ## Proposed Changes
 
@@ -71,6 +75,7 @@ def STABLEHLO_COMPARISON_TYPE_SIGNED :
 def STABLEHLO_COMPARISON_TYPE_UNSIGNED :
     I32EnumAttrCase<"UNSIGNED", 4>; // Deprecated
 def STABLEHLO_COMPARISON_TYPE_NUMPY : I32EnumAttrCase<"NUMPY", 5>;
+
 def StableHLO_ComparisonType : I32EnumAttr<"ComparisonType",
     "Which comparison type to use.",
     [
@@ -93,10 +98,14 @@ Update `compare` semantics:
   - -0.0 and +0.0 compare as equal (`EQ` is true; neither is `<` the other).
   - All NaN representations (positive, negative, signaling, quiet) compare as
     equal to each other and greater than all non-NaN values.
+- For complex element types with `compare_type = NUMPY`:
+  - Lexicographical comparison: compare real parts with `NUMPY` float
+    ordering; if equal, compare imaginary parts with `NUMPY` float ordering.
 - Constraints (C3) updated:
   - `SIGNED` and `UNSIGNED` marked deprecated.
   - `NOTYPE` is the standard for integer and boolean types.
-  - `FLOAT`, `TOTALORDER`, or `NUMPY` valid for floating-point types.
+  - `FLOAT`, `TOTALORDER`, or `NUMPY` valid for floating-point and complex
+    types.
 
 ### 3. Compatibility & Versioning
 
@@ -105,7 +114,7 @@ Update `compare` semantics:
   `NOTYPE`.
 - **Forward Compatibility**: `NUMPY` will be added to `VhloEnums.td`
   (`VHLO_ComparisonTypeV1`) with appropriate versioning.
-  
+
 ## Alternatives Considered
 
 ### Alternative 1: Replace `compare_type` with `comparison_order` attribute
@@ -119,11 +128,11 @@ introduce `comparison_order` with values `PARTIAL`, `TOTAL`, `NUMPY`.
   consumers, requiring op signature migration (`CompareOpV2` or complex
   bytecode upgrade rules). Option A achieves the required semantic
   expressiveness with zero disruption.
-  
+
 ### Alternative 2: Keep frontend canonicalization
 
 Continue lowering NumPy sorts in JAX/PyTorch via select/compare ASTs and
 relying on XLA backend pattern matching.
 
-- **Cons**: Brittle compiler pattern matching logic, risk of having lower
-  performance, unnecessary IR complexity.
+- **Cons**: Brittle compiler heuristics, risk of 10x-25x regressions,
+  unnecessary IR complexity.
