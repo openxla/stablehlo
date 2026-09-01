@@ -28,7 +28,6 @@ ranking semantics:
   sorts).
 - All NaNs (both positive and negative) are sorted to the end of the sequence
   (> +infinity).
-- Complex numbers are ordered lexicographically by (real, imag).
 
 StableHLO currently supports only `FLOAT` (standard IEEE-754 partial order)
 and `TOTALORDER` (IEEE-754 totalOrder, where -NaN < -infinity and
@@ -53,11 +52,12 @@ In StableHLO and MLIR, operand types explicitly encode signedness
 total, and their sign interpretation is strictly dictated by the operand's
 `IntegerType`.
 
-Having `SIGNED` and `UNSIGNED` in `ComparisonType` is a legacy artifact of
-older XLA IR where operands were signless. XLA is migrating away from this by
-separating data type from ordering (see cl/974361549). In StableHLO, `SIGNED`
-and `UNSIGNED` are redundant and should be deprecated in favor of omitting
-`compare_type` (or using `NOTYPE`) for integer/boolean operands.
+Having `SIGNED` and `UNSIGNED` in `ComparisonType` is copied from XLA internals.
+XLA is migrating away from this by separating data type from ordering. In the
+future, the data type will always be derived from the operands of the
+comparison. In StableHLO, `SIGNED` and `UNSIGNED` are redundant and should be
+deprecated in favor of omitting `compare_type` (or using `NOTYPE`) for
+integer/boolean operands.
 
 ## Proposed Changes
 
@@ -98,14 +98,10 @@ Update `compare` semantics:
   - -0.0 and +0.0 compare as equal (`EQ` is true; neither is `<` the other).
   - All NaN representations (positive, negative, signaling, quiet) compare as
     equal to each other and greater than all non-NaN values.
-- For complex element types with `compare_type = NUMPY`:
-  - Lexicographical comparison: compare real parts with `NUMPY` float
-    ordering; if equal, compare imaginary parts with `NUMPY` float ordering.
 - Constraints (C3) updated:
   - `SIGNED` and `UNSIGNED` marked deprecated.
   - `NOTYPE` is the standard for integer and boolean types.
-  - `FLOAT`, `TOTALORDER`, or `NUMPY` valid for floating-point and complex
-    types.
+  - `FLOAT`, `TOTALORDER`, or `NUMPY` valid for floating-point types.
 
 ### 3. Compatibility & Versioning
 
@@ -134,5 +130,5 @@ introduce `comparison_order` with values `PARTIAL`, `TOTAL`, `NUMPY`.
 Continue lowering NumPy sorts in JAX/PyTorch via select/compare ASTs and
 relying on XLA backend pattern matching.
 
-- **Cons**: Brittle compiler heuristics, risk of 10x-25x regressions,
-  unnecessary IR complexity.
+- **Cons**: Brittle compiler pattern matching logic, risk of having lower
+  performance, unnecessary IR complexity.
