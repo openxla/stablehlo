@@ -4,7 +4,7 @@ Status: In Review
 Initial version: 2026-09-01
 Last updated: 2026-09-01
 Discussion thread:
-https://github.com/openxla/stablehlo/pull/XXXX
+https://github.com/openxla/stablehlo/pull/3003
 
 ## Overview
 
