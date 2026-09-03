@@ -166,7 +166,9 @@ static llvm::ErrorOr<int> parseDescrHeader(const std::string& header) {
   if (getNumPyType<T>() != typeString[1]) return llvm::errc::invalid_argument;
 
   int typeSize;
-  if (llvm::StringRef(typeString).substr(2).getAsInteger(/*Radix=*/10, typeSize))
+  if (llvm::StringRef(typeString)
+          .substr(2)
+          .getAsInteger(/*Radix=*/10, typeSize))
     return llvm::errc::invalid_argument;
   return typeSize;
 }
