@@ -519,8 +519,9 @@ struct DynamicIotaOpToBroadcast
     auto iotaShapeType = cast<ShapedType>(iotaShape.getType());
     if (iotaShapeType.getElementType().isIndex())
       return rewriter.notifyMatchFailure(
-          iota, "index-typed shapes not supported; run "
-                "shape-legalize-to-stablehlo first");
+          iota,
+          "index-typed shapes not supported; run "
+          "shape-legalize-to-stablehlo first");
 
     auto iotaShapeI64Type =
         RankedTensorType::get(iotaShapeType.getShape(), rewriter.getI64Type());
@@ -1733,18 +1734,18 @@ void populateStablehloCanonicalizationPatterns(
     PatternBenefit benefit) {
   populateWithGenerated(*patterns);
   // TODO: Re-enable `CompareSelectIntoMinMax` after fixing legalization issue.
-  patterns->add<
-      CompareOpCanon, /*CompareSelectIntoMinMax,*/ ConcatenateOpFlatten,
-      ConcatenateOpNoop, ConcatenateOpRemoveEmpty,
-      CustomCallUnregisteredBackendConfigToFfi, DynamicIotaOpToBroadcast,
-      DynamicReshapeOpSameOperandAndResultShape, DynamicSliceOpToSlice,
-      GatherOpCanon, IotaOpBroadcast, PadOpBroadcastEmptyTensor,
-      RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
-      ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon, SelectOpCanon,
-      ScatterOpEmptyIndices, ScatterOpZeroExtentUpdates,
-      SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
-      TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
-      context, options, benefit);
+  patterns
+      ->add<CompareOpCanon, /*CompareSelectIntoMinMax,*/ ConcatenateOpFlatten,
+            ConcatenateOpNoop, ConcatenateOpRemoveEmpty,
+            CustomCallUnregisteredBackendConfigToFfi, DynamicIotaOpToBroadcast,
+            DynamicReshapeOpSameOperandAndResultShape, DynamicSliceOpToSlice,
+            GatherOpCanon, IotaOpBroadcast, PadOpBroadcastEmptyTensor,
+            RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
+            ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon,
+            SelectOpCanon, ScatterOpEmptyIndices, ScatterOpZeroExtentUpdates,
+            SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
+            TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
+          context, options, benefit);
 
   // Generic patterns
   // TODO: Re-enable `ReorderElementwiseAndShapeOp` after fixing BF16 precision
