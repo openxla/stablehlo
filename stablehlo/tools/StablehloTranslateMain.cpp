@@ -17,12 +17,14 @@ limitations under the License.
 #include <string>
 #include <utility>
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LogicalResult.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -49,6 +51,7 @@ limitations under the License.
 #include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterOps.h"
+#include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
@@ -82,7 +85,11 @@ llvm::cl::opt<bool> allowOtherDialectsOption(
     llvm::cl::init(false));
 
 llvm::cl::opt<std::string> argsOption(
-    "args", llvm::cl::desc("Arguments to pass to the interpreter"),
+    "args",
+    llvm::cl::desc("Arguments to pass to the interpreter, either an inline "
+                   "array attribute, @file pointing to a file containing "
+                   "one, or comma-separated @file.npy files providing one "
+                   "input tensor each"),
     llvm::cl::init(""));
 
 llvm::cl::opt<bool> interpreterPrintDense(
@@ -102,7 +109,11 @@ stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
 // Parse `--args` option into a list of interpreter arguments.
 // The format is:
 //   --args=[dense<1> : tensor<2xi32>, ...], where each dense attribute is
-//   interpreted as a tensor.
+//   interpreted as a tensor, or
+//   --args=@file, where the file contains an array attribute in the same
+//   format, or
+//   --args=@a.npy,@b.npy, where each NumPy file provides one input tensor
+//   whose type is inferred from the file's header.
 mlir::FailureOr<SmallVector<stablehlo::InterpreterValue>>
 parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
   llvm::SmallVector<stablehlo::InterpreterValue> inputs;
@@ -110,6 +121,42 @@ parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
     std::string usage = "--args=[dense<1> : tensor<2xi32>, ...]";
     return emitError(UnknownLoc::get(context), msg) << ", i.e. " << usage;
   };
+  auto fileError = [&](llvm::StringRef msg) {
+    std::string usage = "--args=@file or --args=@a.npy,@b.npy";
+    return emitError(UnknownLoc::get(context), msg) << ", i.e. " << usage;
+  };
+  if (!argsStr.empty() && argsStr[0] == '@') {
+    llvm::SmallVector<llvm::StringRef> fileNames;
+    llvm::StringRef(argsStr).split(fileNames, ',');
+    for (llvm::StringRef &fileName : fileNames) fileName.consume_front("@");
+
+    auto isNumPy = [](llvm::StringRef fileName) {
+      return fileName.ends_with(".npy");
+    };
+    if (llvm::all_of(fileNames, isNumPy)) {
+      for (llvm::StringRef fileName : fileNames) {
+        auto tensor = stablehlo::numpy::deserializeTensor(fileName, context);
+        if (std::error_code ec = tensor.getError())
+          return fileError("failed to read NumPy args file '" + fileName.str() +
+                           "': " + ec.message());
+        inputs.push_back(stablehlo::InterpreterValue(*tensor));
+      }
+      return inputs;
+    }
+    if (llvm::any_of(fileNames, isNumPy))
+      return fileError("cannot mix .npy and non-.npy args files");
+    if (fileNames.size() != 1)
+      return fileError(
+          "expected a single args file, multiple files are only "
+          "supported for .npy args");
+
+    llvm::StringRef fileName = fileNames.front();
+    auto fileOrErr = llvm::MemoryBuffer::getFile(fileName);
+    if (std::error_code ec = fileOrErr.getError())
+      return fileError("failed to read args file '" + fileName.str() +
+                       "': " + ec.message());
+    argsStr = fileOrErr.get()->getBuffer().str();
+  }
   if (!argsStr.empty()) {
     auto arrayAttr =
         dyn_cast_or_null<ArrayAttr>(mlir::parseAttribute(argsStr, context));
