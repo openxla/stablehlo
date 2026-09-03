@@ -12,9 +12,9 @@ This RFC proposes:
 
 1. Adding `WEAKORDER` to `ComparisonType` (`compare_type` attribute on
    `stablehlo.compare`).
-3. Formally deprecating the `SIGNED` and `UNSIGNED` enum values in
+2. Formally deprecating the `SIGNED` and `UNSIGNED` enum values in
    `ComparisonType`.
-4. Updating the StableHLO specification for `compare` to support strict weak
+3. Updating the StableHLO specification for `compare` to support strict weak
    ordering semantics for floating-point types.
 
 ## Motivation & Background
