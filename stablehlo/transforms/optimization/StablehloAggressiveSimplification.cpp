@@ -24,6 +24,7 @@
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/Builders.h"
@@ -517,17 +518,12 @@ struct DynamicIotaOpToBroadcast
 
     Value iotaShape = iota.getOutputShape();
     auto iotaShapeType = cast<ShapedType>(iotaShape.getType());
-    if (iotaShapeType.getElementType().isIndex())
-      return rewriter.notifyMatchFailure(
-          iota,
-          "index-typed shapes not supported; run "
-          "shape-legalize-to-stablehlo first");
-
     auto iotaShapeI64Type =
         RankedTensorType::get(iotaShapeType.getShape(), rewriter.getI64Type());
     Value iotaShapeI64;
-    if (iotaShapeType.getElementType().isInteger(64)) {
-      iotaShapeI64 = iotaShape;
+    if (iotaShapeType.getElementType().isIndex()) {
+      iotaShapeI64 = arith::IndexCastOp::create(rewriter, iotaLoc,
+                                                iotaShapeI64Type, iotaShape);
     } else {
       iotaShapeI64 = stablehlo::ConvertOp::create(rewriter, iotaLoc,
                                                   iotaShapeI64Type, iotaShape);

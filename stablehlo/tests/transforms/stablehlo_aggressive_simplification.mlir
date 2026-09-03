@@ -545,12 +545,15 @@ func.func @dynamic_iota_broadcast_dim0_i64(%arg0 : tensor<2xi64>) -> tensor<5x?x
   func.return %0 : tensor<5x?xi32>
 }
 
-// Index-typed shapes are skipped (run shape-legalize-to-stablehlo first).
 // CHECK-LABEL: @dynamic_iota_broadcast_dim1_index
 func.func @dynamic_iota_broadcast_dim1_index(%arg0 : tensor<2xindex>) -> tensor<5x?xi32> {
-  // CHECK-NEXT: stablehlo.dynamic_iota %arg0
+  // CHECK-NEXT: [[CAST:%.+]] = arith.index_cast %arg0 : tensor<2xindex> to tensor<2xi64>
+  // CHECK-NEXT: [[SLICE:%.+]] = stablehlo.slice [[CAST]] [1:2] : (tensor<2xi64>) -> tensor<1xi64>
+  // CHECK-NEXT: [[IOTA:%.+]] = stablehlo.dynamic_iota [[SLICE]], dim = 0 : (tensor<1xi64>) -> tensor<?xi32>
+  // CHECK-NEXT: [[BROADCAST:%.+]] = stablehlo.dynamic_broadcast_in_dim [[IOTA]], %arg0, dims = [1] : (tensor<?xi32>, tensor<2xindex>) -> tensor<5x?xi32>
   %0 = "stablehlo.dynamic_iota"(%arg0) <{iota_dimension = 1 : i64}> : (tensor<2xindex>) -> tensor<5x?xi32>
-  // CHECK-NEXT: return
+
+  // CHECK: return [[BROADCAST]]
   func.return %0 : tensor<5x?xi32>
 }
 
@@ -1975,7 +1978,7 @@ func.func @scatter_empty_indices(%input: tensor<3x4xf32>, %updates: tensor<0x4xf
   }) {
     scatter_dimension_numbers = #stablehlo.scatter<
       update_window_dims = [1],
-      inserted_window_dims = [],
+      inserted_window_dims = [0],
       scatter_dims_to_operand_dims = [0],
       index_vector_dim = 1
     >,
@@ -1996,7 +1999,7 @@ func.func @scatter_zero_extent_updates(%input: tensor<3x4xf32>, %indices: tensor
   }) {
     scatter_dimension_numbers = #stablehlo.scatter<
       update_window_dims = [1],
-      inserted_window_dims = [],
+      inserted_window_dims = [0],
       scatter_dims_to_operand_dims = [0],
       index_vector_dim = 1
     >,
@@ -2015,7 +2018,7 @@ func.func @scatter_nonempty_not_simplified(%input: tensor<3x4xf32>, %indices: te
   }) {
     scatter_dimension_numbers = #stablehlo.scatter<
       update_window_dims = [1],
-      inserted_window_dims = [],
+      inserted_window_dims = [0],
       scatter_dims_to_operand_dims = [0],
       index_vector_dim = 1
     >,
