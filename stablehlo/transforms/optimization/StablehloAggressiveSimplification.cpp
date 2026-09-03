@@ -1287,6 +1287,55 @@ struct SliceOpConcatSimplify : public SimplifyOpRewritePattern<SliceOp> {
 };
 
 //////////////////////////////////
+// ScatterOp
+/////////////////////////////////
+
+// Pattern: scatter(inputs, indices, updates) -> inputs
+//   [when scatter_indices has 0 scatter points]
+struct ScatterOpEmptyIndices : public SimplifyOpRewritePattern<ScatterOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOp op,
+                                PatternRewriter& rewriter) const override {
+    auto indicesType = cast<ShapedType>(op.getScatterIndices().getType());
+    if (!indicesType.hasStaticShape()) return failure();
+
+    auto scatterDimNums = op.getScatterDimensionNumbers();
+    int64_t indexVectorDim = scatterDimNums.getIndexVectorDim();
+
+    bool hasZeroScatterPoints = false;
+    for (int64_t i = 0; i < indicesType.getRank(); ++i) {
+      if (i != indexVectorDim && indicesType.getDimSize(i) == 0) {
+        hasZeroScatterPoints = true;
+        break;
+      }
+    }
+    if (!hasZeroScatterPoints) return failure();
+
+    rewriter.replaceOp(op, op.getInputs());
+    return success();
+  }
+};
+
+// Pattern: scatter(inputs, indices, updates) -> inputs
+//   [when all updates have zero extent]
+struct ScatterOpZeroExtentUpdates : public SimplifyOpRewritePattern<ScatterOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOp op,
+                                PatternRewriter& rewriter) const override {
+    bool allZeroExtent = llvm::all_of(op.getUpdates(), [](Value update) {
+      auto type = cast<ShapedType>(update.getType());
+      return type.hasStaticShape() && type.getNumElements() == 0;
+    });
+    if (!allZeroExtent) return failure();
+
+    rewriter.replaceOp(op, op.getInputs());
+    return success();
+  }
+};
+
+//////////////////////////////////
 // SortOp
 /////////////////////////////////
 
@@ -1681,17 +1730,18 @@ void populateStablehloCanonicalizationPatterns(
     PatternBenefit benefit) {
   populateWithGenerated(*patterns);
   // TODO: Re-enable `CompareSelectIntoMinMax` after fixing legalization issue.
-  patterns->add<
-      CompareOpCanon, /*CompareSelectIntoMinMax,*/ ConcatenateOpFlatten,
-      ConcatenateOpNoop, ConcatenateOpRemoveEmpty,
-      CustomCallUnregisteredBackendConfigToFfi, DynamicIotaOpToBroadcast,
-      DynamicReshapeOpSameOperandAndResultShape, DynamicSliceOpToSlice,
-      GatherOpCanon, IotaOpBroadcast, PadOpBroadcastEmptyTensor,
-      RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
-      ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon, SelectOpCanon,
-      SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
-      TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
-      context, options, benefit);
+  patterns
+      ->add<CompareOpCanon, /*CompareSelectIntoMinMax,*/ ConcatenateOpFlatten,
+            ConcatenateOpNoop, ConcatenateOpRemoveEmpty,
+            CustomCallUnregisteredBackendConfigToFfi, DynamicIotaOpToBroadcast,
+            DynamicReshapeOpSameOperandAndResultShape, DynamicSliceOpToSlice,
+            GatherOpCanon, IotaOpBroadcast, PadOpBroadcastEmptyTensor,
+            RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
+            ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon,
+            SelectOpCanon, ScatterOpEmptyIndices, ScatterOpZeroExtentUpdates,
+            SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
+            TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
+          context, options, benefit);
 
   // Generic patterns
   // TODO: Re-enable `ReorderElementwiseAndShapeOp` after fixing BF16 precision
