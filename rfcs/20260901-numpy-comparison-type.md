@@ -1,8 +1,8 @@
-# [RFC] Add NUMPY to ComparisonType and Deprecate SIGNED/UNSIGNED
+# [RFC] Add WEAKORDER to ComparisonType and Deprecate SIGNED/UNSIGNED
 
 Status: In Review
 Initial version: 2026-09-01
-Last updated: 2026-09-01
+Last updated: 2026-09-03
 Discussion thread:
 [GitHub PR #3003](https://github.com/openxla/stablehlo/pull/3003)
 
@@ -10,19 +10,19 @@ Discussion thread:
 
 This RFC proposes:
 
-1. Adding `NUMPY` (or `FLOAT_NUMPY`) to `ComparisonType` (`compare_type`
-   attribute on `stablehlo.compare`).
-2. Formally deprecating the `SIGNED` and `UNSIGNED` enum values in
+1. Adding `WEAKORDER` to `ComparisonType` (`compare_type` attribute on
+   `stablehlo.compare`).
+3. Formally deprecating the `SIGNED` and `UNSIGNED` enum values in
    `ComparisonType`.
-3. Updating the StableHLO specification for `compare` to support
-   NumPy/Python-style total ordering semantics.
+4. Updating the StableHLO specification for `compare` to support strict weak
+   ordering semantics for floating-point types.
 
 ## Motivation & Background
 
-### 1. The Need for NUMPY Comparison Order
+### 1. The Need for WEAKORDER Comparison Order
 
-Machine learning frontends (JAX, PyTorch, NumPy) require NumPy sorting and
-ranking semantics:
+Machine learning frontends (JAX, PyTorch, NumPy) require array sorting and
+ranking semantics that differ from standard IEEE-754:
 
 - -0.0 and +0.0 are treated as equivalent keys (preserving stability in stable
   sorts).
@@ -41,7 +41,7 @@ detect this subgraph and emit fast CUB `DeviceRadixSort` (see b/376918731).
 If any compiler optimization alters the AST, pattern matching fails and falls
 back to a 10x-25x slower bitonic sort.
 
-Adding `NUMPY` directly to `ComparisonType` eliminates frontend
+Adding `WEAKORDER` directly to `ComparisonType` eliminates frontend
 canonicalization bloat and provides a clean, robust contract for compiler
 backends.
 
@@ -74,7 +74,7 @@ def STABLEHLO_COMPARISON_TYPE_SIGNED :
     I32EnumAttrCase<"SIGNED", 3>; // Deprecated
 def STABLEHLO_COMPARISON_TYPE_UNSIGNED :
     I32EnumAttrCase<"UNSIGNED", 4>; // Deprecated
-def STABLEHLO_COMPARISON_TYPE_NUMPY : I32EnumAttrCase<"NUMPY", 5>;
+def STABLEHLO_COMPARISON_TYPE_WEAK_ORDER : I32EnumAttrCase<"WEAKORDER", 5>;
 
 def StableHLO_ComparisonType : I32EnumAttr<"ComparisonType",
     "Which comparison type to use.",
@@ -84,7 +84,7 @@ def StableHLO_ComparisonType : I32EnumAttr<"ComparisonType",
       STABLEHLO_COMPARISON_TYPE_FLOAT_TOTAL_ORDER,
       STABLEHLO_COMPARISON_TYPE_SIGNED,
       STABLEHLO_COMPARISON_TYPE_UNSIGNED,
-      STABLEHLO_COMPARISON_TYPE_NUMPY
+      STABLEHLO_COMPARISON_TYPE_WEAK_ORDER
     ]>
 ```
 
@@ -92,8 +92,8 @@ def StableHLO_ComparisonType : I32EnumAttr<"ComparisonType",
 
 Update `compare` semantics:
 
-- For floating-point element types with `compare_type = NUMPY`:
-  - Implements total weak ordering:
+- For floating-point element types with `compare_type = WEAKORDER`:
+  - Implements strict weak ordering:
     -infinity < finite < -0.0 == +0.0 < finite < +infinity < NaN.
   - -0.0 and +0.0 compare as equal (`EQ` is true; neither is `<` the other).
   - All NaN representations (positive, negative, signaling, quiet) compare as
@@ -101,14 +101,14 @@ Update `compare` semantics:
 - Constraints (C3) updated:
   - `SIGNED` and `UNSIGNED` marked deprecated.
   - `NOTYPE` is the standard for integer and boolean types.
-  - `FLOAT`, `TOTALORDER`, or `NUMPY` valid for floating-point types.
+  - `FLOAT`, `TOTALORDER`, or `WEAKORDER` valid for floating-point types.
 
 ### 3. Compatibility & Versioning
 
 - **Backward Compatibility**: Existing VHLO bytecodes with `SIGNED`/`UNSIGNED`
   will continue to deserialize. On upgrade, they are preserved or mapped to
   `NOTYPE`.
-- **Forward Compatibility**: `NUMPY` will be added to `VhloEnums.td`
+- **Forward Compatibility**: `WEAKORDER` will be added to `VhloEnums.td`
   (`VHLO_ComparisonTypeV1`) with appropriate versioning.
 
 ## Alternatives Considered
@@ -116,13 +116,13 @@ Update `compare` semantics:
 ### Alternative 1: Replace `compare_type` with `comparison_order` attribute
 
 Rather than extending `ComparisonType`, deprecate `compare_type` entirely and
-introduce `comparison_order` with values `PARTIAL`, `TOTAL`, `NUMPY`.
+introduce `comparison_order` with values `PARTIAL`, `TOTAL`, `WEAK`.
 
 - **Pros**: Cleaner conceptual model (separates data type from ordering; 1:1
   match with XLA IR's `Comparison::Order`).
 - **Cons**: Substantial churn for all existing StableHLO producers and
   consumers, requiring op signature migration (`CompareOpV2` or complex
-  bytecode upgrade rules). Option A achieves the required semantic
+  bytecode upgrade rules). The proposal achieves the required semantic
   expressiveness with zero disruption.
 
 ### Alternative 2: Keep frontend canonicalization
