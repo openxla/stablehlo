@@ -13,13 +13,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/Support/CommandLine.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllExtensions.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Tools/mlir-lsp-server/MlirLspServerMain.h"
 #include "stablehlo/dialect/Register.h"
+#include "stablehlo/dialect/Revision.h"
 
 int main(int argc, char **argv) {
+  llvm::cl::AddExtraVersionPrinter(mlir::stablehlo::printVersion);
+
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
   mlir::registerAllExtensions(registry);
