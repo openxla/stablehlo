@@ -1530,6 +1530,20 @@ func.func @xor_fold_cst() -> tensor<3xi32> {
 
 // -----
 
+// CHECK-LABEL: @fold_preserves_declared_dynamic_type
+func.func @fold_preserves_declared_dynamic_type() -> tensor<?x?xi32> {
+  %lhs = stablehlo.constant dense<1> : tensor<1x1xi32>
+  %rhs = stablehlo.constant dense<2> : tensor<1x1xi32>
+  %result = stablehlo.subtract %lhs, %rhs
+    : (tensor<1x1xi32>, tensor<1x1xi32>) -> tensor<?x?xi32>
+  // CHECK: [[CST:%.+]] = stablehlo.constant dense<-1> : tensor<1x1xi32>
+  // CHECK: [[CAST:%.+]] = tensor.cast [[CST]] : tensor<1x1xi32> to tensor<?x?xi32>
+  // CHECK: return [[CAST]] : tensor<?x?xi32>
+  return %result : tensor<?x?xi32>
+}
+
+// -----
+
 // CHECK-LABEL: @xor_fold_boolean_cst
 func.func @xor_fold_boolean_cst() -> tensor<4xi1> {
   // CHECK: stablehlo.constant dense<[true, false, true, false]> : tensor<4xi1>

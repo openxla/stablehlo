@@ -39,6 +39,7 @@ add_mlir_dialect_library(StablehloOptimizationPasses
   MLIRIR
   MLIRRewrite
   MLIRSupport
+  MLIRTensorDialect
   MLIRTransformUtils
   StablehloBase
   StablehloOps
