@@ -33,6 +33,8 @@ CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-RelWithDebInfo}"
 # Turn on building Python bindings
 MLIR_ENABLE_BINDINGS_PYTHON="${MLIR_ENABLE_BINDINGS_PYTHON:-OFF}"
 
+PYTHON_BIN="${Python3_EXECUTABLE:-$(python3 -c "import sys; print(sys.executable)")}"
+
 # Configure LLVM
 # LLVM_VERSION_SUFFIX to get rid of that annoying af git on the end of .17git
 # CMAKE_PLATFORM_NO_VERSIONED_SONAME Disables generation of "version soname"
@@ -58,8 +60,8 @@ cmake -GNinja \
   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-  -DPython3_EXECUTABLE=/usr/bin/python3.12 \
-  -DPython_EXECUTABLE=/usr/bin/python3.12
+  -DPython3_EXECUTABLE="$PYTHON_BIN" \
+  -DPython_EXECUTABLE="$PYTHON_BIN"
 
 # Build LLVM/MLIR
 cmake --build "$LLVM_BUILD_DIR" --target all
