@@ -24,6 +24,9 @@ on:
     - cron:  '0 */6 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 # Ensure that only a single job or workflow using the same
 # concurrency group will run at a time. This would cancel
 # any in-progress jobs in the same github workflow and github
@@ -45,18 +48,21 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'linux-x86-n2-16' || 'ubuntu-22.04' }}
-    container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build-cmake:latest"
+    container: "us-docker.pkg.dev/ml-oss-artifacts-published/ml-public-container/ml-build-cmake@sha256:fa710b30f85d6167ee316a619479532f4d6184a6b4ca03170c97ba63f2a6d2ab"
 
     steps:
     - name: Checkout StableHLO
-      uses: actions/checkout@v4
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
 
     - name: Get LLVM Version
       id: llvm-version
       shell: bash
+      env:
+        IS_SCHEDULED: ${{ github.event_name == 'schedule' }}
       run: |
-        USE_LLVM_HEAD=${{ github.event_name == 'schedule' }}
-        if [[ $USE_LLVM_HEAD = true ]]; then
+        if [[ "$IS_SCHEDULED" == "true" ]]; then
           echo "version=main" >> $GITHUB_OUTPUT
         else
           echo "version=$(cat ./build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
