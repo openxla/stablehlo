@@ -91,7 +91,7 @@ jobs:
       run: |
         python3 -m pip install tensorflow-cpu nanobind==2.9
         python3 -m pip install -r "$LLVM_PROJECT_DIR/mlir/python/requirements.txt"
-        ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
+        ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_PYTHON_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: ON

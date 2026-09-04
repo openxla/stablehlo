@@ -41,6 +41,8 @@ STABLEHLO_ENABLE_PYTHON_TF_TESTS="${STABLEHLO_ENABLE_PYTHON_TF_TESTS:-OFF}"
 # Note: This is not congruent with building python bindings
 STABLEHLO_ENABLE_SANITIZER="${STABLEHLO_ENABLE_SANITIZER:-OFF}"
 
+PYTHON_BIN="${Python3_EXECUTABLE:-$(python3 -c "import sys; print(sys.executable)")}"
+
 # Configure StableHLO
 # CMAKE_PLATFORM_NO_VERSIONED_SONAME Disables generation of "version soname"
 #                         (i.e. libFoo.so.<version>), which causes pure
@@ -60,8 +62,8 @@ cmake -GNinja \
   -DSTABLEHLO_ENABLE_SANITIZER="$STABLEHLO_ENABLE_SANITIZER" \
   -DSTABLEHLO_ENABLE_BINDINGS_PYTHON="$STABLEHLO_ENABLE_BINDINGS_PYTHON" \
   -DSTABLEHLO_ENABLE_PYTHON_TF_TESTS="$STABLEHLO_ENABLE_PYTHON_TF_TESTS" \
-  -DPython3_EXECUTABLE=/usr/bin/python3.12 \
-  -DPython_EXECUTABLE=/usr/bin/python3.12
+  -DPython3_EXECUTABLE="$PYTHON_BIN" \
+  -DPython_EXECUTABLE="$PYTHON_BIN"
 
 # Build and Test StableHLO
 cd "$STABLEHLO_BUILD_DIR" || exit
