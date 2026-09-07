@@ -3626,6 +3626,42 @@ More formally, `result[result_index]` is defined as:
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_update_slice.mlir)
 
+### exp2
+
+#### Semantics
+
+Performs element-wise base-2 exponential operation on `operand` tensor and
+produces a `result` tensor. Depending on the element type, does the following:
+
+* For floats: `exp2` from IEEE-754.
+* For complex numbers: complex base-2 exponential.
+* For quantized types: `dequantize_op_quantize(exp2, operand, type(result))`.
+
+#### Inputs
+
+| Label | Name              | Type                                                                    | Constraints |
+|-------|-------------------|-------------------------------------------------------------------------|-------------|
+| (I1)  | `operand`         | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
+| (I2)  | `result_accuracy` | optional `ResultAccuracyAttr` (default `DEFAULT`)                       |             |
+
+#### Outputs
+
+| Name     | Type                                                                    | Constraints |
+|----------|-------------------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
+
+#### Constraints
+
+* (C1) `baseline_type(operand) = baseline_type(result)`.
+
+#### Examples
+
+```mlir
+// %operand: [[0.0, 1.0], [2.0, 3.0]]
+%result = "stablehlo.exp2"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
+// %result: [[1.0, 2.0], [4.0, 8.0]]
+```
+
 ### exponential
 
 #### Semantics
@@ -4354,6 +4390,42 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/log.mlir)
+
+### log2
+
+#### Semantics
+
+Performs element-wise base-2 logarithm operation on `operand` tensor and
+produces a `result` tensor. Depending on the element type, does the following:
+
+* For floats: `log2` from IEEE-754.
+* For complex numbers: complex base-2 logarithm.
+* For quantized types: `dequantize_op_quantize(log2, operand, type(result))`.
+
+#### Inputs
+
+| Label | Name              | Type                                                                    | Constraints |
+|-------|-------------------|-------------------------------------------------------------------------|-------------|
+| (I1)  | `operand`         | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
+| (I2)  | `result_accuracy` | optional `ResultAccuracyAttr` (default `DEFAULT`)                       |             |
+
+#### Outputs
+
+| Name     | Type                                                                    | Constraints |
+|----------|-------------------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
+
+#### Constraints
+
+* (C1) `baseline_type(operand) = baseline_type(result)`.
+
+#### Examples
+
+```mlir
+// %operand: [[1.0, 2.0], [4.0, 8.0]]
+%result = "stablehlo.log2"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
+// %result: [[0.0, 1.0], [2.0, 3.0]]
+```
 
 ### log_plus_one
 
