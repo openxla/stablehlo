@@ -1,0 +1,281 @@
+# Copyright 2025 The StableHLO Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("//build_tools:utils.bzl", "get_compatible_with_portable")
+
+package(
+    # copybara:uncomment default_applicable_licenses = ["//:license"],
+    default_visibility = [
+        "//visibility:public",  # copybara:comment
+        # copybara:uncomment "//:stablehlo_friends",
+    ],
+    licenses = ["notice"],
+)
+
+# copybara:uncomment_begin
+# filegroup(
+#     name = "all_files",
+#     srcs = glob(["**"]),
+#     visibility = ["//:__subpackages__"],
+# )
+# copybara:uncomment_end
+
+filegroup(
+    name = "stablehlo_builder_filegroup",
+    srcs = glob(["**"]),
+)
+
+#####
+# TableGen
+#####
+
+cc_binary(
+    name = "mlir_builder_tblgen",
+    srcs = ["MlirBuilderTblgen.cpp"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:TableGen",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:TableGen",
+    ],
+)
+
+####
+## MlirBuilder base class
+####
+
+cc_library(
+    name = "mlir_builder",
+    srcs = ["MlirBuilder.cpp"],
+    hdrs = ["MlirBuilder.h"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        ":attr_type_builder_util",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+####
+## Attr / Type Builder Helpers
+####
+
+cc_library(
+    name = "attr_type_builder_util",
+    srcs = ["AttrTypeBuilderUtil.cpp"],
+    hdrs = ["AttrTypeBuilderUtil.h"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_test(
+    name = "attr_type_builder_util_test",
+    srcs = ["AttrTypeBuilderUtilTest.cpp"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        ":attr_type_builder_util",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//third-party/unittest:gmock",
+        "@llvm-project//third-party/unittest:gtest",
+    ],
+)
+
+#####
+## Dialect-specific builders
+####
+
+gentbl_cc_library(
+    name = "chlo_builder_inc",
+    compatible_with = get_compatible_with_portable(),
+    tbl_outs = {
+        "ChloBuilder.h.inc": ["-gen-builder-decls"],
+        "ChloBuilder.cpp.inc": ["-gen-builder-defs"],
+        "ChloBuilder.md": ["-gen-builder-docs"],
+    },
+    tblgen = ":mlir_builder_tblgen",
+    td_file = "//:stablehlo/dialect/ChloOps.td",
+    deps = [
+        "//:chlo_ops_td_files",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
+    ],
+)
+
+cc_library(
+    name = "chlo_builder",
+    srcs = ["ChloBuilder.cpp"],
+    hdrs = ["ChloBuilder.h"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        ":chlo_builder_inc",
+        ":mlir_builder",
+        "//:chlo_ops",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+gentbl_cc_library(
+    name = "func_builder_inc",
+    compatible_with = get_compatible_with_portable(),
+    tbl_outs = {
+        "FuncBuilder.h.inc": ["-gen-builder-decls"],
+        "FuncBuilder.cpp.inc": ["-gen-builder-defs"],
+        "FuncBuilder.md": ["-gen-builder-docs"],
+    },
+    tblgen = ":mlir_builder_tblgen",
+    td_file = "@llvm-project//mlir:include/mlir/Dialect/Func/IR/FuncOps.td",
+    deps = [
+        "@llvm-project//mlir:FuncTdFiles",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
+    ],
+)
+
+cc_library(
+    name = "func_builder",
+    srcs = ["FuncBuilder.cpp"],
+    hdrs = ["FuncBuilder.h"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        ":func_builder_inc",
+        ":mlir_builder",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+gentbl_cc_library(
+    name = "stablehlo_builder_inc",
+    compatible_with = get_compatible_with_portable(),
+    tbl_outs = {
+        "StablehloBuilder.h.inc": ["-gen-builder-decls"],
+        "StablehloBuilder.cpp.inc": ["-gen-builder-defs"],
+        "StablehloBuilder.md": ["-gen-builder-docs"],
+    },
+    tblgen = ":mlir_builder_tblgen",
+    td_file = "//:stablehlo/dialect/StablehloOps.td",
+    deps = [
+        "//:base_td_files",
+        "//:stablehlo_ops_td_filegroup",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:ShapeOpsTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
+    ],
+)
+
+cc_library(
+    name = "stablehlo_builder",
+    srcs = ["StablehloBuilder.cpp"],
+    hdrs = ["StablehloBuilder.h"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        ":attr_type_builder_util",
+        ":mlir_builder",
+        ":stablehlo_builder_inc",
+        "//:stablehlo_broadcast_lowering",
+        "//:stablehlo_ops",
+        "//:stablehlo_type_inference",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:InferTypeOpInterface",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_test(
+    name = "stablehlo_builder_test",
+    srcs = ["StablehloBuilderTest.cpp"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        ":attr_type_builder_util",
+        ":func_builder",
+        ":mlir_builder",
+        ":stablehlo_builder",
+        "//:register",
+        "//:stablehlo_ops",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//third-party/unittest:gmock",
+        "@llvm-project//third-party/unittest:gtest",
+    ],
+)
+
+cc_test(
+    name = "chlo_builder_test",
+    srcs = ["ChloBuilderTest.cpp"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        ":attr_type_builder_util",
+        ":chlo_builder",
+        ":func_builder",
+        ":mlir_builder",
+        ":stablehlo_builder",
+        "//:register",
+        "//:stablehlo_broadcast_lowering",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//third-party/unittest:gmock",
+        "@llvm-project//third-party/unittest:gtest",
+    ],
+)
+
+cc_test(
+    name = "mlir_builder_test",
+    srcs = ["MlirBuilderTest.cpp"],
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment includes = ["../../../.."],
+    deps = [
+        ":attr_type_builder_util",
+        ":chlo_builder",
+        ":func_builder",
+        ":mlir_builder",
+        ":stablehlo_builder",
+        "//:register",
+        "//:stablehlo_ops",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:TosaDialect",
+        "@llvm-project//third-party/unittest:gmock",
+        "@llvm-project//third-party/unittest:gtest",
+    ],
+)

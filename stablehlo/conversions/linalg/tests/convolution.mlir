@@ -52,8 +52,8 @@ func.func @linalg.conv_1d_nwc(%arg0: tensor<?x8x?xf32>, %arg1: tensor<2x?x?xf32>
 // CHECK:         %[[INIT:.+]] = tensor.empty(%[[DIM0]], %[[DIM2]])
 // CHECK:         %[[FILL:.+]] = linalg.fill ins(%[[ZERO]]{{.*}}outs(%[[INIT]]
 // CHECK:         linalg.conv_1d_nwc_wcf
-// CHECK-SAME:      {dilations = dense<1> : tensor<1xi64>
-// CHECK-SAME:       someattr
+// CHECK-SAME:      {someattr
+// CHECK-SAME:       dilations = dense<1> : tensor<1xi64>
 // CHECK-SAME:       strides = dense<1> : tensor<1xi64>}
 // CHECK-SAME:     ins(%[[ARG0]], %[[ARG1]] : tensor<?x8x?xf32>, tensor<2x?x?xf32>)
 // CHECK-SAME:     outs(%[[FILL]] : tensor<?x7x?xf32>) -> tensor<?x7x?xf32>
@@ -360,7 +360,7 @@ func.func @depthwise_conv(%arg0: tensor<2x4x5x2xf32>,
 // CHECK:       %[[INIT:.+]] = tensor.empty() : tensor<2x3x4x2x3xf32>
 // CHECK:       %[[FILL:.+]] = linalg.fill ins(%[[CST]] : f32) outs(%[[INIT]] : tensor<2x3x4x2x3xf32>) -> tensor<2x3x4x2x3xf32>
 // CHECK:       %[[OUT:.+]] = linalg.depthwise_conv_2d_nhwc_hwcm
-// CHECK-SAME:     {dilations = dense<1> : tensor<2xi64>, someattr, strides = dense<1> : tensor<2xi64>}
+// CHECK-SAME:     {someattr, dilations = dense<1> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>}
 // CHECK-SAME:     ins(%[[IN]], %[[EXPAND]] : tensor<2x4x5x2xf32>, tensor<2x2x2x3xf32>)
 // CHECK-SAME:     outs(%[[FILL]] : tensor<2x3x4x2x3xf32>) -> tensor<2x3x4x2x3xf32>
 // CHECK:       %{{.+}} = tensor.collapse_shape %[[OUT]]
@@ -409,7 +409,7 @@ func.func @depthwise_conv_with_padding(
 // CHECK:        %[[INIT:.+]] = tensor.empty() : tensor<2x3x6x2x2xf32>
 // CHECK:        %[[FILL:.+]] = linalg.fill ins(%[[ZERO]] : f32) outs(%[[INIT]] : tensor<2x3x6x2x2xf32>) -> tensor<2x3x6x2x2xf32>
 // CHECK:        %[[OUT:.+]] = linalg.depthwise_conv_2d_nhwc_hwcm
-// CHECK-SAME:     {dilations = dense<1> : tensor<2xi64>, someattr, strides = dense<1> : tensor<2xi64>}
+// CHECK-SAME:     {someattr, dilations = dense<1> : tensor<2xi64>, strides = dense<1> : tensor<2xi64>}
 // CHECK-SAME:     ins(%[[PAD]], %[[EXPAND]] : tensor<2x4x7x2xf32>, tensor<2x2x2x2xf32>)
 // CHECK-SAME:     outs(%[[FILL]] : tensor<2x3x6x2x2xf32>) -> tensor<2x3x6x2x2xf32>
 // CHECK:        %{{.+}} = tensor.collapse_shape %[[OUT]]

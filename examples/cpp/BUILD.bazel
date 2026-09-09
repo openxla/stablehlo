@@ -11,12 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_test")
 
 package(
-    default_visibility = ["//visibility:public"],
+    # copybara:uncomment default_applicable_licenses = ["//:license"],
+    default_visibility = [
+        "//visibility:public",  # copybara:comment
+        # copybara:uncomment "//:stablehlo_friends",
+    ],
     licenses = ["notice"],
 )
+
+# copybara:uncomment_begin
+# filegroup(
+#     name = "all_files",
+#     srcs = glob(["**"]),
+#     visibility = ["//:__subpackages__"],
+# )
+# copybara:uncomment_end
 
 cc_binary(
     name = "example_add",
