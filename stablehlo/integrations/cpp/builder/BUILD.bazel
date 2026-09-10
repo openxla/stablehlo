@@ -115,8 +115,8 @@ gentbl_cc_library(
     name = "chlo_builder_inc",
     compatible_with = get_compatible_with_portable(),
     tbl_outs = {
-        "ChloBuilder.h.inc": ["-gen-builder-decls"],
         "ChloBuilder.cpp.inc": ["-gen-builder-defs"],
+        "ChloBuilder.h.inc": ["-gen-builder-decls"],
         "ChloBuilder.md": ["-gen-builder-docs"],
     },
     tblgen = ":mlir_builder_tblgen",
@@ -149,8 +149,8 @@ gentbl_cc_library(
     name = "func_builder_inc",
     compatible_with = get_compatible_with_portable(),
     tbl_outs = {
-        "FuncBuilder.h.inc": ["-gen-builder-decls"],
         "FuncBuilder.cpp.inc": ["-gen-builder-defs"],
+        "FuncBuilder.h.inc": ["-gen-builder-decls"],
         "FuncBuilder.md": ["-gen-builder-docs"],
     },
     tblgen = ":mlir_builder_tblgen",
@@ -182,8 +182,8 @@ gentbl_cc_library(
     name = "stablehlo_builder_inc",
     compatible_with = get_compatible_with_portable(),
     tbl_outs = {
-        "StablehloBuilder.h.inc": ["-gen-builder-decls"],
         "StablehloBuilder.cpp.inc": ["-gen-builder-defs"],
+        "StablehloBuilder.h.inc": ["-gen-builder-decls"],
         "StablehloBuilder.md": ["-gen-builder-docs"],
     },
     tblgen = ":mlir_builder_tblgen",
