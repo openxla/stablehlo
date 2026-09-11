@@ -1,4 +1,5 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck %s
+// RUN: stablehlo-opt %s --hlo-test-create-sort -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck --check-prefix=CHECK-CREATE-SORT %s
 // RUN: %if asserts %{ stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect -emit-bytecode -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
 
 // CHECK-WARN-NOT: Not Implemented
@@ -3137,6 +3138,24 @@ func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
     "stablehlo.return"(%7) : (tensor<i1>) -> ()
   }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
   func.return
+}
+
+// -----
+
+// CHECK-CREATE-SORT-LABEL: func.func @create_sort_integer_key_float_payload
+// CHECK-CREATE-SORT: stablehlo.compare LT, %{{[^,]+}}, %{{[^, ]+}} : (tensor<i32>, tensor<i32>) -> tensor<i1>
+func.func @create_sort_integer_key_float_payload(%key: tensor<2xi32>, %payload: tensor<2xf32>) -> (tensor<2xi32>, tensor<2xf32>) {
+  %0:2 = "hlo_test_create_sort.build"(%key, %payload) : (tensor<2xi32>, tensor<2xf32>) -> (tensor<2xi32>, tensor<2xf32>)
+  func.return %0#0, %0#1 : tensor<2xi32>, tensor<2xf32>
+}
+
+// -----
+
+// CHECK-CREATE-SORT-LABEL: func.func @create_sort_float_key_integer_payload
+// CHECK-CREATE-SORT: stablehlo.compare LT, %{{[^,]+}}, %{{[^, ]+}}, TOTALORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+func.func @create_sort_float_key_integer_payload(%key: tensor<2xf32>, %payload: tensor<2xi32>) -> (tensor<2xf32>, tensor<2xi32>) {
+  %0:2 = "hlo_test_create_sort.build"(%key, %payload) : (tensor<2xf32>, tensor<2xi32>) -> (tensor<2xf32>, tensor<2xi32>)
+  func.return %0#0, %0#1 : tensor<2xf32>, tensor<2xi32>
 }
 
 // -----
