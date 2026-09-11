@@ -29,6 +29,7 @@ limitations under the License.
 #include <type_traits>
 #include <vector>
 
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/bit.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
@@ -152,7 +153,8 @@ static llvm::ErrorOr<int> parseDescrHeader(const std::string& header) {
   std::string typeString = header.substr(
       descrOffset + kDescrSize, needleSize - (descrOffset + kDescrSize));
 
-  if (typeString.front() != '\'' || typeString.back() != '\'')
+  if (typeString.size() < 2 || typeString.front() != '\'' ||
+      typeString.back() != '\'')
     return llvm::errc::invalid_argument;
 
   // Strip quotes from type string (i.e. '<i8' to <i8).
@@ -163,7 +165,12 @@ static llvm::ErrorOr<int> parseDescrHeader(const std::string& header) {
   // Check that the serialized type string matches the expected type string.
   if (getNumPyType<T>() != typeString[1]) return llvm::errc::invalid_argument;
 
-  return std::stoi(typeString.substr(2));
+  int typeSize;
+  if (llvm::StringRef(typeString)
+          .substr(2)
+          .getAsInteger(/*Radix=*/10, typeSize))
+    return llvm::errc::invalid_argument;
+  return typeSize;
 }
 
 // Parses the `shape` key of the NumPy file format dictionary. Returns a vector
@@ -181,7 +188,7 @@ static llvm::ErrorOr<ArrayRef<int64_t>> parseShapeHeader(
   // regex matching for dimension integrals.
   std::regex dimRegex("[0-9]+");
   std::smatch dimMatch;
-  std::string shapeString = header.substr(shapeOffset, shapeOffset - dimEnd);
+  std::string shapeString = header.substr(shapeOffset, dimEnd - shapeOffset);
   std::vector<int64_t> shape(4);
 
   while (std::regex_search(shapeString, dimMatch, dimRegex)) {
@@ -220,7 +227,8 @@ static llvm::Error readNumpyHeader(std::ifstream& in, size_t& wordSize,
     return llvm::createStringError(llvm::errc::io_error,
                                    "Failed to read NumPy header size.");
 
-  const int headerSize = (headerSizeBuffer[0]) | (headerSizeBuffer[1] << 8);
+  const int headerSize = static_cast<unsigned char>(headerSizeBuffer[0]) |
+                         (static_cast<unsigned char>(headerSizeBuffer[1]) << 8);
   std::string header(headerSize, '\0');
   if (!in.read(header.data(), headerSize) || header.back() != '\n')
     return llvm::createStringError(llvm::errc::invalid_argument,

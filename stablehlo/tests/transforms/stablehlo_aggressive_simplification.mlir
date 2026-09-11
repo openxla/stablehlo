@@ -1965,6 +1965,72 @@ func.func @slice_2D_noop(%arg0: tensor<2x2xi64>) -> tensor<2x2xi64> {
 // -----
 
 /////////
+// ScatterOp
+
+// CHECK-LABEL: @scatter_empty_indices
+func.func @scatter_empty_indices(%input: tensor<3x4xf32>, %updates: tensor<0x4xf32>) -> tensor<3x4xf32> {
+  %indices = stablehlo.constant dense<> : tensor<0xi32>
+  // CHECK-NOT: stablehlo.scatter
+  // CHECK: return %arg0
+  %0 = "stablehlo.scatter"(%input, %indices, %updates) ({
+    ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+      stablehlo.return %arg1 : tensor<f32>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [0],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<3x4xf32>, tensor<0xi32>, tensor<0x4xf32>) -> tensor<3x4xf32>
+  func.return %0 : tensor<3x4xf32>
+}
+
+// CHECK-LABEL: @scatter_zero_extent_updates
+func.func @scatter_zero_extent_updates(%input: tensor<3x4xf32>, %indices: tensor<3xi32>) -> tensor<3x4xf32> {
+  %updates = stablehlo.constant dense<> : tensor<3x0xf32>
+  // CHECK-NOT: stablehlo.scatter
+  // CHECK: return %arg0
+  %0 = "stablehlo.scatter"(%input, %indices, %updates) ({
+    ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+      stablehlo.return %arg1 : tensor<f32>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [0],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<3x4xf32>, tensor<3xi32>, tensor<3x0xf32>) -> tensor<3x4xf32>
+  func.return %0 : tensor<3x4xf32>
+}
+
+// CHECK-LABEL: @scatter_nonempty_not_simplified
+func.func @scatter_nonempty_not_simplified(%input: tensor<3x4xf32>, %indices: tensor<2xi32>, %updates: tensor<2x4xf32>) -> tensor<3x4xf32> {
+  // CHECK: stablehlo.scatter
+  %0 = "stablehlo.scatter"(%input, %indices, %updates) ({
+    ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+      stablehlo.return %arg1 : tensor<f32>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [0],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<3x4xf32>, tensor<2xi32>, tensor<2x4xf32>) -> tensor<3x4xf32>
+  func.return %0 : tensor<3x4xf32>
+}
+
+// -----
+
+/////////
 // SortOp
 
 // CHECK-LABEL: @sort_op_second_arg_unused
