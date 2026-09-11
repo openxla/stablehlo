@@ -394,8 +394,8 @@ func.func @reduce_window_min_nhwc(%arg0: tensor<1x17x17x64xf32>,
 // CHECK:         %[[INIT_VAL:.+]] = tensor.extract %[[ARG1]][] : tensor<f32>
 // CHECK:         %[[FILL:.+]] = linalg.fill ins(%[[INIT_VAL]] : f32) outs(%[[INIT]] : tensor<1x8x8x64xf32>) -> tensor<1x8x8x64xf32>
 // CHECK:         %[[RES:.+]] = linalg.pooling_nhwc_min
-// CHECK-SAME:      {dilations = dense<1> : vector<2xi64>
-// CHECK-SAME:       someattr,
+// CHECK-SAME:      {someattr,
+// CHECK-SAME:       dilations = dense<1> : vector<2xi64>
 // CHECK-SAME:       strides = dense<2> : vector<2xi64>}
 // CHECK-SAME:      ins(%[[ARG0]], %[[WINDOW]] : tensor<1x17x17x64xf32>, tensor<3x3xf32>)
 // CHECK-SAME:      outs(%[[FILL]] : tensor<1x8x8x64xf32>) -> tensor<1x8x8x64xf32>

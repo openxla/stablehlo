@@ -135,3 +135,45 @@ module @cross_replica_variadic {
     func.return
   }
 }
+
+// -----
+
+module @mesh_axes_subaxis {
+  func.func @all_reduce(%operand : tensor<1xi64>) -> tensor<1xi64> {
+    %result = "stablehlo.all_reduce"(%operand) ({
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
+    }) {
+      replica_groups = #stablehlo.replica_group_mesh_axes<mesh = #stablehlo.mesh<axes = [#stablehlo.mesh_axis<name = "x", size = 2>, #stablehlo.mesh_axis<name = "y", size = 4>]>, axes = [#stablehlo.axis_ref<name = "y", sub_axis_info = (1)2>]>,
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+    } : (tensor<1xi64>) -> tensor<1xi64>
+    return %result : tensor<1xi64>
+  }
+  func.func @main() {
+    %p0 = stablehlo.constant dense<[10]> : tensor<1xi64>
+    %p1 = stablehlo.constant dense<[20]> : tensor<1xi64>
+    %p2 = stablehlo.constant dense<[30]> : tensor<1xi64>
+    %p3 = stablehlo.constant dense<[40]> : tensor<1xi64>
+    %p4 = stablehlo.constant dense<[50]> : tensor<1xi64>
+    %p5 = stablehlo.constant dense<[60]> : tensor<1xi64>
+    %p6 = stablehlo.constant dense<[70]> : tensor<1xi64>
+    %p7 = stablehlo.constant dense<[80]> : tensor<1xi64>
+    %results:8 = "interpreter.run_parallel"(%p0, %p1, %p2, %p3, %p4, %p5, %p6, %p7) {
+      programs=[[@all_reduce], [@all_reduce], [@all_reduce], [@all_reduce],
+                [@all_reduce], [@all_reduce], [@all_reduce], [@all_reduce]]
+    } : (tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>,
+         tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) ->
+        (tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>,
+         tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>)
+    check.expect_eq_const %results#0, dense<[40]> : tensor<1xi64>
+    check.expect_eq_const %results#1, dense<[60]> : tensor<1xi64>
+    check.expect_eq_const %results#2, dense<[40]> : tensor<1xi64>
+    check.expect_eq_const %results#3, dense<[60]> : tensor<1xi64>
+    check.expect_eq_const %results#4, dense<[120]> : tensor<1xi64>
+    check.expect_eq_const %results#5, dense<[140]> : tensor<1xi64>
+    check.expect_eq_const %results#6, dense<[120]> : tensor<1xi64>
+    check.expect_eq_const %results#7, dense<[140]> : tensor<1xi64>
+    func.return
+  }
+}

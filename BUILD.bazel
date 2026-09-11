@@ -11,24 +11,42 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "gentbl_filegroup", "td_library")
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("//build_tools:utils.bzl", "get_compatible_with_portable")
+# copybara:uncomment load("@rules_license//rules:license.bzl", "license")
 
 package(
-    default_visibility = ["//visibility:public"],
+    # copybara:uncomment default_applicable_licenses = [":license"],
+    default_visibility = [
+        "//visibility:public",  # copybara:comment
+        # copybara:uncomment "//:stablehlo_friends",
+    ],
     licenses = ["notice"],
 )
+
+# copybara:uncomment_begin
+# license(
+#     name = "license",
+#     package_name = "stablehlo",
+# )
+# copybara:uncomment_end
 
 exports_files([
     "LICENSE",
     # Export to be used by MLIR-free python binding impls
     "stablehlo/integrations/python/StablehloApi.cpp",
     "stablehlo/integrations/python/StablehloApi.h",
+    # Export TD files for builder code generation.
+    "stablehlo/dialect/ChloOps.td",
+    "stablehlo/dialect/StablehloOps.td",
 ])
 
 filegroup(
     name = "stablehlo_ops_td_filegroup",
     srcs = glob(["stablehlo/dialect/*.td"]),
+    compatible_with = get_compatible_with_portable(),
 )
 
 cc_library(
@@ -39,7 +57,9 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/Base.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base_attr_interfaces_inc_gen",
         "@llvm-project//llvm:Support",
@@ -57,7 +77,8 @@ cc_library(
 
 gentbl_cc_library(
     name = "base_attr_interfaces_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/BaseAttrInterfaces.cpp.inc": ["-gen-attr-interface-defs"],
         "stablehlo/dialect/BaseAttrInterfaces.h.inc": ["-gen-attr-interface-decls"],
@@ -72,6 +93,7 @@ td_library(
     srcs = [
         "stablehlo/dialect/Base.td",
     ],
+    compatible_with = get_compatible_with_portable(),
     includes = ["."],
     deps = [
         "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
@@ -88,7 +110,9 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/BroadcastUtils.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         "@llvm-project//llvm:Support",
@@ -100,7 +124,8 @@ cc_library(
 
 gentbl_cc_library(
     name = "chlo_attrs_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/ChloAttrs.cpp.inc": ["-gen-attrdef-defs"],
         "stablehlo/dialect/ChloAttrs.h.inc": ["-gen-attrdef-decls"],
@@ -126,7 +151,7 @@ cc_library(
     name = "chlo_capi",
     srcs = CHLO_CAPI_SOURCES,
     hdrs = CHLO_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":chlo_ops",
         "@llvm-project//llvm:Support",
@@ -138,7 +163,8 @@ cc_library(
 cc_library(
     name = "chlo_capi_headers",
     hdrs = CHLO_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//mlir:CAPIIRHeaders",
     ],
@@ -149,7 +175,7 @@ cc_library(
     name = "chlo_capi_objects",
     srcs = CHLO_CAPI_SOURCES,
     hdrs = CHLO_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":chlo_ops",
         "@llvm-project//llvm:Support",
@@ -160,7 +186,8 @@ cc_library(
 
 gentbl_cc_library(
     name = "chlo_enums_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/ChloEnums.cpp.inc": ["-gen-enum-defs"],
         "stablehlo/dialect/ChloEnums.h.inc": ["-gen-enum-decls"],
@@ -174,7 +201,8 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "chlo_ops_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/ChloOps.cpp.inc": ["-gen-op-defs"],
         "stablehlo/dialect/ChloOps.h.inc": ["-gen-op-decls"],
@@ -200,6 +228,7 @@ filegroup(
 
 gentbl_filegroup(
     name = "chlo_ops_py_gen",
+    compatible_with = get_compatible_with_portable(),
     tbl_outs = [
         (
             [
@@ -223,6 +252,7 @@ td_library(
         "stablehlo/dialect/ChloEnums.td",
         "stablehlo/dialect/ChloOps.td",
     ],
+    compatible_with = get_compatible_with_portable(),
     includes = ["."],
     deps = [
         ":base_td_files",
@@ -249,7 +279,9 @@ cc_library(
         "stablehlo/dialect/ChloBytecode.h",
         "stablehlo/dialect/ChloOps.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         ":broadcast_utils",
@@ -278,6 +310,7 @@ cc_library(
 
 gentbl_cc_library(
     name = "chlo_rewriters_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     tbl_outs = {"stablehlo/transforms/ChloDecompositionPatterns.h.inc": ["--gen-rewriters"]},
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/transforms/ChloDecompositionPatterns.td",
@@ -289,6 +322,7 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "stablehlo_aggressive_simplification_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     tbl_outs = {"stablehlo/transforms/optimization/StablehloAggressiveSimplificationPatterns.h.inc": ["--gen-rewriters"]},
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/transforms/optimization/StablehloAggressiveSimplificationPatterns.td",
@@ -299,6 +333,7 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "stablehlo_legalize_deprecated_ops_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     tbl_outs = {"stablehlo/transforms/StablehloLegalizeDeprecatedOpsPatterns.h.inc": ["--gen-rewriters"]},
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/transforms/StablehloLegalizeDeprecatedOpsPatterns.td",
@@ -309,6 +344,7 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "vhlo_rewriters_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     tbl_outs = {"stablehlo/transforms/VhloToVersionPatterns.h.inc": ["--gen-rewriters"]},
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/transforms/VhloToVersionPatterns.td",
@@ -319,6 +355,7 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "stablehlo_create_compatibility_expander_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     tbl_outs = {"stablehlo/transforms/StablehloCompatibilityExpanderPatterns.h.inc": ["--gen-rewriters"]},
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/transforms/StablehloCompatibilityExpanderPatterns.td",
@@ -329,6 +366,7 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "stablehlo_create_complex_math_expander_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     tbl_outs = {"stablehlo/transforms/StablehloComplexMathExpanderPatterns.h.inc": ["--gen-rewriters"]},
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/transforms/StablehloComplexMathExpanderPatterns.td",
@@ -345,7 +383,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/InterpreterOps.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         ":interpreter_ops_inc_gen",
@@ -364,7 +404,8 @@ cc_library(
 
 gentbl_cc_library(
     name = "interpreter_ops_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/reference/InterpreterOps.cpp.inc": ["-gen-op-defs"],
         "stablehlo/reference/InterpreterOps.h.inc": ["-gen-op-decls"],
@@ -381,6 +422,7 @@ td_library(
     srcs = [
         "stablehlo/reference/InterpreterOps.td",
     ],
+    compatible_with = get_compatible_with_portable(),
     includes = ["."],
     deps = [
         ":base_td_files",
@@ -389,6 +431,7 @@ td_library(
 
 gentbl_cc_library(
     name = "interpreter_pass_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     tbl_outs = {
         "stablehlo/reference/InterpreterPasses.h.inc": [
@@ -412,7 +455,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/InterpreterPasses.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":interpreter_ops",
         ":interpreter_pass_inc_gen",
@@ -426,6 +471,7 @@ cc_library(
 
 gentbl_cc_library(
     name = "linalg_pass_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     tbl_outs = {
         "stablehlo/conversions/linalg/transforms/Passes.h.inc": [
@@ -461,6 +507,7 @@ cc_library(
         "stablehlo/conversions/linalg/transforms/Rewriters.h",
         "stablehlo/conversions/linalg/transforms/TypeConversion.h",
     ],
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     deps = [
         "stablehlo_type_conversions",
@@ -503,6 +550,7 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Api.h",
     ],
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     deps = [
         ":interpreter_ops",
@@ -534,7 +582,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Axes.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -550,6 +600,7 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Configuration.h",
     ],
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     deps = [
         ":reference_errors",
@@ -569,7 +620,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Element.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":reference_errors",
         ":reference_types",
@@ -588,7 +641,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Errors.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//llvm:Support",
     ],
@@ -602,7 +657,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Index.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -618,6 +675,7 @@ cc_library(
     hdrs = [
         "stablehlo/reference/NumPy.h",
     ],
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     deps = [
         ":reference_tensor",
@@ -635,7 +693,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Ops.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         ":reference_axes",
@@ -669,7 +729,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Process.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":reference_process_grid",
         ":reference_tensor",
@@ -686,7 +748,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/ProcessGrid.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":reference_tensor",
         "@llvm-project//llvm:Support",
@@ -703,7 +767,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Scope.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":reference_tensor",
         ":reference_token",
@@ -722,7 +788,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Tensor.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":reference_axes",
         ":reference_element",
@@ -743,7 +811,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Token.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":reference_errors",
         ":stablehlo_ops",
@@ -761,7 +831,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Types.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
@@ -776,7 +848,9 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Value.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":reference_errors",
         ":reference_tensor",
@@ -795,7 +869,8 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/Register.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":chlo_ops",
         ":stablehlo_ops",
@@ -817,7 +892,8 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/AssemblyFormat.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":base",
         "@llvm-project//llvm:Support",
@@ -828,7 +904,8 @@ cc_library(
 
 gentbl_cc_library(
     name = "stablehlo_attrs_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/StablehloAttrs.cpp.inc": ["-gen-attrdef-defs"],
         "stablehlo/dialect/StablehloAttrs.h.inc": ["-gen-attrdef-decls"],
@@ -860,7 +937,7 @@ cc_library(
     name = "stablehlo_dialect_capi",
     srcs = STABLEHLO_DIALECT_CAPI_SOURCES,
     hdrs = STABLEHLO_DIALECT_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":interpreter_ops",
         ":stablehlo_ops",
@@ -878,7 +955,8 @@ cc_library(
 cc_library(
     name = "stablehlo_dialect_capi_headers",
     hdrs = STABLEHLO_DIALECT_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//mlir:CAPIIRHeaders",
     ],
@@ -889,7 +967,7 @@ cc_library(
     name = "stablehlo_dialect_capi_objects",
     srcs = STABLEHLO_DIALECT_CAPI_SOURCES,
     hdrs = STABLEHLO_DIALECT_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":interpreter_ops",
         ":stablehlo_ops",
@@ -923,7 +1001,7 @@ cc_library(
     name = "stablehlo_unified_capi",
     srcs = STABLEHLO_UNIFIED_CAPI_SOURCES,
     hdrs = STABLEHLO_UNIFIED_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":linalg_passes",
         ":reference_api",
@@ -951,7 +1029,8 @@ alias(
 cc_library(
     name = "stablehlo_unified_capi_headers",
     hdrs = STABLEHLO_UNIFIED_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//mlir:CAPIIRHeaders",
     ],
@@ -967,7 +1046,7 @@ cc_library(
     name = "stablehlo_unified_capi_objects",
     srcs = STABLEHLO_UNIFIED_CAPI_SOURCES,
     hdrs = STABLEHLO_UNIFIED_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":linalg_passes",
         ":reference_api",
@@ -993,7 +1072,8 @@ alias(
 
 gentbl_cc_library(
     name = "stablehlo_enums_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/StablehloEnums.cpp.inc": ["-gen-enum-defs"],
         "stablehlo/dialect/StablehloEnums.h.inc": ["-gen-enum-decls"],
@@ -1007,7 +1087,8 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "stablehlo_types_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/StablehloTypeDefs.cpp.inc": [
             "-gen-typedef-defs",
@@ -1027,7 +1108,8 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "stablehlo_ops_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/StablehloOps.cpp.inc": ["-gen-op-defs"],
         "stablehlo/dialect/StablehloOps.h.inc": ["-gen-op-decls"],
@@ -1049,6 +1131,7 @@ filegroup(
 
 gentbl_filegroup(
     name = "stablehlo_ops_py_gen",
+    compatible_with = get_compatible_with_portable(),
     tbl_outs = [
         (
             [
@@ -1085,6 +1168,7 @@ td_library(
         "stablehlo/dialect/StablehloTypes.td",
         "stablehlo/transforms/ChloDecompositionPatternsMath.td",
     ],
+    compatible_with = get_compatible_with_portable(),
     includes = ["."],
     deps = [
         ":base_td_files",
@@ -1096,6 +1180,7 @@ td_library(
 
 gentbl_cc_library(
     name = "stablehlo_pass_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     tbl_outs = {
         "stablehlo/transforms/Passes.h.inc": [
@@ -1118,7 +1203,9 @@ cc_library(
     hdrs = [
         "stablehlo/transforms/StablehloBroadcastLowering.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":stablehlo_ops",
         "@llvm-project//llvm:Support",
@@ -1136,7 +1223,9 @@ cc_library(
     hdrs = [
         "stablehlo/transforms/PassUtils.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         ":chlo_ops",
@@ -1145,6 +1234,7 @@ cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ComplexDialect",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -1179,7 +1269,9 @@ cc_library(
         "stablehlo/transforms/Passes.h",
         "stablehlo/transforms/StablehloRefineShapes.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         ":broadcast_utils",
@@ -1229,6 +1321,7 @@ cc_library(
 
 gentbl_cc_library(
     name = "stablehlo_passes_optimization_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     tbl_outs = {
         "stablehlo/transforms/optimization/Passes.h.inc": [
@@ -1254,7 +1347,9 @@ cc_library(
     hdrs = [
         "stablehlo/transforms/optimization/Passes.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         ":chlo_ops",
@@ -1286,7 +1381,9 @@ cc_library(
     hdrs = [
         "stablehlo/api/PortableApi.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":register",
         ":stablehlo_ops",
@@ -1310,6 +1407,7 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/Serialization.h",
     ],
+    compatible_with = get_compatible_with_portable(),
     deps = [
         ":stablehlo_ops",
         ":stablehlo_passes",
@@ -1333,7 +1431,9 @@ cc_library(
     hdrs = [
         "stablehlo/transforms/conversions/TypeConversion.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -1350,7 +1450,9 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/TypeInference.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         ":stablehlo_assembly_format",
@@ -1371,7 +1473,9 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/ReplicaGroupUtils.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":stablehlo_ops",
         "@llvm-project//llvm:Support",
@@ -1390,7 +1494,9 @@ cc_library(
         "stablehlo/dialect/StablehloBytecode.h",
         "stablehlo/dialect/StablehloOps.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         ":stablehlo_assembly_format",
@@ -1439,11 +1545,13 @@ cc_binary(
     srcs = [
         "stablehlo/tools/StablehloTranslateMain.cpp",
     ],
+    compatible_with = get_compatible_with_portable(),
     deps = [
         ":interpreter_ops",
         ":reference_api",
         ":reference_configuration",
         ":reference_errors",
+        ":reference_numpy",
         ":reference_ops",
         ":reference_process",
         ":reference_process_grid",
@@ -1478,6 +1586,7 @@ cc_binary(
     srcs = [
         "stablehlo/tools/StablehloOptMain.cpp",
     ],
+    compatible_with = get_compatible_with_portable(),
     deps = [
         ":interpreter_ops",
         ":interpreter_passes",
@@ -1486,8 +1595,6 @@ cc_binary(
         ":stablehlo_passes",
         ":stablehlo_passes_optimization",
         ":tosa_passes",
-        "//stablehlo/tests:check_ops",
-        "//stablehlo/tests:test_utils",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AllExtensions",
         "@llvm-project//mlir:AllPassesAndDialects",
@@ -1497,18 +1604,24 @@ cc_binary(
         "@llvm-project//mlir:RegisterAllExtensions",
         "@llvm-project//mlir:RegisterAllPasses",
         "@llvm-project//mlir:TosaDialect",
+        # copybara:uncomment "@shardy//shardy/dialect/sdy/ir:register",
+        "//stablehlo/tests:check_ops",
+        "//stablehlo/tests:test_utils",
     ],
 )
 
 gentbl_cc_library(
     name = "tosa_pass_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     tbl_outs = {
         "stablehlo/conversions/tosa/transforms/Passes.h.inc": [
             "-gen-pass-decls",
             "-name=StablehloTOSATransforms",
         ],
-        "stablehlo/conversions/tosa/transforms/stablehlo_tosa_passes.md": ["-gen-pass-doc"],
+        "stablehlo/conversions/tosa/transforms/stablehlo_tosa_passes.md": [
+            "-gen-pass-doc",
+        ],
     },
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/conversions/tosa/transforms/Passes.td",
@@ -1526,7 +1639,9 @@ cc_library(
     hdrs = [
         "stablehlo/conversions/tosa/transforms/Passes.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":stablehlo_ops",
         ":tosa_pass_inc_gen",
@@ -1549,6 +1664,8 @@ cc_library(
 
 gentbl_cc_library(
     name = "tosa_pdll_inc_gen",
+    compatible_with = get_compatible_with_portable(),
+    # copybara:uncomment strip_include_prefix = ".",
     tbl_outs = {"stablehlo/conversions/tosa/transforms/StablehloLegalizeToTosa.pdll.h.inc": ["-x=cpp"]},
     tblgen = "@llvm-project//mlir:mlir-pdll",
     td_file = "stablehlo/conversions/tosa/transforms/StablehloLegalizeToTosa.pdll",
@@ -1567,7 +1684,9 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/Version.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -1587,7 +1706,7 @@ cc_library(
     name = "vhlo_capi",
     srcs = VHLO_CAPI_SOURCES,
     hdrs = VHLO_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":vhlo_ops",
         "@llvm-project//mlir:CAPIIR",
@@ -1598,7 +1717,8 @@ cc_library(
 cc_library(
     name = "vhlo_capi_headers",
     hdrs = VHLO_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         "@llvm-project//mlir:CAPIIRHeaders",
     ],
@@ -1609,7 +1729,7 @@ cc_library(
     name = "vhlo_capi_objects",
     srcs = VHLO_CAPI_SOURCES,
     hdrs = VHLO_CAPI_HEADERS,
-    strip_include_prefix = ".",
+    strip_include_prefix = ".",  # copybara:comment
     deps = [
         ":vhlo_ops",
         "@llvm-project//mlir:CAPIIRObjects",
@@ -1627,15 +1747,13 @@ filegroup(
 
 gentbl_filegroup(
     name = "vhlo_ops_py_gen",
-    tbl_outs = [
-        (
-            [
-                "-gen-python-op-bindings",
-                "-bind-dialect=vhlo",
-            ],
-            "stablehlo/integrations/python/mlir/dialects/_vhlo_ops_gen.py",
-        ),
-    ],
+    compatible_with = get_compatible_with_portable(),
+    tbl_outs = {
+        "stablehlo/integrations/python/mlir/dialects/_vhlo_ops_gen.py": [
+            "-gen-python-op-bindings",
+            "-bind-dialect=vhlo",
+        ],
+    },
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "stablehlo/integrations/python/mlir/dialects/VhloOps.td",
     deps = [
@@ -1646,7 +1764,8 @@ gentbl_filegroup(
 
 gentbl_cc_library(
     name = "vhlo_attr_interfaces_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/VhloAttrInterfaces.cpp.inc": ["-gen-attr-interface-defs"],
         "stablehlo/dialect/VhloAttrInterfaces.h.inc": ["-gen-attr-interface-decls"],
@@ -1660,7 +1779,8 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "vhlo_attrs_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/VhloAttrs.cpp.inc": ["-gen-attrdef-defs"],
         "stablehlo/dialect/VhloAttrs.h.inc": ["-gen-attrdef-decls"],
@@ -1674,7 +1794,8 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "vhlo_enums_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/VhloEnums.cpp.inc": ["-gen-enum-defs"],
         "stablehlo/dialect/VhloEnums.h.inc": ["-gen-enum-decls"],
@@ -1688,7 +1809,8 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "vhlo_op_interfaces_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/VhloOpInterfaces.cpp.inc": ["-gen-op-interface-defs"],
         "stablehlo/dialect/VhloOpInterfaces.h.inc": ["-gen-op-interface-decls"],
@@ -1710,7 +1832,9 @@ cc_library(
         "stablehlo/dialect/VhloBytecode.h",
         "stablehlo/dialect/VhloOps.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":base",
         ":stablehlo_assembly_format",
@@ -1734,7 +1858,8 @@ cc_library(
 
 gentbl_cc_library(
     name = "vhlo_ops_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/VhloOps.cpp.inc": ["-gen-op-defs"],
         "stablehlo/dialect/VhloOps.h.inc": ["-gen-op-decls"],
@@ -1756,6 +1881,7 @@ td_library(
         "stablehlo/dialect/VhloOps.td",
         "stablehlo/dialect/VhloTypes.td",
     ],
+    compatible_with = get_compatible_with_portable(),
     includes = ["."],
     deps = [
         "@llvm-project//mlir:BuiltinDialectTdFiles",
@@ -1772,7 +1898,9 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/VhloTypes.h",
     ],
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
     deps = [
         ":stablehlo_assembly_format",
         ":version",
@@ -1790,7 +1918,8 @@ cc_library(
 
 gentbl_cc_library(
     name = "vhlo_type_interfaces_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/VhloTypeInterfaces.cpp.inc": ["-gen-type-interface-defs"],
         "stablehlo/dialect/VhloTypeInterfaces.h.inc": ["-gen-type-interface-decls"],
@@ -1804,7 +1933,8 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "vhlo_types_inc_gen",
-    strip_include_prefix = ".",
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
     tbl_outs = {
         "stablehlo/dialect/VhloTypeDefs.cpp.inc": ["-gen-typedef-defs"],
         "stablehlo/dialect/VhloTypeDefs.h.inc": ["-gen-typedef-decls"],
@@ -1826,227 +1956,7 @@ test_suite(
     ],
 )
 
-### Builder APIs
-
-#####
-# TableGen
-#####
-
-cc_binary(
-    name = "mlir_builder_tblgen",
-    srcs = ["stablehlo/integrations/cpp/builder/MlirBuilderTblgen.cpp"],
-    deps = [
-        "@llvm-project//llvm:Support",
-        "@llvm-project//llvm:TableGen",
-        "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:TableGen",
-    ],
-)
-
-####
-## MlirBuilder base class
-####
-
-cc_library(
-    name = "mlir_builder",
-    srcs = ["stablehlo/integrations/cpp/builder/MlirBuilder.cpp"],
-    hdrs = ["stablehlo/integrations/cpp/builder/MlirBuilder.h"],
-    strip_include_prefix = ".",
-    deps = [
-        ":attr_type_builder_util",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-    ],
-)
-
-cc_test(
-    name = "mlir_builder_test",
-    srcs = ["stablehlo/integrations/cpp/builder/MlirBuilderTest.cpp"],
-    deps = [
-        ":attr_type_builder_util",
-        ":chlo_builder",
-        ":func_builder",
-        ":mlir_builder",
-        ":register",
-        ":stablehlo_builder",
-        ":stablehlo_ops",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:FuncDialect",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:TosaDialect",
-        "@llvm-project//third-party/unittest:gmock",
-        "@llvm-project//third-party/unittest:gtest",
-    ],
-)
-
-####
-## Attr / Type Builder Helpers
-####
-
-cc_library(
-    name = "attr_type_builder_util",
-    srcs = ["stablehlo/integrations/cpp/builder/AttrTypeBuilderUtil.cpp"],
-    hdrs = ["stablehlo/integrations/cpp/builder/AttrTypeBuilderUtil.h"],
-    strip_include_prefix = ".",
-    deps = [
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-    ],
-)
-
-cc_test(
-    name = "attr_type_builder_util_test",
-    srcs = ["stablehlo/integrations/cpp/builder/AttrTypeBuilderUtilTest.cpp"],
-    deps = [
-        ":attr_type_builder_util",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-        "@llvm-project//third-party/unittest:gmock",
-        "@llvm-project//third-party/unittest:gtest",
-    ],
-)
-
-#####
-## Dialect-specific builders
-####
-
-gentbl_cc_library(
-    name = "chlo_builder_inc",
-    tbl_outs = {
-        "stablehlo/integrations/cpp/builder/ChloBuilder.cpp.inc": ["-gen-builder-defs"],
-        "stablehlo/integrations/cpp/builder/ChloBuilder.h.inc": ["-gen-builder-decls"],
-        "stablehlo/integrations/cpp/builder/ChloBuilder.md": ["-gen-builder-docs"],
-    },
-    tblgen = ":mlir_builder_tblgen",
-    td_file = ":stablehlo/dialect/ChloOps.td",
-    deps = [
-        ":chlo_ops_td_files",
-        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
-        "@llvm-project//mlir:OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
-    ],
-)
-
-cc_library(
-    name = "chlo_builder",
-    srcs = ["stablehlo/integrations/cpp/builder/ChloBuilder.cpp"],
-    hdrs = ["stablehlo/integrations/cpp/builder/ChloBuilder.h"],
-    strip_include_prefix = ".",
-    deps = [
-        ":chlo_builder_inc",
-        ":chlo_ops",
-        ":mlir_builder",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-    ],
-)
-
-cc_test(
-    name = "chlo_builder_test",
-    srcs = ["stablehlo/integrations/cpp/builder/ChloBuilderTest.cpp"],
-    deps = [
-        ":attr_type_builder_util",
-        ":chlo_builder",
-        ":func_builder",
-        ":mlir_builder",
-        ":register",
-        ":stablehlo_builder",
-        ":stablehlo_ops",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-        "@llvm-project//third-party/unittest:gmock",
-        "@llvm-project//third-party/unittest:gtest",
-    ],
-)
-
-gentbl_cc_library(
-    name = "func_builder_inc",
-    tbl_outs = {
-        "stablehlo/integrations/cpp/builder/FuncBuilder.cpp.inc": ["-gen-builder-defs"],
-        "stablehlo/integrations/cpp/builder/FuncBuilder.h.inc": ["-gen-builder-decls"],
-        "stablehlo/integrations/cpp/builder/FuncBuilder.md": ["-gen-builder-docs"],
-    },
-    tblgen = ":mlir_builder_tblgen",
-    td_file = "@llvm-project//mlir:include/mlir/Dialect/Func/IR/FuncOps.td",
-    deps = [
-        "@llvm-project//mlir:FuncTdFiles",
-        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
-        "@llvm-project//mlir:OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
-    ],
-)
-
-cc_library(
-    name = "func_builder",
-    srcs = ["stablehlo/integrations/cpp/builder/FuncBuilder.cpp"],
-    hdrs = ["stablehlo/integrations/cpp/builder/FuncBuilder.h"],
-    strip_include_prefix = ".",
-    deps = [
-        ":func_builder_inc",
-        ":mlir_builder",
-        "@llvm-project//mlir:FuncDialect",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-    ],
-)
-
-gentbl_cc_library(
-    name = "stablehlo_builder_inc",
-    tbl_outs = {
-        "stablehlo/integrations/cpp/builder/StablehloBuilder.cpp.inc": ["-gen-builder-defs"],
-        "stablehlo/integrations/cpp/builder/StablehloBuilder.h.inc": ["-gen-builder-decls"],
-        "stablehlo/integrations/cpp/builder/StablehloBuilder.md": ["-gen-builder-docs"],
-    },
-    tblgen = ":mlir_builder_tblgen",
-    td_file = ":stablehlo/dialect/StablehloOps.td",
-    deps = [
-        ":base_td_files",
-        ":stablehlo_ops_td_filegroup",
-        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
-        "@llvm-project//mlir:OpBaseTdFiles",
-        "@llvm-project//mlir:ShapeOpsTdFiles",
-        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
-    ],
-)
-
-cc_library(
-    name = "stablehlo_builder",
-    srcs = ["stablehlo/integrations/cpp/builder/StablehloBuilder.cpp"],
-    hdrs = ["stablehlo/integrations/cpp/builder/StablehloBuilder.h"],
-    strip_include_prefix = ".",
-    deps = [
-        ":attr_type_builder_util",
-        ":mlir_builder",
-        ":stablehlo_broadcast_lowering",
-        ":stablehlo_builder_inc",
-        ":stablehlo_ops",
-        ":stablehlo_type_inference",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:FuncDialect",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:InferTypeOpInterface",
-        "@llvm-project//mlir:Support",
-    ],
-)
-
-cc_test(
-    name = "stablehlo_builder_test",
-    srcs = ["stablehlo/integrations/cpp/builder/StablehloBuilderTest.cpp"],
-    deps = [
-        ":attr_type_builder_util",
-        ":func_builder",
-        ":mlir_builder",
-        ":register",
-        ":stablehlo_builder",
-        ":stablehlo_ops",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-        "@llvm-project//third-party/unittest:gmock",
-        "@llvm-project//third-party/unittest:gtest",
-    ],
+test_suite(
+    name = "all_tests",
+    tests = [":stablehlo_ci_tests"],
 )
