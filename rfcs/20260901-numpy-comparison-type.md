@@ -90,18 +90,8 @@ def StableHLO_ComparisonType : I32EnumAttr<"ComparisonType",
 
 ### 2. Specification (`docs/spec.md`)
 
-Update `compare` semantics:
-
-- For floating-point element types with `compare_type = WEAKORDER`:
-  - Implements strict weak ordering:
-    -infinity < finite < -0.0 == +0.0 < finite < +infinity < NaN.
-  - -0.0 and +0.0 compare as equal (`EQ` is true; neither is `<` the other).
-  - All NaN representations (positive, negative, signaling, quiet) compare as
-    equal to each other and greater than all non-NaN values.
-- Constraints (C3) updated:
-  - `SIGNED` and `UNSIGNED` marked deprecated.
-  - `NOTYPE` is the standard for integer and boolean types.
-  - `FLOAT`, `TOTALORDER`, or `WEAKORDER` valid for floating-point types.
+Please refer to the `docs/spec.md` changes included in this PR to view the
+exact specification diff vs. the original spec.
 
 ### 3. Compatibility & Versioning
 
