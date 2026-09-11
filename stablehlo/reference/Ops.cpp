@@ -1451,15 +1451,21 @@ SmallVector<InterpreterValue> collectiveBroadcastOp(
       hasDynamicRoot ? operands.drop_back(1) : operands;
 
   auto processGroup = processGroups.findGroup(process->getId());
-  SmallVector<InterpreterValue> results;
-  for (const auto& [dataIndex, dataOperand] : llvm::enumerate(dataOperands)) {
-    if (!processGroup) {
+  if (!processGroup) {
+    SmallVector<InterpreterValue> results;
+    for (const auto& dataOperand : dataOperands) {
       results.push_back(
           broadcastInDimOp(constant(0.0, dataOperand.getElementType()), {},
                            dataOperand.getType()));
-      continue;
     }
+    return results;
+  }
 
+  auto rendezResult =
+      process->rendezvous(*processGroup, channelId, dataOperands);
+
+  SmallVector<InterpreterValue> results;
+  for (const auto& [dataIndex, dataOperand] : llvm::enumerate(dataOperands)) {
     ProcessId rootId = (*processGroup)[0];
     if (hasDynamicRoot) {
       const Tensor& rootTensor = operands.back();
@@ -1472,9 +1478,7 @@ SmallVector<InterpreterValue> collectiveBroadcastOp(
       rootId = (*processGroup)[rootIdxVal];
     }
 
-    auto rendezResult =
-        process->rendezvous(*processGroup, channelId, {dataOperand});
-    results.push_back(rendezResult.lookup(rootId).front());
+    results.push_back(rendezResult.lookup(rootId)[dataIndex]);
   }
   return results;
 }
