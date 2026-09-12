@@ -49,6 +49,7 @@ option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and w
 option(STABLEHLO_ENABLE_SANITIZER "Enable a sanitizer [OFF, address]" OFF)
 option(STABLEHLO_ENABLE_SPLIT_DWARF "Enable split DWARF if the platform supports it" OFF)
 option(STABLEHLO_ENABLE_LLD "Use LLD as the linker if available" OFF)
+option(STABLEHLO_APPEND_VC_REV "Embed the StableHLO source revision in tools for --version" ON)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
