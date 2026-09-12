@@ -24,6 +24,7 @@ add_mlir_library(StablehloLinalgTransforms
   StablehloToLinalgPointwise.cpp
   StablehloToLinalgRandom.cpp
   StablehloToLinalgReduce.cpp
+  StablehloToLinalgScatter.cpp
   TypeConversion.cpp
 
   DEPENDS
