@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "gentbl_filegroup", "td_library")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load("//build_tools:utils.bzl", "get_compatible_with_portable")
@@ -1531,6 +1532,8 @@ cc_binary(
     ],
     deps = [
         ":register",
+        ":revision",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AllExtensions",
         "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:MlirLspServerLib",
@@ -1559,6 +1562,7 @@ cc_binary(
         ":reference_tensor",
         ":reference_value",
         ":register",
+        ":revision",
         ":stablehlo_ops",
         ":stablehlo_serialization",
         ":version",
@@ -1592,6 +1596,7 @@ cc_binary(
         ":interpreter_passes",
         ":linalg_passes",
         ":register",
+        ":revision",
         ":stablehlo_passes",
         ":stablehlo_passes_optimization",
         ":tosa_passes",
@@ -1691,6 +1696,35 @@ cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
+    ],
+)
+
+# Bazel does not embed the source revision, so provide the same fallback header
+# the CMake build generates when STABLEHLO_APPEND_VC_REV is OFF. With
+# STABLEHLO_REVISION undefined, getRevision() returns "" and --version reports
+# the revision as "(unknown)". This mirrors @llvm-project//llvm's
+# generate_vcs_revision target.
+write_file(
+    name = "generate_stablehlo_revision",
+    out = "stablehlo/dialect/StablehloRevision.h",
+    content = ["#undef STABLEHLO_REVISION"],
+)
+
+cc_library(
+    name = "revision",
+    srcs = [
+        "stablehlo/dialect/Revision.cpp",
+    ],
+    hdrs = [
+        "stablehlo/dialect/Revision.h",
+        "stablehlo/dialect/StablehloRevision.h",
+    ],
+    compatible_with = get_compatible_with_portable(),
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
+    deps = [
+        ":version",
+        "@llvm-project//llvm:Support",
     ],
 )
 

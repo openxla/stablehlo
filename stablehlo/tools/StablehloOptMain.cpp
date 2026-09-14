@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/LogicalResult.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllExtensions.h"
@@ -21,6 +22,7 @@ limitations under the License.
 #include "stablehlo/conversions/linalg/transforms/Passes.h"
 #include "stablehlo/conversions/tosa/transforms/Passes.h"
 #include "stablehlo/dialect/Register.h"
+#include "stablehlo/dialect/Revision.h"
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/InterpreterPasses.h"
 #include "stablehlo/tests/CheckOps.h"
@@ -29,6 +31,8 @@ limitations under the License.
 #include "stablehlo/transforms/optimization/Passes.h"
 
 int main(int argc, char **argv) {
+  llvm::cl::AddExtraVersionPrinter(mlir::stablehlo::printVersion);
+
   mlir::registerAllPasses();
   mlir::hlo::registerAllTestPasses();
   mlir::stablehlo::registerPassPipelines();
