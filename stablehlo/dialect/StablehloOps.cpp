@@ -3816,12 +3816,63 @@ char nonSpatialDimToString(NonSpatialDim dim) {
 }
 }  // namespace
 
+// Prints the "raw" struct form of the convolution dimension numbers. Unlike the
+// compressed form, this can represent any dimension indices, and round-trips
+// through parseConvolutionDimensionsRaw.
+static void printConvolutionDimensionsRaw(AsmPrinter& p,
+                                          ConvDimensionNumbersAttr dimNums) {
+  p << "raw input_batch_dimension = " << dimNums.getInputBatchDimension()
+    << ", input_feature_dimension = " << dimNums.getInputFeatureDimension()
+    << ", input_spatial_dimensions = [";
+  llvm::interleaveComma(dimNums.getInputSpatialDimensions(), p);
+  p << "], kernel_input_feature_dimension = "
+    << dimNums.getKernelInputFeatureDimension()
+    << ", kernel_output_feature_dimension = "
+    << dimNums.getKernelOutputFeatureDimension()
+    << ", kernel_spatial_dimensions = [";
+  llvm::interleaveComma(dimNums.getKernelSpatialDimensions(), p);
+  p << "], output_batch_dimension = " << dimNums.getOutputBatchDimension()
+    << ", output_feature_dimension = " << dimNums.getOutputFeatureDimension()
+    << ", output_spatial_dimensions = [";
+  llvm::interleaveComma(dimNums.getOutputSpatialDimensions(), p);
+  p << "]";
+}
+
+// Returns true if every dimension index in `dimNums` is within [0, rank) for
+// its group, which is required to print the compressed form.
+static bool isConvolutionDimensionsPrintable(ConvDimensionNumbersAttr dimNums) {
+  auto inBounds = [](ArrayRef<int64_t> dims, int64_t rank) {
+    return llvm::all_of(dims, [&](int64_t d) { return d >= 0 && d < rank; });
+  };
+  int64_t inputRank = dimNums.getInputSpatialDimensions().size() + 2;
+  int64_t kernelRank = dimNums.getKernelSpatialDimensions().size() + 2;
+  int64_t outputRank = dimNums.getOutputSpatialDimensions().size() + 2;
+  return inBounds({dimNums.getInputBatchDimension(),
+                   dimNums.getInputFeatureDimension()},
+                  inputRank) &&
+         inBounds(dimNums.getInputSpatialDimensions(), inputRank) &&
+         inBounds({dimNums.getKernelInputFeatureDimension(),
+                   dimNums.getKernelOutputFeatureDimension()},
+                  kernelRank) &&
+         inBounds(dimNums.getKernelSpatialDimensions(), kernelRank) &&
+         inBounds({dimNums.getOutputBatchDimension(),
+                   dimNums.getOutputFeatureDimension()},
+                  outputRank) &&
+         inBounds(dimNums.getOutputSpatialDimensions(), outputRank);
+}
+
 // Custom printer and parser for convolution attribute.
 void printConvolutionDimensions(AsmPrinter& p,
                                 ConvDimensionNumbersAttr dimNums) {
-  // TODO(b/202040055): we should check the attribute invariant and print the
-  // "raw" form if they are violated, for now report_fatal_error is used to
-  // prevent invalid access.
+  // If the dimension numbers cannot be represented in the compressed form, fall
+  // back to the raw form rather than aborting, mirroring how the MLIR printer
+  // falls back to the generic op form for operations that fail verification.
+  // Such attributes can be built programmatically or parsed from the raw form.
+  if (!isConvolutionDimensionsPrintable(dimNums)) {
+    printConvolutionDimensionsRaw(p, dimNums);
+    return;
+  }
+
   auto printDim =
       [&p](ArrayRef<int64_t> spatialDims,
            ArrayRef<std::pair<int64_t, NonSpatialDim>> nonSpatialDims) {
@@ -3831,15 +3882,9 @@ void printConvolutionDimensions(AsmPrinter& p,
         // spatial dimension index.
         for (const std::pair<int64_t, NonSpatialDim>& nonSpatialDim :
              nonSpatialDims) {
-          if (nonSpatialDim.first < 0 ||
-              static_cast<size_t>(nonSpatialDim.first) >= dims.size())
-            llvm::report_fatal_error("Invalid non-spatial dimension.");
           dims[nonSpatialDim.first] = nonSpatialDim.second;
         }
         for (const auto& spatialDim : llvm::enumerate(spatialDims)) {
-          if (spatialDim.value() < 0 ||
-              static_cast<size_t>(spatialDim.value()) >= dims.size())
-            llvm::report_fatal_error("Invalid spatial dimension.");
           dims[spatialDim.value()] = static_cast<int64_t>(spatialDim.index());
         }
 
