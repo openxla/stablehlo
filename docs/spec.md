@@ -2060,6 +2060,19 @@ For floating-point element types with `compare_type = TOTALORDER`, the op
 uses the combination of `totalOrder` and `compareQuietEqual` operations from
 IEEE-754.
 
+For floating-point element types with `compare_type = WEAKORDER`, the op
+implements a total preorder (strict weak ordering) where `-0.0` and `+0.0` are
+treated as equal, and all `NaN` representations are treated as equal to each
+other and greater than `+infinity`:
+
+* `EQ`: `compareQuietEqual(lhs, rhs) || (is_nan(lhs) && is_nan(rhs))`.
+* `NE`: `!EQ(lhs, rhs)`.
+* `GE`: `GT(lhs, rhs) || EQ(lhs, rhs)`.
+* `GT`: `LT(rhs, lhs)`.
+* `LE`: `LT(lhs, rhs) || EQ(lhs, rhs)`.
+* `LT`: `(!is_nan(lhs) && is_nan(rhs)) ||`
+  `(!is_nan(lhs) && !is_nan(rhs) && compareQuietLess(lhs, rhs))`.
+
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
 performed using the provided `comparison_direction` and `compare_type`.
 Imposing an ordering on complex numbers involves surprising semantics,
@@ -2072,12 +2085,12 @@ comparison_direction)`.
 
 #### Inputs
 
-| Label | Name                   | Type                                                    | Constraints |
-|-------|------------------------|---------------------------------------------------------|-------------|
-| (I1)  | `lhs`                  | tensor or per-tensor quantized tensor                   | (C1-C3)     |
-| (I2)  | `rhs`                  | tensor or per-tensor quantized tensor                   | (C1-C2)     |
-| (I3)  | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |             |
-| (I4)  | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` | (C3)        |
+| Label | Name                   | Type                                                                                    | Constraints |
+|-------|------------------------|-----------------------------------------------------------------------------------------|-------------|
+| (I1)  | `lhs`                  | tensor or per-tensor quantized tensor                                                   | (C1-C3)     |
+| (I2)  | `rhs`                  | tensor or per-tensor quantized tensor                                                   | (C1-C2)     |
+| (I3)  | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`                                          |             |
+| (I4)  | `compare_type`         | optional enum of `NOTYPE`, `FLOAT`, `TOTALORDER`, `WEAKORDER`, `SIGNED`, and `UNSIGNED` | (C3)        |
 
 #### Outputs
 
@@ -2090,10 +2103,11 @@ comparison_direction)`.
 * (C1) `baseline_element_type(lhs) = baseline_element_type(rhs)`.
 * (C2) `shape(lhs) = shape(rhs) = shape(result)`.
 * (C3) `compare_type` is defined as:
-  * `SIGNED` if `is_signed_integer(element_type(lhs))`.
-  * `UNSIGNED` if `is_unsigned_integer(element_type(lhs)) or
-    is_boolean(element_type(lhs))`.
-  * `FLOAT` or `TOTALORDER` if `is_float(element_type(lhs))`.
+  * `NOTYPE`, `SIGNED` (deprecated), or `UNSIGNED` (deprecated) if
+    `is_signed_integer(element_type(lhs))`,
+    `is_unsigned_integer(element_type(lhs))`, or
+    `is_boolean(element_type(lhs))`.
+  * `FLOAT`, `TOTALORDER`, or `WEAKORDER` if `is_float(element_type(lhs))`.
   * `FLOAT` if `is_complex(element_type(lhs))`.
 
 #### Examples
