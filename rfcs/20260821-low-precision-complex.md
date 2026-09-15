@@ -2,7 +2,7 @@
 
 Status: In Review<br/>
 Initial version: 08/21/2026<br/>
-Last updated: 08/21/2026<br/>
+Last updated: 09/15/2026<br/>
 Discussion thread: [openxla/stablehlo#2993](https://github.com/openxla/stablehlo/pull/2993)
 
 ## Overview
@@ -28,9 +28,32 @@ The proposal uses the existing MLIR builtin `ComplexType`; it does not add a
 new StableHLO type. It extends the set of floating-point component types that
 StableHLO accepts inside `complex<T>`.
 
-This is a StableHLO type-system and serialization proposal. It does not require
-XLA, JAX, or any particular backend to execute the new types, and it does not
-promise native kernels, a memory ABI, or improved performance.
+This RFC defines the StableHLO and VHLO type and serialization contract for
+low-precision complex types. It does not implement XLA/HLO, the
+StableHLO-to-XLA bridge, runtime ABI exposure, or backend kernels. The feature
+is intended to land as part of a coordinated implementation sequence with the
+XLA proposal in [openxla/xla#6136](https://github.com/openxla/xla/issues/6136).
+Approval of this RFC does not imply that every StableHLO consumer can execute
+`complex<f16>` or `complex<bf16>`; consumers without support must reject these
+types with a clear diagnostic before code generation.
+
+### Scope and current implementation status
+
+This RFC specifies the StableHLO/VHLO side of a cross-repository feature. The
+current status of the related layers is:
+
+| Layer | Current status | Boundary of this RFC |
+| --- | --- | --- |
+| StableHLO type specification | Only `complex<f32>` and `complex<f64>` are currently specified | Adds `complex<f16>` and `complex<bf16>` |
+| VHLO compatibility | `ComplexV1` is the historical representation | Adds the feature-version `ComplexV2` boundary |
+| XLA/HLO core types | `C32`/`BC32` are proposed in [openxla/xla#6136](https://github.com/openxla/xla/issues/6136), but are not yet implemented | Coordinated prerequisite; not implemented here |
+| StableHLO-to-XLA bridge | No `C32`/`BC32` type or constant mapping is available | Follow-up implementation |
+| Runtime and backend support | [cuFFT](https://docs.nvidia.com/cuda/cufft/index.html) exposes 16-bit complex formats, but XLA does not yet expose a corresponding path | Separate runtime and backend work |
+
+The StableHLO specification may define a valid type domain before every
+consumer implements it. This RFC therefore defines the observable rejection
+behavior for consumers that have not yet added execution support; it does not
+claim end-to-end execution support from StableHLO serialization alone.
 
 ## Motivation
 
@@ -46,9 +69,12 @@ There are two independent concerns:
 
 StableHLO should decide the first concern based on the coherence of its type
 system and semantics rather than on the current implementation status of one
-consumer. Consumers that do not support the new types may continue to reject
-them with a diagnostic until they add a lowering, legalization, or native
-implementation.
+consumer. The related XLA proposal currently remains at the design stage; it
+proposes adding `C32 = complex<f16>` and `BC32 = complex<bf16>` as a shared
+core-type change before bridge and backend work. Consumers that do not support
+the new types may reject them with a diagnostic until they add a lowering,
+legalization, or native implementation. Such rejection is part of the staged
+rollout, not an implicit promotion to `complex<f32>`.
 
 The body of #1794 suggests allowing any floating-point component type. This
 RFC intentionally narrows that suggestion to f16 and bf16, the two widely used
@@ -162,6 +188,14 @@ their static-shape or unranked variants expand with the common complex
 component set. Every custom verifier and inference path reached through these
 constraints must be checked against the specification above.
 
+This shared-constraint change also reaches the CHLO dialect: CHLO operations
+such as `broadcast_complex` and the inverse-trigonometric and hyperbolic
+complex math operations use the same complex tensor predicates. The
+implementation must either include those operations and their
+legalization/decomposition paths in the affected-surface audit and tests, or
+deliberately separate their constraints so that this RFC does not expand CHLO
+acceptance accidentally.
+
 This expansion does not create separate kinds of complex type. It also does
 not define the physical layout or ABI of a buffer containing a low-precision
 complex element; StableHLO buffer acceptance remains an abstract type-system
@@ -235,6 +269,14 @@ The required observable compatibility behavior is:
 - current consumers remain able to deserialize portable artifacts containing
   historical f32/f64 complex programs.
 
+StableHLO version compatibility and consumer execution capability are separate
+contracts. Serialization to a version that defines `ComplexV2` only establishes
+that the artifact is representable by that StableHLO version. It does not prove
+that an XLA, PJRT, or other consumer can lower every operation containing the
+new type. A consumer that understands the StableHLO version but lacks `C32` or
+`BC32` support must reject the module before code generation with a diagnostic
+that identifies the unsupported type and operation.
+
 ### Proposed VHLO representation
 
 VHLO currently has `ComplexV1`, available since 0.9.0. Its representation is
@@ -246,10 +288,11 @@ new StableHLO feature appear incorrectly available to old target versions.
 This RFC requires adding `ComplexV2` at the new feature version. The versioned
 contract is normative:
 
-- `ComplexV1` remains the historical VHLO representation. Its version range is
-  closed at the minor version immediately preceding the feature version, as in
-  the standard VHLO version-split pattern. The valid portable StableHLO domain
-  represented by historical V1 artifacts is f32- and f64-based complex types.
+- `ComplexV1` remains the historical VHLO representation. Its maximum supported
+  version is the patch-zero version of the minor immediately preceding the
+  feature version (for example, `1.20.0` when the feature version is `1.21.0`).
+  The valid portable StableHLO domain represented by historical V1 artifacts is
+  f32- and f64-based complex types.
 - The existing shallow parser and verifier behavior of `ComplexV1` is not
   tightened. A V1 value with another VHLO component type may remain
   structurally representable, but it was not a valid historical portable
@@ -334,6 +377,13 @@ emit bytecode from the partially converted IR.
 StableHLO verifier acceptance is not a claim that every consumer can execute
 the new types.
 
+StableHLO serialization validates only StableHLO/VHLO representability. A
+StableHLO-to-XLA bridge must reject `complex<f16>` or `complex<bf16>` before
+constructing the XLA/HLO module when the corresponding XLA primitive type is
+unavailable. The diagnostic must identify the unsupported type, operation, and
+target. Other consumers must provide an equivalent pre-code-generation
+capability check or a separately specified legalization path.
+
 A consumer that lacks support may:
 
 - reject a module containing the new types with a clear unsupported-type
@@ -341,13 +391,21 @@ A consumer that lacks support may:
 - apply a separately specified legalization;
 - implement the types natively.
 
-This RFC does not prescribe which option a consumer must choose. In particular,
-it does not make XLA support a prerequisite for StableHLO type validity.
+This RFC does not prescribe which option a consumer must choose. It does
+require that unsupported consumers fail explicitly before code generation. In
+particular, a consumer must not reinterpret a four-byte value as `C64`, fall
+through an existing `C64`/`C128` path, or silently promote the declared value to
+`complex<f32>`. XLA support is not a prerequisite for StableHLO type validity,
+but the StableHLO implementation and the XLA/HLO work must be coordinated
+before the feature is presented as end-to-end executable.
 
 ## Verification and testing
 
 The implementation must include positive tests for:
 
+- StableHLO verifier acceptance and exact type inference for the complete
+  specified domain, independently of whether a particular consumer executes
+  every operation;
 - parsing and printing `complex<f16>` and `complex<bf16>` in StableHLO
   programs;
 - `stablehlo.complex`, `stablehlo.real`, and `stablehlo.imag` type relations;
@@ -374,6 +432,9 @@ The implementation must include positive tests for:
 
 The implementation must include negative tests for:
 
+- consumer-side rejection before code generation when `C32` or `BC32` support
+  is absent, including a diagnostic that names the unsupported type, operation,
+  and target;
 - complex values with integer component types;
 - at least one floating-point component type outside this RFC, such as an FP8
   type;
@@ -407,7 +468,9 @@ implementation change without adding XLA or backend work.
 
 This RFC does not propose:
 
-- an XLA primitive type or StableHLO-to-XLA bridge change;
+- the implementation of an XLA primitive type or StableHLO-to-XLA bridge;
+  those pieces are coordinated with [openxla/xla#6136](https://github.com/openxla/xla/issues/6136)
+  and are required before claiming end-to-end execution;
 - JAX dtype, promotion, tracing, or lowering changes;
 - portable decomposition into real and imaginary tensor planes;
 - CPU, GPU, TPU, or accelerator kernels;
@@ -420,8 +483,11 @@ This RFC does not propose:
   future floating-point type not listed by this RFC;
 - performance claims.
 
-These concerns can be proposed and reviewed independently after the StableHLO
-type and compatibility contract is established.
+These concerns are separate implementation stages, but they are not an
+indefinite dependency: the enabling StableHLO implementation must have an
+agreed XLA/HLO core-type plan and an explicit unsupported-consumer path before
+it lands. The bridge, runtime, and backend changes may remain separate pull
+requests.
 
 ## Alternatives considered
 
@@ -450,7 +516,23 @@ strictly FFT-only feature is desired, it should be proposed as an explicit
 operation-specific type extension rather than as general StableHLO support for
 low-precision complex types.
 
-### Reuse `ComplexV1`, with or without a component-sensitive version gate
+### Reuse `ComplexV1` with target-aware validation
+
+A target-aware constraint interface could reject `ComplexV1<f16>` and
+`ComplexV1<bf16>` when converting to an older target. This would reduce some
+conversion code, but it would not preserve the historical meaning of
+`ComplexV1`: the same VHLO type would acquire a different semantic domain
+based on an external target-version predicate. It would also leave
+structurally representable, but historically invalid, V1 values in the parser
+and require every nested type-bearing location to preserve the same side
+condition.
+
+The alternatives are:
+
+| Design | Benefit | Compatibility cost |
+| --- | --- | --- |
+| Target-aware validation on `ComplexV1` | Less dedicated type conversion | Retroactively changes V1 semantics and makes validity depend on target context |
+| `ComplexV2` with V1/V2 conversion | Explicit version boundary and historical V1 meaning | Requires recursive conversion and downgrade tests |
 
 Reusing `ComplexV1` without a gate would allow new programs to appear
 serializable to StableHLO versions that never specified these component
@@ -460,10 +542,12 @@ the semantic domain of an existing VHLO type. That conflicts with VHLO's
 add-only, versioned-type model and makes the meaning of `ComplexV1` depend on a
 side condition outside the type version itself.
 
-Both variants are rejected. If review establishes that VHLO must use a
-different representation strategy, this RFC must be revised and approved with
-the replacement compatibility contract before implementation; reuse of
-`ComplexV1` is not left as an implementation-time choice.
+This RFC chooses `ComplexV2`. A target-aware type constraint may still be
+useful as an implementation mechanism for recursive legality checks, but it is
+not a replacement for the V1-to-V2 semantic boundary. `ComplexV2` keeps the
+historical meaning of `ComplexV1` explicit and makes the compatibility boundary
+inspectable. VHLO maintainer confirmation of this choice is required before
+implementation.
 
 The V1-to-V2 validation required by this proposal is not reuse of V1 for the
 new feature. It rejects nonhistorical V1 component combinations and upgrades
@@ -471,35 +555,42 @@ only the f32/f64 combinations that were already valid portable StableHLO.
 
 ## Rollout and pull request boundaries
 
-The proposed upstream sequence is:
+The proposed upstream sequence is deliberately split by capability:
 
-1. Open an RFC-only PR under `rfcs/20260821-low-precision-complex.md`, change
-   the header status from `Draft` to `In Review`, and make no implementation
-   changes in that PR.
-2. Notify OpenXLA Discuss after the RFC PR is open. The notification should
-   link to the PR and direct technical discussion back to the PR so that review
-   remains centralized.
-3. Obtain final maintainer approval and merge the RFC before sending enabling
-   implementation changes.
-4. Submit one compatibility-atomic StableHLO implementation merge unit
-   containing:
+1. Keep this RFC as a design-only PR and confirm the cross-repository contract
+   with [openxla/xla#6136](https://github.com/openxla/xla/issues/6136). RFC
+   approval does not itself enable serialization or execution.
+2. Obtain agreement on the XLA/HLO core representation (`C32` and `BC32`),
+   host storage, `LiteralProto`, parser/printer behavior, and explicit
+   unsupported-execution diagnostics. The current XLA proposal places this
+   core-type change before bridge and backend work.
+3. After the RFC is approved, submit the compatibility-atomic StableHLO
+   implementation, including:
 
-   - specification updates and the complete affected-surface audit;
-   - ODS, verifier, and type-inference changes;
-   - the VHLO version boundary and recursive type conversions;
-   - positive, negative, round-trip, and compatibility tests.
+   - specification, ODS, verifier, and type-inference changes;
+   - the VHLO `ComplexV2` boundary and recursive conversions;
+   - positive, negative, round-trip, and serialization tests;
+   - tests that reject unsupported target versions before bytecode emission.
 
-   This may be one PR when reviewable, or a short stack of PRs when maintainers
-   prefer smaller reviews. If stacked, the final enabling change must not land
-   until every required compatibility change and test is ready; no released
-   state may accept the new StableHLO types without the corresponding VHLO
+   The affected-surface audit must include CHLO operations that inherit the
+   shared complex predicates, or record an explicit constraint boundary that
+   excludes them.
+
+   The implementation may be developed in parallel with the XLA core change,
+   but it must not be presented as end-to-end execution support. No released
+   state may emit the new StableHLO types without the corresponding VHLO
    boundary.
-5. If not included in step 4, submit a separate StableHLO
-   reference-interpreter PR for low-precision complex tensor storage,
-   constants, and numerical tests.
-6. Discuss XLA, framework, legalization, and backend support in separate
-   repositories and pull requests.
+4. Implement the StableHLO-to-XLA bridge, Shape mapping, constant materialization,
+   and bit-exact round trips in a separate follow-up. A bridge that has not yet
+   added `C32`/`BC32` must reject those types before code generation.
+5. Add explicit legalization policies, keeping pair decomposition and
+   promotion to `C64` as separate choices. The core type change must not choose
+   either policy implicitly.
+6. Add runtime ABI exposure and backend implementations, beginning with a
+   concrete backend path such as the cuFFT 16-bit complex formats and then
+   extending support as maintainers approve.
 
-The RFC PR must not close #1794 by itself because approval of a design does not
+The RFC PR must not close #1794 by itself because design approval does not
 implement the requested functionality. The implementation PR can close the
-issue once the agreed StableHLO support is present.
+issue only after the agreed StableHLO support and the required consumer path
+are present.
