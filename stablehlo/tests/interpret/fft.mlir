@@ -233,3 +233,239 @@ func.func @fft_op_test_irfft_3d_c128() {
   > : tensor<2x2x4xf64>
   func.return
 }
+
+// -----
+
+func.func @fft_op_test_fft_1d_c64() {
+  %operand = stablehlo.constant dense<[(1.0, 2.0), (3.0, -4.0)]> : tensor<2xcomplex<f32>>
+  %result = stablehlo.fft %operand, type = FFT, length = [2] : (tensor<2xcomplex<f32>>) -> tensor<2xcomplex<f32>>
+  check.expect_almost_eq_const %result, dense<[(4.0, -2.0), (-2.0, 6.0)]> : tensor<2xcomplex<f32>>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_fft_2d_c64() {
+  %operand = stablehlo.constant dense<
+    [
+      [(1.0, 2.0), (3.0, -4.0)],
+      [(-5.0, 6.0), (-7.0, -8.0)]
+    ]
+  > : tensor<2x2xcomplex<f32>>
+  %result = stablehlo.fft %operand, type = FFT, length = [2, 2] : (tensor<2x2xcomplex<f32>>) -> tensor<2x2xcomplex<f32>>
+  check.expect_almost_eq_const %result, dense<
+    [
+      [(-8.0, -4.0), (0.0, 20.0)],
+      [(16.0, 0.0), (-4.0, -8.0)]
+    ]
+  > : tensor<2x2xcomplex<f32>>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_fft_3d_c64() {
+  %operand = stablehlo.constant dense<
+    [
+      [
+        [(1.0, 2.0), (3.0, -4.0)],
+        [(-5.0, 6.0), (-7.0, -8.0)]
+      ],[
+        [(-1.0, -2.0), (-3.0, 4.0)],
+        [(5.0, -6.0), (7.0, 8.0)]
+      ]
+    ]
+  > : tensor<2x2x2xcomplex<f32>>
+  %result = stablehlo.fft %operand, type = FFT, length = [2, 2, 2] : (tensor<2x2x2xcomplex<f32>>) -> tensor<2x2x2xcomplex<f32>>
+  check.expect_almost_eq_const %result, dense<
+    [
+      [
+        [(0.0, 0.0), (0.0, 0.0)],
+        [(0.0, 0.0), (0.0, 0.0)]
+      ],[
+        [(-16.0, -8.0), (0.0, 40.0)],
+        [(32.0, 0.0), (-8.0, -16.0)]
+      ]
+    ]
+  > : tensor<2x2x2xcomplex<f32>>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_ifft_1d_c64() {
+  %operand = stablehlo.constant dense<[(4.0, -2.0), (-2.0, 6.0)]> : tensor<2xcomplex<f32>>
+  %result = stablehlo.fft %operand, type = IFFT, length = [2] : (tensor<2xcomplex<f32>>) -> tensor<2xcomplex<f32>>
+  check.expect_almost_eq_const %result, dense<[(1.0, 2.0), (3.0, -4.0)]> : tensor<2xcomplex<f32>>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_ifft_2d_c64() {
+  %operand = stablehlo.constant dense<
+    [
+      [(-8.0, -4.0), (16.0, 0.0)],
+      [(0.0, 20.0), (-4.0, -8.0)]
+    ]
+  > : tensor<2x2xcomplex<f32>>
+  %result = stablehlo.fft %operand, type = IFFT, length = [2, 2] : (tensor<2x2xcomplex<f32>>) -> tensor<2x2xcomplex<f32>>
+  check.expect_almost_eq_const %result, dense<
+    [
+      [(1.0, 2.0), (-5.0, 6.0)],
+      [(3.0, -4.0), (-7.0, -8.0)]
+    ]
+  > : tensor<2x2xcomplex<f32>>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_ifft_3d_c64() {
+  %operand = stablehlo.constant dense<
+    [
+      [
+        [(0.0, 0.0), (0.0, 0.0)],
+        [(0.0, 0.0), (0.0, 0.0)]
+      ],[
+        [(-16.0, -8.0), (32.0, 0.0)],
+        [(0.0, 40.0), (-8.0, -16.0)]
+      ]
+    ]
+  > : tensor<2x2x2xcomplex<f32>>
+  %result = stablehlo.fft %operand, type = IFFT, length = [2, 2, 2] : (tensor<2x2x2xcomplex<f32>>) -> tensor<2x2x2xcomplex<f32>>
+  check.expect_almost_eq_const %result, dense<
+    [
+      [
+        [(1.0, 2.0), (-5.0, 6.0)],
+        [(3.0, -4.0), (-7.0, -8.0)]
+      ],[
+        [(-1.0, -2.0), (5.0, -6.0)],
+        [(-3.0, 4.0), (7.0, 8.0)]
+      ]
+    ]
+  > : tensor<2x2x2xcomplex<f32>>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_rfft_1d_f32() {
+  %operand = stablehlo.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>
+  %result = stablehlo.fft %operand, type = RFFT, length = [4] : (tensor<4xf32>) -> tensor<3xcomplex<f32>>
+  check.expect_almost_eq_const %result, dense<[(10.0, 0.0), (-2.0, 2.0), (-2.0, 0.0)]> : tensor<3xcomplex<f32>>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_rfft_2d_f32() {
+  %operand = stablehlo.constant dense<
+    [
+      [1.0, 2.0, 3.0, 4.0],
+      [5.0, 6.0, 7.0, 8.0],
+      [9.0, 10.0, 11.0, 12.0],
+      [13.0, 14.0, 15.0, 16.0]
+    ]
+  > : tensor<4x4xf32>
+  %result = stablehlo.fft %operand, type = RFFT, length = [4, 4] : (tensor<4x4xf32>) -> tensor<4x3xcomplex<f32>>
+  check.expect_almost_eq_const %result, dense<
+    [
+      [(136.0, 0.0), (-8.0, 8.0), (-8.0, 0.0)],
+      [(-32.0, 32.0), (0.0, 0.0), (0.0, 0.0)],
+      [(-32.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
+      [(-32.0, -32.0), (0.0, 0.0), (0.0, 0.0)]
+    ]
+  > : tensor<4x3xcomplex<f32>>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_rfft_3d_f32() {
+  %operand = stablehlo.constant dense<
+    [
+      [
+        [1.0, 2.0, 3.0, 4.0],
+        [5.0, 6.0, 7.0, 8.0]
+      ],[
+        [9.0, 10.0, 11.0, 12.0],
+        [13.0, 14.0, 15.0, 16.0]
+      ]
+    ]
+  > : tensor<2x2x4xf32>
+  %result = stablehlo.fft %operand, type = RFFT, length = [2, 2, 4] : (tensor<2x2x4xf32>) -> tensor<2x2x3xcomplex<f32>>
+  check.expect_almost_eq_const %result, dense<
+    [
+      [
+        [(136.0, 0.0), (-8.0, 8.0), (-8.0, 0.0)],
+        [(-32.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+      ],[
+        [(-64.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
+        [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+      ]
+    ]
+  > : tensor<2x2x3xcomplex<f32>>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_irfft_1d_c64() {
+  %operand = stablehlo.constant dense<[(10.0, 0.0), (-2.0, 2.0), (-2.0, 0.0)]> : tensor<3xcomplex<f32>>
+  %result = stablehlo.fft %operand, type = IRFFT, length = [4] : (tensor<3xcomplex<f32>>) -> tensor<4xf32>
+  check.expect_almost_eq_const %result, dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_irfft_2d_c64() {
+  %operand = stablehlo.constant dense<
+    [
+      [(136.0, 0.0), (-8.0, 8.0), (-8.0, 0.0)],
+      [(-32.0, 32.0), (0.0, 0.0), (0.0, 0.0)],
+      [(-32.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
+      [(-32.0, -32.0), (0.0, 0.0), (0.0, 0.0)]
+    ]
+  > : tensor<4x3xcomplex<f32>>
+  %result = stablehlo.fft %operand, type = IRFFT, length = [4, 4] : (tensor<4x3xcomplex<f32>>) -> tensor<4x4xf32>
+  check.expect_almost_eq_const %result, dense<
+    [
+      [1.0, 2.0, 3.0, 4.0],
+      [5.0, 6.0, 7.0, 8.0],
+      [9.0, 10.0, 11.0, 12.0],
+      [13.0, 14.0, 15.0, 16.0]
+    ]
+  > : tensor<4x4xf32>
+  func.return
+}
+
+// -----
+
+func.func @fft_op_test_irfft_3d_c64() {
+  %operand = stablehlo.constant dense<
+    [
+      [
+        [(136.0, 0.0), (-8.0, 8.0), (-8.0, 0.0)],
+        [(-32.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+      ],[
+        [(-64.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
+        [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+      ]
+    ]
+  > : tensor<2x2x3xcomplex<f32>>
+  %result = stablehlo.fft %operand, type = IRFFT, length = [2, 2, 4] : (tensor<2x2x3xcomplex<f32>>) -> tensor<2x2x4xf32>
+  check.expect_almost_eq_const %result, dense<
+    [
+      [
+        [1.0, 2.0, 3.0, 4.0],
+        [5.0, 6.0, 7.0, 8.0]
+      ],[
+        [9.0, 10.0, 11.0, 12.0],
+        [13.0, 14.0, 15.0, 16.0]
+      ]
+    ]
+  > : tensor<2x2x4xf32>
+  func.return
+}

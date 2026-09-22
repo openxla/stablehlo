@@ -1942,23 +1942,30 @@ Tensor exponentialOp(const Tensor& operand, ShapedType resultType) {
 Tensor __fft_1d(const Tensor& operand, ShapedType resultType,
                 int64_t dimension) {
   Tensor result(resultType);
-
+  auto complexTy = cast<ComplexType>(resultType.getElementType());
+  const llvm::fltSemantics& sem =
+      cast<FloatType>(complexTy.getElementType()).getFloatSemantics();
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
     auto resultIndex = *resultIt;
     auto N = operand.getShape()[dimension];
 
-    Element X(resultType.getElementType(),
-              mlir::Complex<APFloat>(APFloat(0.0), APFloat(0.0)));
+    Element X(
+        resultType.getElementType(),
+        mlir::Complex<APFloat>(APFloat::getZero(sem), APFloat::getZero(sem)));
 
     for (int n = 0; n < N; n++) {
       auto operandIndex = Index(resultIndex);
       operandIndex[dimension] = n;
 
-      auto floatType =
-          cast<ComplexType>(operand.getElementType()).getElementType();
-      Element phase(floatType,
-                    APFloat(-2 * M_PI * n * resultIndex[dimension] / N));
+      auto floatType = cast<FloatType>(
+          cast<ComplexType>(operand.getElementType()).getElementType());
+
+      auto phaseVal = APFloat(-2 * M_PI * n * resultIndex[dimension] / N);
+      bool losesInfo;
+      phaseVal.convert(floatType.getFloatSemantics(),
+                       APFloat::rmNearestTiesToEven, &losesInfo);
+      Element phase(floatType, phaseVal);
       auto rotator = complex(cosine(phase), sine(phase));
       X = X + operand.get(operandIndex) * rotator;
     }
@@ -1992,10 +1999,12 @@ Tensor fftOp(const Tensor& operand, const FftType fftType,
   } else if (fftType == FftType::IFFT) {
     // compute IFFT as conjugation, FFT, conjugation and normalization
     Tensor result(operand);
+    auto complexTy = cast<ComplexType>(resultType.getElementType());
+    const llvm::fltSemantics& sem =
+        cast<FloatType>(complexTy.getElementType()).getFloatSemantics();
     for (auto d = fftDims.begin(); d != fftDims.end(); ++d) {
       auto divisorValue = mlir::Complex<APFloat>(
-          APFloat(static_cast<double>(resultType.getDimSize(*d))),
-          APFloat(0.0));
+          APFloat(sem, resultType.getDimSize(*d)), APFloat::getZero(sem));
       auto divisor =
           constantOp(mlir::DenseElementsAttr::get(resultType, divisorValue));
       result = divideOp(conjugate(__fft_1d(conjugate(result), resultType, *d)),
@@ -2040,6 +2049,8 @@ Tensor fftOp(const Tensor& operand, const FftType fftType,
     replica = conjugate(reverseOp(replica, Axes{d_irfft}, replica.getType()));
     auto complexType =
         ComplexType::get(cast<FloatType>(resultType.getElementType()));
+    const llvm::fltSemantics& sem =
+        cast<FloatType>(complexType.getElementType()).getFloatSemantics();
     result = concatenateOp({result, replica}, Axis{d_irfft},
                            resultType.cloneWith(std::nullopt, complexType));
 
@@ -2048,7 +2059,7 @@ Tensor fftOp(const Tensor& operand, const FftType fftType,
                     resultType);
 
     // normalize result of inverse transformation
-    auto divisorValue = APFloat(static_cast<double>(renormFactor));
+    auto divisorValue = APFloat(sem, renormFactor);
     auto divisor =
         constantOp(mlir::DenseElementsAttr::get(resultType, divisorValue));
     return divideOp(result, divisor, resultType);
