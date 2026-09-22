@@ -33,6 +33,7 @@ set(LIBS
         MLIRRegisterAllExtensions
         MLIRRegisterAllPasses
         StablehloRegister
+        StablehloRevision
         StablehloTestUtils
         StablehloPasses
         CheckOps
@@ -72,6 +73,7 @@ target_link_libraries(stablehlo-translate PRIVATE
   StablehloReferenceTensor
   StablehloReferenceValue
   StablehloRegister
+  StablehloRevision
   StablehloSerialization
   VhloOps
 )
@@ -85,6 +87,7 @@ set(LIBS
         ${extension_libs}
         MLIRLspServerLib
         StablehloRegister
+        StablehloRevision
         MLIRRegisterAllDialects
         MLIRRegisterAllExtensions
         MLIRRegisterAllPasses
