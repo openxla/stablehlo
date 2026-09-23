@@ -909,8 +909,16 @@ struct BitcastConvertConverter final
       return failure();
     }
 
-    auto inputBitWidth = inputType.getElementType().getIntOrFloatBitWidth();
-    auto outputBitWidth = outputType.getElementType().getIntOrFloatBitWidth();
+    Type inputElementType = inputType.getElementType();
+    Type outputElementType = outputType.getElementType();
+    if (!isa<IntegerType, FloatType>(inputElementType) ||
+        !isa<IntegerType, FloatType>(outputElementType)) {
+      return rewriter.notifyMatchFailure(
+          op, "requires integer or floating-point element types");
+    }
+
+    auto inputBitWidth = inputElementType.getIntOrFloatBitWidth();
+    auto outputBitWidth = outputElementType.getIntOrFloatBitWidth();
 
     auto maxRank = std::max(inputType.getRank(), outputType.getRank());
     auto identityMap =
