@@ -5424,6 +5424,55 @@ func.func @scan_complex(%arg0: tensor<2xcomplex<f32>>, %arg1: tensor<complex<f32
 
 // -----
 
+// CHECK-LABEL:   func.func @scan_bounded(
+// CHECK-SAME:      %[[ARG0:.*]]: tensor<?x?xi32, #stablehlo.bounds<2, 3>>,
+// CHECK-SAME:      %[[ARG1:.*]]: tensor<?xi32, #stablehlo.bounds<3>>) -> (tensor<?x?xi32, #stablehlo.bounds<2, 3>>, tensor<?xi32, #stablehlo.bounds<3>>) {
+// CHECK:           %[[GET_DIM_SIZE_0:.*]] = stablehlo.get_dimension_size %[[ARG0]], dim = 0 : (tensor<?x?xi32, #stablehlo.bounds<2, 3>>) -> tensor<i32>
+// CHECK:           %[[CONVERT_0:.*]] = stablehlo.convert %[[GET_DIM_SIZE_0]] : (tensor<i32>) -> tensor<i64>
+// CHECK:           %[[C0:.*]] = stablehlo.constant dense<0> : tensor<i64>
+// CHECK:           %[[C0_I32:.*]] = stablehlo.constant dense<0> : tensor<i32>
+// CHECK:           %[[SHAPE:.*]] = shape.shape_of %[[ARG0]] : tensor<?x?xi32, #stablehlo.bounds<2, 3>> -> tensor<2xindex>
+// CHECK:           %[[INIT_OUT:.*]] = stablehlo.dynamic_broadcast_in_dim %[[C0_I32]], %[[SHAPE]], dims = [] : (tensor<i32>, tensor<2xindex>) -> tensor<?x?xi32, #stablehlo.bounds<2, 3>>
+// CHECK:           %[[WHILE:.*]]:3 = stablehlo.while(%[[ITER_I:.*]] = %[[C0]], %[[ITER_CARRY:.*]] = %[[ARG1]], %[[ITER_OUT:.*]] = %[[INIT_OUT]]) : tensor<i64>, tensor<?xi32, #stablehlo.bounds<3>>, tensor<?x?xi32, #stablehlo.bounds<2, 3>>
+// CHECK:           cond {
+// CHECK:             %[[CMP:.*]] = stablehlo.compare LT, %[[ITER_I]], %[[CONVERT_0]] : (tensor<i64>, tensor<i64>) -> tensor<i1>
+// CHECK:             stablehlo.return %[[CMP]] : tensor<i1>
+// CHECK:           } do {
+// CHECK:             %[[C0_1:.*]] = stablehlo.constant dense<0> : tensor<i64>
+// CHECK:             %[[I_RESHAPED:.*]] = stablehlo.reshape %[[ITER_I]] : (tensor<i64>) -> tensor<1xi64>
+// CHECK:             %[[C0_RESHAPED:.*]] = stablehlo.reshape %[[C0_1]] : (tensor<i64>) -> tensor<1xi64>
+// CHECK:             %[[START_INDICES:.*]] = stablehlo.concatenate %[[I_RESHAPED]], %[[C0_RESHAPED]], dim = 0 : (tensor<1xi64>, tensor<1xi64>) -> tensor<2xi64>
+// CHECK:             %[[C1:.*]] = stablehlo.constant dense<1> : tensor<i64>
+// CHECK:             %[[I_PLUS_1:.*]] = stablehlo.add %[[ITER_I]], %[[C1]] : tensor<i64>
+// CHECK:             %[[GET_DIM_SIZE_1:.*]] = stablehlo.get_dimension_size %[[ARG0]], dim = 1 : (tensor<?x?xi32, #stablehlo.bounds<2, 3>>) -> tensor<i32>
+// CHECK:             %[[CONVERT_1:.*]] = stablehlo.convert %[[GET_DIM_SIZE_1]] : (tensor<i32>) -> tensor<i64>
+// CHECK:             %[[LIMIT_0:.*]] = stablehlo.reshape %[[I_PLUS_1]] : (tensor<i64>) -> tensor<1xi64>
+// CHECK:             %[[LIMIT_1:.*]] = stablehlo.reshape %[[CONVERT_1]] : (tensor<i64>) -> tensor<1xi64>
+// CHECK:             %[[LIMIT_INDICES:.*]] = stablehlo.concatenate %[[LIMIT_0]], %[[LIMIT_1]], dim = 0 : (tensor<1xi64>, tensor<1xi64>) -> tensor<2xi64>
+// CHECK:             %[[STRIDES:.*]] = stablehlo.constant dense<1> : tensor<2xi64>
+// CHECK:             %[[SLICE:.*]] = stablehlo.real_dynamic_slice %[[ARG0]], %[[START_INDICES]], %[[LIMIT_INDICES]], %[[STRIDES]] : (tensor<?x?xi32, #stablehlo.bounds<2, 3>>, tensor<2xi64>, tensor<2xi64>, tensor<2xi64>) -> tensor<1x?xi32, #stablehlo.bounds<?, 3>>
+// CHECK:             %[[INPUT_ELEM:.*]] = stablehlo.reshape %[[SLICE]] : (tensor<1x?xi32, #stablehlo.bounds<?, 3>>) -> tensor<?xi32, #stablehlo.bounds<3>>
+// CHECK:             %[[ADD:.*]] = stablehlo.add %[[INPUT_ELEM]], %[[ITER_CARRY]] : tensor<?xi32, #stablehlo.bounds<3>>
+// CHECK:             %[[OUT_ELEM:.*]] = stablehlo.reshape %[[ADD]] : (tensor<?xi32, #stablehlo.bounds<3>>) -> tensor<1x?xi32, #stablehlo.bounds<?, 3>>
+// CHECK:             %[[C0_2:.*]] = stablehlo.constant dense<0> : tensor<i64>
+// CHECK:             %[[UPDATED_OUT:.*]] = stablehlo.dynamic_update_slice %[[ITER_OUT]], %[[OUT_ELEM]], %[[ITER_I]], %[[C0_2]] : (tensor<?x?xi32, #stablehlo.bounds<2, 3>>, tensor<1x?xi32, #stablehlo.bounds<?, 3>>, tensor<i64>, tensor<i64>) -> tensor<?x?xi32, #stablehlo.bounds<2, 3>>
+// CHECK:             %[[C1_2:.*]] = stablehlo.constant dense<1> : tensor<i64>
+// CHECK:             %[[NEXT_I:.*]] = stablehlo.add %[[ITER_I]], %[[C1_2]] : tensor<i64>
+// CHECK:             stablehlo.return %[[NEXT_I]], %[[ADD]], %[[UPDATED_OUT]] : tensor<i64>, tensor<?xi32, #stablehlo.bounds<3>>, tensor<?x?xi32, #stablehlo.bounds<2, 3>>
+// CHECK:           }
+// CHECK:           return %[[WHILE]]#2, %[[WHILE]]#1 : tensor<?x?xi32, #stablehlo.bounds<2, 3>>, tensor<?xi32, #stablehlo.bounds<3>>
+// CHECK:         }
+func.func @scan_bounded(%arg0: tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 3]>>, %arg1: tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>) -> (tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>) {
+  %0:2 = chlo.scan(%arg0) inits(%arg1) dimension=0 {
+  ^bb0(%scan_arg0: tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>, %scan_arg1: tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>):
+    %1 = stablehlo.add %scan_arg0, %scan_arg1 : tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>
+    stablehlo.return %1, %1 : tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>
+  } : (tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>) -> (tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>)
+  func.return %0#0, %0#1 : tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [3]>>
+}
+
+// -----
+
 // CHECK-LABEL:   func.func @mulhi_i32(
 // CHECK-SAME:      %[[ARG0:.*]]: tensor<4xi32>,
 // CHECK-SAME:      %[[ARG1:.*]]: tensor<4xi32>) -> tensor<4xi32> {

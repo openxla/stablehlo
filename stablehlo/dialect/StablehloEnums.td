@@ -40,7 +40,9 @@ def StableHLO_Precision : I32EnumAttr<"Precision",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_PrecisionAttr : EnumAttr<StableHLO_Dialect, StableHLO_Precision, "precision">;
+def StableHLO_PrecisionAttr : EnumAttr<StableHLO_Dialect, StableHLO_Precision, "precision"> {
+  let assemblyFormat = "$value";
+}
 
 // TODO(b/129153247) See if it's possible to also validate the size.
 def StableHLO_PrecisionConfigAttr:
@@ -91,7 +93,9 @@ def StableHLO_FftType : I32EnumAttr<"FftType",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_FftTypeAttr : EnumAttr<StableHLO_Dialect, StableHLO_FftType, "fft_type">;
+def StableHLO_FftTypeAttr : EnumAttr<StableHLO_Dialect, StableHLO_FftType, "fft_type"> {
+  let assemblyFormat = "$value";
+}
 
 //===----------------------------------------------------------------------===//
 // Custom call enum definitions.
@@ -146,7 +150,9 @@ def StableHLO_ComparisonDirection : I32EnumAttr<"ComparisonDirection",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_ComparisonDirectionAttr : EnumAttr<StableHLO_Dialect, StableHLO_ComparisonDirection, "comparison_direction">;
+def StableHLO_ComparisonDirectionAttr : EnumAttr<StableHLO_Dialect, StableHLO_ComparisonDirection, "comparison_direction"> {
+  let assemblyFormat = "$value";
+}
 
 def STABLEHLO_DEFAULT_COMPARISON_TYPE : NativeCodeCall<"::mlir::stablehlo::ComparisonTypeAttr()">;
 def STABLEHLO_COMPARISON_TYPE_NOTYPE : I32EnumAttrCase<"NOTYPE", 0>;
@@ -168,7 +174,9 @@ def StableHLO_ComparisonType : I32EnumAttr<"ComparisonType",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_ComparisonTypeAttr : EnumAttr<StableHLO_Dialect, StableHLO_ComparisonType, "comparison_type">;
+def StableHLO_ComparisonTypeAttr : EnumAttr<StableHLO_Dialect, StableHLO_ComparisonType, "comparison_type"> {
+  let assemblyFormat = "$value";
+}
 
 // These mirror the XLA Transpose enum in Triangular Solve options.
 def STABLEHLO_TRANSPOSE_INVALID : I32EnumAttrCase<"TRANSPOSE_INVALID", 0>;
@@ -188,7 +196,9 @@ def StableHLO_Transpose : I32EnumAttr<"Transpose",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_TransposeAttr : EnumAttr<StableHLO_Dialect, StableHLO_Transpose, "transpose">;
+def StableHLO_TransposeAttr : EnumAttr<StableHLO_Dialect, StableHLO_Transpose, "transpose"> {
+  let assemblyFormat = "$value";
+}
 
 def STABLEHLO_RNG_DISTRIBUTION_UNIFORM : I32EnumAttrCase<"UNIFORM", 1>;
 def STABLEHLO_RNG_DISTRIBUTION_NORMAL : I32EnumAttrCase<"NORMAL", 2>;
@@ -203,7 +213,9 @@ def StableHLO_RngDistribution : I32EnumAttr<"RngDistribution",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_RngDistributionAttr : EnumAttr<StableHLO_Dialect, StableHLO_RngDistribution, "rng_distribution">;
+def StableHLO_RngDistributionAttr : EnumAttr<StableHLO_Dialect, StableHLO_RngDistribution, "rng_distribution"> {
+  let assemblyFormat = "$value";
+}
 
 def STABLEHLO_RNG_ALGORITHM_DEFAULT : I32EnumAttrCase<"DEFAULT", 0>;
 def STABLEHLO_RNG_ALGORITHM_THREE_FRY : I32EnumAttrCase<"THREE_FRY", 1>;
@@ -220,6 +232,8 @@ def StableHLO_RngAlgorithm : I32EnumAttr<"RngAlgorithm",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_RngAlgorithmAttr : EnumAttr<StableHLO_Dialect, StableHLO_RngAlgorithm, "rng_algorithm">;
+def StableHLO_RngAlgorithmAttr : EnumAttr<StableHLO_Dialect, StableHLO_RngAlgorithm, "rng_algorithm"> {
+  let assemblyFormat = "$value";
+}
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_ENUMS

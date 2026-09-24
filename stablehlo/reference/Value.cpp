@@ -46,7 +46,7 @@ InterpreterValue Tuple::get(int32_t index) const { return *values_[index]; }
 
 TupleType Tuple::getType() const { return type_; }
 
-void Tuple::print(raw_ostream &os) const {
+void Tuple::print(raw_ostream& os) const {
   getType().print(os);
   os << " (\n";
   for (size_t i = 0; i < values_.size(); ++i) {
@@ -63,9 +63,9 @@ void Tuple::dump() const { print(llvm::errs()); }
 // InterpreterValue.
 //===----------------------------------------------------------------------===//
 
-InterpreterValue::InterpreterValue(const Tensor &tensor) : value_(tensor) {}
-InterpreterValue::InterpreterValue(const Token &token) : value_(token) {}
-InterpreterValue::InterpreterValue(const Tuple &tuple) : value_(tuple) {}
+InterpreterValue::InterpreterValue(const Tensor& tensor) : value_(tensor) {}
+InterpreterValue::InterpreterValue(const Token& token) : value_(token) {}
+InterpreterValue::InterpreterValue(const Tuple& tuple) : value_(tuple) {}
 
 Tensor InterpreterValue::getTensor() const {
   if (!isTensor())
@@ -108,7 +108,7 @@ bool InterpreterValue::isTuple() const {
   return std::holds_alternative<Tuple>(value_);
 }
 
-void InterpreterValue::print(raw_ostream &os) const {
+void InterpreterValue::print(raw_ostream& os) const {
   if (isTensor())
     getTensor().print(os);
   else if (isToken())
