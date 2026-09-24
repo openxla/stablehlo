@@ -24,14 +24,14 @@ namespace stablehlo {
 
 namespace {
 
-static Value getConstantLikeMaxFiniteValue(OpBuilder &b, Location loc,
+static Value getConstantLikeMaxFiniteValue(OpBuilder& b, Location loc,
                                            Value val) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(
       b, loc, llvm::APFloat::getLargest(ty.getFloatSemantics()), val);
 }
 
-static Value getConstantLikeInfValue(OpBuilder &b, Location loc, Value val,
+static Value getConstantLikeInfValue(OpBuilder& b, Location loc, Value val,
                                      bool negative) {
   auto ty = cast<FloatType>(getElementTypeOrSelf(val.getType()));
   return getConstantLike(
@@ -50,7 +50,7 @@ struct StablehloComplexMathExpanderPass
             StablehloComplexMathExpanderPass>() {}
 
  public:
-  LogicalResult initialize(MLIRContext *context) override {
+  LogicalResult initialize(MLIRContext* context) override {
     config.setUseTopDownTraversal(true);
     RewritePatternSet patterns_(context);
     populateStablehloComplexMathExpanderPatterns(context, &patterns_);
@@ -76,8 +76,8 @@ struct StablehloComplexMathExpanderPass
 
 }  // namespace
 
-void populateStablehloComplexMathExpanderPatterns(MLIRContext *context,
-                                                  RewritePatternSet *patterns) {
+void populateStablehloComplexMathExpanderPatterns(MLIRContext* context,
+                                                  RewritePatternSet* patterns) {
   populateWithGenerated(*patterns);
 }
 

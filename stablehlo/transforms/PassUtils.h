@@ -33,7 +33,7 @@ namespace stablehlo {
 // Utility functions common across passes.
 
 template <typename T>
-Attribute getScalarLike(OpBuilder &b, T constant, Type type) {
+Attribute getScalarLike(OpBuilder& b, T constant, Type type) {
   Type element = getElementTypeOrSelf(type);
   if (isa<IntegerType>(element)) return b.getIntegerAttr(element, constant);
   if (isa<FloatType>(element)) return b.getFloatAttr(element, constant);
@@ -47,13 +47,13 @@ Attribute getScalarLike(OpBuilder &b, T constant, Type type) {
 // in `scalar`.
 // Returns stablehlo::ConstantOp if value type if static, else returns
 // chlo::ConstantLikeOp.
-Value getConstantLikeImpl(OpBuilder &b, Location loc, Attribute scalar,
+Value getConstantLikeImpl(OpBuilder& b, Location loc, Attribute scalar,
                           Value val);
 
 // Creates a chlo::ConstantLikeOp using a splat `constant` of the same shape
 // as `val`.
 template <typename T>
-Value getConstantLike(OpBuilder &b, Location loc, T constant, Value val) {
+Value getConstantLike(OpBuilder& b, Location loc, T constant, Value val) {
   auto shapedTy = cast<ShapedType>(val.getType());
   Attribute scalar = getScalarLike(b, constant, shapedTy);
   return getConstantLikeImpl(b, loc, scalar, val);
@@ -63,7 +63,7 @@ Value getConstantLike(OpBuilder &b, Location loc, T constant, Value val) {
 // same shape as `val`.
 // The distinction between double and APFloat causes issues so need this
 // explicit template specialization.
-Value getConstantLike(OpBuilder &b, Location loc, const APFloat &constant,
+Value getConstantLike(OpBuilder& b, Location loc, const APFloat& constant,
                       Value val);
 
 // Check if any of the given types are mlir::quant::QuantizedType.
