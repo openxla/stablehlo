@@ -45,9 +45,12 @@ def CreateTokenToAfterAll : Pat<
 
 // def CrossReplicaSumToAllReduce : <Declared in cpp>
 
+def CopyDiscardableAttrs : NativeCodeCallVoid<"copyDiscardableAttrs($0, $1)">;
+
 def DotToDotGeneral : Pat<
-  (StableHLO_DotOp $lhs, $rhs, $precision_config),
-  (StableHLO_DotGeneralOp $lhs, $rhs, (GetDefaultDotDimensionNumbers $lhs), $precision_config, (NativeCodeCall<"Attribute{}">))>;
+  (StableHLO_DotOp:$src $lhs, $rhs, $precision_config),
+  (StableHLO_DotGeneralOp:$dst $lhs, $rhs, (GetDefaultDotDimensionNumbers $lhs), $precision_config, (NativeCodeCall<"Attribute{}">)),
+  [], [(CopyDiscardableAttrs $src, $dst)]>;
 
 def UnaryEinsumToEinsum : Pat<
   (StableHLO_UnaryEinsumOp $operand, $equation),

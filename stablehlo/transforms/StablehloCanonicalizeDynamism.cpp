@@ -119,8 +119,11 @@ struct CanonicalizeDynamicBroadcastInDimOpPattern
                                          "expected static output_dimensions");
     if (!op.getType().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
-    rewriter.replaceOpWithNewOp<BroadcastInDimOp>(
-        op, op.getType(), op.getOperand(), op.getBroadcastDimensionsAttr());
+    auto broadcastInDimOp = BroadcastInDimOp::create(
+        rewriter, op.getLoc(), op.getType(), op.getOperand(),
+        op.getBroadcastDimensionsAttr());
+    broadcastInDimOp->setDiscardableAttrs(op->getDiscardableAttrDictionary());
+    rewriter.replaceOp(op, broadcastInDimOp);
     return success();
   }
 };
@@ -139,12 +142,14 @@ struct CanonicalizeDynamicConvOpPattern
         RankedTensorType::get({static_cast<int64_t>(padding.size()) / 2, 2},
                               rewriter.getI64Type()),
         padding);
-    rewriter.replaceOpWithNewOp<ConvolutionOp>(
-        op, op.getType(), op.getLhs(), op.getRhs(), op.getWindowStridesAttr(),
-        paddingAttr, op.getLhsDilationAttr(), op.getRhsDilationAttr(),
-        op.getWindowReversalAttr(), op.getDimensionNumbers(),
-        op.getFeatureGroupCount(), op.getBatchGroupCount(),
-        op.getPrecisionConfigAttr());
+    auto convolutionOp = ConvolutionOp::create(
+        rewriter, op.getLoc(), op.getType(), op.getLhs(), op.getRhs(),
+        op.getWindowStridesAttr(), paddingAttr, op.getLhsDilationAttr(),
+        op.getRhsDilationAttr(), op.getWindowReversalAttr(),
+        op.getDimensionNumbers(), op.getFeatureGroupCount(),
+        op.getBatchGroupCount(), op.getPrecisionConfigAttr());
+    convolutionOp->setDiscardableAttrs(op->getDiscardableAttrDictionary());
+    rewriter.replaceOp(op, convolutionOp);
     return success();
   }
 };
@@ -159,10 +164,13 @@ struct CanonicalizeDynamicGatherOpPattern
     SmallVector<int64_t> sliceSizes;
     if (!succeeded(hlo::matchInts(op.getSliceSizes(), sliceSizes)))
       return rewriter.notifyMatchFailure(op, "expected static slice_sizes");
-    rewriter.replaceOpWithNewOp<GatherOp>(
-        op, op.getType(), op.getOperand(), op.getStartIndices(),
-        op.getDimensionNumbersAttr(), rewriter.getDenseI64ArrayAttr(sliceSizes),
-        op.getIndicesAreSortedAttr());
+    auto gatherOp =
+        GatherOp::create(rewriter, op.getLoc(), op.getType(), op.getOperand(),
+                         op.getStartIndices(), op.getDimensionNumbersAttr(),
+                         rewriter.getDenseI64ArrayAttr(sliceSizes),
+                         op.getIndicesAreSortedAttr());
+    gatherOp->setDiscardableAttrs(op->getDiscardableAttrDictionary());
+    rewriter.replaceOp(op, gatherOp);
     return success();
   }
 };
@@ -179,8 +187,10 @@ struct CanonicalizeDynamicIotaOpPattern
       return rewriter.notifyMatchFailure(op, "expected static output_shape");
     if (!op.getType().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
-    rewriter.replaceOpWithNewOp<IotaOp>(op, op.getType(),
-                                        op.getIotaDimension());
+    auto iotaOp = IotaOp::create(rewriter, op.getLoc(), op.getType(),
+                                 op.getIotaDimension());
+    iotaOp->setDiscardableAttrs(op->getDiscardableAttrDictionary());
+    rewriter.replaceOp(op, iotaOp);
     return success();
   }
 };
@@ -198,9 +208,11 @@ struct CanonicalizeDynamicPadOpPattern : public OpRewritePattern<DynamicPadOp> {
       return rewriter.notifyMatchFailure(op, "expected static high");
     if (!succeeded(hlo::matchInts(op.getInteriorPadding(), interiorPadding)))
       return rewriter.notifyMatchFailure(op, "expected static interior");
-    rewriter.replaceOpWithNewOp<PadOp>(op, op.getType(), op.getOperand(),
-                                       op.getPaddingValue(), edgePaddingLow,
-                                       edgePaddingHigh, interiorPadding);
+    auto padOp = PadOp::create(
+        rewriter, op.getLoc(), op.getType(), op.getOperand(),
+        op.getPaddingValue(), edgePaddingLow, edgePaddingHigh, interiorPadding);
+    padOp->setDiscardableAttrs(op->getDiscardableAttrDictionary());
+    rewriter.replaceOp(op, padOp);
     return success();
   }
 };
@@ -216,7 +228,10 @@ struct CanonicalizeDynamicReshapeOpPattern
       return rewriter.notifyMatchFailure(op, "expected static output_shape");
     if (!op.getType().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
-    rewriter.replaceOpWithNewOp<ReshapeOp>(op, op.getType(), op.getOperand());
+    auto reshapeOp =
+        ReshapeOp::create(rewriter, op.getLoc(), op.getType(), op.getOperand());
+    reshapeOp->setDiscardableAttrs(op->getDiscardableAttrDictionary());
+    rewriter.replaceOp(op, reshapeOp);
     return success();
   }
 };
