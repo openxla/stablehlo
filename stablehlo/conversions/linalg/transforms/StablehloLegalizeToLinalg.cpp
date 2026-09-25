@@ -909,8 +909,17 @@ struct BitcastConvertConverter final
       return failure();
     }
 
-    auto inputBitWidth = inputType.getElementType().getIntOrFloatBitWidth();
-    auto outputBitWidth = outputType.getElementType().getIntOrFloatBitWidth();
+    // stablehlo.bitcast_convert also accepts quantized element types, which
+    // have no bit width in the sense of getIntOrFloatBitWidth (it asserts on
+    // them).
+    Type inputElementType = inputType.getElementType();
+    Type outputElementType = outputType.getElementType();
+    if (!inputElementType.isIntOrFloat() || !outputElementType.isIntOrFloat())
+      return rewriter.notifyMatchFailure(
+          op, "expected integer or float element types");
+
+    auto inputBitWidth = inputElementType.getIntOrFloatBitWidth();
+    auto outputBitWidth = outputElementType.getIntOrFloatBitWidth();
 
     auto maxRank = std::max(inputType.getRank(), outputType.getRank());
     auto identityMap =
