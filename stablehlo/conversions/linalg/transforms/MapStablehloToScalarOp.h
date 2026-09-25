@@ -204,7 +204,7 @@ struct MapStablehloOpToScalarOpImpl<StdScalarOp> {
   Value operator()(Location loc, ArrayRef<Type> resultTypes,
                    ArrayRef<Type> /*argTypes*/, ValueRange args, OpBuilder* b) {
     return StdScalarOp::create(*b, loc, resultTypes, args,
-                               ArrayRef<NamedAttribute>());
+                               /*properties=*/{}, /*discardableAttributes=*/{});
   }
 };
 
@@ -214,8 +214,8 @@ struct MapStablehloOpToScalarOpImpl<SupportedType, StdScalarOp, Args...> {
                    ArrayRef<Type> argTypes, ValueRange args, OpBuilder* b) {
     Type elementType = getElementTypeOrSelf(argTypes.front());
     if (SupportedType{}(elementType)) {
-      return StdScalarOp::create(*b, loc, resultTypes, args,
-                                 ArrayRef<NamedAttribute>());
+      return StdScalarOp::create(*b, loc, resultTypes, args, /*properties=*/{},
+                                 /*discardableAttributes=*/{});
     }
     return MapStablehloOpToScalarOpImpl<Args...>{}(loc, resultTypes, argTypes,
                                                    args, b);
@@ -691,29 +691,37 @@ inline Value mapConvertOpToStdScalarOp(Location loc, ArrayRef<Type> targetTypes,
       mlir::arith::UIToFPOp::areCastCompatible(convertedSourceType,
                                                targetType)) {
     return mlir::arith::UIToFPOp::create(*b, loc, resultTypes, args,
-                                         ArrayRef<NamedAttribute>());
+                                         /*properties=*/{},
+                                         /*discardableAttributes=*/{});
   }
   if (mlir::arith::SIToFPOp::areCastCompatible(sourceType, targetType)) {
     return mlir::arith::SIToFPOp::create(*b, loc, resultTypes, args,
-                                         ArrayRef<NamedAttribute>());
+                                         /*properties=*/{},
+                                         /*discardableAttributes=*/{});
   }
   if (isa<FloatType>(sourceType) && isa<FloatType>(targetType)) {
     auto src = cast<FloatType>(sourceType);
     auto res = cast<FloatType>(targetType);
     if (src.getWidth() > res.getWidth()) {
       return mlir::arith::TruncFOp::create(*b, loc, resultTypes, args,
-                                           ArrayRef<NamedAttribute>());
+                                           /*properties=*/{},
+                                           /*discardableAttributes=*/{});
     }
     if (src.getWidth() < res.getWidth()) {
       return mlir::arith::ExtFOp::create(*b, loc, resultTypes, args,
-                                         ArrayRef<NamedAttribute>());
+                                         /*properties=*/{},
+                                         /*discardableAttributes=*/{});
     }
     // There's no direct conversion between different 16 bit floating point
     // types, so go through 32 bit float.
     if (sourceType != targetType) {
       assert(sourceType.isBF16() || targetType.isBF16());
-      Value ext = arith::ExtFOp::create(*b, loc, b->getF32Type(), args);
-      return arith::TruncFOp::create(*b, loc, resultTypes, ext);
+      Value ext = arith::ExtFOp::create(*b, loc, b->getF32Type(), args,
+                                        /*properties=*/{},
+                                        /*discardableAttributes=*/{});
+      return arith::TruncFOp::create(*b, loc, resultTypes, ext,
+                                     /*properties=*/{},
+                                     /*discardableAttributes=*/{});
     }
     // No conversion is needed for identical float types.
     return args.front();
@@ -739,16 +747,19 @@ inline Value mapConvertOpToStdScalarOp(Location loc, ArrayRef<Type> targetTypes,
     auto res = cast<IntegerType>(targetType);
     if (src.getWidth() > res.getWidth()) {
       return mlir::arith::TruncIOp::create(*b, loc, resultTypes, args,
-                                           ArrayRef<NamedAttribute>());
+                                           /*properties=*/{},
+                                           /*discardableAttributes=*/{});
     }
     if (src.getWidth() < res.getWidth()) {
       // Special case boolean values, so they get casted to `1` instead of `-1`.
       if (IsUnsignedIntegerType{}(src)) {
         return mlir::arith::ExtUIOp::create(*b, loc, resultTypes, args,
-                                            ArrayRef<NamedAttribute>());
+                                            /*properties=*/{},
+                                            /*discardableAttributes=*/{});
       }
       return mlir::arith::ExtSIOp::create(*b, loc, resultTypes, args,
-                                          ArrayRef<NamedAttribute>());
+                                          /*properties=*/{},
+                                          /*discardableAttributes=*/{});
     }
     // No conversion is needed for the same width integers
     return args.front();
