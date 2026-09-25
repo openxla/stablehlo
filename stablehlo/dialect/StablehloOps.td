@@ -2525,8 +2525,8 @@ def StableHLO_CompositeOp : StableHLO_Op<"composite", [DeclareOpInterfaceMethods
       "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,
       "::mlir::ArrayRef<::mlir::NamedAttribute>":$attributes
     ), [{
-      build($_builder, $_state, resultTypes, inputs, attributes,
-            /*regionsCount=*/0);
+      build($_builder, $_state, resultTypes, inputs, /*properties=*/{},
+            attributes, /*regionsCount=*/0);
     }]>,
     OpBuilder<(ins
       "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,

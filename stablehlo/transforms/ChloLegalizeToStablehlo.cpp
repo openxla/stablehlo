@@ -2930,8 +2930,18 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
       SmallVector<int64_t> sliceShape(inputType.getShape().begin(),
                                       inputType.getShape().end());
       sliceShape[dim] = 1;
-      auto sliceType =
-          RankedTensorType::get(sliceShape, inputType.getElementType());
+      Attribute sliceEncoding;
+      ArrayRef<int64_t> inputBounds =
+          hlo::encodingToBounds(inputType.getEncoding());
+      if (!inputBounds.empty()) {
+        SmallVector<int64_t> sliceBounds(inputBounds.begin(),
+                                         inputBounds.end());
+        sliceBounds[dim] = ShapedType::kDynamic;
+        sliceEncoding =
+            hlo::boundsToEncoding(inputType.getEncoding(), sliceBounds);
+      }
+      auto sliceType = RankedTensorType::get(
+          sliceShape, inputType.getElementType(), sliceEncoding);
 
       Value slice;
       if (inputType.hasStaticShape()) {
@@ -2980,9 +2990,18 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
       for (int64_t d = 0; d < rank; ++d) {
         if (d != dim) resultShape.push_back(sliceShape[d]);
       }
+      Attribute resultEncoding;
+      if (!inputBounds.empty()) {
+        SmallVector<int64_t> resultBounds(inputBounds.begin(),
+                                          inputBounds.end());
+        resultBounds.erase(std::next(resultBounds.begin(), dim));
+        resultEncoding =
+            hlo::boundsToEncoding(inputType.getEncoding(), resultBounds);
+      }
       Value reshaped = ReshapeOp::create(
           rewriter, loc,
-          RankedTensorType::get(resultShape, inputType.getElementType()),
+          RankedTensorType::get(resultShape, inputType.getElementType(),
+                                resultEncoding),
           slice);
       slicedInputs.push_back(reshaped);
     }
@@ -3004,9 +3023,20 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
       SmallVector<int64_t> elementShape(outputType.getShape().begin(),
                                         outputType.getShape().end());
       elementShape[dim] = 1;
+      Attribute elementEncoding;
+      ArrayRef<int64_t> outputBounds =
+          hlo::encodingToBounds(outputType.getEncoding());
+      if (!outputBounds.empty()) {
+        SmallVector<int64_t> elementBounds(outputBounds.begin(),
+                                           outputBounds.end());
+        elementBounds[dim] = ShapedType::kDynamic;
+        elementEncoding =
+            hlo::boundsToEncoding(outputType.getEncoding(), elementBounds);
+      }
       Value reshapedElement = ReshapeOp::create(
           rewriter, loc,
-          RankedTensorType::get(elementShape, outputType.getElementType()),
+          RankedTensorType::get(elementShape, outputType.getElementType(),
+                                elementEncoding),
           newElement);
 
       int64_t outRank = outputType.getRank();

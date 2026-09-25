@@ -28,14 +28,14 @@ class Token {
  public:
   /// \name Constructors
   /// @{
-  Token(MLIRContext *context);
+  Token(MLIRContext* context);
   /// @}
 
   /// Returns the type of the Token object.
   TokenType getType() const;
 
   /// Prints Token object.
-  void print(raw_ostream &os) const;
+  void print(raw_ostream& os) const;
   void dump() const;
 
  private:
@@ -43,7 +43,7 @@ class Token {
 };
 
 /// Print utilities for Token objects.
-inline raw_ostream &operator<<(raw_ostream &os, Token Token) {
+inline raw_ostream& operator<<(raw_ostream& os, Token Token) {
   Token.print(os);
   return os;
 }

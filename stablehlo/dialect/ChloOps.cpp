@@ -827,6 +827,10 @@ LogicalResult ScanOp::inferReturnTypeComponents(
   if (adaptor.getScanDimSize().has_value()) {
     dimSize = adaptor.getScanDimSize().value();
   }
+  int64_t dimBound = ShapedType::kDynamic;
+  // Prototype encoding attribute used to construct dialect type extensions
+  // if an output does not already have an encoding.
+  Attribute prototypeEncoding;
   for (auto [i, type] : llvm::enumerate(adaptor.getInputs().getTypes())) {
     auto inputType = dyn_cast<RankedTensorType>(type);
     if (!inputType) {
@@ -839,7 +843,26 @@ LogicalResult ScanOp::inferReturnTypeComponents(
     if (dimSize == ShapedType::kDynamic) {
       dimSize = inputType.getDimSize(dim);
     }
+    if (inputType.getEncoding()) {
+      prototypeEncoding = inputType.getEncoding();
+    }
+    ArrayRef<int64_t> bounds = hlo::encodingToBounds(inputType.getEncoding());
+    if (!bounds.empty() && dim < static_cast<int64_t>(bounds.size())) {
+      int64_t currentBound = bounds[dim];
+      if (currentBound != ShapedType::kDynamic) {
+        if (dimBound == ShapedType::kDynamic) {
+          dimBound = currentBound;
+        } else {
+          dimBound = std::min(dimBound, currentBound);
+        }
+      }
+    }
   }
+
+  // If the scan dimension size is dynamic, propagate any bound inferred from
+  // the inputs; otherwise static dimensions do not need a bound.
+  const int64_t insertBound =
+      (dimSize == ShapedType::kDynamic) ? dimBound : ShapedType::kDynamic;
 
   for (auto [i, type] : llvm::enumerate(terminator->getOperands().getTypes())) {
     auto resultType = dyn_cast<RankedTensorType>(type);
@@ -849,10 +872,34 @@ LogicalResult ScanOp::inferReturnTypeComponents(
     }
     SmallVector<int64_t> shape(resultType.getShape().begin(),
                                resultType.getShape().end());
+    Attribute encoding = resultType.getEncoding();
+    // The first `numOutputs` terminator operands correspond to scan outputs,
+    // which have the scan dimension re-inserted. The remaining operands are
+    // carries whose shapes and encodings are preserved as-is.
     if (i < numOutputs) {
       shape.insert(std::next(shape.begin(), dim), dimSize);
+      SmallVector<int64_t> resultBounds =
+          llvm::to_vector(hlo::encodingToBounds(encoding));
+      // Re-insert bounds along the scan dimension if the result has bounds or
+      // if the scan dimension has a bound.
+      if (!resultBounds.empty() || insertBound != ShapedType::kDynamic) {
+        // If the body result did not have bounds, initialize all dimensions to
+        // dynamic and borrow the prototype encoding to create dialect type
+        // extensions.
+        if (resultBounds.empty()) {
+          resultBounds.assign(resultType.getRank(), ShapedType::kDynamic);
+          if (!encoding) {
+            encoding = prototypeEncoding;
+          }
+        }
+        resultBounds.insert(std::next(resultBounds.begin(), dim), insertBound);
+        if (encoding) {
+          encoding = hlo::boundsToEncoding(encoding, resultBounds);
+        }
+      }
     }
-    inferredReturnShapes.emplace_back(shape, resultType.getElementType());
+    inferredReturnShapes.emplace_back(shape, resultType.getElementType(),
+                                      encoding);
   }
 
   return success();
@@ -902,7 +949,17 @@ LogicalResult ScanOp::verify() {
     if (i < getInputs().size()) {
       auto argShape = llvm::to_vector(argType.getShape());
       argShape.erase(std::next(argShape.begin(), dim));
-      argType = argType.clone(argShape);
+      Attribute encoding = argType.getEncoding();
+      SmallVector<int64_t> argBounds =
+          llvm::to_vector(hlo::encodingToBounds(encoding));
+      if (!argBounds.empty()) {
+        argBounds.erase(std::next(argBounds.begin(), dim));
+        encoding = argBounds.empty()
+                       ? Attribute()
+                       : hlo::boundsToEncoding(encoding, argBounds);
+      }
+      argType =
+          RankedTensorType::get(argShape, argType.getElementType(), encoding);
     }
     if (!hlo::isCompatibleForHloTypeInference(
             argType, bodyBlock.getArgument(i).getType())) {

@@ -1,0 +1,12 @@
+package(
+    # copybara:uncomment default_applicable_licenses = ["//:license"],
+    licenses = ["notice"],
+)
+
+# copybara:uncomment_begin
+# filegroup(
+#     name = "all_files",
+#     srcs = glob(["**"]),
+#     visibility = ["//:__subpackages__"],
+# )
+# copybara:uncomment_end
