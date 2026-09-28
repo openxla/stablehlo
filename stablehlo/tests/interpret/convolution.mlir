@@ -134,3 +134,18 @@ func.func @convolution_feature_group_count_2() {
                                          [[21, 21, 29, 29]]]]> : tensor<1x2x1x4xi64>
   func.return
 }
+
+// -----
+
+func.func @convolution_op_test_feature_before_batch() {
+  %lhs = stablehlo.constant dense<[[[1.0]], [[2.0]]]> : tensor<2x1x1xf32>
+  %rhs = stablehlo.constant dense<[[[3.0, 4.0]]]> : tensor<1x1x2xf32>
+  %result = stablehlo.convolution(%lhs, %rhs)
+    dim_numbers = [0, f, b]x[0, i, o]->[0, f, b],
+    window = {stride = [1], pad = [[0, 0]], rhs_dilate = [1]}
+    {batch_group_count = 1 : i64, feature_group_count = 1 : i64}
+    : (tensor<2x1x1xf32>, tensor<1x1x2xf32>) -> tensor<2x2x1xf32>
+  check.expect_almost_eq_const %result,
+    dense<[[[3.0], [4.0]], [[6.0], [8.0]]]> : tensor<2x2x1xf32>
+  func.return
+}
