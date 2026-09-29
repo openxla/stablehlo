@@ -2,7 +2,7 @@
 
 Status: In Review<br/>
 Initial version: 08/21/2026<br/>
-Last updated: 09/15/2026<br/>
+Last updated: 09/28/2026<br/>
 Discussion thread: [openxla/stablehlo#2993](https://github.com/openxla/stablehlo/pull/2993)
 
 ## Overview
@@ -45,7 +45,7 @@ current status of the related layers is:
 | Layer | Current status | Boundary of this RFC |
 | --- | --- | --- |
 | StableHLO type specification | Only `complex<f32>` and `complex<f64>` are currently specified | Adds `complex<f16>` and `complex<bf16>` |
-| VHLO compatibility | `ComplexV1` is the historical representation | Adds the feature-version `ComplexV2` boundary |
+| VHLO compatibility | `ComplexV1` is the only complex representation, and its current shallow verifier does not constrain the component type | Adds a target-version-aware component-type constraint on `ComplexV1` |
 | XLA/HLO core types | `C32`/`BC32` are proposed in [openxla/xla#6136](https://github.com/openxla/xla/issues/6136), but are not yet implemented | Coordinated prerequisite; not implemented here |
 | StableHLO-to-XLA bridge | No `C32`/`BC32` type or constant mapping is available | Follow-up implementation |
 | Runtime and backend support | [cuFFT](https://docs.nvidia.com/cuda/cufft/index.html) exposes 16-bit complex formats, but XLA does not yet expose a corresponding path | Separate runtime and backend work |
@@ -110,10 +110,14 @@ Historically valid `ComplexV1` values are limited to f32 and f64 components.
 
 The current VHLO version-conversion pass has no type-to-type version
 conversions because no VHLO type has previously required one. It recursively
-checks whether nested types are legal for the target version, but the type
-converter itself is not target-version-aware. The versioned type introduced by
-this RFC therefore requires new conversion infrastructure rather than only an
-additional type definition.
+checks whether nested types are legal for the target version, and that check
+is already target-version-aware, but complex-type legality today does not
+depend on the component type. Version-dependent constraint checks already
+exist at the operation level: `validateConstraint` gates the reduce-family
+operations and `custom_call_v1` on the target version, for example allowing
+mismatched operand and result element types in reduce operations only from
+0.17.0. This RFC extends that existing constraint pattern to the complex
+component type rather than introducing new type-conversion infrastructure.
 
 ## Proposal
 
@@ -270,61 +274,71 @@ The required observable compatibility behavior is:
   historical f32/f64 complex programs.
 
 StableHLO version compatibility and consumer execution capability are separate
-contracts. Serialization to a version that defines `ComplexV2` only establishes
-that the artifact is representable by that StableHLO version. It does not prove
-that an XLA, PJRT, or other consumer can lower every operation containing the
-new type. A consumer that understands the StableHLO version but lacks `C32` or
-`BC32` support must reject the module before code generation with a diagnostic
-that identifies the unsupported type and operation.
+contracts. Serialization to the feature version or a later version only
+establishes that the artifact is representable by that StableHLO version. It
+does not prove that an XLA, PJRT, or other consumer can lower every operation
+containing the new type. A consumer that understands the StableHLO version but
+lacks `C32` or `BC32` support must reject the module before code generation
+with a diagnostic that identifies the unsupported type and operation.
 
 ### Proposed VHLO representation
 
-VHLO currently has `ComplexV1`, available since 0.9.0. Its representation is
-structurally capable of containing any VHLO component type, but historical
-StableHLO versions only specified `complex<f32>` and `complex<f64>`. Reusing
-`ComplexV1` for f16/bf16 without an additional version boundary would make a
-new StableHLO feature appear incorrectly available to old target versions.
+VHLO retains `ComplexV1` as the only VHLO representation of complex types.
+`ComplexV1` is structurally unchanged: one element-type parameter with the
+existing shallow verifier, and an unchanged version range. The
+version-dependent validity of component types is expressed as a
+target-version-aware type constraint, following the pattern VHLO already uses
+for operation constraints (`validateConstraint` on the reduce-family
+operations and `custom_call_v1`).
 
-This RFC requires adding `ComplexV2` at the new feature version. The versioned
-contract is normative:
+The constraint is normative:
 
-- `ComplexV1` remains the historical VHLO representation. Its maximum supported
-  version is the patch-zero version of the minor immediately preceding the
-  feature version (for example, `1.20.0` when the feature version is `1.21.0`).
-  The valid portable StableHLO domain represented by historical V1 artifacts is
-  f32- and f64-based complex types.
-- The existing shallow parser and verifier behavior of `ComplexV1` is not
-  tightened. A V1 value with another VHLO component type may remain
-  structurally representable, but it was not a valid historical portable
-  StableHLO artifact and must not become one after this feature lands.
-- `ComplexV2`, available from the feature version through the current version,
-  represents exactly f16-, bf16-, f32-, and f64-based complex types. Its
-  verifier enforces this closed component set.
-- FP8, integer, and all other component types are invalid inhabitants of V2 and
-  are not valid portable StableHLO inhabitants of V1.
+- For a target version at or after the feature version, `ComplexV1` accepts
+  exactly f16-, bf16-, f32-, and f64-based components. FP8, integer, and all
+  other component types are rejected.
+- For a target version before the feature version, `ComplexV1` accepts only
+  f32- and f64-based components. A `ComplexV1<f16>` or `ComplexV1<bf16>` value
+  makes serialization to that target fail with a diagnostic, in the same way
+  that a reduce operation with mismatched operand and result element types
+  fails when the target version is older than 0.17.0.
+- No new VHLO type or attribute is introduced, and no type-to-type conversion
+  or type rewriting occurs during version conversion. Serialization of
+  programs that use only f32/f64 complex types is therefore unaffected.
 
-StableHLO-to-current-VHLO conversion produces `ComplexV2` for every supported
-StableHLO complex type, including `complex<f32>` and `complex<f64>`. Conversely,
-conversion of historical VHLO to the current version upgrades every valid
-`ComplexV1<f32>` or `ComplexV1<f64>` to the corresponding `ComplexV2` before
-converting to StableHLO. This keeps the current representation uniform rather
-than partitioning complex types by component width.
+The implementation must add a `VHLO_VersionedTypeConstraintInterface` as the
+type-level analogue of `VHLO_VersionedOpConstraintInterface`. It provides a
+`validateConstraint(Type, Version)` hook. `ComplexV1` must implement the hook,
+and the recursive `isLegalType` check must invoke it. A local helper may
+provide the hook's implementation, but the target-aware check must have a
+type-level entry point; operation-only validation is insufficient because
+complex types can be nested in signatures, containers, and type-bearing
+attributes. This interface is an implementation hook and does not change the
+serialized VHLO type identity or its version range.
 
-When targeting a version before the feature version, each `ComplexV2<f32>` or
-`ComplexV2<f64>` is downgraded to the corresponding `ComplexV1`. A
-`ComplexV2<f16>` or `ComplexV2<bf16>` has no semantics-preserving downgrade and
-must cause conversion to fail. When upgrading V1 to the current version, any
-component other than f32 or f64 must likewise cause conversion to fail. In
-particular, shallow structural representability does not make
-`ComplexV1<f16>` or `ComplexV1<bf16>` a historical StableHLO type.
+This models a component-domain relaxation as a versioned constraint rather
+than as a new type version. VHLO is a serialization dialect: it is produced by
+conversion from StableHLO and consumed by version conversion, not authored by
+hand, and the dialect does not guarantee rejection of hand-authored payloads
+that could never be produced through those flows. Every artifact is tagged
+with the version it targets, and a consumer must be at least that version, so
+a payload cannot be presented to an older consumer than it was serialized for.
 
-### Recursive type conversion requirements
+Officially produced bytecode is validated against the requested target version
+before emission. Consequently, no official pre-feature artifact can contain a
+low-precision complex value. Hand-authored VHLO payloads that violate this
+producer contract are outside this RFC's portable-artifact guarantees; a
+consumer may reject them during parsing or conversion, and accepting one must
+not establish that the pre-feature target historically supported the type.
 
-The V1-to-V2 upgrade and V2-to-V1 downgrade must be target-version-aware and
-recursive. Applying the conversion only to an operation's immediate result
-types would leave invalid versioned types hidden in containers or signatures.
-The conversion and legality checks must cover every type-bearing location
-supported by VHLO, including:
+### Recursive legality requirements
+
+The component-type constraint must be evaluated by the recursive type
+legality check with access to the requested target version. The current check
+already recurses through several nested VHLO types and attributes, but the
+implementation for this feature must also add explicit coverage for every
+type-bearing location listed below. Checking only an operation's immediate
+result types would leave invalid values hidden in containers or signatures.
+The constraint must therefore be enforced at every location, including:
 
 - `RankedTensorV1`, `UnrankedTensorV1`, and `RankedBufferV1` element types;
 - `TupleV1` elements, nested tuples, and `FutureV1` element types;
@@ -335,42 +349,33 @@ supported by VHLO, including:
   attribute that carries a type;
 - ranked-tensor encodings and nested array or dictionary attributes; and
 - the storage and expressed types of `UniformQuantizedV1` and
-  `UniformQuantizedPerAxisV1`, which must be traversed even though a complex
-  inhabitant may be rejected by their independent semantic constraints.
+  `UniformQuantizedPerAxisV1`, which must be traversed even when the
+  quantized-type semantics reject a complex inhabitant.
 
-If any nested occurrence cannot be converted for the requested target, the
-entire version conversion must fail before bytecode is written. The diagnostic
-must identify the target version and the unsupported complex type. No path may
-partially convert the module, silently promote the component, or leave a
-new-version type embedded in an old-version artifact.
+If any nested occurrence fails the component-type constraint for the requested
+target, the entire version conversion must fail before bytecode is written.
+The diagnostic must identify the target version and the unsupported complex
+component type. No path may partially convert the module or emit an artifact
+containing a complex value whose component type is invalid for the target
+version.
 
-### Conversion algorithm and invariants
+### Conversion behavior and invariants
 
-The version-conversion implementation must follow these observable steps:
+Because no VHLO type changes, version conversion requires no type rewriting.
+The observable behavior is:
 
-1. Parse and validate the target version before constructing or applying the
-   type converter. Type conversion decisions must therefore have access to the
-   target version.
-2. For a target at or after the feature version, convert
-   `ComplexV1<f32/f64>` to `ComplexV2<f32/f64>` and reject every other V1
-   component during upgrade. Leave an already valid V2 unchanged.
-3. For a target before the feature version, convert `ComplexV2<f32/f64>` to V1,
-   reject `ComplexV2<f16/bf16>`, leave `ComplexV1<f32/f64>` unchanged, and
-   reject every other V1 component. A structurally representable but
-   nonhistorical V1 value must never be emitted into an old-version artifact.
-4. Rebuild every enclosing VHLO type and type-bearing attribute recursively
-   when a nested component changes. This includes rebuilding tensor constants
-   with their converted `TensorV1Attr` type while preserving their value.
-5. Update operation operands and results, function signatures, region block
-   arguments, and type-bearing attributes consistently. An operation whose
-   version is otherwise legal still requires a generic identity rewrite, or an
-   equivalent pre-conversion step, when one of its types changes.
-6. Apply existing operation-version rewrites and then run a final recursive
-   legality check over all operations, regions, types, and attributes.
+1. Validate the target version as today.
+2. Preserve the existing operation-version rewrites; complex types are never
+   rewritten.
+3. Extend the recursive type legality check to evaluate the component-type
+   constraint against the requested target version over every type-bearing
+   location listed above.
+4. If any check fails, fail the pass before bytecode emission with a
+   diagnostic naming the target version and the unsupported component type.
 
-The transformation is all-or-nothing from the serializer's perspective. Any
-failed type or attribute conversion fails the pass, and serialization must not
-emit bytecode from the partially converted IR.
+The transformation remains all-or-nothing from the serializer's perspective,
+and serialization must not emit bytecode from a module whose complex component
+types are invalid for the requested target version.
 
 ## Consumer behavior
 
@@ -419,15 +424,11 @@ The implementation must include positive tests for:
   and `complex<bf16>`;
 - serialization and deserialization at the new version for both
   `complex<f16>` and `complex<bf16>`;
-- deserialization of historical `ComplexV1<f32>` and `ComplexV1<f64>` artifacts
-  through their upgrade to current `ComplexV2`;
-- serialization of current `ComplexV2<f32>` and `ComplexV2<f64>` through their
-  downgrade to `ComplexV1` for an older target version;
-- recursive upgrade and downgrade through ranked and unranked tensors, ranked
-  buffers, tuples, futures, function signatures, operation types, region block
-  arguments, tensor encodings, quantized-type parameters, `TypeV1Attr`,
-  `TensorV1Attr`, `FloatV1Attr`, `IntegerV1Attr`, and nested array or dictionary
-  attributes; and
+- deserialization of historical f32/f64 complex artifacts, which requires no
+  type rewriting under this proposal;
+- serialization of `complex<f16>` and `complex<bf16>` values, including values
+  nested in every semantically valid type-bearing container and attribute
+  listed above, to the feature version and later targets; and
 - continued old-version serialization of f32/f64 complex programs.
 
 The implementation must include negative tests for:
@@ -438,24 +439,27 @@ The implementation must include negative tests for:
 - complex values with integer component types;
 - at least one floating-point component type outside this RFC, such as an FP8
   type;
-- rejection of `ComplexV1<f16>`, `ComplexV1<bf16>`, and every other
-  nonhistorical V1 component during current-version upgrade, deserialization,
-  and conversion to an old target, both directly and when nested in every
-  supported type-bearing container, attribute, and quantized-type location
-  listed above, without tightening the historical shallow V1 parser or
-  verifier;
-- `ComplexV2` with an FP8, integer, or other unsupported component;
+- rejection of serialization to any target version before the feature version
+  when a `ComplexV1<f16>` or `ComplexV1<bf16>` value is present, both directly
+  and when nested in every semantically valid supported type-bearing container
+  or attribute listed above, enforced by the version-conversion constraint
+  rather than by tightening the shallow V1 parser or verifier;
+- rejection of complex types placed in quantized-type storage or expressed
+  type parameters by the semantic constraint owned by the corresponding
+  StableHLO or consumer layer, while those locations are still traversed for
+  VHLO version legality;
+- a complex value with an FP8, integer, or other unsupported component, for
+  any target version;
 - mismatched f16/bf16 inputs to `stablehlo.complex`;
 - mismatched real/complex component types in FFT input and result types;
 - attempting to serialize a program containing `complex<f16>` or
-  `complex<bf16>` to the version immediately before the feature version;
-- failed downgrade of a low-precision complex type nested in each supported
-  container category; and
+  `complex<bf16>` to the version immediately before the feature version; and
 - failure before bytecode emission, with a diagnostic that names both the
   requested target version and the unsupported nested type.
 
-The VHLO compatibility suite must include the new versioned textual fixture and
-its bytecode fixture, following the existing VHLO checklist.
+The VHLO compatibility suite must cover the feature version following the
+existing VHLO checklist, including fixtures that exercise the component-type
+constraint against old and new target versions.
 
 Reference-interpreter numerical tests may be delivered in a separate
 StableHLO-only follow-up if the required tensor storage and constant
@@ -516,42 +520,40 @@ strictly FFT-only feature is desired, it should be proposed as an explicit
 operation-specific type extension rather than as general StableHLO support for
 low-precision complex types.
 
-### Reuse `ComplexV1` with target-aware validation
+### Reuse `ComplexV1` with target-aware validation (chosen)
 
-A target-aware constraint interface could reject `ComplexV1<f16>` and
-`ComplexV1<bf16>` when converting to an older target. This would reduce some
-conversion code, but it would not preserve the historical meaning of
-`ComplexV1`: the same VHLO type would acquire a different semantic domain
-based on an external target-version predicate. It would also leave
-structurally representable, but historically invalid, V1 values in the parser
-and require every nested type-bearing location to preserve the same side
-condition.
+VHLO keeps `ComplexV1` as the only complex representation and expresses the
+version-dependent validity of component types as a target-version-aware type
+constraint, the same pattern the dialect already uses for operation
+constraints. Review of this RFC directed this approach over a new type
+version: VHLO is a serialization dialect produced by conversion and consumed
+by version conversion rather than authored by hand, every artifact is tagged
+with its target version, and a downgrade containing values invalid for the
+target already fails today. Modeling a component-domain relaxation with the
+constraint mechanism keeps the category of change consistent with existing
+practice and requires far less code.
+
+### Add `ComplexV2` at the feature version (declined)
+
+A new `ComplexV2` with a closed component set keeps the meaning of a complex
+type intrinsic to the type version and makes the compatibility boundary
+inspectable without target context. It would, however, require the dialect's
+first type version split together with new type-to-type conversion
+infrastructure: recursive rewriting of enclosing types, function signatures,
+and type-bearing attributes for a change that does not alter the structure of
+the type. Given VHLO's serialization-dialect stance, that cost is not
+justified for this category of change.
 
 The alternatives are:
 
-| Design | Benefit | Compatibility cost |
+| Design | Benefit | Cost |
 | --- | --- | --- |
-| Target-aware validation on `ComplexV1` | Less dedicated type conversion | Retroactively changes V1 semantics and makes validity depend on target context |
-| `ComplexV2` with V1/V2 conversion | Explicit version boundary and historical V1 meaning | Requires recursive conversion and downgrade tests |
+| Target-aware validation on `ComplexV1` | Consistent with the existing versioned-constraint pattern; no type rewriting; far less code | Complex-type validity depends on the target version rather than the type alone |
+| `ComplexV2` with V1/V2 conversion | Type-intrinsic meaning and an inspectable boundary without target context | First VHLO type version split plus recursive type-conversion infrastructure |
 
-Reusing `ComplexV1` without a gate would allow new programs to appear
-serializable to StableHLO versions that never specified these component
-combinations. Adding a component-sensitive minimum-version gate would prevent
-that particular serialization error, but it would still retroactively expand
-the semantic domain of an existing VHLO type. That conflicts with VHLO's
-add-only, versioned-type model and makes the meaning of `ComplexV1` depend on a
-side condition outside the type version itself.
-
-This RFC chooses `ComplexV2`. A target-aware type constraint may still be
-useful as an implementation mechanism for recursive legality checks, but it is
-not a replacement for the V1-to-V2 semantic boundary. `ComplexV2` keeps the
-historical meaning of `ComplexV1` explicit and makes the compatibility boundary
-inspectable. VHLO maintainer confirmation of this choice is required before
-implementation.
-
-The V1-to-V2 validation required by this proposal is not reuse of V1 for the
-new feature. It rejects nonhistorical V1 component combinations and upgrades
-only the f32/f64 combinations that were already valid portable StableHLO.
+Reusing `ComplexV1` with no version check at all would allow new programs to
+appear serializable to StableHLO versions that never specified these
+component combinations, and remains rejected.
 
 ## Rollout and pull request boundaries
 
@@ -568,7 +570,8 @@ The proposed upstream sequence is deliberately split by capability:
    implementation, including:
 
    - specification, ODS, verifier, and type-inference changes;
-   - the VHLO `ComplexV2` boundary and recursive conversions;
+   - the target-version-aware `ComplexV1` component-type constraint and its
+     recursive legality coverage;
    - positive, negative, round-trip, and serialization tests;
    - tests that reject unsupported target versions before bytecode emission.
 
