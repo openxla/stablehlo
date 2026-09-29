@@ -79,8 +79,8 @@ func.func @negate(%arg : tensor<10xf32>) -> tensor<10xf32> {
 
 // CHECK-LABEL: @slice
 func.func @slice(%arg : tensor<4x3xf32>) -> tensor<2x2xf32> {
-  // CHECK-DAG: %[[SIZE:.*]] = tosa.const_shape {values = dense<[2, 1]> : tensor<2xindex>} : () -> !tosa.shape<2>
-  // CHECK-DAG: %[[START:.*]] = tosa.const_shape {values = dense<2> : tensor<2xindex>} : () -> !tosa.shape<2>
+  // CHECK-DAG: %[[SIZE:.*]] = tosa.const_shape values(dense<[2, 1]> : tensor<2xindex>) : () -> !tosa.shape<2>
+  // CHECK-DAG: %[[START:.*]] = tosa.const_shape values(dense<2> : tensor<2xindex>) : () -> !tosa.shape<2>
   // CHECK: tosa.slice %arg0, %[[SIZE]], %[[START]]
   %0 = "stablehlo.slice"(%arg) {
     start_indices = array<i64: 2, 1>,
@@ -123,7 +123,7 @@ func.func @tanh(%arg : tensor<10xf32>) -> tensor<10xf32> {
 
 // CHECK-LABEL: @transpose
 func.func @transpose(%arg0: tensor<1x2x3xf32>) -> tensor<3x2x1xf32> {
-  // CHECK: %[[VAR0:.*]] = tosa.transpose %arg0 {perms = array<i32: 2, 1, 0>}
+  // CHECK: %[[VAR0:.*]] = tosa.transpose %arg0 perms([2, 1, 0])
   %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 2, 1, 0>} : (tensor<1x2x3xf32>) -> tensor<3x2x1xf32>
   return %0 : tensor<3x2x1xf32>
 }
@@ -158,7 +158,7 @@ func.func @while(%arg0: tensor<i32>) -> tensor<i32> {
 
 // CHECK-LABEL: @reshape
 func.func @reshape(%arg0 : tensor<2x3xf32>) -> tensor<6xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<6> : tensor<1xindex>} : () -> !tosa.shape<1>
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<6> : tensor<1xindex>) : () -> !tosa.shape<1>
   // CHECK: tosa.reshape %arg0, %[[VAR0]]
   %0 = "stablehlo.reshape"(%arg0) : (tensor<2x3xf32>) -> tensor<6xf32>
   return %0 : tensor<6xf32>

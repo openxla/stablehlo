@@ -38,7 +38,7 @@ func.func @compare_ne(%arg0 : tensor<10xi32>, %arg1 : tensor<10xi32>) -> tensor<
 
 // CHECK-LABEL: @concatenate
 func.func @concatenate(%arg0 : tensor<3x3xf32>, %arg1 : tensor<3x3xf32>) -> tensor<6x3xf32> {
-  // CHECK: tosa.concat %arg0, %arg1 {axis = 0 : i32} : (tensor<3x3xf32>, tensor<3x3xf32>) -> tensor<6x3xf32>
+  // CHECK: tosa.concat %arg0, %arg1 axis(0) : (tensor<3x3xf32>, tensor<3x3xf32>) -> tensor<6x3xf32>
   %0 = "stablehlo.concatenate"(%arg0, %arg1) {dimension = 0 : i64} : (tensor<3x3xf32>, tensor<3x3xf32>) -> tensor<6x3xf32>
   return %0 : tensor<6x3xf32>
 }
@@ -61,10 +61,10 @@ func.func @divide_f32(%arg0 : tensor<10xf32>, %arg1 : tensor<10xf32>) -> tensor<
 
 // CHECK-LABEL: @dot_vector_vector
 func.func @dot_vector_vector(%arg0 : tensor<3xf32>, %arg1 : tensor<3xf32>) -> tensor<f32> {
-  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<> : tensor<0xindex>} : () -> !tosa.shape<0>
-  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape {values = dense<[1, 1, 3]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<> : tensor<0xindex>) : () -> !tosa.shape<0>
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape values(dense<[1, 1, 3]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR2:.*]] = tosa.reshape %arg0, %[[VAR1]]
-  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape {values = dense<[1, 3, 1]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape values(dense<[1, 3, 1]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR4:.*]] = tosa.reshape %arg1, %[[VAR3]]
   // CHECK-DAG: %[[VAR5:.*]] = tosa.matmul %[[VAR2]], %[[VAR4]]
   // CHECK-DAG: %[[VAR6:.*]] = tosa.reshape %[[VAR5]], %[[VAR0]]
@@ -74,10 +74,10 @@ func.func @dot_vector_vector(%arg0 : tensor<3xf32>, %arg1 : tensor<3xf32>) -> te
 
 // CHECK-LABEL: @dot_vector_matrix
 func.func @dot_vector_matrix(%arg0 : tensor<2xf32>, %arg1 : tensor<2x3xf32>) -> tensor<3xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<3> : tensor<1xindex>} : () -> !tosa.shape<1>
-  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape {values = dense<[1, 1, 2]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<3> : tensor<1xindex>) : () -> !tosa.shape<1>
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape values(dense<[1, 1, 2]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR2:.*]] = tosa.reshape %arg0, %[[VAR1]]
-  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape {values = dense<[1, 2, 3]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape values(dense<[1, 2, 3]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR4:.*]] = tosa.reshape %arg1, %[[VAR3]]
   // CHECK-DAG: %[[VAR5:.*]] = tosa.matmul %[[VAR2]], %[[VAR4]]
   // CHECK-DAG: %[[VAR6:.*]] = tosa.reshape %[[VAR5]], %[[VAR0]]
@@ -87,10 +87,10 @@ func.func @dot_vector_matrix(%arg0 : tensor<2xf32>, %arg1 : tensor<2x3xf32>) -> 
 
 // CHECK-LABEL: @dot_matrix_vector
 func.func @dot_matrix_vector(%arg0 : tensor<2x3xf32>, %arg1 : tensor<3xf32>) -> tensor<2xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<2> : tensor<1xindex>} : () -> !tosa.shape<1>
-  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape {values = dense<[1, 2, 3]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<2> : tensor<1xindex>) : () -> !tosa.shape<1>
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape values(dense<[1, 2, 3]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR2:.*]] = tosa.reshape %arg0, %[[VAR1]]
-  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape {values = dense<[1, 3, 1]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape values(dense<[1, 3, 1]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR4:.*]] = tosa.reshape %arg1, %[[VAR3]]
   // CHECK-DAG: %[[VAR5:.*]] = tosa.matmul %[[VAR2]], %[[VAR4]]
   // CHECK-DAG: %[[VAR6:.*]] = tosa.reshape %[[VAR5]], %[[VAR0]]
@@ -100,10 +100,10 @@ func.func @dot_matrix_vector(%arg0 : tensor<2x3xf32>, %arg1 : tensor<3xf32>) -> 
 
 // CHECK-LABEL: @dot_matrix_matrix
 func.func @dot_matrix_matrix(%arg0 : tensor<2x3xf32>, %arg1 : tensor<3x4xf32>) -> tensor<2x4xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<[2, 4]> : tensor<2xindex>} : () -> !tosa.shape<2>
-  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape {values = dense<[1, 2, 3]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<[2, 4]> : tensor<2xindex>) : () -> !tosa.shape<2>
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape values(dense<[1, 2, 3]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR2:.*]] = tosa.reshape %arg0, %[[VAR1]]
-  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape {values = dense<[1, 3, 4]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape values(dense<[1, 3, 4]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR4:.*]] = tosa.reshape %arg1, %[[VAR3]]
   // CHECK-DAG: %[[VAR5:.*]] = tosa.matmul %[[VAR2]], %[[VAR4]]
   // CHECK-DAG: %[[VAR6:.*]] = tosa.reshape %[[VAR5]], %[[VAR0]]
@@ -113,10 +113,10 @@ func.func @dot_matrix_matrix(%arg0 : tensor<2x3xf32>, %arg1 : tensor<3x4xf32>) -
 
 // CHECK-LABEL: @dot_general_vector_vector
 func.func @dot_general_vector_vector(%arg0: tensor<3xf32>, %arg1: tensor<3xf32>) -> tensor<f32> {
-  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<> : tensor<0xindex>} : () -> !tosa.shape<0>
-  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape {values = dense<[1, 1, 3]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<> : tensor<0xindex>) : () -> !tosa.shape<0>
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape values(dense<[1, 1, 3]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR2:.*]] = tosa.reshape %arg0, %[[VAR1]]
-  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape {values = dense<[1, 3, 1]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape values(dense<[1, 3, 1]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR4:.*]] = tosa.reshape %arg1, %[[VAR3]]
   // CHECK-DAG: %[[VAR5:.*]] = tosa.matmul %[[VAR2]], %[[VAR4]]
   // CHECK-DAG: %[[VAR6:.*]] = tosa.reshape %[[VAR5]], %[[VAR0]]
@@ -126,10 +126,10 @@ func.func @dot_general_vector_vector(%arg0: tensor<3xf32>, %arg1: tensor<3xf32>)
 
 // CHECK-LABEL: @dot_general_vector_matrix
 func.func @dot_general_vector_matrix(%arg0: tensor<2xf32>, %arg1: tensor<2x3xf32>) -> tensor<3xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<3> : tensor<1xindex>} : () -> !tosa.shape<1>
-  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape {values = dense<[1, 1, 2]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<3> : tensor<1xindex>) : () -> !tosa.shape<1>
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape values(dense<[1, 1, 2]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR2:.*]] = tosa.reshape %arg0, %[[VAR1]]
-  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape {values = dense<[1, 2, 3]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape values(dense<[1, 2, 3]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR4:.*]] = tosa.reshape %arg1, %[[VAR3]]
   // CHECK-DAG: %[[VAR5:.*]] = tosa.matmul %[[VAR2]], %[[VAR4]]
   // CHECK-DAG: %[[VAR6:.*]] = tosa.reshape %[[VAR5]], %[[VAR0]]
@@ -139,10 +139,10 @@ func.func @dot_general_vector_matrix(%arg0: tensor<2xf32>, %arg1: tensor<2x3xf32
 
 // CHECK-LABEL: @dot_general_matrix_vector
 func.func @dot_general_matrix_vector(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<2> : tensor<1xindex>} : () -> !tosa.shape<1>
-  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape {values = dense<[1, 2, 3]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<2> : tensor<1xindex>) : () -> !tosa.shape<1>
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape values(dense<[1, 2, 3]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR2:.*]] = tosa.reshape %arg0, %[[VAR1]]
-  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape {values = dense<[1, 3, 1]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape values(dense<[1, 3, 1]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR4:.*]] = tosa.reshape %arg1, %[[VAR3]]
   // CHECK-DAG: %[[VAR5:.*]] = tosa.matmul %[[VAR2]], %[[VAR4]]
   // CHECK-DAG: %[[VAR6:.*]] = tosa.reshape %[[VAR5]], %[[VAR0]]
@@ -152,10 +152,10 @@ func.func @dot_general_matrix_vector(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32
 
 // CHECK-LABEL: @dot_general_matrix_matrix
 func.func @dot_general_matrix_matrix(%arg0: tensor<2x3xf32>, %arg1: tensor<3x4xf32>) -> tensor<2x4xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape {values = dense<[2, 4]> : tensor<2xindex>} : () -> !tosa.shape<2>
-  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape {values = dense<[1, 2, 3]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<[2, 4]> : tensor<2xindex>) : () -> !tosa.shape<2>
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.const_shape values(dense<[1, 2, 3]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR2:.*]] = tosa.reshape %arg0, %[[VAR1]]
-  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape {values = dense<[1, 3, 4]> : tensor<3xindex>} : () -> !tosa.shape<3>
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.const_shape values(dense<[1, 3, 4]> : tensor<3xindex>) : () -> !tosa.shape<3>
   // CHECK-DAG: %[[VAR4:.*]] = tosa.reshape %arg1, %[[VAR3]]
   // CHECK-DAG: %[[VAR5:.*]] = tosa.matmul %[[VAR2]], %[[VAR4]]
   // CHECK-DAG: %[[VAR6:.*]] = tosa.reshape %[[VAR5]], %[[VAR0]]

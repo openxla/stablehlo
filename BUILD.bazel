@@ -1960,3 +1960,17 @@ test_suite(
     name = "all_tests",
     tests = [":stablehlo_ci_tests"],
 )
+
+# copybara:uncomment_begin
+# alias(
+#     name = "check_ops",
+#     actual = "//stablehlo/tests:check_ops",
+#     deprecation = "Use //stablehlo/tests:check_ops instead.",
+# )
+#
+# alias(
+#     name = "test_utils",
+#     actual = "//stablehlo/tests:test_utils",
+#     deprecation = "Use //stablehlo/tests:test_utils instead.",
+# )
+# copybara:uncomment_end

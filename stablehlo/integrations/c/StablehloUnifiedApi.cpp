@@ -32,9 +32,9 @@ limitations under the License.
 #include "stablehlo/reference/Configuration.h"
 
 MlirAttribute stablehloEvalModule(MlirModule module, int nArgs,
-                                  MlirAttribute const *args,
-                                  const char *const probeInstrumentationDir,
-                                  int *errorCode) {
+                                  MlirAttribute const* args,
+                                  const char* const probeInstrumentationDir,
+                                  int* errorCode) {
   std::vector<mlir::DenseElementsAttr> inputs;
   inputs.reserve(nArgs);
   for (int i = 0; i < nArgs; ++i) {
@@ -49,7 +49,7 @@ MlirAttribute stablehloEvalModule(MlirModule module, int nArgs,
     return MlirAttribute{nullptr};
   }
   std::vector<MlirAttribute> resultsVec;
-  for (const auto &result : results.value()) {
+  for (const auto& result : results.value()) {
     resultsVec.push_back(wrap(result));
   }
   return mlirArrayAttrGet(mlirModuleGetContext(module), resultsVec.size(),

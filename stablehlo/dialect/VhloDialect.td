@@ -63,6 +63,7 @@ def VHLO_Dialect : Dialect {
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
+  let useStrictPropertiesInAssemblyFormat = 0;
 }
 
 #endif  // STABLEHLO_DIALECT_VHLO_DIALECT

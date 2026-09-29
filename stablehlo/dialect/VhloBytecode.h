@@ -21,7 +21,7 @@ class VhloDialect;
 
 // Add the interface necessary for encoding and decoding VHLO dialect
 // components in bytecode.
-void addBytecodeInterface(VhloDialect *dialect);
+void addBytecodeInterface(VhloDialect* dialect);
 }  // namespace vhlo
 }  // namespace mlir
 

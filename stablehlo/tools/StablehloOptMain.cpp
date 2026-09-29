@@ -28,7 +28,7 @@ limitations under the License.
 #include "stablehlo/transforms/Passes.h"
 #include "stablehlo/transforms/optimization/Passes.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   mlir::registerAllPasses();
   mlir::hlo::registerAllTestPasses();
   mlir::stablehlo::registerPassPipelines();

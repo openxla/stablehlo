@@ -97,8 +97,9 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
       }
       newOperands.push_back(operand.get());
     }
-    rewriter.replaceOpWithNewOp<CustomCallOp>(op, op.getResultTypes(),
-                                              newOperands, newAttrs);
+    rewriter.replaceOpWithNewOp<CustomCallOp>(
+        op, op.getResultTypes(), newOperands,
+        typename CustomCallOp::Properties{}, newAttrs);
     return success();
   }
 };

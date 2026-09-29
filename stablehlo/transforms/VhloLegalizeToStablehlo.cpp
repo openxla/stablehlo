@@ -1121,15 +1121,17 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
     // Convert the VHLO operation to a StableHLO equivalent. This can almost be
     // done in a generic fashion, except for ops with a variadic number of
     // regions which means an additional argument for the generic builder.
-    VhloToStablehloOp<VhloOpTy> stablehloOp;
+    using StablehloOpTy = VhloToStablehloOp<VhloOpTy>;
+    StablehloOpTy stablehloOp;
     if constexpr (VhloOpTy::template hasTrait<OpTrait::VariadicRegions>()) {
-      stablehloOp = VhloToStablehloOp<VhloOpTy>::create(
+      stablehloOp = StablehloOpTy::create(
           rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
-          stablehloAttrs, vhloOp.getNumRegions());
+          typename StablehloOpTy::Properties{}, stablehloAttrs,
+          vhloOp.getNumRegions());
     } else {
-      stablehloOp = VhloToStablehloOp<VhloOpTy>::create(
+      stablehloOp = StablehloOpTy::create(
           rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
-          stablehloAttrs);
+          typename StablehloOpTy::Properties{}, stablehloAttrs);
     }
 
     for (auto [vhloRegion, stablehloRegion] :

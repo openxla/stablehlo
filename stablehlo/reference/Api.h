@@ -36,17 +36,17 @@ namespace stablehlo {
 /// builtin kernels are matched.
 FailureOr<SmallVector<InterpreterValue>> evalModule(
     ModuleOp module, ArrayRef<InterpreterValue> inputs,
-    const InterpreterConfiguration &config);
+    const InterpreterConfiguration& config);
 
 /// This wrapper is intended to be easily used by the StableHLO Python bindings.
 // It wraps the InterpreterValue API.
 FailureOr<SmallVector<DenseElementsAttr>> evalModule(
     ModuleOp module, ArrayRef<DenseElementsAttr> inputs,
-    const InterpreterConfiguration &config);
+    const InterpreterConfiguration& config);
 
 /// Parses a StableHLO MLIR text program into a ModuleOp.
-FailureOr<OwningOpRef<ModuleOp>> parseStablehloModule(const std::string &mlir,
-                                                      MLIRContext &context);
+FailureOr<OwningOpRef<ModuleOp>> parseStablehloModule(const std::string& mlir,
+                                                      MLIRContext& context);
 
 }  // namespace stablehlo
 }  // namespace mlir

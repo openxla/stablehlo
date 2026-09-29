@@ -43,6 +43,7 @@ class VHLO_I32EnumAttr<string name, list<I32EnumAttrCase> cases> :
 
 class VHLO_EnumAttr<EnumAttrInfo enumInfo, string name, string minVersion, string maxVersion>
   : EnumAttr<VHLO_Dialect, enumInfo, name, [VHLO_VersionedAttrInterface]> {
+  let assemblyFormat = "$value";
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
       return mlir::vhlo::Version(}] # !subst(".", ", ", minVersion) # [{);

@@ -60,7 +60,9 @@ struct BroadcastValuesPattern : public RewritePattern {
 
     // Replace with custom call to avoid pattern reapplication
     auto customCall = stablehlo::CustomCallOp::create(
-        rewriter, op->getLoc(), op->getResultTypes(), *broadcastedOperands);
+        rewriter, op->getLoc(), op->getResultTypes(), *broadcastedOperands,
+        typename stablehlo::CustomCallOp::Properties{},
+        /*discardableAttributes=*/{});
     customCall.setCallTargetName("numpy_broadcasted");
     customCall.setHasSideEffect(true);
     rewriter.replaceOp(op, customCall);

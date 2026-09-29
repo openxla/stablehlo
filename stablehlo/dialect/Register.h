@@ -23,7 +23,7 @@ namespace mlir {
 namespace stablehlo {
 
 // Add chlo and stablehlo dialects to the provided registry.
-void registerAllDialects(DialectRegistry &registry);
+void registerAllDialects(DialectRegistry& registry);
 
 }  // namespace stablehlo
 }  // namespace mlir

@@ -29,7 +29,7 @@ class Process {
  public:
   /// \name Constructors
   /// @{
-  Process(ProcessId id, ProcessGrid *grid);
+  Process(ProcessId id, ProcessGrid* grid);
   /// @}
 
   /// See `ProcessGrid::crossPartition`.
@@ -72,7 +72,7 @@ class Process {
 
   /// See ProcessGrid. The pointer is used to gain access to allow
   /// synchronization among participating processes.
-  ProcessGrid *grid_;
+  ProcessGrid* grid_;
 };
 
 }  // namespace stablehlo

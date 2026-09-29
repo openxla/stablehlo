@@ -38,6 +38,7 @@ def StableHLO_Dialect : Dialect {
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
+  let useStrictPropertiesInAssemblyFormat = 0;
 }
 
 class StableHLO_Op<string mnemonic, list<Trait> traits = []> :
@@ -2525,8 +2526,9 @@ def StableHLO_CompositeOp : StableHLO_Op<"composite", [DeclareOpInterfaceMethods
       "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,
       "::mlir::ArrayRef<::mlir::NamedAttribute>":$attributes
     ), [{
-      build($_builder, $_state, resultTypes, inputs, attributes,
-            /*regionsCount=*/0);
+      $_state.addOperands(inputs);
+      buildPropertiesAndDiscardableAttributes($_state, attributes);
+      $_state.addTypes(resultTypes);
     }]>,
     OpBuilder<(ins
       "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,
