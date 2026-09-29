@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
-load("//third_party/bazel_skylib/rules:write_file.bzl", "write_file")
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:private"])
 
