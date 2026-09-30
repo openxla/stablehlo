@@ -1093,7 +1093,11 @@ TensorV1Attr VhloBytecodeInterface::readTensorV1Attr(
   };
 
   VhloToBuiltinPrintConverter conv;
-  auto builtinType = cast<ShapedType>(conv.convertType(type));
+  // The type is read from the (possibly crafted) bytecode and is not required
+  // to be shaped, so guard the cast: a non-shaped type (e.g. a scalar) would
+  // otherwise crash here / feed a non-shaped type to getFromRawBuffer.
+  auto builtinType = dyn_cast<ShapedType>(conv.convertType(type));
+  if (!builtinType) return TensorV1Attr();
   return TensorV1Attr::get(
       getContext(), type,
       DenseElementsAttr::getFromRawBuffer(builtinType, blob));
