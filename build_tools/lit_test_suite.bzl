@@ -44,11 +44,13 @@ def lit_test_suite(
     tests_in_suite = []
 
     for src in srcs:
-        test_name = ("%s.test" % src).replace("/", "_")
+        test_name = ("%s.test" % src).replace("/", "_")  # copybara:comment
+
+        # copybara:uncomment test_name = "%s.test" % src
         lit_test(
             name = test_name,  # copybara:comment
             # copybara:uncomment name = src,
-            srcs = [src],
+            srcs = [src],  # copybara:comment
             # copybara:uncomment src = src,
             args = args,
             data = data + native.glob(
@@ -57,7 +59,7 @@ def lit_test_suite(
                 allow_empty = True,
             ),
             deps = ["@rules_python//python/runfiles"],  # copybara:comment
-            # copybara:uncomment driver = "//third_party/llvm/llvm-project/mlir:run_lit.sh",
+            # copybara:uncomment driver = "@llvm-project//mlir:run_lit.sh",
             tags = tags,
             size = size_per_test,
         )

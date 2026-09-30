@@ -42,15 +42,15 @@ class StringWriterHelper {
   StringWriterHelper() : ss_(s_) {}
 
   static MlirStringCallback getMlirStringCallback() {
-    return [](MlirStringRef string_ref, void *user_data) {
-      auto *helper = static_cast<StringWriterHelper *>(user_data);
+    return [](MlirStringRef string_ref, void* user_data) {
+      auto* helper = static_cast<StringWriterHelper*>(user_data);
       helper->ss_ << llvm::StringRef(string_ref.data, string_ref.length);
     };
   }
 
-  void *getUserData() { return static_cast<void *>(this); }
+  void* getUserData() { return static_cast<void*>(this); }
 
-  const std::string &toString() {
+  const std::string& toString() {
     ss_.flush();
     return s_;
   }
@@ -60,7 +60,7 @@ class StringWriterHelper {
   llvm::raw_string_ostream ss_;
 };
 
-static MlirStringRef toMlirStringRef(const std::string &s) {
+static MlirStringRef toMlirStringRef(const std::string& s) {
   return mlirStringRefCreate(s.data(), s.size());
 }
 
@@ -68,11 +68,11 @@ static MlirStringRef toMlirStringRef(std::string_view s) {
   return mlirStringRefCreate(s.data(), s.size());
 }
 
-static MlirStringRef toMlirStringRef(const nb::bytes &s) {
-  return mlirStringRefCreate(static_cast<const char *>(s.data()), s.size());
+static MlirStringRef toMlirStringRef(const nb::bytes& s) {
+  return mlirStringRefCreate(static_cast<const char*>(s.data()), s.size());
 }
 
-void AddStablehloApi(nb::module_ &m) {
+void AddStablehloApi(nb::module_& m) {
   // Portable API is a subset of StableHLO API
   AddPortableApi(m);
 
@@ -146,8 +146,8 @@ void AddStablehloApi(nb::module_ &m) {
   //
   m.def(
       "eval_module",
-      [](MlirModule module, std::vector<MlirAttribute> &args,
-         const std::string &probe_instrumentation_dir)
+      [](MlirModule module, std::vector<MlirAttribute>& args,
+         const std::string& probe_instrumentation_dir)
           -> std::vector<MlirAttribute> {
         for (auto arg : args) {
           if (!mlirAttributeIsADenseElements(arg)) {
@@ -174,7 +174,7 @@ void AddStablehloApi(nb::module_ &m) {
       nb::arg("probe_instrumentation_dir") = "");
 }
 
-void AddPortableApi(nb::module_ &m) {
+void AddPortableApi(nb::module_& m) {
   //
   // Utility APIs.
   //
@@ -182,8 +182,8 @@ void AddPortableApi(nb::module_ &m) {
 
   m.def(
       "get_smaller_version",
-      [](const std::string &version1,
-         const std::string &version2) -> std::string {
+      [](const std::string& version1,
+         const std::string& version2) -> std::string {
         StringWriterHelper accumulator;
         if (mlirLogicalResultIsFailure(stablehloGetSmallerVersion(
                 toMlirStringRef(version1), toMlirStringRef(version2),
@@ -263,7 +263,7 @@ void AddPortableApi(nb::module_ &m) {
       nb::arg("artifact_str"));
   m.def(
       "deserialize_portable_artifact_str",
-      [](const nb::bytes &artifact) -> nb::bytes {
+      [](const nb::bytes& artifact) -> nb::bytes {
         StringWriterHelper accumulator;
         if (mlirLogicalResultIsFailure(stablehloDeserializePortableArtifact(
                 toMlirStringRef(artifact), accumulator.getMlirStringCallback(),

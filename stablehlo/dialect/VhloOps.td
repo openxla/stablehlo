@@ -512,7 +512,8 @@ def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general_v1", "0.9.0", "1.5.0"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_DotGeneralOpV2 : VHLO_Op<"dot_general_v2", "1.6.0", "current"> {
+def VHLO_DotGeneralOpV2 : VHLO_Op<"dot_general_v2", "1.6.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,

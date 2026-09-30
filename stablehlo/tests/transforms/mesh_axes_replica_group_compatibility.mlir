@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt %s -stablehlo-compatibility-expander="target=1.14.0" -allow-unregistered-dialect | FileCheck %s
+// RUN: stablehlo-opt %s -stablehlo-compatibility-expander="target=1.14.0" | FileCheck %s
 
 module {
 
@@ -40,7 +40,7 @@ module {
 
     return %0 : tensor<4xf32>
   }
-  "sdy.mesh"() {sym_name = "sdy_mesh", stablehlo.mesh = {axes = [{name = "x", size = 2 : i64}, {name = "y", size = 2 : i64}]}} : () -> ()
+  func.func private @sdy_mesh() attributes {stablehlo.mesh = {axes = [{name = "x", size = 2 : i64}, {name = "y", size = 2 : i64}]}}
 
   // CHECK-LABEL: @all_reduce_sdy_mesh
   func.func @all_reduce_sdy_mesh(%arg0: tensor<4xf32>) -> tensor<4xf32> {
@@ -55,7 +55,7 @@ module {
     return %0 : tensor<4xf32>
   }
 
-  "sdy.mesh"() {sym_name = "sdy_mesh_dev", stablehlo.mesh = {axes = [{name = "x", size = 2 : i64}, {name = "y", size = 2 : i64}], device_ids = dense<[0, 2, 1, 3]> : tensor<4xi64>}} : () -> ()
+  func.func private @sdy_mesh_dev() attributes {stablehlo.mesh = {axes = [{name = "x", size = 2 : i64}, {name = "y", size = 2 : i64}], device_ids = dense<[0, 2, 1, 3]> : tensor<4xi64>}}
 
   // CHECK-LABEL: @all_reduce_sdy_mesh_dev
   func.func @all_reduce_sdy_mesh_dev(%arg0: tensor<4xf32>) -> tensor<4xf32> {
@@ -70,7 +70,7 @@ module {
     return %0 : tensor<4xf32>
   }
 
-  "sdy.mesh"() {sym_name = "sdy_mesh_max", stablehlo.mesh = {axes = [], device_ids = dense<0> : tensor<1xi64>}} : () -> ()
+  func.func private @sdy_mesh_max() attributes {stablehlo.mesh = {axes = [], device_ids = dense<0> : tensor<1xi64>}}
 
   // CHECK-LABEL: @all_reduce_sdy_mesh_max
   func.func @all_reduce_sdy_mesh_max(%arg0: tensor<4xf32>) -> tensor<4xf32> {

@@ -4332,6 +4332,23 @@ void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
   ReturnOp::create(*builder, loc, compare);
 }
 
+// For floating-point types, returns a predicate that selects lhs when lhs is
+// NaN and either rhs is not NaN or lhs_index < rhs_index (lt_index_pred), so
+// that index selection matches MaxOp/MinOp NaN propagation and tie-breaking.
+static Value buildNaNLhsSelectionCondition(OpBuilder& builder, Location loc,
+                                           Value lhs_value, Value rhs_value,
+                                           Value lt_index_pred) {
+  auto lhs_is_nan = CompareOp::create(builder, loc, lhs_value, lhs_value,
+                                      ComparisonDirection::NE)
+                        .getResult();
+  auto rhs_not_nan = CompareOp::create(builder, loc, rhs_value, rhs_value,
+                                       ComparisonDirection::EQ)
+                         .getResult();
+  auto nan_lhs_win =
+      OrOp::create(builder, loc, rhs_not_nan, lt_index_pred).getResult();
+  return AndOp::create(builder, loc, lhs_is_nan, nan_lhs_win).getResult();
+}
+
 void buildMaxAndArgmaxBody(Type elementType, Type indices_type, Region& body,
                            OpBuilder& builder) {
   OpBuilder::InsertionGuard guard(builder);
@@ -4366,15 +4383,18 @@ void buildMaxAndArgmaxBody(Type elementType, Type indices_type, Region& body,
   // Final lhs Selection Condition: (gt_pred) OR (tie_breaker_condition)
   auto final_lhs_condition =
       OrOp::create(builder, loc, gt_pred, tie_breaker_condition).getResult();
+  if (isa<FloatType>(elementType)) {
+    auto nan_lhs_condition = buildNaNLhsSelectionCondition(
+        builder, loc, lhs_value, rhs_value, lt_index_pred);
+    final_lhs_condition =
+        OrOp::create(builder, loc, final_lhs_condition, nan_lhs_condition)
+            .getResult();
+  }
 
-  // Select Final Results:
-  // if final_lhs_condition:
-  //     return (lhs_value, lhs_index)
-  // else:
-  //     return (rhs_value, rhs_index)
+  // Use MaxOp for the value so that NaNs propagate properly and unused-index
+  // reductions simplify to kMaximum.
   auto selected_value =
-      SelectOp::create(builder, loc, final_lhs_condition, lhs_value, rhs_value)
-          .getResult();
+      MaxOp::create(builder, loc, lhs_value, rhs_value).getResult();
   auto selected_index =
       SelectOp::create(builder, loc, final_lhs_condition, lhs_index, rhs_index)
           .getResult();

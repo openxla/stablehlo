@@ -1766,6 +1766,7 @@ void populateStablehloCanonicalizationPatterns(MLIRContext* context,
 void populateStablehloHloImportCanonicalizationPatterns(
     MLIRContext* context, RewritePatternSet* patterns,
     const StablehloAggressiveSimplificationPassOptions& options) {
+  patterns->add<ConcatenateOpNoop, ConcatenateOpRemoveEmpty>(context, options);
   patterns->add<ReshapeOp_RemoveNoop, GetTupleElementOp_UnpackTuple>(context);
   patterns->add<TupleIsRepacking, WhileOpImplicitCapture>(context, options);
 }

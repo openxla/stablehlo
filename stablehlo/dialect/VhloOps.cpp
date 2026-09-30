@@ -382,6 +382,20 @@ LogicalResult verifyConstraint_1_20_0(mlir::Operation* op,
   return success();
 }
 
+LogicalResult verifyConstraint_1_21_0(mlir::Operation* op,
+                                      Version targetVersion) {
+  auto dotGeneralOp = cast<DotGeneralOpV2>(op);
+  if (targetVersion < Version(1, 21, 0)) {
+    auto lhsType = dyn_cast<TypeV1Attr>(dotGeneralOp.getLhsPrecisionType());
+    auto rhsType = dyn_cast<TypeV1Attr>(dotGeneralOp.getRhsPrecisionType());
+    if ((lhsType && isa<vhlo::FloatF8E4M3FNV1Type>(lhsType.getValue())) ||
+        (rhsType && isa<vhlo::FloatF8E4M3FNV1Type>(rhsType.getValue()))) {
+      return failure();
+    }
+  }
+  return success();
+}
+
 }  // namespace
 
 LogicalResult AllReduceOpV1::validateConstraint(mlir::Operation* op,
@@ -392,6 +406,11 @@ LogicalResult AllReduceOpV1::validateConstraint(mlir::Operation* op,
 LogicalResult ConvolutionOpV1::validateConstraint(mlir::Operation* op,
                                                   Version targetVersion) {
   return verifyConstraint_1_20_0(op, targetVersion);
+}
+
+LogicalResult DotGeneralOpV2::validateConstraint(mlir::Operation* op,
+                                                 Version targetVersion) {
+  return verifyConstraint_1_21_0(op, targetVersion);
 }
 
 LogicalResult DynamicConvOpV2::validateConstraint(mlir::Operation* op,

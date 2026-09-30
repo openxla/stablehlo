@@ -15,6 +15,7 @@ limitations under the License.
 
 #include <complex>
 #include <cstdint>
+#include <limits>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -29,6 +30,12 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Ops.h"
+#include "stablehlo/reference/Tensor.h"
+#include "stablehlo/reference/Value.h"
+
+// Include builder headers after reference/Ops.h so StablehloBuilder.h's
+// Transpose() function does not hide the Transpose enum under -fno-modules.
 #include "stablehlo/integrations/cpp/builder/AttrTypeBuilderUtil.h"
 #include "stablehlo/integrations/cpp/builder/FuncBuilder.h"
 #include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
@@ -308,6 +315,75 @@ TEST(MlirBuilderTest, ReduceOp) {
   OwningOpRef<ModuleOp> module = mb->build();
   EXPECT_TRUE(succeeded(mlir::verify(*module)));
   EXPECT_EQ(expected, debugString(*module));
+}
+
+TEST(MlirBuilderTest, BuildMaxAndArgmaxBodyUsesMaxOp) {
+  MLIRContext context;
+  context.loadDialect<StablehloDialect>();
+  OpBuilder builder(&context);
+  OwningOpRef<ModuleOp> module = ModuleOp::create(builder.getUnknownLoc());
+  builder.setInsertionPointToEnd(module->getBody());
+
+  buildMaxAndArgmaxBody(builder.getF32Type(), builder.getI32Type(),
+                        module->getBodyRegion(), builder);
+
+  Operation& returnOp = module->getBody()->back();
+  EXPECT_TRUE(isa<MaxOp>(returnOp.getOperand(0).getDefiningOp()));
+  EXPECT_TRUE(isa<SelectOp>(returnOp.getOperand(1).getDefiningOp()));
+}
+
+TEST(MlirBuilderTest, BuildMaxAndArgmaxBodyPropagatesNaN) {
+  MLIRContext context;
+  context.loadDialect<StablehloDialect>();
+  OpBuilder builder(&context);
+  OwningOpRef<ModuleOp> module = ModuleOp::create(builder.getUnknownLoc());
+  builder.setInsertionPointToEnd(module->getBody());
+
+  buildMaxAndArgmaxBody(builder.getF32Type(), builder.getI32Type(),
+                        module->getBodyRegion(), builder);
+
+  auto makeScalar = [&](TypedAttr attr) {
+    return InterpreterValue(makeTensor(DenseElementsAttr::get(
+        RankedTensorType::get({}, attr.getType()), attr)));
+  };
+  float nan = std::numeric_limits<float>::quiet_NaN();
+  // SelectOp would drop NaN when lhs=NaN and rhs=5.0; MaxOp propagates NaN.
+  auto res =
+      eval(module->getBodyRegion(), {makeScalar(builder.getF32FloatAttr(nan)),
+                                     makeScalar(builder.getI32IntegerAttr(0)),
+                                     makeScalar(builder.getF32FloatAttr(5.0f)),
+                                     makeScalar(builder.getI32IntegerAttr(1))});
+  EXPECT_TRUE(res[0].getTensor().get({}).getFloatValue().isNaN());
+}
+
+TEST(MlirBuilderTest, BuildMaxAndArgmaxBodySelectsNaNIndex) {
+  MLIRContext context;
+  context.loadDialect<StablehloDialect>();
+  OpBuilder builder(&context);
+  OwningOpRef<ModuleOp> module = ModuleOp::create(builder.getUnknownLoc());
+  builder.setInsertionPointToEnd(module->getBody());
+
+  buildMaxAndArgmaxBody(builder.getF32Type(), builder.getI32Type(),
+                        module->getBodyRegion(), builder);
+
+  auto evalIndex = [&](float lhs_val, int32_t lhs_idx, float rhs_val,
+                       int32_t rhs_idx) {
+    auto makeScalar = [&](TypedAttr attr) {
+      return InterpreterValue(makeTensor(DenseElementsAttr::get(
+          RankedTensorType::get({}, attr.getType()), attr)));
+    };
+    auto res = eval(module->getBodyRegion(),
+                    {makeScalar(builder.getF32FloatAttr(lhs_val)),
+                     makeScalar(builder.getI32IntegerAttr(lhs_idx)),
+                     makeScalar(builder.getF32FloatAttr(rhs_val)),
+                     makeScalar(builder.getI32IntegerAttr(rhs_idx))});
+    EXPECT_TRUE(res[0].getTensor().get({}).getFloatValue().isNaN());
+    return res[1].getTensor().get({}).getIntegerValue().getSExtValue();
+  };
+  float nan = std::numeric_limits<float>::quiet_NaN();
+  EXPECT_EQ(evalIndex(nan, 0, 5.0f, 1), 0);
+  EXPECT_EQ(evalIndex(5.0f, 0, nan, 1), 1);
+  EXPECT_EQ(evalIndex(nan, 2, nan, 1), 1);
 }
 
 TEST(MlirBuilderTest, GatherOp) {

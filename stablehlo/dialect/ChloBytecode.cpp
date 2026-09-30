@@ -111,37 +111,37 @@ namespace {
 /// This class implements the bytecode interface for the  CHLO dialect.
 class ChloBytecodeInterface : public BytecodeDialectInterface {
  public:
-  ChloBytecodeInterface(Dialect *dialect) : BytecodeDialectInterface(dialect) {}
+  ChloBytecodeInterface(Dialect* dialect) : BytecodeDialectInterface(dialect) {}
 
   //===--------------------------------------------------------------------===//
   // Attributes
 
   // These methods are invoked by superclass when an attr from  CHLO dialect
   // is encountered.
-  Attribute readAttribute(DialectBytecodeReader &reader) const override;
+  Attribute readAttribute(DialectBytecodeReader& reader) const override;
   LogicalResult writeAttribute(Attribute attr,
-                               DialectBytecodeWriter &writer) const override;
+                               DialectBytecodeWriter& writer) const override;
 
   // TO ADD ATTRIBUTE: Include a read method for each attribute in CHLO
   // Ex: SomeAttr readSomeAttr(DialectBytecodeReader &reader) const;
   ComparisonDirectionAttr readComparisonDirectionAttr(
-      DialectBytecodeReader &reader) const;
+      DialectBytecodeReader& reader) const;
   ComparisonTypeAttr readComparisonTypeAttr(
-      DialectBytecodeReader &reader) const;
+      DialectBytecodeReader& reader) const;
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in CHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
-  void write(ComparisonDirectionAttr attr, DialectBytecodeWriter &writer) const;
-  void write(ComparisonTypeAttr attr, DialectBytecodeWriter &writer) const;
+  void write(ComparisonDirectionAttr attr, DialectBytecodeWriter& writer) const;
+  void write(ComparisonTypeAttr attr, DialectBytecodeWriter& writer) const;
 
   //===--------------------------------------------------------------------===//
   // Types
 
   // These methods are invoked by superclass when a type from  CHLO dialect
   // is encountered.
-  Type readType(DialectBytecodeReader &reader) const override;
+  Type readType(DialectBytecodeReader& reader) const override;
   LogicalResult writeType(Type type,
-                          DialectBytecodeWriter &writer) const override;
+                          DialectBytecodeWriter& writer) const override;
 
   // TO ADD TYPE: Include a read method for each type in CHLO
   // Ex: SomeType readSomeType(DialectBytecodeReader &reader) const;
@@ -158,7 +158,7 @@ class ChloBytecodeInterface : public BytecodeDialectInterface {
 
 // TO ADD ATTRIBUTE: Update the switch to include a branch for the attr.
 Attribute ChloBytecodeInterface::readAttribute(
-    DialectBytecodeReader &reader) const {
+    DialectBytecodeReader& reader) const {
   uint64_t code;
   if (failed(reader.readVarInt(code))) return Attribute();
   switch (code) {
@@ -173,7 +173,7 @@ Attribute ChloBytecodeInterface::readAttribute(
 }
 
 ComparisonDirectionAttr ChloBytecodeInterface::readComparisonDirectionAttr(
-    DialectBytecodeReader &reader) const {
+    DialectBytecodeReader& reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<ComparisonDirectionAttr>(
       reader, getContext(),
@@ -181,7 +181,7 @@ ComparisonDirectionAttr ChloBytecodeInterface::readComparisonDirectionAttr(
 }
 
 ComparisonTypeAttr ChloBytecodeInterface::readComparisonTypeAttr(
-    DialectBytecodeReader &reader) const {
+    DialectBytecodeReader& reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<ComparisonTypeAttr>(
       reader, getContext(),
@@ -195,7 +195,7 @@ ComparisonTypeAttr ChloBytecodeInterface::readComparisonTypeAttr(
 // If this method returns failure, the string serialization is used in the
 // bytecode.
 LogicalResult ChloBytecodeInterface::writeAttribute(
-    Attribute attr, DialectBytecodeWriter &writer) const {
+    Attribute attr, DialectBytecodeWriter& writer) const {
   return TypeSwitch<Attribute, LogicalResult>(attr)
       .Case<ComparisonDirectionAttr, ComparisonTypeAttr>([&](auto attr) {
         LOG_WRITE_CALL;
@@ -209,13 +209,13 @@ LogicalResult ChloBytecodeInterface::writeAttribute(
 }
 
 void ChloBytecodeInterface::write(ComparisonDirectionAttr attr,
-                                  DialectBytecodeWriter &writer) const {
+                                  DialectBytecodeWriter& writer) const {
   writer.writeVarInt(chlo_encoding::kComparisonDirectionAttr);
   hlo::bytecode::writeEnumAttribute<ComparisonDirection>(attr, writer);
 }
 
 void ChloBytecodeInterface::write(ComparisonTypeAttr attr,
-                                  DialectBytecodeWriter &writer) const {
+                                  DialectBytecodeWriter& writer) const {
   writer.writeVarInt(chlo_encoding::kComparisonTypeAttr);
   hlo::bytecode::writeEnumAttribute<ComparisonType>(attr, writer);
 }
@@ -224,7 +224,7 @@ void ChloBytecodeInterface::write(ComparisonTypeAttr attr,
 // Types: Reader
 
 // TO ADD TYPE: Update the case selection to include the new type.
-Type ChloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
+Type ChloBytecodeInterface::readType(DialectBytecodeReader& reader) const {
   uint64_t code;
   if (failed(reader.readVarInt(code))) return Type();
 
@@ -240,7 +240,7 @@ Type ChloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
 
 // TO ADD TYPE: Update the case selection to include the new type.
 LogicalResult ChloBytecodeInterface::writeType(
-    Type type, DialectBytecodeWriter &writer) const {
+    Type type, DialectBytecodeWriter& writer) const {
   return TypeSwitch<Type, LogicalResult>(type).Default([&](Type) {
     LOG_NOT_IMPLEMENTED;
     return failure();
@@ -249,7 +249,7 @@ LogicalResult ChloBytecodeInterface::writeType(
 
 }  // namespace
 
-void addBytecodeInterface(ChloDialect *dialect) {
+void addBytecodeInterface(ChloDialect* dialect) {
   dialect->addInterfaces<ChloBytecodeInterface>();
 }
 }  // namespace chlo

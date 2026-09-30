@@ -119,6 +119,40 @@ func.func @dot_algorithm_bf16_bf16_f32_x3(%arg0: tensor<2x2x2xbf16>, %arg1: tens
   }> : (tensor<2x2x2xbf16>, tensor<2x2x2xbf16>) -> tensor<2x2x2xbf16>  return %0 : tensor<2x2x2xbf16>
 }
 
+// CHECK-LABEL: func @dot_algorithm_f8e4m3fn_f8e4m3fn_f32_x3
+func.func @dot_algorithm_f8e4m3fn_f8e4m3fn_f32_x3(%arg0: tensor<2x2x2xbf16>, %arg1: tensor<2x2x2xbf16>) -> tensor<2x2x2xf32> {
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>],
+    algorithm = #stablehlo.dot_algorithm<
+      lhs_precision_type = f8E4M3FN,
+      rhs_precision_type = f8E4M3FN,
+      accumulation_type = f32,
+      lhs_component_count = 1,
+      rhs_component_count = 1,
+      num_primitive_operations = 3,
+      allow_imprecise_accumulation = false
+    >
+  }> : (tensor<2x2x2xbf16>, tensor<2x2x2xbf16>) -> tensor<2x2x2xf32>  return %0 : tensor<2x2x2xf32>
+}
+
+// CHECK-LABEL: func @dot_algorithm_f8e4m3fn_f8e4m3fn_f32_x4
+func.func @dot_algorithm_f8e4m3fn_f8e4m3fn_f32_x4(%arg0: tensor<2x2x2xbf16>, %arg1: tensor<2x2x2xbf16>) -> tensor<2x2x2xf32> {
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>],
+    algorithm = #stablehlo.dot_algorithm<
+      lhs_precision_type = f8E4M3FN,
+      rhs_precision_type = f8E4M3FN,
+      accumulation_type = f32,
+      lhs_component_count = 1,
+      rhs_component_count = 1,
+      num_primitive_operations = 4,
+      allow_imprecise_accumulation = false
+    >
+  }> : (tensor<2x2x2xbf16>, tensor<2x2x2xbf16>) -> tensor<2x2x2xf32>  return %0 : tensor<2x2x2xf32>
+}
+
 // CHECK-LABEL: func @dot_algorithm_bf16_bf16_f32_x6
 func.func @dot_algorithm_bf16_bf16_f32_x6(%arg0: tensor<2x2x2xbf16>, %arg1: tensor<2x2x2xbf16>) -> tensor<2x2x2xbf16> {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) <{
