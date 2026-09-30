@@ -24,6 +24,7 @@ include "stablehlo/dialect/Base.td"
 
 def CHECK_Dialect : Dialect {
   let name = "check";
+  let useStrictPropertiesInAssemblyFormat = 0;
   let cppNamespace = "::mlir::stablehlo::check";
 
   let description = [{

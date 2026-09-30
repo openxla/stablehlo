@@ -52,7 +52,7 @@ func.func @divide(%arg0 : tensor<10xi32>, %arg1 : tensor<10xi32>) -> tensor<10xi
 
 // CHECK-LABEL: @divide_f32
 func.func @divide_f32(%arg0 : tensor<10xf32>, %arg1 : tensor<10xf32>) -> tensor<10xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = "tosa.const"() <{values = dense<0> : tensor<1xi8>}
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.const values(dense<0> : tensor<1xi8>)
   // CHECK-DAG: %[[VAR1:.*]] = tosa.reciprocal %arg1
   // CHECK: tosa.mul %arg0, %[[VAR1]], %[[VAR0]]
   %0 = "stablehlo.divide"(%arg0, %arg1) : (tensor<10xf32>, tensor<10xf32>) -> tensor<10xf32>

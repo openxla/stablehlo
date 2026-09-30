@@ -3,10 +3,10 @@
 // -----
 // CHECK-LABEL: @rescale
 func.func @rescale(%arg0 : tensor<2x2x!quant.uniform<i8:f32, 0.025:-1>>) -> tensor<2x2xi32> {
-  %multiplier = "tosa.const"() {values = dense<1431655765> : tensor<1xi32>} : () -> tensor<1xi32>
-  %shift = "tosa.const"() {values = dense<13> : tensor<1xi8>} : () -> tensor<1xi8>
-  %input_zp = "tosa.const"() {values = dense<-1> : tensor<1xi8>} : () -> tensor<1xi8>
-  %output_zp = "tosa.const"() {values = dense<0> : tensor<1xi32>} : () -> tensor<1xi32>
+  %multiplier = tosa.const values(dense<1431655765> : tensor<1xi32>) : () -> tensor<1xi32>
+  %shift = tosa.const values(dense<13> : tensor<1xi8>) : () -> tensor<1xi8>
+  %input_zp = tosa.const values(dense<-1> : tensor<1xi8>) : () -> tensor<1xi8>
+  %output_zp = tosa.const values(dense<0> : tensor<1xi32>) : () -> tensor<1xi32>
   %0 = tosa.rescale %arg0, %multiplier, %shift, %input_zp, %output_zp scale32(true) rounding_mode<SINGLE_ROUND> per_channel(false) input_unsigned(false) output_unsigned(false) :
             (tensor<2x2x!quant.uniform<i8:f32, 0.025:-1>>, tensor<1xi32>, tensor<1xi8>, tensor<1xi8>, tensor<1xi32>) -> tensor<2x2xi32>
 
