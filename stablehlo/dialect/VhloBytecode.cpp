@@ -812,24 +812,24 @@ void VhloBytecodeInterface::write(FftTypeV1Attr attr,
 
 namespace {
 /// Returns the floating semantics for the given type.
-const llvm::fltSemantics& getFloatSemantics(Type type) {
-  if (isa<FloatBF16V1Type>(type)) return APFloat::BFloat();
-  if (isa<FloatF16V1Type>(type)) return APFloat::IEEEhalf();
-  if (isa<FloatF32V1Type>(type)) return APFloat::IEEEsingle();
-  if (isa<FloatF4E2M1FNV1Type>(type)) return APFloat::Float4E2M1FN();
-  if (isa<FloatF64V1Type>(type)) return APFloat::IEEEdouble();
-  if (isa<FloatF6E2M3FNV1Type>(type)) return APFloat::Float6E2M3FN();
-  if (isa<FloatF6E3M2FNV1Type>(type)) return APFloat::Float6E3M2FN();
-  if (isa<FloatF8E3M4V1Type>(type)) return APFloat::Float8E3M4();
-  if (isa<FloatF8E4M3FNUZV1Type>(type)) return APFloat::Float8E4M3FNUZ();
-  if (isa<FloatF8E4M3B11FNUZV1Type>(type)) return APFloat::Float8E4M3B11FNUZ();
-  if (isa<FloatF8E4M3FNV1Type>(type)) return APFloat::Float8E4M3FN();
-  if (isa<FloatF8E4M3V1Type>(type)) return APFloat::Float8E4M3();
-  if (isa<FloatF8E5M2FNUZV1Type>(type)) return APFloat::Float8E5M2FNUZ();
-  if (isa<FloatF8E5M2V1Type>(type)) return APFloat::Float8E5M2();
-  if (isa<FloatF8E8M0FNUV1Type>(type)) return APFloat::Float8E8M0FNU();
-  if (isa<FloatTF32V1Type>(type)) return APFloat::FloatTF32();
-  llvm::report_fatal_error("unsupported floating-point type");
+const llvm::fltSemantics *getFloatSemantics(Type type) {
+  if (isa<FloatBF16V1Type>(type)) return &APFloat::BFloat();
+  if (isa<FloatF16V1Type>(type)) return &APFloat::IEEEhalf();
+  if (isa<FloatF32V1Type>(type)) return &APFloat::IEEEsingle();
+  if (isa<FloatF4E2M1FNV1Type>(type)) return &APFloat::Float4E2M1FN();
+  if (isa<FloatF64V1Type>(type)) return &APFloat::IEEEdouble();
+  if (isa<FloatF6E2M3FNV1Type>(type)) return &APFloat::Float6E2M3FN();
+  if (isa<FloatF6E3M2FNV1Type>(type)) return &APFloat::Float6E3M2FN();
+  if (isa<FloatF8E3M4V1Type>(type)) return &APFloat::Float8E3M4();
+  if (isa<FloatF8E4M3FNUZV1Type>(type)) return &APFloat::Float8E4M3FNUZ();
+  if (isa<FloatF8E4M3B11FNUZV1Type>(type)) return &APFloat::Float8E4M3B11FNUZ();
+  if (isa<FloatF8E4M3FNV1Type>(type)) return &APFloat::Float8E4M3FN();
+  if (isa<FloatF8E4M3V1Type>(type)) return &APFloat::Float8E4M3();
+  if (isa<FloatF8E5M2FNUZV1Type>(type)) return &APFloat::Float8E5M2FNUZ();
+  if (isa<FloatF8E5M2V1Type>(type)) return &APFloat::Float8E5M2();
+  if (isa<FloatF8E8M0FNUV1Type>(type)) return &APFloat::Float8E8M0FNU();
+  if (isa<FloatTF32V1Type>(type)) return &APFloat::FloatTF32();
+  return nullptr;
 }
 }  // namespace
 
@@ -839,8 +839,10 @@ FloatV1Attr VhloBytecodeInterface::readFloatV1Attr(
   Type type;
   if (failed(reader.readType(type))) return FloatV1Attr();
 
+  const llvm::fltSemantics *semantics = getFloatSemantics(type);
+  if (!semantics) return FloatV1Attr();
   FailureOr<APFloat> value =
-      reader.readAPFloatWithKnownSemantics(getFloatSemantics(type));
+      reader.readAPFloatWithKnownSemantics(*semantics);
   if (failed(value)) return FloatV1Attr();
 
   return FloatV1Attr::get(getContext(), type, *value);
@@ -858,13 +860,13 @@ void VhloBytecodeInterface::write(FloatV1Attr attr,
 //===----------------------------------------------------------------------===//
 
 namespace {
-unsigned getBitWidthForIntegerType(Type type) {
-  if (isa<IntegerSI4V1Type>(type) || isa<IntegerUI4V1Type>(type)) return 4;
-  if (isa<IntegerSI8V1Type>(type) || isa<IntegerUI8V1Type>(type)) return 8;
-  if (isa<IntegerSI16V1Type>(type) || isa<IntegerUI16V1Type>(type)) return 16;
-  if (isa<IntegerSI32V1Type>(type) || isa<IntegerUI32V1Type>(type)) return 32;
-  if (isa<IntegerSI64V1Type>(type) || isa<IntegerUI64V1Type>(type)) return 64;
-  llvm::report_fatal_error("unsupported integer type");
+FailureOr<unsigned> getBitWidthForIntegerType(Type type) {
+  if (isa<IntegerSI4V1Type>(type) || isa<IntegerUI4V1Type>(type)) return 4u;
+  if (isa<IntegerSI8V1Type>(type) || isa<IntegerUI8V1Type>(type)) return 8u;
+  if (isa<IntegerSI16V1Type>(type) || isa<IntegerUI16V1Type>(type)) return 16u;
+  if (isa<IntegerSI32V1Type>(type) || isa<IntegerUI32V1Type>(type)) return 32u;
+  if (isa<IntegerSI64V1Type>(type) || isa<IntegerUI64V1Type>(type)) return 64u;
+  return failure();
 }
 }  // namespace
 
@@ -879,7 +881,9 @@ IntegerV1Attr VhloBytecodeInterface::readIntegerV1Attr(
   if (isa<IndexV1Type>(type)) {
     bitWidth = IndexType::kInternalStorageBitWidth;
   } else {
-    bitWidth = getBitWidthForIntegerType(type);
+    FailureOr<unsigned> width = getBitWidthForIntegerType(type);
+    if (failed(width)) return IntegerV1Attr();
+    bitWidth = *width;
   }
 
   FailureOr<APInt> value = reader.readAPIntWithKnownWidth(bitWidth);
