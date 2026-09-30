@@ -59,6 +59,7 @@ def VHLO_Dialect : Dialect {
       1.18.0: Add `result_tilings` attribute to `custom_call` op.
       1.19.0: Add CollectiveReduceOp.
       1.20.0: Add has_dynamic_root to collective_broadcast op. Allow mixed fp8 operands in `convolution` and `dynamic_conv` ops.
+      1.21.0: Add F8E4M3FN_F8E4M3FN_F32_X3 and F8E4M3FN_F8E4M3FN_F32_X4 dot algorithms.
   }];
 
   let useDefaultAttributePrinterParser = 0;

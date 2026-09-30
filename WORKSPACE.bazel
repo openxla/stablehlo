@@ -119,6 +119,7 @@ http_archive(
     ],
 )
 
+# Required by the LLVM Bazel overlay (`@llvm-project//third-party:lzma`).
 http_archive(
     name = "llvm_xz",
     build_file = "//third_party:xz.BUILD",
