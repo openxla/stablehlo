@@ -17,6 +17,7 @@ limitations under the License.
 #ifndef STABLEHLO_CONVERSIONS_LINALG_TRANSFORMS_MAP_STABLEHLO_TO_SCALAR_OP_H
 #define STABLEHLO_CONVERSIONS_LINALG_TRANSFORMS_MAP_STABLEHLO_TO_SCALAR_OP_H
 
+#include <cmath>
 #include <optional>
 
 #include "llvm/ADT/ArrayRef.h"
@@ -93,6 +94,10 @@ struct StablehloToScalarOp<stablehlo::Expm1Op> {
   using COp = ::mlir::complex::Expm1Op;
 };
 template <>
+struct StablehloToScalarOp<stablehlo::Exp2Op> {
+  using FOp = ::mlir::math::Exp2Op;
+};
+template <>
 struct StablehloToScalarOp<stablehlo::FloorOp> {
   using FOp = ::mlir::math::FloorOp;
 };
@@ -105,6 +110,10 @@ template <>
 struct StablehloToScalarOp<stablehlo::Log1pOp> {
   using FOp = ::mlir::math::Log1pOp;
   using COp = ::mlir::complex::Log1pOp;
+};
+template <>
+struct StablehloToScalarOp<stablehlo::Log2Op> {
+  using FOp = ::mlir::math::Log2Op;
 };
 template <>
 struct StablehloToScalarOp<stablehlo::MulOp> {
@@ -670,6 +679,46 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ImagOp>(
         *b, loc, b->getZeroAttr(adaptor.getOperand().getType()));
   return MapStablehloOpToScalarOpImpl<complex::ImOp>{}(
       loc, resultTypes, argTypes, adaptor.getOperands(), b);
+}
+
+template <>
+inline Value mapStablehloOpToStdScalarOp<stablehlo::Exp2Op>(
+    Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
+    stablehlo::Exp2Op::Adaptor adaptor, OpBuilder* b) {
+  Type type = adaptor.getOperand().getType();
+  if (!isa<ComplexType>(type))
+    return MapStablehloOpToScalarOpImpl<IsFloatType, math::Exp2Op>{}(
+        loc, resultTypes, argTypes, adaptor.getOperands(), b);
+  auto complexTy = cast<ComplexType>(type);
+  auto floatTy = complexTy.getElementType();
+  Value ln2 =
+      arith::ConstantOp::create(*b, loc, b->getFloatAttr(floatTy, M_LN2));
+  Value re = complex::ReOp::create(*b, loc, floatTy, adaptor.getOperand());
+  Value im = complex::ImOp::create(*b, loc, floatTy, adaptor.getOperand());
+  Value scaled = complex::CreateOp::create(
+      *b, loc, complexTy, arith::MulFOp::create(*b, loc, re, ln2),
+      arith::MulFOp::create(*b, loc, im, ln2));
+  return complex::ExpOp::create(*b, loc, scaled);
+}
+
+template <>
+inline Value mapStablehloOpToStdScalarOp<stablehlo::Log2Op>(
+    Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
+    stablehlo::Log2Op::Adaptor adaptor, OpBuilder* b) {
+  Type type = adaptor.getOperand().getType();
+  if (!isa<ComplexType>(type))
+    return MapStablehloOpToScalarOpImpl<IsFloatType, math::Log2Op>{}(
+        loc, resultTypes, argTypes, adaptor.getOperands(), b);
+  auto complexTy = cast<ComplexType>(type);
+  auto floatTy = complexTy.getElementType();
+  Value logZ = complex::LogOp::create(*b, loc, adaptor.getOperand());
+  Value oneOverLn2 =
+      arith::ConstantOp::create(*b, loc, b->getFloatAttr(floatTy, M_LOG2E));
+  Value re = complex::ReOp::create(*b, loc, floatTy, logZ);
+  Value im = complex::ImOp::create(*b, loc, floatTy, logZ);
+  return complex::CreateOp::create(
+      *b, loc, complexTy, arith::MulFOp::create(*b, loc, re, oneOverLn2),
+      arith::MulFOp::create(*b, loc, im, oneOverLn2));
 }
 
 // 'target_types' is the unconverted type (signed or unsigned if integer),

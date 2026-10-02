@@ -424,6 +424,15 @@ operation.
 MlirOp Einsum(Type resultType, MlirOp &lhs, MlirOp &rhs, ::llvm::StringRef einsum_config);
 ```
 
+### `stablehlo::Exp2Op`
+
+Creates a new [`stablehlo.exp2`](https://openxla.org/stablehlo/spec#exp2)
+operation.
+
+```c++
+MlirOp Exp2(MlirOp &operand, /*optional*/::mlir::stablehlo::ResultAccuracyAttr result_accuracy = {});
+```
+
 ### `stablehlo::ExpOp`
 
 Creates a new [`stablehlo.exponential`](https://openxla.org/stablehlo/spec#exponential)
@@ -541,6 +550,15 @@ operation.
 
 ```c++
 MlirOp Log1p(MlirOp &operand, /*optional*/::mlir::stablehlo::ResultAccuracyAttr result_accuracy = {});
+```
+
+### `stablehlo::Log2Op`
+
+Creates a new [`stablehlo.log2`](https://openxla.org/stablehlo/spec#log2)
+operation.
+
+```c++
+MlirOp Log2(MlirOp &operand, /*optional*/::mlir::stablehlo::ResultAccuracyAttr result_accuracy = {});
 ```
 
 ### `stablehlo::LogOp`
