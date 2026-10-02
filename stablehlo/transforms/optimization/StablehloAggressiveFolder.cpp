@@ -1661,12 +1661,31 @@ struct FoldExpOpPattern : public FoldUnaryOpPattern<FoldExpOpPattern, ExpOp> {
   }
 };
 
+struct FoldExp2OpPattern
+    : public FoldUnaryOpPattern<FoldExp2OpPattern, Exp2Op> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return std::exp2(operand);
+  }
+};
+
 struct FoldLogOpPattern : public FoldUnaryOpPattern<FoldLogOpPattern, LogOp> {
   using FoldUnaryOpPattern::FoldUnaryOpPattern;
 
   static std::optional<double> EvaluateOp(double operand) {
     if (operand <= 0.0) return std::nullopt;
     return std::log(operand);
+  }
+};
+
+struct FoldLog2OpPattern
+    : public FoldUnaryOpPattern<FoldLog2OpPattern, Log2Op> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    if (operand <= 0.0) return std::nullopt;
+    return std::log2(operand);
   }
 };
 
@@ -2222,8 +2241,10 @@ void populateStablehloAggressiveFolderPatterns(
                 FoldCosineOpPattern,                  //
                 FoldErfOpPattern,                     //
                 FoldExpOpPattern,                     //
+                FoldExp2OpPattern,                    //
                 FoldIotaOpPattern,                    //
                 FoldLogOpPattern,                     //
+                FoldLog2OpPattern,                    //
                 FoldLogisticOpPattern,                //
                 FoldNegOpPattern,                     //
                 FoldNotOpPattern,                     //

@@ -844,6 +844,14 @@ Element exponentialMinusOne(const Element& el) {
       });
 }
 
+Element exp2(const Element& el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::exp2(e); },
+      [](mlir::Complex<double> e) {
+        return std::pow(mlir::Complex<double>(2.0, 0.0), e);
+      });
+}
+
 Element floor(const Element& el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardNegative);
@@ -888,6 +896,12 @@ Element logPlusOne(const Element& el) {
       [](mlir::Complex<double> e) {
         return std::log(e + mlir::Complex<double>(1.0));
       });
+}
+
+Element log2(const Element& el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::log2(e); },
+      [](mlir::Complex<double> e) { return std::log(e) / std::log(2.0); });
 }
 
 Element logistic(const Element& el) {

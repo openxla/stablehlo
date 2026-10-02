@@ -771,6 +771,10 @@ SmallVector<InterpreterValue> eval(Region& region,
       auto operand = scope.findTensor(op.getOperand());
       auto result = expm1Op(operand, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<Exp2Op>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto result = exp2Op(operand, op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<FftOp>(operation)) {
       const auto operand = scope.findTensor(op.getOperand());
       const auto fftType = op.getFftType();
@@ -827,6 +831,10 @@ SmallVector<InterpreterValue> eval(Region& region,
     } else if (auto op = dyn_cast<Log1pOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto result = log1pOp(operand, op.getType());
+      scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<Log2Op>(operation)) {
+      auto operand = scope.findTensor(op.getOperand());
+      auto result = log2Op(operand, op.getType());
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<LogOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
@@ -1932,6 +1940,13 @@ Tensor expm1Op(const Tensor& operand, ShapedType resultType) {
   return result;
 }
 
+Tensor exp2Op(const Tensor& operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, exp2(operand.get(*it)));
+  return result;
+}
+
 Tensor exponentialOp(const Tensor& operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -2186,6 +2201,13 @@ Tensor log1pOp(const Tensor& operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, logPlusOne(operand.get(*it)));
+  return result;
+}
+
+Tensor log2Op(const Tensor& operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, log2(operand.get(*it)));
   return result;
 }
 

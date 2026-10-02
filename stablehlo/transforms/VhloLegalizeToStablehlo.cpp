@@ -1045,8 +1045,10 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
                 std::is_same<VhloOpTy, vhlo::CosineOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::ExpOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::Expm1OpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::Exp2OpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::LogOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::Log1pOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::Log2OpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::LogisticOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::RsqrtOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::SineOpV2>::value ||
