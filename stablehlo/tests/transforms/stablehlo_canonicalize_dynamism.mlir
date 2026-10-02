@@ -168,6 +168,18 @@ func.func @dynamic_broadcast_in_dim_success(%arg0: tensor<4xf32>) -> tensor<3x4x
 
 // -----
 
+// CHECK-LABEL: func @dynamic_broadcast_in_dim_discardable_attrs
+func.func @dynamic_broadcast_in_dim_discardable_attrs(%arg0: tensor<4xf32>) -> tensor<3x4xf32> {
+  //  CHECK-NOT: stablehlo.dynamic_broadcast_in_dim
+  //      CHECK: stablehlo.broadcast_in_dim %arg0, dims = [1]
+  // CHECK-SAME:   {mhlo.frontend_attributes = {MUST_FUSE = "0"}}
+  %0 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
+  %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<4xf32>, tensor<2xi64>) -> tensor<3x4xf32>
+  return %1 : tensor<3x4xf32>
+}
+
+// -----
+
 // CHECK-LABEL: func @dynamic_broadcast_in_dim_inapplicable_dynamic_operand_type
 func.func @dynamic_broadcast_in_dim_inapplicable_dynamic_operand_type(%arg0: tensor<?xf32>) -> tensor<3x4xf32> {
   // CHECK: stablehlo.dynamic_broadcast_in_dim
@@ -219,6 +231,26 @@ func.func @dynamic_conv_success_static_result_type(%arg0: tensor<100x26x26x32xf3
     rhs_dilation = array<i64: 1, 1>,
     feature_group_count = 1 : i64,
     batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>, tensor<2x2xi32>) -> tensor<100x28x28x1xf32>
+  return %1 : tensor<100x28x28x1xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @dynamic_conv_discardable_attrs
+func.func @dynamic_conv_discardable_attrs(%arg0: tensor<100x26x26x32xf32>, %arg1: tensor<3x3x1x32xf32>) -> tensor<100x28x28x1xf32> {
+  //  CHECK-NOT: stablehlo.dynamic_conv
+  //      CHECK: stablehlo.convolution(%arg0, %arg1)
+  // CHECK-SAME:   mhlo.frontend_attributes = {MUST_FUSE = "0"}
+  %0 = stablehlo.constant dense<2> : tensor<2x2xi32>
+  %1 = "stablehlo.dynamic_conv"(%arg0, %arg1, %0) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = array<i64: 1, 1>,
+    lhs_dilation = array<i64: 1, 1>,
+    rhs_dilation = array<i64: 1, 1>,
+    feature_group_count = 1 : i64,
+    batch_group_count = 1 : i64,
+    mhlo.frontend_attributes = {MUST_FUSE = "0"}
   } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>, tensor<2x2xi32>) -> tensor<100x28x28x1xf32>
   return %1 : tensor<100x28x28x1xf32>
 }
@@ -295,6 +327,25 @@ func.func @dynamic_gather_success_static_result_type(%arg0 : tensor<2x4x9xi32>, 
 
 // -----
 
+// CHECK-LABEL: @dynamic_gather_discardable_attrs
+func.func @dynamic_gather_discardable_attrs(%arg0 : tensor<2x4x9xi32>, %arg1 : tensor<1x5x2xi32>) -> tensor<1x5x8xi32> {
+  //  CHECK-NOT: stablehlo.dynamic_gather
+  //      CHECK: "stablehlo.gather"(%arg0, %arg1)
+  // CHECK-SAME:   {mhlo.frontend_attributes = {MUST_FUSE = "0"}}
+  %0 = stablehlo.constant dense<[1, 1, 8]> : tensor<3xi32>
+  %1 = "stablehlo.dynamic_gather"(%arg0, %arg1, %0) <{
+    dimension_numbers = #stablehlo.gather<
+      collapsed_slice_dims = [0, 1],
+      index_vector_dim = 2,
+      offset_dims = [2],
+      start_index_map = [0, 1]
+    >
+  }> {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x8xi32>
+  return %1 : tensor<1x5x8xi32>
+}
+
+// -----
+
 // CHECK-LABEL: @dynamic_gather_success_dynamic_result_type
 func.func @dynamic_gather_success_dynamic_result_type(%arg0 : tensor<2x4x9xi32>, %arg1 : tensor<1x5x2xi32>) -> tensor<1x5x?xi32> {
   //  CHECK-NOT: stablehlo.dynamic_gather
@@ -348,6 +399,18 @@ func.func @dynamic_iota_success() -> tensor<4xf32> {
 
 // -----
 
+// CHECK-LABEL: func @dynamic_iota_discardable_attrs
+func.func @dynamic_iota_discardable_attrs() -> tensor<4xf32> {
+  //  CHECK-NOT: stablehlo.dynamic_iota
+  //      CHECK: stablehlo.iota
+  // CHECK-SAME:   {mhlo.frontend_attributes = {MUST_FUSE = "0"}}
+  %0 = stablehlo.constant dense<4> : tensor<1xi64>
+  %1 = stablehlo.dynamic_iota %0, dim = 0 {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<1xi64>) -> tensor<4xf32>
+  return %1 : tensor<4xf32>
+}
+
+// -----
+
 // CHECK-LABEL: func @dynamic_iota_inapplicable_dynamic_output_shape
 func.func @dynamic_iota_inapplicable_dynamic_output_shape(%arg0: tensor<1xi64>) -> tensor<4xf32> {
   // CHECK: stablehlo.dynamic_iota
@@ -375,6 +438,20 @@ func.func @dynamic_pad_success_static_result_type(%arg0: tensor<4xf32>, %arg1: t
   %1 = stablehlo.constant dense<1> : tensor<1xi64>
   %2 = stablehlo.constant dense<2> : tensor<1xi64>
   %3 = stablehlo.dynamic_pad %arg0, %arg1, %0, %1, %2 : (tensor<4xf32>, tensor<f32>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<11xf32>
+  return %3 : tensor<11xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @dynamic_pad_discardable_attrs
+func.func @dynamic_pad_discardable_attrs(%arg0: tensor<4xf32>, %arg1: tensor<f32>) -> tensor<11xf32> {
+  //  CHECK-NOT: stablehlo.dynamic_pad
+  //      CHECK: stablehlo.pad
+  // CHECK-SAME:   {mhlo.frontend_attributes = {MUST_FUSE = "0"}}
+  %0 = stablehlo.constant dense<0> : tensor<1xi64>
+  %1 = stablehlo.constant dense<1> : tensor<1xi64>
+  %2 = stablehlo.constant dense<2> : tensor<1xi64>
+  %3 = stablehlo.dynamic_pad %arg0, %arg1, %0, %1, %2 {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<4xf32>, tensor<f32>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<11xf32>
   return %3 : tensor<11xf32>
 }
 
@@ -432,6 +509,17 @@ func.func @dynamic_reshape_success(%arg0: tensor<4xf32>) -> tensor<1x4xf32> {
   // CHECK: stablehlo.reshape %arg0 : (tensor<4xf32>) -> tensor<1x4xf32>
   %0 = stablehlo.constant dense<[1, 4]> : tensor<2xi64>
   %1 = stablehlo.dynamic_reshape %arg0, %0 : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x4xf32>
+  return %1 : tensor<1x4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @dynamic_reshape_discardable_attrs
+func.func @dynamic_reshape_discardable_attrs(%arg0: tensor<4xf32>) -> tensor<1x4xf32> {
+  //  CHECK-NOT: stablehlo.dynamic_reshape
+  //      CHECK: stablehlo.reshape %arg0 {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<4xf32>) -> tensor<1x4xf32>
+  %0 = stablehlo.constant dense<[1, 4]> : tensor<2xi64>
+  %1 = stablehlo.dynamic_reshape %arg0, %0 {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x4xf32>
   return %1 : tensor<1x4xf32>
 }
 
