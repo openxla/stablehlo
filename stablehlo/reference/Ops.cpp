@@ -1777,12 +1777,8 @@ Tensor convolutionOp(
         dotGeneralOp(reversedLhsWindow, rhs, lhsContractingDimensions,
                      rhsContractingDimensions, resultType.getElementType());
 
-    Sizes resultNonSpatialDims;
-    for (auto i = 0; i < result.getRank(); ++i)
-      if (llvm::find(outputSpatialDimensions, i) ==
-          outputSpatialDimensions.end())
-        resultNonSpatialDims.push_back(result.getShape()[i]);
-
+    Sizes resultNonSpatialDims{result.getShape()[outputBatchDimension],
+                               result.getShape()[outputFeatureDimension]};
     Axes resultPermutation;
     resultPermutation.push_back(outputBatchDimension);
     resultPermutation.append(outputSpatialDimensions.begin(),
