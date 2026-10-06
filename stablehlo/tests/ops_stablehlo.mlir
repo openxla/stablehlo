@@ -6902,6 +6902,26 @@ func.func @custom_call_unpin_with_output_operand_alias(%arg0: memref<2xf32>) -> 
   func.return %0 : tensor<2xf32>
 }
 
+// -----
+
+func.func @custom_call_fan_out_single_output(%arg0: memref<2xf32>) -> memref<2xf32> {
+  // expected-error@+1 {{FanOut custom_call should have at least two outputs}}
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "FanOut"
+  } : (memref<2xf32>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
+// -----
+
+func.func @custom_call_fan_in_incompatible_stream_shape(%arg0: memref<2xf32>, %arg1: memref<4xf32>) -> memref<2xf32> {
+  // expected-error@+1 {{FanIn custom_call should have compatible input and output types}}
+  %0 = "stablehlo.custom_call"(%arg0, %arg1) {
+    call_target_name = "FanIn"
+  } : (memref<2xf32>, memref<4xf32>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
 func.func @custom_call_buffer_operand_in_multiple_output_operand_aliases(%arg0: tensor<2xf32>, %arg1: memref<2xf32>) -> (memref<2xf32>, memref<2xf32>) {
   // expected-error@+1 {{buffer operand 1[] is used in output_operand_alias more than once}}
   %0:2 = "stablehlo.custom_call"(%arg0, %arg1) {
