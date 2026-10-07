@@ -3637,9 +3637,9 @@ More formally, `result[result_index]` is defined as:
 Performs element-wise base-2 exponential operation on `operand` tensor and
 produces a `result` tensor. Depending on the element type, does the following:
 
-*   For floats: `exp2` from IEEE-754.
-*   For complex numbers: complex base-2 exponential.
-*   For quantized types: `dequantize_op_quantize(exp2, operand, type(result))`.
+* For floats: `exp2` from IEEE-754.
+* For complex numbers: complex base-2 exponential.
+* For quantized types: `dequantize_op_quantize(exp2, operand, type(result))`.
 
 #### Inputs
 
@@ -3663,7 +3663,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 #### Constraints
 
-*   (C1) `baseline_type(operand) = baseline_type(result)`.
+* (C1) `baseline_type(operand) = baseline_type(result)`.
 
 #### Examples
 
@@ -4411,9 +4411,9 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 Performs element-wise base-2 logarithm operation on `operand` tensor and
 produces a `result` tensor. Depending on the element type, does the following:
 
-*   For floats: `log2` from IEEE-754.
-*   For complex numbers: complex base-2 logarithm.
-*   For quantized types: `dequantize_op_quantize(log2, operand, type(result))`.
+* For floats: `log2` from IEEE-754.
+* For complex numbers: complex base-2 logarithm.
+* For quantized types: `dequantize_op_quantize(log2, operand, type(result))`.
 
 #### Inputs
 
@@ -4437,7 +4437,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 #### Constraints
 
-*   (C1) `baseline_type(operand) = baseline_type(result)`.
+* (C1) `baseline_type(operand) = baseline_type(result)`.
 
 #### Examples
 
@@ -7597,8 +7597,7 @@ For describing syntax, this document is using the modified ISO flavor of EBNF
 syntax ([ISO/IEC 14977:1996](https://www.iso.org/standard/26153.html),
 [Wikipedia](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form)),
 with two modifications: 1) rules are defined using `::=` rather than `=`,
-
-2) concatenation is expressed using juxtaposition rather than `,`.
+2\) concatenation is expressed using juxtaposition rather than `,`.
 
 For describing semantics (i.e. within "Types", "Constants" and "Ops" sections),
 we are using formulas which are based on Python syntax extended with support
@@ -7668,8 +7667,7 @@ only has `true` elements.
 ### Names
 
 In formulas, lexical scope includes: 1) global functions, 2) member definitions,
-
-3) local definitions. The list of global functions is provided below. The list
+3\) local definitions. The list of global functions is provided below. The list
 of element definitions depends on the program element that the notation is
 applied to:
 
