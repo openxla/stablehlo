@@ -392,6 +392,11 @@ to the `Unused` production, so that they can be distinguished from each other.
 StableHLO doesn't have jump ops, so the corresponding part of MLIR syntax is
 unused (but is still there).
 
+Input functions can reference values defined in the enclosing scope. For
+example, in the `case` op, the branch functions can use values defined before
+the `case` op. This is consistent with MLIR's region semantics where regions
+can capture values from their parent region.
+
 ```ebnf
 OpInputAttr      ::= OpInputAttrName '=' OpInputAttrValue
 OpInputAttrName  ::= letter {letter | digit}
@@ -464,6 +469,7 @@ Constant ::= BooleanConstant
            | TensorConstant
            | QuantizedTensorConstant
            | StringConstant
+           | ArrayConstant
            | EnumConstant
 ```
 
@@ -583,6 +589,25 @@ escapeSequence  ::= '\' ('"' | '\' | 'n' | 't' | (hexadecimalDigit hexadecimalDi
 **String literals** consist of bytes specified using ASCII characters and
 escape sequences. They are encoding-agnostic, so the interpretation of these
 bytes is implementation-defined. String literals have type `string`.
+
+```ebnf
+ArrayConstant      ::= ArrayLiteral
+ArrayLiteral       ::= 'array' '<' ArrayElementType [':' ArrayElements] '>'
+ArrayElementType   ::= IntegerType | FloatType
+ArrayElements      ::= ArrayElement {',' ArrayElement}
+ArrayElement       ::= IntegerLiteral | FloatLiteral | BooleanLiteral
+```
+
+**Array constants** represent one-dimensional arrays of integer, floating-point,
+or boolean values. They use the syntax `array<element_type: values>`, for
+example, `array<i64: 2, 1>` represents a 1-dimensional array containing the
+64-bit integers 2 and 1. An empty array is written as `array<element_type>`
+without the colon or values. Array constants are primarily used as input
+attributes for operations that require lists of static integer or
+floating-point values (e.g. `broadcast_dimensions`, `window_strides`,
+`fft_length`). Array constants have the following constraints:
+
+* (C1) `is_wellformed(array_elements..., array_element_type)`.
 
 ## Ops
 
