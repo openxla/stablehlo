@@ -1016,8 +1016,9 @@ func.func @eval_convert_f64_precision_loss() -> (tensor<1xf32>, tensor<f32>) {
 
 // -----
 
-// CHECK-LABEL: func @eval_convert_to_unsigned_float
-func.func @eval_convert_to_unsigned_float() -> (tensor<9xf8E8M0FNU>, tensor<5xf8E8M0FNU>, tensor<4xf8E8M0FNU>, tensor<6xf8E8M0FNU>) {
+// F8E8M0FNU is unsigned and cannot represent zero
+// CHECK-LABEL: func @eval_convert_to_f8e8m0fnu
+func.func @eval_convert_to_f8e8m0fnu() -> (tensor<9xf8E8M0FNU>, tensor<5xf8E8M0FNU>, tensor<4xf8E8M0FNU>, tensor<6xf8E8M0FNU>) {
   // CHECK-DAG: [[R0:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 0xFF, 5.877470e-39, 1.000000e+00, 2.000000e+00, 0xFF, 0xFF, 0xFF]> : tensor<9xf8E8M0FNU>
   // CHECK-DAG: [[R1:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 5.877470e-39, 1.000000e+00, 2.000000e+00]> : tensor<5xf8E8M0FNU>
   // CHECK-DAG: [[R2:%.*]] = stablehlo.constant dense<[5.877470e-39, 1.000000e+00, 2.000000e+00, 1.280000e+02]> : tensor<4xf8E8M0FNU>
@@ -1032,6 +1033,38 @@ func.func @eval_convert_to_unsigned_float() -> (tensor<9xf8E8M0FNU>, tensor<5xf8
   %6 = stablehlo.convert %2 : (tensor<4xui8>) -> tensor<4xf8E8M0FNU>
   %7 = stablehlo.convert %3 : (tensor<6xbf16>) -> tensor<6xf8E8M0FNU>
   func.return %4, %5, %6, %7 : tensor<9xf8E8M0FNU>, tensor<5xf8E8M0FNU>, tensor<4xf8E8M0FNU>, tensor<6xf8E8M0FNU>
+}
+
+// -----
+
+// F8E5M3FNU is unsigned
+// CHECK-LABEL: func @eval_convert_to_f8e5m3fnu
+func.func @eval_convert_to_f8e5m3fnu() -> (tensor<13xf8E5M3FNU>, tensor<5xf8E5M3FNU>, tensor<4xf8E5M3FNU>, tensor<6xf8E5M3FNU>) {
+  // CHECK-DAG: [[R0:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 0.000000e+00, 0.000000e+00, 1.000000e+00, 2.000000e+00, 3.250000e+00, 7.629390e-06, 1.146880e+05, 0xFF, 0xFF, 0xFF, 0xFF]> : tensor<13xf8E5M3FNU>
+  // CHECK-DAG: [[R1:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 0.000000e+00, 1.000000e+00, 2.000000e+00]> : tensor<5xf8E5M3FNU>
+  // CHECK-DAG: [[R2:%.*]] = stablehlo.constant dense<[0.000000e+00, 1.000000e+00, 2.000000e+00, 1.280000e+02]> : tensor<4xf8E5M3FNU>
+  // CHECK-DAG: [[R3:%.*]] = stablehlo.constant dense<[0xFF, 0.000000e+00, 0.000000e+00, 1.000000e+00, 0xFF, 0xFF]> : tensor<6xf8E5M3FNU>
+  // CHECK: return [[R0]], [[R1]], [[R2]], [[R3]] : tensor<13xf8E5M3FNU>, tensor<5xf8E5M3FNU>, tensor<4xf8E5M3FNU>, tensor<6xf8E5M3FNU>
+  %0 = stablehlo.constant dense<[0x80000001, -1.0, -0.0, 0.0, 1.0, 2.0, 3.1415, 7.62939e-06, 114688.0, 131072.0, 0xFF800000, 0xFFC00000, 0x7F800000]> : tensor<13xf32>
+  %1 = stablehlo.constant dense<[-2, -1, 0, 1, 2]> : tensor<5xi32>
+  %2 = stablehlo.constant dense<[0, 1, 2, 128]> : tensor<4xui8>
+  %3 = stablehlo.constant dense<[-1.0, -0.0, 0.0, 1.0, 0xFF80, 0xFFC0]> : tensor<6xbf16>
+  %4 = stablehlo.convert %0 : (tensor<13xf32>) -> tensor<13xf8E5M3FNU>
+  %5 = stablehlo.convert %1 : (tensor<5xi32>) -> tensor<5xf8E5M3FNU>
+  %6 = stablehlo.convert %2 : (tensor<4xui8>) -> tensor<4xf8E5M3FNU>
+  %7 = stablehlo.convert %3 : (tensor<6xbf16>) -> tensor<6xf8E5M3FNU>
+  func.return %4, %5, %6, %7 : tensor<13xf8E5M3FNU>, tensor<5xf8E5M3FNU>, tensor<4xf8E5M3FNU>, tensor<6xf8E5M3FNU>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_convert_f8e5m3fnu_to_f32
+func.func @eval_convert_f8e5m3fnu_to_f32() -> tensor<6xf32> {
+  // CHECK: [[R0:%.*]] = stablehlo.constant dense<[0.000000e+00, 7.62939453E-6, 6.10351563E-5, 1.000000e+00, 1.146880e+05, 0x7FF00000]> : tensor<6xf32>
+  // CHECK: return [[R0]] : tensor<6xf32>
+  %0 = stablehlo.constant dense<[0.0, 0x01, 0x08, 1.0, 0xFE, 0xFF]> : tensor<6xf8E5M3FNU>
+  %1 = stablehlo.convert %0 : (tensor<6xf8E5M3FNU>) -> tensor<6xf32>
+  func.return %1 : tensor<6xf32>
 }
 
 // -----

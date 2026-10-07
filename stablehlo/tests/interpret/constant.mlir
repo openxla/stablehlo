@@ -183,6 +183,14 @@ func.func @constant_op_test_f8_e5m2_fnuz() {
 
 // -----
 
+func.func @constant_op_test_f8_e5m3fnu() {
+  %0 = stablehlo.constant dense<[0.0, 1.0, 0.125, 0.1, 3.1415, 0x01, 0x08, 0x78, 0xFE, 0xFF]> : tensor<10xf8E5M3FNU>
+  check.expect_almost_eq_const %0, dense<[0.0, 1.0, 0.125, 0.1015625, 3.25, 0.00000762939, 0.0000610352, 1.0, 114688.0, 0xFF]> : tensor<10xf8E5M3FNU>
+  func.return
+}
+
+// -----
+
 func.func @constant_op_test_f8_e8m0fnu() {
   %0 = stablehlo.constant dense<[0.0, 1.0, 0.125, 0.1, 3.1415, 0x00, 0x80, 0xFF]> : tensor<8xf8E8M0FNU>
   check.expect_almost_eq_const %0, dense<[0.0, 1.0, 0.125, 0.125, 4.0, 1.175490e-38, 2.0, 0xFF]> : tensor<8xf8E8M0FNU>

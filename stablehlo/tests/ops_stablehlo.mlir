@@ -6587,6 +6587,14 @@ func.func @f8e5m2fnuz(%arg0: tensor<f16>) -> tensor<f8E5M2FNUZ> {
 
 // -----
 
+// CHECK-LABEL: func @f8e5m3fnu
+func.func @f8e5m3fnu(%arg0: tensor<f16>) -> tensor<f8E5M3FNU> {
+  %0 = "stablehlo.convert"(%arg0) : (tensor<f16>) -> tensor<f8E5M3FNU>
+  func.return %0 : tensor<f8E5M3FNU>
+}
+
+// -----
+
 // CHECK-LABEL: func @f8e8m0fnu
 func.func @f8e8m0fnu(%arg0: tensor<f16>) -> tensor<f8E8M0FNU> {
   %0 = "stablehlo.convert"(%arg0) : (tensor<f16>) -> tensor<f8E8M0FNU>

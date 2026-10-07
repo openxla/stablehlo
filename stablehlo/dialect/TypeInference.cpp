@@ -90,7 +90,8 @@ bool isFp8Type(mlir::Type type) {
   return llvm::isa<mlir::Float8E3M4Type, mlir::Float8E4M3Type,
                    mlir::Float8E4M3FNType, mlir::Float8E5M2Type,
                    mlir::Float8E4M3FNUZType, mlir::Float8E4M3B11FNUZType,
-                   mlir::Float8E5M2FNUZType, mlir::Float8E8M0FNUType>(type);
+                   mlir::Float8E5M2FNUZType, mlir::Float8E5M3FNUType,
+                   mlir::Float8E8M0FNUType>(type);
 }
 
 template <typename T>

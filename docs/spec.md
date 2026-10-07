@@ -270,7 +270,8 @@ SignedIntegerType ::= 'si2' | 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
 UnsignedIntegerType ::= 'ui2' | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
 FloatType ::= 'f4E2M1FN' | 'f6E2M3FN' | 'f6E3M2FN' | 'f8E3M4' | 'f8E4M3'
             | 'f8E4M3FN' | 'f8E4M3FNUZ' | 'f8E4M3B11FNUZ' | 'f8E5M2'
-            | 'f8E5M2FNUZ' | 'f8E8M0FNU' | 'bf16' | 'f16' | 'f32' | 'f64'
+            | 'f8E5M2FNUZ' | 'f8E5M3FNU' | 'f8E8M0FNU' | 'bf16' | 'f16'
+            | 'f32' | 'f64'
 TensorFloat32 ::= 'tf32'
 ComplexType ::= 'complex' '<' ComplexElementType '>'
 ComplexElementType ::= 'f32' | 'f64'
@@ -311,6 +312,8 @@ values of type `tensor<T>`).
   * `f4E2M1FN`, `f6E2M3FN`, `f6E3M2FN` and `f8E8M0FNU` MX (microscaling) types
     described in
     [OCP Microscaling Formats Specification](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf).
+  * `f8E5M3FNU` type corresponding to the `ue5m3` format described in
+    [PTX Alternate Floating Point Data Formats](https://docs.nvidia.com/cuda/parallel-thread-execution/#alternate-floating-point-data-formats).
 * **Complex types** represent complex values that have a **real part**
   and an **imaginary part** of the same **element type**. Supported complex
   types are `complex<f32>` (both parts are of type `f32`) and `complex<f64>`
@@ -7848,9 +7851,9 @@ def is_promotable(x: Type, y: Type) -> Value:
 
 * `is_fp8(x: Value | Placeholder | Type) -> Value` returns `true` if `x` is one
 of `Float8E4M3Type`, `Float8E4M3FNType`, `Float8E4M3B11FNUZType`,
-`Float8E4M3FNUZType`, `Float8E5M2Type`, `Float8E5M2FNUZType`, `Float8E3M4Type`,
-or `Float8E8M0FNUType`. If `x` is a value or placeholder, this function is a
-shortcut for `is_fp8(type(x))`.
+`Float8E4M3FNUZType`, `Float8E5M2Type`, `Float8E5M2FNUZType`,
+`Float8E5M3FNUType`, `Float8E3M4Type`, or `Float8E8M0FNUType`. If `x` is a
+value or placeholder, this function is a shortcut for `is_fp8(type(x))`.
 
 * `is_quantized(x: Value | Placeholder | Type) -> Value` is a shortcut for
 `is_quantized_tensor_element_type(x)`.

@@ -1392,6 +1392,33 @@ TEST(MlirBuilderTest, ConstantF8E5M2FNUZArray) {
   EXPECT_EQ(expected, debugString(*module));
 }
 
+TEST(MlirBuilderTest, ConstantF8E5M3FNUArray) {
+  std::string expected = R"mlir(module {
+  func.func @main() -> tensor<10xf8E5M3FNU> {
+    %cst = stablehlo.constant dense<[0.000000e+00, 1.000000e+00, 1.250000e-01, 1.015630e-01, 3.250000e+00, 1.146880e+05, 0xFF, 7.629390e-06, 0.000000e+00, 0xFF]> : tensor<10xf8E5M3FNU>
+    return %cst : tensor<10xf8E5M3FNU>
+  }
+})mlir";
+
+  StablehloModuleBuilder mb;
+  {
+    Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
+    func::FunctionBuilder fb(mb.get(), "main", funcLoc);
+    auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E5M3FNU);
+    double posMax = 114688.0;
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-17;
+    auto cst = stablehlo::Constant(
+        fb, makeConstant(ArrayRef<double>({0.0, 1.0, 0.125, 0.1, 3.1415, posMax,
+                                           nan, posMinDenorm, -0.0, -1.0}),
+                         type));
+    func::Return(fb, {cst});
+  }
+
+  OwningOpRef<ModuleOp> module = mb->build();
+  EXPECT_EQ(expected, debugString(*module));
+}
+
 TEST(MlirBuilderTest, ConstantF8E8M0FNUArray) {
   std::string expected = R"mlir(module {
   func.func @main() -> tensor<8xf8E8M0FNU> {

@@ -363,7 +363,8 @@ bool isVhloFp8Type(Type type) {
   return isa<vhlo::FloatF8E3M4V1Type, vhlo::FloatF8E4M3V1Type,
              vhlo::FloatF8E4M3FNV1Type, vhlo::FloatF8E5M2V1Type,
              vhlo::FloatF8E4M3FNUZV1Type, vhlo::FloatF8E4M3B11FNUZV1Type,
-             vhlo::FloatF8E5M2FNUZV1Type, vhlo::FloatF8E8M0FNUV1Type>(type);
+             vhlo::FloatF8E5M2FNUZV1Type, vhlo::FloatF8E5M3FNUV1Type,
+             vhlo::FloatF8E8M0FNUV1Type>(type);
 }
 
 LogicalResult verifyConstraint_1_20_0(mlir::Operation* op,
