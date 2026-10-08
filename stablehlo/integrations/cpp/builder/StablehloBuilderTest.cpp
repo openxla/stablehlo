@@ -1097,7 +1097,7 @@ TEST(MlirBuilderTest, ConstantUI64Array) {
 TEST(MlirBuilderTest, ConstantF4E2M1FNArray) {
   std::string expected = R"mlir(module {
   func.func @main() -> tensor<10xf4E2M1FN> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 0.000000e+00, 0.000000e+00, 3.000000e+00, 6.000000e+00, 6.000000e+00, 1.000000e+00, 6.000000e+00]> : tensor<10xf4E2M1FN>
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 0.000000e+00, 0.000000e+00, 3.000000e+00, 6.000000e+00, -6.000000e+00, 5.000000e-01, -5.000000e-01]> : tensor<10xf4E2M1FN>
     return %cst : tensor<10xf4E2M1FN>
   }
 })mlir";
@@ -1107,9 +1107,14 @@ TEST(MlirBuilderTest, ConstantF4E2M1FNArray) {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F4E2M1FN);
+    double posMax = 6.0;
+    double negMax = -6.0;
+    double posMinDenorm = 0.5;
+    double negMinDenorm = -0.5;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x07, 0x0F, 0x01, 0x09}),
+                                           posMax, negMax, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1121,7 +1126,7 @@ TEST(MlirBuilderTest, ConstantF4E2M1FNArray) {
 TEST(MlirBuilderTest, ConstantF6E2M3FNArray) {
   std::string expected = R"mlir(module {
   func.func @main() -> tensor<10xf6E2M3FN> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.250000e-01, 3.250000e+00, 7.500000e+00, 7.500000e+00, 1.000000e+00, 7.500000e+00]> : tensor<10xf6E2M3FN>
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.250000e-01, 3.250000e+00, 7.500000e+00, -7.500000e+00, 1.250000e-01, -1.250000e-01]> : tensor<10xf6E2M3FN>
     return %cst : tensor<10xf6E2M3FN>
   }
 })mlir";
@@ -1131,9 +1136,14 @@ TEST(MlirBuilderTest, ConstantF6E2M3FNArray) {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F6E2M3FN);
+    double posMax = 7.5;
+    double negMax = -7.5;
+    double posMinDenorm = 0x1p-3;
+    double negMinDenorm = -0x1p-3;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x1F, 0x3F, 0x01, 0x21}),
+                                           posMax, negMax, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1145,7 +1155,7 @@ TEST(MlirBuilderTest, ConstantF6E2M3FNArray) {
 TEST(MlirBuilderTest, ConstantF6E3M2FNArray) {
   std::string expected = R"mlir(module {
   func.func @main() -> tensor<10xf6E3M2FN> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.250000e-01, 3.000000e+00, 2.800000e+01, 2.800000e+01, 1.000000e+00, 2.800000e+01]> : tensor<10xf6E3M2FN>
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.250000e-01, 3.000000e+00, 2.800000e+01, -2.800000e+01, 6.250000e-02, -6.250000e-02]> : tensor<10xf6E3M2FN>
     return %cst : tensor<10xf6E3M2FN>
   }
 })mlir";
@@ -1155,9 +1165,14 @@ TEST(MlirBuilderTest, ConstantF6E3M2FNArray) {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {10}, ElementType::F6E3M2FN);
+    double posMax = 28.0;
+    double negMax = -28.0;
+    double posMinDenorm = 0x1p-4;
+    double negMinDenorm = -0x1p-4;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x1F, 0x3F, 0x01, 0x21}),
+                                           posMax, negMax, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1168,9 +1183,9 @@ TEST(MlirBuilderTest, ConstantF6E3M2FNArray) {
 
 TEST(MlirBuilderTest, ConstantF8E3M4Array) {
   std::string expected = R"mlir(module {
-  func.func @main() -> tensor<10xf8E3M4> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 9.375000e-02, 3.125000e+00, 0x70, 0x70, 1.000000e+00, 0x70]> : tensor<10xf8E3M4>
-    return %cst : tensor<10xf8E3M4>
+  func.func @main() -> tensor<11xf8E3M4> {
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 9.375000e-02, 3.125000e+00, 0x70, 0xF0, 0x78, 1.562500e-02, -1.562500e-02]> : tensor<11xf8E3M4>
+    return %cst : tensor<11xf8E3M4>
   }
 })mlir";
 
@@ -1178,10 +1193,16 @@ TEST(MlirBuilderTest, ConstantF8E3M4Array) {
   {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
-    auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E3M4);
+    auto type = makeTensorType(fb.getContext(), {11}, ElementType::F8E3M4);
+    double posInf = std::numeric_limits<double>::infinity();
+    double negInf = -std::numeric_limits<double>::infinity();
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-6;
+    double negMinDenorm = -0x1p-6;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x7F, 0xFF, 0x01, 0x81}),
+                                           posInf, negInf, nan, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1192,9 +1213,9 @@ TEST(MlirBuilderTest, ConstantF8E3M4Array) {
 
 TEST(MlirBuilderTest, ConstantF8E4M3B11FNUZArray) {
   std::string expected = R"mlir(module {
-  func.func @main() -> tensor<10xf8E4M3B11FNUZ> {
-    %cst = stablehlo.constant dense<[0.000000e+00, 0.000000e+00, 1.000000e+00, 1.250000e-01, 1.015630e-01, 3.250000e+00, 0x80, 0x80, 1.000000e+00, 0x80]> : tensor<10xf8E4M3B11FNUZ>
-    return %cst : tensor<10xf8E4M3B11FNUZ>
+  func.func @main() -> tensor<11xf8E4M3B11FNUZ> {
+    %cst = stablehlo.constant dense<[0.000000e+00, 0.000000e+00, 1.000000e+00, 1.250000e-01, 1.015630e-01, 3.250000e+00, 3.000000e+01, -3.000000e+01, 0x80, 1.220700e-04, -1.220700e-04]> : tensor<11xf8E4M3B11FNUZ>
+    return %cst : tensor<11xf8E4M3B11FNUZ>
   }
 })mlir";
 
@@ -1203,10 +1224,16 @@ TEST(MlirBuilderTest, ConstantF8E4M3B11FNUZArray) {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type =
-        makeTensorType(fb.getContext(), {10}, ElementType::F8E4M3B11FNUZ);
+        makeTensorType(fb.getContext(), {11}, ElementType::F8E4M3B11FNUZ);
+    double posMax = 30.0;
+    double negMax = -30.0;
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-13;
+    double negMinDenorm = -0x1p-13;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x7F, 0xFF, 0x01, 0x81}),
+                                           posMax, negMax, nan, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1217,9 +1244,9 @@ TEST(MlirBuilderTest, ConstantF8E4M3B11FNUZArray) {
 
 TEST(MlirBuilderTest, ConstantF8E4M3Array) {
   std::string expected = R"mlir(module {
-  func.func @main() -> tensor<10xf8E4M3> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.015630e-01, 3.250000e+00, 1.280000e+02, 0x78, 1.000000e+00, 1.280000e+02]> : tensor<10xf8E4M3>
-    return %cst : tensor<10xf8E4M3>
+  func.func @main() -> tensor<11xf8E4M3> {
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.015630e-01, 3.250000e+00, 0x78, 0xF8, 0x7C, 1.953130e-03, -1.953130e-03]> : tensor<11xf8E4M3>
+    return %cst : tensor<11xf8E4M3>
   }
 })mlir";
 
@@ -1227,10 +1254,16 @@ TEST(MlirBuilderTest, ConstantF8E4M3Array) {
   {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
-    auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E4M3);
+    auto type = makeTensorType(fb.getContext(), {11}, ElementType::F8E4M3);
+    double posInf = std::numeric_limits<double>::infinity();
+    double negInf = -std::numeric_limits<double>::infinity();
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-9;
+    double negMinDenorm = -0x1p-9;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x7F, 0xFF, 0x01, 0x81}),
+                                           posInf, negInf, nan, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1241,9 +1274,9 @@ TEST(MlirBuilderTest, ConstantF8E4M3Array) {
 
 TEST(MlirBuilderTest, ConstantF8E4M3FNArray) {
   std::string expected = R"mlir(module {
-  func.func @main() -> tensor<10xf8E4M3FN> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.015630e-01, 3.250000e+00, 1.280000e+02, 2.560000e+02, 1.000000e+00, 1.280000e+02]> : tensor<10xf8E4M3FN>
-    return %cst : tensor<10xf8E4M3FN>
+  func.func @main() -> tensor<11xf8E4M3FN> {
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.015630e-01, 3.250000e+00, 4.480000e+02, -4.480000e+02, 0x7F, 1.953130e-03, -1.953130e-03]> : tensor<11xf8E4M3FN>
+    return %cst : tensor<11xf8E4M3FN>
   }
 })mlir";
 
@@ -1251,10 +1284,16 @@ TEST(MlirBuilderTest, ConstantF8E4M3FNArray) {
   {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
-    auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E4M3FN);
+    auto type = makeTensorType(fb.getContext(), {11}, ElementType::F8E4M3FN);
+    double posMax = 448.0;
+    double negMax = -448.0;
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-9;
+    double negMinDenorm = -0x1p-9;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x7F, 0xFF, 0x01, 0x81}),
+                                           posMax, negMax, nan, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1265,9 +1304,9 @@ TEST(MlirBuilderTest, ConstantF8E4M3FNArray) {
 
 TEST(MlirBuilderTest, ConstantF8E4M3FNUZArray) {
   std::string expected = R"mlir(module {
-  func.func @main() -> tensor<10xf8E4M3FNUZ> {
-    %cst = stablehlo.constant dense<[0.000000e+00, 0.000000e+00, 1.000000e+00, 1.250000e-01, 1.015630e-01, 3.250000e+00, 1.280000e+02, 0x80, 1.000000e+00, 1.280000e+02]> : tensor<10xf8E4M3FNUZ>
-    return %cst : tensor<10xf8E4M3FNUZ>
+  func.func @main() -> tensor<11xf8E4M3FNUZ> {
+    %cst = stablehlo.constant dense<[0.000000e+00, 0.000000e+00, 1.000000e+00, 1.250000e-01, 1.015630e-01, 3.250000e+00, 2.400000e+02, -2.400000e+02, 0x80, 9.765620e-04, -9.765620e-04]> : tensor<11xf8E4M3FNUZ>
+    return %cst : tensor<11xf8E4M3FNUZ>
   }
 })mlir";
 
@@ -1275,10 +1314,16 @@ TEST(MlirBuilderTest, ConstantF8E4M3FNUZArray) {
   {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
-    auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E4M3FNUZ);
+    auto type = makeTensorType(fb.getContext(), {11}, ElementType::F8E4M3FNUZ);
+    double posMax = 240.0;
+    double negMax = -240.0;
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-10;
+    double negMinDenorm = -0x1p-10;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x7F, 0xFF, 0x01, 0x81}),
+                                           posMax, negMax, nan, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1289,9 +1334,9 @@ TEST(MlirBuilderTest, ConstantF8E4M3FNUZArray) {
 
 TEST(MlirBuilderTest, ConstantF8E5M2Array) {
   std::string expected = R"mlir(module {
-  func.func @main() -> tensor<10xf8E5M2> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 9.375000e-02, 3.000000e+00, 1.280000e+02, 2.560000e+02, 1.000000e+00, 1.280000e+02]> : tensor<10xf8E5M2>
-    return %cst : tensor<10xf8E5M2>
+  func.func @main() -> tensor<11xf8E5M2> {
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 9.375000e-02, 3.000000e+00, 0x7C, 0xFC, 0x7E, 1.525880e-05, -1.525880e-05]> : tensor<11xf8E5M2>
+    return %cst : tensor<11xf8E5M2>
   }
 })mlir";
 
@@ -1299,10 +1344,16 @@ TEST(MlirBuilderTest, ConstantF8E5M2Array) {
   {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
-    auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E5M2);
+    auto type = makeTensorType(fb.getContext(), {11}, ElementType::F8E5M2);
+    double posInf = std::numeric_limits<double>::infinity();
+    double negInf = -std::numeric_limits<double>::infinity();
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-16;
+    double negMinDenorm = -0x1p-16;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x7F, 0xFF, 0x01, 0x81}),
+                                           posInf, negInf, nan, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1313,9 +1364,9 @@ TEST(MlirBuilderTest, ConstantF8E5M2Array) {
 
 TEST(MlirBuilderTest, ConstantF8E5M2FNUZArray) {
   std::string expected = R"mlir(module {
-  func.func @main() -> tensor<10xf8E5M2FNUZ> {
-    %cst = stablehlo.constant dense<[0.000000e+00, 0.000000e+00, 1.000000e+00, 1.250000e-01, 9.375000e-02, 3.000000e+00, 1.280000e+02, 2.560000e+02, 1.000000e+00, 1.280000e+02]> : tensor<10xf8E5M2FNUZ>
-    return %cst : tensor<10xf8E5M2FNUZ>
+  func.func @main() -> tensor<11xf8E5M2FNUZ> {
+    %cst = stablehlo.constant dense<[0.000000e+00, 0.000000e+00, 1.000000e+00, 1.250000e-01, 9.375000e-02, 3.000000e+00, 5.734400e+04, -5.734400e+04, 0x80, 7.629390e-06, -7.629390e-06]> : tensor<11xf8E5M2FNUZ>
+    return %cst : tensor<11xf8E5M2FNUZ>
   }
 })mlir";
 
@@ -1323,10 +1374,16 @@ TEST(MlirBuilderTest, ConstantF8E5M2FNUZArray) {
   {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
-    auto type = makeTensorType(fb.getContext(), {10}, ElementType::F8E5M2FNUZ);
+    auto type = makeTensorType(fb.getContext(), {11}, ElementType::F8E5M2FNUZ);
+    double posMax = 57344.0;
+    double negMax = -57344.0;
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-17;
+    double negMinDenorm = -0x1p-17;
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           0x7F, 0xFF, 0x01, 0x81}),
+                                           posMax, negMax, nan, posMinDenorm,
+                                           negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1338,7 +1395,7 @@ TEST(MlirBuilderTest, ConstantF8E5M2FNUZArray) {
 TEST(MlirBuilderTest, ConstantF8E8M0FNUArray) {
   std::string expected = R"mlir(module {
   func.func @main() -> tensor<8xf8E8M0FNU> {
-    %cst = stablehlo.constant dense<[5.877470e-39, 1.000000e+00, 1.250000e-01, 1.250000e-01, 4.000000e+00, 5.877470e-39, 1.280000e+02, 2.560000e+02]> : tensor<8xf8E8M0FNU>
+    %cst = stablehlo.constant dense<[5.877470e-39, 1.000000e+00, 1.250000e-01, 1.250000e-01, 4.000000e+00, 5.877470e-39, 2.000000e+00, 0xFF]> : tensor<8xf8E8M0FNU>
     return %cst : tensor<8xf8E8M0FNU>
   }
 })mlir";
@@ -1348,9 +1405,11 @@ TEST(MlirBuilderTest, ConstantF8E8M0FNUArray) {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {8}, ElementType::F8E8M0FNU);
+    double min = 0x1p-127;
+    double nan = std::numeric_limits<double>::quiet_NaN();
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>(
-                             {0.0, 1.0, 0.125, 0.1, 3.1415, 0x00, 0x80, 0xFF}),
+                             {0.0, 1.0, 0.125, 0.1, 3.1415, min, 2.0, nan}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1362,7 +1421,7 @@ TEST(MlirBuilderTest, ConstantF8E8M0FNUArray) {
 TEST(MlirBuilderTest, ConstantBF16Array) {
   std::string expected = R"mlir(module {
   func.func @main() -> tensor<11xbf16> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.000980e-01, 3.140630e+00, 3.264000e+04, 6.553600e+04, 3.276800e+04, 1.000000e+00, 3.276800e+04]> : tensor<11xbf16>
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.000980e-01, 3.140630e+00, 0x7F80, 0xFF80, 0x7FC0, 9.183550e-41, -9.183550e-41]> : tensor<11xbf16>
     return %cst : tensor<11xbf16>
   }
 })mlir";
@@ -1372,10 +1431,16 @@ TEST(MlirBuilderTest, ConstantBF16Array) {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {11}, ElementType::BF16);
+    double posInf = std::numeric_limits<double>::infinity();
+    double negInf = -std::numeric_limits<double>::infinity();
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-133;
+    double negMinDenorm = -0x1p-133;
     auto cst = stablehlo::Constant(
         fb,
         makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.140630,
-                                       0x7F80, 0xFF80, 0x7FFF, 0x0001, 0x8001}),
+                                       posInf, negInf, nan, posMinDenorm,
+                                       negMinDenorm}),
                      type));
     func::Return(fb, {cst});
   }
@@ -1387,7 +1452,7 @@ TEST(MlirBuilderTest, ConstantBF16Array) {
 TEST(MlirBuilderTest, ConstantF16Array) {
   std::string expected = R"mlir(module {
   func.func @main() -> tensor<11xf16> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 9.997550e-02, 3.140630e+00, 3.174400e+04, 6.451200e+04, 3.276800e+04, 1.000000e+00, 3.276800e+04]> : tensor<11xf16>
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 9.997550e-02, 3.140630e+00, 0x7C00, 0xFC00, 0x7E00, 5.960460e-08, -5.960460e-08]> : tensor<11xf16>
     return %cst : tensor<11xf16>
   }
 })mlir";
@@ -1397,10 +1462,16 @@ TEST(MlirBuilderTest, ConstantF16Array) {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {11}, ElementType::F16);
+    double posInf = std::numeric_limits<double>::infinity();
+    double negInf = -std::numeric_limits<double>::infinity();
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = 0x1p-24;
+    double negMinDenorm = -0x1p-24;
     auto cst = stablehlo::Constant(
         fb,
         makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.140630,
-                                       0x7C00, 0xFC00, 0x7FFF, 0x0001, 0x8001}),
+                                       posInf, negInf, nan, posMinDenorm,
+                                       negMinDenorm}),
                      type));
     func::Return(fb, {cst});
   }
@@ -1412,7 +1483,7 @@ TEST(MlirBuilderTest, ConstantF16Array) {
 TEST(MlirBuilderTest, ConstantF32Array) {
   std::string expected = R"mlir(module {
   func.func @main() -> tensor<11xf32> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.000000e-01, 3.14159274, 2.13909504E+9, 4.28657869E+9, 2.14748365E+9, 1.000000e+00, 2.14748365E+9]> : tensor<11xf32>
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.000000e-01, 3.14159274, 0x7F800000, 0xFF800000, 0x7FC00000, 1.401300e-45, -1.401300e-45]> : tensor<11xf32>
     return %cst : tensor<11xf32>
   }
 })mlir";
@@ -1422,10 +1493,15 @@ TEST(MlirBuilderTest, ConstantF32Array) {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {11}, ElementType::F32);
+    double posInf = std::numeric_limits<double>::infinity();
+    double negInf = -std::numeric_limits<double>::infinity();
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = std::numeric_limits<float>::denorm_min();
+    double negMinDenorm = -std::numeric_limits<float>::denorm_min();
     auto cst = stablehlo::Constant(
         fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1,
-                                           3.14159274, 0x7F800000, 0xFF800000,
-                                           0x7FFFFFFF, 0x00000001, 0x80000001}),
+                                           3.14159274, posInf, negInf, nan,
+                                           posMinDenorm, negMinDenorm}),
                          type));
     func::Return(fb, {cst});
   }
@@ -1437,7 +1513,7 @@ TEST(MlirBuilderTest, ConstantF32Array) {
 TEST(MlirBuilderTest, ConstantF64Array) {
   std::string expected = R"mlir(module {
   func.func @main() -> tensor<11xf64> {
-    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.000000e-01, 3.1415926535897931, 9.2188684372274053E+18, 1.8442240474082181E+19, 9.2233720368547758E+18, 1.000000e+00, 9.2233720368547758E+18]> : tensor<11xf64>
+    %cst = stablehlo.constant dense<[0.000000e+00, -0.000000e+00, 1.000000e+00, 1.250000e-01, 1.000000e-01, 3.1415926535897931, 0x7FF0000000000000, 0xFFF0000000000000, 0x7FF8000000000000, 4.940660e-324, -4.940660e-324]> : tensor<11xf64>
     return %cst : tensor<11xf64>
   }
 })mlir";
@@ -1447,12 +1523,16 @@ TEST(MlirBuilderTest, ConstantF64Array) {
     Location funcLoc = fileLineColLoc(mb->getContext(), "main.mlir", 1, 1);
     func::FunctionBuilder fb(mb.get(), "main", funcLoc);
     auto type = makeTensorType(fb.getContext(), {11}, ElementType::F64);
+    double posInf = std::numeric_limits<double>::infinity();
+    double negInf = -std::numeric_limits<double>::infinity();
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    double posMinDenorm = std::numeric_limits<double>::denorm_min();
+    double negMinDenorm = -std::numeric_limits<double>::denorm_min();
     auto cst = stablehlo::Constant(
         fb, makeConstant(
                 ArrayRef<long double>({0.0, -0.0, 1.0, 0.125, 0.1,
-                                       3.1415926535897931, 0x7FF0000000000000,
-                                       0xFFF0000000000000, 0x7FFFFFFFFFFFFFFF,
-                                       0x0000000000000001, 0x8000000000000001}),
+                                       3.1415926535897931, posInf, negInf,
+                                       nan, posMinDenorm, negMinDenorm}),
                 type));
     func::Return(fb, {cst});
   }
