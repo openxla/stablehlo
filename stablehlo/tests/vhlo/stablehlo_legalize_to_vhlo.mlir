@@ -687,9 +687,10 @@ func.func @default_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "default_dot_general"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
 func.func @default_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf32>) -> tensor<8x8x8xf32> {
-  //      CHECK: "vhlo.dot_general_v2"(%[[ARG0]], %[[ARG1]]) <{
+  //      CHECK: "vhlo.dot_general_v3"(%[[ARG0]], %[[ARG1]]) <{
   // CHECK-SAME:   accumulation_type = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   allow_imprecise_accumulation = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   block_scaling_config = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   lhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   lhs_component_count = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   lhs_contracting_dimensions = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
@@ -699,7 +700,8 @@ func.func @default_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf
   // CHECK-SAME:   rhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   rhs_component_count = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>,
-  // CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.none_v1>
+  // CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   sparsity_config = #vhlo.type_v1<!vhlo.none_v1>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<8x8x16x!vhlo.f32_v1>, !vhlo.tensor_v1<8x16x8x!vhlo.f32_v1>) -> !vhlo.tensor_v1<8x8x8x!vhlo.f32_v1>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -715,9 +717,10 @@ func.func @default_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf
 // CHECK-LABEL: "dot_general_algorithm"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
 func.func @dot_general_algorithm(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf32>) -> tensor<8x8x8xf32> {
-//      CHECK: "vhlo.dot_general_v2"(%[[ARG0]], %[[ARG1]]) <{
+//      CHECK: "vhlo.dot_general_v3"(%[[ARG0]], %[[ARG1]]) <{
 // CHECK-SAME:   accumulation_type = #vhlo.type_v1<!vhlo.f32_v1>,
 // CHECK-SAME:   allow_imprecise_accumulation = #vhlo.bool_v1<false>,
+// CHECK-SAME:   block_scaling_config = #vhlo.type_v1<!vhlo.none_v1>,
 // CHECK-SAME:   lhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
 // CHECK-SAME:   lhs_component_count = #vhlo.integer_v1<1 : i64>,
 // CHECK-SAME:   lhs_contracting_dimensions = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
@@ -727,7 +730,8 @@ func.func @dot_general_algorithm(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8
 // CHECK-SAME:   rhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
 // CHECK-SAME:   rhs_component_count = #vhlo.integer_v1<1 : i64>,
 // CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>,
-// CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.tf31_v1>
+// CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.tf31_v1>,
+// CHECK-SAME:   sparsity_config = #vhlo.type_v1<!vhlo.none_v1>
 // CHECK-SAME: }> : (!vhlo.tensor_v1<8x8x16x!vhlo.f32_v1>, !vhlo.tensor_v1<8x16x8x!vhlo.f32_v1>) -> !vhlo.tensor_v1<8x8x8x!vhlo.f32_v1>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -752,9 +756,10 @@ func.func @dot_general_algorithm(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8
 // CHECK-LABEL: "dot_general_algorithm_f8e4m3fn_x3"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
 func.func @dot_general_algorithm_f8e4m3fn_x3(%arg0: tensor<8x8x16xbf16>, %arg1: tensor<8x16x8xbf16>) -> tensor<8x8x8xf32> {
-//      CHECK: "vhlo.dot_general_v2"(%[[ARG0]], %[[ARG1]]) <{
+//      CHECK: "vhlo.dot_general_v3"(%[[ARG0]], %[[ARG1]]) <{
 // CHECK-SAME:   accumulation_type = #vhlo.type_v1<!vhlo.f32_v1>,
 // CHECK-SAME:   allow_imprecise_accumulation = #vhlo.bool_v1<false>,
+// CHECK-SAME:   block_scaling_config = #vhlo.type_v1<!vhlo.none_v1>,
 // CHECK-SAME:   lhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
 // CHECK-SAME:   lhs_component_count = #vhlo.integer_v1<1 : i64>,
 // CHECK-SAME:   lhs_contracting_dimensions = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
@@ -764,7 +769,8 @@ func.func @dot_general_algorithm_f8e4m3fn_x3(%arg0: tensor<8x8x16xbf16>, %arg1: 
 // CHECK-SAME:   rhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
 // CHECK-SAME:   rhs_component_count = #vhlo.integer_v1<1 : i64>,
 // CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>,
-// CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.f8E4M3FN_v1>
+// CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.f8E4M3FN_v1>,
+// CHECK-SAME:   sparsity_config = #vhlo.type_v1<!vhlo.none_v1>
 // CHECK-SAME: }> : (!vhlo.tensor_v1<8x8x16x!vhlo.bf16_v1>, !vhlo.tensor_v1<8x16x8x!vhlo.bf16_v1>) -> !vhlo.tensor_v1<8x8x8x!vhlo.f32_v1>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -789,9 +795,10 @@ func.func @dot_general_algorithm_f8e4m3fn_x3(%arg0: tensor<8x8x16xbf16>, %arg1: 
 // CHECK-LABEL: "dot_general_algorithm_f8e4m3fn_x4"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
 func.func @dot_general_algorithm_f8e4m3fn_x4(%arg0: tensor<8x8x16xbf16>, %arg1: tensor<8x16x8xbf16>) -> tensor<8x8x8xf32> {
-//      CHECK: "vhlo.dot_general_v2"(%[[ARG0]], %[[ARG1]]) <{
+//      CHECK: "vhlo.dot_general_v3"(%[[ARG0]], %[[ARG1]]) <{
 // CHECK-SAME:   accumulation_type = #vhlo.type_v1<!vhlo.f32_v1>,
 // CHECK-SAME:   allow_imprecise_accumulation = #vhlo.bool_v1<false>,
+// CHECK-SAME:   block_scaling_config = #vhlo.type_v1<!vhlo.none_v1>,
 // CHECK-SAME:   lhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
 // CHECK-SAME:   lhs_component_count = #vhlo.integer_v1<1 : i64>,
 // CHECK-SAME:   lhs_contracting_dimensions = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
@@ -801,7 +808,8 @@ func.func @dot_general_algorithm_f8e4m3fn_x4(%arg0: tensor<8x8x16xbf16>, %arg1: 
 // CHECK-SAME:   rhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
 // CHECK-SAME:   rhs_component_count = #vhlo.integer_v1<1 : i64>,
 // CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>,
-// CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.f8E4M3FN_v1>
+// CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.f8E4M3FN_v1>,
+// CHECK-SAME:   sparsity_config = #vhlo.type_v1<!vhlo.none_v1>
 // CHECK-SAME: }> : (!vhlo.tensor_v1<8x8x16x!vhlo.bf16_v1>, !vhlo.tensor_v1<8x16x8x!vhlo.bf16_v1>) -> !vhlo.tensor_v1<8x8x8x!vhlo.f32_v1>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -1686,9 +1694,10 @@ func.func @op_divide(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_dot_general"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
 func.func @op_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf32>) -> tensor<8x8x8xf32> {
-  //      CHECK: "vhlo.dot_general_v2"(%[[ARG0]], %[[ARG1]]) <{
+  //      CHECK: "vhlo.dot_general_v3"(%[[ARG0]], %[[ARG1]]) <{
   // CHECK-SAME:   accumulation_type = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   allow_imprecise_accumulation = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   block_scaling_config = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   lhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   lhs_component_count = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   lhs_contracting_dimensions = #vhlo.tensor_v1<dense<2> : tensor<1xi64>>,
@@ -1698,7 +1707,8 @@ func.func @op_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf32>) 
   // CHECK-SAME:   rhs_batching_dimensions = #vhlo.tensor_v1<dense<0> : tensor<1xi64>>,
   // CHECK-SAME:   rhs_component_count = #vhlo.type_v1<!vhlo.none_v1>,
   // CHECK-SAME:   rhs_contracting_dimensions = #vhlo.tensor_v1<dense<1> : tensor<1xi64>>,
-  // CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.none_v1>
+  // CHECK-SAME:   rhs_precision_type = #vhlo.type_v1<!vhlo.none_v1>,
+  // CHECK-SAME:   sparsity_config = #vhlo.type_v1<!vhlo.none_v1>
   // CHECK-SAME: }> : (!vhlo.tensor_v1<8x8x16x!vhlo.f32_v1>, !vhlo.tensor_v1<8x16x8x!vhlo.f32_v1>) -> !vhlo.tensor_v1<8x8x8x!vhlo.f32_v1>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -1710,6 +1720,26 @@ func.func @op_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf32>) 
     precision_config = [#stablehlo<precision HIGHEST>, #stablehlo<precision HIGHEST>]
   } : (tensor<8x8x16xf32>, tensor<8x16x8xf32>) -> tensor<8x8x8xf32>
   func.return %0 : tensor<8x8x8xf32>
+}
+
+// CHECK-LABEL: "op_dot_general_block_scaling_and_sparsity"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}}, %[[SCALE:.*]]: {{.*}}, %[[INDICES:.*]]: {{.*}})
+func.func @op_dot_general_block_scaling_and_sparsity(%arg0: tensor<2x64x64xbf16>, %arg1: tensor<2x128x64xbf16>, %scale: tensor<2x64x2xf8E8M0FNU>, %indices: tensor<2x64x16xi8>) -> tensor<2x64x64xbf16> {
+  //      CHECK: "vhlo.dot_general_v3"(%[[ARG0]], %[[ARG1]], %[[SCALE]], %[[INDICES]]) <{
+  // CHECK-SAME:   block_scaling_config = #vhlo.dict_v1<{#vhlo.string_v1<"lhs"> = #vhlo.dict_v1<{#vhlo.string_v1<"scale_idx"> = #vhlo.integer_v1<2 : i64>, #vhlo.string_v1<"steps"> = #vhlo.array_v1<[#vhlo.integer_v1<1 : i64>, #vhlo.integer_v1<1 : i64>, #vhlo.integer_v1<1 : i64>]>, #vhlo.string_v1<"strides"> = #vhlo.array_v1<[#vhlo.integer_v1<1 : i64>, #vhlo.integer_v1<1 : i64>, #vhlo.integer_v1<32 : i64>]>}>}>,
+  // CHECK-SAME:   sparsity_config = #vhlo.dict_v1<{#vhlo.string_v1<"lhs"> = #vhlo.dict_v1<{#vhlo.string_v1<"block_size"> = #vhlo.integer_v1<4 : i64>, #vhlo.string_v1<"dimension"> = #vhlo.integer_v1<2 : i64>, #vhlo.string_v1<"idx"> = #vhlo.integer_v1<3 : i64>, #vhlo.string_v1<"num_non_zero"> = #vhlo.integer_v1<2 : i64>, #vhlo.string_v1<"stride"> = #vhlo.integer_v1<1 : i64>}>}>
+  // CHECK-SAME: }>
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale, %indices) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [2],
+      rhs_batching_dimensions = [0],
+      rhs_contracting_dimensions = [1]
+    >,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [1, 1, 32], steps = [1, 1, 1]>>,
+    sparsity_config = #stablehlo.sparsity_config<lhs = <num_non_zero = 2, block_size = 4, dimension = 2, stride = 1, idx = 3>>
+  } : (tensor<2x64x64xbf16>, tensor<2x128x64xbf16>, tensor<2x64x2xf8E8M0FNU>, tensor<2x64x16xi8>) -> tensor<2x64x64xbf16>
+  func.return %0 : tensor<2x64x64xbf16>
 }
 
 // CHECK-LABEL: "op_dot"
