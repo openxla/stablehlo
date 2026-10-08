@@ -411,8 +411,9 @@ Attribute convertCustomCallCalledComputations(
   return {};
 }
 
+template <typename VhloOpTy>
 FailureOr<Attribute> convertDotAlgorithm(
-    vhlo::DotGeneralOpV2 vhloOp, const vhlo::VhloTypeConverter* typeConverter) {
+    VhloOpTy vhloOp, const vhlo::VhloTypeConverter* typeConverter) {
   Type lhsPrecisionType, rhsPrecisionType, accumulationType;
   if (isNoneType(vhloOp.getLhsComponentCount())) {
     // All must be nonetype
@@ -448,8 +449,9 @@ FailureOr<Attribute> convertDotAlgorithm(
       numPrimitiveOperations, allowImpreciseAccumulation);
 }
 
+template <typename VhloOpTy>
 Attribute convertDotDimensionNumbers(
-    vhlo::DotGeneralOpV2 vhloOp, const vhlo::VhloTypeConverter* typeConverter) {
+    VhloOpTy vhloOp, const vhlo::VhloTypeConverter* typeConverter) {
   SmallVector<int64_t> stablehloLhsBatchingDimensions,
       stablehloRhsBatchingDimensions, stablehloLhsContractingDimensions,
       stablehloRhsContractingDimensions;
@@ -553,7 +555,8 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                "output_batch_dimension", "output_feature_dimension",
                "output_spatial_dimensions");
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV2>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::DotGeneralOpV3>::value) {
     // Dot Dimension Numbers
     auto stablehloDotDimAttr =
         convertDotDimensionNumbers(vhloOp, typeConverter);
@@ -575,6 +578,61 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                "accumulation_type", "lhs_component_count",
                "rhs_component_count", "num_primitive_operations",
                "allow_imprecise_accumulation");
+    if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV3>::value) {
+      auto getInt = [](DictionaryAttr d,
+                       StringRef k) -> std::optional<int64_t> {
+        if (auto a = d.getAs<IntegerAttr>(k)) return a.getInt();
+        return std::nullopt;
+      };
+      auto getInts = [](DictionaryAttr d, StringRef k) -> SmallVector<int64_t> {
+        SmallVector<int64_t> out;
+        if (auto arr = d.getAs<ArrayAttr>(k)) {
+          for (Attribute el : arr)
+            out.push_back(cast<IntegerAttr>(el).getInt());
+        }
+        return out;
+      };
+      Attribute bsVal = vhloOp.getBlockScalingConfigAttr();
+      if (!isNoneType(bsVal)) {
+        DictionaryAttr dict = dyn_cast_or_null<DictionaryAttr>(
+            convertGeneric(bsVal, typeConverter));
+        if (!dict) return failure();
+        auto parseSide =
+            [&](StringRef side) -> stablehlo::TensorBlockScalingConfigAttr {
+          auto s = dict.getAs<DictionaryAttr>(side);
+          if (!s) return {};
+          return stablehlo::TensorBlockScalingConfigAttr::get(
+              pattern.getContext(), getInt(s, "scale_idx").value_or(0),
+              getInt(s, "zero_idx"), getInts(s, "strides"),
+              getInts(s, "steps"));
+        };
+        stablehloAttrs.emplace_back(
+            StringAttr::get(pattern.getContext(), "block_scaling_config"),
+            stablehlo::BlockScalingConfigAttr::get(
+                pattern.getContext(), parseSide("lhs"), parseSide("rhs")));
+      }
+      Attribute spVal = vhloOp.getSparsityConfigAttr();
+      if (!isNoneType(spVal)) {
+        DictionaryAttr dict = dyn_cast_or_null<DictionaryAttr>(
+            convertGeneric(spVal, typeConverter));
+        if (!dict) return failure();
+        auto parseSide =
+            [&](StringRef side) -> stablehlo::TensorSparsityConfigAttr {
+          auto s = dict.getAs<DictionaryAttr>(side);
+          if (!s) return {};
+          return stablehlo::TensorSparsityConfigAttr::get(
+              pattern.getContext(), getInt(s, "num_non_zero").value_or(0),
+              getInt(s, "block_size").value_or(0),
+              getInt(s, "dimension").value_or(0),
+              getInt(s, "stride").value_or(0), getInt(s, "idx").value_or(0));
+        };
+        stablehloAttrs.emplace_back(
+            StringAttr::get(pattern.getContext(), "sparsity_config"),
+            stablehlo::SparsityConfigAttr::get(
+                pattern.getContext(), parseSide("lhs"), parseSide("rhs")));
+      }
+      eraseAttrs(vhloAttrs, "block_scaling_config", "sparsity_config");
+    }
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::DynamicGatherOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::GatherOpV2>::value) {
@@ -979,6 +1037,7 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       eraseAttrs(vhloAttrs, "result_tilings");
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::DotGeneralOpV3>::value ||
                 std::is_same<VhloOpTy, vhlo::DotOpV1>::value) {
     if (isSplatArray(vhloOp.getPrecisionConfigAttr(),
                      vhlo::PrecisionV1Attr::get(pattern.getContext(),

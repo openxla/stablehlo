@@ -871,7 +871,155 @@ ParseResult parsePrecisionConfig(OpAsmParser& parser,
 // DotGeneralOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+
+std::optional<hlo::DotSparsityDim> getDotSparsityDim(
+    TensorSparsityConfigAttr sp) {
+  if (!sp) return std::nullopt;
+  return hlo::DotSparsityDim{sp.getDimension(), sp.getNumNonZero(),
+                             sp.getBlockSize()};
+}
+
+LogicalResult verifyDotGeneralBlockScalingConfig(DotGeneralOp op,
+                                                 llvm::SmallBitVector& seen) {
+  BlockScalingConfigAttr config = op.getBlockScalingConfigAttr();
+  if (!config) return success();
+  if (!config.getLhs() && !config.getRhs()) {
+    return emitOptionalError(op.getLoc(),
+                             "block_scaling_config must specify lhs or rhs");
+  }
+  ValueRange extOperands = op.getExtOperands();
+  auto claimIdx = [&](int64_t rawIdx, StringRef side) -> LogicalResult {
+    int64_t idx = rawIdx - 2;
+    if (idx < 0 || idx >= static_cast<int64_t>(extOperands.size()) ||
+        seen.test(idx)) {
+      return emitOptionalError(
+          op.getLoc(), "block_scaling_config for ", side,
+          " must have distinct scale_idx/zero_idx referring to one of the ",
+          extOperands.size(), " extra operands");
+    }
+    seen.set(idx);
+    return success();
+  };
+  for (auto [side, operand, scaling] :
+       {std::tuple{StringRef("lhs"), op.getLhs(), config.getLhs()},
+        std::tuple{StringRef("rhs"), op.getRhs(), config.getRhs()}}) {
+    if (!scaling) continue;
+    if (failed(claimIdx(scaling.getScaleIdx(), side)) ||
+        (scaling.getZeroIdx() &&
+         failed(claimIdx(*scaling.getZeroIdx(), side)))) {
+      return failure();
+    }
+    int64_t scaleIdx = scaling.getScaleIdx() - 2;
+    auto operandType = cast<ShapedType>(operand.getType());
+    auto scaleType = cast<ShapedType>(extOperands[scaleIdx].getType());
+    if (!scaleType.hasRank() || !operandType.hasRank()) continue;
+    if (scaleType.getRank() != operandType.getRank()) {
+      return emitOptionalError(
+          op.getLoc(), "scale_factor rank (", scaleType.getRank(), ") for ",
+          side, " must match operand rank (", operandType.getRank(), ")");
+    }
+    if (scaling.getZeroIdx()) {
+      auto zeroType =
+          cast<ShapedType>(extOperands[*scaling.getZeroIdx() - 2].getType());
+      if (zeroType.hasRank() && zeroType.getShape() != scaleType.getShape()) {
+        return emitOptionalError(op.getLoc(), "zero_point shape for ", side,
+                                 " must match scale_factor shape");
+      }
+    }
+    for (auto [name, vals] :
+         {std::pair{StringRef("strides"), scaling.getStrides()},
+          std::pair{StringRef("steps"), scaling.getSteps()}}) {
+      if (!vals.empty() &&
+          static_cast<int64_t>(vals.size()) != operandType.getRank()) {
+        return emitOptionalError(op.getLoc(), "block_scaling_config ", name,
+                                 " for ", side, " must match operand rank (",
+                                 operandType.getRank(), ")");
+      }
+    }
+    for (int64_t dim = 0; dim < operandType.getRank(); ++dim) {
+      int64_t operandSize = operandType.getDimSize(dim);
+      int64_t scaleSize = scaleType.getDimSize(dim);
+      if (!ShapedType::isDynamic(operandSize) &&
+          !ShapedType::isDynamic(scaleSize) && scaleSize > 1 &&
+          operandSize % scaleSize != 0) {
+        return emitOptionalError(op.getLoc(), "scale_factor dimension at axis ",
+                                 dim, " for ", side,
+                                 " must evenly divide operand dimension size (",
+                                 operandSize, " vs ", scaleSize, ")");
+      }
+    }
+  }
+  return success();
+}
+
+LogicalResult verifyDotGeneralSparsityConfig(DotGeneralOp op,
+                                             llvm::SmallBitVector& seen) {
+  SparsityConfigAttr config = op.getSparsityConfigAttr();
+  if (!config) return success();
+  if (!config.getLhs() && !config.getRhs()) {
+    return emitOptionalError(op.getLoc(),
+                             "sparsity_config must specify lhs or rhs");
+  }
+  DotDimensionNumbersAttr dims = op.getDotDimensionNumbersAttr();
+  ValueRange extOperands = op.getExtOperands();
+  for (auto [side, operand, contractingDims, sparsity] :
+       {std::tuple{StringRef("lhs"), op.getLhs(),
+                   dims.getLhsContractingDimensions(), config.getLhs()},
+        std::tuple{StringRef("rhs"), op.getRhs(),
+                   dims.getRhsContractingDimensions(), config.getRhs()}}) {
+    if (!sparsity) continue;
+    int64_t indicesIdx = sparsity.getIdx() - 2;
+    if (indicesIdx < 0 ||
+        indicesIdx >= static_cast<int64_t>(extOperands.size()) ||
+        seen.test(indicesIdx)) {
+      return emitOptionalError(
+          op.getLoc(), "sparsity_config for ", side,
+          " must have distinct idx referring to one of the ",
+          extOperands.size(), " extra operands");
+    }
+    seen.set(indicesIdx);
+    auto operandType = cast<ShapedType>(operand.getType());
+    int64_t n = sparsity.getNumNonZero();
+    int64_t m = sparsity.getBlockSize();
+    int64_t stride = sparsity.getStride();
+    int64_t dim = sparsity.getDimension();
+    if (n <= 0 || m <= n || stride <= 0 || dim < 0 ||
+        (operandType.hasRank() && dim >= operandType.getRank())) {
+      return emitOptionalError(
+          op.getLoc(), "StructuredSparsity invariants violated for ", side,
+          ": expected 0 < n < m, stride > 0 and valid dimension, but got n=", n,
+          ", m=", m, ", stride=", stride, ", dimension=", dim);
+    }
+    if (!llvm::is_contained(contractingDims, dim)) {
+      return emitOptionalError(op.getLoc(), "sparsity dimension ", dim, " for ",
+                               side, " must be a contracting dimension");
+    }
+    if (operandType.hasRank()) {
+      int64_t dimSize = operandType.getDimSize(dim);
+      if (!ShapedType::isDynamic(dimSize) && dimSize % n != 0) {
+        return emitOptionalError(op.getLoc(), "sparse operand dimension ", dim,
+                                 " size (", dimSize, ") for ", side,
+                                 " must be divisible by n (", n, ")");
+      }
+    }
+  }
+  return success();
+}
+
+}  // namespace
+
 LogicalResult DotGeneralOp::verify() {
+  llvm::SmallBitVector seen(getExtOperands().size());
+  if (failed(verifyDotGeneralBlockScalingConfig(*this, seen)) ||
+      failed(verifyDotGeneralSparsityConfig(*this, seen))) {
+    return failure();
+  }
+  if (!seen.all()) {
+    return emitOpError(
+        "every operand in ext_operands must be referenced by "
+        "block_scaling_config or sparsity_config");
+  }
   bool isDefaultPrecisionConfig =
       !getPrecisionConfig().has_value() ||
       llvm::all_of(getPrecisionConfig().value(), [](Attribute attr) {
@@ -889,6 +1037,7 @@ LogicalResult DotGeneralOp::verify() {
       return failure();
   }
 
+  SparsityConfigAttr sp = getSparsityConfigAttr();
   return hlo::verifyDotGeneralOp(
       getLoc(), getLhs(), getRhs(),
       getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
@@ -896,7 +1045,8 @@ LogicalResult DotGeneralOp::verify() {
       getDotDimensionNumbersAttr().getLhsContractingDimensions(),
       getDotDimensionNumbersAttr().getRhsContractingDimensions(),
       getPrecisionConfig(), isDefaultPrecisionConfig, hasAlgorithmSpecified,
-      getResult());
+      getResult(), sp ? getDotSparsityDim(sp.getLhs()) : std::nullopt,
+      sp ? getDotSparsityDim(sp.getRhs()) : std::nullopt);
 }
 
 LogicalResult DotGeneralOp::inferReturnTypeComponents(
@@ -922,10 +1072,13 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
     rhsContractingDimensions =
         adaptor.getDotDimensionNumbersAttr().getRhsContractingDimensions();
   }
+  SparsityConfigAttr sp = adaptor.getSparsityConfigAttr();
   return hlo::inferDotGeneralOp(
       location, adaptor.getLhs().getType(), adaptor.getRhs().getType(),
       lhsBatchingDimensions, rhsBatchingDimensions, lhsContractingDimensions,
-      rhsContractingDimensions, {}, inferredReturnShapes);
+      rhsContractingDimensions, {}, inferredReturnShapes,
+      sp ? getDotSparsityDim(sp.getLhs()) : std::nullopt,
+      sp ? getDotSparsityDim(sp.getRhs()) : std::nullopt);
 }
 
 LogicalResult DotGeneralOp::reifyReturnTypeShapes(
