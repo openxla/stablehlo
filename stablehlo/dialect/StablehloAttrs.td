@@ -93,6 +93,56 @@ def StableHLO_DotDimensionNumbers : AttrDef<StableHLO_Dialect, "DotDimensionNumb
   let hasCustomAssemblyFormat = 1;
 }
 
+def StableHLO_OptionalDims : OptionalArrayRefParameter<"int64_t", "Dimension"> {
+  let parser = "parseDimSizes($_parser)";
+  let printer = "printDimSizes($_printer, $_self)";
+}
+
+def StableHLO_TensorBlockScalingConfig : AttrDef<StableHLO_Dialect, "TensorBlockScalingConfig"> {
+  let mnemonic = "tensor_block_scaling_config";
+  let summary = "Describes the block scaling configuration for a dot_general operand.";
+  let parameters = (ins
+    "int64_t":$scale_idx,
+    OptionalParameter<"std::optional<int64_t>">:$zero_idx,
+    StableHLO_OptionalDims:$strides,
+    StableHLO_OptionalDims:$steps
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+def StableHLO_BlockScalingConfig : AttrDef<StableHLO_Dialect, "BlockScalingConfig"> {
+  let mnemonic = "block_scaling_config";
+  let summary = "Describes the block scaling configuration for dot_general operands.";
+  let parameters = (ins
+    OptionalParameter<"TensorBlockScalingConfigAttr">:$lhs,
+    OptionalParameter<"TensorBlockScalingConfigAttr">:$rhs
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+def StableHLO_TensorSparsityConfig : AttrDef<StableHLO_Dialect, "TensorSparsityConfig"> {
+  let mnemonic = "tensor_sparsity_config";
+  let summary = "Describes the structured sparsity configuration for a dot_general operand.";
+  let parameters = (ins
+    "int64_t":$num_non_zero,
+    "int64_t":$block_size,
+    "int64_t":$dimension,
+    "int64_t":$stride,
+    "int64_t":$idx
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+def StableHLO_SparsityConfig : AttrDef<StableHLO_Dialect, "SparsityConfig"> {
+  let mnemonic = "sparsity_config";
+  let summary = "Describes the structured sparsity configuration for dot_general operands.";
+  let parameters = (ins
+    OptionalParameter<"TensorSparsityConfigAttr">:$lhs,
+    OptionalParameter<"TensorSparsityConfigAttr">:$rhs
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
 def StableHLO_OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlias"> {
   let mnemonic = "output_operand_alias";
   let summary =

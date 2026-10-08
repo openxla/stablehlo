@@ -25,3 +25,21 @@ class CompositeOp(_stablehlo_ops_gen.CompositeOp):
     if "num_composite_regions" not in kwargs:
       kwargs["num_composite_regions"] = 0
     super().__init__(*args, **kwargs)
+
+
+class DotGeneralOp(_stablehlo_ops_gen.DotGeneralOp):
+  """`dot_general` builder that defaults the new `ext_operands` operand.
+
+  `ext_operands` is the fifth positional argument and the new attributes are
+  passed by keyword only, so callers of the old signature pass at most 4
+  positional arguments.
+  """
+
+  def __init__(self, *args, **kwargs):
+    if len(args) <= 4:
+      kwargs.setdefault("ext_operands", [])
+    super().__init__(*args, **kwargs)
+
+
+def dot_general(*args, **kwargs):
+  return DotGeneralOp(*args, **kwargs).result
