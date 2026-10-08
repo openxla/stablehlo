@@ -1747,8 +1747,12 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
   acc = AddOp::create(rewriter, loc, acc, one);
   qNegPower = PowOp::create(rewriter, loc, acc, negX);
   Value oneLikeX = getConstantLike(rewriter, loc, 1.0, x);
+  Value correctionPower = PowOp::create(
+      rewriter, loc, acc,
+      SubtractOp::create(rewriter, loc, oneLikeX, x));
+
   Value correctionEulerMaclaurin =
-      DivOp::create(rewriter, loc, MulOp::create(rewriter, loc, qNegPower, acc),
+      DivOp::create(rewriter, loc, correctionPower,
                     SubtractOp::create(rewriter, loc, x, oneLikeX));
 
   // Manual reciprocal of the square root as RsqrtOp produces different results
