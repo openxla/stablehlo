@@ -179,6 +179,49 @@ Attribute convertGeneric(Attribute stablehloAttr,
     return vhlo::SubAxisInfoV1Attr::get(attr.getContext(), attr.getPreSize(),
                                         attr.getSize());
   }
+  if (auto attr =
+          dyn_cast<stablehlo::TensorBlockScalingConfigAttr>(stablehloAttr)) {
+    Builder b(attr.getContext());
+    SmallVector<NamedAttribute> fields = {
+        b.getNamedAttr("scale_idx", b.getI64IntegerAttr(attr.getScaleIdx()))};
+    if (attr.getZeroIdx())
+      fields.push_back(
+          b.getNamedAttr("zero_idx", b.getI64IntegerAttr(*attr.getZeroIdx())));
+    if (!attr.getStrides().empty())
+      fields.push_back(
+          b.getNamedAttr("strides", b.getI64ArrayAttr(attr.getStrides())));
+    if (!attr.getSteps().empty())
+      fields.push_back(
+          b.getNamedAttr("steps", b.getI64ArrayAttr(attr.getSteps())));
+    return convertGeneric(b.getDictionaryAttr(fields), typeConverter);
+  }
+  if (auto attr = dyn_cast<stablehlo::BlockScalingConfigAttr>(stablehloAttr)) {
+    Builder b(attr.getContext());
+    SmallVector<NamedAttribute> sides;
+    if (attr.getLhs()) sides.push_back(b.getNamedAttr("lhs", attr.getLhs()));
+    if (attr.getRhs()) sides.push_back(b.getNamedAttr("rhs", attr.getRhs()));
+    return convertGeneric(b.getDictionaryAttr(sides), typeConverter);
+  }
+  if (auto attr =
+          dyn_cast<stablehlo::TensorSparsityConfigAttr>(stablehloAttr)) {
+    Builder b(attr.getContext());
+    SmallVector<NamedAttribute> fields = {
+        b.getNamedAttr("num_non_zero",
+                       b.getI64IntegerAttr(attr.getNumNonZero())),
+        b.getNamedAttr("block_size", b.getI64IntegerAttr(attr.getBlockSize())),
+        b.getNamedAttr("dimension", b.getI64IntegerAttr(attr.getDimension())),
+        b.getNamedAttr("stride", b.getI64IntegerAttr(attr.getStride())),
+        b.getNamedAttr("idx", b.getI64IntegerAttr(attr.getIdx())),
+    };
+    return convertGeneric(b.getDictionaryAttr(fields), typeConverter);
+  }
+  if (auto attr = dyn_cast<stablehlo::SparsityConfigAttr>(stablehloAttr)) {
+    Builder b(attr.getContext());
+    SmallVector<NamedAttribute> sides;
+    if (attr.getLhs()) sides.push_back(b.getNamedAttr("lhs", attr.getLhs()));
+    if (attr.getRhs()) sides.push_back(b.getNamedAttr("rhs", attr.getRhs()));
+    return convertGeneric(b.getDictionaryAttr(sides), typeConverter);
+  }
   if (auto attr = dyn_cast<stablehlo::AxisRefAttr>(stablehloAttr)) {
     auto vhloName = convertGeneric(
         StringAttr::get(attr.getContext(), attr.getName()), typeConverter);
@@ -963,6 +1006,13 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                "num_primitive_operations", "allow_imprecise_accumulation"}) {
         addDefaultAttr(attrName, noneTypeAttr);
       }
+    }
+    auto noneTypeAttr = TypeAttr::get(NoneType::get(pattern.getContext()));
+    if (!stablehloOp.getBlockScalingConfigAttr()) {
+      addDefaultAttr("block_scaling_config", noneTypeAttr);
+    }
+    if (!stablehloOp.getSparsityConfigAttr()) {
+      addDefaultAttr("sparsity_config", noneTypeAttr);
     }
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::CbrtOp>::value ||

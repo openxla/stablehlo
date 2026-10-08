@@ -223,6 +223,36 @@ enum AttributeCode {
   //   device_ids: DenseIntElementsAttr (optional)
   // }
   kMeshAttr = 22,
+
+  // TensorBlockScalingConfigAttr {
+  //   scale_idx: svarint
+  //   has_zero_idx: bool
+  //   zero_idx: svarint (optional)
+  //   strides: svarint[]
+  //   steps: svarint[]
+  // }
+  kTensorBlockScalingConfigAttr = 23,
+
+  // BlockScalingConfigAttr {
+  //   lhs: Attribute (optional)
+  //   rhs: Attribute (optional)
+  // }
+  kBlockScalingConfigAttr = 24,
+
+  // TensorSparsityConfigAttr {
+  //   num_non_zero: svarint
+  //   block_size: svarint
+  //   dimension: svarint
+  //   stride: svarint
+  //   idx: svarint
+  // }
+  kTensorSparsityConfigAttr = 25,
+
+  // SparsityConfigAttr {
+  //   lhs: Attribute (optional)
+  //   rhs: Attribute (optional)
+  // }
+  kSparsityConfigAttr = 26,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -307,6 +337,14 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   AxisRefAttr readAxisRefAttr(DialectBytecodeReader& reader) const;
   MeshAxisAttr readMeshAxisAttr(DialectBytecodeReader& reader) const;
   MeshAttr readMeshAttr(DialectBytecodeReader& reader) const;
+  TensorBlockScalingConfigAttr readTensorBlockScalingConfigAttr(
+      DialectBytecodeReader& reader) const;
+  BlockScalingConfigAttr readBlockScalingConfigAttr(
+      DialectBytecodeReader& reader) const;
+  TensorSparsityConfigAttr readTensorSparsityConfigAttr(
+      DialectBytecodeReader& reader) const;
+  SparsityConfigAttr readSparsityConfigAttr(
+      DialectBytecodeReader& reader) const;
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in StableHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
@@ -336,6 +374,12 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   void write(AxisRefAttr attr, DialectBytecodeWriter& writer) const;
   void write(MeshAxisAttr attr, DialectBytecodeWriter& writer) const;
   void write(MeshAttr attr, DialectBytecodeWriter& writer) const;
+  void write(TensorBlockScalingConfigAttr attr,
+             DialectBytecodeWriter& writer) const;
+  void write(BlockScalingConfigAttr attr, DialectBytecodeWriter& writer) const;
+  void write(TensorSparsityConfigAttr attr,
+             DialectBytecodeWriter& writer) const;
+  void write(SparsityConfigAttr attr, DialectBytecodeWriter& writer) const;
 
   //===--------------------------------------------------------------------===//
   // Types
@@ -419,6 +463,14 @@ Attribute StablehloBytecodeInterface::readAttribute(
       return readMeshAxisAttr(reader);
     case stablehlo_encoding::kMeshAttr:
       return readMeshAttr(reader);
+    case stablehlo_encoding::kTensorBlockScalingConfigAttr:
+      return readTensorBlockScalingConfigAttr(reader);
+    case stablehlo_encoding::kBlockScalingConfigAttr:
+      return readBlockScalingConfigAttr(reader);
+    case stablehlo_encoding::kTensorSparsityConfigAttr:
+      return readTensorSparsityConfigAttr(reader);
+    case stablehlo_encoding::kSparsityConfigAttr:
+      return readSparsityConfigAttr(reader);
     default:
       reader.emitError() << "unknown stablehlo attribute code: " << code;
       return Attribute();
@@ -437,12 +489,13 @@ LogicalResult StablehloBytecodeInterface::writeAttribute(
             PrecisionAttr, ResultAccuracyAttr, ResultAccuracyModeAttr,
             RngAlgorithmAttr, RngDistributionAttr, ScatterDimensionNumbersAttr,
             TransposeAttr, TypeExtensionsAttr, ReplicaGroupMeshAxesAttr,
-            SubAxisInfoAttr, AxisRefAttr, MeshAxisAttr, MeshAttr>(
-          [&](auto attr) {
-            LOG_WRITE_CALL;
-            write(attr, writer);
-            return success();
-          })
+            SubAxisInfoAttr, AxisRefAttr, MeshAxisAttr, MeshAttr,
+            TensorBlockScalingConfigAttr, BlockScalingConfigAttr,
+            TensorSparsityConfigAttr, SparsityConfigAttr>([&](auto attr) {
+        LOG_WRITE_CALL;
+        write(attr, writer);
+        return success();
+      })
       .Default([&](Attribute) {
         LOG_NOT_IMPLEMENTED;
         return failure();
@@ -1113,6 +1166,111 @@ void StablehloBytecodeInterface::write(ResultAccuracyAttr attr,
   writer.writeAPFloatWithKnownSemantics(attr.getRtol());
   writer.writeSignedVarInt(attr.getUlps());
   writer.writeAttribute(attr.getMode());
+}
+
+//===----------------------------------------------------------------------===//
+// TensorBlockScalingConfigAttr
+
+TensorBlockScalingConfigAttr
+StablehloBytecodeInterface::readTensorBlockScalingConfigAttr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  int64_t scaleIdx;
+  bool hasZeroIdx;
+  std::optional<int64_t> zeroIdx;
+  llvm::SmallVector<int64_t> strides, steps;
+  if (failed(reader.readSignedVarInt(scaleIdx)) ||
+      failed(reader.readBool(hasZeroIdx)))
+    return TensorBlockScalingConfigAttr();
+  if (hasZeroIdx) {
+    int64_t z;
+    if (failed(reader.readSignedVarInt(z)))
+      return TensorBlockScalingConfigAttr();
+    zeroIdx = z;
+  }
+  if (failed(reader.readSignedVarInts(strides)) ||
+      failed(reader.readSignedVarInts(steps)))
+    return TensorBlockScalingConfigAttr();
+  return TensorBlockScalingConfigAttr::get(getContext(), scaleIdx, zeroIdx,
+                                           strides, steps);
+}
+
+void StablehloBytecodeInterface::write(TensorBlockScalingConfigAttr attr,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kTensorBlockScalingConfigAttr);
+  writer.writeSignedVarInt(attr.getScaleIdx());
+  bool hasZeroIdx = attr.getZeroIdx().has_value();
+  writer.writeOwnedBool(hasZeroIdx);
+  if (hasZeroIdx) writer.writeSignedVarInt(*attr.getZeroIdx());
+  writer.writeSignedVarInts(attr.getStrides());
+  writer.writeSignedVarInts(attr.getSteps());
+}
+
+//===----------------------------------------------------------------------===//
+// BlockScalingConfigAttr
+
+BlockScalingConfigAttr StablehloBytecodeInterface::readBlockScalingConfigAttr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  TensorBlockScalingConfigAttr lhs, rhs;
+  if (failed(reader.readOptionalAttribute(lhs)) ||
+      failed(reader.readOptionalAttribute(rhs)))
+    return BlockScalingConfigAttr();
+  return BlockScalingConfigAttr::get(getContext(), lhs, rhs);
+}
+
+void StablehloBytecodeInterface::write(BlockScalingConfigAttr attr,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kBlockScalingConfigAttr);
+  writer.writeOptionalAttribute(attr.getLhs());
+  writer.writeOptionalAttribute(attr.getRhs());
+}
+
+//===----------------------------------------------------------------------===//
+// TensorSparsityConfigAttr
+
+TensorSparsityConfigAttr
+StablehloBytecodeInterface::readTensorSparsityConfigAttr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  int64_t n, m, dim, stride, idx;
+  if (failed(reader.readSignedVarInt(n)) ||
+      failed(reader.readSignedVarInt(m)) ||
+      failed(reader.readSignedVarInt(dim)) ||
+      failed(reader.readSignedVarInt(stride)) ||
+      failed(reader.readSignedVarInt(idx)))
+    return TensorSparsityConfigAttr();
+  return TensorSparsityConfigAttr::get(getContext(), n, m, dim, stride, idx);
+}
+
+void StablehloBytecodeInterface::write(TensorSparsityConfigAttr attr,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kTensorSparsityConfigAttr);
+  writer.writeSignedVarInt(attr.getNumNonZero());
+  writer.writeSignedVarInt(attr.getBlockSize());
+  writer.writeSignedVarInt(attr.getDimension());
+  writer.writeSignedVarInt(attr.getStride());
+  writer.writeSignedVarInt(attr.getIdx());
+}
+
+//===----------------------------------------------------------------------===//
+// SparsityConfigAttr
+
+SparsityConfigAttr StablehloBytecodeInterface::readSparsityConfigAttr(
+    DialectBytecodeReader& reader) const {
+  LOG_READ_CALL;
+  TensorSparsityConfigAttr lhs, rhs;
+  if (failed(reader.readOptionalAttribute(lhs)) ||
+      failed(reader.readOptionalAttribute(rhs)))
+    return SparsityConfigAttr();
+  return SparsityConfigAttr::get(getContext(), lhs, rhs);
+}
+
+void StablehloBytecodeInterface::write(SparsityConfigAttr attr,
+                                       DialectBytecodeWriter& writer) const {
+  writer.writeVarInt(stablehlo_encoding::kSparsityConfigAttr);
+  writer.writeOptionalAttribute(attr.getLhs());
+  writer.writeOptionalAttribute(attr.getRhs());
 }
 
 }  // namespace
