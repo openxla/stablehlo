@@ -2376,7 +2376,9 @@ LogicalResult checkDotGeneralConstraints(
     ArrayRef<int64_t> rhsBatchingDimensions,
     ArrayRef<int64_t> lhsContractingDimensions,
     ArrayRef<int64_t> rhsContractingDimensions,
-    std::optional<ArrayAttr> precisionConfig) {
+    std::optional<ArrayAttr> precisionConfig,
+    std::optional<DotSparsityDim> lhsSparsity,
+    std::optional<DotSparsityDim> rhsSparsity) {
   // dot_general_c11
   if (failed(verifyPrecisionConfig(location, precisionConfig)))
     return failure();
@@ -2447,10 +2449,21 @@ LogicalResult checkDotGeneralConstraints(
                                "match for lhs/rhs");
   }
 
+  auto getLogicalDimSize = [](int64_t size, int64_t dim,
+                              std::optional<DotSparsityDim> sp) -> int64_t {
+    if (!ShapedType::isDynamic(size) && sp && sp->dimension == dim &&
+        sp->numNonZero > 0) {
+      return size * sp->blockSize / sp->numNonZero;
+    }
+    return size;
+  };
+
   for (auto [lhs, rhs] :
        llvm::zip(lhsContractingDimensions, rhsContractingDimensions)) {
+    int64_t lhsDimSize = getLogicalDimSize(lhsShape[lhs], lhs, lhsSparsity);
+    int64_t rhsDimSize = getLogicalDimSize(rhsShape[rhs], rhs, rhsSparsity);
     // dot_general_c10
-    if (!verifyCompatibleDims(lhsShape[lhs], rhsShape[rhs]))
+    if (!verifyCompatibleDims(lhsDimSize, rhsDimSize))
       return emitOptionalError(location,
                                "contracting dimension sizes must "
                                "match for lhs/rhs");
@@ -2465,11 +2478,14 @@ LogicalResult inferDotGeneralOp(
     ArrayRef<int64_t> lhsContractingDimensions,
     ArrayRef<int64_t> rhsContractingDimensions,
     std::optional<ArrayAttr> precisionConfig,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes,
+    std::optional<DotSparsityDim> lhsSparsity,
+    std::optional<DotSparsityDim> rhsSparsity) {
   if (failed(checkDotGeneralConstraints(
           location, lhsType, rhsType, lhsBatchingDimensions,
           rhsBatchingDimensions, lhsContractingDimensions,
-          rhsContractingDimensions, precisionConfig))) {
+          rhsContractingDimensions, precisionConfig, lhsSparsity,
+          rhsSparsity))) {
     return failure();
   }
 
@@ -4259,12 +4275,15 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  ArrayRef<int64_t> rhsContractingDimensions,
                                  std::optional<ArrayAttr> precisionConfig,
                                  bool isDefaultPrecisionConfig,
-                                 bool hasAlgorithmSpecified, Value result) {
+                                 bool hasAlgorithmSpecified, Value result,
+                                 std::optional<DotSparsityDim> lhsSparsity,
+                                 std::optional<DotSparsityDim> rhsSparsity) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
-  if (failed(inferDotGeneralOp(
-          location, lhs.getType(), rhs.getType(), lhsBatchingDimensions,
-          rhsBatchingDimensions, lhsContractingDimensions,
-          rhsContractingDimensions, precisionConfig, inferredReturnShapes)))
+  if (failed(inferDotGeneralOp(location, lhs.getType(), rhs.getType(),
+                               lhsBatchingDimensions, rhsBatchingDimensions,
+                               lhsContractingDimensions,
+                               rhsContractingDimensions, precisionConfig,
+                               inferredReturnShapes, lhsSparsity, rhsSparsity)))
     return failure();
 
   auto inferredShape = inferredReturnShapes[0];
