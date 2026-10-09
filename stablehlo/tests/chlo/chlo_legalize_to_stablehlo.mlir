@@ -8,10 +8,8 @@
 // CHECK:           %[[ADD_0:.*]] = stablehlo.add %[[CONSTANT_0]], %[[ARG0]] : tensor<bf16>
 // CHECK:           %[[MULTIPLY_0:.*]] = stablehlo.multiply %[[SUBTRACT_0]], %[[ADD_0]] : tensor<bf16>
 // CHECK:           %[[SQRT_0:.*]] = stablehlo.sqrt %[[MULTIPLY_0]] : tensor<bf16>
-// CHECK:           %[[ADD_1:.*]] = stablehlo.add %[[CONSTANT_0]], %[[SQRT_0]] : tensor<bf16>
-// CHECK:           %[[VAL_0:.*]] = stablehlo.atan2 %[[ARG0]], %[[ADD_1]] : tensor<bf16>
-// CHECK:           %[[ADD_2:.*]] = stablehlo.add %[[VAL_0]], %[[VAL_0]] : tensor<bf16>
-// CHECK:           return %[[ADD_2]] : tensor<bf16>
+// CHECK:           %[[VAL_0:.*]] = stablehlo.atan2 %[[ARG0]], %[[SQRT_0]] : tensor<bf16>
+// CHECK:           return %[[VAL_0]] : tensor<bf16>
 // CHECK:         }
 func.func @asin_bf16(%arg : tensor<bf16>) -> tensor<bf16> {
   %result = "chlo.asin"(%arg) : (tensor<bf16>) -> tensor<bf16>
@@ -27,10 +25,8 @@ func.func @asin_bf16(%arg : tensor<bf16>) -> tensor<bf16> {
 // CHECK:           %[[ADD_0:.*]] = stablehlo.add %[[CONSTANT_0]], %[[ARG0]] : tensor<f16>
 // CHECK:           %[[MULTIPLY_0:.*]] = stablehlo.multiply %[[SUBTRACT_0]], %[[ADD_0]] : tensor<f16>
 // CHECK:           %[[SQRT_0:.*]] = stablehlo.sqrt %[[MULTIPLY_0]] : tensor<f16>
-// CHECK:           %[[ADD_1:.*]] = stablehlo.add %[[CONSTANT_0]], %[[SQRT_0]] : tensor<f16>
-// CHECK:           %[[VAL_0:.*]] = stablehlo.atan2 %[[ARG0]], %[[ADD_1]] : tensor<f16>
-// CHECK:           %[[ADD_2:.*]] = stablehlo.add %[[VAL_0]], %[[VAL_0]] : tensor<f16>
-// CHECK:           return %[[ADD_2]] : tensor<f16>
+// CHECK:           %[[VAL_0:.*]] = stablehlo.atan2 %[[ARG0]], %[[SQRT_0]] : tensor<f16>
+// CHECK:           return %[[VAL_0]] : tensor<f16>
 // CHECK:         }
 func.func @asin_f16(%arg : tensor<f16>) -> tensor<f16> {
   %result = "chlo.asin"(%arg) : (tensor<f16>) -> tensor<f16>
@@ -46,10 +42,8 @@ func.func @asin_f16(%arg : tensor<f16>) -> tensor<f16> {
 // CHECK:           %[[ADD_0:.*]] = stablehlo.add %[[CONSTANT_0]], %[[ARG0]] : tensor<f32>
 // CHECK:           %[[MULTIPLY_0:.*]] = stablehlo.multiply %[[SUBTRACT_0]], %[[ADD_0]] : tensor<f32>
 // CHECK:           %[[SQRT_0:.*]] = stablehlo.sqrt %[[MULTIPLY_0]] : tensor<f32>
-// CHECK:           %[[ADD_1:.*]] = stablehlo.add %[[CONSTANT_0]], %[[SQRT_0]] : tensor<f32>
-// CHECK:           %[[VAL_0:.*]] = stablehlo.atan2 %[[ARG0]], %[[ADD_1]] : tensor<f32>
-// CHECK:           %[[ADD_2:.*]] = stablehlo.add %[[VAL_0]], %[[VAL_0]] : tensor<f32>
-// CHECK:           return %[[ADD_2]] : tensor<f32>
+// CHECK:           %[[VAL_0:.*]] = stablehlo.atan2 %[[ARG0]], %[[SQRT_0]] : tensor<f32>
+// CHECK:           return %[[VAL_0]] : tensor<f32>
 // CHECK:         }
 func.func @asin_f32(%arg : tensor<f32>) -> tensor<f32> {
   %result = "chlo.asin"(%arg) : (tensor<f32>) -> tensor<f32>
@@ -65,10 +59,8 @@ func.func @asin_f32(%arg : tensor<f32>) -> tensor<f32> {
 // CHECK:           %[[ADD_0:.*]] = stablehlo.add %[[CONSTANT_0]], %[[ARG0]] : tensor<f64>
 // CHECK:           %[[MULTIPLY_0:.*]] = stablehlo.multiply %[[SUBTRACT_0]], %[[ADD_0]] : tensor<f64>
 // CHECK:           %[[SQRT_0:.*]] = stablehlo.sqrt %[[MULTIPLY_0]] : tensor<f64>
-// CHECK:           %[[ADD_1:.*]] = stablehlo.add %[[CONSTANT_0]], %[[SQRT_0]] : tensor<f64>
-// CHECK:           %[[VAL_0:.*]] = stablehlo.atan2 %[[ARG0]], %[[ADD_1]] : tensor<f64>
-// CHECK:           %[[ADD_2:.*]] = stablehlo.add %[[VAL_0]], %[[VAL_0]] : tensor<f64>
-// CHECK:           return %[[ADD_2]] : tensor<f64>
+// CHECK:           %[[VAL_0:.*]] = stablehlo.atan2 %[[ARG0]], %[[SQRT_0]] : tensor<f64>
+// CHECK:           return %[[VAL_0]] : tensor<f64>
 // CHECK:         }
 func.func @asin_f64(%arg : tensor<f64>) -> tensor<f64> {
   %result = "chlo.asin"(%arg) : (tensor<f64>) -> tensor<f64>
