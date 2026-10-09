@@ -1749,9 +1749,13 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
   acc = AddOp::create(rewriter, loc, acc, one);
   qNegPower = PowOp::create(rewriter, loc, acc, negX);
   Value oneLikeX = getConstantLike(rewriter, loc, 1.0, x);
+  // Compute acc^(1-x) directly rather than as acc^-x * acc: the latter
+  // underflows to 0 for large acc, and is inf * 0 = NaN for acc = inf.
+  Value xMinusOne = SubtractOp::create(rewriter, loc, x, oneLikeX);
+  Value accPowOneMinusX = PowOp::create(
+      rewriter, loc, acc, NegOp::create(rewriter, loc, xMinusOne));
   Value correctionEulerMaclaurin =
-      DivOp::create(rewriter, loc, MulOp::create(rewriter, loc, qNegPower, acc),
-                    SubtractOp::create(rewriter, loc, x, oneLikeX));
+      DivOp::create(rewriter, loc, accPowOneMinusX, xMinusOne);
 
   // Manual reciprocal of the square root as RsqrtOp produces different results
   Value rsqrtAcc =
