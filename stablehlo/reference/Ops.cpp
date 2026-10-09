@@ -568,7 +568,9 @@ SmallVector<InterpreterValue> eval(Region& region,
       auto lhs = scope.findTensor(op.getLhs());
       auto rhs = scope.findTensor(op.getRhs());
       auto comparisonDirection = op.getComparisonDirection();
-      auto result = compareOp(lhs, rhs, comparisonDirection, op.getType());
+      auto compareType = op.getCompareType();
+      auto result =
+          compareOp(lhs, rhs, comparisonDirection, compareType, op.getType());
       scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<ComplexOp>(operation)) {
       auto lhs = scope.findTensor(op.getLhs());
@@ -1597,27 +1599,56 @@ Tensor collectivePermuteOp(const Tensor& operand,
 
 Tensor compareOp(const Tensor& lhs, const Tensor& rhs,
                  ComparisonDirection comparisonDirection,
+                 std::optional<ComparisonType> compareType,
                  ShapedType resultType) {
   Tensor result(resultType);
+  bool isWeakOrder = compareType == ComparisonType::WEAKORDER;
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    auto lhsElem = lhs.get(*it);
+    auto rhsElem = rhs.get(*it);
+    if (isWeakOrder) {
+      switch (comparisonDirection) {
+        case ComparisonDirection::EQ:
+          result.set(*it, weakOrderEq(lhsElem, rhsElem));
+          break;
+        case ComparisonDirection::NE:
+          result.set(*it, !weakOrderEq(lhsElem, rhsElem));
+          break;
+        case ComparisonDirection::GE:
+          result.set(*it, weakOrderLt(rhsElem, lhsElem) ||
+                              weakOrderEq(lhsElem, rhsElem));
+          break;
+        case ComparisonDirection::GT:
+          result.set(*it, weakOrderLt(rhsElem, lhsElem));
+          break;
+        case ComparisonDirection::LE:
+          result.set(*it, weakOrderLt(lhsElem, rhsElem) ||
+                              weakOrderEq(lhsElem, rhsElem));
+          break;
+        case ComparisonDirection::LT:
+          result.set(*it, weakOrderLt(lhsElem, rhsElem));
+          break;
+      }
+      continue;
+    }
     switch (comparisonDirection) {
       case ComparisonDirection::EQ:
-        result.set(*it, lhs.get(*it) == rhs.get(*it));
+        result.set(*it, lhsElem == rhsElem);
         break;
       case ComparisonDirection::NE:
-        result.set(*it, lhs.get(*it) != rhs.get(*it));
+        result.set(*it, lhsElem != rhsElem);
         break;
       case ComparisonDirection::GE:
-        result.set(*it, lhs.get(*it) >= rhs.get(*it));
+        result.set(*it, lhsElem >= rhsElem);
         break;
       case ComparisonDirection::GT:
-        result.set(*it, lhs.get(*it) > rhs.get(*it));
+        result.set(*it, lhsElem > rhsElem);
         break;
       case ComparisonDirection::LE:
-        result.set(*it, lhs.get(*it) <= rhs.get(*it));
+        result.set(*it, lhsElem <= rhsElem);
         break;
       case ComparisonDirection::LT:
-        result.set(*it, lhs.get(*it) < rhs.get(*it));
+        result.set(*it, lhsElem < rhsElem);
         break;
     }
   }

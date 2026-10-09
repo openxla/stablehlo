@@ -560,6 +560,31 @@ func.func @compare_fold_float_edge_cases()
 
 // -----
 
+// CHECK-LABEL: func.func @compare_fold_weakorder
+func.func @compare_fold_weakorder()
+  -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
+  %neg_zero = stablehlo.constant dense<-0.0> : tensor<f32>
+  %pos_zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %pos_inf = stablehlo.constant dense<0x7F800000> : tensor<f32>
+  %neg_nan = stablehlo.constant dense<0xFFC00000> : tensor<f32>
+  %pos_nan = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+
+  %0 = stablehlo.compare LT, %neg_zero, %pos_zero, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %1 = stablehlo.compare EQ, %neg_zero, %pos_zero, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %2 = stablehlo.compare EQ, %neg_nan, %pos_nan, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %3 = stablehlo.compare LT, %neg_nan, %pos_nan, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %4 = stablehlo.compare LT, %pos_inf, %neg_nan, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %5 = stablehlo.compare GT, %neg_nan, %pos_inf, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  // CHECK-DAG:  [[FALSE:%.+]] = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-DAG:  [[TRUE:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK-NEXT: return [[FALSE]], [[TRUE]], [[TRUE]], [[FALSE]], [[TRUE]], [[TRUE]]
+  return %0, %1, %2, %3, %4, %5 :
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
+
+// -----
+
 ////////
 // ConcatenateOp
 

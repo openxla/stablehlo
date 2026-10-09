@@ -41,12 +41,16 @@ class VHLO_I32EnumAttr<string name, list<I32EnumAttrCase> cases> :
   let cppNamespace = "::mlir::vhlo";
 }
 
-class VHLO_EnumAttr<EnumAttrInfo enumInfo, string name, string minVersion, string maxVersion>
+class VHLO_EnumAttr<EnumAttrInfo enumInfo, string name, string minVersion, string maxVersion, code customMinVersion = "">
   : EnumAttr<VHLO_Dialect, enumInfo, name, [VHLO_VersionedAttrInterface]> {
   let assemblyFormat = "$value";
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
-      return mlir::vhlo::Version(}] # !subst(".", ", ", minVersion) # [{);
+      }] # !if(
+        !empty(customMinVersion),
+        [{ return mlir::vhlo::Version(}] # !subst(".", ", ", minVersion) # [{); }],
+        customMinVersion
+      ) # [{
     }
     mlir::vhlo::Version getMaxVersion() {
       }] # !if(
@@ -91,17 +95,31 @@ def VHLO_COMPARISON_TYPE_V1_FLOAT : I32EnumAttrCase<"FLOAT", 1>;
 def VHLO_COMPARISON_TYPE_V1_FLOAT_TOTAL_ORDER : I32EnumAttrCase<"TOTALORDER", 2>;
 def VHLO_COMPARISON_TYPE_V1_SIGNED : I32EnumAttrCase<"SIGNED", 3>;
 def VHLO_COMPARISON_TYPE_V1_UNSIGNED : I32EnumAttrCase<"UNSIGNED", 4>;
+def VHLO_COMPARISON_TYPE_V1_WEAK_ORDER : I32EnumAttrCase<"WEAKORDER", 5>;
 
 def VHLO_ComparisonTypeV1 : VHLO_I32EnumAttr<"ComparisonTypeV1", [
   VHLO_COMPARISON_TYPE_V1_NOTYPE,
   VHLO_COMPARISON_TYPE_V1_FLOAT,
   VHLO_COMPARISON_TYPE_V1_FLOAT_TOTAL_ORDER,
   VHLO_COMPARISON_TYPE_V1_SIGNED,
-  VHLO_COMPARISON_TYPE_V1_UNSIGNED
+  VHLO_COMPARISON_TYPE_V1_UNSIGNED,
+  VHLO_COMPARISON_TYPE_V1_WEAK_ORDER
 ]> {}
 
 def VHLO_ComparisonTypeAttrV1
-  : VHLO_EnumAttr<VHLO_ComparisonTypeV1, "comparison_type_v1", "0.9.0", "current">;
+  : VHLO_EnumAttr<VHLO_ComparisonTypeV1, "comparison_type_v1", "0.9.0", "current", [{
+      switch (getValue()) {
+        case mlir::vhlo::ComparisonTypeV1::NOTYPE:
+        case mlir::vhlo::ComparisonTypeV1::FLOAT:
+        case mlir::vhlo::ComparisonTypeV1::TOTALORDER:
+        case mlir::vhlo::ComparisonTypeV1::SIGNED:
+        case mlir::vhlo::ComparisonTypeV1::UNSIGNED:
+          return mlir::vhlo::Version(0, 9, 0);
+        case mlir::vhlo::ComparisonTypeV1::WEAKORDER:
+          return mlir::vhlo::Version(1, 22, 0);
+      }
+      llvm_unreachable("Unknown ComparisonTypeV1");
+    }]>;
 
 //===----------------------------------------------------------------------===//
 // CustomCallApiVersion

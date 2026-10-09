@@ -56,6 +56,7 @@ def CHLO_COMPARISON_TYPE_FLOAT : I32EnumAttrCase<"FLOAT", 1>;
 def CHLO_COMPARISON_TYPE_FLOAT_TOTAL_ORDER : I32EnumAttrCase<"TOTALORDER", 2>;
 def CHLO_COMPARISON_TYPE_SIGNED : I32EnumAttrCase<"SIGNED", 3>;
 def CHLO_COMPARISON_TYPE_UNSIGNED : I32EnumAttrCase<"UNSIGNED", 4>;
+def CHLO_COMPARISON_TYPE_WEAK_ORDER : I32EnumAttrCase<"WEAKORDER", 5>;
 
 def CHLO_ComparisonType : I32EnumAttr<"ComparisonType",
     "Which comparison type to use.",
@@ -64,7 +65,8 @@ def CHLO_ComparisonType : I32EnumAttr<"ComparisonType",
       CHLO_COMPARISON_TYPE_FLOAT,
       CHLO_COMPARISON_TYPE_FLOAT_TOTAL_ORDER,
       CHLO_COMPARISON_TYPE_SIGNED,
-      CHLO_COMPARISON_TYPE_UNSIGNED
+      CHLO_COMPARISON_TYPE_UNSIGNED,
+      CHLO_COMPARISON_TYPE_WEAK_ORDER
     ]> {
   let genSpecializedAttr = 0;
   let cppNamespace = "::mlir::chlo";

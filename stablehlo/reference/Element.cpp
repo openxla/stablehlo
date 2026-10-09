@@ -1159,6 +1159,40 @@ Element tanh(const Element& el) {
       [](mlir::Complex<double> e) { return std::tanh(e); });
 }
 
+Element weakOrderEq(const Element& e1, const Element& e2) {
+  auto type = e1.getType();
+  auto i1Type = IntegerType::get(type.getContext(), 1);
+  if (type != e2.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type).c_str(),
+                                       debugString(e2.getType()).c_str()));
+  if (!isSupportedFloatType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  auto floatLhs = e1.getFloatValue();
+  auto floatRhs = e2.getFloatValue();
+  return Element(
+      i1Type, (floatLhs == floatRhs) || (floatLhs.isNaN() && floatRhs.isNaN()));
+}
+
+Element weakOrderLt(const Element& e1, const Element& e2) {
+  auto type = e1.getType();
+  auto i1Type = IntegerType::get(type.getContext(), 1);
+  if (type != e2.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type).c_str(),
+                                       debugString(e2.getType()).c_str()));
+  if (!isSupportedFloatType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  auto floatLhs = e1.getFloatValue();
+  auto floatRhs = e2.getFloatValue();
+  bool result =
+      (!floatLhs.isNaN() && floatRhs.isNaN()) ||
+      (!floatLhs.isNaN() && !floatRhs.isNaN() && (floatLhs < floatRhs));
+  return Element(i1Type, result);
+}
+
 void Element::print(raw_ostream& os, bool elideType) const {
   if (isSupportedIntegerType(type_)) {
     IntegerAttr::get(type_, getIntegerValue()).print(os, elideType);

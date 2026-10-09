@@ -314,6 +314,12 @@ Element tan(const Element& e);
 /// Returns tanh of Element object.
 Element tanh(const Element& e);
 
+/// Returns weak-order equality of two floating-point Element objects.
+Element weakOrderEq(const Element& e1, const Element& e2);
+
+/// Returns weak-order less-than of two floating-point Element objects.
+Element weakOrderLt(const Element& e1, const Element& e2);
+
 /// Print utilities for Element objects.
 inline raw_ostream& operator<<(raw_ostream& os, Element element) {
   element.print(os, /*elideType=*/true);

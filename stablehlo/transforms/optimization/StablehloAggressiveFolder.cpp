@@ -743,6 +743,36 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
     ComparisonType kind;
 
     APInt operator()(APFloat lhs, APFloat rhs) {
+      if (kind == ComparisonType::WEAKORDER) {
+        bool eq = (lhs == rhs) || (lhs.isNaN() && rhs.isNaN());
+        auto lt = [](const APFloat& a, const APFloat& b) {
+          return (!a.isNaN() && b.isNaN()) ||
+                 (!a.isNaN() && !b.isNaN() && (a < b));
+        };
+        bool result = false;
+        switch (direction) {
+          case ComparisonDirection::EQ:
+            result = eq;
+            break;
+          case ComparisonDirection::NE:
+            result = !eq;
+            break;
+          case ComparisonDirection::GE:
+            result = lt(rhs, lhs) || eq;
+            break;
+          case ComparisonDirection::GT:
+            result = lt(rhs, lhs);
+            break;
+          case ComparisonDirection::LE:
+            result = lt(lhs, rhs) || eq;
+            break;
+          case ComparisonDirection::LT:
+            result = lt(lhs, rhs);
+            break;
+        }
+        return APInt(/*bitwidth=*/1, result);
+      }
+
       if (kind != ComparisonType::FLOAT && kind != ComparisonType::TOTALORDER)
         llvm::report_fatal_error("invalid float comparison");
 

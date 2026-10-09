@@ -3283,7 +3283,10 @@ LogicalResult CompareOp::inferReturnTypeComponents(
     RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CompareOp::Adaptor adaptor(operands, attributes, properties, regions);
-  return hlo::inferCompareOp(context, location, adaptor.getLhs(),
+  std::optional<StringRef> compareType;
+  if (auto attr = adaptor.getCompareType())
+    compareType = stringifyComparisonType(*attr);
+  return hlo::inferCompareOp(context, location, adaptor.getLhs(), compareType,
                              inferredReturnShapes);
 }
 

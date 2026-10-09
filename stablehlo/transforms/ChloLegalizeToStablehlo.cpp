@@ -111,6 +111,8 @@ static std::optional<mlir::stablehlo::ComparisonType> toStableHloComparisonType(
       return mlir::stablehlo::ComparisonType::SIGNED;
     case mlir::chlo::ComparisonType::UNSIGNED:
       return mlir::stablehlo::ComparisonType::UNSIGNED;
+    case mlir::chlo::ComparisonType::WEAKORDER:
+      return mlir::stablehlo::ComparisonType::WEAKORDER;
   }
   return {};
 }
