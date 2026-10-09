@@ -703,6 +703,13 @@ def VHLO_Expm1OpV2 : VHLO_Op<"exponential_minus_one_v2", "1.10.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
+def VHLO_Exp2OpV1 : VHLO_Op<"exp2_v1", "1.22.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
+  let results = (outs VHLO_AnyType:$result);
+}
+
 def VHLO_ExpOpV1 : VHLO_Op<"exponential_v1", "0.9.0", "1.8.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
@@ -855,6 +862,13 @@ def VHLO_LogOpV1 : VHLO_Op<"log_v1", "0.9.0", "1.9.0"> {
 }
 
 def VHLO_LogOpV2 : VHLO_Op<"log_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_Log2OpV1 : VHLO_Op<"log2_v1", "1.22.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$result_accuracy);
