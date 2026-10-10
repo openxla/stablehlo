@@ -644,6 +644,70 @@ LogicalResult CustomCallOp::verifyKnownCustomCalls() {
     return success();
   }
 
+  // Verify FanOut custom call:
+  // - Exactly 1 memref input.
+  // - At least 2 memref outputs (element 0 = anchor, elements 1..N = stream
+  //   views).
+  // - Compatible shapes and element types between input and all outputs.
+  if (getCallTargetName() == kFanOutCustomCallTarget) {
+    if (getInputs().size() != 1) {
+      return emitOpError() << "FanOut custom_call should have one input";
+    }
+    Type inputType = getInputs()[0].getType();
+    if (!isa<MemRefType>(inputType)) {
+      return emitOpError() << "FanOut custom_call should have a memref input";
+    }
+    TypeRange resultTypes = getResultTypes();
+    if (getNumResults() == 1 && isa<TupleType>(getResult(0).getType())) {
+      resultTypes = cast<TupleType>(getResult(0).getType()).getTypes();
+    }
+    if (resultTypes.size() < 2) {
+      return emitOpError()
+             << "FanOut custom_call should have at least two outputs";
+    }
+    for (Type outputType : resultTypes) {
+      if (!isa<MemRefType>(outputType)) {
+        return emitOpError() << "FanOut custom_call should have memref outputs";
+      }
+      if (failed(verifyCompatibleShape(inputType, outputType)) ||
+          getElementTypeOrSelf(inputType) != getElementTypeOrSelf(outputType)) {
+        return emitOpError() << "FanOut custom_call should have compatible "
+                                "input and output types";
+      }
+    }
+    return success();
+  }
+
+  // Verify FanIn custom call:
+  // - At least 2 memref inputs (operand 0 = anchor, operands 1..N = streams).
+  // - Exactly 1 memref output.
+  // - Compatible shapes and element types between all inputs and the output.
+  if (getCallTargetName() == kFanInCustomCallTarget) {
+    if (getInputs().size() < 2) {
+      return emitOpError()
+             << "FanIn custom_call should have at least two inputs";
+    }
+    if (getNumResults() != 1) {
+      return emitOpError() << "FanIn custom_call should have one output";
+    }
+    Type outputType = getResult(0).getType();
+    if (!isa<MemRefType>(outputType)) {
+      return emitOpError() << "FanIn custom_call should have a memref output";
+    }
+    for (Value input : getInputs()) {
+      Type inputType = input.getType();
+      if (!isa<MemRefType>(inputType)) {
+        return emitOpError() << "FanIn custom_call should have memref inputs";
+      }
+      if (failed(verifyCompatibleShape(inputType, outputType)) ||
+          getElementTypeOrSelf(inputType) != getElementTypeOrSelf(outputType)) {
+        return emitOpError() << "FanIn custom_call should have compatible "
+                                "input and output types";
+      }
+    }
+    return success();
+  }
+
   auto getOperandPartType = [&](int64_t operandIndex,
                                 ::llvm::ArrayRef<int64_t> operandTupleIndices) {
     Type operandPart = getOperand(operandIndex).getType();
