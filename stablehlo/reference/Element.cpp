@@ -398,9 +398,15 @@ Element Element::operator/(const Element& other) const {
   if (isSupportedIntegerType(type)) {
     auto intLhs = lhs.getIntegerValue();
     auto intRhs = rhs.getIntegerValue();
-    return Element(type, isSupportedSignedIntegerType(type)
-                             ? intLhs.sdiv(intRhs)
-                             : intLhs.udiv(intRhs));
+    bool isSigned = isSupportedSignedIntegerType(type);
+    // Divide-by-zero and INT_MIN / -1 are implementation-defined; avoid
+    // APInt::sdiv/udiv asserting/trapping on them.
+    bool isSignedOverflow =
+        isSigned && intRhs.isAllOnes() && intLhs.isMinSignedValue();
+    if (intRhs.isZero() || isSignedOverflow)
+      return Element(type, APInt(intLhs.getBitWidth(), 0));
+    return Element(type,
+                   isSigned ? intLhs.sdiv(intRhs) : intLhs.udiv(intRhs));
   }
 
   if (isSupportedFloatType(type)) {
@@ -1043,8 +1049,14 @@ Element rem(const Element& e1, const Element& e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
-        return isSupportedSignedIntegerType(e1.getType()) ? lhs.srem(rhs)
-                                                          : lhs.urem(rhs);
+        bool isSigned = isSupportedSignedIntegerType(e1.getType());
+        // Remainder-by-zero and INT_MIN % -1 are implementation-defined;
+        // avoid APInt::srem/urem asserting/trapping on them.
+        bool isSignedOverflow =
+            isSigned && rhs.isAllOnes() && lhs.isMinSignedValue();
+        if (rhs.isZero() || isSignedOverflow)
+          return APInt(lhs.getBitWidth(), 0);
+        return isSigned ? lhs.srem(rhs) : lhs.urem(rhs);
       },
       [](bool lhs, bool rhs) -> bool {
         llvm::report_fatal_error("rem(bool, bool) is unsupported");

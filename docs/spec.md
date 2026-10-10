@@ -2766,7 +2766,10 @@ Performs element-wise division of dividend `lhs` and divisor `rhs` tensors and
 produces a `result` tensor. Depending on the element type, does the following:
 
 * For integers: integer division which produces the algebraic quotient with any
-  fractional part discarded.
+  fractional part discarded. If `rhs` is zero, or, for signed integer types,
+  `lhs` is the minimum representable value and `rhs` is `-1`, the
+  corresponding element of `result` is an implementation-defined value of the
+  element type of `result`.
 * For floats: `division` from IEEE-754.
 * For complex numbers: complex division.
 * For quantized types:
@@ -5508,7 +5511,10 @@ More formally, the sign of the result is taken from the dividend, and the
 absolute value of the result is always less than the divisor's absolute value.
 The remainder is calculated as `lhs - d * rhs`, where `d` is given by:
 
-* For integers: `stablehlo.divide(lhs, rhs)`.
+* For integers: `stablehlo.divide(lhs, rhs)`. If `rhs` is zero, or, for signed
+  integer types, `lhs` is the minimum representable value and `rhs` is `-1`,
+  the corresponding element of `result` is an implementation-defined value of
+  the element type of `result`.
 * For floats: `division(lhs, rhs)` from IEEE-754 with rounding attribute
   `roundTowardZero`.
 * For complex numbers: TBD
