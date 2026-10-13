@@ -1112,10 +1112,10 @@ TEST(MlirBuilderTest, ConstantF4E2M1FNArray) {
     double posMinDenorm = 0.5;
     double negMinDenorm = -0.5;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posMax, negMax, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posMax,
+                                  negMax, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1141,10 +1141,10 @@ TEST(MlirBuilderTest, ConstantF6E2M3FNArray) {
     double posMinDenorm = 0x1p-3;
     double negMinDenorm = -0x1p-3;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posMax, negMax, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posMax,
+                                  negMax, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1170,10 +1170,10 @@ TEST(MlirBuilderTest, ConstantF6E3M2FNArray) {
     double posMinDenorm = 0x1p-4;
     double negMinDenorm = -0x1p-4;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posMax, negMax, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posMax,
+                                  negMax, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1200,10 +1200,10 @@ TEST(MlirBuilderTest, ConstantF8E3M4Array) {
     double posMinDenorm = 0x1p-6;
     double negMinDenorm = -0x1p-6;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posInf, negInf, nan, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posInf,
+                                  negInf, nan, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1231,10 +1231,10 @@ TEST(MlirBuilderTest, ConstantF8E4M3B11FNUZArray) {
     double posMinDenorm = 0x1p-13;
     double negMinDenorm = -0x1p-13;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posMax, negMax, nan, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posMax,
+                                  negMax, nan, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1261,10 +1261,10 @@ TEST(MlirBuilderTest, ConstantF8E4M3Array) {
     double posMinDenorm = 0x1p-9;
     double negMinDenorm = -0x1p-9;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posInf, negInf, nan, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posInf,
+                                  negInf, nan, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1291,10 +1291,10 @@ TEST(MlirBuilderTest, ConstantF8E4M3FNArray) {
     double posMinDenorm = 0x1p-9;
     double negMinDenorm = -0x1p-9;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posMax, negMax, nan, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posMax,
+                                  negMax, nan, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1321,10 +1321,10 @@ TEST(MlirBuilderTest, ConstantF8E4M3FNUZArray) {
     double posMinDenorm = 0x1p-10;
     double negMinDenorm = -0x1p-10;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posMax, negMax, nan, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posMax,
+                                  negMax, nan, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1351,10 +1351,10 @@ TEST(MlirBuilderTest, ConstantF8E5M2Array) {
     double posMinDenorm = 0x1p-16;
     double negMinDenorm = -0x1p-16;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posInf, negInf, nan, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posInf,
+                                  negInf, nan, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1381,10 +1381,10 @@ TEST(MlirBuilderTest, ConstantF8E5M2FNUZArray) {
     double posMinDenorm = 0x1p-17;
     double negMinDenorm = -0x1p-17;
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415,
-                                           posMax, negMax, nan, posMinDenorm,
-                                           negMinDenorm}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.1415, posMax,
+                                  negMax, nan, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1408,9 +1408,9 @@ TEST(MlirBuilderTest, ConstantF8E8M0FNUArray) {
     double min = 0x1p-127;
     double nan = std::numeric_limits<double>::quiet_NaN();
     auto cst = stablehlo::Constant(
-        fb, makeConstant(ArrayRef<double>(
-                             {0.0, 1.0, 0.125, 0.1, 3.1415, min, 2.0, nan}),
-                         type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, 1.0, 0.125, 0.1, 3.1415, min, 2.0, nan}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1437,11 +1437,10 @@ TEST(MlirBuilderTest, ConstantBF16Array) {
     double posMinDenorm = 0x1p-133;
     double negMinDenorm = -0x1p-133;
     auto cst = stablehlo::Constant(
-        fb,
-        makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.140630,
-                                       posInf, negInf, nan, posMinDenorm,
-                                       negMinDenorm}),
-                     type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.140630, posInf,
+                                  negInf, nan, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1468,11 +1467,10 @@ TEST(MlirBuilderTest, ConstantF16Array) {
     double posMinDenorm = 0x1p-24;
     double negMinDenorm = -0x1p-24;
     auto cst = stablehlo::Constant(
-        fb,
-        makeConstant(ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.140630,
-                                       posInf, negInf, nan, posMinDenorm,
-                                       negMinDenorm}),
-                     type));
+        fb, makeConstant(
+                ArrayRef<double>({0.0, -0.0, 1.0, 0.125, 0.1, 3.140630, posInf,
+                                  negInf, nan, posMinDenorm, negMinDenorm}),
+                type));
     func::Return(fb, {cst});
   }
 
@@ -1529,11 +1527,10 @@ TEST(MlirBuilderTest, ConstantF64Array) {
     double posMinDenorm = std::numeric_limits<double>::denorm_min();
     double negMinDenorm = -std::numeric_limits<double>::denorm_min();
     auto cst = stablehlo::Constant(
-        fb, makeConstant(
-                ArrayRef<long double>({0.0, -0.0, 1.0, 0.125, 0.1,
-                                       3.1415926535897931, posInf, negInf,
-                                       nan, posMinDenorm, negMinDenorm}),
-                type));
+        fb, makeConstant(ArrayRef<long double>(
+                             {0.0, -0.0, 1.0, 0.125, 0.1, 3.1415926535897931,
+                              posInf, negInf, nan, posMinDenorm, negMinDenorm}),
+                         type));
     func::Return(fb, {cst});
   }
 
