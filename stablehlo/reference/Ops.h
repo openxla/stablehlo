@@ -103,6 +103,7 @@ Tensor dynamicUpdateSliceOp(const Tensor& operand, const Tensor& update,
                             ArrayRef<Tensor> startIndices,
                             ShapedType resultType);
 Tensor expm1Op(const Tensor& operand, ShapedType resultType);
+Tensor exp2Op(const Tensor& operand, ShapedType resultType);
 Tensor exponentialOp(const Tensor& operand, ShapedType resultType);
 Tensor fftOp(const Tensor& operand, const FftType fftType,
              const ArrayRef<int64_t>& fftLength, ShapedType resultType);
@@ -125,6 +126,7 @@ SmallVector<InterpreterValue> infeedOp(Token token, Process* process,
 Tensor iotaOp(Axis iotaDimension, ShapedType resultType);
 Tensor isFiniteOp(const Tensor& operand, ShapedType resultType);
 Tensor log1pOp(const Tensor& operand, ShapedType resultType);
+Tensor log2Op(const Tensor& operand, ShapedType resultType);
 Tensor logOp(const Tensor& operand, ShapedType resultType);
 Tensor logisticOp(const Tensor& operand, ShapedType resultType);
 Tensor mapOp(ArrayRef<Tensor> inputs, Region& computation, Process* process,

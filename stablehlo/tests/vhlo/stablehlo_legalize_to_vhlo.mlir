@@ -1911,6 +1911,14 @@ func.func @op_exponential(%arg0: tensor<f32>) -> tensor<f32> {
   func.return %0 : tensor<f32>
 }
 
+// CHECK-LABEL: "op_exp2"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func @op_exp2(%arg0: tensor<f32>) -> tensor<f32> {
+  // CHECK: "vhlo.exp2_v1"(%[[ARG0]]) <{result_accuracy = #vhlo.result_accuracy_v1<atol = 0.000000e+00, rtol = 0.000000e+00, ulps = 0, mode = #vhlo<result_accuracy_mode_v1 DEFAULT>>}> : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+  %0 = "stablehlo.exp2"(%arg0) : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
 // CHECK-LABEL: "op_fft"
 // CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
 func.func @op_fft(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>> {
@@ -2088,6 +2096,14 @@ func.func @op_is_finite(%arg0: tensor<f32>) -> tensor<i1> {
 func.func @op_log(%arg0: tensor<f32>) -> tensor<f32> {
   // CHECK: "vhlo.log_v2"(%[[ARG0]]) <{result_accuracy = #vhlo.result_accuracy_v1<atol = 0.000000e+00, rtol = 0.000000e+00, ulps = 0, mode = #vhlo<result_accuracy_mode_v1 DEFAULT>>}> : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
   %0 = "stablehlo.log"(%arg0) : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
+// CHECK-LABEL: "op_log2"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}})
+func.func @op_log2(%arg0: tensor<f32>) -> tensor<f32> {
+  // CHECK: "vhlo.log2_v1"(%[[ARG0]]) <{result_accuracy = #vhlo.result_accuracy_v1<atol = 0.000000e+00, rtol = 0.000000e+00, ulps = 0, mode = #vhlo<result_accuracy_mode_v1 DEFAULT>>}> : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>
+  %0 = "stablehlo.log2"(%arg0) : (tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
 

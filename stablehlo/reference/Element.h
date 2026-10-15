@@ -237,6 +237,9 @@ Element exponential(const Element& el);
 /// Returns exponential_minus_one of Element object.
 Element exponentialMinusOne(const Element& el);
 
+/// Returns exp2 of Element object.
+Element exp2(const Element& el);
+
 /// Returns floor of Element object.
 Element floor(const Element& e);
 
@@ -252,6 +255,9 @@ Element log(const Element& el);
 
 /// Returns log1p of Element object.
 Element logPlusOne(const Element& el);
+
+/// Returns log2 of Element object.
+Element log2(const Element& el);
 
 /// Returns logistic of Element object.
 Element logistic(const Element& el);

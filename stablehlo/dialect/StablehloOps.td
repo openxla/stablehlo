@@ -394,6 +394,33 @@ def StableHLO_Expm1Op: StableHLO_UnaryElementwiseOp<"exponential_minus_one",
   }];
 }
 
+def StableHLO_Exp2Op: StableHLO_UnaryElementwiseOp<"exp2",
+    [HLO_CompatibleOperandsAndResultType],
+    HLO_FpComplexOrQuantizedIntTensor> {
+  let summary = "Exp2 operation";
+  let description = [{
+    Performs element-wise base-2 exponential operation on `operand` tensor and
+    produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#exp2
+
+    Example:
+    ```mlir
+    %result = stablehlo.exp2 %operand : tensor<2x2xf64>
+    ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
+}
+
 def StableHLO_FloorOp: StableHLO_UnaryElementwiseOp<"floor",
     [HLO_CompatibleOperandsAndResultType], HLO_FpOrQuantizedIntTensor> {
   let summary = "Floor operation";
@@ -494,6 +521,33 @@ def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
     Example:
     ```mlir
     %result = stablehlo.log_plus_one %operand : tensor<5xf64>
+    ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
+}
+
+def StableHLO_Log2Op: StableHLO_UnaryElementwiseOp<"log2",
+    [HLO_CompatibleOperandsAndResultType],
+    HLO_FpComplexOrQuantizedIntTensor> {
+  let summary = "Log2 operation";
+  let description = [{
+    Performs element-wise base-2 logarithm operation on `operand` tensor and
+    produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#log2
+
+    Example:
+    ```mlir
+    %result = stablehlo.log2 %operand : tensor<2x2xf64>
     ```
   }];
   let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
