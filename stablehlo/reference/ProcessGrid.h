@@ -70,6 +70,10 @@ namespace detail {
 /// shared resource. Processes contribute their data to `values` concurrently.
 /// Once all processes have added their data, the data in `values` is moved to
 /// `result` that multiple processes can concurrently read from.
+///
+/// A process group may rendezvous on the same channel several times, so
+/// `values` only ever holds the contributions of the rendezvous in flight and
+/// `round` identifies which rendezvous that is.
 struct RendezvousState {
   /// Synchronization primitive used to manage concurrent access to this
   /// object.
@@ -79,8 +83,11 @@ struct RendezvousState {
   std::map<ProcessId, SmallVector<Tensor>> values;
 
   /// Internal state management counter which counts the number of processes
-  /// that contributed already.
-  size_t useCount;
+  /// that have yet to read `result`.
+  size_t useCount = 0;
+
+  /// Number of rendezvous that have completed on this channel.
+  uint64_t round = 0;
 
   /// Stores the result of `rendezvous`.
   RendezvousResult result;

@@ -254,26 +254,28 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
   auto& state = channels_[channelKey];
 
   std::unique_lock<std::mutex> lock(state.mutex);
+  uint64_t round = state.round;
   state.values[processId] = SmallVector<Tensor>(operands);
-  state.useCount++;
 
   // After each process contributes, wait for the last process to notify.
   if (state.values.size() < processGroup.size()) {
     if (!channelConditions_[channelKey].wait_for(
             lock, std::chrono::seconds(3),
-            [&] { return state.values.size() == processGroup.size(); }))
+            [&] { return state.round != round; }))
       llvm::report_fatal_error("rendezvous timed out");
   } else {
-    state.result = std::move(state.values);
+    state.result = RendezvousResult(state.values);
+    state.values.clear();
+    state.useCount = processGroup.size();
+    state.round++;
     channelConditions_[channelKey].notify_all();
   }
-
-  state.useCount--;
 
   if (!state.result.hasMatchingOperandsCount())
     llvm::report_fatal_error("Mismatched number of operands per process");
 
-  return state.useCount > 0 ? state.result : std::move(state.result);
+  // The last process to read the result releases it.
+  return --state.useCount > 0 ? state.result : std::move(state.result);
 }
 
 void ProcessGrid::send(ArrayRef<Tensor> inputs, ChannelId channelId,
