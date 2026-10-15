@@ -65,4 +65,6 @@ cmake -GNinja \
 
 # Build and Test StableHLO
 cd "$STABLEHLO_BUILD_DIR" || exit
+# Check dependencies
+cmake --build . -- -t missingdeps
 ninja check-stablehlo-ci
