@@ -728,6 +728,35 @@ func.func @float_cmp_totalorder(%lhs: tensor<2x2xbf16>,
 
 // -----
 
+// CHECK-LABEL: func @float_cmp_weakorder
+// CHECK-PRIMITIVE-LABEL: func @float_cmp_weakorder
+func.func @float_cmp_weakorder(%lhs: tensor<2x2xbf16>,
+                %rhs: tensor<2x2xbf16>) -> (tensor<2x2xi1>) {
+  %0 = "stablehlo.compare"(%lhs, %rhs) {
+    comparison_direction = #stablehlo<comparison_direction LT>,
+    compare_type = #stablehlo<comparison_type WEAKORDER>
+  } : (tensor<2x2xbf16>, tensor<2x2xbf16>) -> tensor<2x2xi1>
+  func.return %0 : tensor<2x2xi1>
+}
+// CHECK: tensor.empty() : tensor<2x2xi1>
+// CHECK: linalg.generic
+// CHECK-NEXT: ^bb0(%[[LHS_IN:.*]]: bf16, %[[RHS_IN:.*]]: bf16, %{{.*}}: i1):
+// CHECK-NEXT:   %[[CMP_ULT:.*]] = arith.cmpf ult, %[[LHS_IN]], %[[RHS_IN]] : bf16
+// CHECK-NEXT:   %[[CMP_ORD:.*]] = arith.cmpf ord, %[[LHS_IN]], %[[LHS_IN]] : bf16
+// CHECK-NEXT:   %[[RESULT:.*]] = arith.andi %[[CMP_ULT]], %[[CMP_ORD]] : i1
+// CHECK-NEXT:   linalg.yield %[[RESULT]] : i1
+
+// CHECK-PRIMITIVE: linalg.map
+// CHECK-PRIMITIVE-SAME: ins(
+// CHECK-PRIMITIVE-SAME: outs(
+// CHECK-PRIMITIVE-NEXT: (%[[LHS_IN:[a-zA-Z0-9]*]]: bf16, %[[RHS_IN:.*]]: bf16, %[[RESULT_OUT:.*]]: i1) {
+// CHECK-PRIMITIVE-NEXT:   %[[CMP_ULT:.*]] = arith.cmpf ult, %[[LHS_IN]], %[[RHS_IN]] : bf16
+// CHECK-PRIMITIVE-NEXT:   %[[CMP_ORD:.*]] = arith.cmpf ord, %[[LHS_IN]], %[[LHS_IN]] : bf16
+// CHECK-PRIMITIVE-NEXT:   %[[RESULT:.*]] = arith.andi %[[CMP_ULT]], %[[CMP_ORD]] : i1
+// CHECK-PRIMITIVE-NEXT:   linalg.yield %[[RESULT]] : i1
+
+// -----
+
 // CHECK-LABEL: func @int_cmp
 // CHECK-PRIMITIVE-LABEL: func @int_cmp
 func.func @int_cmp(%lhs: tensor<2x2xi32>,

@@ -72,6 +72,7 @@ Tensor collectivePermuteOp(const Tensor& operand,
                            ChannelId channelId, Process* process);
 Tensor compareOp(const Tensor& lhs, const Tensor& rhs,
                  ComparisonDirection comparisonDirection,
+                 std::optional<ComparisonType> compareType,
                  ShapedType resultType);
 Tensor complexOp(const Tensor& lhs, const Tensor& rhs, ShapedType resultType);
 Tensor concatenateOp(ArrayRef<Tensor> inputs, Axis dimension,

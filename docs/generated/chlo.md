@@ -2068,7 +2068,7 @@ Syntax:
 
 ```
 #chlo.comparison_type<
-  `NOTYPE` | `FLOAT` | `TOTALORDER` | `SIGNED` | `UNSIGNED`   # value
+  `NOTYPE` | `FLOAT` | `TOTALORDER` | `SIGNED` | `UNSIGNED` | `WEAKORDER`   # value
 >
 ```
 
@@ -2141,6 +2141,7 @@ _Which comparison type to use._
 | TOTALORDER | `2` | TOTALORDER |
 | SIGNED | `3` | SIGNED |
 | UNSIGNED | `4` | UNSIGNED |
+| WEAKORDER | `5` | WEAKORDER |
 
 ### Precision
 

@@ -187,7 +187,8 @@ LogicalResult inferCollectivePermuteOp(
     SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferCompareOp(
-    MLIRContext* context, std::optional<Location>, Value lhs,
+    MLIRContext* context, std::optional<Location> location, Value lhs,
+    std::optional<StringRef> compareType,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,

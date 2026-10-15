@@ -128,6 +128,17 @@ func.func @attr_comparison_type_unsigned(%arg0: tensor<f32>, %arg1: tensor<f32>)
   func.return %0 : tensor<i1>
 }
 
+// CHECK-LABEL: "attr_comparison_type_weakorder"
+// CHECK-NEXT: (%[[ARG0:.*]]: {{.*}}, %[[ARG1:.*]]: {{.*}})
+func.func @attr_comparison_type_weakorder(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1> {
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction EQ>,
+    // CHECK: compare_type = #vhlo<comparison_type_v1 WEAKORDER>,
+    compare_type = #stablehlo<comparison_type WEAKORDER>
+  } : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  func.return %0 : tensor<i1>
+}
+
 // ConvDimensionNumbers aka #stablehlo.conv is covered below.
 
 // CHECK-LABEL: "attr_custom_call_api_version_unspecified"

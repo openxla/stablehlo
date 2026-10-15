@@ -1548,6 +1548,29 @@ func.func @compare_compatible_operand_types(%arg0: tensor<3xi32>, %arg1: tensor<
 
 // -----
 
+// CHECK-LABEL: func @compare_weakorder_f32
+func.func @compare_weakorder_f32(%arg0: tensor<3xf32>, %arg1: tensor<3xf32>) -> tensor<3xi1> {
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction LT>,
+    compare_type = #stablehlo<comparison_type WEAKORDER>
+  } : (tensor<3xf32>, tensor<3xf32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
+func.func @compare_weakorder_invalid_i32(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{WEAKORDER comparison type is only supported for floating-point element types, got 'i32'}}
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction LT>,
+    compare_type = #stablehlo<comparison_type WEAKORDER>
+  } : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
 // CHECK-LABEL: func @collective_broadcast_c3
 func.func @collective_broadcast_c3(%operand: tensor<16x8xf32>) -> tensor<16x8xf32> {
   %0 = "stablehlo.collective_broadcast"(%operand) {

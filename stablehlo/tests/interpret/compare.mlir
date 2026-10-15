@@ -294,6 +294,68 @@ func.func @compare_op_test_f64() {
 
 // -----
 
+func.func @compare_op_test_f64_weakorder_eq() {
+  // -NaN, -NaN, -Inf, -0.0, 1.0, +Inf, +Inf, -NaN
+  // -NaN, +NaN, +Inf, +0.0, 2.0, +Inf, -NaN, +Inf
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare EQ, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[true, true, false, true, false, true, false, false]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_ne() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare NE, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[false, false, true, false, true, false, true, true]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_ge() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare GE, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[true, true, false, true, false, true, false, true]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_gt() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare GT, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[false, false, false, false, false, false, false, true]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_le() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare LE, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[true, true, true, true, true, true, true, false]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_lt() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare LT, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[false, false, true, false, true, false, true, false]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
 func.func @compare_op_test_c128_default() {
   // (+NaN, +0.0)
   // (+NaN, -0.0)

@@ -175,11 +175,23 @@ SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs, std::queue<StringAttr>& infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable,
     InterpreterFallback* fallback) {
-  llvm::DefaultThreadPool threadPool;
-  llvm::ThreadPoolTaskGroup taskGroup(threadPool);
-
   uint32_t numReplicas = programs.size();
   uint32_t numPartitions = programs[0].size();
+
+  // StableHLO collectives are blocking barriers: a process inside rendezvous
+  // waits for every other process in its group to arrive, so all processes
+  // must run concurrently. Size the pool from the process count rather than
+  // the default (hardware_concurrency(), i.e. the host thread count). With a
+  // default-sized pool, a program with more processes than the host has
+  // hardware threads leaves the surplus tasks queued and never started while
+  // the started tasks block forever waiting for them - a deadlock that only
+  // surfaces as the rendezvous timeout. hardware_concurrency(N) leaves
+  // ThreadPoolStrategy::Limit false, so the pool gets N threads uncapped by the
+  // host.
+  llvm::DefaultThreadPool threadPool(
+      llvm::hardware_concurrency(numReplicas * numPartitions));
+  llvm::ThreadPoolTaskGroup taskGroup(threadPool);
+
   ProcessGrid processGrid(numReplicas, numPartitions, infeed);
 
   SmallVector<SmallVector<InterpreterValue>> taskOutputs(numReplicas *
