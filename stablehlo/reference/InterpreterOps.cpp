@@ -42,6 +42,7 @@ limitations under the License.
 #include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/TypeID.h"
+#include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/Process.h"
