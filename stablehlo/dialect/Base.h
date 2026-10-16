@@ -80,6 +80,11 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2);
 // and sparsity.
 bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
 
+// Returns true if `type` is in the StableHLO complex component set
+// {f16, bf16, f32, f64}. Shared by the ODS complex constraints and the
+// FFT type-inference checks.
+bool isComplexElementType(Type type);
+
 // Returns true if the given shape, expressed as a runtime value, is compatible
 // with the given type for the purposes of HLO type inference.
 // If we know that this runtime value is a constant, then we perform the check.
