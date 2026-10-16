@@ -619,4 +619,15 @@ LogicalResult verifyResultAccuracyAttr(
 }  // end namespace hlo
 }  // end namespace mlir
 
+namespace mlir {
+namespace stablehlo {
+
+// Returns true if `type` is in the StableHLO complex component set
+// {f16, bf16, f32, f64}. Shared by the ODS complex constraints and the
+// FFT type-inference checks.
+bool isComplexElementType(mlir::Type type);
+
+}  // end namespace stablehlo
+}  // end namespace mlir
+
 #endif  // STABLEHLO_DIALECT_STABLEHLO_TYPE_INFERENCE_H

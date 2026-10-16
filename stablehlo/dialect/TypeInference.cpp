@@ -2856,9 +2856,10 @@ LogicalResult inferFftOp(
   Type operandElementType = operandType.getElementType();
   // Check the input element type and infer return element type
   if (isFftTypeRfft) {
-    if (!operandElementType.isF32() && !operandElementType.isF64())
+    if (!::mlir::stablehlo::isComplexElementType(operandElementType))
       return emitOptionalError(
-          location, "RFFT requires f32 or f64 input type, but is given ",
+          location,
+          "RFFT requires f16, bf16, f32 or f64 input type, but is given ",
           operandElementType, ".");
   } else {
     if (!isa<ComplexType>(operandElementType))
@@ -5317,4 +5318,14 @@ LogicalResult verifyResultAccuracyAttr(
 }
 
 }  // end namespace hlo
+}  // end namespace mlir
+
+namespace mlir {
+namespace stablehlo {
+
+bool isComplexElementType(mlir::Type type) {
+  return type.isF16() || type.isBF16() || type.isF32() || type.isF64();
+}
+
+}  // end namespace stablehlo
 }  // end namespace mlir

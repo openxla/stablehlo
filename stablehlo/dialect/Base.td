@@ -61,7 +61,11 @@ def HLO_Float : AnyTypeOf<[F4E2M1FN, F6E2M3FN, F6E3M2FN, F8E3M4, F8E4M3,
                            F8E5M2FNUZ, F8E8M0FNU, F16, F32, F64, BF16], "4/6/8/16/32/64-bit float">;
 def HLO_Float32Or64 : AnyTypeOf<[F32, F64], "32/64-bit float">;
 
-def HLO_Complex : Complex<HLO_Float32Or64>;
+def HLO_ComplexElementType
+    : Type<CPred<"::mlir::stablehlo::isComplexElementType($_self)">,
+           "f16/bf16/f32/f64 floating-point type">;
+
+def HLO_Complex : Complex<HLO_ComplexElementType>;
 
 //===----------------------------------------------------------------------===//
 // Quantized element type definitions.
@@ -165,6 +169,10 @@ def HLO_FpTensor : RankedTensorOf<[HLO_Float]>;
 
 // 32 or 64 bits floating-point tensor types
 def HLO_Fp32Or64Tensor : RankedTensorOf<[HLO_Float32Or64]>;
+
+// Tensor of f16/bf16/f32/f64 floating-point element types (the StableHLO
+// complex component set)
+def HLO_ComplexElementTypeTensor : RankedTensorOf<[HLO_ComplexElementType]>;
 
 // per-tensor quantized integer tensor types
 def HLO_QuantizedIntTensor : RankedTensorOf<[HLO_QuantizedInt]>;

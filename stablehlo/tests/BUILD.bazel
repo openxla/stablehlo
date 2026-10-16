@@ -55,6 +55,7 @@ cc_library(
         "//:reference_token",
         "//:reference_types",
         "//:reference_value",
+        "//:stablehlo_type_inference",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:BytecodeOpInterface",
         "@llvm-project//mlir:IR",

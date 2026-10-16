@@ -39,6 +39,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/TypeID.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/TypeInference.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/NumPy.h"
