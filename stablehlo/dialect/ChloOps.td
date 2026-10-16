@@ -38,6 +38,16 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "stablehlo/dialect/Base.td"
 
+// The asin/acos/asinh/acosh/atan/atanh decomposition kernels assume the
+// exponent range of f32 and above, so complex<f16> is excluded from these
+// ops; real f16 and complex<bf16/f32/f64> remain supported.
+def CHLO_NonF16Complex : Complex<
+    AnyTypeOf<[BF16, F32, F64], "bf16, f32 or f64 floating-point type">>;
+
+def CHLO_AnyNonF16ComplexTensor : TensorOf<[CHLO_NonF16Complex]>;
+
+def CHLO_AnyFpOrNonF16ComplexTensor : TensorOf<[HLO_Float, CHLO_NonF16Complex]>;
+
 def CHLO_Dialect : Dialect {
   let name = "chlo";
   let cppNamespace = "::mlir::chlo";
@@ -474,7 +484,7 @@ class CHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
 }
 
 def CHLO_AsinAcosKernelOp : CHLO_UnaryElementwiseOp<"_asin_acos_kernel",
-    [HLO_CompatibleOperandsAndResultType], HLO_AnyComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], CHLO_AnyNonF16ComplexTensor> {
   let summary = "AsinAcosKernel operator";
 
   let description = [{
@@ -498,7 +508,7 @@ def CHLO_AsinAcosKernelOp : CHLO_UnaryElementwiseOp<"_asin_acos_kernel",
 }
 
 def CHLO_AcosOp : CHLO_UnaryElementwiseOp<"acos",
-    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], CHLO_AnyFpOrNonF16ComplexTensor> {
   let summary = "Acos operator";
 
   let description = [{
@@ -512,7 +522,7 @@ def CHLO_AcosOp : CHLO_UnaryElementwiseOp<"acos",
 }
 
 def CHLO_AcoshOp : CHLO_UnaryElementwiseOp<"acosh",
-    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], CHLO_AnyFpOrNonF16ComplexTensor> {
   let summary = "Acosh operation";
 
   let description = [{
@@ -526,7 +536,7 @@ def CHLO_AcoshOp : CHLO_UnaryElementwiseOp<"acosh",
 }
 
 def CHLO_AsinOp : CHLO_UnaryElementwiseOp<"asin",
-    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], CHLO_AnyFpOrNonF16ComplexTensor> {
   let summary = "Asin operator";
 
   let description = [{
@@ -539,7 +549,7 @@ def CHLO_AsinOp : CHLO_UnaryElementwiseOp<"asin",
 }
 
 def CHLO_AsinhOp : CHLO_UnaryElementwiseOp<"asinh",
-    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], CHLO_AnyFpOrNonF16ComplexTensor> {
   let summary = "Asinh operation";
 
   let description = [{
@@ -552,7 +562,7 @@ def CHLO_AsinhOp : CHLO_UnaryElementwiseOp<"asinh",
 }
 
 def CHLO_AtanOp : CHLO_UnaryElementwiseOp<"atan",
-    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], CHLO_AnyFpOrNonF16ComplexTensor> {
   let summary = "Atan operator";
 
   let description = [{
@@ -565,7 +575,7 @@ def CHLO_AtanOp : CHLO_UnaryElementwiseOp<"atan",
 }
 
 def CHLO_AtanhOp : CHLO_UnaryElementwiseOp<"atanh",
-    [HLO_CompatibleOperandsAndResultType], HLO_AnyFpOrComplexTensor> {
+    [HLO_CompatibleOperandsAndResultType], CHLO_AnyFpOrNonF16ComplexTensor> {
   let summary = "Atanh operator";
 
   let description = [{
