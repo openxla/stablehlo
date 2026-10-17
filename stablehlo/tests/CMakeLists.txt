@@ -68,6 +68,7 @@ add_mlir_dialect_library(CheckOps
   StablehloBase
   StablehloReferenceNumPy
   StablehloReferenceTensor
+  StablehloTypeInference
   MLIRIR
   MLIRSupport
 )

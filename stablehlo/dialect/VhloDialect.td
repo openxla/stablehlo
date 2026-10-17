@@ -62,6 +62,7 @@ def VHLO_Dialect : Dialect {
       1.21.0: Add F8E4M3FN_F8E4M3FN_F32_X3 and F8E4M3FN_F8E4M3FN_F32_X4 dot algorithms.
       1.22.0: Add WEAKORDER comparison type to compare op.
       1.23.0: Add `exp2` and `log2` ops.
+      1.24.0: Support f16 and bf16 element types in complex types.
   }];
 
   let useDefaultAttributePrinterParser = 0;

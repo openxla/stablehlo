@@ -13,8 +13,10 @@ limitations under the License.
 ==============================================================================*/
 
 #include <cstdint>
+#include <optional>
 #include <utility>
 
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -115,10 +117,18 @@ bool isLegalVersion(VersionedInterface& interface, const Version& target) {
          target <= interface.getMaxVersion();
 }
 
-// Forward declare, isLegal(Type|Attribute) are mutually recursive
-LogicalResult isLegalType(Type type, const Version& targetVersion);
+// The conversion framework may query legality more than once; report each
+// distinct (location, type) failure only once.
+using ReportedTypeFailures = llvm::DenseSet<std::pair<Location, Type>>;
 
-LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
+// Forward declare, isLegal(Type|Attribute) are mutually recursive
+LogicalResult isLegalType(Type type, const Version& targetVersion,
+                          std::optional<Location> loc,
+                          ReportedTypeFailures* reported);
+
+LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion,
+                               std::optional<Location> loc,
+                               ReportedTypeFailures* reported) {
   // StableHLO->VHLO conversion guards the legality of types / attributes.
   // Other dialect types that make it past that step are valid here.
   if (!mlir::isa<vhlo::VhloDialect>(attr.getDialect())) return success();
@@ -133,44 +143,52 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   // Recursively check attrs if VHLO attr is a container
   if (auto arrAttr = dyn_cast<ArrayV1Attr>(attr)) {
     return success(llvm::all_of(arrAttr.getValue(), [&](Attribute ele) {
-      return succeeded(isLegalAttribute(ele, targetVersion));
+      return succeeded(isLegalAttribute(ele, targetVersion, loc, reported));
     }));
   }
   if (auto arrAttr = dyn_cast<DictionaryV1Attr>(attr)) {
     return success(llvm::all_of(
         arrAttr.getValue(), [&](std::pair<Attribute, Attribute> entry) {
-          return succeeded(isLegalAttribute(entry.first, targetVersion)) &&
-                 succeeded(isLegalAttribute(entry.second, targetVersion));
+          return succeeded(isLegalAttribute(entry.first, targetVersion, loc,
+                                            reported)) &&
+                 succeeded(isLegalAttribute(entry.second, targetVersion, loc,
+                                            reported));
         }));
   }
   if (auto floatAttr = dyn_cast<FloatV1Attr>(attr))
-    return isLegalType(floatAttr.getType(), targetVersion);
+    return isLegalType(floatAttr.getType(), targetVersion, loc, reported);
   if (auto intAttr = dyn_cast<IntegerV1Attr>(attr))
-    return isLegalType(intAttr.getType(), targetVersion);
+    return isLegalType(intAttr.getType(), targetVersion, loc, reported);
   if (auto tensorAttr = dyn_cast<TensorV1Attr>(attr))
-    return isLegalType(tensorAttr.getType(), targetVersion);
+    return isLegalType(tensorAttr.getType(), targetVersion, loc, reported);
   if (auto typeAttr = dyn_cast<TypeV1Attr>(attr))
-    return isLegalType(typeAttr.getValue(), targetVersion);
+    return isLegalType(typeAttr.getValue(), targetVersion, loc, reported);
   if (auto resultAccuracyAttr = dyn_cast<ResultAccuracyV1Attr>(attr))
-    return isLegalAttribute(resultAccuracyAttr.getMode(), targetVersion);
+    return isLegalAttribute(resultAccuracyAttr.getMode(), targetVersion, loc,
+                            reported);
   if (auto axisRefAttr = dyn_cast<AxisRefV1Attr>(attr)) {
     return success(
-        succeeded(isLegalAttribute(axisRefAttr.getName(), targetVersion)) &&
+        succeeded(isLegalAttribute(axisRefAttr.getName(), targetVersion, loc,
+                                   reported)) &&
         (!axisRefAttr.getSubAxisInfo() ||
-         succeeded(
-             isLegalAttribute(axisRefAttr.getSubAxisInfo(), targetVersion))));
+         succeeded(isLegalAttribute(axisRefAttr.getSubAxisInfo(),
+                                    targetVersion, loc, reported))));
   }
   if (auto meshAxesAttr = dyn_cast<ReplicaGroupMeshAxesV1Attr>(attr)) {
     return success(
-        succeeded(isLegalAttribute(meshAxesAttr.getMesh(), targetVersion)) &&
-        succeeded(isLegalAttribute(meshAxesAttr.getAxes(), targetVersion)));
+        succeeded(isLegalAttribute(meshAxesAttr.getMesh(), targetVersion, loc,
+                                   reported)) &&
+        succeeded(isLegalAttribute(meshAxesAttr.getAxes(), targetVersion, loc,
+                                   reported)));
   }
 
   // Is VHLO and valid version, success.
   return success();
 }
 
-LogicalResult isLegalType(Type type, const Version& targetVersion) {
+LogicalResult isLegalType(Type type, const Version& targetVersion,
+                          std::optional<Location> loc,
+                          ReportedTypeFailures* reported) {
   // StableHLO->VHLO conversion guards the legality of types / attributes.
   // Other dialect types that make it past that step are valid here.
   if (!mlir::isa<vhlo::VhloDialect>(type.getDialect())) return success();
@@ -183,37 +201,58 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
     return failure();
   }
 
+  // Check versioned type constraints (e.g. complex component types).
+  if (auto constraint = dyn_cast<VersionedTypeConstraintInterface>(type)) {
+    if (failed(constraint.validateConstraint(type, targetVersion))) {
+      if (loc && reported && reported->insert({*loc, type}).second)
+        return emitError(*loc) << "failed to legalize type " << type
+                               << " for target version " << targetVersion;
+      return failure();
+    }
+  }
+
   // Recursively check types if VHLO type is a container.
   if (auto complex = dyn_cast<ComplexV1Type>(type))
-    return isLegalType(complex.getElementType(), targetVersion);
+    return isLegalType(complex.getElementType(), targetVersion, loc, reported);
   if (auto func = dyn_cast<FunctionV1Type>(type)) {
     auto validateType = [&](Type ele) {
-      return succeeded(isLegalType(ele, targetVersion));
+      return succeeded(isLegalType(ele, targetVersion, loc, reported));
     };
     return success(llvm::all_of(func.getInputs(), validateType) &&
                    llvm::all_of(func.getOutputs(), validateType));
   }
   if (auto ranked = dyn_cast<RankedTensorV1Type>(type)) {
     auto encoding = ranked.getEncoding();
-    if (encoding && failed(isLegalAttribute(encoding, targetVersion)))
+    if (encoding && failed(isLegalAttribute(encoding, targetVersion, loc,
+                                            reported)))
       return failure();
-    return isLegalType(ranked.getElementType(), targetVersion);
+    return isLegalType(ranked.getElementType(), targetVersion, loc, reported);
   }
   if (auto tuple = dyn_cast<TupleV1Type>(type)) {
     return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
-      return succeeded(isLegalType(ele, targetVersion));
+      return succeeded(isLegalType(ele, targetVersion, loc, reported));
     }));
   }
   if (auto quant = dyn_cast<UniformQuantizedV1Type>(type))
-    return success(
-        succeeded(isLegalType(quant.getStorageType(), targetVersion)) &&
-        succeeded(isLegalType(quant.getExpressedType(), targetVersion)));
+    return success(succeeded(isLegalType(quant.getStorageType(), targetVersion,
+                                         loc, reported)) &&
+                   succeeded(isLegalType(quant.getExpressedType(),
+                                         targetVersion, loc, reported)));
   if (auto unranked = dyn_cast<UnrankedTensorV1Type>(type))
-    return isLegalType(unranked.getElementType(), targetVersion);
+    return isLegalType(unranked.getElementType(), targetVersion, loc, reported);
 
   if (auto buffer = dyn_cast<RankedBufferV1Type>(type)) {
-    return isLegalType(buffer.getElementType(), targetVersion);
+    return isLegalType(buffer.getElementType(), targetVersion, loc, reported);
   }
+  if (auto future = dyn_cast<FutureV1Type>(type))
+    return success(llvm::all_of(future.getTypes(), [&](Type ele) {
+      return succeeded(isLegalType(ele, targetVersion, loc, reported));
+    }));
+  if (auto quantPerAxis = dyn_cast<UniformQuantizedPerAxisV1Type>(type))
+    return success(succeeded(isLegalType(quantPerAxis.getStorageType(),
+                                         targetVersion, loc, reported)) &&
+                   succeeded(isLegalType(quantPerAxis.getExpressedType(),
+                                         targetVersion, loc, reported)));
 
   // Is VHLO and valid version, success.
   return success();
@@ -244,7 +283,8 @@ bool isLegalLocation(Location loc, const Version& targetVersion) {
   return isLegal;
 }
 
-bool isLegalOperation(Operation* op, const Version& targetVersion) {
+bool isLegalOperation(Operation* op, const Version& targetVersion,
+                      ReportedTypeFailures& reported) {
   // Validate op
   auto opInterface = dyn_cast<VersionedOpInterface>(op);
   if (!opInterface) return true;
@@ -263,19 +303,26 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
 
   // Validate attributes
   auto isLegalAttrFn = [&](const NamedAttribute& attr) {
-    return succeeded(isLegalAttribute(attr.getValue(), targetVersion));
+    return succeeded(isLegalAttribute(attr.getValue(), targetVersion,
+                                      op->getLoc(), &reported));
   };
   if (!llvm::all_of(op->getAttrs(), isLegalAttrFn)) return false;
   LLVM_DEBUG(llvm::dbgs() << "Legal op attributes for target. " << op << '\n');
 
   // Validate types
   auto isLegalTypeFn = [&](Type t) {
-    return succeeded(isLegalType(t, targetVersion));
+    return succeeded(isLegalType(t, targetVersion, op->getLoc(), &reported));
   };
   if (!llvm::all_of(op->getOperandTypes(), isLegalTypeFn) ||
       !llvm::all_of(op->getResultTypes(), isLegalTypeFn))
     return false;
   LLVM_DEBUG(llvm::dbgs() << "Legal op types for target. " << op << '\n');
+
+  // Validate region block argument types
+  for (auto& region : op->getRegions())
+    for (auto& block : region.getBlocks())
+      if (!llvm::all_of(block.getArgumentTypes(), isLegalTypeFn))
+        return false;
 
   // Validate location
   LLVM_DEBUG(
@@ -331,9 +378,10 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
     //   V3 illegal { 0.0.0 !in [0.5.0, Current] }
     //   V2 illegal { 0.1.0 !in [0.1.0, 0.4.0] }
     //   V1 legal   { 0.0.0  in [0.0.0, 0.1.0] }
+    ReportedTypeFailures reported;
     target.addDynamicallyLegalDialect<VhloDialect>(
-        [&targetVersion](Operation* op) {
-          return isLegalOperation(op, targetVersion);
+        [&targetVersion, &reported](Operation* op) {
+          return isLegalOperation(op, targetVersion, reported);
         });
 
     // Conversions within VHLO may fail if new features or ops are used.
