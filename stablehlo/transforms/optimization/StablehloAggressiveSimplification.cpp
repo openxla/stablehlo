@@ -201,10 +201,7 @@ struct CompareOpCanon final : SimplifyOpRewritePattern<CompareOp> {
 
     // Bail out on non-integer comparison.
     // TODO: Support more comparison types.
-    std::optional<ComparisonType> compType = op.getCompareType();
-    if (!compType ||
-        !llvm::is_contained({ComparisonType::SIGNED, ComparisonType::UNSIGNED},
-                            *compType)) {
+    if (!isa<IntegerType>(op.getLhs().getType().getElementType())) {
       return failure();
     }
 
@@ -239,12 +236,25 @@ struct CompareOpCanon final : SimplifyOpRewritePattern<CompareOp> {
     matchPattern(lhs, m_Constant(&lhsAttr));
     matchPattern(rhs, m_Constant(&rhsAttr));
 
+    std::optional<ComparisonType> compType = op.getCompareType();
+    bool hasRedundantCompareType =
+        compType &&
+        llvm::is_contained({ComparisonType::NOTYPE, ComparisonType::SIGNED,
+                            ComparisonType::UNSIGNED},
+                           *compType);
+
     // The canonical form has the constant operand as the RHS.
     if (lhsAttr && !rhsAttr) {
       rewriter.modifyOpInPlace(op, [&op, direction, lhs, rhs] {
         op.setComparisonDirection(invertDirection(direction));
         op->setOperands(ValueRange{rhs, lhs});
+        op.removeCompareTypeAttr();
       });
+      return success();
+    }
+
+    if (hasRedundantCompareType) {
+      rewriter.modifyOpInPlace(op, [&op] { op.removeCompareTypeAttr(); });
       return success();
     }
 

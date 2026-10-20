@@ -362,7 +362,7 @@ func.func @reduce_noop(%arg0: tensor<4x8xf32>) -> tensor<4x8xf32> {
 func.func @reduce_zero_ext(%arg0: tensor<0xi1>) -> tensor<i32> {
   %0 = stablehlo.constant dense<false> : tensor<i1>
   %1 = stablehlo.constant dense<false> : tensor<0xi1>
-  %2 = stablehlo.compare  NE, %arg0, %1, UNSIGNED : (tensor<0xi1>, tensor<0xi1>) -> tensor<0xi1>
+  %2 = stablehlo.compare  NE, %arg0, %1 : (tensor<0xi1>, tensor<0xi1>) -> tensor<0xi1>
   %3 = stablehlo.convert %2 : (tensor<0xi1>) -> tensor<0xi32>
   %4 = stablehlo.constant dense<0> : tensor<i32>
   %5 = stablehlo.reduce(%3 init: %4) across dimensions = [0] : (tensor<0xi32>, tensor<i32>) -> tensor<i32>

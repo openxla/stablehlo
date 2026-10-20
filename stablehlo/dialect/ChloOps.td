@@ -776,8 +776,7 @@ def CHLO_BroadcastCompareOp : CHLO_BroadcastBinaryElementwiseOp<
   string description = [{
     Compares `lhs` and `rhs` elementwise according to `comparison_direction`
     and `compare_type`. If unspecified, `compare_type` is FLOAT for float element
-    types, SIGNED for signed element types and UNSIGNED for unsigned element
-    types.
+    types and NOTYPE for integer and boolean element types.
 
     See
     https://www.tensorflow.org/xla/operation_semantics#element-wise_comparison_operations.

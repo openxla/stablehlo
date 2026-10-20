@@ -224,10 +224,10 @@ func.func @compare_signed_arg(%arg0: tensor<i32>)
   // CHECK-DAG:  [[C1:%.+]] = stablehlo.constant dense<true> : tensor<i1>
   // CHECK-DAG:  [[C5:%.+]] = stablehlo.constant dense<5> : tensor<i32>
 
-  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[C5]], SIGNED
-  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]], SIGNED
-  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LE, [[ARG0]], [[C5]], SIGNED
-  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare NE, [[ARG0]], [[C5]], SIGNED
+  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LE, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare NE, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
 
   // CHECK-NEXT: return [[C1]], [[C0]], [[C1]], [[C0]], [[R0]], [[R1]], [[R2]], [[R3]]
   return %0, %1, %2, %3, %4, %5, %6, %7 :
@@ -256,14 +256,42 @@ func.func @compare_unsigned_arg(%arg0: tensor<i32>)
   // CHECK-DAG:  [[C1:%.+]] = stablehlo.constant dense<true> : tensor<i1>
   // CHECK-DAG:  [[C5:%.+]] = stablehlo.constant dense<5> : tensor<i32>
 
-  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[C5]], UNSIGNED
-  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]], UNSIGNED
-  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LE, [[ARG0]], [[C5]], UNSIGNED
-  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare NE, [[ARG0]], [[C5]], UNSIGNED
+  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LE, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare NE, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
 
   // CHECK-NEXT: return [[C1]], [[C0]], [[C1]], [[C0]], [[R0]], [[R1]], [[R2]], [[R3]]
   return %0, %1, %2, %3, %4, %5, %6, %7 :
          tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
+
+// CHECK-LABEL: func.func @compare_int_no_compare_type
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<i32>, [[ARG1:%.+]]: tensor<ui32>)
+func.func @compare_int_no_compare_type(%arg0: tensor<i32>, %arg1: tensor<ui32>)
+  -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
+  %c5 = stablehlo.constant dense<5> : tensor<i32>
+  %cu5 = stablehlo.constant dense<5> : tensor<ui32>
+
+  %0 = stablehlo.compare EQ, %arg0, %arg0 : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %1 = stablehlo.compare LT, %arg1, %arg1 : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+  %2 = stablehlo.compare LT, %c5, %arg0 : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %3 = stablehlo.compare GE, %cu5, %arg1 : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+  %4 = stablehlo.compare LT, %arg0, %c5, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %5 = stablehlo.compare LT, %arg1, %cu5, UNSIGNED : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+
+  // CHECK-DAG:  [[C0:%.+]] = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-DAG:  [[C1:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK-DAG:  [[C5:%.+]] = stablehlo.constant dense<5> : tensor<i32>
+  // CHECK-DAG:  [[CU5:%.+]] = stablehlo.constant dense<5> : tensor<ui32>
+  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare LE, [[ARG1]], [[CU5]] : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LT, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare LT, [[ARG1]], [[CU5]] : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+
+  // CHECK-NEXT: return [[C1]], [[C0]], [[R0]], [[R1]], [[R2]], [[R3]]
+  return %0, %1, %2, %3, %4, %5 :
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
 }
 
 // CHECK-LABEL: func.func @compare_op_bool_simplify
@@ -272,8 +300,8 @@ func.func @compare_op_bool_simplify(%arg0: tensor<i1>) -> (tensor<i1>, tensor<i1
   %false = stablehlo.constant dense<false> : tensor<i1>
   %true = stablehlo.constant dense<true> : tensor<i1>
   // CHECK-NOT: stablehlo.compare
-  %0 = stablehlo.compare NE, %arg0, %false, UNSIGNED : (tensor<i1>, tensor<i1>) -> tensor<i1>
-  %1 = stablehlo.compare EQ, %arg0, %true, UNSIGNED : (tensor<i1>, tensor<i1>) -> tensor<i1>
+  %0 = stablehlo.compare NE, %arg0, %false : (tensor<i1>, tensor<i1>) -> tensor<i1>
+  %1 = stablehlo.compare EQ, %arg0, %true : (tensor<i1>, tensor<i1>) -> tensor<i1>
   // CHECK: return [[ARG0]], [[ARG0]]
   func.return %0, %1 : tensor<i1>, tensor<i1>
 }

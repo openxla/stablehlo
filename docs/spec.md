@@ -6425,8 +6425,8 @@ Python syntax as follows:
 ```python
 def sign(x):
   if is_integer(x):
-    if compare(x, 0, LT, SIGNED): return -1
-    if compare(x, 0, EQ, SIGNED): return 0
+    if compare(x, 0, LT): return -1
+    if compare(x, 0, EQ): return 0
     return 1
   elif is_float(x):
     if is_nan(x): return NaN
