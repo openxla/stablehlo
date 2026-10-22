@@ -250,6 +250,27 @@ func.func @clamp_fold(%arg0: tensor<3xi32>) -> tensor<3xi32> {
 // -----
 
 ////////
+// FmaOp
+
+// CHECK-LABEL: func.func @fma_fold
+func.func @fma_fold() -> (tensor<3xf32>, tensor<2xf32>) {
+  %a = stablehlo.constant dense<[1.5, 2.0, -3.0]> : tensor<3xf32>
+  %b = stablehlo.constant dense<[2.0, 3.0, 4.0]> : tensor<3xf32>
+  %c = stablehlo.constant dense<[0.5, -1.0, 2.0]> : tensor<3xf32>
+  %sa = stablehlo.constant dense<2.0> : tensor<2xf32>
+  %sb = stablehlo.constant dense<3.0> : tensor<2xf32>
+  %sc = stablehlo.constant dense<4.0> : tensor<2xf32>
+  // CHECK-DAG: %[[CST0:.*]] = stablehlo.constant dense<[3.500000e+00, 5.000000e+00, -1.000000e+01]> : tensor<3xf32>
+  // CHECK-DAG: %[[CST1:.*]] = stablehlo.constant dense<1.000000e+01> : tensor<2xf32>
+  // CHECK: return %[[CST0]], %[[CST1]]
+  %0 = stablehlo.fma %a, %b, %c : tensor<3xf32>
+  %1 = stablehlo.fma %sa, %sb, %sc : tensor<2xf32>
+  func.return %0, %1 : tensor<3xf32>, tensor<2xf32>
+}
+
+// -----
+
+////////
 // CompareOp
 
 // CHECK-LABEL: func.func @compare_fold_int

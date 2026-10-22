@@ -3115,6 +3115,30 @@ func.func @floor_invalid_i32_type(%arg0: tensor<4xi32>) -> tensor<4xi32> {
 
 // -----
 
+// CHECK-LABEL: func @fma
+func.func @fma(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>, %arg2: tensor<4xf32>) -> tensor<4xf32> {
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<4xf32>, tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+func.func @fma_invalid_i32_type(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>, %arg2: tensor<4xi32>) -> tensor<4xi32> {
+  // expected-error-re@+1 {{must be ranked tensor of {{.*}}, but got 'tensor<4xi32>'}}
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<4xi32>, tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
+  func.return %0 : tensor<4xi32>
+}
+
+// -----
+
+func.func @fma_invalid_mismatched_types(%arg0: tensor<4xf32>, %arg1: tensor<4xf64>, %arg2: tensor<4xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{requires compatible types for all operands and results}}
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<4xf32>, tensor<4xf64>, tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
 // Verifiers HLO constant op custom printing and parsing.
 // CHECK-LABEL: func @constants
 func.func @constants() -> () {

@@ -108,6 +108,8 @@ Tensor exponentialOp(const Tensor& operand, ShapedType resultType);
 Tensor fftOp(const Tensor& operand, const FftType fftType,
              const ArrayRef<int64_t>& fftLength, ShapedType resultType);
 Tensor floorOp(const Tensor& operand, ShapedType resultType);
+Tensor fmaOp(const Tensor& a, const Tensor& b, const Tensor& c,
+             ShapedType resultType);
 Tensor gatherOp(const Tensor& operand, const Tensor& startIndices,
                 const Axes& offsetDims, const Axes& collapsedSliceDims,
                 const Axes& operandBatchingDims,

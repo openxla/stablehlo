@@ -2933,6 +2933,50 @@ def StableHLO_FftOp: StableHLO_Op<"fft",
   }];
 }
 
+def StableHLO_FmaOp: StableHLO_Op<"fma",
+    [HLO_CompatibleOperandsAndResultType /*fma_c1*/,
+     InferShapedTypeOpInterface,
+     SameOperandsAndResultShape /*fma_c1*/,
+     Elementwise,
+     HLO_SpeculatableIfAllInputsStatic,
+     NoMemoryEffect]> {
+  let summary = "Fma operation";
+  let description = [{
+    Performs element-wise single-rounded IEEE-754 fused multiply-add of `a`,
+    `b`, and `c` tensors and produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#fma
+
+    Example:
+    ```mlir
+    %result = stablehlo.fma %a, %b, %c : tensor<3xf32>
+    ```
+  }];
+  let arguments = (ins
+    HLO_FpTensor:$a, /*fma_i1*/
+    HLO_FpTensor:$b, /*fma_i2*/
+    HLO_FpTensor:$c /*fma_i3*/
+  );
+
+  let results = (outs HLO_FpTensor:$result);
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    LogicalResult reifyReturnTypeShapes(
+        OpBuilder& builder, ValueRange operands,
+        SmallVectorImpl<Value>& reifiedReturnShapes) {
+      return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
+                                                 operands.front(),
+                                                 &reifiedReturnShapes);
+    }
+  }];
+
+  let assemblyFormat = [{
+    $a `,` $b `,` $c attr-dict
+      `:` custom<SameOperandsAndResultType>(type($a), type($b), type($c), type($result))
+  }];
+}
+
 def StableHLO_GatherOp: StableHLO_Op<"gather",
     [ConditionallySpeculatable, NoMemoryEffect,
     InferTensorTypeWithReify /*gather_c22*/,

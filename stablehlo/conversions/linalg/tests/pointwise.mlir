@@ -1609,3 +1609,17 @@ func.func @float_complex(%lhs: tensor<2x2xf32>, %rhs: tensor<2x2xf32>) -> tensor
   %0 = "stablehlo.complex"(%lhs, %rhs) : (tensor<2x2xf32>, tensor<2x2xf32>) -> tensor<2x2xcomplex<f32>>
   func.return %0 : tensor<2x2xcomplex<f32>>
 }
+
+// -----
+
+// CHECK-LABEL: func @float_fma
+// CHECK-PRIMITIVE-LABEL: func @float_fma
+func.func @float_fma(%a: tensor<2x2xf32>, %b: tensor<2x2xf32>,
+                     %c: tensor<2x2xf32>) -> tensor<2x2xf32> {
+  // CHECK: linalg.generic
+  // CHECK: math.fma
+  // CHECK-PRIMITIVE: linalg.map
+  // CHECK-PRIMITIVE: math.fma
+  %0 = stablehlo.fma %a, %b, %c : tensor<2x2xf32>
+  func.return %0 : tensor<2x2xf32>
+}

@@ -787,6 +787,12 @@ SmallVector<InterpreterValue> eval(Region& region,
       auto operand = scope.findTensor(op.getOperand());
       auto result = floorOp(operand, op.getType());
       scope.add(op.getResult(), result);
+    } else if (auto op = dyn_cast<FmaOp>(operation)) {
+      auto a = scope.findTensor(op.getA());
+      auto b = scope.findTensor(op.getB());
+      auto c = scope.findTensor(op.getC());
+      auto result = fmaOp(a, b, c, op.getType());
+      scope.add(op.getResult(), result);
     } else if (auto op = dyn_cast<GatherOp>(operation)) {
       auto operand = scope.findTensor(op.getOperand());
       auto startIndices = scope.findTensor(op.getStartIndices());
@@ -2115,6 +2121,14 @@ Tensor floorOp(const Tensor& operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, floor(operand.get(*it)));
+  return result;
+}
+
+Tensor fmaOp(const Tensor& a, const Tensor& b, const Tensor& c,
+             ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, fma(a.get(*it), b.get(*it), c.get(*it)));
   return result;
 }
 

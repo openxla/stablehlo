@@ -1005,6 +1005,15 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ClampOp>(
       loc, resultTypes, argTypes, ValueRange{maxLbX, adaptor.getMax()}, b);
 }
 
+template <>
+inline Value mapStablehloOpToStdScalarOp<stablehlo::FmaOp>(
+    Location loc, ArrayRef<Type> /*resultTypes*/, ArrayRef<Type> argTypes,
+    stablehlo::FmaOp::Adaptor adaptor, OpBuilder* b) {
+  if (!isa<FloatType>(getElementTypeOrSelf(argTypes.front()))) return nullptr;
+  return ::mlir::math::FmaOp::create(*b, loc, adaptor.getA(), adaptor.getB(),
+                                     adaptor.getC());
+}
+
 template <typename U, typename S>
 inline Value makeSafeIntDiv(ImplicitLocOpBuilder& lb, Type originalType,
                             Value lhs, Value rhs, Value returnedOnZero,

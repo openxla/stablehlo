@@ -121,6 +121,7 @@ void populateScalarHloToArithConversionPatterns(
       ScalarHloToArithmeticPattern<mlir::stablehlo::Expm1Op>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::Exp2Op>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::FloorOp>,
+      ScalarHloToArithmeticPattern<mlir::stablehlo::FmaOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::ImagOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::IsFiniteOp>,
       ScalarHloToArithmeticPattern<mlir::stablehlo::Log1pOp>,

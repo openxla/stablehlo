@@ -469,6 +469,15 @@ operation.
 MlirOp Floor(MlirOp &operand);
 ```
 
+### `stablehlo::FmaOp`
+
+Creates a new [`stablehlo.fma`](https://openxla.org/stablehlo/spec#fma)
+operation.
+
+```c++
+MlirOp Fma(MlirOp &a, MlirOp &b, MlirOp &c);
+```
+
 ### `stablehlo::GatherOp`
 
 Creates a new [`stablehlo.gather`](https://openxla.org/stablehlo/spec#gather)

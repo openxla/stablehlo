@@ -736,6 +736,15 @@ def VHLO_FloorOpV1 : VHLO_Op<"floor_v1", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
+def VHLO_FmaOpV1 : VHLO_Op<"fma_v1", "1.24.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$a,
+    VHLO_AnyType:$b,
+    VHLO_AnyType:$c
+  );
+  let results = (outs VHLO_AnyType:$result);
+}
+
 // TODO(#425): FuncOp is not part of the StableHLO spec.
 // We're planning to look into it as part of the work on speccing
 // Module/Func/Call/Return ops in StableHLO.

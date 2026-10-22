@@ -3898,6 +3898,58 @@ specification. For quantized types, performs
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/floor.mlir)
 
+### fma
+
+#### Semantics
+
+Performs element-wise single-rounded IEEE-754 fused multiply-add of `a`, `b`,
+and `c` tensors and produces a `result` tensor.
+
+More formally, for all `i` in `index_space(result)`:
+`result[i]` is the single-rounded IEEE-754 `fusedMultiplyAdd(a[i], b[i], c[i])`
+result, computed as if with unbounded range and precision and rounded once to
+the target floating-point type.
+
+Note that upcasting to a higher-precision floating-point type, computing `fma`
+in that type, and rounding back to the target type is not in general a valid
+implementation because of double rounding (and intermediate overflow or
+underflow when the wider type has the same exponent range, such as `bf16` and
+`f32`). For example, in `bf16`, `a = 1.5`, `b = 1 + 2^-7`, and `c = -2^-24`
+have exact `a * b + c` just below the `bf16` midpoint `1.5 + 2^-7 + 2^-8`, so
+single-rounded `bf16` `fma` returns `1.5 + 2^-7`, whereas computing `fma` in
+`f32` first rounds to the midpoint `1.5 + 2^-7 + 2^-8` and then rounds again
+to `1.5 + 2^-6`.
+
+#### Inputs
+
+| Label | Name | Type                          | Constraints |
+|-------|------|-------------------------------|-------------|
+| (I1)  | `a`  | tensor of floating-point type | (C1)        |
+| (I2)  | `b`  | tensor of floating-point type | (C1)        |
+| (I3)  | `c`  | tensor of floating-point type | (C1)        |
+
+#### Outputs
+
+| Name     | Type                          | Constraints |
+|----------|-------------------------------|-------------|
+| `result` | tensor of floating-point type | (C1)        |
+
+#### Constraints
+
+* (C1) `type(a) = type(b) = type(c) = type(result)`.
+
+#### Examples
+
+```mlir
+// %a: [1.5, 2.0, -3.0]
+// %b: [2.0, 3.0, 4.0]
+// %c: [0.5, -1.0, 2.0]
+%result = "stablehlo.fma"(%a, %b, %c) : (tensor<3xf32>, tensor<3xf32>, tensor<3xf32>) -> tensor<3xf32>
+// %result: [3.5, 5.0, -10.0]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/fma.mlir)
+
 ### gather
 
 #### Semantics

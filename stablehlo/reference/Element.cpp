@@ -858,6 +858,16 @@ Element floor(const Element& el) {
   return Element(el.getType(), val);
 }
 
+Element fma(const Element& a, const Element& b, const Element& c) {
+  if (!isSupportedFloatType(a.getType()))
+    report_fatal_error(invalidArgument("Unsupported element type for fma: %s",
+                                       debugString(a.getType()).c_str()));
+  APFloat val = a.getFloatValue();
+  val.fusedMultiplyAdd(b.getFloatValue(), c.getFloatValue(),
+                       APFloat::rmNearestTiesToEven);
+  return Element(a.getType(), val);
+}
+
 Element imag(const Element& el) {
   if (isSupportedFloatType(el.getType())) {
     const llvm::fltSemantics& elSemantics = el.getFloatValue().getSemantics();
