@@ -1702,8 +1702,10 @@ static Value getConstantLikeSmallestFiniteValue(OpBuilder& b, Location loc,
       b, loc, llvm::APFloat::getSmallest(ty.getFloatSemantics()), val);
 }
 
-static Value materializeZeta(OpBuilder& rewriter, Location loc,
-                             ValueRange args) {
+// Evaluates the Hurwitz zeta function zeta(x, q) for q > 0, without handling
+// special cases. The approximation is inaccurate for q <= 0.
+static Value materializeZetaEulerMaclaurin(OpBuilder& rewriter, Location loc,
+                                           Value x, Value q) {
   // Implementation ported from:
   // https://github.com/openxla/xla/blob/7a067a7b88d2ffb15b1dc5e3c06f701a15f0391d/xla/client/lib/math.cc#L1912-L1917
   // Reference: Johansson, Fredrik.
@@ -1711,10 +1713,6 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
   // derivatives." Numerical Algorithms 69.2 (2015): 253-270.
   // https://arxiv.org/abs/1309.2877 - formula (5)
   // Notation is more or less kept as a reference to the whitepaper.
-  assert(args.size() == 2);
-  Value x = args[0];
-  Value q = args[1];
-
   static constexpr auto kTerms = 12;
   static constexpr auto kIters = 9;
   static constexpr auto kTwoTermsMinusOne = 2 * kTerms - 1;
@@ -1806,7 +1804,7 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
   // from Euler-Maclaurin if it is accurate enough.
   Value absQNegPower = AbsOp::create(rewriter, loc, qNegPower);
   Value absPowerSum = AbsOp::create(rewriter, loc, powerSum);
-  Value output = SelectOp::create(
+  return SelectOp::create(
       rewriter, loc,
       CompareOp::create(
           rewriter, loc, absQNegPower,
@@ -1814,6 +1812,55 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
                         getConstantLikeSmallestFiniteValue(rewriter, loc, acc)),
           ComparisonDirection::LT),
       powerSum, accurateResult);
+}
+
+static Value materializeZeta(OpBuilder& rewriter, Location loc,
+                             ValueRange args) {
+  assert(args.size() == 2);
+  Value x = args[0];
+  Value q = args[1];
+
+  Value zero = getConstantLike(rewriter, loc, 0.0, q);
+  Value one = getConstantLike(rewriter, loc, 1.0, q);
+  Value oneLikeX = getConstantLike(rewriter, loc, 1.0, x);
+  Value two = getConstantLike(rewriter, loc, 2.0, x);
+  Value qLeZero =
+      CompareOp::create(rewriter, loc, q, zero, ComparisonDirection::LE);
+  Value qLtZero =
+      CompareOp::create(rewriter, loc, q, zero, ComparisonDirection::LT);
+  Value xIsInt =
+      CompareOp::create(rewriter, loc, x, FloorOp::create(rewriter, loc, x),
+                        ComparisonDirection::EQ);
+  Value xIsEven =
+      CompareOp::create(rewriter, loc, RemOp::create(rewriter, loc, x, two),
+                        zero, ComparisonDirection::EQ);
+
+  // The Euler-Maclaurin approximation is only accurate for q > 0. For q < 0
+  // and integer x, write q = -m + y with integer m > 0 and y in (0, 1). Then
+  //
+  //   zeta(x, q) = sum_{k=0}^{m-1} (q + k)^-x + zeta(x, y)
+  //              = (-1)^x sum_{k=0}^{m-1} (1 - y + k)^-x + zeta(x, y)
+  //              = zeta(x, y) + (-1)^x (zeta(x, 1 - y) - zeta(x, 1 - q)),
+  //
+  // where all three zeta functions are evaluated at positive q. The first two
+  // terms are summed first so that their cancellation for odd x and y close to
+  // 1/2 is exact at y = 1/2.
+  Value qFrac =
+      SubtractOp::create(rewriter, loc, q, FloorOp::create(rewriter, loc, q));
+  Value output = materializeZetaEulerMaclaurin(
+      rewriter, loc, x, SelectOp::create(rewriter, loc, qLtZero, qFrac, q));
+  Value sign = SelectOp::create(rewriter, loc, xIsEven, oneLikeX,
+                                NegOp::create(rewriter, loc, oneLikeX));
+  Value zetaOneMinusQFrac = materializeZetaEulerMaclaurin(
+      rewriter, loc, x, SubtractOp::create(rewriter, loc, one, qFrac));
+  Value zetaOneMinusQ = materializeZetaEulerMaclaurin(
+      rewriter, loc, x, SubtractOp::create(rewriter, loc, one, q));
+  Value shifted = SubtractOp::create(
+      rewriter, loc,
+      AddOp::create(rewriter, loc, output,
+                    MulOp::create(rewriter, loc, sign, zetaOneMinusQFrac)),
+      MulOp::create(rewriter, loc, sign, zetaOneMinusQ));
+  output = SelectOp::create(rewriter, loc, qLtZero, shifted, output);
 
   // Function is not defined for x < 1.
   Value nan = getConstantLike(rewriter, loc,
@@ -1824,8 +1871,6 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
       nan, output);
 
   // For q <= 0, x must be an integer.
-  Value qLeZero =
-      CompareOp::create(rewriter, loc, q, zero, ComparisonDirection::LE);
   Value xNotInt =
       CompareOp::create(rewriter, loc, x, FloorOp::create(rewriter, loc, x),
                         ComparisonDirection::NE);
@@ -1840,13 +1885,6 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
       CompareOp::create(rewriter, loc, q, FloorOp::create(rewriter, loc, q),
                         ComparisonDirection::EQ);
   Value atPole = AndOp::create(rewriter, loc, qLeZero, qIsInt);
-  Value two = getConstantLike(rewriter, loc, 2.0, x);
-  Value xIsInt =
-      CompareOp::create(rewriter, loc, x, FloorOp::create(rewriter, loc, x),
-                        ComparisonDirection::EQ);
-  Value xIsEven =
-      CompareOp::create(rewriter, loc, RemOp::create(rewriter, loc, x, two),
-                        zero, ComparisonDirection::EQ);
   Value xIsEvenInt = AndOp::create(rewriter, loc, xIsInt, xIsEven);
   output = SelectOp::create(
       rewriter, loc, atPole,
