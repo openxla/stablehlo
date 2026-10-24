@@ -273,7 +273,7 @@ FloatType ::= 'f4E2M1FN' | 'f6E2M3FN' | 'f6E3M2FN' | 'f8E3M4' | 'f8E4M3'
             | 'f8E5M2FNUZ' | 'f8E8M0FNU' | 'bf16' | 'f16' | 'f32' | 'f64'
 TensorFloat32 ::= 'tf32'
 ComplexType ::= 'complex' '<' ComplexElementType '>'
-ComplexElementType ::= 'f32' | 'f64'
+ComplexElementType ::= 'f16' | 'bf16' | 'f32' | 'f64'
 ```
 
 **Element types** represent elements of tensor types. Unlike in many programming
@@ -313,8 +313,9 @@ values of type `tensor<T>`).
     [OCP Microscaling Formats Specification](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf).
 * **Complex types** represent complex values that have a **real part**
   and an **imaginary part** of the same **element type**. Supported complex
-  types are `complex<f32>` (both parts are of type `f32`) and `complex<f64>`
-  (both parts are of type `f64`).
+  types are `complex<f16>` (both parts are of type `f16`), `complex<bf16>`
+  (both parts are of type `bf16`), `complex<f32>` (both parts are of type
+  `f32`) and `complex<f64>` (both parts are of type `f64`).
 
 ```ebnf
 FunctionType ::= '(' InputTypes ')' '->' '(' OutputTypes ')'
@@ -2133,10 +2134,10 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 
 #### Inputs
 
-| Label | Name  | Type                          | Constraints |
-|-------|-------|-------------------------------|-------------|
-| (I1)  | `lhs` | tensor of type `f32` or `f64` | (C1-C3)     |
-| (I2)  | `rhs` | tensor of type `f32` or `f64` | (C1)        |
+| Label | Name  | Type                                         | Constraints |
+|-------|-------|----------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of type `f16`, `bf16`, `f32` or `f64` | (C1-C3)     |
+| (I2)  | `rhs` | tensor of type `f16`, `bf16`, `f32` or `f64` | (C1)        |
 
 #### Outputs
 
@@ -3836,9 +3837,9 @@ for `fft_type = RFFT`. For example, for `L = 3`:
     have the same complex type.
   * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
     have the same complex type.
-  * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type and
-    `element_type(result)` is a complex type of the same floating-point
-    semantics.
+  * If `fft_type = RFFT`, `element_type(operand)` is `f16`, `bf16`, `f32` or
+    `f64` and `element_type(result)` is a complex type of the same
+    floating-point semantics.
   * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
     `element_type(result)` is a floating-point type of the same floating-point
     semantics.

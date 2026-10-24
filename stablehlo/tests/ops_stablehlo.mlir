@@ -5828,11 +5828,12 @@ func.func @irfft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x16xf32> {
 
 // -----
 
-func.func @rfft_not_float32or64(%arg0: tensor<3x9xf16>) -> tensor<3x5xcomplex<f32>> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{RFFT requires f32 or f64 input type, but is given 'f16'.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf16>) -> tensor<3x5xcomplex<f32>>
-  func.return %0 : tensor<3x5xcomplex<f32>>
+// CHECK-LABEL: @rfft_f16
+func.func @rfft_f16(%arg0: tensor<3x9xf16>) -> tensor<3x5xcomplex<f16>> {
+  // CHECK: stablehlo.fft
+  // CHECK-SAME: (tensor<3x9xf16>) -> tensor<3x5xcomplex<f16>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf16>) -> tensor<3x5xcomplex<f16>>
+  func.return %0 : tensor<3x5xcomplex<f16>>
 }
 
 // -----
