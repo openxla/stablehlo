@@ -5156,7 +5156,8 @@ LogicalResult verifySelectAndScatterOp(
           /*allowedDimensions=*/{})))
     return failure();
 
-  auto windowDims = windowDimensionsOpt.value_or(SmallVector<int64_t>{});
+  ArrayRef<int64_t> windowDims =
+      windowDimensionsOpt.value_or(ArrayRef<int64_t>{});
   // select_and_scatter_c4
   if (operandType.getRank() != static_cast<int64_t>(windowDims.size()))
     return emitOptionalError(location,
@@ -5166,7 +5167,8 @@ LogicalResult verifySelectAndScatterOp(
                              " and operand-type: ", operandType,
                              " with rank = ", operandType.getRank(), ".");
 
-  auto windowStrides = windowStridesOpt.value_or(SmallVector<int64_t>{});
+  ArrayRef<int64_t> windowStrides =
+      windowStridesOpt.value_or(ArrayRef<int64_t>{});
 
   // select_and_scatter_c8, select_and_scatter_i6
   auto paddingOrErr = convertPaddingAttribute(padding, location);
