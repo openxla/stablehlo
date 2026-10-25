@@ -709,63 +709,38 @@ SpecialResult convertScatterDimensionNumbers(
   return specialSuccess();
 }
 
-SpecialResult convertUseGlobalDeviceIds(
-    const ConversionPattern& pattern, Attribute stablehloAttr,
-    SmallVector<NamedAttribute>& vhloAttrs) {
-  if (!isa<UnitAttr>(stablehloAttr)) return specialFailure();
-  vhloAttrs.emplace_back(
-      StringAttr::get(pattern.getContext(), "use_global_device_ids"),
-      vhlo::BooleanV1Attr::get(pattern.getContext(), true));
-  return specialSuccess();
-}
+using SpecialConverter = SpecialResult (*)(
+    const ConversionPattern& pattern, StringAttr stablehloName,
+    Attribute stablehloAttr, SmallVector<NamedAttribute>& vhloAttrs);
 
 template <typename StablehloOpTy>
-SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
-                             StringAttr stablehloName, Attribute stablehloAttr,
-                             SmallVector<NamedAttribute>& vhloAttrs) {
-  LLVM_DEBUG(llvm::dbgs() << "Convert special: " << stablehloName << '\n');
-  if constexpr (std::is_same<StablehloOpTy, stablehlo::AllGatherOp>::value ||
-                std::is_same<StablehloOpTy, stablehlo::AllReduceOp>::value ||
-                std::is_same<StablehloOpTy, stablehlo::AllToAllOp>::value ||
-                std::is_same<StablehloOpTy,
-                             stablehlo::CollectivePermuteOp>::value ||
-                std::is_same<StablehloOpTy,
-                             stablehlo::ReduceScatterOp>::value) {
+auto convertSpecial(const ConversionPattern& pattern, StringAttr stablehloName,
+                    Attribute stablehloAttr,
+                    SmallVector<NamedAttribute>& vhloAttrs) {
+  if constexpr (
+      std::is_same<StablehloOpTy, stablehlo::AllGatherOp>::value ||
+      std::is_same<StablehloOpTy, stablehlo::AllReduceOp>::value ||
+      std::is_same<StablehloOpTy, stablehlo::AllToAllOp>::value ||
+      std::is_same<StablehloOpTy, stablehlo::CollectiveBroadcastOp>::value ||
+      std::is_same<StablehloOpTy, stablehlo::CollectivePermuteOp>::value ||
+      std::is_same<StablehloOpTy, stablehlo::CollectiveReduceOp>::value ||
+      std::is_same<StablehloOpTy, stablehlo::ReduceScatterOp>::value) {
     if (stablehloName == "channel_handle")
       return convertChannelId(pattern, stablehloAttr, vhloAttrs);
-    if (stablehloName == "use_global_device_ids")
-      return convertUseGlobalDeviceIds(pattern, stablehloAttr, vhloAttrs);
-  }
-  if constexpr (std::is_same<StablehloOpTy,
-                             stablehlo::CollectiveBroadcastOp>::value) {
-    if (stablehloName == "channel_handle")
-      return convertChannelId(pattern, stablehloAttr, vhloAttrs);
-    if (stablehloName == "has_dynamic_root") {
+    if (stablehloName == "use_global_device_ids" ||
+        stablehloName == "has_dynamic_root") {
       if (!isa<UnitAttr>(stablehloAttr)) return specialFailure();
       vhloAttrs.emplace_back(
-          StringAttr::get(pattern.getContext(), "has_dynamic_root"),
-          vhlo::BooleanV1Attr::get(pattern.getContext(), true));
+          stablehloName, vhlo::BooleanV1Attr::get(pattern.getContext(), true));
       return specialSuccess();
     }
-  }
-  if constexpr (std::is_same<StablehloOpTy,
-                             stablehlo::CollectiveReduceOp>::value) {
-    if (stablehloName == "channel_handle")
-      return convertChannelId(pattern, stablehloAttr, vhloAttrs);
-    if (stablehloName == "use_global_device_ids")
-      return convertUseGlobalDeviceIds(pattern, stablehloAttr, vhloAttrs);
-    if (stablehloName == "has_dynamic_root") {
-      if (!isa<UnitAttr>(stablehloAttr)) return specialFailure();
-      vhloAttrs.emplace_back(
-          StringAttr::get(pattern.getContext(), "has_dynamic_root"),
-          vhlo::BooleanV1Attr::get(pattern.getContext(), true));
-      return specialSuccess();
-    }
+    return notSpecial();
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ConvolutionOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::DynamicConvOp>::value) {
     if (stablehloName == "dimension_numbers")
       return convertConvDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::CustomCallOp>::value) {
     if (stablehloName == "api_version")
@@ -773,33 +748,49 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
     if (stablehloName == "called_computations")
       return convertCustomCallCalledComputations(pattern, stablehloAttr,
                                                  vhloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::DotGeneralOp>::value) {
     if (stablehloName == "dot_dimension_numbers")
       return convertDotDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
     if (stablehloName == "algorithm")
       return convertDotAlgorithm(pattern, stablehloAttr, vhloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<StablehloOpTy,
                              stablehlo::DynamicGatherOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::GatherOp>::value) {
     if (stablehloName == "dimension_numbers")
       return convertGatherDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::RecvOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::SendOp>::value) {
     if (stablehloName == "channel_handle")
       return convertChannelHandle(pattern, stablehloAttr, vhloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ScatterOp>::value) {
     if (stablehloName == "scatter_dimension_numbers")
       return convertScatterDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<StablehloOpTy, func::CallOp>::value) {
     if (stablehloName == "callee")
       return convertFuncCallee(pattern, stablehloAttr, vhloAttrs);
+    return notSpecial();
   }
-  return notSpecial();
+}
+
+template <typename StablehloOpTy>
+constexpr SpecialConverter getSpecialConverter() {
+  // Ops with no matching branch in `convertSpecial` deduce a `void` return
+  // type, avoiding per-op converter instantiation and indirect calls.
+  if constexpr (std::is_same<decltype(&convertSpecial<StablehloOpTy>),
+                             SpecialConverter>::value) {
+    return &convertSpecial<StablehloOpTy>;
+  }
+  return nullptr;
 }
 
 #undef RETURN_CONVERTED_ENUM_ATTR
@@ -1082,6 +1073,60 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
 // StableHLO --> VHLO operations
 //===----------------------------------------------------------------------===//
 
+LogicalResult convertTypesAndAttrs(const ConversionPattern& pattern,
+                                   Operation* stablehloOp,
+                                   SmallVectorImpl<Type>& vhloTypes,
+                                   SmallVector<NamedAttribute>& vhloAttrs,
+                                   SpecialConverter convertSpecial) {
+  if (failed(pattern.getTypeConverter()->convertTypes(
+          stablehloOp->getResultTypes(), vhloTypes))) {
+    LLVM_DEBUG(llvm::dbgs() << "Failed StableHLO -> VHLO type conversion\n");
+    return failure();
+  }
+
+  // Convert StableHLO attributes to VHLO equivalents.
+  // There are two paths:
+  //   1) Generic path where default logic applies, and there is a 1:1
+  //      mapping from StableHLO to VHLO.
+  //   2) Special cases (currently, about a dozen) where there is not 1:1
+  //      mapping from StableHLO to VHLO.
+  ArrayRef<NamedAttribute> stablehloAttrs = stablehloOp->getAttrs();
+  if (stablehloAttrs.empty()) return success();
+  vhloAttrs.reserve(vhloAttrs.size() + stablehloAttrs.size());
+  const auto* typeConverter =
+      pattern.getTypeConverter<vhlo::VhloTypeConverter>();
+  for (NamedAttribute stablehloAttr : stablehloAttrs) {
+    LLVM_DEBUG(llvm::dbgs() << "Converting " << stablehloAttr.getName() << ", "
+                            << stablehloAttr.getValue() << '\n');
+    if (convertSpecial) {
+      LLVM_DEBUG(llvm::dbgs()
+                 << "Convert special: " << stablehloAttr.getName() << '\n');
+      auto result = convertSpecial(pattern, stablehloAttr.getName(),
+                                   stablehloAttr.getValue(), vhloAttrs);
+      if (result == SpecialResult::SPECIAL_SUCCESS) continue;
+      if (result == SpecialResult::SPECIAL_FAILURE) return failure();
+    }
+    auto vhloAttr = convertGeneric(stablehloAttr.getValue(), typeConverter);
+    if (!vhloAttr) return failure();
+    stablehloAttr.setValue(vhloAttr);
+    vhloAttrs.push_back(stablehloAttr);
+  }
+  return success();
+}
+
+LogicalResult convertRegions(Operation* stablehloOp, Operation* vhloOp,
+                             ConversionPatternRewriter& rewriter,
+                             const TypeConverter& typeConverter) {
+  for (auto [stablehloRegion, vhloRegion] :
+       llvm::zip_equal(stablehloOp->getRegions(), vhloOp->getRegions())) {
+    rewriter.inlineRegionBefore(stablehloRegion, vhloRegion, vhloRegion.end());
+    if (failed(rewriter.convertRegionTypes(&vhloRegion, typeConverter,
+                                           /*entryConversion=*/nullptr)))
+      return failure();
+  }
+  return success();
+}
+
 template <typename StablehloOpTy>
 class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
  public:
@@ -1090,40 +1135,11 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
       StablehloOpTy stablehloOp, typename StablehloOpTy::Adaptor adaptor,
       ConversionPatternRewriter& rewriter) const final {
     SmallVector<Type> vhloTypes;
-    if (failed(this->getTypeConverter()->convertTypes(
-            stablehloOp->getResultTypes(), vhloTypes))) {
-      LLVM_DEBUG(llvm::dbgs() << "Failed StableHLO -> VHLO type conversion\n");
-      return failure();
-    }
-
-    // Convert StableHLO attributes to VHLO equivalents.
-    // There are two paths:
-    //   1) Generic path where default logic applies, and there is a 1:1
-    //      mapping from StableHLO to VHLO.
-    //   2) Special cases (currently, about a dozen) where there is not 1:1
-    //      mapping from StableHLO to VHLO.
     SmallVector<NamedAttribute> vhloAttrs;
-    if (failed(addDefaults(*this, stablehloOp, vhloAttrs))) return failure();
-
-    for (NamedAttribute stablehloAttr : stablehloOp->getAttrs()) {
-      LLVM_DEBUG(llvm::dbgs() << "Converting " << stablehloAttr.getName()
-                              << ", " << stablehloAttr.getValue() << '\n');
-      auto result = convertSpecial(*this, stablehloAttr.getName(),
-                                   stablehloAttr.getValue(), vhloAttrs);
-      switch (result) {
-        case SpecialResult::SPECIAL_SUCCESS:
-          break;
-        case SpecialResult::SPECIAL_FAILURE:
-          return failure();
-        case SpecialResult::NOT_SPECIAL:
-          auto vhloAttr = convertGeneric(
-              stablehloAttr.getValue(),
-              this->template getTypeConverter<vhlo::VhloTypeConverter>());
-          if (!vhloAttr) return failure();
-          vhloAttrs.push_back({stablehloAttr.getName(), vhloAttr});
-          break;
-      }
-    }
+    if (failed(addDefaults(*this, stablehloOp, vhloAttrs)) ||
+        failed(convertTypesAndAttrs(*this, stablehloOp, vhloTypes, vhloAttrs,
+                                    getSpecialConverter<StablehloOpTy>())))
+      return failure();
 
     // These operands have already been converted to VHLO by
     // the dialect conversion infrastructure.
@@ -1146,13 +1162,9 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
                                 vhloAttrs);
     }
 
-    for (auto [stablehloRegion, vhloRegion] :
-         llvm::zip_equal(stablehloOp->getRegions(), vhloOp->getRegions())) {
-      rewriter.inlineRegionBefore(stablehloRegion, vhloRegion,
-                                  vhloRegion.end());
-      if (failed(rewriter.convertRegionTypes(&vhloRegion,
-                                             *this->getTypeConverter(),
-                                             /*entryConversion=*/nullptr)))
+    if constexpr (!StablehloOpTy::template hasTrait<OpTrait::ZeroRegions>()) {
+      if (failed(convertRegions(stablehloOp, vhloOp, rewriter,
+                                *this->getTypeConverter())))
         return failure();
     }
     rewriter.replaceOp(stablehloOp, vhloOp);
@@ -1160,12 +1172,19 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
   }
 };
 
+void addPattern(RewritePatternSet* patterns,
+                std::unique_ptr<RewritePattern> pattern) {
+  patterns->add(std::move(pattern));
+}
+
 template <typename... StablehloOpTypes>
 void populateStablehloToVhloPatterns(MLIRContext* context,
                                      RewritePatternSet* patterns,
                                      TypeConverter* converter) {
-  patterns->add<StablehloToVhloOpConverter<StablehloOpTypes>...>(*converter,
-                                                                 context);
+  (addPattern(patterns,
+              std::make_unique<StablehloToVhloOpConverter<StablehloOpTypes>>(
+                  *converter, context)),
+   ...);
 }
 
 }  // namespace
