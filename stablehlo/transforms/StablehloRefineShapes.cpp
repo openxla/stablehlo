@@ -40,6 +40,7 @@ limitations under the License.
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/IR/OwningOpRef.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/IR/Types.h"
@@ -442,7 +443,27 @@ class RefineShapeState {
       func::FuncOp entryFunction,
       std::optional<AdditionalShapeRefinementPatternsFn> additionalPatternsFn)
       : functionEffects(entryFunction),
-        additionalPatternsFn(additionalPatternsFn) {}
+        additionalPatternsFn(additionalPatternsFn) {
+    // An ordinary call may be refined before a composite using the same
+    // function. Save shared decompositions before any call can specialize their
+    // bodies or remove their dimension arguments.
+    auto module = entryFunction->getParentOfType<ModuleOp>();
+    if (!module) {
+      return;
+    }
+    module.walk([&](CompositeOp op) {
+      auto callee = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+          op, op.getDecompositionAttr());
+      if (!callee || decompositionTemplates.contains(callee)) {
+        return;
+      }
+      auto uses = SymbolTable::getSymbolUses(callee, module);
+      if (!uses || !llvm::hasSingleElement(*uses) ||
+          uses->begin()->getUser() != op.getOperation()) {
+        decompositionTemplates.try_emplace(callee, callee.clone());
+      }
+    });
+  }
 
   enum class RefinementState {
     NOT_ALREADY_REFINED,
@@ -455,7 +476,14 @@ class RefineShapeState {
   // state that specifies whether the function has already been refined.
   FailureOr<RefinementState> validateFunctionRefinement(RefinementKey key) {
     func::FuncOp func = key.getFunc();
-    StringRef funcName = func.getName();
+    StringRef funcName = getOriginalDecomposition(func).getName();
+
+    // Specializations of the same decomposition must not bypass the recursion
+    // check by introducing fresh function symbols.
+    if (llvm::is_contained(functionsBeingRefined, funcName)) {
+      return func.emitOpError()
+             << "Function " << funcName << " is being refined recursively\n";
+    }
 
     auto found = refinementContexts.find(func);
     if (found == refinementContexts.end())
@@ -480,11 +508,6 @@ class RefineShapeState {
         prevKey.getAllNonGlobalConstantArgumentTypes(context))
       return emitDifferentRefinementContextError(key.getFunc(), key, prevKey);
 
-    // Don't allow recursive refinement.
-    if (llvm::is_contained(functionsBeingRefined, funcName))
-      return func.emitOpError()
-             << "Function " << funcName << " is being refined recursively\n";
-
     return RefinementState::ALREADY_REFINED;
   }
 
@@ -492,16 +515,18 @@ class RefineShapeState {
   // Callers must call `finishFunctionRefinement` when done.
   [[nodiscard]] auto createScopedFunctionRefinement(RefinementKey& key) {
     func::FuncOp func = key.getFunc();
-    auto funcName = func.getName();
+    auto funcName = getOriginalDecomposition(func).getName();
     functionsBeingRefined.push_back(funcName);
     refinementContexts.try_emplace(func, key);
     // Return a cleanup function that will pop the function from the stack
     // when it goes out of scope. This can only use values that will have the
     // same lifetime as cleanup fn. In this case, `this` and `key` are safe.
     return llvm::scope_exit([this, &key]() {
-      if (key.getFunc().getName() != functionsBeingRefined.back())
+      if (getOriginalDecomposition(key.getFunc()).getName() !=
+          functionsBeingRefined.back()) {
         llvm::report_fatal_error(
             "Stack mismatch in createScopedFunctionRefinement");
+      }
       functionsBeingRefined.pop_back();
     });
   }
@@ -515,7 +540,88 @@ class RefineShapeState {
     return functionEffects.isMemoryEffectFree(func);
   }
 
+  // Unlike func.call, a composite has a named operation's operand contract.
+  // Substitute known dimension arguments without removing them from the
+  // decomposition's signature or from the composite's operand list.
+  FailureOr<func::FuncOp> getCompositeDecomposition(CompositeOp op) {
+    auto module = op->getParentOfType<ModuleOp>();
+    auto callee = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+        op, op.getDecompositionAttr());
+    if (!callee) {
+      return op.emitOpError("cannot resolve decomposition function");
+    }
+    auto original = getOriginalDecomposition(callee);
+    if (llvm::is_contained(functionsBeingRefined, original.getName())) {
+      return original.emitOpError() << "Function " << original.getName()
+                                    << " is being refined recursively\n";
+    }
+    if (!callee.getBody().hasOneBlock()) {
+      return callee.emitOpError("must have exactly one block");
+    }
+
+    SmallVector<Type> argumentTypes = llvm::to_vector(op.getOperandTypes());
+    SmallVector<DenseIntElementsAttr> constants(op.getNumOperands());
+    bool seenDimension = false;
+    for (auto [i, operand] : llvm::enumerate(op.getOperands())) {
+      if (!seenDimension && isa<TokenType>(operand.getType())) {
+        continue;
+      }
+      seenDimension = true;
+      auto type = dyn_cast<RankedTensorType>(operand.getType());
+      if (!type || type.getRank() != 0 || !type.getElementType().isInteger() ||
+          !matchPattern(operand, m_Constant(&constants[i]))) {
+        break;
+      }
+    }
+
+    auto& specializations = compositeDecompositions[original];
+    for (const auto& specialization : specializations) {
+      if (specialization.argumentTypes == argumentTypes &&
+          specialization.constants == constants) {
+        return specialization.func;
+      }
+    }
+
+    // Preserve other composites and ordinary calls that use this function.
+    auto savedTemplate = decompositionTemplates.find(original);
+    if (savedTemplate != decompositionTemplates.end()) {
+      callee = savedTemplate->second.get().clone();
+      callee.setSymName((original.getName() + ".refined").str());
+      callee.setPrivate();
+      SymbolTable(module).insert(callee);
+      originalDecompositions.try_emplace(callee, original);
+    }
+    specializations.push_back({argumentTypes, constants, callee});
+
+    OpBuilder builder(callee.getBody());
+    builder.setInsertionPointToStart(&callee.getBody().front());
+    for (auto [arg, constant] : llvm::zip(callee.getArguments(), constants)) {
+      if (!constant) {
+        continue;
+      }
+      auto replacement = ConstantOp::create(builder, arg.getLoc(), constant);
+      arg.replaceAllUsesWith(replacement);
+    }
+    return callee;
+  }
+
  private:
+  struct CompositeDecomposition {
+    SmallVector<Type> argumentTypes;
+    SmallVector<DenseIntElementsAttr> constants;
+    func::FuncOp func;
+  };
+
+  func::FuncOp getOriginalDecomposition(func::FuncOp func) const {
+    auto it = originalDecompositions.find(func);
+    return it == originalDecompositions.end() ? func : it->second;
+  }
+
+  DenseMap<func::FuncOp, SmallVector<CompositeDecomposition>>
+      compositeDecompositions;
+  DenseMap<func::FuncOp, func::FuncOp> originalDecompositions;
+  DenseMap<func::FuncOp, OwningOpRef<func::FuncOp>> decompositionTemplates;
+
   FunctionEffectAnalysis functionEffects;
   std::optional<AdditionalShapeRefinementPatternsFn> additionalPatternsFn;
 
@@ -723,6 +829,38 @@ struct RefineCallOpPattern : public OpRewritePattern<func::CallOp> {
 
     if (callChanged) return success();
     return refineReturnTypes(rewriter, op, callee.getResultTypes());
+  }
+
+ private:
+  RefineShapeState& state;
+};
+
+struct RefineCompositeOpPattern : public OpRewritePattern<CompositeOp> {
+  RefineCompositeOpPattern(MLIRContext* context, RefineShapeState& state)
+      : OpRewritePattern<CompositeOp>(context), state(state) {}
+
+  LogicalResult matchAndRewrite(CompositeOp op,
+                                PatternRewriter& rewriter) const override {
+    auto callee = state.getCompositeDecomposition(op);
+    if (failed(callee)) {
+      return failure();
+    }
+    RefinementKey key(*callee, 0, {}, llvm::to_vector(op.getOperandTypes()));
+    if (failed(refineFunction(*rewriter.getContext(), state, key))) {
+      return failure();
+    }
+
+    bool changed = op.getDecomposition() != callee->getSymName();
+    if (changed) {
+      rewriter.modifyOpInPlace(op, [&] {
+        op.setDecompositionAttr(FlatSymbolRefAttr::get(rewriter.getContext(),
+                                                       callee->getSymName()));
+      });
+    }
+    if (!llvm::equal(op.getResultTypes(), callee->getResultTypes())) {
+      return refineReturnTypes(rewriter, op, callee->getResultTypes());
+    }
+    return success(changed);
   }
 
  private:
@@ -1202,7 +1340,7 @@ LogicalResult applyShapeRefinementPatterns(func::FuncOp func,
       .setStrictness(GreedyRewriteStrictness::AnyOp);
 
   populateStablehloRefineShapesPatterns(context, &patterns);
-  patterns.add<RefineCallOpPattern>(context, state);
+  patterns.add<RefineCallOpPattern, RefineCompositeOpPattern>(context, state);
 
   // Populate additional patterns for StableHLO extensions.
   state.addAdditionalPatterns(patterns);
