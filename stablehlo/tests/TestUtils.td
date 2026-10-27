@@ -21,6 +21,11 @@ def HloTestBroadcastPass : Pass<"hlo-test-broadcast", "func::FuncOp"> {
   let dependentDialects = ["stablehlo::StablehloDialect"];
 }
 
+def HloTestCreateSortPass : Pass<"hlo-test-create-sort", "func::FuncOp"> {
+  let summary = "Uses test ops to invoke the StableHLO sort builder.";
+  let dependentDialects = ["stablehlo::StablehloDialect"];
+}
+
 def HloTestInferPass : Pass<"hlo-test-infer", "func::FuncOp"> {
   let summary = "Uses test ops to invoke InferShapedTypeOpInterface methods.";
   let dependentDialects = ["shape::ShapeDialect"];

@@ -86,6 +86,13 @@ namespace {
 // Utils for quantization specific verifications
 //===----------------------------------------------------------------------===//
 
+bool isFp8Type(mlir::Type type) {
+  return llvm::isa<mlir::Float8E3M4Type, mlir::Float8E4M3Type,
+                   mlir::Float8E4M3FNType, mlir::Float8E5M2Type,
+                   mlir::Float8E4M3FNUZType, mlir::Float8E4M3B11FNUZType,
+                   mlir::Float8E5M2FNUZType, mlir::Float8E8M0FNUType>(type);
+}
+
 template <typename T>
 bool allQuantized(ArrayRef<Type> typeRange) {
   return llvm::all_of(
@@ -911,9 +918,13 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                " not seen in replica groups");
 
   // all_to_all_c8
+  // An empty replica_groups (shape[0] == 0) has no groups, so it cannot have
+  // the expected group size; check it explicitly to also avoid dividing by
+  // zero below.
   if (allGroupsMustHaveSameSize && expectedGroupSize &&
-      (replicaIds.size() / replicaGroupType.getShape()[0] !=
-       *expectedGroupSize))
+      (replicaGroupType.getShape()[0] == 0 ||
+       replicaIds.size() / replicaGroupType.getShape()[0] !=
+           *expectedGroupSize))
     return emitOptionalError(location, "group size of replica_groups must be ",
                              *expectedGroupSize);
 
@@ -2021,11 +2032,22 @@ LogicalResult inferClampOp(
 }
 
 LogicalResult inferCompareOp(
-    MLIRContext* context, std::optional<Location>, Value lhs,
+    MLIRContext* context, std::optional<Location> location, Value lhs,
+    std::optional<StringRef> compareType,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto argTy = cast<RankedTensorType>(lhs.getType());
+  // compare_c3
+  if (compareType && *compareType == "WEAKORDER" &&
+      !isa<FloatType>(argTy.getElementType())) {
+    return emitOptionalError(
+        location,
+        "WEAKORDER comparison type is only supported for floating-point "
+        "element types, got ",
+        argTy.getElementType());
+  }
+
   // compare_c1
   ShapedTypeComponents& components = inferredReturnShapes.emplace_back();
-  auto argTy = cast<RankedTensorType>(lhs.getType());
   auto resElementTy = IntegerType::get(context, /*width=*/1);
   // compare_c2
   components =
@@ -2150,10 +2172,34 @@ LogicalResult inferConvertOp(
 }
 
 LogicalResult inferCollectiveBroadcastOp(
-    std::optional<Location>, ValueRange operands,
+    std::optional<Location> location, ValueRange operands, bool hasDynamicRoot,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  for (const auto& resultType : operands.getTypes())
+  // When has_dynamic_root=true, the last operand is the root index tensor and
+  // is excluded from the output types.
+  ValueRange dataOperands = hasDynamicRoot ? operands.drop_back(1) : operands;
+  for (const auto& resultType : dataOperands.getTypes())
     inferredReturnTypes.push_back(resultType);
+  return success();
+}
+
+LogicalResult inferCollectiveReduceOp(
+    std::optional<Location> location, ValueRange operands, Region& computation,
+    bool hasDynamicRoot,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // When has_dynamic_root=true, last operand is root indices and is excluded
+  // from output shapes.
+  ValueRange dataOperands = hasDynamicRoot ? operands.drop_back(1) : operands;
+  TypeRange inputTypes = dataOperands.getTypes();
+  auto inputArgTensorTypes = llvm::map_to_vector(
+      inputTypes, [](Type t) { return cast<ShapedType>(t); });
+  // The computation is applied independently per operand (2 params, 1 return),
+  // so query the accumulator type once per operand rather than in bulk.
+  for (size_t i = 0; i < inputTypes.size(); ++i) {
+    auto accTypes = getAccumulatorTypesOrInputTypes(location, computation,
+                                                    {inputArgTensorTypes[i]});
+    inferredReturnShapes.emplace_back(getSameShapeTensorType(
+        inputArgTensorTypes[i], accTypes[0].getElementType()));
+  }
   return success();
 }
 
@@ -2200,11 +2246,14 @@ LogicalResult inferConvolutionOp(
   // convolution_c27
   if (!anyQuantized<quant::QuantizedType>({rankedLhsType, rankedRhsType}) &&
       !isCompatibleForHloTypeInference(rankedLhsType.getElementType(),
-                                       rankedRhsType.getElementType()))
+                                       rankedRhsType.getElementType()) &&
+      !(isFp8Type(rankedLhsType.getElementType()) &&
+        isFp8Type(rankedRhsType.getElementType()))) {
     return emitOptionalError(
         location, "expects lhs and rhs to have compatible element type. Got: ",
         rankedLhsType.getElementType(), " and ",
         rankedRhsType.getElementType());
+  }
 
   if (failed(verifyConvolutionAttributes(
           location, lhsType, rhsType, inputBatchDimension,
@@ -2527,7 +2576,9 @@ LogicalResult inferDynamicConvOp(
   // dynamic_conv_c27
   if (!anyQuantized<quant::QuantizedType>({rankedLhsType, rankedRhsType}) &&
       !isCompatibleForHloTypeInference(rankedLhsType.getElementType(),
-                                       rankedRhsType.getElementType()))
+                                       rankedRhsType.getElementType()) &&
+      !(isFp8Type(rankedLhsType.getElementType()) &&
+        isFp8Type(rankedRhsType.getElementType())))
     return emitOptionalError(
         location, "expects lhs and rhs to have compatible element type. Got: ",
         rankedLhsType.getElementType(), " and ",
@@ -3742,6 +3793,61 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location,
   return success();
 }
 
+LogicalResult verifyCollectiveReduceOp(
+    std::optional<Location> location, ValueRange operands,
+    Attribute replicaGroups, int64_t channelId, bool useGlobalDeviceIds,
+    bool hasDynamicRoot, Region& computation) {
+  if (failed(verifyReplicaGroups(location, replicaGroups,
+                                 /*allGroupsMustHaveSameSize=*/false,
+                                 useGlobalDeviceIds,
+                                 /*expectedGroupSize=*/std::nullopt)))
+    return failure();
+
+  if (useGlobalDeviceIds && channelId <= 0)
+    return emitOptionalError(location,
+                             "channel_id must be positive when "
+                             "useGlobalDeviceIds is set but got: ",
+                             channelId);
+
+  if (!hasDynamicRoot && operands.empty())
+    return emitOptionalError(
+        location, "collective_reduce requires at least one data operand");
+
+  if (hasDynamicRoot) {
+    if (operands.size() < 2)
+      return emitOptionalError(location,
+                               "collective_reduce with has_dynamic_root=true "
+                               "requires at least two operands (data + root)");
+    auto rootType = dyn_cast<ShapedType>(operands.back().getType());
+    if (!rootType || !rootType.getElementType().isInteger(32) ||
+        rootType.getRank() != 1)
+      return emitOptionalError(
+          location,
+          "last operand of collective_reduce with has_dynamic_root=true "
+          "must be a rank-1 i32 tensor, but got ",
+          operands.back().getType());
+    int64_t numDataOperands = static_cast<int64_t>(operands.size()) - 1;
+    if (rootType.getDimSize(0) != numDataOperands)
+      return emitOptionalError(
+          location,
+          "last operand of collective_reduce with has_dynamic_root=true "
+          "must have the same number of elements as data operands (",
+          numDataOperands, "), but got ", rootType.getDimSize(0));
+  }
+
+  ValueRange dataOperands = hasDynamicRoot ? operands.drop_back(1) : operands;
+  for (const Value& operand : dataOperands) {
+    auto operandType = cast<ShapedType>(operand.getType());
+    if (failed(verifyReducerShape(
+            location, computation.front(), {operandType},
+            {RankedTensorType::get({}, operandType.getElementType())},
+            /*allowedDimensions=*/{})))
+      return failure();
+  }
+
+  return success();
+}
+
 LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
                                      Value operand, Value result) {
   auto operandShapedType = cast<ShapedType>(operand.getType());
@@ -3866,36 +3972,61 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
 }
 
 LogicalResult verifyCollectiveBroadcastOp(std::optional<Location> location,
-                                          Attribute replicaGroups) {
+                                          ValueRange operands,
+                                          Attribute replicaGroups,
+                                          bool hasDynamicRoot) {
   auto denseGroups = dyn_cast<DenseIntElementsAttr>(replicaGroups);
-  if (!denseGroups) {
-    return success();
-  }
-
-  // collective_permute_i2
-  auto replicaGroupType = cast<RankedTensorType>(denseGroups.getType());
-  if (replicaGroupType.getRank() != 2)
-    return emitOptionalError(
-        location, "replica groups should be a rank 2 tensor,",
-        "but instead it is of rank ", replicaGroupType.getRank());
-
-  auto replicaIds = denseGroups.getValues<int64_t>();
-  llvm::DenseSet<int64_t> replicaIdsSeen;
-  for (int64_t replicaId : replicaIds) {
-    // collective_broadcast_c2
-    // We only check that is is not negative, as it is impossible
-    // to statically know `num_replicas` or `num_partitions`
-    if (replicaId < 0)
+  if (denseGroups) {
+    auto replicaGroupType = cast<RankedTensorType>(denseGroups.getType());
+    if (replicaGroupType.getRank() != 2)
       return emitOptionalError(
-          location, "replica_groups values must be positive, but was given ",
-          replicaId);
+          location, "replica groups should be a rank 2 tensor,",
+          "but instead it is of rank ", replicaGroupType.getRank());
 
-    // collective_broadcast_c1
-    if (!replicaIdsSeen.insert(replicaId).second)
-      return emitOptionalError(location, "replica id #", replicaId,
-                               " seen more than once");
+    auto replicaIds = denseGroups.getValues<int64_t>();
+    llvm::DenseSet<int64_t> replicaIdsSeen;
+    for (int64_t replicaId : replicaIds) {
+      // collective_broadcast_c2
+      // We only check that it is not negative, as it is impossible
+      // to statically know `num_replicas` or `num_partitions`
+      if (replicaId < 0)
+        return emitOptionalError(
+            location, "replica_groups values must be positive, but was given ",
+            replicaId);
+
+      // collective_broadcast_c1
+      if (!replicaIdsSeen.insert(replicaId).second)
+        return emitOptionalError(location, "replica id #", replicaId,
+                                 " seen more than once");
+    }
   }
-  return success();
+
+  if (!hasDynamicRoot && operands.empty())
+    return emitOptionalError(
+        location, "collective_broadcast requires at least one data operand");
+
+  if (hasDynamicRoot) {
+    if (operands.size() < 2)
+      return emitOptionalError(
+          location,
+          "collective_broadcast with has_dynamic_root=true requires at least "
+          "two operands (data + root)");
+    auto rootType = dyn_cast<ShapedType>(operands.back().getType());
+    if (!rootType || !rootType.getElementType().isInteger(32) ||
+        rootType.getRank() != 1)
+      return emitOptionalError(
+          location,
+          "last operand of collective_broadcast with has_dynamic_root=true "
+          "must be a rank-1 i32 tensor, but got ",
+          operands.back().getType());
+    int64_t numDataOperands = static_cast<int64_t>(operands.size()) - 1;
+    if (rootType.getDimSize(0) != numDataOperands)
+      return emitOptionalError(
+          location,
+          "last operand of collective_broadcast with has_dynamic_root=true "
+          "must have the same number of elements as data operands (",
+          numDataOperands, "), but got ", rootType.getDimSize(0));
+  }
 
   return success();
 }

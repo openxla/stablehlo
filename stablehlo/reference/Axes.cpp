@@ -21,7 +21,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-raw_ostream &operator<<(raw_ostream &os, const Axes &x) {
+raw_ostream& operator<<(raw_ostream& os, const Axes& x) {
   os << "[";
   llvm::interleave(x, os, ", ");
   os << "]";

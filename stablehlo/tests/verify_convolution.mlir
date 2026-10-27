@@ -78,6 +78,60 @@ func.func @convolution_upcast(%arg0 : tensor<100x26x26x32xi8>,
 
 // -----
 
+// CHECK-LABEL: func @convolution_mixed_fp8
+func.func @convolution_mixed_fp8(%arg0 : tensor<100x26x26x32xf8E5M2>,
+    %arg1 : tensor<3x3x1x32xf8E4M3FN>) -> tensor<100x28x28x1xf8E5M2> {
+  %result = "stablehlo.convolution"(%arg0, %arg1) {
+    batch_group_count = 1 : i64,
+    dimension_numbers = #stablehlo.conv<raw
+      input_batch_dimension = 0,
+      input_feature_dimension = 3,
+      input_spatial_dimensions = [1, 2],
+      kernel_input_feature_dimension = 3,
+      kernel_output_feature_dimension = 2,
+      kernel_spatial_dimensions = [0, 1],
+      output_batch_dimension = 0,
+      output_feature_dimension = 3,
+      output_spatial_dimensions = [1, 2]
+    >,
+    feature_group_count = 1 : i64,
+    lhs_dilation = array<i64: 1, 1>,
+    padding = dense<2> : tensor<2x2xi64>,
+    rhs_dilation = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>
+  } : (tensor<100x26x26x32xf8E5M2>, tensor<3x3x1x32xf8E4M3FN>) ->
+    tensor<100x28x28x1xf8E5M2>
+  func.return %result : tensor<100x28x28x1xf8E5M2>
+}
+
+// -----
+
+func.func @convolution_mismatched_element_types(%arg0: tensor<100x26x26x32xf32>, %arg1: tensor<3x3x1x32xf16>) -> tensor<100x28x28x1xf32> {
+  // expected-error@+1{{expects lhs and rhs to have compatible element type. Got: 'f32' and 'f16'}}
+  %result = "stablehlo.convolution"(%arg0, %arg1) {
+    batch_group_count = 1 : i64,
+    dimension_numbers = #stablehlo.conv<raw
+      input_batch_dimension = 0,
+      input_feature_dimension = 3,
+      input_spatial_dimensions = [1, 2],
+      kernel_input_feature_dimension = 3,
+      kernel_output_feature_dimension = 2,
+      kernel_spatial_dimensions = [0, 1],
+      output_batch_dimension = 0,
+      output_feature_dimension = 3,
+      output_spatial_dimensions = [1, 2]
+    >,
+    feature_group_count = 1 : i64,
+    lhs_dilation = array<i64: 1, 1>,
+    padding = dense<2> : tensor<2x2xi64>,
+    rhs_dilation = array<i64: 1, 1>,
+    window_strides = array<i64: 1, 1>
+  } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf16>) -> tensor<100x28x28x1xf32>
+  func.return %result : tensor<100x28x28x1xf32>
+}
+
+// -----
+
 func.func @convolution(%arg0: tensor<2x2x3x4xf32>, %arg1: tensor<3x5x5x3xf32>) -> tensor<3x5x5x4xf32> {
   // expected-error@+3{{Unexpected keyword stide}}
   %0 = stablehlo.convolution(%arg0, %arg1)
