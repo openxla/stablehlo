@@ -53,16 +53,16 @@ chloComparisonTypeAttrGetValue(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirAttribute chloRaggedDotDimensionNumbersGet(
     MlirContext ctx,                                                        //
-    intptr_t nLhsBatchingDimensions, const int64_t *lhsBatchingDimensions,  //
-    intptr_t nRhsBatchingDimensions, const int64_t *rhsBatchingDimensions,  //
+    intptr_t nLhsBatchingDimensions, const int64_t* lhsBatchingDimensions,  //
+    intptr_t nRhsBatchingDimensions, const int64_t* rhsBatchingDimensions,  //
     intptr_t nLhsContractingDimensions,                                     //
-    const int64_t *lhsContractingDimensions,                                //
+    const int64_t* lhsContractingDimensions,                                //
     intptr_t nRhsContractingDimensions,                                     //
-    const int64_t *rhsContractingDimensions,                                //
+    const int64_t* rhsContractingDimensions,                                //
     intptr_t nLhsRaggedDimensions,                                          //
-    const int64_t *lhsRaggedDimensions,                                     //
+    const int64_t* lhsRaggedDimensions,                                     //
     intptr_t nRhsGroupDimensions,                                           //
-    const int64_t *rhsGroupDimensions);
+    const int64_t* rhsGroupDimensions);
 
 MLIR_CAPI_EXPORTED bool chloAttributeIsARaggedDotDimensionNumbers(
     MlirAttribute attr);

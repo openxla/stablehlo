@@ -21,7 +21,7 @@ class ChloDialect;
 
 // Add the interface necessary for encoding and decoding the CHLO dialect
 // components in bytecode.
-void addBytecodeInterface(ChloDialect *dialect);
+void addBytecodeInterface(ChloDialect* dialect);
 }  // namespace chlo
 }  // namespace mlir
 

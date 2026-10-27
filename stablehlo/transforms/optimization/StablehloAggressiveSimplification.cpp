@@ -69,16 +69,14 @@ static bool isIotaRange(ArrayRef<int64_t> dims) {
   });
 }
 
-bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
-  Operation* sourceOp = sourceValue.getDefiningOp();
-  Operation* destOp = destValue.getDefiningOp();
+bool mergeDiscardableAttributes(Operation* sourceOp, Operation* destOp) {
   if (!sourceOp || !destOp) return false;
 
   auto sourceAttrs = sourceOp->getDiscardableAttrDictionary();
-  if (!sourceAttrs) return true;
+  if (!sourceAttrs || sourceAttrs.empty()) return true;
 
   auto destAttrs = destOp->getDiscardableAttrDictionary();
-  if (!destAttrs) {
+  if (!destAttrs || destAttrs.empty()) {
     destOp->setDiscardableAttrs(sourceAttrs);
     return true;
   }
@@ -87,16 +85,25 @@ bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
   for (auto attr : sourceAttrs.getValue()) {
     if (attr.getName() == "mhlo.frontend_attributes" &&
         mergedAttrs.get("mhlo.frontend_attributes")) {
-      // Merge frontend attributes, prioritizing source attributes.
-      auto destFrontendAttrs =
-          cast<DictionaryAttr>(mergedAttrs.get("mhlo.frontend_attributes"));
-      auto sourceFrontendAttrs = cast<DictionaryAttr>(attr.getValue());
-      NamedAttrList frontendAttrs(destFrontendAttrs);
-      for (auto sourceAttr : sourceFrontendAttrs) {
-        frontendAttrs.set(sourceAttr.getName(), sourceAttr.getValue());
+      // Merge frontend attributes, prioritizing source attributes except for
+      // `xla_metadata_payload`, which is set by the surviving op.
+      auto destFrontendAttrs = dyn_cast_or_null<DictionaryAttr>(
+          mergedAttrs.get("mhlo.frontend_attributes"));
+      auto sourceFrontendAttrs = dyn_cast<DictionaryAttr>(attr.getValue());
+      if (destFrontendAttrs && sourceFrontendAttrs) {
+        NamedAttrList frontendAttrs(destFrontendAttrs);
+        for (auto sourceAttr : sourceFrontendAttrs) {
+          if (sourceAttr.getName() == "xla_metadata_payload" &&
+              frontendAttrs.get("xla_metadata_payload")) {
+            continue;  // keep the surviving op's own identity
+          }
+          frontendAttrs.set(sourceAttr.getName(), sourceAttr.getValue());
+        }
+        mergedAttrs.set("mhlo.frontend_attributes",
+                        frontendAttrs.getDictionary(destOp->getContext()));
+      } else {
+        mergedAttrs.set(attr.getName(), attr.getValue());
       }
-      mergedAttrs.set("mhlo.frontend_attributes",
-                      frontendAttrs.getDictionary(destOp->getContext()));
     } else {
       // Otherwise prioritize source attributes
       mergedAttrs.set(attr.getName(), attr.getValue());
@@ -105,6 +112,11 @@ bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
 
   destOp->setDiscardableAttrs(mergedAttrs.getDictionary(destOp->getContext()));
   return true;
+}
+
+bool mergeDiscardableAttributes(Value sourceValue, Value destValue) {
+  return mergeDiscardableAttributes(sourceValue.getDefiningOp(),
+                                    destValue.getDefiningOp());
 }
 
 template <typename OpType>
@@ -189,10 +201,7 @@ struct CompareOpCanon final : SimplifyOpRewritePattern<CompareOp> {
 
     // Bail out on non-integer comparison.
     // TODO: Support more comparison types.
-    std::optional<ComparisonType> compType = op.getCompareType();
-    if (!compType ||
-        !llvm::is_contained({ComparisonType::SIGNED, ComparisonType::UNSIGNED},
-                            *compType)) {
+    if (!isa<IntegerType>(op.getLhs().getType().getElementType())) {
       return failure();
     }
 
@@ -227,12 +236,25 @@ struct CompareOpCanon final : SimplifyOpRewritePattern<CompareOp> {
     matchPattern(lhs, m_Constant(&lhsAttr));
     matchPattern(rhs, m_Constant(&rhsAttr));
 
+    std::optional<ComparisonType> compType = op.getCompareType();
+    bool hasRedundantCompareType =
+        compType &&
+        llvm::is_contained({ComparisonType::NOTYPE, ComparisonType::SIGNED,
+                            ComparisonType::UNSIGNED},
+                           *compType);
+
     // The canonical form has the constant operand as the RHS.
     if (lhsAttr && !rhsAttr) {
       rewriter.modifyOpInPlace(op, [&op, direction, lhs, rhs] {
         op.setComparisonDirection(invertDirection(direction));
         op->setOperands(ValueRange{rhs, lhs});
+        op.removeCompareTypeAttr();
       });
+      return success();
+    }
+
+    if (hasRedundantCompareType) {
+      rewriter.modifyOpInPlace(op, [&op] { op.removeCompareTypeAttr(); });
       return success();
     }
 
@@ -637,8 +659,12 @@ struct DynamicSliceOpToSlice : public SimplifyOpRewritePattern<DynamicSliceOp> {
     auto sliceStrides = rewriter.getDenseI64ArrayAttr(
         SmallVector<int64_t, 4>(inputType.getRank(), 1));
 
-    rewriter.replaceOpWithNewOp<SliceOp>(dynamicSlice, input, sliceStartIndices,
-                                         sliceLimits, sliceStrides);
+    auto sliceOp =
+        SliceOp::create(rewriter, dynamicSlice.getLoc(), input,
+                        sliceStartIndices, sliceLimits, sliceStrides);
+    mergeDiscardableAttributes(dynamicSlice.getOperation(),
+                               sliceOp.getOperation());
+    rewriter.replaceOp(dynamicSlice, sliceOp);
     return success();
   }
 };
@@ -705,9 +731,12 @@ struct RealDynamicSliceOpToDynamicSlice
       startIndices.push_back(startIndex0D);
     }
 
-    rewriter.replaceOpWithNewOp<DynamicSliceOp>(
-        op, op.getOperand(), startIndices,
+    auto dynamicSliceOp = DynamicSliceOp::create(
+        rewriter, op.getLoc(), op.getOperand(), startIndices,
         rewriter.getDenseI64ArrayAttr(sliceSizes));
+    mergeDiscardableAttributes(op.getOperation(),
+                               dynamicSliceOp.getOperation());
+    rewriter.replaceOp(op, dynamicSliceOp);
     return success();
   }
 };
@@ -1268,6 +1297,55 @@ struct SliceOpConcatSimplify : public SimplifyOpRewritePattern<SliceOp> {
 };
 
 //////////////////////////////////
+// ScatterOp
+/////////////////////////////////
+
+// Pattern: scatter(inputs, indices, updates) -> inputs
+//   [when scatter_indices has 0 scatter points]
+struct ScatterOpEmptyIndices : public SimplifyOpRewritePattern<ScatterOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOp op,
+                                PatternRewriter& rewriter) const override {
+    auto indicesType = cast<ShapedType>(op.getScatterIndices().getType());
+    if (!indicesType.hasStaticShape()) return failure();
+
+    auto scatterDimNums = op.getScatterDimensionNumbers();
+    int64_t indexVectorDim = scatterDimNums.getIndexVectorDim();
+
+    bool hasZeroScatterPoints = false;
+    for (int64_t i = 0; i < indicesType.getRank(); ++i) {
+      if (i != indexVectorDim && indicesType.getDimSize(i) == 0) {
+        hasZeroScatterPoints = true;
+        break;
+      }
+    }
+    if (!hasZeroScatterPoints) return failure();
+
+    rewriter.replaceOp(op, op.getInputs());
+    return success();
+  }
+};
+
+// Pattern: scatter(inputs, indices, updates) -> inputs
+//   [when all updates have zero extent]
+struct ScatterOpZeroExtentUpdates : public SimplifyOpRewritePattern<ScatterOp> {
+  using SimplifyOpRewritePattern::SimplifyOpRewritePattern;
+
+  LogicalResult matchAndRewrite(ScatterOp op,
+                                PatternRewriter& rewriter) const override {
+    bool allZeroExtent = llvm::all_of(op.getUpdates(), [](Value update) {
+      auto type = cast<ShapedType>(update.getType());
+      return type.hasStaticShape() && type.getNumElements() == 0;
+    });
+    if (!allZeroExtent) return failure();
+
+    rewriter.replaceOp(op, op.getInputs());
+    return success();
+  }
+};
+
+//////////////////////////////////
 // SortOp
 /////////////////////////////////
 
@@ -1662,17 +1740,18 @@ void populateStablehloCanonicalizationPatterns(
     PatternBenefit benefit) {
   populateWithGenerated(*patterns);
   // TODO: Re-enable `CompareSelectIntoMinMax` after fixing legalization issue.
-  patterns->add<
-      CompareOpCanon, /*CompareSelectIntoMinMax,*/ ConcatenateOpFlatten,
-      ConcatenateOpNoop, ConcatenateOpRemoveEmpty,
-      CustomCallUnregisteredBackendConfigToFfi, DynamicIotaOpToBroadcast,
-      DynamicReshapeOpSameOperandAndResultShape, DynamicSliceOpToSlice,
-      GatherOpCanon, IotaOpBroadcast, PadOpBroadcastEmptyTensor,
-      RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
-      ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon, SelectOpCanon,
-      SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
-      TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
-      context, options, benefit);
+  patterns
+      ->add<CompareOpCanon, /*CompareSelectIntoMinMax,*/ ConcatenateOpFlatten,
+            ConcatenateOpNoop, ConcatenateOpRemoveEmpty,
+            CustomCallUnregisteredBackendConfigToFfi, DynamicIotaOpToBroadcast,
+            DynamicReshapeOpSameOperandAndResultShape, DynamicSliceOpToSlice,
+            GatherOpCanon, IotaOpBroadcast, PadOpBroadcastEmptyTensor,
+            RealDynamicSliceOpToDynamicSlice, ReduceOpEmptyCanon,
+            ReduceOpNoopVariableReturn, ReduceOpUnusedResultCanon,
+            SelectOpCanon, ScatterOpEmptyIndices, ScatterOpZeroExtentUpdates,
+            SliceOpConcatSimplify, SortOpDropUnusedArgs, SortOpSetDimension,
+            TransposeIsReshape, TupleIsRepacking, WhileOpImplicitCapture>(
+          context, options, benefit);
 
   // Generic patterns
   // TODO: Re-enable `ReorderElementwiseAndShapeOp` after fixing BF16 precision
@@ -1697,6 +1776,7 @@ void populateStablehloCanonicalizationPatterns(MLIRContext* context,
 void populateStablehloHloImportCanonicalizationPatterns(
     MLIRContext* context, RewritePatternSet* patterns,
     const StablehloAggressiveSimplificationPassOptions& options) {
+  patterns->add<ConcatenateOpNoop, ConcatenateOpRemoveEmpty>(context, options);
   patterns->add<ReshapeOp_RemoveNoop, GetTupleElementOp_UnpackTuple>(context);
   patterns->add<TupleIsRepacking, WhileOpImplicitCapture>(context, options);
 }

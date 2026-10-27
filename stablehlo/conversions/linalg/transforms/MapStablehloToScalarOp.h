@@ -17,6 +17,7 @@ limitations under the License.
 #ifndef STABLEHLO_CONVERSIONS_LINALG_TRANSFORMS_MAP_STABLEHLO_TO_SCALAR_OP_H
 #define STABLEHLO_CONVERSIONS_LINALG_TRANSFORMS_MAP_STABLEHLO_TO_SCALAR_OP_H
 
+#include <cmath>
 #include <optional>
 
 #include "llvm/ADT/ArrayRef.h"
@@ -93,6 +94,10 @@ struct StablehloToScalarOp<stablehlo::Expm1Op> {
   using COp = ::mlir::complex::Expm1Op;
 };
 template <>
+struct StablehloToScalarOp<stablehlo::Exp2Op> {
+  using FOp = ::mlir::math::Exp2Op;
+};
+template <>
 struct StablehloToScalarOp<stablehlo::FloorOp> {
   using FOp = ::mlir::math::FloorOp;
 };
@@ -105,6 +110,10 @@ template <>
 struct StablehloToScalarOp<stablehlo::Log1pOp> {
   using FOp = ::mlir::math::Log1pOp;
   using COp = ::mlir::complex::Log1pOp;
+};
+template <>
+struct StablehloToScalarOp<stablehlo::Log2Op> {
+  using FOp = ::mlir::math::Log2Op;
 };
 template <>
 struct StablehloToScalarOp<stablehlo::MulOp> {
@@ -204,7 +213,8 @@ struct MapStablehloOpToScalarOpImpl<StdScalarOp> {
   Value operator()(Location loc, ArrayRef<Type> resultTypes,
                    ArrayRef<Type> /*argTypes*/, ValueRange args, OpBuilder* b) {
     return StdScalarOp::create(*b, loc, resultTypes, args,
-                               ArrayRef<NamedAttribute>());
+                               typename StdScalarOp::Properties{},
+                               /*discardableAttributes=*/{});
   }
 };
 
@@ -215,7 +225,8 @@ struct MapStablehloOpToScalarOpImpl<SupportedType, StdScalarOp, Args...> {
     Type elementType = getElementTypeOrSelf(argTypes.front());
     if (SupportedType{}(elementType)) {
       return StdScalarOp::create(*b, loc, resultTypes, args,
-                                 ArrayRef<NamedAttribute>());
+                                 typename StdScalarOp::Properties{},
+                                 /*discardableAttributes=*/{});
     }
     return MapStablehloOpToScalarOpImpl<Args...>{}(loc, resultTypes, argTypes,
                                                    args, b);
@@ -456,6 +467,60 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::CompareOp>(
       assert(predicate.has_value() && "expected valid comparison direction");
       return arith::CmpIOp::create(*b, loc, *predicate, lhsInt, rhsInt);
     }
+    if (adaptor.getCompareType() &&
+        *adaptor.getCompareType() == stablehlo::ComparisonType::WEAKORDER) {
+      // Weak order treats -0.0 == +0.0 and orders all NaNs equal and > +Inf.
+      switch (comparisonDirection) {
+        case stablehlo::ComparisonDirection::LE: {
+          Value ole = arith::CmpFOp::create(*b, loc, arith::CmpFPredicate::OLE,
+                                            lhs, rhs);
+          Value rhsNan = arith::CmpFOp::create(
+              *b, loc, arith::CmpFPredicate::UNO, rhs, rhs);
+          return arith::OrIOp::create(*b, loc, ole, rhsNan);
+        }
+        case stablehlo::ComparisonDirection::GE: {
+          Value oge = arith::CmpFOp::create(*b, loc, arith::CmpFPredicate::OGE,
+                                            lhs, rhs);
+          Value lhsNan = arith::CmpFOp::create(
+              *b, loc, arith::CmpFPredicate::UNO, lhs, lhs);
+          return arith::OrIOp::create(*b, loc, oge, lhsNan);
+        }
+        case stablehlo::ComparisonDirection::LT: {
+          Value ult = arith::CmpFOp::create(*b, loc, arith::CmpFPredicate::ULT,
+                                            lhs, rhs);
+          Value lhsOrd = arith::CmpFOp::create(
+              *b, loc, arith::CmpFPredicate::ORD, lhs, lhs);
+          return arith::AndIOp::create(*b, loc, ult, lhsOrd);
+        }
+        case stablehlo::ComparisonDirection::GT: {
+          Value ugt = arith::CmpFOp::create(*b, loc, arith::CmpFPredicate::UGT,
+                                            lhs, rhs);
+          Value rhsOrd = arith::CmpFOp::create(
+              *b, loc, arith::CmpFPredicate::ORD, rhs, rhs);
+          return arith::AndIOp::create(*b, loc, ugt, rhsOrd);
+        }
+        case stablehlo::ComparisonDirection::EQ: {
+          Value oeq = arith::CmpFOp::create(*b, loc, arith::CmpFPredicate::OEQ,
+                                            lhs, rhs);
+          Value lhsNan = arith::CmpFOp::create(
+              *b, loc, arith::CmpFPredicate::UNO, lhs, lhs);
+          Value rhsNan = arith::CmpFOp::create(
+              *b, loc, arith::CmpFPredicate::UNO, rhs, rhs);
+          Value bothNan = arith::AndIOp::create(*b, loc, lhsNan, rhsNan);
+          return arith::OrIOp::create(*b, loc, oeq, bothNan);
+        }
+        case stablehlo::ComparisonDirection::NE: {
+          Value une = arith::CmpFOp::create(*b, loc, arith::CmpFPredicate::UNE,
+                                            lhs, rhs);
+          Value lhsOrd = arith::CmpFOp::create(
+              *b, loc, arith::CmpFPredicate::ORD, lhs, lhs);
+          Value rhsOrd = arith::CmpFOp::create(
+              *b, loc, arith::CmpFPredicate::ORD, rhs, rhs);
+          Value anyOrd = arith::OrIOp::create(*b, loc, lhsOrd, rhsOrd);
+          return arith::AndIOp::create(*b, loc, une, anyOrd);
+        }
+      }
+    }
     std::optional<arith::CmpFPredicate> predicate =
         getCmpPredicate<arith::CmpFPredicate>(comparisonDirection,
                                               /*is_signed=*/true);
@@ -670,6 +735,46 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ImagOp>(
       loc, resultTypes, argTypes, adaptor.getOperands(), b);
 }
 
+template <>
+inline Value mapStablehloOpToStdScalarOp<stablehlo::Exp2Op>(
+    Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
+    stablehlo::Exp2Op::Adaptor adaptor, OpBuilder* b) {
+  Type type = adaptor.getOperand().getType();
+  if (!isa<ComplexType>(type))
+    return MapStablehloOpToScalarOpImpl<IsFloatType, math::Exp2Op>{}(
+        loc, resultTypes, argTypes, adaptor.getOperands(), b);
+  auto complexTy = cast<ComplexType>(type);
+  auto floatTy = complexTy.getElementType();
+  Value ln2 =
+      arith::ConstantOp::create(*b, loc, b->getFloatAttr(floatTy, M_LN2));
+  Value re = complex::ReOp::create(*b, loc, floatTy, adaptor.getOperand());
+  Value im = complex::ImOp::create(*b, loc, floatTy, adaptor.getOperand());
+  Value scaled = complex::CreateOp::create(
+      *b, loc, complexTy, arith::MulFOp::create(*b, loc, re, ln2),
+      arith::MulFOp::create(*b, loc, im, ln2));
+  return complex::ExpOp::create(*b, loc, scaled);
+}
+
+template <>
+inline Value mapStablehloOpToStdScalarOp<stablehlo::Log2Op>(
+    Location loc, ArrayRef<Type> resultTypes, ArrayRef<Type> argTypes,
+    stablehlo::Log2Op::Adaptor adaptor, OpBuilder* b) {
+  Type type = adaptor.getOperand().getType();
+  if (!isa<ComplexType>(type))
+    return MapStablehloOpToScalarOpImpl<IsFloatType, math::Log2Op>{}(
+        loc, resultTypes, argTypes, adaptor.getOperands(), b);
+  auto complexTy = cast<ComplexType>(type);
+  auto floatTy = complexTy.getElementType();
+  Value logZ = complex::LogOp::create(*b, loc, adaptor.getOperand());
+  Value oneOverLn2 =
+      arith::ConstantOp::create(*b, loc, b->getFloatAttr(floatTy, M_LOG2E));
+  Value re = complex::ReOp::create(*b, loc, floatTy, logZ);
+  Value im = complex::ImOp::create(*b, loc, floatTy, logZ);
+  return complex::CreateOp::create(
+      *b, loc, complexTy, arith::MulFOp::create(*b, loc, re, oneOverLn2),
+      arith::MulFOp::create(*b, loc, im, oneOverLn2));
+}
+
 // 'target_types' is the unconverted type (signed or unsigned if integer),
 // 'ResultTypes' is the converted type (signless if integer).
 inline Value mapConvertOpToStdScalarOp(Location loc, ArrayRef<Type> targetTypes,
@@ -688,32 +793,39 @@ inline Value mapConvertOpToStdScalarOp(Location loc, ArrayRef<Type> targetTypes,
   // A boolean value is considered to be unsigned when converting to
   // floating-point. Otherwise, it will become `-1`.
   if (IsUnsignedIntegerType{}(sourceType) &&
-      mlir::arith::UIToFPOp::areCastCompatible(convertedSourceType,
-                                               targetType)) {
-    return mlir::arith::UIToFPOp::create(*b, loc, resultTypes, args,
-                                         ArrayRef<NamedAttribute>());
+      arith::UIToFPOp::areCastCompatible(convertedSourceType, targetType)) {
+    return arith::UIToFPOp::create(*b, loc, resultTypes, args,
+                                   typename arith::UIToFPOp::Properties{},
+                                   /*discardableAttributes=*/{});
   }
-  if (mlir::arith::SIToFPOp::areCastCompatible(sourceType, targetType)) {
-    return mlir::arith::SIToFPOp::create(*b, loc, resultTypes, args,
-                                         ArrayRef<NamedAttribute>());
+  if (arith::SIToFPOp::areCastCompatible(sourceType, targetType)) {
+    return arith::SIToFPOp::create(*b, loc, resultTypes, args,
+                                   typename arith::SIToFPOp::Properties{},
+                                   /*discardableAttributes=*/{});
   }
   if (isa<FloatType>(sourceType) && isa<FloatType>(targetType)) {
     auto src = cast<FloatType>(sourceType);
     auto res = cast<FloatType>(targetType);
     if (src.getWidth() > res.getWidth()) {
-      return mlir::arith::TruncFOp::create(*b, loc, resultTypes, args,
-                                           ArrayRef<NamedAttribute>());
+      return arith::TruncFOp::create(*b, loc, resultTypes, args,
+                                     typename arith::TruncFOp::Properties{},
+                                     /*discardableAttributes=*/{});
     }
     if (src.getWidth() < res.getWidth()) {
-      return mlir::arith::ExtFOp::create(*b, loc, resultTypes, args,
-                                         ArrayRef<NamedAttribute>());
+      return arith::ExtFOp::create(*b, loc, resultTypes, args,
+                                   typename arith::ExtFOp::Properties{},
+                                   /*discardableAttributes=*/{});
     }
     // There's no direct conversion between different 16 bit floating point
     // types, so go through 32 bit float.
     if (sourceType != targetType) {
       assert(sourceType.isBF16() || targetType.isBF16());
-      Value ext = arith::ExtFOp::create(*b, loc, b->getF32Type(), args);
-      return arith::TruncFOp::create(*b, loc, resultTypes, ext);
+      Value ext = arith::ExtFOp::create(*b, loc, b->getF32Type(), args,
+                                        typename arith::ExtFOp::Properties{},
+                                        /*discardableAttributes=*/{});
+      return arith::TruncFOp::create(*b, loc, resultTypes, ext,
+                                     typename arith::TruncFOp::Properties{},
+                                     /*discardableAttributes=*/{});
     }
     // No conversion is needed for identical float types.
     return args.front();
@@ -738,17 +850,20 @@ inline Value mapConvertOpToStdScalarOp(Location loc, ArrayRef<Type> targetTypes,
     auto src = cast<IntegerType>(sourceType);
     auto res = cast<IntegerType>(targetType);
     if (src.getWidth() > res.getWidth()) {
-      return mlir::arith::TruncIOp::create(*b, loc, resultTypes, args,
-                                           ArrayRef<NamedAttribute>());
+      return arith::TruncIOp::create(*b, loc, resultTypes, args,
+                                     typename arith::TruncIOp::Properties{},
+                                     /*discardableAttributes=*/{});
     }
     if (src.getWidth() < res.getWidth()) {
       // Special case boolean values, so they get casted to `1` instead of `-1`.
       if (IsUnsignedIntegerType{}(src)) {
-        return mlir::arith::ExtUIOp::create(*b, loc, resultTypes, args,
-                                            ArrayRef<NamedAttribute>());
+        return arith::ExtUIOp::create(*b, loc, resultTypes, args,
+                                      typename arith::ExtUIOp::Properties{},
+                                      /*discardableAttributes=*/{});
       }
-      return mlir::arith::ExtSIOp::create(*b, loc, resultTypes, args,
-                                          ArrayRef<NamedAttribute>());
+      return arith::ExtSIOp::create(*b, loc, resultTypes, args,
+                                    typename arith::ExtSIOp::Properties{},
+                                    /*discardableAttributes=*/{});
     }
     // No conversion is needed for the same width integers
     return args.front();
@@ -888,6 +1003,15 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ClampOp>(
       ValueRange{adaptor.getMin(), adaptor.getOperand()}, b);
   return mapStablehloOpToStdScalarOp<stablehlo::MinOp>(
       loc, resultTypes, argTypes, ValueRange{maxLbX, adaptor.getMax()}, b);
+}
+
+template <>
+inline Value mapStablehloOpToStdScalarOp<stablehlo::FmaOp>(
+    Location loc, ArrayRef<Type> /*resultTypes*/, ArrayRef<Type> argTypes,
+    stablehlo::FmaOp::Adaptor adaptor, OpBuilder* b) {
+  if (!isa<FloatType>(getElementTypeOrSelf(argTypes.front()))) return nullptr;
+  return ::mlir::math::FmaOp::create(*b, loc, adaptor.getA(), adaptor.getB(),
+                                     adaptor.getC());
 }
 
 template <typename U, typename S>

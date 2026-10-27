@@ -489,6 +489,50 @@ func.func @scan_variadic(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>, %arg2: te
 
 // -----
 
+// CHECK-LABEL: func @scan_bounded_dynamism
+func.func @scan_bounded_dynamism(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) {
+  // CHECK: chlo.scan
+  // CHECK: } : (tensor<?x?xf32, #stablehlo.bounds<2, 3>>, tensor<?xf32, #stablehlo.bounds<3>>) -> (tensor<?x?xf32, #stablehlo.bounds<2, 3>>, tensor<?xf32, #stablehlo.bounds<3>>)
+  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 {
+  ^bb0(%input0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, %carry0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>):
+    %2 = stablehlo.add %input0, %carry0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+    stablehlo.return %2, %2 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+  } : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>)
+  func.return %0, %1 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+}
+
+// -----
+
+// CHECK-LABEL: func @scan_bounded_dynamism_multiple_inputs
+func.func @scan_bounded_dynamism_multiple_inputs(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, %arg2: tensor<?x?x?xi32, #stablehlo.type_extensions<bounds = [2, 4, 5]>>, %arg3: tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>) -> (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?x?x?xi32, #stablehlo.type_extensions<bounds = [2, 4, 5]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>) {
+  // CHECK: chlo.scan
+  // CHECK: } : (tensor<?x?xf32, #stablehlo.bounds<2, 3>>, tensor<?x?x?xi32, #stablehlo.bounds<2, 4, 5>>, tensor<?xf32, #stablehlo.bounds<3>>, tensor<?x?xi32, #stablehlo.bounds<4, 5>>) -> (tensor<?x?xf32, #stablehlo.bounds<2, 3>>, tensor<?x?x?xi32, #stablehlo.bounds<2, 4, 5>>, tensor<?xf32, #stablehlo.bounds<3>>, tensor<?x?xi32, #stablehlo.bounds<4, 5>>)
+  %0:4 = chlo.scan (%arg0, %arg2) inits (%arg1, %arg3) dimension = 0 {
+  ^bb0(%input0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, %input1: tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>, %carry0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, %carry1: tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>):
+    %1 = stablehlo.add %input0, %carry0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+    %2 = stablehlo.add %input1, %carry1 : tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>
+    stablehlo.return %1, %2, %1, %2 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>
+  } : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?x?x?xi32, #stablehlo.type_extensions<bounds = [2, 4, 5]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>) -> (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?x?x?xi32, #stablehlo.type_extensions<bounds = [2, 4, 5]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>)
+  func.return %0#0, %0#1, %0#2, %0#3 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?x?x?xi32, #stablehlo.type_extensions<bounds = [2, 4, 5]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [4, 5]>>
+}
+
+// -----
+
+// CHECK-LABEL: func @scan_bounded_dynamism_multiple_inputs_same_rank
+func.func @scan_bounded_dynamism_multiple_inputs_same_rank(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, %arg2: tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 4]>>, %arg3: tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>) -> (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 4]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>) {
+  // CHECK: chlo.scan
+  // CHECK: } : (tensor<?x?xf32, #stablehlo.bounds<2, 3>>, tensor<?x?xi32, #stablehlo.bounds<2, 4>>, tensor<?xf32, #stablehlo.bounds<3>>, tensor<?xi32, #stablehlo.bounds<4>>) -> (tensor<?x?xf32, #stablehlo.bounds<2, 3>>, tensor<?x?xi32, #stablehlo.bounds<2, 4>>, tensor<?xf32, #stablehlo.bounds<3>>, tensor<?xi32, #stablehlo.bounds<4>>)
+  %0:4 = chlo.scan (%arg0, %arg2) inits (%arg1, %arg3) dimension = 0 {
+  ^bb0(%input0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, %input1: tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>, %carry0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, %carry1: tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>):
+    %1 = stablehlo.add %input0, %carry0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+    %2 = stablehlo.add %input1, %carry1 : tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>
+    stablehlo.return %1, %2, %1, %2 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>
+  } : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 4]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>) -> (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 4]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>)
+  func.return %0#0, %0#1, %0#2, %0#3 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 4]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>
+}
+
+// -----
+
 func.func @scan_explicit_size_mismatch(%arg0: tensor<2x3xf32>, %arg1: tensor<3xf32>) -> tensor<2x3xf32> {
   // expected-error @+1 {{'chlo.scan' op invalid scan dimension size of operand 0}}
   %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 attributes { scan_dim_size = 3 : i64 } {
@@ -557,6 +601,30 @@ func.func @scan_init_shape_mismatch(%arg0: tensor<2x3xf32>, %arg1: tensor<2xf32>
     stablehlo.return %1, %1 : tensor<3xf32>, tensor<3xf32>
   } : (tensor<2x3xf32>, tensor<2xf32>) -> (tensor<2x3xf32>, tensor<2xf32>)
   func.return %0#0 : tensor<2x3xf32>
+}
+
+// -----
+
+func.func @scan_bounded_dynamism_mismatch(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) {
+  // expected-error @+1 {{'chlo.scan' op operand and body argument 0 are incompatible}}
+  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 {
+  ^bb0(%input0: tensor<4xf32>, %carry0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>):
+    stablehlo.return %carry0, %carry0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+  } : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>)
+  func.return %0, %1 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+}
+
+// -----
+
+func.func @scan_bounded_dynamism_result_rank_mismatch(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> (tensor<?xf32>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) {
+  // expected-error @+2 {{op failed to infer returned types}}
+  // expected-error @+1 {{'chlo.scan' op inferred type(s) 'tensor<?x?xf32, #stablehlo.bounds<2, 3>>', 'tensor<?xf32, #stablehlo.bounds<3>>' are incompatible with return type(s) of operation 'tensor<?xf32>', 'tensor<?xf32, #stablehlo.bounds<3>>'}}
+  %0, %1 = chlo.scan (%arg0) inits (%arg1) dimension = 0 {
+  ^bb0(%input0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, %carry0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>):
+    %2 = stablehlo.add %input0, %carry0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+    stablehlo.return %2, %2 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+  } : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> (tensor<?xf32>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>)
+  func.return %0, %1 : tensor<?xf32>, tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
 }
 
 // -----

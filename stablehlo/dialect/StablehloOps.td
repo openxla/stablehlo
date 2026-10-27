@@ -38,6 +38,7 @@ def StableHLO_Dialect : Dialect {
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
+  let useStrictPropertiesInAssemblyFormat = 0;
 }
 
 class StableHLO_Op<string mnemonic, list<Trait> traits = []> :
@@ -393,6 +394,33 @@ def StableHLO_Expm1Op: StableHLO_UnaryElementwiseOp<"exponential_minus_one",
   }];
 }
 
+def StableHLO_Exp2Op: StableHLO_UnaryElementwiseOp<"exp2",
+    [HLO_CompatibleOperandsAndResultType],
+    HLO_FpComplexOrQuantizedIntTensor> {
+  let summary = "Exp2 operation";
+  let description = [{
+    Performs element-wise base-2 exponential operation on `operand` tensor and
+    produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#exp2
+
+    Example:
+    ```mlir
+    %result = stablehlo.exp2 %operand : tensor<2x2xf64>
+    ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
+}
+
 def StableHLO_FloorOp: StableHLO_UnaryElementwiseOp<"floor",
     [HLO_CompatibleOperandsAndResultType], HLO_FpOrQuantizedIntTensor> {
   let summary = "Floor operation";
@@ -493,6 +521,33 @@ def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
     Example:
     ```mlir
     %result = stablehlo.log_plus_one %operand : tensor<5xf64>
+    ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
+}
+
+def StableHLO_Log2Op: StableHLO_UnaryElementwiseOp<"log2",
+    [HLO_CompatibleOperandsAndResultType],
+    HLO_FpComplexOrQuantizedIntTensor> {
+  let summary = "Log2 operation";
+  let description = [{
+    Performs element-wise base-2 logarithm operation on `operand` tensor and
+    produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#log2
+
+    Example:
+    ```mlir
+    %result = stablehlo.log2 %operand : tensor<2x2xf64>
     ```
   }];
   let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
@@ -2352,7 +2407,6 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
 def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
     [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
-     SameOperandsAndResultElementType /*collective_broadcast_c3*/,
      DeclareOpInterfaceMethods<InferTypeOpInterface>,
      DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>,
      DeclareOpInterfaceMethods<SymbolUserOpInterface>
@@ -2362,6 +2416,10 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
     Within each process group in the process grid, send the value of the
     `operand` tensor from the source process to the target processes and produce a
     `result` tensor.
+
+    When `has_dynamic_root` is false (default), the root is the 0-th rank in
+    each replica group. When `has_dynamic_root` is true, the last operand is a
+    rank-1 i32 tensor specifying per-operand root indices within each group.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#collective_broadcast
@@ -2378,18 +2436,62 @@ def StableHLO_CollectiveBroadcastOp: StableHLO_Op<"collective_broadcast",
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand, /*collective_broadcast_i1*/
+    Variadic<HLO_Tensor>:$operands, /*collective_broadcast_i1*/
     StableHLO_ReplicaGroups:$replica_groups, /*collective_broadcast_i2*/
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle /*collective_broadcast_i3*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*collective_broadcast_i3*/
+    UnitAttr:$has_dynamic_root /*collective_broadcast_i4*/
   );
-  let results = (outs HLO_Tensor);
+  let results = (outs Variadic<HLO_Tensor>);
   let hasVerifier = 1;
-  // channel_handle is only used for the SPMD partitioner, so we add a
-  // simplified builder method for convenience.
+}
+
+def StableHLO_CollectiveReduceOp : StableHLO_Op<"collective_reduce",
+    [HLO_SpeculatableIfStaticDimInOutputIsStaticInInput,
+     InferTensorType /*collective_reduce_c6, collective_reduce_c7*/,
+     SingleBlockImplicitTerminator<"ReturnOp">,
+     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  let summary = "CollectiveReduce operation";
+  let description = [{
+    Within each process group in the process grid, applies a reduction function
+    `computation` to the values of the `operands` from each process and produces
+    a `result` tensor on the root rank of the group. The root rank is determined
+    by `has_dynamic_root`: if false, the root is the 0-th rank in the replica
+    group; if true, the last operand is an i32 tensor specifying per-operand
+    root indices.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#collective_reduce
+
+    Example:
+    ```mlir
+    %result = "stablehlo.collective_reduce"(%operand) ({
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+        "stablehlo.return"(%0) : (tensor<i64>) -> ()
+    }) {
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<4xi64>) -> tensor<4xi64>
+    ```
+  }];
+
+  let arguments = (ins
+    Variadic<HLO_Tensor>:$operands, /*collective_reduce_i1*/
+    StableHLO_ReplicaGroups:$replica_groups, /*collective_reduce_i2*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*collective_reduce_i3*/
+    UnitAttr:$use_global_device_ids, /*collective_reduce_i4*/
+    UnitAttr:$has_dynamic_root /*collective_reduce_i5*/
+  );
+  let regions = (region SizedRegion<1>:$computation /*collective_reduce_i6*/);
+  let results = (outs Variadic<HLO_Tensor>);
+  let hasVerifier = 1;
   let builders = [
     OpBuilder<(ins
       "::mlir::Type":$result_type, "::mlir::Value":$operand,
-      "::mlir::Attribute":$replica_groups)>];
+      "::mlir::Attribute":$replica_groups,
+      "::mlir::stablehlo::ChannelHandleAttr":$channel_handle,
+      CArg<"bool", "false">:$use_global_device_ids,
+      CArg<"bool", "false">:$has_dynamic_root)>,
+  ];
 }
 
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
@@ -2478,8 +2580,9 @@ def StableHLO_CompositeOp : StableHLO_Op<"composite", [DeclareOpInterfaceMethods
       "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,
       "::mlir::ArrayRef<::mlir::NamedAttribute>":$attributes
     ), [{
-      build($_builder, $_state, resultTypes, inputs, attributes,
-            /*regionsCount=*/0);
+      $_state.addOperands(inputs);
+      buildPropertiesAndDiscardableAttributes($_state, attributes);
+      $_state.addTypes(resultTypes);
     }]>,
     OpBuilder<(ins
       "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,
@@ -2827,6 +2930,50 @@ def StableHLO_FftOp: StableHLO_Op<"fft",
   let extraClassDeclaration = commonClassDeclaration # [{
     /// Interface method for ConditionallySpeculatable.
     mlir::Speculation::Speculatability getSpeculatability();
+  }];
+}
+
+def StableHLO_FmaOp: StableHLO_Op<"fma",
+    [HLO_CompatibleOperandsAndResultType /*fma_c1*/,
+     InferShapedTypeOpInterface,
+     SameOperandsAndResultShape /*fma_c1*/,
+     Elementwise,
+     HLO_SpeculatableIfAllInputsStatic,
+     NoMemoryEffect]> {
+  let summary = "Fma operation";
+  let description = [{
+    Performs element-wise single-rounded IEEE-754 fused multiply-add of `a`,
+    `b`, and `c` tensors and produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#fma
+
+    Example:
+    ```mlir
+    %result = stablehlo.fma %a, %b, %c : tensor<3xf32>
+    ```
+  }];
+  let arguments = (ins
+    HLO_FpTensor:$a, /*fma_i1*/
+    HLO_FpTensor:$b, /*fma_i2*/
+    HLO_FpTensor:$c /*fma_i3*/
+  );
+
+  let results = (outs HLO_FpTensor:$result);
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    LogicalResult reifyReturnTypeShapes(
+        OpBuilder& builder, ValueRange operands,
+        SmallVectorImpl<Value>& reifiedReturnShapes) {
+      return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
+                                                 operands.front(),
+                                                 &reifiedReturnShapes);
+    }
+  }];
+
+  let assemblyFormat = [{
+    $a `,` $b `,` $c attr-dict
+      `:` custom<SameOperandsAndResultType>(type($a), type($b), type($c), type($result))
   }];
 }
 

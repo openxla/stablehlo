@@ -90,3 +90,45 @@ module @flattened_ids {
     func.return
   }
 }
+
+// -----
+
+module @mesh_axes_subaxis {
+  func.func @reduce_scatter(%operand : tensor<2xi64>) -> tensor<1xi64> {
+    %result = "stablehlo.reduce_scatter"(%operand) ({
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
+    }) {
+      scatter_dimension = 0 : i64,
+      replica_groups = #stablehlo.replica_group_mesh_axes<mesh = #stablehlo.mesh<axes = [#stablehlo.mesh_axis<name = "x", size = 2>, #stablehlo.mesh_axis<name = "y", size = 4>]>, axes = [#stablehlo.axis_ref<name = "y", sub_axis_info = (1)2>]>
+    } : (tensor<2xi64>) -> tensor<1xi64>
+    return %result : tensor<1xi64>
+  }
+  func.func @main() {
+    %p0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
+    %p1 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
+    %p2 = stablehlo.constant dense<[10, 20]> : tensor<2xi64>
+    %p3 = stablehlo.constant dense<[30, 40]> : tensor<2xi64>
+    %p4 = stablehlo.constant dense<[5, 6]> : tensor<2xi64>
+    %p5 = stablehlo.constant dense<[7, 8]> : tensor<2xi64>
+    %p6 = stablehlo.constant dense<[50, 60]> : tensor<2xi64>
+    %p7 = stablehlo.constant dense<[70, 80]> : tensor<2xi64>
+    %results:8 = "interpreter.run_parallel"(%p0, %p1, %p2, %p3, %p4, %p5, %p6, %p7) {
+      programs=[[@reduce_scatter], [@reduce_scatter], [@reduce_scatter], [@reduce_scatter],
+                [@reduce_scatter], [@reduce_scatter], [@reduce_scatter], [@reduce_scatter]]
+    } : (tensor<2xi64>, tensor<2xi64>, tensor<2xi64>, tensor<2xi64>,
+         tensor<2xi64>, tensor<2xi64>, tensor<2xi64>, tensor<2xi64>) ->
+        (tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>,
+         tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>)
+    check.expect_eq_const %results#0, dense<[11]> : tensor<1xi64>
+    check.expect_eq_const %results#1, dense<[33]> : tensor<1xi64>
+    check.expect_eq_const %results#2, dense<[22]> : tensor<1xi64>
+    check.expect_eq_const %results#3, dense<[44]> : tensor<1xi64>
+    check.expect_eq_const %results#4, dense<[55]> : tensor<1xi64>
+    check.expect_eq_const %results#5, dense<[77]> : tensor<1xi64>
+    check.expect_eq_const %results#6, dense<[66]> : tensor<1xi64>
+    check.expect_eq_const %results#7, dense<[88]> : tensor<1xi64>
+    func.return
+  }
+}

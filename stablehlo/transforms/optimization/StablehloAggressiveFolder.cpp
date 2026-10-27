@@ -743,6 +743,36 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
     ComparisonType kind;
 
     APInt operator()(APFloat lhs, APFloat rhs) {
+      if (kind == ComparisonType::WEAKORDER) {
+        bool eq = (lhs == rhs) || (lhs.isNaN() && rhs.isNaN());
+        auto lt = [](const APFloat& a, const APFloat& b) {
+          return (!a.isNaN() && b.isNaN()) ||
+                 (!a.isNaN() && !b.isNaN() && (a < b));
+        };
+        bool result = false;
+        switch (direction) {
+          case ComparisonDirection::EQ:
+            result = eq;
+            break;
+          case ComparisonDirection::NE:
+            result = !eq;
+            break;
+          case ComparisonDirection::GE:
+            result = lt(rhs, lhs) || eq;
+            break;
+          case ComparisonDirection::GT:
+            result = lt(rhs, lhs);
+            break;
+          case ComparisonDirection::LE:
+            result = lt(lhs, rhs) || eq;
+            break;
+          case ComparisonDirection::LT:
+            result = lt(lhs, rhs);
+            break;
+        }
+        return APInt(/*bitwidth=*/1, result);
+      }
+
       if (kind != ComparisonType::FLOAT && kind != ComparisonType::TOTALORDER)
         llvm::report_fatal_error("invalid float comparison");
 
@@ -1000,6 +1030,20 @@ struct FoldConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
   }
 };
 
+// Returns true if the divisor (second operand) of `op` is a constant integer
+// tensor with any zero element. Integer udiv/sdiv/urem/srem by zero would crash
+// the constant folder (APInt asserts in debug, SIGFPE in release), so such ops
+// must not be folded.
+static bool integerDivisorHasZeroElement(Operation* op) {
+  TypedAttr rhsAttr;
+  matchPattern(op->getOperand(1), m_Constant(&rhsAttr));
+  auto denseRhs = dyn_cast_or_null<DenseIntElementsAttr>(rhsAttr);
+  if (!denseRhs) return false;
+  for (const APInt& value : denseRhs.getValues<APInt>())
+    if (value.isZero()) return true;
+  return false;
+}
+
 struct FoldDivOpPattern : public ShapeOpRewritePattern<DivOp> {
   using ShapeOpRewritePattern::ShapeOpRewritePattern;
 
@@ -1008,6 +1052,10 @@ struct FoldDivOpPattern : public ShapeOpRewritePattern<DivOp> {
     auto resultType = op.getType();
     if (failed(validateShapeFoldDtype(rewriter, op, resultType)))
       return failure();
+
+    if (isa<IntegerType>(resultType.getElementType()) &&
+        integerDivisorHasZeroElement(op))
+      return rewriter.notifyMatchFailure(op, "integer division by zero");
 
     bool isUnsignedInt = resultType.getElementType().isUnsignedInteger();
     auto res = foldBinaryOpIntOrFloat(rewriter, op, FoldDivide(isUnsignedInt));
@@ -1160,6 +1208,51 @@ struct FoldClampOpPattern : public ShapeOpRewritePattern<ClampOp> {
   }
 };
 
+struct FoldFmaOpPattern final : ShapeOpRewritePattern<mlir::stablehlo::FmaOp> {
+  using ShapeOpRewritePattern::ShapeOpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::FmaOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)) ||
+        failed(validateShapeFoldDtype(rewriter, op, resultType)))
+      return failure();
+
+    DenseFPElementsAttr aAttr, bAttr, cAttr;
+    matchPattern(op.getA(), m_Constant(&aAttr));
+    matchPattern(op.getB(), m_Constant(&bAttr));
+    matchPattern(op.getC(), m_Constant(&cAttr));
+    if (!aAttr || !bAttr || !cAttr)
+      return rewriter.notifyMatchFailure(op, "operands not constant");
+
+    if (aAttr.isSplat() && bAttr.isSplat() && cAttr.isSplat()) {
+      APFloat val = aAttr.getSplatValue<APFloat>();
+      val.fusedMultiplyAdd(bAttr.getSplatValue<APFloat>(),
+                           cAttr.getSplatValue<APFloat>(),
+                           APFloat::rmNearestTiesToEven);
+      rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
+          op, DenseElementsAttr::get(resultType, val));
+      return success();
+    }
+
+    if (failed(validateElementCountForFold(rewriter, op, resultType)))
+      return failure();
+
+    SmallVector<APFloat> result;
+    result.reserve(resultType.getNumElements());
+    for (auto [aEl, bEl, cEl] :
+         llvm::zip(aAttr.getValues<APFloat>(), bAttr.getValues<APFloat>(),
+                   cAttr.getValues<APFloat>())) {
+      APFloat val = aEl;
+      val.fusedMultiplyAdd(bEl, cEl, APFloat::rmNearestTiesToEven);
+      result.push_back(val);
+    }
+    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
+        op, DenseElementsAttr::get(resultType, result));
+    return success();
+  }
+};
+
 struct FoldMulOpPattern final : ShapeOpRewritePattern<mlir::stablehlo::MulOp> {
   using ShapeOpRewritePattern::ShapeOpRewritePattern;
 
@@ -1224,6 +1317,10 @@ struct FoldRemOpPattern : public ShapeOpRewritePattern<RemOp> {
     auto resultType = op.getType();
     if (failed(validateShapeFoldDtype(rewriter, op, resultType)))
       return failure();
+
+    if (isa<IntegerType>(resultType.getElementType()) &&
+        integerDivisorHasZeroElement(op))
+      return rewriter.notifyMatchFailure(op, "integer remainder by zero");
 
     bool isUnsignedInt = resultType.getElementType().isUnsignedInteger();
     auto res = foldBinaryOpIntOrFloat(rewriter, op, FoldRem(isUnsignedInt));
@@ -1639,12 +1736,31 @@ struct FoldExpOpPattern : public FoldUnaryOpPattern<FoldExpOpPattern, ExpOp> {
   }
 };
 
+struct FoldExp2OpPattern
+    : public FoldUnaryOpPattern<FoldExp2OpPattern, Exp2Op> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return std::exp2(operand);
+  }
+};
+
 struct FoldLogOpPattern : public FoldUnaryOpPattern<FoldLogOpPattern, LogOp> {
   using FoldUnaryOpPattern::FoldUnaryOpPattern;
 
   static std::optional<double> EvaluateOp(double operand) {
     if (operand <= 0.0) return std::nullopt;
     return std::log(operand);
+  }
+};
+
+struct FoldLog2OpPattern
+    : public FoldUnaryOpPattern<FoldLog2OpPattern, Log2Op> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    if (operand <= 0.0) return std::nullopt;
+    return std::log2(operand);
   }
 };
 
@@ -2200,8 +2316,10 @@ void populateStablehloAggressiveFolderPatterns(
                 FoldCosineOpPattern,                  //
                 FoldErfOpPattern,                     //
                 FoldExpOpPattern,                     //
+                FoldExp2OpPattern,                    //
                 FoldIotaOpPattern,                    //
                 FoldLogOpPattern,                     //
+                FoldLog2OpPattern,                    //
                 FoldLogisticOpPattern,                //
                 FoldNegOpPattern,                     //
                 FoldNotOpPattern,                     //
@@ -2250,6 +2368,7 @@ void populateStablehloShapeFolderPatterns(
   patterns->add<FoldConvertOpPattern>(context, options, benefit);
   patterns->add<FoldDivOpPattern>(context, options, benefit);
   patterns->add<FoldDynamicSliceOpPattern>(context, options, benefit);
+  patterns->add<FoldFmaOpPattern>(context, options, benefit);
   patterns->add<FoldGetDimensionSizeOpPattern>(context, options, benefit);
   patterns->add<FoldMaxOpPattern>(context, options, benefit);
   patterns->add<FoldMinOpPattern>(context, options, benefit);

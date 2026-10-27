@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(c++)
+add_subdirectory(cpp)
 
 if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
   add_subdirectory(python)

@@ -1,4 +1,5 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck %s
+// RUN: stablehlo-opt %s --hlo-test-create-sort -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck --check-prefix=CHECK-CREATE-SORT %s
 // RUN: %if asserts %{ stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect -emit-bytecode -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
 
 // CHECK-WARN-NOT: Not Implemented
@@ -853,6 +854,21 @@ func.func @all_to_all_c8(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
 
 // -----
 
+func.func @all_to_all_empty_replica_groups(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // An empty replica_groups must be rejected, not divided by zero (all_to_all_c8).
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{group size of replica_groups must be 4}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<0> : tensor<0x2xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
 func.func @all_to_all_c9(%data: tensor<4x16xf32>) -> tensor<16x4xf64> {
   // expected-error@+1 {{op requires the same element type for operand and result at index 0}}
   %0 = "stablehlo.all_to_all"(%data) {
@@ -1528,6 +1544,120 @@ func.func @compare_compatible_types(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) 
 func.func @compare_compatible_operand_types(%arg0: tensor<3xi32>, %arg1: tensor<?xi32>) -> tensor<?xi1> {
   %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction EQ>} : (tensor<3xi32>, tensor<?xi32>) -> tensor<?xi1>
   func.return %0 : tensor<?xi1>
+}
+
+// -----
+
+// CHECK-LABEL: func @compare_weakorder_f32
+func.func @compare_weakorder_f32(%arg0: tensor<3xf32>, %arg1: tensor<3xf32>) -> tensor<3xi1> {
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction LT>,
+    compare_type = #stablehlo<comparison_type WEAKORDER>
+  } : (tensor<3xf32>, tensor<3xf32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
+func.func @compare_weakorder_invalid_i32(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{WEAKORDER comparison type is only supported for floating-point element types, got 'i32'}}
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction LT>,
+    compare_type = #stablehlo<comparison_type WEAKORDER>
+  } : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_broadcast_c3
+func.func @collective_broadcast_c3(%operand: tensor<16x8xf32>) -> tensor<16x8xf32> {
+  %0 = "stablehlo.collective_broadcast"(%operand) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : (tensor<16x8xf32>) -> tensor<16x8xf32>
+  func.return %0 : tensor<16x8xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_broadcast_c4
+func.func @collective_broadcast_c4(%operand: tensor<4xf32>, %root: tensor<1xi32>) -> tensor<4xf32> {
+  %0 = "stablehlo.collective_broadcast"(%operand, %root) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<4xf32>, tensor<1xi32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_broadcast_c4_variadic
+func.func @collective_broadcast_c4_variadic(%operand0: tensor<4xf32>, %operand1: tensor<4xf32>, %root: tensor<2xi32>) -> (tensor<4xf32>, tensor<4xf32>) {
+  %0:2 = "stablehlo.collective_broadcast"(%operand0, %operand1, %root) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<4xf32>, tensor<4xf32>, tensor<2xi32>) -> (tensor<4xf32>, tensor<4xf32>)
+  func.return %0#0, %0#1 : tensor<4xf32>, tensor<4xf32>
+}
+
+// -----
+
+// has_dynamic_root=false requires at least one data operand.
+func.func @collective_broadcast_c3_no_operands() -> () {
+  // expected-error@+1 {{collective_broadcast requires at least one data operand}}
+  "stablehlo.collective_broadcast"() {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : () -> ()
+  func.return
+}
+
+// -----
+
+// has_dynamic_root=true requires at least two operands.
+func.func @collective_broadcast_c4_no_operands() -> () {
+  // expected-error@+1 {{collective_broadcast with has_dynamic_root=true requires at least two operands (data + root)}}
+  "stablehlo.collective_broadcast"() {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : () -> ()
+  func.return
+}
+
+// -----
+
+// has_dynamic_root=true with only one operand (root only, no data) is invalid.
+func.func @collective_broadcast_c4_only_root(%root: tensor<1xi32>) -> () {
+  // expected-error@+1 {{collective_broadcast with has_dynamic_root=true requires at least two operands (data + root)}}
+  "stablehlo.collective_broadcast"(%root) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<1xi32>) -> ()
+  func.return
+}
+
+// -----
+
+// has_dynamic_root=true: last operand must be rank-1 i32.
+func.func @collective_broadcast_c4_wrong_type(%operand: tensor<4xf32>, %root: tensor<1xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{last operand of collective_broadcast with has_dynamic_root=true must be a rank-1 i32 tensor}}
+  %0 = "stablehlo.collective_broadcast"(%operand, %root) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<4xf32>, tensor<1xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// has_dynamic_root=true: root tensor size must match number of data operands.
+func.func @collective_broadcast_c4_size_mismatch(%operand0: tensor<4xf32>, %operand1: tensor<4xf32>, %root: tensor<1xi32>) -> (tensor<4xf32>, tensor<4xf32>) {
+  // expected-error@+1 {{last operand of collective_broadcast with has_dynamic_root=true must have the same number of elements as data operands (2), but got 1}}
+  %0:2 = "stablehlo.collective_broadcast"(%operand0, %operand1, %root) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<4xf32>, tensor<4xf32>, tensor<1xi32>) -> (tensor<4xf32>, tensor<4xf32>)
+  func.return %0#0, %0#1 : tensor<4xf32>, tensor<4xf32>
 }
 
 // -----
@@ -2985,6 +3115,30 @@ func.func @floor_invalid_i32_type(%arg0: tensor<4xi32>) -> tensor<4xi32> {
 
 // -----
 
+// CHECK-LABEL: func @fma
+func.func @fma(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>, %arg2: tensor<4xf32>) -> tensor<4xf32> {
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<4xf32>, tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+func.func @fma_invalid_i32_type(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>, %arg2: tensor<4xi32>) -> tensor<4xi32> {
+  // expected-error-re@+1 {{must be ranked tensor of {{.*}}, but got 'tensor<4xi32>'}}
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<4xi32>, tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
+  func.return %0 : tensor<4xi32>
+}
+
+// -----
+
+func.func @fma_invalid_mismatched_types(%arg0: tensor<4xf32>, %arg1: tensor<4xf64>, %arg2: tensor<4xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{requires compatible types for all operands and results}}
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<4xf32>, tensor<4xf64>, tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
 // Verifiers HLO constant op custom printing and parsing.
 // CHECK-LABEL: func @constants
 func.func @constants() -> () {
@@ -3031,6 +3185,24 @@ func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
     "stablehlo.return"(%7) : (tensor<i1>) -> ()
   }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
   func.return
+}
+
+// -----
+
+// CHECK-CREATE-SORT-LABEL: func.func @create_sort_integer_key_float_payload
+// CHECK-CREATE-SORT: stablehlo.compare LT, %{{[^,]+}}, %{{[^, ]+}} : (tensor<i32>, tensor<i32>) -> tensor<i1>
+func.func @create_sort_integer_key_float_payload(%key: tensor<2xi32>, %payload: tensor<2xf32>) -> (tensor<2xi32>, tensor<2xf32>) {
+  %0:2 = "hlo_test_create_sort.build"(%key, %payload) : (tensor<2xi32>, tensor<2xf32>) -> (tensor<2xi32>, tensor<2xf32>)
+  func.return %0#0, %0#1 : tensor<2xi32>, tensor<2xf32>
+}
+
+// -----
+
+// CHECK-CREATE-SORT-LABEL: func.func @create_sort_float_key_integer_payload
+// CHECK-CREATE-SORT: stablehlo.compare LT, %{{[^,]+}}, %{{[^, ]+}}, TOTALORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+func.func @create_sort_float_key_integer_payload(%key: tensor<2xf32>, %payload: tensor<2xi32>) -> (tensor<2xf32>, tensor<2xi32>) {
+  %0:2 = "hlo_test_create_sort.build"(%key, %payload) : (tensor<2xf32>, tensor<2xi32>) -> (tensor<2xf32>, tensor<2xi32>)
+  func.return %0#0, %0#1 : tensor<2xf32>, tensor<2xi32>
 }
 
 // -----
@@ -6777,6 +6949,26 @@ func.func @custom_call_unpin_with_output_operand_alias(%arg0: memref<2xf32>) -> 
   func.return %0 : tensor<2xf32>
 }
 
+// -----
+
+func.func @custom_call_fan_out_single_output(%arg0: memref<2xf32>) -> memref<2xf32> {
+  // expected-error@+1 {{FanOut custom_call should have at least two outputs, but got 1}}
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "FanOut"
+  } : (memref<2xf32>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
+// -----
+
+func.func @custom_call_fan_in_incompatible_stream_shape(%arg0: memref<2xf32>, %arg1: memref<4xf32>) -> memref<2xf32> {
+  // expected-error@+1 {{FanIn custom_call should have compatible input and output types, but got input 'memref<4xf32>' and output 'memref<2xf32>'}}
+  %0 = "stablehlo.custom_call"(%arg0, %arg1) {
+    call_target_name = "FanIn"
+  } : (memref<2xf32>, memref<4xf32>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
 func.func @custom_call_buffer_operand_in_multiple_output_operand_aliases(%arg0: tensor<2xf32>, %arg1: memref<2xf32>) -> (memref<2xf32>, memref<2xf32>) {
   // expected-error@+1 {{buffer operand 1[] is used in output_operand_alias more than once}}
   %0:2 = "stablehlo.custom_call"(%arg0, %arg1) {
@@ -6836,4 +7028,264 @@ func.func @all_gather_with_mesh_axes_replica_group(%operand: tensor<16x8xf32>) -
     channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
   } : (tensor<16x8xf32>) -> tensor<16x16xf32>
   func.return %result : tensor<16x16xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_reduce
+func.func @collective_reduce(%operand: tensor<4xf32>) -> tensor<4xf32> {
+  %0 = "stablehlo.collective_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : (tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_reduce_with_channel_handle
+func.func @collective_reduce_with_channel_handle(%operand: tensor<4xf32>) -> tensor<4xf32> {
+  %0 = "stablehlo.collective_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_reduce_use_global_device_ids
+func.func @collective_reduce_use_global_device_ids(%operand: tensor<4xf32>) -> tensor<4xf32> {
+  %0 = "stablehlo.collective_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
+    use_global_device_ids
+  } : (tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_reduce_variadic
+func.func @collective_reduce_variadic(%operand0: tensor<4xf32>, %operand1: tensor<4xf32>) -> (tensor<4xf32>, tensor<4xf32>) {
+  %0:2 = "stablehlo.collective_reduce"(%operand0, %operand1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : (tensor<4xf32>, tensor<4xf32>) -> (tensor<4xf32>, tensor<4xf32>)
+  func.return %0#0, %0#1 : tensor<4xf32>, tensor<4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_reduce_with_promotable_types
+func.func @collective_reduce_with_promotable_types(%operand: tensor<4xf32>) -> tensor<4xf64> {
+  %0 = "stablehlo.collective_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f64>, %arg1: tensor<f64>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f64>
+    "stablehlo.return"(%sum) : (tensor<f64>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : (tensor<4xf32>) -> tensor<4xf64>
+  func.return %0 : tensor<4xf64>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_reduce_has_dynamic_root
+func.func @collective_reduce_has_dynamic_root(%operand: tensor<4xf32>, %root: tensor<1xi32>) -> tensor<4xf32> {
+  %0 = "stablehlo.collective_reduce"(%operand, %root) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<4xf32>, tensor<1xi32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @collective_reduce_has_dynamic_root_variadic
+func.func @collective_reduce_has_dynamic_root_variadic(%operand0: tensor<4xf32>, %operand1: tensor<4xf32>, %root: tensor<2xi32>) -> (tensor<4xf32>, tensor<4xf32>) {
+  %0:2 = "stablehlo.collective_reduce"(%operand0, %operand1, %root) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<4xf32>, tensor<4xf32>, tensor<2xi32>) -> (tensor<4xf32>, tensor<4xf32>)
+  func.return %0#0, %0#1 : tensor<4xf32>, tensor<4xf32>
+}
+
+// -----
+
+// collective_reduce_c4: use_global_device_ids requires positive channel_id.
+func.func @collective_reduce_c4(%operand: tensor<4xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{channel_id must be positive when useGlobalDeviceIds is set but got: -1}}
+  %0 = "stablehlo.collective_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = -1, type = 0>,
+    use_global_device_ids
+  } : (tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// collective_reduce_c4: use_global_device_ids with zero channel_id is invalid.
+func.func @collective_reduce_c4_zero_channel(%operand: tensor<4xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{channel_id must be positive when useGlobalDeviceIds is set but got: 0}}
+  %0 = "stablehlo.collective_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    use_global_device_ids
+  } : (tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// has_dynamic_root=false requires at least one data operand.
+func.func @collective_reduce_no_operands() -> () {
+  // expected-error@+1 {{collective_reduce requires at least one data operand}}
+  "stablehlo.collective_reduce"() ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : () -> ()
+  func.return
+}
+
+// -----
+
+// has_dynamic_root=true requires at least two operands.
+func.func @collective_reduce_dynamic_root_no_operands() -> () {
+  // expected-error@+1 {{collective_reduce with has_dynamic_root=true requires at least two operands (data + root)}}
+  "stablehlo.collective_reduce"() ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : () -> ()
+  func.return
+}
+
+// -----
+
+// has_dynamic_root=true with only one operand (root only, no data) is invalid.
+func.func @collective_reduce_dynamic_root_only_root(%root: tensor<1xi32>) -> () {
+  // expected-error@+1 {{collective_reduce with has_dynamic_root=true requires at least two operands (data + root)}}
+  "stablehlo.collective_reduce"(%root) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<1xi32>) -> ()
+  func.return
+}
+
+// -----
+
+// has_dynamic_root=true: last operand must be rank-1 i32.
+func.func @collective_reduce_dynamic_root_wrong_type(%operand: tensor<4xf32>, %root: tensor<1xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{last operand of collective_reduce with has_dynamic_root=true must be a rank-1 i32 tensor}}
+  %0 = "stablehlo.collective_reduce"(%operand, %root) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<4xf32>, tensor<1xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// has_dynamic_root=true: root tensor size must match number of data operands.
+func.func @collective_reduce_dynamic_root_size_mismatch(%operand0: tensor<4xf32>, %operand1: tensor<4xf32>, %root: tensor<1xi32>) -> (tensor<4xf32>, tensor<4xf32>) {
+  // expected-error@+1 {{last operand of collective_reduce with has_dynamic_root=true must have the same number of elements as data operands (2), but got 1}}
+  %0:2 = "stablehlo.collective_reduce"(%operand0, %operand1, %root) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+    has_dynamic_root
+  } : (tensor<4xf32>, tensor<4xf32>, tensor<1xi32>) -> (tensor<4xf32>, tensor<4xf32>)
+  func.return %0#0, %0#1 : tensor<4xf32>, tensor<4xf32>
+}
+
+// -----
+
+// collective_reduce_c5: reducer must take exactly 2 parameters.
+func.func @collective_reduce_c5_wrong_param_count(%operand: tensor<4xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{Reduction-region must take 2 parameters, but takes 3 parameter(s)}}
+  %0 = "stablehlo.collective_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : (tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// collective_reduce_c5: reducer must return a value.
+func.func @collective_reduce_c5_no_return(%operand: tensor<4xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{The reduction-region expected to return some value(s)}}
+  %0 = "stablehlo.collective_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %sum = stablehlo.add %arg0, %arg1 : tensor<f32>
+    "stablehlo.return"() : () -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : (tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+// collective_reduce_c5: reducer parameter type must match result type.
+func.func @collective_reduce_c5_param_type_mismatch(%operand: tensor<4xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{The type of reduction-region's parameter at index 1 is different than the corresponding result type: 'tensor<i32>' vs 'tensor<f32>'}}
+  %0 = "stablehlo.collective_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<i32>):
+    %sum = stablehlo.add %arg0, %arg0 : tensor<f32>
+    "stablehlo.return"(%sum) : (tensor<f32>) -> ()
+  }) {
+    replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  } : (tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
 }

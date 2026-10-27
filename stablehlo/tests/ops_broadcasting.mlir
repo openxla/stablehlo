@@ -320,3 +320,14 @@ func.func @broadcast_error_empty() -> !stablehlo.token {
   return %0 : !stablehlo.token
 }
 
+// -----
+
+// Non-numpy explicit broadcast_dimensions: [3, 1] -> [3, 4, 5]
+// CHECK-LABEL: func @explicit_broadcast_dims
+func.func @explicit_broadcast_dims(%arg0: tensor<3x1xf64>) -> tensor<3x4x5xf64> {
+  // CHECK: %[[BCAST:.+]] = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<3x1xf64>) -> tensor<3x4x5xf64>
+  // CHECK-NEXT: return %[[BCAST]] : tensor<3x4x5xf64>
+  %0 = "hlo_test_broadcast.broadcast_if_needed"(%arg0) {broadcast_dimensions = array<i64: 0, 1>} : (tensor<3x1xf64>) -> tensor<3x4x5xf64>
+  return %0 : tensor<3x4x5xf64>
+}
+
