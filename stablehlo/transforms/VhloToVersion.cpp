@@ -417,6 +417,15 @@ TensorV1Attr getDefaultConvPadding(OpBuilder& builder, Value lhs) {
       denseElements);
 }
 
+bool isFalseBoolean(Attribute attr) {
+  auto boolAttr = dyn_cast<BooleanV1Attr>(attr);
+  return boolAttr && !boolAttr.getValue();
+}
+
+BooleanV1Attr getFalseBoolean(OpBuilder& builder) {
+  return BooleanV1Attr::get(builder.getContext(), false);
+}
+
 bool isDefaultResultAccuracy(Attribute attr) {
   auto resultAccuracy = dyn_cast<ResultAccuracyV1Attr>(attr);
   auto default_mode = ResultAccuracyModeV1Attr::get(

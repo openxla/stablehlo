@@ -47,33 +47,33 @@ std::unique_ptr<::mlir::Pass> createStablehloTargetIndependentOptimizationPass(
 
 /// Collection of canonicalization patterns for StableHLO.
 void populateStablehloCanonicalizationPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    const StablehloAggressiveSimplificationPassOptions &options,
+    MLIRContext* context, RewritePatternSet* patterns,
+    const StablehloAggressiveSimplificationPassOptions& options,
     PatternBenefit benefit = 1);
 
-void populateStablehloCanonicalizationPatterns(MLIRContext *context,
-                                               RewritePatternSet *patterns,
+void populateStablehloCanonicalizationPatterns(MLIRContext* context,
+                                               RewritePatternSet* patterns,
                                                PatternBenefit benefit = 1);
 
 /// Collection of folding patterns for StableHLO.
 void populateStablehloAggressiveFolderPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    const StablehloAggressiveFolderPassOptions &options,
+    MLIRContext* context, RewritePatternSet* patterns,
+    const StablehloAggressiveFolderPassOptions& options,
     PatternBenefit benefit = 1);
 
-void populateStablehloAggressiveFolderPatterns(MLIRContext *context,
-                                               RewritePatternSet *patterns,
+void populateStablehloAggressiveFolderPatterns(MLIRContext* context,
+                                               RewritePatternSet* patterns,
                                                PatternBenefit benefit = 1);
 
 /// A subset of folding patterns for StableHLO that is necessary for shape
 /// refinement.
 void populateStablehloShapeFolderPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    const StablehloAggressiveFolderPassOptions &options,
+    MLIRContext* context, RewritePatternSet* patterns,
+    const StablehloAggressiveFolderPassOptions& options,
     PatternBenefit benefit = 1);
 
-void populateStablehloShapeFolderPatterns(MLIRContext *context,
-                                          RewritePatternSet *patterns,
+void populateStablehloShapeFolderPatterns(MLIRContext* context,
+                                          RewritePatternSet* patterns,
                                           PatternBenefit benefit = 1);
 
 /// Some workloads in XLA import StableHLO from HLO. Since there are a few
@@ -81,28 +81,28 @@ void populateStablehloShapeFolderPatterns(MLIRContext *context,
 /// set of patterns brings the imported HLO back to a more canonical form
 /// without applying a full set of graph simplifications.
 void populateStablehloHloImportCanonicalizationPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    const StablehloAggressiveSimplificationPassOptions &options);
+    MLIRContext* context, RewritePatternSet* patterns,
+    const StablehloAggressiveSimplificationPassOptions& options);
 
 void populateStablehloHloImportCanonicalizationPatterns(
-    MLIRContext *context, RewritePatternSet *patterns);
+    MLIRContext* context, RewritePatternSet* patterns);
 
 // If the `options` argument is provided, ensure it's not a temporary.
 void populateStablehloCanonicalizationPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    StablehloAggressiveSimplificationPassOptions &&options,
+    MLIRContext* context, RewritePatternSet* patterns,
+    StablehloAggressiveSimplificationPassOptions&& options,
     PatternBenefit benefit = 1) = delete;
 void populateStablehloShapeFolderPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    StablehloAggressiveFolderPassOptions &&options,
+    MLIRContext* context, RewritePatternSet* patterns,
+    StablehloAggressiveFolderPassOptions&& options,
     PatternBenefit benefit = 1) = delete;
 void populateStablehloAggressiveFolderPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    StablehloAggressiveFolderPassOptions &&options,
+    MLIRContext* context, RewritePatternSet* patterns,
+    StablehloAggressiveFolderPassOptions&& options,
     PatternBenefit benefit = 1) = delete;
 void populateStablehloHloImportCanonicalizationPatterns(
-    MLIRContext *context, RewritePatternSet *patterns,
-    StablehloAggressiveSimplificationPassOptions &&options) = delete;
+    MLIRContext* context, RewritePatternSet* patterns,
+    StablehloAggressiveSimplificationPassOptions&& options) = delete;
 
 }  // namespace stablehlo
 }  // namespace mlir

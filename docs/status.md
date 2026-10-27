@@ -87,10 +87,12 @@ one of the following tracking labels.
 | dynamic_slice            | yes           | yes          | yes            | yes             | yes         |
 | dynamic_update_slice     | yes           | yes          | yes            | yes             | yes         |
 | einsum                   | no            | revisit      | no             | yes             | revisit     |
+| exp2                     | yes           | yes          | yes            | yes             | yes         |
 | exponential              | yes           | yes          | yes            | yes             | yes         |
 | exponential_minus_one    | yes           | yes          | yes            | yes             | yes         |
 | fft                      | yes           | revisit      | yes            | yes             | yes         |
 | floor                    | yes           | yes          | yes            | yes             | yes         |
+| fma                      | yes           | yes          | yes            | yes             | yes         |
 | gather                   | yes           | yes          | yes            | no              | yes         |
 | get_dimension_size       | yes           | yes          | yes            | yes             | yes         |
 | get_tuple_element        | yes           | yes          | yes            | yes             | yes         |
@@ -100,6 +102,7 @@ one of the following tracking labels.
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
 | is_finite                | yes           | yes          | yes            | yes             | yes         |
 | log                      | yes           | yes          | yes            | yes             | yes         |
+| log2                     | yes           | yes          | yes            | yes             | yes         |
 | log_plus_one             | yes           | yes          | yes            | yes             | yes         |
 | logistic                 | yes           | yes          | yes            | yes             | yes         |
 | map                      | yes           | revisit      | yes            | no              | yes         |

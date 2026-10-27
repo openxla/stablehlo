@@ -1,9 +1,9 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
-func.func @compare_op_test_si64_default() {
+func.func @compare_op_test_si64_signed() {
   %lhs = stablehlo.constant dense<-2> : tensor<i64>
   %rhs = stablehlo.constant dense<-2> : tensor<i64>
-  %result = stablehlo.compare EQ, %lhs, %rhs : (tensor<i64>, tensor<i64>) -> tensor<i1>
+  %result = stablehlo.compare EQ, %lhs, %rhs, SIGNED : (tensor<i64>, tensor<i64>) -> tensor<i1>
   check.expect_eq_const %result, dense<true> : tensor<i1>
   func.return
 }
@@ -13,7 +13,7 @@ func.func @compare_op_test_si64_default() {
 func.func @compare_op_test_si64() {
   %lhs = stablehlo.constant dense<[-2, -1, 0, 2, 2]> : tensor<5xi64>
   %rhs = stablehlo.constant dense<[-2, -2, 0, 1, 2]> : tensor<5xi64>
-  %result = stablehlo.compare EQ, %lhs, %rhs, SIGNED : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
+  %result = stablehlo.compare EQ, %lhs, %rhs : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
   check.expect_eq_const %result, dense<[true, false, true, false, true]> : tensor<5xi1>
   func.return
 }
@@ -23,7 +23,7 @@ func.func @compare_op_test_si64() {
 func.func @compare_op_test_si64() {
   %lhs = stablehlo.constant dense<[-2, -1, 0, 2, 2]> : tensor<5xi64>
   %rhs = stablehlo.constant dense<[-2, -2, 0, 1, 2]> : tensor<5xi64>
-  %result = stablehlo.compare NE, %lhs, %rhs, SIGNED : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
+  %result = stablehlo.compare NE, %lhs, %rhs : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
   check.expect_eq_const %result, dense<[false, true, false, true, false]> : tensor<5xi1>
   func.return
 }
@@ -33,7 +33,7 @@ func.func @compare_op_test_si64() {
 func.func @compare_op_test_si64() {
   %lhs = stablehlo.constant dense<[-2, -1, 0, 2, 2]> : tensor<5xi64>
   %rhs = stablehlo.constant dense<[-2, -2, 0, 1, 2]> : tensor<5xi64>
-  %result = stablehlo.compare GE, %lhs, %rhs, SIGNED : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
+  %result = stablehlo.compare GE, %lhs, %rhs : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
   check.expect_eq_const %result, dense<[true, true, true, true, true]> : tensor<5xi1>
   func.return
 }
@@ -43,7 +43,7 @@ func.func @compare_op_test_si64() {
 func.func @compare_op_test_si64() {
   %lhs = stablehlo.constant dense<[-2, -1, 0, 2, 2]> : tensor<5xi64>
   %rhs = stablehlo.constant dense<[-2, -2, 0, 1, 2]> : tensor<5xi64>
-  %result = stablehlo.compare GT, %lhs, %rhs, SIGNED : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
+  %result = stablehlo.compare GT, %lhs, %rhs : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
   check.expect_eq_const %result, dense<[false, true, false, true, false]> : tensor<5xi1>
   func.return
 }
@@ -53,7 +53,7 @@ func.func @compare_op_test_si64() {
 func.func @compare_op_test_si64() {
   %lhs = stablehlo.constant dense<[-2, -1, 0, 2, 2]> : tensor<5xi64>
   %rhs = stablehlo.constant dense<[-2, -2, 0, 1, 2]> : tensor<5xi64>
-  %result = stablehlo.compare LE, %lhs, %rhs, SIGNED : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
+  %result = stablehlo.compare LE, %lhs, %rhs : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
   check.expect_eq_const %result, dense<[true, false, true, false, true]> : tensor<5xi1>
   func.return
 }
@@ -63,17 +63,17 @@ func.func @compare_op_test_si64() {
 func.func @compare_op_test_si64() {
   %lhs = stablehlo.constant dense<[-2, -1, 0, 2, 2]> : tensor<5xi64>
   %rhs = stablehlo.constant dense<[-2, -2, 0, 1, 2]> : tensor<5xi64>
-  %result = stablehlo.compare LT, %lhs, %rhs, SIGNED : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
+  %result = stablehlo.compare LT, %lhs, %rhs : (tensor<5xi64>, tensor<5xi64>) -> tensor<5xi1>
   check.expect_eq_const %result, dense<[false, false, false, false, false]> : tensor<5xi1>
   func.return
 }
 
 // -----
 
-func.func @compare_op_test_ui64_default() {
+func.func @compare_op_test_ui64_unsigned() {
   %lhs = stablehlo.constant dense<0> : tensor<ui64>
   %rhs = stablehlo.constant dense<0> : tensor<ui64>
-  %result = stablehlo.compare EQ, %lhs, %rhs : (tensor<ui64>, tensor<ui64>) -> tensor<i1>
+  %result = stablehlo.compare EQ, %lhs, %rhs, UNSIGNED : (tensor<ui64>, tensor<ui64>) -> tensor<i1>
   check.expect_eq_const %result, dense<true> : tensor<i1>
   func.return
 }
@@ -83,7 +83,7 @@ func.func @compare_op_test_ui64_default() {
 func.func @compare_op_test_ui64() {
   %lhs = stablehlo.constant dense<[0, 1]> : tensor<2xui64>
   %rhs = stablehlo.constant dense<[0, 0]> : tensor<2xui64>
-  %result = stablehlo.compare EQ, %lhs, %rhs, UNSIGNED : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
+  %result = stablehlo.compare EQ, %lhs, %rhs : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
   check.expect_eq_const %result, dense<[true, false]> : tensor<2xi1>
   func.return
 }
@@ -93,7 +93,7 @@ func.func @compare_op_test_ui64() {
 func.func @compare_op_test_ui64() {
   %lhs = stablehlo.constant dense<[0, 1]> : tensor<2xui64>
   %rhs = stablehlo.constant dense<[0, 0]> : tensor<2xui64>
-  %result = stablehlo.compare NE, %lhs, %rhs, UNSIGNED : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
+  %result = stablehlo.compare NE, %lhs, %rhs : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
   check.expect_eq_const %result, dense<[false, true]> : tensor<2xi1>
   func.return
 }
@@ -103,7 +103,7 @@ func.func @compare_op_test_ui64() {
 func.func @compare_op_test_ui64() {
   %lhs = stablehlo.constant dense<[0, 1]> : tensor<2xui64>
   %rhs = stablehlo.constant dense<[0, 0]> : tensor<2xui64>
-  %result = stablehlo.compare GE, %lhs, %rhs, UNSIGNED : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
+  %result = stablehlo.compare GE, %lhs, %rhs : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
   check.expect_eq_const %result, dense<[true, true]> : tensor<2xi1>
   func.return
 }
@@ -113,7 +113,7 @@ func.func @compare_op_test_ui64() {
 func.func @compare_op_test_ui64() {
   %lhs = stablehlo.constant dense<[0, 1]> : tensor<2xui64>
   %rhs = stablehlo.constant dense<[0, 0]> : tensor<2xui64>
-  %result = stablehlo.compare GT, %lhs, %rhs, UNSIGNED : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
+  %result = stablehlo.compare GT, %lhs, %rhs : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
   check.expect_eq_const %result, dense<[false, true]> : tensor<2xi1>
   func.return
 }
@@ -123,7 +123,7 @@ func.func @compare_op_test_ui64() {
 func.func @compare_op_test_ui64() {
   %lhs = stablehlo.constant dense<[0, 1]> : tensor<2xui64>
   %rhs = stablehlo.constant dense<[0, 0]> : tensor<2xui64>
-  %result = stablehlo.compare LE, %lhs, %rhs, UNSIGNED : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
+  %result = stablehlo.compare LE, %lhs, %rhs : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
   check.expect_eq_const %result, dense<[true, false]> : tensor<2xi1>
   func.return
 }
@@ -133,7 +133,7 @@ func.func @compare_op_test_ui64() {
 func.func @compare_op_test_ui64() {
   %lhs = stablehlo.constant dense<[0, 1]> : tensor<2xui64>
   %rhs = stablehlo.constant dense<[0, 0]> : tensor<2xui64>
-  %result = stablehlo.compare LT, %lhs, %rhs, UNSIGNED : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
+  %result = stablehlo.compare LT, %lhs, %rhs : (tensor<2xui64>, tensor<2xui64>) -> tensor<2xi1>
   check.expect_eq_const %result, dense<[false, false]> : tensor<2xi1>
   func.return
 }
@@ -289,6 +289,68 @@ func.func @compare_op_test_f64() {
   %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0xFFF0000000000000, 0x7FF0000000000000, -2.0, -1.0, 0x8000000000000000, 0x0000000000000000, 0x0000000000000000, 2.0, 2.0, 0x7FF0000000000000, 0x7FF0000000000001, 0x7FFFFFFFFFFFFFFF]> : tensor<14xf64>
   %result = stablehlo.compare LT, %lhs, %rhs, FLOAT : (tensor<14xf64>, tensor<14xf64>) -> tensor<14xi1>
   check.expect_eq_const %result, dense<[false, false, false, true, false, true, false, false, false, true, false, false, false, false]> : tensor<14xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_eq() {
+  // -NaN, -NaN, -Inf, -0.0, 1.0, +Inf, +Inf, -NaN
+  // -NaN, +NaN, +Inf, +0.0, 2.0, +Inf, -NaN, +Inf
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare EQ, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[true, true, false, true, false, true, false, false]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_ne() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare NE, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[false, false, true, false, true, false, true, true]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_ge() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare GE, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[true, true, false, true, false, true, false, true]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_gt() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare GT, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[false, false, false, false, false, false, false, true]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_le() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare LE, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[true, true, true, true, true, true, true, false]> : tensor<8xi1>
+  func.return
+}
+
+// -----
+
+func.func @compare_op_test_f64_weakorder_lt() {
+  %lhs = stablehlo.constant dense<[0xFFF0000000000001, 0xFFF0000000000001, 0xFFF0000000000000, 0x8000000000000000, 1.0, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000001]> : tensor<8xf64>
+  %rhs = stablehlo.constant dense<[0xFFF0000000000001, 0x7FF0000000000001, 0x7FF0000000000000, 0x0000000000000000, 2.0, 0x7FF0000000000000, 0xFFF0000000000001, 0x7FF0000000000000]> : tensor<8xf64>
+  %result = stablehlo.compare LT, %lhs, %rhs, WEAKORDER : (tensor<8xf64>, tensor<8xf64>) -> tensor<8xi1>
+  check.expect_eq_const %result, dense<[false, false, true, false, true, false, true, false]> : tensor<8xi1>
   func.return
 }
 

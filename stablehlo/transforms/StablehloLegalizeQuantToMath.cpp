@@ -636,6 +636,7 @@ LogicalResult matchAndRewriteDotLikeHybridOp(
   // Execute conversion target op.
   SmallVector<Value, 2> operands{lhsFloat32Tensor, rhsFloat32Tensor};
   rewriter.replaceOpWithNewOp<OpType>(op, resFloat32TensorType, operands,
+                                      typename OpType::Properties{},
                                       op->getAttrs());
   return success();
 }
@@ -865,8 +866,9 @@ Value createDotLikeKernel(OpBuilder& builder, Location loc, DotLikeOp,
                           Type resultType, Value& lhs, Value& rhs,
                           ArrayRef<NamedAttribute> attrs,
                           const DotLikeDimensionNumbers& dims) {
-  return stablehlo::DotGeneralOp::create(builder, loc, resultType,
-                                         ArrayRef<Value>{lhs, rhs}, attrs);
+  return stablehlo::DotGeneralOp::create(
+      builder, loc, resultType, ArrayRef<Value>{lhs, rhs},
+      typename DotGeneralOp::Properties{}, attrs);
 }
 
 // Template specialization for Convolution op.
@@ -915,8 +917,9 @@ Value createDotLikeKernel<stablehlo::ConvolutionOp>(
       }
     }
   }
-  return stablehlo::ConvolutionOp::create(builder, loc, resultType,
-                                          ArrayRef<Value>{lhs, rhs}, newAttrs);
+  return stablehlo::ConvolutionOp::create(
+      builder, loc, resultType, ArrayRef<Value>{lhs, rhs},
+      typename ConvolutionOp::Properties{}, newAttrs);
 }
 
 template <typename DotLikeOp, typename DotLikeOpAdaptor>

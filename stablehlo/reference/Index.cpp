@@ -26,7 +26,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-raw_ostream &operator<<(raw_ostream &os, const Sizes &x) {
+raw_ostream& operator<<(raw_ostream& os, const Sizes& x) {
   os << "[";
   llvm::interleave(x, os, ", ");
   os << "]";
@@ -40,7 +40,7 @@ Sizes Sizes::permute(ArrayRef<int64_t> permutation) const {
   return result;
 }
 
-bool Sizes::inBounds(const Sizes &bounds) const {
+bool Sizes::inBounds(const Sizes& bounds) const {
   if (size() != bounds.size()) return false;
   for (auto [size, bound] : llvm::zip(*this, bounds))
     if (size < 0 || size >= bound) return false;
@@ -59,7 +59,7 @@ IndexSpaceIterator Sizes::index_end() const {
   return IndexSpaceIterator(*this);
 }
 
-Sizes operator+(const Sizes &x, const Sizes &y) {
+Sizes operator+(const Sizes& x, const Sizes& y) {
   if (x.size() != y.size()) llvm::report_fatal_error("expected same size");
   Sizes result(x.size());
   for (size_t i = 0; i < x.size(); ++i) {
@@ -68,11 +68,11 @@ Sizes operator+(const Sizes &x, const Sizes &y) {
   return result;
 }
 
-Sizes operator+(const Sizes &x, int64_t y) { return x + Sizes(x.size(), y); }
+Sizes operator+(const Sizes& x, int64_t y) { return x + Sizes(x.size(), y); }
 
-Sizes operator+(int64_t x, const Sizes &y) { return y + x; }
+Sizes operator+(int64_t x, const Sizes& y) { return y + x; }
 
-Sizes operator-(const Sizes &x, const Sizes &y) {
+Sizes operator-(const Sizes& x, const Sizes& y) {
   if (x.size() != y.size()) llvm::report_fatal_error("expected same size");
   Sizes result(x.size());
   for (size_t i = 0; i < x.size(); ++i) {
@@ -81,11 +81,11 @@ Sizes operator-(const Sizes &x, const Sizes &y) {
   return result;
 }
 
-Sizes operator-(const Sizes &x, int64_t y) { return x - Sizes(x.size(), y); }
+Sizes operator-(const Sizes& x, int64_t y) { return x - Sizes(x.size(), y); }
 
-Sizes operator-(int64_t x, const Sizes &y) { return Sizes(y.size(), x) - y; }
+Sizes operator-(int64_t x, const Sizes& y) { return Sizes(y.size(), x) - y; }
 
-Sizes operator*(const Sizes &x, const Sizes &y) {
+Sizes operator*(const Sizes& x, const Sizes& y) {
   if (x.size() != y.size()) llvm::report_fatal_error("expected same size");
   Sizes result(x.size());
   for (size_t i = 0; i < x.size(); ++i) {
@@ -94,23 +94,23 @@ Sizes operator*(const Sizes &x, const Sizes &y) {
   return result;
 }
 
-Sizes operator*(const Sizes &x, int64_t y) { return x * Sizes(x.size(), y); }
+Sizes operator*(const Sizes& x, int64_t y) { return x * Sizes(x.size(), y); }
 
-Sizes operator*(int64_t &x, const Sizes &y) { return y + x; }
+Sizes operator*(int64_t& x, const Sizes& y) { return y + x; }
 
-Sizes clamp(int64_t min, const Sizes &x, int64_t max) {
+Sizes clamp(int64_t min, const Sizes& x, int64_t max) {
   return clamp(Sizes(x.size(), min), x, Sizes(x.size(), max));
 }
 
-Sizes clamp(int64_t min, const Sizes &x, const Sizes &max) {
+Sizes clamp(int64_t min, const Sizes& x, const Sizes& max) {
   return clamp(Sizes(x.size(), min), x, max);
 }
 
-Sizes clamp(const Sizes &min, const Sizes &x, int64_t max) {
+Sizes clamp(const Sizes& min, const Sizes& x, int64_t max) {
   return clamp(min, x, Sizes(x.size(), max));
 }
 
-Sizes clamp(const Sizes &min, const Sizes &x, const Sizes &max) {
+Sizes clamp(const Sizes& min, const Sizes& x, const Sizes& max) {
   if (min.size() != x.size() || x.size() != max.size())
     llvm::report_fatal_error("expected same size");
   Sizes result(x.size());
@@ -120,15 +120,15 @@ Sizes clamp(const Sizes &min, const Sizes &x, const Sizes &max) {
   return result;
 }
 
-const Index &IndexSpaceIterator::operator*() const {
+const Index& IndexSpaceIterator::operator*() const {
   if (!index_)
     llvm::report_fatal_error("Dereferencing a past-the-end iterator.");
   return *index_;
 }
 
-const Index *IndexSpaceIterator::operator->() const { return &(*index_); }
+const Index* IndexSpaceIterator::operator->() const { return &(*index_); }
 
-IndexSpaceIterator &IndexSpaceIterator::operator++() {
+IndexSpaceIterator& IndexSpaceIterator::operator++() {
   if (!index_)
     llvm::report_fatal_error("Incrementing a past-the-end iterator.");
 

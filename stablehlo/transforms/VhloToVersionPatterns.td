@@ -43,6 +43,10 @@ def VHLO_GetDefaultResultAccuracyAttr : NativeCodeCall<"getDefaultResultAccuracy
 
 def VHLO_DefaultResultAccuracy : AttrConstraint<CPred<"isDefaultResultAccuracy($_self)">, "Default result accuracy">;
 
+def VHLO_FalseBoolean : AttrConstraint<CPred<"isFalseBoolean($_self)">, "False boolean">;
+
+def VHLO_GetFalseBoolean : NativeCodeCall<"getFalseBoolean($_builder)">;
+
 def VHLO_CopyDiscardableAttrs: NativeCodeCallVoid<"copyDiscardableAttrs($0, $1)">;
 
 def DynamicConvUpgradeV1ToV2:
@@ -147,3 +151,13 @@ foreach resultAccuracyOpV1V2Pair = [
             (resultAccuracyOpV1V2Pair[0]:$dst $operand),
             [], [(VHLO_CopyDiscardableAttrs $src, $dst)]>;
 }
+
+def CollectiveBroadcastOpUpgradeV1ToV2 :
+  Pat<(VHLO_CollectiveBroadcastOpV1:$src $operand, $replica_groups, $channel_id),
+      (VHLO_CollectiveBroadcastOpV2:$dst (VHLO_WrapInVector $operand), $replica_groups, $channel_id, (VHLO_GetFalseBoolean)),
+      [], [(VHLO_CopyDiscardableAttrs $src, (VHLO_GetFirstOperand $dst))]>;
+
+def CollectiveBroadcastOpDowngradeV2ToV1 :
+  Pat<(VHLO_CollectiveBroadcastOpV2:$src $operand, $replica_groups, $channel_id, VHLO_FalseBoolean:$has_dynamic_root),
+      (VHLO_CollectiveBroadcastOpV1:$dst (VHLO_GetFirstOperand $operand), $replica_groups, $channel_id),
+      [(VHLO_IsSingleOperand $operand)], [(VHLO_CopyDiscardableAttrs (VHLO_GetFirstOperand $src), $dst)]>;

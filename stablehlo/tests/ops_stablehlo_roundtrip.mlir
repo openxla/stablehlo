@@ -2,8 +2,8 @@
 // RUN: stablehlo-opt %s > %t.0
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt > %t.1
 // RUN: diff %t.0 %t.1
-// RUN: stablehlo-opt --help-hidden | grep -q "debug-only" && stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s || echo "Skip in release mode"
-// RUN: stablehlo-opt --help-hidden | grep -q "debug-only" && stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s || echo "Skip in release mode"
+// RUN: %if asserts %{ stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
+// RUN: %if asserts %{ stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
 
 // CHECK-WARN-NOT: Not Implemented
 
@@ -182,7 +182,7 @@ func.func @test_constants() {
   %cst_3 = arith.constant dense<[1, 2, 3, 4]> : tensor<4xi32>
   %cst_4 = arith.constant dense<[[1, 2], [3, 4]]> : tensor<2x2xi32>
   %cst_5 = arith.constant dense<[[3, 2], [1, 4]]> : tensor<2x2xi32>
-  %cst_6 = arith.constant dense<[[1, 2], [4, 8]]> : tensor<2x2xui32>
+  %cst_6 = stablehlo.constant dense<[[1, 2], [4, 8]]> : tensor<2x2xui32>
   %cst_18 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf4E2M1FN>
   %cst_19 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf6E2M3FN>
   %cst_20 = arith.constant dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf6E3M2FN>

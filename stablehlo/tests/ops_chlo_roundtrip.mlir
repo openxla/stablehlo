@@ -1,7 +1,7 @@
 // RUN: stablehlo-opt %s | FileCheck %s
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt | FileCheck %s
-// RUN: stablehlo-opt --help-hidden | grep -q "debug-only" && stablehlo-opt -emit-bytecode -debug-only=chlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s || echo "Skip in release mode"
-// RUN: stablehlo-opt --help-hidden | grep -q "debug-only" && stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=chlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s || echo "Skip in release mode"
+// RUN: %if asserts %{ stablehlo-opt -emit-bytecode -debug-only=chlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
+// RUN: %if asserts %{ stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=chlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
 
 // CHECK-WARN-NOT: Not Implemented
 
@@ -367,12 +367,14 @@ func.func @chlo_broadcast_complex(%arg0: tensor<2x3x4xf64>, %arg1: tensor<2x3x4x
 // CHECK-SAME:  %[[A1:.*]]: tensor<2x3x4xf64>
 // CHECK:       %[[T0:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
 // CHECK:       %[[T1:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {compare_type = #chlo<comparison_type TOTALORDER>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
-// CHECK:       %[[T2:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {broadcast_dimensions = array<i64: 1>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
+// CHECK:       %[[T2:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {compare_type = #chlo<comparison_type WEAKORDER>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
+// CHECK:       %[[T3:.*]] = chlo.broadcast_compare %[[A0]], %[[A1]] {broadcast_dimensions = array<i64: 1>, comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
 // CHECK:       return %[[T0]] : tensor<2x3x4xi1>
 func.func @chlo_broadcast_compare(%arg0: tensor<2x3x4xf64>, %arg1: tensor<2x3x4xf64>) -> tensor<2x3x4xi1> {
   %0 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
   %1 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, compare_type = #chlo<comparison_type TOTALORDER>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
-  %2 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, broadcast_dimensions = array<i64: 1>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
+  %2 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, compare_type = #chlo<comparison_type WEAKORDER>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
+  %3 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction LT>, broadcast_dimensions = array<i64: 1>} : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xi1>
   return %0 : tensor<2x3x4xi1>
 }
 

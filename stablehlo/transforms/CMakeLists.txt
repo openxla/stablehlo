@@ -43,6 +43,9 @@ add_mlir_library(StablehloBroadcastLowering
   PARTIAL_SOURCES_INTENDED
   StablehloBroadcastLowering.cpp
 
+  DEPENDS
+  StablehloOpsIncGen
+
   LINK_LIBS PUBLIC
   MLIRIR
   MLIRSupport
@@ -99,6 +102,7 @@ add_mlir_dialect_library(StablehloPasses
   ChloOps
   MLIRArithDialect
   MLIRAsmParser
+  MLIRCallInterfaces
   MLIRComplexDialect
   MLIRDialectUtils
   MLIRFuncDialect
@@ -108,6 +112,7 @@ add_mlir_dialect_library(StablehloPasses
   MLIRInferTypeOpInterface
   MLIRQuantDialect
   MLIRReconcileUnrealizedCasts
+  MLIRSideEffectInterfaces
   MLIRSupport
   MLIRTensorDialect
   MLIRTransformUtils

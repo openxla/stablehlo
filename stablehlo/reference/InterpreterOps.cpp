@@ -19,8 +19,10 @@ limitations under the License.
 #include <cstdint>
 #include <functional>
 #include <future>
+#include <mutex>
 #include <queue>
 #include <string>
+#include <utility>
 
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Errc.h"
@@ -171,13 +173,29 @@ LogicalResult RunParallelOp::verify() {
 
 SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs, std::queue<StringAttr>& infeed,
-    SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable) {
-  llvm::DefaultThreadPool threadPool;
-  SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
-
+    SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable,
+    InterpreterFallback* fallback) {
   uint32_t numReplicas = programs.size();
   uint32_t numPartitions = programs[0].size();
+
+  // StableHLO collectives are blocking barriers: a process inside rendezvous
+  // waits for every other process in its group to arrive, so all processes
+  // must run concurrently. Size the pool from the process count rather than
+  // the default (hardware_concurrency(), i.e. the host thread count). With a
+  // default-sized pool, a program with more processes than the host has
+  // hardware threads leaves the surplus tasks queued and never started while
+  // the started tasks block forever waiting for them - a deadlock that only
+  // surfaces as the rendezvous timeout. hardware_concurrency(N) leaves
+  // ThreadPoolStrategy::Limit false, so the pool gets N threads uncapped by the
+  // host.
+  llvm::DefaultThreadPool threadPool(
+      llvm::hardware_concurrency(numReplicas * numPartitions));
+  llvm::ThreadPoolTaskGroup taskGroup(threadPool);
+
   ProcessGrid processGrid(numReplicas, numPartitions, infeed);
+
+  SmallVector<SmallVector<InterpreterValue>> taskOutputs(numReplicas *
+                                                         numPartitions);
 
   auto inputsIt = inputs.begin();
 
@@ -185,29 +203,32 @@ SmallVector<InterpreterValue> evalRunParallelOp(
     for (uint32_t j = 0; j < numPartitions; ++j) {
       auto funcName = programs[i][j];
       auto func = llvm::cast<func::FuncOp>(symbolTable.lookup(funcName));
-      auto evalWrapper = [&](Region& region, ArrayRef<InterpreterValue> args,
-                             ProcessId processId) {
-        Process process{processId, &processGrid};
-        return eval(region, args, /*config=*/nullptr, &process,
-                    /*parent=*/nullptr);
-      };
-
       auto numArgs = func.getBody().front().getArguments().size();
       SmallVector<InterpreterValue> args(inputsIt, inputsIt + numArgs);
       inputsIt += numArgs;
 
-      futures.emplace_back(threadPool.async(
-          evalWrapper, std::ref(func.getBody()), args, ProcessId{i, j}));
+      uint32_t flatIndex = i * numPartitions + j;
+      taskGroup.async([&, flatIndex, func, args = std::move(args),
+                       processId = ProcessId{i, j}]() mutable {
+        Process process{processId, &processGrid};
+        taskOutputs[flatIndex] = eval(func.getBody(), args, fallback, &process,
+                                      /*parent=*/nullptr);
+      });
     }
   }
 
+  taskGroup.wait();
+
   SmallVector<InterpreterValue> results;
-  for (auto& future : futures) results.append(future.get());
+  for (auto& output : taskOutputs) results.append(output);
   // TODO(#1725): Figure out how to test the outfeed queue.
   return results;
 }
 
 llvm::Error evalPrintOp(PrintOp& op, InterpreterValue operand) {
+  static std::mutex printing_lock;
+  std::lock_guard<std::mutex> lock(printing_lock);
+
   std::string ssaValueStr;
   llvm::raw_string_ostream stream(ssaValueStr);
   stream << op.getOperand();

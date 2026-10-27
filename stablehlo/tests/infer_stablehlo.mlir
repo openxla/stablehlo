@@ -102,6 +102,16 @@ func.func @cholesky(%arg0: tensor<1x2x2xf32>) -> tensor<1x2x2xindex> {
 
 // -----
 
+// CHECK-LABEL: @fma
+func.func @fma(%arg0: tensor<2x?xf32>, %arg1: tensor<?x4xf32>, %arg2: tensor<2x4xf32>) -> tensor<2x4xindex> {
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<2x?xf32>, tensor<?x4xf32>, tensor<2x4xf32>) -> tensor<2x4xf32>
+  // CHECK: types0 = tensor<2x4xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x4xf32>) -> tensor<2x4xindex>
+  func.return %1 : tensor<2x4xindex>
+}
+
+// -----
+
 // CHECK-LABEL: func @all_reduce_c6_c7
 func.func @all_reduce_c6_c7(%operand: tensor<10xf32>) -> tensor<10xindex> {
 

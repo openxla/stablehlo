@@ -23,6 +23,7 @@ limitations under the License.
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/LLVM.h"
+#include "stablehlo/reference/Configuration.h"
 #include "stablehlo/reference/Value.h"
 
 #define GET_OP_CLASSES
@@ -34,19 +35,20 @@ namespace interpreter {
 
 class InterpreterDialect : public Dialect {
  public:
-  explicit InterpreterDialect(MLIRContext *context);
+  explicit InterpreterDialect(MLIRContext* context);
   static StringRef getDialectNamespace() { return "interpreter"; }
 };
 
 SmallVector<InterpreterValue> evalRunParallelOp(
-    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
-    SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable);
+    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr>& infeed,
+    SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable,
+    InterpreterFallback* fallback);
 
 // Print the SSA name followed by its type and value like:
 // >>> %0 = tensor<i1> {
 // ...    [true]
 // ... }
-llvm::Error evalPrintOp(PrintOp &op, InterpreterValue operand);
+llvm::Error evalPrintOp(PrintOp& op, InterpreterValue operand);
 
 llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
                         StringRef probeOutputDir,

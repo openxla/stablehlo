@@ -250,6 +250,27 @@ func.func @clamp_fold(%arg0: tensor<3xi32>) -> tensor<3xi32> {
 // -----
 
 ////////
+// FmaOp
+
+// CHECK-LABEL: func.func @fma_fold
+func.func @fma_fold() -> (tensor<3xf32>, tensor<2xf32>) {
+  %a = stablehlo.constant dense<[1.5, 2.0, -3.0]> : tensor<3xf32>
+  %b = stablehlo.constant dense<[2.0, 3.0, 4.0]> : tensor<3xf32>
+  %c = stablehlo.constant dense<[0.5, -1.0, 2.0]> : tensor<3xf32>
+  %sa = stablehlo.constant dense<2.0> : tensor<2xf32>
+  %sb = stablehlo.constant dense<3.0> : tensor<2xf32>
+  %sc = stablehlo.constant dense<4.0> : tensor<2xf32>
+  // CHECK-DAG: %[[CST0:.*]] = stablehlo.constant dense<[3.500000e+00, 5.000000e+00, -1.000000e+01]> : tensor<3xf32>
+  // CHECK-DAG: %[[CST1:.*]] = stablehlo.constant dense<1.000000e+01> : tensor<2xf32>
+  // CHECK: return %[[CST0]], %[[CST1]]
+  %0 = stablehlo.fma %a, %b, %c : tensor<3xf32>
+  %1 = stablehlo.fma %sa, %sb, %sc : tensor<2xf32>
+  func.return %0, %1 : tensor<3xf32>, tensor<2xf32>
+}
+
+// -----
+
+////////
 // CompareOp
 
 // CHECK-LABEL: func.func @compare_fold_int
@@ -560,6 +581,31 @@ func.func @compare_fold_float_edge_cases()
 
 // -----
 
+// CHECK-LABEL: func.func @compare_fold_weakorder
+func.func @compare_fold_weakorder()
+  -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
+  %neg_zero = stablehlo.constant dense<-0.0> : tensor<f32>
+  %pos_zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %pos_inf = stablehlo.constant dense<0x7F800000> : tensor<f32>
+  %neg_nan = stablehlo.constant dense<0xFFC00000> : tensor<f32>
+  %pos_nan = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+
+  %0 = stablehlo.compare LT, %neg_zero, %pos_zero, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %1 = stablehlo.compare EQ, %neg_zero, %pos_zero, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %2 = stablehlo.compare EQ, %neg_nan, %pos_nan, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %3 = stablehlo.compare LT, %neg_nan, %pos_nan, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %4 = stablehlo.compare LT, %pos_inf, %neg_nan, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %5 = stablehlo.compare GT, %neg_nan, %pos_inf, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  // CHECK-DAG:  [[FALSE:%.+]] = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-DAG:  [[TRUE:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK-NEXT: return [[FALSE]], [[TRUE]], [[TRUE]], [[FALSE]], [[TRUE]], [[TRUE]]
+  return %0, %1, %2, %3, %4, %5 :
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
+
+// -----
+
 ////////
 // ConcatenateOp
 
@@ -662,6 +708,39 @@ func.func @div_fold_cst_nan() -> (tensor<f32>) {
   // CHECK: stablehlo.constant dense<0x7FC00000> : tensor<f32>
   // CHECK-NOT: stablehlo.divide
   return %0 : tensor<f32>
+}
+
+// -----
+
+// Integer division by a zero constant must not be folded (it would crash the
+// folder with a divide-by-zero); the op is left in place.
+// CHECK-LABEL: @div_no_fold_int_zero
+func.func @div_no_fold_int_zero() -> (tensor<i32>, tensor<ui32>) {
+  %cst = stablehlo.constant dense<6> : tensor<i32>
+  %cst_0 = stablehlo.constant dense<0> : tensor<i32>
+  %cst_u = stablehlo.constant dense<6> : tensor<ui32>
+  %cst_u0 = stablehlo.constant dense<0> : tensor<ui32>
+  // CHECK: stablehlo.divide
+  // CHECK: stablehlo.divide
+  %0 = stablehlo.divide %cst, %cst_0 : tensor<i32>
+  %1 = stablehlo.divide %cst_u, %cst_u0 : tensor<ui32>
+  return %0, %1 : tensor<i32>, tensor<ui32>
+}
+
+// -----
+
+// Integer remainder by a zero constant must not be folded.
+// CHECK-LABEL: @rem_no_fold_int_zero
+func.func @rem_no_fold_int_zero() -> (tensor<i32>, tensor<ui32>) {
+  %cst = stablehlo.constant dense<6> : tensor<i32>
+  %cst_0 = stablehlo.constant dense<0> : tensor<i32>
+  %cst_u = stablehlo.constant dense<6> : tensor<ui32>
+  %cst_u0 = stablehlo.constant dense<0> : tensor<ui32>
+  // CHECK: stablehlo.remainder
+  // CHECK: stablehlo.remainder
+  %0 = stablehlo.remainder %cst, %cst_0 : tensor<i32>
+  %1 = stablehlo.remainder %cst_u, %cst_u0 : tensor<ui32>
+  return %0, %1 : tensor<i32>, tensor<ui32>
 }
 
 // -----
@@ -1461,7 +1540,7 @@ func.func @dce_while_false_condition() -> tensor<i64> {
   // CHECK-NOT: stablehlo.while
   %1 = stablehlo.while(%iterArg = %0) : tensor<i64>
     cond {
-    %2 = stablehlo.compare LT, %0, %0, SIGNED : (tensor<i64>, tensor<i64>) -> tensor<i1>
+    %2 = stablehlo.compare LT, %0, %0 : (tensor<i64>, tensor<i64>) -> tensor<i1>
     stablehlo.return %2 : tensor<i1>
   } do {
     %2 = stablehlo.custom_call @something(%iterArg) {has_side_effect = false} : (tensor<i64>) -> tensor<i64>

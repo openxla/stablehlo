@@ -15,15 +15,19 @@ limitations under the License.
 
 #include "stablehlo/dialect/Serialization.h"
 
+#include <memory>
+
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "mlir/Bytecode/BytecodeReader.h"
 #include "mlir/Bytecode/BytecodeWriter.h"
+#include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OwningOpRef.h"
+#include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LLVM.h"
@@ -43,11 +47,18 @@ LogicalResult serializePortableArtifact(ModuleOp module,
                                         bool allowOtherDialects) {
   MLIRContext* context = module.getContext();
 
+  // Only enable verifier in debug builds.
+  bool enableVerifier = false;
+#ifndef NDEBUG
+  enableVerifier = true;
+#endif
+
   // Convert StableHLO --> VHLO.
   // If allowOtherDialects is true, we will allow other dialects to be present
   // in the module, otherwise will fail if there are any other dialects present.
   {
     PassManager pm(context);
+    pm.enableVerifier(enableVerifier);
     StablehloLegalizeToVhloPassOptions options;
     options.allowOtherDialects = allowOtherDialects;
     pm.addPass(stablehlo::createStablehloLegalizeToVhloPass(options));
@@ -61,6 +72,7 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   // target version failures.
   {
     PassManager pm(context);
+    pm.enableVerifier(enableVerifier);
     pm.addPass(stablehlo::createVhloToVersionPass({targetVersion.str()}));
     if (!succeeded(pm.run(module))) {
       return failure();
@@ -75,13 +87,23 @@ LogicalResult serializePortableArtifact(ModuleOp module,
       vhlo::Version::fromString(targetVersion)->getBytecodeVersion();
   if (failed(bytecodeVersion)) return failure();
   writerConfig.setDesiredBytecodeVersion(bytecodeVersion.value());
+  writerConfig.setDialectVersion<BuiltinDialect>(
+      std::make_unique<BuiltinDialectVersion>(/*version=*/0));
   return writeBytecodeToFile(module, os, writerConfig);
 }
 
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
                                                   MLIRContext* context) {
   context->loadDialect<vhlo::VhloDialect>();
-  auto module = parseSourceString<ModuleOp>(sourceStr, context);
+
+  // Only enable verifier in debug builds.
+  bool enableVerifier = false;
+#ifndef NDEBUG
+  enableVerifier = true;
+#endif
+
+  ParserConfig config(context, /*verifyAfterParse=*/enableVerifier);
+  auto module = parseSourceString<ModuleOp>(sourceStr, config);
   if (!module) {
     emitError(UnknownLoc::get(context))
         << "failed to deserialize portable artifact using StableHLO_v"
@@ -91,8 +113,13 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
 
   // Convert VHLO --> VHLO(current) --> StableHLO
   PassManager pm(context);
+  pm.enableVerifier(enableVerifier);
   createStablehloDeserializePipeline(pm);
   if (!succeeded(pm.run(*module))) {
+    return nullptr;
+  }
+
+  if (failed(verify(*module))) {
     return nullptr;
   }
 

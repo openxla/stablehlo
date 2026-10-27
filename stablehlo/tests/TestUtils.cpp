@@ -60,10 +60,62 @@ struct BroadcastValuesPattern : public RewritePattern {
 
     // Replace with custom call to avoid pattern reapplication
     auto customCall = stablehlo::CustomCallOp::create(
-        rewriter, op->getLoc(), op->getResultTypes(), *broadcastedOperands);
+        rewriter, op->getLoc(), op->getResultTypes(), *broadcastedOperands,
+        typename stablehlo::CustomCallOp::Properties{},
+        /*discardableAttributes=*/{});
     customCall.setCallTargetName("numpy_broadcasted");
     customCall.setHasSideEffect(true);
     rewriter.replaceOp(op, customCall);
+    return success();
+  }
+};
+
+struct BroadcastIfNeededPattern : public RewritePattern {
+  explicit BroadcastIfNeededPattern(MLIRContext* context)
+      : RewritePattern("hlo_test_broadcast.broadcast_if_needed", 1, context) {}
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
+    if (op->getNumOperands() < 1) return failure();
+    Value input = op->getOperand(0);
+
+    SmallVector<int64_t> broadcastDimensions;
+    if (auto bcastDimsAttr =
+            op->getAttrOfType<DenseI64ArrayAttr>("broadcast_dimensions")) {
+      broadcastDimensions = llvm::to_vector(bcastDimsAttr.asArrayRef());
+    }
+
+    auto targetShape = stablehlo::getDimensions(op->getResult(0));
+    if (failed(targetShape)) return failure();
+
+    auto broadcastedVal = stablehlo::broadcastIfNeeded(
+        rewriter, input, *targetShape, broadcastDimensions);
+    if (failed(broadcastedVal)) return failure();
+
+    rewriter.replaceOp(op, *broadcastedVal);
+    return success();
+  }
+};
+
+struct CreateSortOpPattern : public RewritePattern {
+  explicit CreateSortOpPattern(MLIRContext* context)
+      : RewritePattern("hlo_test_create_sort.build", 1, context) {}
+
+  LogicalResult matchAndRewrite(Operation* op,
+                                PatternRewriter& rewriter) const override {
+    SmallVector<Value> operands = llvm::to_vector(op->getOperands());
+    SmallVector<Type> elementTypes;
+    elementTypes.reserve(operands.size());
+    for (Value operand : operands) {
+      auto shapedType = dyn_cast<ShapedType>(operand.getType());
+      if (!shapedType)
+        return rewriter.notifyMatchFailure(op, "expected shaped operands");
+      elementTypes.push_back(shapedType.getElementType());
+    }
+
+    auto sort = stablehlo::createSortOp(
+        &rewriter, op->getLoc(), operands, elementTypes, /*dimension=*/0,
+        /*isStable=*/false, stablehlo::ComparisonDirection::LT);
+    rewriter.replaceOp(op, sort.getResults());
     return success();
   }
 };
@@ -213,6 +265,7 @@ struct IsNotSpeculatablePattern : public RewritePattern {
 };
 
 #define GEN_PASS_DEF_HLOTESTBROADCASTPASS
+#define GEN_PASS_DEF_HLOTESTCREATESORTPASS
 #define GEN_PASS_DEF_HLOTESTINFERPASS
 #define GEN_PASS_DEF_HLOTESTSPECULATABILITYPASS
 #include "stablehlo/tests/TestUtils.h.inc"
@@ -222,6 +275,25 @@ struct HloTestBroadcastPass
   LogicalResult initialize(MLIRContext* context) override {
     RewritePatternSet patterns(context);
     patterns.add<BroadcastValuesPattern>(context);
+    patterns.add<BroadcastIfNeededPattern>(context);
+    patterns_ = std::move(patterns);
+    return success();
+  }
+
+  void runOnOperation() override {
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns_))))
+      return signalPassFailure();
+  }
+
+ private:
+  FrozenRewritePatternSet patterns_;
+};
+
+struct HloTestCreateSortPass
+    : public impl::HloTestCreateSortPassBase<HloTestCreateSortPass> {
+  LogicalResult initialize(MLIRContext* context) override {
+    RewritePatternSet patterns(context);
+    patterns.add<CreateSortOpPattern>(context);
     patterns_ = std::move(patterns);
     return success();
   }
