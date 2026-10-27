@@ -26,7 +26,7 @@ namespace stablehlo {
 /// error using a format string and a variadic number of arguments to the format
 /// string.
 template <typename... Ts>
-inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
+inline llvm::Error invalidArgument(char const* Fmt, const Ts&... Vals) {
   return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
 }
 

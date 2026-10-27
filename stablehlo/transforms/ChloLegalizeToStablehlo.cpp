@@ -111,6 +111,8 @@ static std::optional<mlir::stablehlo::ComparisonType> toStableHloComparisonType(
       return mlir::stablehlo::ComparisonType::SIGNED;
     case mlir::chlo::ComparisonType::UNSIGNED:
       return mlir::stablehlo::ComparisonType::UNSIGNED;
+    case mlir::chlo::ComparisonType::WEAKORDER:
+      return mlir::stablehlo::ComparisonType::WEAKORDER;
   }
   return {};
 }
@@ -1668,18 +1670,27 @@ Value materializeDigamma(OpBuilder& rewriter, Location loc, ValueRange args) {
   digamma = mlir::stablehlo::SelectOp::create(rewriter, loc, needToReflect,
                                               reflection, digamma);
 
-  // Digamma has poles at negative integers and zero; return nan for those.
-  Value isLeZero = mlir::stablehlo::CompareOp::create(
-      rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::LE);
+  // Digamma has poles at negative integers and zero; return nan for
+  // negative integers, and -inf for zero.
+  Value isZero = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::EQ);
+  Value isLtZero = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::LT);
   Value isInt = mlir::stablehlo::CompareOp::create(
       rewriter, loc, x, mlir::stablehlo::FloorOp::create(rewriter, loc, x),
       mlir::stablehlo::ComparisonDirection::EQ);
-  Value isPole = mlir::stablehlo::AndOp::create(rewriter, loc, isLeZero, isInt);
-  return mlir::stablehlo::SelectOp::create(
-      rewriter, loc, isPole,
+  Value isNegativeInteger =
+      mlir::stablehlo::AndOp::create(rewriter, loc, isLtZero, isInt);
+  Value resultWithNan = mlir::stablehlo::SelectOp::create(
+      rewriter, loc, isNegativeInteger,
       getConstantLike(rewriter, loc, std::numeric_limits<double>::quiet_NaN(),
                       x),
       digamma);
+  return mlir::stablehlo::SelectOp::create(
+      rewriter, loc, isZero,
+      getConstantLike(rewriter, loc, -std::numeric_limits<double>::infinity(),
+                      x),
+      resultWithNan);
 }
 
 namespace {
@@ -1738,9 +1749,13 @@ static Value materializeZeta(OpBuilder& rewriter, Location loc,
   acc = AddOp::create(rewriter, loc, acc, one);
   qNegPower = PowOp::create(rewriter, loc, acc, negX);
   Value oneLikeX = getConstantLike(rewriter, loc, 1.0, x);
+  // Compute acc^(1-x) directly rather than as acc^-x * acc: the latter
+  // underflows to 0 for large acc, and is inf * 0 = NaN for acc = inf.
+  Value xMinusOne = SubtractOp::create(rewriter, loc, x, oneLikeX);
+  Value accPowOneMinusX = PowOp::create(
+      rewriter, loc, acc, NegOp::create(rewriter, loc, xMinusOne));
   Value correctionEulerMaclaurin =
-      DivOp::create(rewriter, loc, MulOp::create(rewriter, loc, qNegPower, acc),
-                    SubtractOp::create(rewriter, loc, x, oneLikeX));
+      DivOp::create(rewriter, loc, accPowOneMinusX, xMinusOne);
 
   // Manual reciprocal of the square root as RsqrtOp produces different results
   Value rsqrtAcc =
@@ -2511,7 +2526,7 @@ LogicalResult handleRaggedDotMode1(mlir::chlo::RaggedDotOp op,
     }
     Value dotGeneral = mlir::stablehlo::DotGeneralOp::create(
         rewriter, op.getLoc(), resultType, ValueRange{lhsMasked, rhsReshaped},
-        attributes);
+        typename DotGeneralOp::Properties{}, attributes);
 
     if (i == 0) {
       out = dotGeneral;
@@ -2663,7 +2678,7 @@ LogicalResult handleRaggedDotMode2(mlir::chlo::RaggedDotOp op,
     }
     Value dotGeneral = mlir::stablehlo::DotGeneralOp::create(
         rewriter, op.getLoc(), RankedTensorType::get(resultShape, outDType),
-        {lhsMasked, rhs}, attributes);
+        {lhsMasked, rhs}, typename DotGeneralOp::Properties{}, attributes);
 
     results.push_back(dotGeneral);
     start = limit;
@@ -2738,7 +2753,7 @@ LogicalResult handleRaggedDotMode3(mlir::chlo::RaggedDotOp op,
   }
   rewriter.replaceOpWithNewOp<mlir::stablehlo::DotGeneralOp>(
       op, op.getResult().getType(), ValueRange{op.getLhs(), op.getRhs()},
-      attributes);
+      typename DotGeneralOp::Properties{}, attributes);
   return success();
 }
 
@@ -2752,13 +2767,25 @@ struct ConvertRaggedDotOp final : OpConversionPattern<mlir::chlo::RaggedDotOp> {
   LogicalResult matchAndRewrite(
       mlir::chlo::RaggedDotOp op, OpAdaptor,
       ConversionPatternRewriter& rewriter) const override {
-    if (op.getLhs().getType().getRank() < op.getRhs().getType().getRank()) {
-      return handleRaggedDotMode1(op, rewriter);
-    } else if (op.getLhs().getType().getRank() <
-               op.getResult().getType().getRank()) {
+    chlo::RaggedDotDimensionNumbersAttr raggedDotDimensionNumbers =
+        op.getRaggedDotDimensionNumbers();
+    ArrayRef<int64_t> lhsRaggedDimensions =
+        raggedDotDimensionNumbers.getLhsRaggedDimensions();
+    if (lhsRaggedDimensions.empty()) {
+      return rewriter.notifyMatchFailure(
+          op, "lhs_ragged_dimensions must not be empty");
+    }
+    const int64_t lhsRaggedDim = lhsRaggedDimensions[0];
+    if (llvm::is_contained(
+            raggedDotDimensionNumbers.getLhsContractingDimensions(),
+            lhsRaggedDim)) {
       return handleRaggedDotMode2(op, rewriter);
-    } else {
+    } else if (llvm::is_contained(
+                   raggedDotDimensionNumbers.getLhsBatchingDimensions(),
+                   lhsRaggedDim)) {
       return handleRaggedDotMode3(op, rewriter);
+    } else {
+      return handleRaggedDotMode1(op, rewriter);
     }
   }
 };
@@ -2909,8 +2936,18 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
       SmallVector<int64_t> sliceShape(inputType.getShape().begin(),
                                       inputType.getShape().end());
       sliceShape[dim] = 1;
-      auto sliceType =
-          RankedTensorType::get(sliceShape, inputType.getElementType());
+      Attribute sliceEncoding;
+      ArrayRef<int64_t> inputBounds =
+          hlo::encodingToBounds(inputType.getEncoding());
+      if (!inputBounds.empty()) {
+        SmallVector<int64_t> sliceBounds(inputBounds.begin(),
+                                         inputBounds.end());
+        sliceBounds[dim] = ShapedType::kDynamic;
+        sliceEncoding =
+            hlo::boundsToEncoding(inputType.getEncoding(), sliceBounds);
+      }
+      auto sliceType = RankedTensorType::get(
+          sliceShape, inputType.getElementType(), sliceEncoding);
 
       Value slice;
       if (inputType.hasStaticShape()) {
@@ -2959,9 +2996,18 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
       for (int64_t d = 0; d < rank; ++d) {
         if (d != dim) resultShape.push_back(sliceShape[d]);
       }
+      Attribute resultEncoding;
+      if (!inputBounds.empty()) {
+        SmallVector<int64_t> resultBounds(inputBounds.begin(),
+                                          inputBounds.end());
+        resultBounds.erase(std::next(resultBounds.begin(), dim));
+        resultEncoding =
+            hlo::boundsToEncoding(inputType.getEncoding(), resultBounds);
+      }
       Value reshaped = ReshapeOp::create(
           rewriter, loc,
-          RankedTensorType::get(resultShape, inputType.getElementType()),
+          RankedTensorType::get(resultShape, inputType.getElementType(),
+                                resultEncoding),
           slice);
       slicedInputs.push_back(reshaped);
     }
@@ -2983,9 +3029,20 @@ struct ConvertScanOp final : OpConversionPattern<mlir::chlo::ScanOp> {
       SmallVector<int64_t> elementShape(outputType.getShape().begin(),
                                         outputType.getShape().end());
       elementShape[dim] = 1;
+      Attribute elementEncoding;
+      ArrayRef<int64_t> outputBounds =
+          hlo::encodingToBounds(outputType.getEncoding());
+      if (!outputBounds.empty()) {
+        SmallVector<int64_t> elementBounds(outputBounds.begin(),
+                                           outputBounds.end());
+        elementBounds[dim] = ShapedType::kDynamic;
+        elementEncoding =
+            hlo::boundsToEncoding(outputType.getEncoding(), elementBounds);
+      }
       Value reshapedElement = ReshapeOp::create(
           rewriter, loc,
-          RankedTensorType::get(elementShape, outputType.getElementType()),
+          RankedTensorType::get(elementShape, outputType.getElementType(),
+                                elementEncoding),
           newElement);
 
       int64_t outRank = outputType.getRank();
@@ -3260,8 +3317,7 @@ struct ConvertTopKOp final : OpConversionPattern<mlir::chlo::TopKOp> {
     Type elementType = operandType.getElementType();
     mlir::stablehlo::SortOp sortOp =
         createSortOp(&rewriter, op.getLoc(), {op.getOperand(), iotaOp},
-                     {elementType, i32Type}, lastDimIndex,
-                     /*isStable=*/true,
+                     {elementType, i32Type}, lastDimIndex, op.getIsStable(),
                      /*direction=*/mlir::stablehlo::ComparisonDirection::GT);
 
     // Get the sorted input and index tuple element.

@@ -730,13 +730,37 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
                 std::is_same<StablehloOpTy,
                              stablehlo::CollectivePermuteOp>::value ||
                 std::is_same<StablehloOpTy,
-                             stablehlo::ReduceScatterOp>::value ||
-                std::is_same<StablehloOpTy,
-                             stablehlo::CollectiveBroadcastOp>::value) {
+                             stablehlo::ReduceScatterOp>::value) {
     if (stablehloName == "channel_handle")
       return convertChannelId(pattern, stablehloAttr, vhloAttrs);
     if (stablehloName == "use_global_device_ids")
       return convertUseGlobalDeviceIds(pattern, stablehloAttr, vhloAttrs);
+  }
+  if constexpr (std::is_same<StablehloOpTy,
+                             stablehlo::CollectiveBroadcastOp>::value) {
+    if (stablehloName == "channel_handle")
+      return convertChannelId(pattern, stablehloAttr, vhloAttrs);
+    if (stablehloName == "has_dynamic_root") {
+      if (!isa<UnitAttr>(stablehloAttr)) return specialFailure();
+      vhloAttrs.emplace_back(
+          StringAttr::get(pattern.getContext(), "has_dynamic_root"),
+          vhlo::BooleanV1Attr::get(pattern.getContext(), true));
+      return specialSuccess();
+    }
+  }
+  if constexpr (std::is_same<StablehloOpTy,
+                             stablehlo::CollectiveReduceOp>::value) {
+    if (stablehloName == "channel_handle")
+      return convertChannelId(pattern, stablehloAttr, vhloAttrs);
+    if (stablehloName == "use_global_device_ids")
+      return convertUseGlobalDeviceIds(pattern, stablehloAttr, vhloAttrs);
+    if (stablehloName == "has_dynamic_root") {
+      if (!isa<UnitAttr>(stablehloAttr)) return specialFailure();
+      vhloAttrs.emplace_back(
+          StringAttr::get(pattern.getContext(), "has_dynamic_root"),
+          vhlo::BooleanV1Attr::get(pattern.getContext(), true));
+      return specialSuccess();
+    }
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ConvolutionOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::DynamicConvOp>::value) {
@@ -818,11 +842,25 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::AllToAllOp>::value ||
                 std::is_same<StablehloOpTy,
-                             stablehlo::CollectivePermuteOp>::value ||
-                std::is_same<StablehloOpTy,
+                             stablehlo::CollectivePermuteOp>::value) {
+    if (!stablehloOp.getChannelHandleAttr())
+      addDefaultAttr("channel_id", builder.getI64IntegerAttr(0));
+  }
+  if constexpr (std::is_same<StablehloOpTy,
                              stablehlo::CollectiveBroadcastOp>::value) {
     if (!stablehloOp.getChannelHandleAttr())
       addDefaultAttr("channel_id", builder.getI64IntegerAttr(0));
+    if (!stablehloOp.getHasDynamicRootAttr())
+      addDefaultAttr("has_dynamic_root", builder.getBoolAttr(false));
+  }
+  if constexpr (std::is_same<StablehloOpTy,
+                             stablehlo::CollectiveReduceOp>::value) {
+    if (!stablehloOp.getChannelHandleAttr())
+      addDefaultAttr("channel_id", builder.getI64IntegerAttr(0));
+    if (!stablehloOp.getUseGlobalDeviceIdsAttr())
+      addDefaultAttr("use_global_device_ids", builder.getBoolAttr(false));
+    if (!stablehloOp.getHasDynamicRootAttr())
+      addDefaultAttr("has_dynamic_root", builder.getBoolAttr(false));
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::CholeskyOp>::value) {
     if (!stablehloOp.getLowerAttr())
@@ -931,8 +969,10 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                 std::is_same<StablehloOpTy, stablehlo::CosineOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::ExpOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::Expm1Op>::value ||
+                std::is_same<StablehloOpTy, stablehlo::Exp2Op>::value ||
                 std::is_same<StablehloOpTy, stablehlo::LogOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::Log1pOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::Log2Op>::value ||
                 std::is_same<StablehloOpTy, stablehlo::LogisticOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::RsqrtOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::SineOp>::value ||
@@ -1093,15 +1133,17 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
     // This can almost be done in a generic fashion, except for
     // stablehlo.case that uses a variadic number of regions which means an
     // additional argument for the generic builder.
-    StablehloToVhloOp<StablehloOpTy> vhloOp;
+    using VhloOpTy = StablehloToVhloOp<StablehloOpTy>;
+    VhloOpTy vhloOp;
     if constexpr (StablehloOpTy::template hasTrait<
                       OpTrait::VariadicRegions>()) {
-      vhloOp = StablehloToVhloOp<StablehloOpTy>::create(
-          rewriter, stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs,
-          stablehloOp.getNumRegions());
+      vhloOp = VhloOpTy::create(rewriter, stablehloOp.getLoc(), vhloTypes,
+                                vhloOperands, typename VhloOpTy::Properties{},
+                                vhloAttrs, stablehloOp.getNumRegions());
     } else {
-      vhloOp = StablehloToVhloOp<StablehloOpTy>::create(
-          rewriter, stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs);
+      vhloOp = VhloOpTy::create(rewriter, stablehloOp.getLoc(), vhloTypes,
+                                vhloOperands, typename VhloOpTy::Properties{},
+                                vhloAttrs);
     }
 
     for (auto [stablehloRegion, vhloRegion] :

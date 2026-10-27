@@ -39,16 +39,16 @@ namespace stablehlo {
 // ProcessId.
 //===----------------------------------------------------------------------===//
 
-bool ProcessId::operator!=(const ProcessId &other) const {
+bool ProcessId::operator!=(const ProcessId& other) const {
   return !(*this == other);
 }
 
-bool ProcessId::operator<(const ProcessId &other) const {
+bool ProcessId::operator<(const ProcessId& other) const {
   return std::pair<uint32_t, uint32_t>{replicaId, partitionId} <
          std::pair<uint32_t, uint32_t>{other.replicaId, other.partitionId};
 }
 
-bool ProcessId::operator==(const ProcessId &other) const {
+bool ProcessId::operator==(const ProcessId& other) const {
   return std::pair<uint32_t, uint32_t>{replicaId, partitionId} ==
          std::pair<uint32_t, uint32_t>{other.replicaId, other.partitionId};
 }
@@ -70,7 +70,7 @@ std::optional<ProcessGroup> ProcessGroups::findGroup(ProcessId processId) {
 //===----------------------------------------------------------------------===//
 
 RendezvousResult::RendezvousResult(
-    std::map<ProcessId, SmallVector<Tensor>> const &results)
+    std::map<ProcessId, SmallVector<Tensor>> const& results)
     : results_(results) {}
 
 void RendezvousResult::insert(ProcessId processId,
@@ -86,12 +86,12 @@ SmallVector<Tensor> RendezvousResult::lookup(ProcessId processId) const {
 
 SmallVector<SmallVector<Tensor>> RendezvousResult::getSortedTensors() const {
   return llvm::map_to_vector(results_,
-                             [](const auto &pair) { return pair.second; });
+                             [](const auto& pair) { return pair.second; });
 }
 
 bool RendezvousResult::hasMatchingOperandsCount() const {
   auto count = results_.begin()->second.size();
-  for (const auto &it : results_)
+  for (const auto& it : results_)
     if (count != it.second.size()) return false;
   return true;
 }
@@ -101,7 +101,7 @@ bool RendezvousResult::hasMatchingOperandsCount() const {
 //===----------------------------------------------------------------------===//
 
 template <typename K, typename V>
-V &detail::ThreadSafeMap<K, V>::operator[](const K &key) {
+V& detail::ThreadSafeMap<K, V>::operator[](const K& key) {
   std::lock_guard<std::mutex> lock(lock_);
   return map_[key];
 }
@@ -133,7 +133,7 @@ void detail::ThreadSafeSet<T>::insert(T value) {
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-detail::ThreadSafeQueue<T>::ThreadSafeQueue(const std::queue<T> &queue)
+detail::ThreadSafeQueue<T>::ThreadSafeQueue(const std::queue<T>& queue)
     : queue_(queue) {}
 
 template <typename T>
@@ -155,7 +155,7 @@ void detail::ThreadSafeQueue<T>::push(T input) {
 //===----------------------------------------------------------------------===//
 
 ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions,
-                         std::queue<StringAttr> &infeed)
+                         std::queue<StringAttr>& infeed)
     : numReplicas_(numReplicas),
       numPartitions_(numPartitions),
       infeed_(infeed) {}
@@ -163,7 +163,7 @@ ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions,
 ProcessGroups ProcessGrid::crossPartition(
     SmallVector<SmallVector<uint32_t>> partitionGroups) {
   ProcessGroups processGroups;
-  for (const auto &partitionGroup : partitionGroups) {
+  for (const auto& partitionGroup : partitionGroups) {
     for (uint32_t replicaId = 0; replicaId < numReplicas_; ++replicaId) {
       ProcessGroup processGroup;
       for (uint32_t partitionId : partitionGroup)
@@ -177,7 +177,7 @@ ProcessGroups ProcessGrid::crossPartition(
 ProcessGroups ProcessGrid::crossReplica(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
   ProcessGroups processGroups;
-  for (const auto &replicaGroup : replicaGroups) {
+  for (const auto& replicaGroup : replicaGroups) {
     for (uint32_t partitionId = 0; partitionId < numPartitions_;
          ++partitionId) {
       ProcessGroup processGroup;
@@ -192,7 +192,7 @@ ProcessGroups ProcessGrid::crossReplica(
 ProcessGroups ProcessGrid::crossReplicaAndPartition(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
   ProcessGroups processGroups;
-  for (const auto &replicaGroup : replicaGroups) {
+  for (const auto& replicaGroup : replicaGroups) {
     ProcessGroup processGroup;
     for (uint32_t partitionId = 0; partitionId < numPartitions_; ++partitionId)
       for (uint32_t replicaId : replicaGroup)
@@ -205,7 +205,7 @@ ProcessGroups ProcessGrid::crossReplicaAndPartition(
 ProcessGroups ProcessGrid::flattenedIds(
     SmallVector<SmallVector<uint32_t>> flattenedIdGroups) {
   ProcessGroups processGroups;
-  for (const auto &flattenedIdGroup : flattenedIdGroups) {
+  for (const auto& flattenedIdGroup : flattenedIdGroups) {
     ProcessGroup processGroup;
     for (auto flattenedId : flattenedIdGroup) {
       uint32_t replicaId = flattenedId / numPartitions_;
@@ -251,7 +251,7 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
   }
 
   std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
-  auto &state = channels_[channelKey];
+  auto& state = channels_[channelKey];
 
   std::unique_lock<std::mutex> lock(state.mutex);
   state.values[processId] = SmallVector<Tensor>(operands);

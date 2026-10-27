@@ -655,14 +655,45 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                 std::is_same<VhloOpTy, vhlo::AllReduceOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::AllToAllOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV1>::value) {
+                std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value) {
     if (vhloName == "channel_id") {
       stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
       stablehloAttr = convertChannelId(vhloAttr, typeConverter);
       if (!stablehloAttr) return specialFailure();
     }
     if (vhloName == "use_global_device_ids") {
+      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
+      if (!vhloBooleanAttr) return specialFailure();
+      if (!vhloBooleanAttr.getValue()) return specialSuccess();
+      stablehloAttr = UnitAttr::get(pattern.getContext());
+    }
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV2>::value) {
+    if (vhloName == "channel_id") {
+      stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
+      stablehloAttr = convertChannelId(vhloAttr, typeConverter);
+      if (!stablehloAttr) return specialFailure();
+    }
+    if (vhloName == "has_dynamic_root") {
+      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
+      if (!vhloBooleanAttr) return specialFailure();
+      if (!vhloBooleanAttr.getValue()) return specialSuccess();
+      stablehloAttr = UnitAttr::get(pattern.getContext());
+    }
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveReduceOpV1>::value) {
+    if (vhloName == "channel_id") {
+      stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
+      stablehloAttr = convertChannelId(vhloAttr, typeConverter);
+      if (!stablehloAttr) return specialFailure();
+    }
+    if (vhloName == "use_global_device_ids") {
+      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
+      if (!vhloBooleanAttr) return specialFailure();
+      if (!vhloBooleanAttr.getValue()) return specialSuccess();
+      stablehloAttr = UnitAttr::get(pattern.getContext());
+    }
+    if (vhloName == "has_dynamic_root") {
       auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
       if (!vhloBooleanAttr) return specialFailure();
       if (!vhloBooleanAttr.getValue()) return specialSuccess();
@@ -874,6 +905,20 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     if (isInteger(vhloOp.getChannelIdAttr(), 0))
       eraseAttrs(vhloAttrs, "channel_id");
   }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV2>::value) {
+    if (isInteger(vhloOp.getChannelIdAttr(), 0))
+      eraseAttrs(vhloAttrs, "channel_id");
+    if (isBoolean(vhloOp.getHasDynamicRootAttr(), false))
+      eraseAttrs(vhloAttrs, "has_dynamic_root");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveReduceOpV1>::value) {
+    if (isInteger(vhloOp.getChannelIdAttr(), 0))
+      eraseAttrs(vhloAttrs, "channel_id");
+    if (isBoolean(vhloOp.getUseGlobalDeviceIdsAttr(), false))
+      eraseAttrs(vhloAttrs, "use_global_device_ids");
+    if (isBoolean(vhloOp.getHasDynamicRootAttr(), false))
+      eraseAttrs(vhloAttrs, "has_dynamic_root");
+  }
   if constexpr (std::is_same<VhloOpTy, vhlo::CholeskyOpV1>::value) {
     if (isBoolean(vhloOp.getLowerAttr(), false)) eraseAttrs(vhloAttrs, "lower");
   }
@@ -1000,8 +1045,10 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
                 std::is_same<VhloOpTy, vhlo::CosineOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::ExpOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::Expm1OpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::Exp2OpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::LogOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::Log1pOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::Log2OpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::LogisticOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::RsqrtOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::SineOpV2>::value ||
@@ -1076,15 +1123,17 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
     // Convert the VHLO operation to a StableHLO equivalent. This can almost be
     // done in a generic fashion, except for ops with a variadic number of
     // regions which means an additional argument for the generic builder.
-    VhloToStablehloOp<VhloOpTy> stablehloOp;
+    using StablehloOpTy = VhloToStablehloOp<VhloOpTy>;
+    StablehloOpTy stablehloOp;
     if constexpr (VhloOpTy::template hasTrait<OpTrait::VariadicRegions>()) {
-      stablehloOp = VhloToStablehloOp<VhloOpTy>::create(
+      stablehloOp = StablehloOpTy::create(
           rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
-          stablehloAttrs, vhloOp.getNumRegions());
+          typename StablehloOpTy::Properties{}, stablehloAttrs,
+          vhloOp.getNumRegions());
     } else {
-      stablehloOp = VhloToStablehloOp<VhloOpTy>::create(
+      stablehloOp = StablehloOpTy::create(
           rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
-          stablehloAttrs);
+          typename StablehloOpTy::Properties{}, stablehloAttrs);
     }
 
     for (auto [vhloRegion, stablehloRegion] :

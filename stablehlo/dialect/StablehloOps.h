@@ -224,6 +224,9 @@ struct PrecisionConfigAttr : public ArrayAttr {
 constexpr StringRef kCreateBufferCustomCallTarget = "CreateBuffer";
 constexpr StringRef kPinCustomCallTarget = "Pin";
 constexpr StringRef kUnpinCustomCallTarget = "Unpin";
+// Target names for concurrent buffer streaming custom calls.
+constexpr StringRef kFanOutCustomCallTarget = "FanOut";
+constexpr StringRef kFanInCustomCallTarget = "FanIn";
 }  // end namespace stablehlo
 }  // end namespace mlir
 

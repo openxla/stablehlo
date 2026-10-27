@@ -249,9 +249,12 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(CrossReplicaSumOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(DivOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ExpOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Expm1Op)
+INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Exp2Op)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(FloorOp)
+INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(FmaOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(LogOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Log1pOp)
+INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Log2Op)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(LogisticOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(MaxOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(MinOp)
@@ -641,6 +644,88 @@ LogicalResult CustomCallOp::verifyKnownCustomCalls() {
                               "and output types";
     }
 
+    return success();
+  }
+
+  // Verify FanOut custom call:
+  // - Exactly 1 memref input.
+  // - At least 2 memref outputs (element 0 = anchor, elements 1..N = stream
+  //   views).
+  // - Compatible shapes and element types between input and all outputs.
+  if (getCallTargetName() == kFanOutCustomCallTarget) {
+    if (getInputs().size() != 1) {
+      return emitOpError()
+             << "FanOut custom_call should have one input, but got "
+             << getInputs().size();
+    }
+    Type inputType = getInputs()[0].getType();
+    if (!isa<MemRefType>(inputType)) {
+      return emitOpError()
+             << "FanOut custom_call should have a memref input, but got "
+             << inputType;
+    }
+    TypeRange resultTypes = getResultTypes();
+    if (getNumResults() == 1 && isa<TupleType>(getResult(0).getType())) {
+      resultTypes = cast<TupleType>(getResult(0).getType()).getTypes();
+    }
+    if (resultTypes.size() < 2) {
+      return emitOpError()
+             << "FanOut custom_call should have at least two outputs, but got "
+             << resultTypes.size();
+    }
+    for (Type outputType : resultTypes) {
+      if (!isa<MemRefType>(outputType)) {
+        return emitOpError()
+               << "FanOut custom_call should have memref outputs, but got "
+               << outputType;
+      }
+      if (failed(verifyCompatibleShape(inputType, outputType)) ||
+          getElementTypeOrSelf(inputType) != getElementTypeOrSelf(outputType)) {
+        return emitOpError()
+               << "FanOut custom_call should have compatible input and output "
+                  "types, but got input "
+               << inputType << " and output " << outputType;
+      }
+    }
+    return success();
+  }
+
+  // Verify FanIn custom call:
+  // - At least 2 memref inputs (operand 0 = anchor, operands 1..N = streams).
+  // - Exactly 1 memref output.
+  // - Compatible shapes and element types between all inputs and the output.
+  if (getCallTargetName() == kFanInCustomCallTarget) {
+    if (getInputs().size() < 2) {
+      return emitOpError()
+             << "FanIn custom_call should have at least two inputs, but got "
+             << getInputs().size();
+    }
+    if (getNumResults() != 1) {
+      return emitOpError()
+             << "FanIn custom_call should have one output, but got "
+             << getNumResults();
+    }
+    Type outputType = getResult(0).getType();
+    if (!isa<MemRefType>(outputType)) {
+      return emitOpError()
+             << "FanIn custom_call should have a memref output, but got "
+             << outputType;
+    }
+    for (Value input : getInputs()) {
+      Type inputType = input.getType();
+      if (!isa<MemRefType>(inputType)) {
+        return emitOpError()
+               << "FanIn custom_call should have memref inputs, but got "
+               << inputType;
+      }
+      if (failed(verifyCompatibleShape(inputType, outputType)) ||
+          getElementTypeOrSelf(inputType) != getElementTypeOrSelf(outputType)) {
+        return emitOpError()
+               << "FanIn custom_call should have compatible input and output "
+                  "types, but got input "
+               << inputType << " and output " << outputType;
+      }
+    }
     return success();
   }
 
@@ -1130,6 +1215,19 @@ LogicalResult Expm1Op::verify() {
 }
 
 // ===---------------------------------------------------------------------===//
+// Exp2Op
+//===----------------------------------------------------------------------===//
+
+LogicalResult Exp2Op::verify() {
+  if (auto attr = getResultAccuracyAttr()) {
+    return ResultAccuracyAttr::verify([&] { return emitError(); },
+                                      attr.getAtol(), attr.getRtol(),
+                                      attr.getUlps(), attr.getMode());
+  }
+  return success();
+}
+
+// ===---------------------------------------------------------------------===//
 // LogOp
 //===----------------------------------------------------------------------===//
 
@@ -1147,6 +1245,19 @@ LogicalResult LogOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult Log1pOp::verify() {
+  if (auto attr = getResultAccuracyAttr()) {
+    return ResultAccuracyAttr::verify([&] { return emitError(); },
+                                      attr.getAtol(), attr.getRtol(),
+                                      attr.getUlps(), attr.getMode());
+  }
+  return success();
+}
+
+// ===---------------------------------------------------------------------===//
+// Log2Op
+//===----------------------------------------------------------------------===//
+
+LogicalResult Log2Op::verify() {
   if (auto attr = getResultAccuracyAttr()) {
     return ResultAccuracyAttr::verify([&] { return emitError(); },
                                       attr.getAtol(), attr.getRtol(),
@@ -1516,13 +1627,6 @@ LogicalResult AbsOp::inferReturnTypes(
 // CollectiveBroadcastOp
 //===----------------------------------------------------------------------===//
 
-void CollectiveBroadcastOp::build(OpBuilder& odsBuilder,
-                                  OperationState& odsState, Type resultType,
-                                  Value operand, Attribute replica_groups) {
-  CollectiveBroadcastOp::build(odsBuilder, odsState, resultType, operand,
-                               replica_groups, /*channel_handle=*/nullptr);
-}
-
 LogicalResult CollectiveBroadcastOp::inferReturnTypes(
     MLIRContext* /*context*/, std::optional<Location> location,
     ValueRange operands, DictionaryAttr attributes, PropertyRef properties,
@@ -1530,6 +1634,7 @@ LogicalResult CollectiveBroadcastOp::inferReturnTypes(
   CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
                                          regions);
   return hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                         adaptor.getHasDynamicRoot(),
                                          inferredReturnTypes);
 }
 
@@ -1542,22 +1647,64 @@ LogicalResult CollectiveBroadcastOp::inferReturnTypeComponents(
   CollectiveBroadcastOp::Adaptor adaptor(operands, attributes, properties,
                                          regions);
   if (failed(hlo::inferCollectiveBroadcastOp(location, adaptor.getOperands(),
+                                             adaptor.getHasDynamicRoot(),
                                              inferredReturnTypes)))
     return failure();
-  if (inferredReturnTypes.size() != 1) return failure();
-  auto inferredReturnType = dyn_cast<ShapedType>(inferredReturnTypes[0]);
-  if (!inferredReturnType) return failure();
-  inferredReturnShapes.push_back(inferredReturnType);
+  for (auto inferredReturnType : inferredReturnTypes) {
+    auto shapedType = dyn_cast<ShapedType>(inferredReturnType);
+    if (!shapedType) return failure();
+    inferredReturnShapes.push_back(shapedType);
+  }
   return success();
 }
 
 LogicalResult CollectiveBroadcastOp::verify() {
-  return hlo::verifyCollectiveBroadcastOp(getLoc(), getReplicaGroups());
+  return hlo::verifyCollectiveBroadcastOp(
+      getLoc(), getOperands(), getReplicaGroups(), getHasDynamicRoot());
 }
 
 LogicalResult CollectiveBroadcastOp::verifySymbolUses(
     SymbolTableCollection& symbolTable) {
   return verifyReplicaGroupsSymbolUses(*this, getReplicaGroups(), symbolTable);
+}
+
+//===----------------------------------------------------------------------===//
+// CollectiveReduceOp
+//===----------------------------------------------------------------------===//
+
+void CollectiveReduceOp::build(OpBuilder& odsBuilder, OperationState& odsState,
+                               Type resultType, Value operand,
+                               Attribute replicaGroups,
+                               ChannelHandleAttr channelHandle,
+                               bool useGlobalDeviceIds, bool hasDynamicRoot) {
+  build(odsBuilder, odsState, resultType, ValueRange(operand), replicaGroups,
+        channelHandle, useGlobalDeviceIds, hasDynamicRoot);
+}
+
+LogicalResult CollectiveReduceOp::verify() {
+  int64_t channelId = 0;
+  if (auto channelHandleAttr = getChannelHandleAttr())
+    channelId = channelHandleAttr.getHandle();
+
+  return hlo::verifyCollectiveReduceOp(
+      getLoc(), getOperands(), getReplicaGroups(), channelId,
+      getUseGlobalDeviceIds(), getHasDynamicRoot(), getComputation());
+}
+
+LogicalResult CollectiveReduceOp::verifySymbolUses(
+    SymbolTableCollection& symbolTable) {
+  return verifyReplicaGroupsSymbolUses(*this, getReplicaGroups(), symbolTable);
+}
+
+LogicalResult CollectiveReduceOp::inferReturnTypeComponents(
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, PropertyRef properties, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  CollectiveReduceOp::Adaptor adaptor(operands, attributes, properties,
+                                      regions);
+  return hlo::inferCollectiveReduceOp(
+      location, adaptor.getOperands(), adaptor.getComputation(),
+      adaptor.getHasDynamicRoot(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1844,8 +1991,8 @@ LogicalResult AsyncStartOp::inferReturnTypes(
 
   Operation* collectiveOp = &block.front();
   if (!isa<AllGatherOp, AllReduceOp, AllToAllOp, CollectiveBroadcastOp,
-           CollectivePermuteOp, ReduceScatterOp, SliceOp, DynamicSliceOp,
-           DynamicUpdateSliceOp>(collectiveOp)) {
+           CollectivePermuteOp, CollectiveReduceOp, DynamicSliceOp,
+           DynamicUpdateSliceOp, ReduceScatterOp, SliceOp>(collectiveOp)) {
     return emitOptionalError(location,
                              "'stablehlo.async_start' op region must contain a "
                              "collective or slice operation");
@@ -3247,7 +3394,10 @@ LogicalResult CompareOp::inferReturnTypeComponents(
     RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CompareOp::Adaptor adaptor(operands, attributes, properties, regions);
-  return hlo::inferCompareOp(context, location, adaptor.getLhs(),
+  std::optional<StringRef> compareType;
+  if (auto attr = adaptor.getCompareType())
+    compareType = stringifyComparisonType(*attr);
+  return hlo::inferCompareOp(context, location, adaptor.getLhs(), compareType,
                              inferredReturnShapes);
 }
 
@@ -3765,16 +3915,6 @@ enum NonSpatialDim : int64_t {
   KOFeature = -4,  // Kernel output feature dimensions.
 };
 
-struct DenseMapInfoNonSpatialDim {
-  static unsigned getHashValue(const NonSpatialDim& key) {
-    return DenseMapInfo<int64_t>::getHashValue(key);
-  }
-
-  static bool isEqual(const NonSpatialDim& lhs, const NonSpatialDim& rhs) {
-    return lhs == rhs;
-  }
-};
-
 char nonSpatialDimToString(NonSpatialDim dim) {
   switch (dim) {
     case IOBatch:
@@ -3790,12 +3930,63 @@ char nonSpatialDimToString(NonSpatialDim dim) {
 }
 }  // namespace
 
+// Prints the "raw" struct form of the convolution dimension numbers. Unlike the
+// compressed form, this can represent any dimension indices, and round-trips
+// through parseConvolutionDimensionsRaw.
+static void printConvolutionDimensionsRaw(AsmPrinter& p,
+                                          ConvDimensionNumbersAttr dimNums) {
+  p << "raw input_batch_dimension = " << dimNums.getInputBatchDimension()
+    << ", input_feature_dimension = " << dimNums.getInputFeatureDimension()
+    << ", input_spatial_dimensions = [";
+  llvm::interleaveComma(dimNums.getInputSpatialDimensions(), p);
+  p << "], kernel_input_feature_dimension = "
+    << dimNums.getKernelInputFeatureDimension()
+    << ", kernel_output_feature_dimension = "
+    << dimNums.getKernelOutputFeatureDimension()
+    << ", kernel_spatial_dimensions = [";
+  llvm::interleaveComma(dimNums.getKernelSpatialDimensions(), p);
+  p << "], output_batch_dimension = " << dimNums.getOutputBatchDimension()
+    << ", output_feature_dimension = " << dimNums.getOutputFeatureDimension()
+    << ", output_spatial_dimensions = [";
+  llvm::interleaveComma(dimNums.getOutputSpatialDimensions(), p);
+  p << "]";
+}
+
+// Returns true if every dimension index in `dimNums` is within [0, rank) for
+// its group, which is required to print the compressed form.
+static bool isConvolutionDimensionsPrintable(ConvDimensionNumbersAttr dimNums) {
+  auto inBounds = [](ArrayRef<int64_t> dims, int64_t rank) {
+    return llvm::all_of(dims, [&](int64_t d) { return d >= 0 && d < rank; });
+  };
+  int64_t inputRank = dimNums.getInputSpatialDimensions().size() + 2;
+  int64_t kernelRank = dimNums.getKernelSpatialDimensions().size() + 2;
+  int64_t outputRank = dimNums.getOutputSpatialDimensions().size() + 2;
+  return inBounds({dimNums.getInputBatchDimension(),
+                   dimNums.getInputFeatureDimension()},
+                  inputRank) &&
+         inBounds(dimNums.getInputSpatialDimensions(), inputRank) &&
+         inBounds({dimNums.getKernelInputFeatureDimension(),
+                   dimNums.getKernelOutputFeatureDimension()},
+                  kernelRank) &&
+         inBounds(dimNums.getKernelSpatialDimensions(), kernelRank) &&
+         inBounds({dimNums.getOutputBatchDimension(),
+                   dimNums.getOutputFeatureDimension()},
+                  outputRank) &&
+         inBounds(dimNums.getOutputSpatialDimensions(), outputRank);
+}
+
 // Custom printer and parser for convolution attribute.
 void printConvolutionDimensions(AsmPrinter& p,
                                 ConvDimensionNumbersAttr dimNums) {
-  // TODO(b/202040055): we should check the attribute invariant and print the
-  // "raw" form if they are violated, for now report_fatal_error is used to
-  // prevent invalid access.
+  // If the dimension numbers cannot be represented in the compressed form, fall
+  // back to the raw form rather than aborting, mirroring how the MLIR printer
+  // falls back to the generic op form for operations that fail verification.
+  // Such attributes can be built programmatically or parsed from the raw form.
+  if (!isConvolutionDimensionsPrintable(dimNums)) {
+    printConvolutionDimensionsRaw(p, dimNums);
+    return;
+  }
+
   auto printDim =
       [&p](ArrayRef<int64_t> spatialDims,
            ArrayRef<std::pair<int64_t, NonSpatialDim>> nonSpatialDims) {
@@ -3805,15 +3996,9 @@ void printConvolutionDimensions(AsmPrinter& p,
         // spatial dimension index.
         for (const std::pair<int64_t, NonSpatialDim>& nonSpatialDim :
              nonSpatialDims) {
-          if (nonSpatialDim.first < 0 ||
-              static_cast<size_t>(nonSpatialDim.first) >= dims.size())
-            llvm::report_fatal_error("Invalid non-spatial dimension.");
           dims[nonSpatialDim.first] = nonSpatialDim.second;
         }
         for (const auto& spatialDim : llvm::enumerate(spatialDims)) {
-          if (spatialDim.value() < 0 ||
-              static_cast<size_t>(spatialDim.value()) >= dims.size())
-            llvm::report_fatal_error("Invalid spatial dimension.");
           dims[spatialDim.value()] = static_cast<int64_t>(spatialDim.index());
         }
 
@@ -3910,8 +4095,7 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
   // IntegerAttrs (indexed by the NonSpatialDim enum).
   using parse_dim_result_t =
       std::pair<llvm::SmallVector<int64_t>,
-                llvm::SmallDenseMap<NonSpatialDim, int64_t, 4,
-                                    DenseMapInfoNonSpatialDim>>;
+                llvm::SmallDenseMap<NonSpatialDim, int64_t, 4>>;
 
   // Note that the allowedNonSpatialDims is a set (as opposed to unordered
   // set) because its used to print a list of allowed non spatial dims in the
@@ -4262,6 +4446,23 @@ void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
   ReturnOp::create(*builder, loc, compare);
 }
 
+// For floating-point types, returns a predicate that selects lhs when lhs is
+// NaN and either rhs is not NaN or lhs_index < rhs_index (lt_index_pred), so
+// that index selection matches MaxOp/MinOp NaN propagation and tie-breaking.
+static Value buildNaNLhsSelectionCondition(OpBuilder& builder, Location loc,
+                                           Value lhs_value, Value rhs_value,
+                                           Value lt_index_pred) {
+  auto lhs_is_nan = CompareOp::create(builder, loc, lhs_value, lhs_value,
+                                      ComparisonDirection::NE)
+                        .getResult();
+  auto rhs_not_nan = CompareOp::create(builder, loc, rhs_value, rhs_value,
+                                       ComparisonDirection::EQ)
+                         .getResult();
+  auto nan_lhs_win =
+      OrOp::create(builder, loc, rhs_not_nan, lt_index_pred).getResult();
+  return AndOp::create(builder, loc, lhs_is_nan, nan_lhs_win).getResult();
+}
+
 void buildMaxAndArgmaxBody(Type elementType, Type indices_type, Region& body,
                            OpBuilder& builder) {
   OpBuilder::InsertionGuard guard(builder);
@@ -4296,15 +4497,18 @@ void buildMaxAndArgmaxBody(Type elementType, Type indices_type, Region& body,
   // Final lhs Selection Condition: (gt_pred) OR (tie_breaker_condition)
   auto final_lhs_condition =
       OrOp::create(builder, loc, gt_pred, tie_breaker_condition).getResult();
+  if (isa<FloatType>(elementType)) {
+    auto nan_lhs_condition = buildNaNLhsSelectionCondition(
+        builder, loc, lhs_value, rhs_value, lt_index_pred);
+    final_lhs_condition =
+        OrOp::create(builder, loc, final_lhs_condition, nan_lhs_condition)
+            .getResult();
+  }
 
-  // Select Final Results:
-  // if final_lhs_condition:
-  //     return (lhs_value, lhs_index)
-  // else:
-  //     return (rhs_value, rhs_index)
+  // Use MaxOp for the value so that NaNs propagate properly and unused-index
+  // reductions simplify to kMaximum.
   auto selected_value =
-      SelectOp::create(builder, loc, final_lhs_condition, lhs_value, rhs_value)
-          .getResult();
+      MaxOp::create(builder, loc, lhs_value, rhs_value).getResult();
   auto selected_index =
       SelectOp::create(builder, loc, final_lhs_condition, lhs_index, rhs_index)
           .getResult();
@@ -4321,14 +4525,10 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
   auto sortOp = SortOp::create(*rewriter, loc, operands, dimension, isStable);
 
   // Use TOTALORDER comparison type instead of the default comparison if the
-  // element type is of type float.
+  // sort key (first element type) is a float.
   std::optional<StringRef> compareType = std::nullopt;
-  for (const auto& elementType : elementTypes) {
-    if (isa<FloatType>(elementType)) {
-      compareType.emplace("TOTALORDER");
-      break;
-    }
-  }
+  if (!elementTypes.empty() && isa<FloatType>(elementTypes[0]))
+    compareType.emplace("TOTALORDER");
   buildSortComparisonBody(elementTypes, direction, compareType,
                           &sortOp.getComparator(), rewriter);
   return sortOp;

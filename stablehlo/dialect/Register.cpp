@@ -27,7 +27,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-void registerAllDialects(mlir::DialectRegistry &registry) {
+void registerAllDialects(mlir::DialectRegistry& registry) {
   // clang-format off
   registry.insert<mlir::func::FuncDialect,
                   mlir::quant::QuantDialect,

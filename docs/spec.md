@@ -1792,8 +1792,8 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 #### Semantics
 
 Within each process group in the StableHLO process grid, send the value of the
-`operand` tensor from the source process to the target processes and produce a
-`result` tensor.
+`operands` tensors from the source process to the target processes and produce
+`results` tensors.
 
 The operation splits the StableHLO process grid into `process_groups` which is
 defined as follows:
@@ -1801,27 +1801,35 @@ defined as follows:
 * `cross_replica(replica_groups)` if `channel_id <= 0`.
 * `cross_partition(replica_groups)` if `channel_id > 0`.
 
-Afterwards, `result@process` is given by:
+Let `N = size(results)`. The source process for `process_groups[i]` computing
+`results[j]` (for `0 <= j < N`) is determined by `has_dynamic_root`:
 
-* `operand@process_groups[i, 0]` if there exists an `i` such that the process is
+* If `has_dynamic_root = false`: the source is `process_groups[i, 0]`.
+* If `has_dynamic_root = true`: the source is
+  `process_groups[i, operands[N][j]]`.
+
+Afterwards, `results[j]@process` is given by:
+
+* `operands[j]@source_process` if there exists an `i` such that the process is
   in `process_groups[i]`.
-* `broadcast_in_dim(constant(is_quantized(result) ? quantize(0,
-  element_type(result)) : 0, element_type(result)), [], type(result))`
+* `broadcast_in_dim(constant(is_quantized(results[j]) ? quantize(0,
+  element_type(results[j])) : 0, element_type(results[j])), [], type(results[j]))`
   otherwise.
 
 #### Inputs
 
-| Label | Name             | Type                                                                                       | Constraints |
-|-------|------------------|--------------------------------------------------------------------------------------------|-------------|
-| (I1)  | `operand`        | tensor or per-tensor quantized tensor                                                      | (C3)        |
-| (I2)  | `replica_groups` | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes` | (C1), (C2)  |
-| (I3)  | `channel_id`     | constant of type `si64`                                                                    |             |
+| Label | Name              | Type                                                                                       | Constraints           |
+|-------|-------------------|--------------------------------------------------------------------------------------------|-----------------------|
+| (I1)  | `operands`        | variadic number of tensors or per-tensor quantized tensors                                 | (C3), (C4), (C5), (6) |
+| (I2)  | `replica_groups`  | variadic number of 1-dimensional tensor constants of type `si64` or `ReplicaGroupMeshAxes` | (C1), (C2)            |
+| (I3)  | `channel_id`      | constant of type `si64`                                                                    |                       |
+| (I4)  | `has_dynamic_root` | constant of type `i1`                                                                     | (C3), (C4), (C5)      |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C3)        |
+| Name      | Type                                                       | Constraints |
+|-----------|------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C3)        |
 
 #### Constraints
 
@@ -1829,7 +1837,15 @@ Afterwards, `result@process` is given by:
 * (C2) `0 <= replica_groups < N` where `N` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_partitions` if `cross_partition` is used.
-* (C3) `type(result) = type(operand)`.
+* (C3) If `has_dynamic_root = false`:
+  * `size(operands) >= 1`.
+  * `type(results[j]) = type(operands[j])` for all `j` in `[0, size(operands))`.
+* (C4) If `has_dynamic_root = true`:
+  * `size(operands) >= 2`.
+  * `type(operands[size(operands)-1]) = tensor<[size(operands)-1]xi32>`.
+  * `type(results[j]) = type(operands[j])` for all `j` in `[0, size(operands)-1)`.
+* (C5) `size(results) = size(operands) - (has_dynamic_root ? 1 : 0)`.
+* (C6) `0 <= operands[size(operands)-1] < shape(replica_groups)[1]`.
 
 #### Examples
 
@@ -1916,6 +1932,101 @@ Afterwards, `result@process` is given by:
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/collective_permute.mlir)
 
+### collective_reduce
+
+#### Semantics
+
+Within each process group in the StableHLO process grid, send the value of the
+`operands` tensor to the source process, applies a reduction
+function `computation` to the values of the `operands` tensors from each process
+and produces `results` tensors and saves the
+`results` tensors only on the source process.
+
+If `has_dynamic_root` is set to true, the last operand in `operands` must be
+a flat array of `si32` containing the root values with 1-to-1 mapping to each
+data operand.
+
+The operation splits the StableHLO process grid into `process_groups` which is
+defined as follows:
+
+* `cross_replica(replica_groups)` if `channel_id <= 0`.
+* `cross_partition(replica_groups)` if `channel_id > 0`.
+
+Afterwards, `result@process` is given by:
+
+* `operand@process_groups[i, 0]` if there exists an `i` such that the process is
+  in `process_groups[i]`.
+* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
+  otherwise.
+
+#### Inputs
+
+| Label | Name                    | Type                                                             | Constraints |
+|-------|-------------------------|------------------------------------------------------------------|-------------|
+| (I1)  | `operands`              | variadic number of tensors or per-tensor quantized tensors       | (C3)        |
+| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1), (C2)  |
+| (I3)  | `channel_id`            | constant of type `si64`                                          |             |
+| (I4)  | `has_dynamic_root`      | constant of type `i1`                                            |             |
+| (I5)  | `computation`           | function                                                         | (C4)        |
+
+#### Outputs
+
+| Name     | Type                                                       | Constraints |
+|----------|------------------------------------------------------------|-------------|
+| `results`| variadic number of tensors or per-tensor quantized tensors | (C3)        |
+
+#### Constraints
+
+* (C1) `is_unique(replica_groups)`.
+* (C2) `0 <= replica_groups < N` where `N` is defined as:
+  * `num_replicas` if `cross_replica` is used.
+  * `num_partitions` if `cross_partition` is used.
+* (C3) if `has_dynamic_root` == false, `shape(results) = shape(operands)`;
+  * else, `shape(results) = shape(operands[0, size(operands)-2])`,
+    `dim(operands[size(operands)-1]) == 1` with
+    `num_elements(operands[size(operands)-1]) == size(operands)-1`.
+* (C4) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+  `is_promotable(element_type(operand), E)`.
+
+#### Examples
+
+```mlir
+// num_replicas: 4
+// num_partitions: 1
+// %operand@(0, 0): [[1, 2]]
+// %operand@(1, 0): [[3, 4]]
+// %operand@(2, 0): [[5, 6]]
+// %operand@(3, 0): [[7, 8]]
+%result = "stablehlo.collective_reduce"(%operand) {
+  has_dynamic_root = false
+  replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+} : (tensor1x2xi64>) -> tensor<1x2xi64>
+// %result@(0, 0): [[16, 20]]
+// %result@(1, 0): [[0, 0]]
+// %result@(2, 0): [[0, 0]]
+// %result@(3, 0): [[0, 0]]
+```
+
+```mlir
+// num_replicas: 4
+// num_partitions: 1
+// %operand@(0, 0): [[1, 2]]
+// %operand@(1, 0): [[3, 4]]
+// %operand@(2, 0): [[5, 6]]
+// %operand@(3, 0): [[7, 8]]
+// %root: [3]
+%result = "stablehlo.collective_reduce"(%operand, %root) {
+  has_dynamic_root = true
+  replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+} : (tensor1x2xi64>) -> tensor<1x2xi64>
+// %result@(0, 0): [[0, 0]]
+// %result@(1, 0): [[0, 0]]
+// %result@(2, 0): [[0, 0]]
+// %result@(3, 0): [[16, 20]]
+```
+
 ### compare
 
 #### Semantics
@@ -1949,6 +2060,19 @@ For floating-point element types with `compare_type = TOTALORDER`, the op
 uses the combination of `totalOrder` and `compareQuietEqual` operations from
 IEEE-754.
 
+For floating-point element types with `compare_type = WEAKORDER`, the op
+implements a total preorder (strict weak ordering) where `-0.0` and `+0.0` are
+treated as equal, and all `NaN` representations are treated as equal to each
+other and greater than `+infinity`:
+
+* `EQ`: `compareQuietEqual(lhs, rhs) || (is_nan(lhs) && is_nan(rhs))`.
+* `NE`: `!EQ(lhs, rhs)`.
+* `GE`: `GT(lhs, rhs) || EQ(lhs, rhs)`.
+* `GT`: `LT(rhs, lhs)`.
+* `LE`: `LT(lhs, rhs) || EQ(lhs, rhs)`.
+* `LT`: `(!is_nan(lhs) && is_nan(rhs)) ||`
+  `(!is_nan(lhs) && !is_nan(rhs) && compareQuietLess(lhs, rhs))`.
+
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
 performed using the provided `comparison_direction` and `compare_type`.
 Imposing an ordering on complex numbers involves surprising semantics,
@@ -1961,12 +2085,12 @@ comparison_direction)`.
 
 #### Inputs
 
-| Label | Name                   | Type                                                    | Constraints |
-|-------|------------------------|---------------------------------------------------------|-------------|
-| (I1)  | `lhs`                  | tensor or per-tensor quantized tensor                   | (C1-C3)     |
-| (I2)  | `rhs`                  | tensor or per-tensor quantized tensor                   | (C1-C2)     |
-| (I3)  | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |             |
-| (I4)  | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` | (C3)        |
+| Label | Name                   | Type                                                                                    | Constraints |
+|-------|------------------------|-----------------------------------------------------------------------------------------|-------------|
+| (I1)  | `lhs`                  | tensor or per-tensor quantized tensor                                                   | (C1-C3)     |
+| (I2)  | `rhs`                  | tensor or per-tensor quantized tensor                                                   | (C1-C2)     |
+| (I3)  | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`                                          |             |
+| (I4)  | `compare_type`         | optional enum of `NOTYPE`, `FLOAT`, `TOTALORDER`, `WEAKORDER`, `SIGNED`, and `UNSIGNED` | (C3)        |
 
 #### Outputs
 
@@ -1979,10 +2103,11 @@ comparison_direction)`.
 * (C1) `baseline_element_type(lhs) = baseline_element_type(rhs)`.
 * (C2) `shape(lhs) = shape(rhs) = shape(result)`.
 * (C3) `compare_type` is defined as:
-  * `SIGNED` if `is_signed_integer(element_type(lhs))`.
-  * `UNSIGNED` if `is_unsigned_integer(element_type(lhs)) or
-    is_boolean(element_type(lhs))`.
-  * `FLOAT` or `TOTALORDER` if `is_float(element_type(lhs))`.
+  * `NOTYPE`, `SIGNED` (deprecated), or `UNSIGNED` (deprecated) if
+    `is_signed_integer(element_type(lhs))`,
+    `is_unsigned_integer(element_type(lhs))`, or
+    `is_boolean(element_type(lhs))`.
+  * `FLOAT`, `TOTALORDER`, or `WEAKORDER` if `is_float(element_type(lhs))`.
   * `FLOAT` if `is_complex(element_type(lhs))`.
 
 #### Examples
@@ -2255,6 +2380,7 @@ More formally, consider the following reframing of the inputs in terms of `lhs`
 in order to be able to express windows of `lhs`:
 
 <!-- markdownlint-disable line-length -->
+
 * `lhs_window_dimensions = lhs_shape(dim(lhs, input_batch_dimension), dim(rhs, kernel_spatial_dimensions), dim(lhs, input_feature_dimension))`.
 * `lhs_window_strides = lhs_shape(1, window_strides, 1)`.
 * `lhs_padding = lhs_shape([0, 0], padding, [0, 0])`.
@@ -2351,6 +2477,7 @@ For hybrid quantized types, performs `hybrid_dequantize_then_op(
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
+
 * (C1) `N = rank(lhs) = rank(rhs)`.
 * (C2) `size(window_strides) = N - 2`.
 * (C3) `0 < window_strides`.
@@ -2398,7 +2525,9 @@ For hybrid quantized types, performs `hybrid_dequantize_then_op(
     * `num_windows = is_empty_window[lhs_dim] ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
 * (C26) `rank(result) = N`.
 * If the operation uses non-quantized tensors:
-  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)`.
+  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)` or
+    (`is_fp8(element_type(lhs))` and `is_fp8(element_type(rhs))` and
+    `element_type(result) = element_type(lhs)`).
 * If the operation uses quantized tensors:
   * (C28) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
   * (C29) If `is_per_axis_quantized(rhs)`,
@@ -2681,6 +2810,7 @@ Computes dot products between slices of `lhs` and slices of `rhs` and produces a
 More formally, `result[result_index] = dot_product`, where:
 
 <!-- markdownlint-disable line-length -->
+
 * `lhs_result_dimensions = [d for d in axes(lhs) and d not in lhs_batching_dimensions and d not in lhs_contracting_dimensions]`.
 * `rhs_result_dimensions = [d for d in axes(rhs) and d not in rhs_batching_dimensions and d not in rhs_contracting_dimensions]`.
 * `result_batching_index + result_lhs_index + result_rhs_index = result_index`
@@ -3021,6 +3151,7 @@ op, but the padding is specified dynamically via `padding`.
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
+
 * (C1) `N = rank(lhs) = rank(rhs)`.
 * (C2) `size(window_strides) = N - 2`.
 * (C3) `0 < window_strides`.
@@ -3068,7 +3199,9 @@ op, but the padding is specified dynamically via `padding`.
     * `num_windows = is_empty_window[lhs_dim] ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
 * (C26) `rank(result) = N`.
 * If the operation uses non-quantized tensors:
-  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)`.
+  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)` or
+    (`is_fp8(element_type(lhs))` and `is_fp8(element_type(rhs))` and
+    `element_type(result) = element_type(lhs)`).
 * If the operation uses quantized tensors:
   * (C28) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
   * (C29) If `is_per_axis_quantized(rhs)`,
@@ -3497,6 +3630,49 @@ More formally, `result[result_index]` is defined as:
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/dynamic_update_slice.mlir)
 
+### exp2
+
+#### Semantics
+
+Performs element-wise base-2 exponential operation on `operand` tensor and
+produces a `result` tensor. Depending on the element type, does the following:
+
+* For floats: `exp2` from IEEE-754.
+* For complex numbers: complex base-2 exponential.
+* For quantized types: `dequantize_op_quantize(exp2, operand, type(result))`.
+
+#### Inputs
+
+| Label | Name              | Type                 | Constraints |
+| ----- | ----------------- | -------------------- | ----------- |
+| (I1)  | `operand`         | tensor of            | (C1)        |
+:       :                   : floating-point or    :             :
+:       :                   : complex type or      :             :
+:       :                   : per-tensor quantized :             :
+:       :                   : tensor               :             :
+| (I2)  | `result_accuracy` | optional             |             |
+:       :                   : `ResultAccuracyAttr` :             :
+:       :                   : (default `DEFAULT`)  :             :
+
+#### Outputs
+
+| Name     | Type                                        | Constraints |
+| -------- | ------------------------------------------- | ----------- |
+| `result` | tensor of floating-point or complex type or | (C1)        |
+:          : per-tensor quantized tensor                 :             :
+
+#### Constraints
+
+* (C1) `baseline_type(operand) = baseline_type(result)`.
+
+#### Examples
+
+```mlir
+// %operand: [[0.0, 1.0], [2.0, 3.0]]
+%result = "stablehlo.exp2"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
+// %result: [[1.0, 2.0], [4.0, 8.0]]
+```
+
 ### exponential
 
 #### Semantics
@@ -3669,6 +3845,7 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 * (C3) `1 <= size(fft_length) <= 3`.
 * (C4) If among `operand` and `result`, there is a tensor `real` of a
 floating-point type, then `shape(real)[-size(fft_length):] = fft_length`.
+
 * (C5) `shape(result) = shape(operand)` except for:
   * If `fft_type = RFFT`,
     `dim(result, -1) = dim(operand, -1) = 0 ? 0 : dim(operand, -1) / 2 + 1`.
@@ -3721,6 +3898,58 @@ specification. For quantized types, performs
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/floor.mlir)
 
+### fma
+
+#### Semantics
+
+Performs element-wise single-rounded IEEE-754 fused multiply-add of `a`, `b`,
+and `c` tensors and produces a `result` tensor.
+
+More formally, for all `i` in `index_space(result)`:
+`result[i]` is the single-rounded IEEE-754 `fusedMultiplyAdd(a[i], b[i], c[i])`
+result, computed as if with unbounded range and precision and rounded once to
+the target floating-point type.
+
+Note that upcasting to a higher-precision floating-point type, computing `fma`
+in that type, and rounding back to the target type is not in general a valid
+implementation because of double rounding (and intermediate overflow or
+underflow when the wider type has the same exponent range, such as `bf16` and
+`f32`). For example, in `bf16`, `a = 1.5`, `b = 1 + 2^-7`, and `c = -2^-24`
+have exact `a * b + c` just below the `bf16` midpoint `1.5 + 2^-7 + 2^-8`, so
+single-rounded `bf16` `fma` returns `1.5 + 2^-7`, whereas computing `fma` in
+`f32` first rounds to the midpoint `1.5 + 2^-7 + 2^-8` and then rounds again
+to `1.5 + 2^-6`.
+
+#### Inputs
+
+| Label | Name | Type                          | Constraints |
+|-------|------|-------------------------------|-------------|
+| (I1)  | `a`  | tensor of floating-point type | (C1)        |
+| (I2)  | `b`  | tensor of floating-point type | (C1)        |
+| (I3)  | `c`  | tensor of floating-point type | (C1)        |
+
+#### Outputs
+
+| Name     | Type                          | Constraints |
+|----------|-------------------------------|-------------|
+| `result` | tensor of floating-point type | (C1)        |
+
+#### Constraints
+
+* (C1) `type(a) = type(b) = type(c) = type(result)`.
+
+#### Examples
+
+```mlir
+// %a: [1.5, 2.0, -3.0]
+// %b: [2.0, 3.0, 4.0]
+// %c: [0.5, -1.0, 2.0]
+%result = "stablehlo.fma"(%a, %b, %c) : (tensor<3xf32>, tensor<3xf32>, tensor<3xf32>) -> tensor<3xf32>
+// %result: [3.5, 5.0, -10.0]
+```
+
+&nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/fma.mlir)
+
 ### gather
 
 #### Semantics
@@ -3737,6 +3966,7 @@ indices and explains in detail which `operand` indices they correspond to.
 More formally, `result[result_index] = operand[operand_index]` where:
 
 <!-- markdownlint-disable line-length -->
+
 * `batch_dims = [d for d in axes(result) and d not in offset_dims]`.
 * `batch_index = result_index[batch_dims...]`.
 * `start_index` is defined as:
@@ -4225,6 +4455,49 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 ```
 
 &nbsp;[More Examples](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/interpret/log.mlir)
+
+### log2
+
+#### Semantics
+
+Performs element-wise base-2 logarithm operation on `operand` tensor and
+produces a `result` tensor. Depending on the element type, does the following:
+
+* For floats: `log2` from IEEE-754.
+* For complex numbers: complex base-2 logarithm.
+* For quantized types: `dequantize_op_quantize(log2, operand, type(result))`.
+
+#### Inputs
+
+| Label | Name              | Type                 | Constraints |
+| ----- | ----------------- | -------------------- | ----------- |
+| (I1)  | `operand`         | tensor of            | (C1)        |
+:       :                   : floating-point or    :             :
+:       :                   : complex type or      :             :
+:       :                   : per-tensor quantized :             :
+:       :                   : tensor               :             :
+| (I2)  | `result_accuracy` | optional             |             |
+:       :                   : `ResultAccuracyAttr` :             :
+:       :                   : (default `DEFAULT`)  :             :
+
+#### Outputs
+
+| Name     | Type                                        | Constraints |
+| -------- | ------------------------------------------- | ----------- |
+| `result` | tensor of floating-point or complex type or | (C1)        |
+:          : per-tensor quantized tensor                 :             :
+
+#### Constraints
+
+* (C1) `baseline_type(operand) = baseline_type(result)`.
+
+#### Examples
+
+```mlir
+// %operand: [[1.0, 2.0], [4.0, 8.0]]
+%result = "stablehlo.log2"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
+// %result: [[0.0, 1.0], [2.0, 3.0]]
+```
 
 ### log_plus_one
 
@@ -5229,6 +5502,7 @@ More formally,
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
+
 * (C1) `0 < size(inputs) = size(init_values) = size(results) = N`.
 * (C2) `same(shape(inputs...))`.
 * (C3) `element_type(inputs...) = element_type(init_values...)`.
@@ -5768,6 +6042,7 @@ undefined.
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
+
 * (C1) `same(shape(inputs...))`.
 * (C2) `rank(inputs[0]) = size(update_window_dims) + size(inserted_window_dims) + size(input_batching_dims)`.
 * (C3) `same(shape(updates...))`.
@@ -5952,6 +6227,7 @@ More formally:
    ([#731](https://github.com/openxla/stablehlo/issues/731)).
 * `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
  where:
+
   * `source_values = [source[source_index] for source_index in
    source_indices]`.
   * `selected_index(source_index) = operand_index` if
@@ -5982,6 +6258,7 @@ More formally:
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
+
 * (C1) `element_type(operand) = element_type(source)`.
 * (C2) `shape(source) = num_windows` where:
   * `padded_operand_shape = padding[:, 0] + shape(operand) + padding[:, 1]`.
@@ -6200,8 +6477,8 @@ Python syntax as follows:
 ```python
 def sign(x):
   if is_integer(x):
-    if compare(x, 0, LT, SIGNED): return -1
-    if compare(x, 0, EQ, SIGNED): return 0
+    if compare(x, 0, LT): return -1
+    if compare(x, 0, EQ): return 0
     return 1
   elif is_float(x):
     if is_nan(x): return NaN
@@ -7121,8 +7398,8 @@ order and what kind of synchronization is introduced by it, is TBD
 ### Collective ops
 
 There are six collective ops in StableHLO: `all_gather`, `all_reduce`,
-`all_to_all`, `collective_broadcast`, `collective_permute`, and
-`reduce_scatter`. All these ops split the processes in the StableHLO process
+`all_to_all`, `collective_broadcast`, `collective_permute`, `reduce_scatter`
+and `collective_reduce`. All these ops split the processes in the StableHLO process
 grid into **StableHLO process groups** and execute a joint computation within
 each process group, independently from other process groups.
 
@@ -7372,7 +7649,7 @@ For describing syntax, this document is using the modified ISO flavor of EBNF
 syntax ([ISO/IEC 14977:1996](https://www.iso.org/standard/26153.html),
 [Wikipedia](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form)),
 with two modifications: 1) rules are defined using `::=` rather than `=`,
-2) concatenation is expressed using juxtaposition rather than `,`.
+2\) concatenation is expressed using juxtaposition rather than `,`.
 
 For describing semantics (i.e. within "Types", "Constants" and "Ops" sections),
 we are using formulas which are based on Python syntax extended with support
@@ -7442,7 +7719,7 @@ only has `true` elements.
 ### Names
 
 In formulas, lexical scope includes: 1) global functions, 2) member definitions,
-3) local definitions. The list of global functions is provided below. The list
+3\) local definitions. The list of global functions is provided below. The list
 of element definitions depends on the program element that the notation is
 applied to:
 
@@ -7555,6 +7832,12 @@ def is_promotable(x: Type, y: Type) -> Value:
 
   return false
 ```
+
+* `is_fp8(x: Value | Placeholder | Type) -> Value` returns `true` if `x` is one
+of `Float8E4M3Type`, `Float8E4M3FNType`, `Float8E4M3B11FNUZType`,
+`Float8E4M3FNUZType`, `Float8E5M2Type`, `Float8E5M2FNUZType`, `Float8E3M4Type`,
+or `Float8E8M0FNUType`. If `x` is a value or placeholder, this function is a
+shortcut for `is_fp8(type(x))`.
 
 * `is_quantized(x: Value | Placeholder | Type) -> Value` is a shortcut for
 `is_quantized_tensor_element_type(x)`.

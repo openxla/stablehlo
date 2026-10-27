@@ -46,9 +46,9 @@ targets[":interpreter_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/reference/in
 targets[":linalg_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/linalg/transforms/stablehlo_linalg_passes.md"
 targets[":tosa_pass_inc_gen_filegroup"]="bazel-bin/stablehlo/conversions/tosa/transforms/stablehlo_tosa_passes.md"
 targets[":chlo_ops_inc_gen_filegroup"]="bazel-bin/stablehlo/dialect/chlo.md"
-targets[":stablehlo_builder_inc_filegroup"]="bazel-bin/stablehlo/integrations/cpp/builder/StablehloBuilder.md"
-targets[":chlo_builder_inc_filegroup"]="bazel-bin/stablehlo/integrations/cpp/builder/ChloBuilder.md"
-targets[":func_builder_inc_filegroup"]="bazel-bin/stablehlo/integrations/cpp/builder/FuncBuilder.md"
+targets["stablehlo/integrations/cpp/builder:stablehlo_builder_inc_filegroup"]="bazel-bin/stablehlo/integrations/cpp/builder/StablehloBuilder.md"
+targets["stablehlo/integrations/cpp/builder:chlo_builder_inc_filegroup"]="bazel-bin/stablehlo/integrations/cpp/builder/ChloBuilder.md"
+targets["stablehlo/integrations/cpp/builder:func_builder_inc_filegroup"]="bazel-bin/stablehlo/integrations/cpp/builder/FuncBuilder.md"
 
 bazel build "${!targets[@]}"
 

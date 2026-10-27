@@ -59,14 +59,20 @@ Tensor ceilOp(const Tensor& operand, ShapedType resultType);
 Tensor clampOp(const Tensor& min, const Tensor& operand, const Tensor& max,
                ShapedType resultType);
 Tensor clzOp(const Tensor& operand, ShapedType resultType);
-Tensor collectiveBroadcastOp(const Tensor& operand,
-                             SmallVector<SmallVector<uint32_t>> replicaGroups,
-                             ChannelId channelId, Process* process);
+SmallVector<InterpreterValue> collectiveBroadcastOp(
+    ArrayRef<Tensor> operands, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, bool hasDynamicRoot, Process* process);
+SmallVector<InterpreterValue> collectiveReduceOp(
+    ArrayRef<Tensor> operands, SmallVector<SmallVector<uint32_t>> replicaGroups,
+    ChannelId channelId, bool useGlobalDeviceIds, bool hasDynamicRoot,
+    Region& computation, Process* process, Scope& scope,
+    ArrayRef<ShapedType> resultTypes);
 Tensor collectivePermuteOp(const Tensor& operand,
                            SmallVector<SmallVector<uint32_t>> sourceTargetPairs,
                            ChannelId channelId, Process* process);
 Tensor compareOp(const Tensor& lhs, const Tensor& rhs,
                  ComparisonDirection comparisonDirection,
+                 std::optional<ComparisonType> compareType,
                  ShapedType resultType);
 Tensor complexOp(const Tensor& lhs, const Tensor& rhs, ShapedType resultType);
 Tensor concatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
@@ -97,10 +103,13 @@ Tensor dynamicUpdateSliceOp(const Tensor& operand, const Tensor& update,
                             ArrayRef<Tensor> startIndices,
                             ShapedType resultType);
 Tensor expm1Op(const Tensor& operand, ShapedType resultType);
+Tensor exp2Op(const Tensor& operand, ShapedType resultType);
 Tensor exponentialOp(const Tensor& operand, ShapedType resultType);
 Tensor fftOp(const Tensor& operand, const FftType fftType,
              const ArrayRef<int64_t>& fftLength, ShapedType resultType);
 Tensor floorOp(const Tensor& operand, ShapedType resultType);
+Tensor fmaOp(const Tensor& a, const Tensor& b, const Tensor& c,
+             ShapedType resultType);
 Tensor gatherOp(const Tensor& operand, const Tensor& startIndices,
                 const Axes& offsetDims, const Axes& collapsedSliceDims,
                 const Axes& operandBatchingDims,
@@ -119,6 +128,7 @@ SmallVector<InterpreterValue> infeedOp(Token token, Process* process,
 Tensor iotaOp(Axis iotaDimension, ShapedType resultType);
 Tensor isFiniteOp(const Tensor& operand, ShapedType resultType);
 Tensor log1pOp(const Tensor& operand, ShapedType resultType);
+Tensor log2Op(const Tensor& operand, ShapedType resultType);
 Tensor logOp(const Tensor& operand, ShapedType resultType);
 Tensor logisticOp(const Tensor& operand, ShapedType resultType);
 Tensor mapOp(ArrayRef<Tensor> inputs, Region& computation, Process* process,

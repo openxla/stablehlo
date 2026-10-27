@@ -520,6 +520,7 @@ struct CastOperandsPattern : public OpRewritePattern<OpType> {
     }
 
     rewriter.replaceOpWithNewOp<OpType>(op, op->getResultTypes(), operandsI32,
+                                        typename OpType::Properties{},
                                         op->getAttrs());
     return success();
   }

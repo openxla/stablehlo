@@ -48,6 +48,36 @@ func.func @dynamic_conv_upcast(%arg0 : tensor<100x26x26x32xi8>,
 
 // -----
 
+// CHECK-LABEL: func @dynamic_conv_mixed_fp8
+func.func @dynamic_conv_mixed_fp8(%arg0 : tensor<100x26x26x32xf8E5M2>,
+    %arg1 : tensor<3x3x1x32xf8E4M3FN>) -> tensor<100x28x28x1xf8E5M2> {
+  %padding = stablehlo.constant dense<2> : tensor<2x2xi64>
+  %result = "stablehlo.dynamic_conv"(%arg0, %arg1, %padding) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    feature_group_count = 1 : i64,
+    batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf8E5M2>, tensor<3x3x1x32xf8E4M3FN>, tensor<2x2xi64>) ->
+       tensor<100x28x28x1xf8E5M2>
+  func.return %result : tensor<100x28x28x1xf8E5M2>
+}
+
+// -----
+
+func.func @dynamic_conv_mismatched_element_types(%arg0: tensor<100x26x26x32xf32>,
+    %arg1: tensor<3x3x1x32xf16>) -> tensor<100x28x28x1xf32> {
+  // expected-error@+2 {{expects lhs and rhs to have compatible element type. Got: 'f32' and 'f16'}}
+  %padding = stablehlo.constant dense<2> : tensor<2x2xi64>
+  %result = "stablehlo.dynamic_conv"(%arg0, %arg1, %padding) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    feature_group_count = 1 : i64,
+    batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf16>, tensor<2x2xi64>) ->
+       tensor<100x28x28x1xf32>
+  func.return %result : tensor<100x28x28x1xf32>
+}
+
+// -----
+
 func.func @dynamic_conv_c1(%arg0: tensor<1x8x8x207xf32>,
     %arg1: tensor<3x3x207xf32>) -> tensor<1x8x8x16xf32> {
   // expected-error@+2 {{expects convolution arguments to have same number of dimensions. Got: 'tensor<1x8x8x207xf32>' and 'tensor<3x3x207xf32>'.}}

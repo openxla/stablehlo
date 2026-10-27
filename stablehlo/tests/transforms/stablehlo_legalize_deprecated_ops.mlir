@@ -10,6 +10,16 @@ func.func @op_dot(%arg0: tensor<2x3xf32>,
 
 // -----
 
+// CHECK-LABEL: op_dot_discardable_attrs
+func.func @op_dot_discardable_attrs(%arg0: tensor<2x3xf32>,
+                 %arg1: tensor<3x?xf32>) -> tensor<2x?xf32> {
+  // CHECK: stablehlo.dot_general %arg0, %arg1, contracting_dims = [1] x [0] {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<2x3xf32>, tensor<3x?xf32>) -> tensor<2x?xf32>
+  %0 = "stablehlo.dot"(%arg0, %arg1) {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<2x3xf32>, tensor<3x?xf32>) -> tensor<2x?xf32>
+  func.return %0 : tensor<2x?xf32>
+}
+
+// -----
+
 // CHECK-LABEL: op_unary_einsum
 func.func @op_unary_einsum(%arg0: tensor<8x16xf32>) -> tensor<8xf32> {
   // CHECK:      %cst = stablehlo.constant dense<1.000000e+00> : tensor<f32>

@@ -29,8 +29,8 @@ using Axis = int64_t;
 class Axes : public SmallVector<int64_t> {
  public:
   Axes() = default;
-  Axes(const Axes &other) = default;
-  Axes &operator=(const Axes &other) = default;
+  Axes(const Axes& other) = default;
+  Axes& operator=(const Axes& other) = default;
 
   Axes(std::initializer_list<int64_t> list) : SmallVector(list) {}
   explicit Axes(size_t size, int64_t element = 0)
@@ -40,7 +40,7 @@ class Axes : public SmallVector<int64_t> {
       : SmallVector(attr.getValues<int64_t>()) {}
 };
 
-raw_ostream &operator<<(raw_ostream &os, const Axes &x);
+raw_ostream& operator<<(raw_ostream& os, const Axes& x);
 
 }  // namespace stablehlo
 }  // namespace mlir

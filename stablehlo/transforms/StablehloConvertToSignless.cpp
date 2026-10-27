@@ -30,6 +30,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/transforms/conversions/TypeConversion.h"
 
 namespace mlir {
@@ -70,27 +71,32 @@ class ConvertToSignless : public ConversionPattern {
   }
 };
 
-// A pattern that converts the type of the attribute used as an operand for
-// arith.constant
-class ConvertConstantToSignless
-    : public OpConversionPattern<arith::ConstantOp> {
+// A pattern that converts the type of a constant's value attribute.
+template <typename OpTy>
+class ConvertConstantToSignless : public OpConversionPattern<OpTy> {
  public:
   ConvertConstantToSignless(TypeConverter& typeConverter, MLIRContext* context)
-      : OpConversionPattern<arith::ConstantOp>(typeConverter, context) {}
+      : OpConversionPattern<OpTy>(typeConverter, context) {}
 
   LogicalResult matchAndRewrite(
-      arith::ConstantOp constantOp, arith::ConstantOpAdaptor adaptor,
+      OpTy constantOp, typename OpTy::Adaptor adaptor,
       ConversionPatternRewriter& rewriter) const override {
-    // We only care about unsigned integers
-    if (!isa<DenseIntElementsAttr>(adaptor.getValue())) return failure();
+    auto value = dyn_cast<DenseIntElementsAttr>(adaptor.getValue());
+    if (!value) {
+      return rewriter.notifyMatchFailure(constantOp,
+                                         "expected dense integer value");
+    }
 
-    auto values = llvm::to_vector(
-        cast<DenseIntElementsAttr>(adaptor.getValue()).getValues<APInt>());
-    Type type = typeConverter->convertType(constantOp.getType());
-    auto shapedType = dyn_cast<ShapedType>(type);
+    auto values = llvm::to_vector(value.template getValues<APInt>());
+    auto shapedType = dyn_cast<ShapedType>(
+        this->getTypeConverter()->convertType(constantOp.getType()));
+    if (!shapedType) {
+      return rewriter.notifyMatchFailure(constantOp,
+                                         "expected convertible shaped type");
+    }
     auto newValues = DenseIntElementsAttr::get(shapedType, values);
 
-    rewriter.replaceOpWithNewOp<arith::ConstantOp>(constantOp, newValues);
+    rewriter.replaceOpWithNewOp<OpTy>(constantOp, newValues);
     return success();
   }
 };
@@ -115,9 +121,16 @@ struct StablehloConvertToSignlessPass
       return converter.isLegal(op.getType()) &&
              converter.isLegal(op.getValue().getType());
     });
+    target.addDynamicallyLegalOp<stablehlo::ConstantOp>(
+        [&](stablehlo::ConstantOp op) {
+          return converter.isLegal(op.getType()) &&
+                 converter.isLegal(op.getValue().getType());
+        });
 
     RewritePatternSet patterns(&getContext());
-    patterns.add<ConvertToSignless, ConvertConstantToSignless>(converter,
+    patterns
+        .add<ConvertToSignless, ConvertConstantToSignless<arith::ConstantOp>,
+             ConvertConstantToSignless<stablehlo::ConstantOp>>(converter,
                                                                &context);
     // FuncOp is special as it has type encoding via attributes.
     populateFunctionOpInterfaceTypeConversionPattern<func::FuncOp>(patterns,

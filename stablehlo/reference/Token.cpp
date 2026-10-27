@@ -23,11 +23,11 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-Token::Token(MLIRContext *context) : type_(TokenType::get(context)) {}
+Token::Token(MLIRContext* context) : type_(TokenType::get(context)) {}
 
 TokenType Token::getType() const { return type_; }
 
-void Token::print(raw_ostream &os) const { getType().print(os); }
+void Token::print(raw_ostream& os) const { getType().print(os); }
 
 void Token::dump() const { print(llvm::errs()); }
 

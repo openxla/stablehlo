@@ -203,7 +203,7 @@ Creates a new [`stablehlo.collective_broadcast`](https://openxla.org/stablehlo/s
 operation.
 
 ```c++
-MlirOp CollectiveBroadcast(MlirOp &operand, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {});
+SmallVector<MlirOp> CollectiveBroadcast(MlirBuilder &builder, ArrayRef<MlirOp> operands, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool has_dynamic_root = false);
 ```
 
 ### `stablehlo::CollectivePermuteOp`
@@ -213,6 +213,17 @@ operation.
 
 ```c++
 MlirOp CollectivePermute(MlirOp &operand, ::mlir::DenseIntElementsAttr source_target_pairs, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {});
+```
+
+### `stablehlo::CollectiveReduceOp`
+
+Creates a new [`stablehlo.collective_reduce`](https://openxla.org/stablehlo/spec#collective_reduce)
+operation.
+
+This operation has a body region built via a callback function.
+
+```c++
+SmallVector<MlirOp> CollectiveReduce(MlirBuilder &builder, ArrayRef<MlirOp> operands, const RegionBuilderCallback &computation, ::mlir::Attribute replica_groups, /*optional*/::mlir::stablehlo::ChannelHandleAttr channel_handle = {}, /*optional*/bool use_global_device_ids = false, /*optional*/bool has_dynamic_root = false);
 ```
 
 ### `stablehlo::CompareOp`
@@ -413,6 +424,15 @@ operation.
 MlirOp Einsum(Type resultType, MlirOp &lhs, MlirOp &rhs, ::llvm::StringRef einsum_config);
 ```
 
+### `stablehlo::Exp2Op`
+
+Creates a new [`stablehlo.exp2`](https://openxla.org/stablehlo/spec#exp2)
+operation.
+
+```c++
+MlirOp Exp2(MlirOp &operand, /*optional*/::mlir::stablehlo::ResultAccuracyAttr result_accuracy = {});
+```
+
 ### `stablehlo::ExpOp`
 
 Creates a new [`stablehlo.exponential`](https://openxla.org/stablehlo/spec#exponential)
@@ -447,6 +467,15 @@ operation.
 
 ```c++
 MlirOp Floor(MlirOp &operand);
+```
+
+### `stablehlo::FmaOp`
+
+Creates a new [`stablehlo.fma`](https://openxla.org/stablehlo/spec#fma)
+operation.
+
+```c++
+MlirOp Fma(MlirOp &a, MlirOp &b, MlirOp &c);
 ```
 
 ### `stablehlo::GatherOp`
@@ -530,6 +559,15 @@ operation.
 
 ```c++
 MlirOp Log1p(MlirOp &operand, /*optional*/::mlir::stablehlo::ResultAccuracyAttr result_accuracy = {});
+```
+
+### `stablehlo::Log2Op`
+
+Creates a new [`stablehlo.log2`](https://openxla.org/stablehlo/spec#log2)
+operation.
+
+```c++
+MlirOp Log2(MlirOp &operand, /*optional*/::mlir::stablehlo::ResultAccuracyAttr result_accuracy = {});
 ```
 
 ### `stablehlo::LogOp`

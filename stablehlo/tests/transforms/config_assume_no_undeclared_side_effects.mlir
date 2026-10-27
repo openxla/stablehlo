@@ -11,7 +11,7 @@ func.func @dce_while_false_condition() -> tensor<i64> {
   // CHECK-NOT: stablehlo.while
   %1 = stablehlo.while(%iterArg = %0) : tensor<i64>
     cond {
-    %2 = stablehlo.compare LT, %0, %0, SIGNED : (tensor<i64>, tensor<i64>) -> tensor<i1>
+    %2 = stablehlo.compare LT, %0, %0 : (tensor<i64>, tensor<i64>) -> tensor<i1>
     stablehlo.return %2 : tensor<i1>
   } do {
     %2 = func.call @foo() : () -> tensor<i64>

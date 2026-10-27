@@ -224,10 +224,10 @@ func.func @compare_signed_arg(%arg0: tensor<i32>)
   // CHECK-DAG:  [[C1:%.+]] = stablehlo.constant dense<true> : tensor<i1>
   // CHECK-DAG:  [[C5:%.+]] = stablehlo.constant dense<5> : tensor<i32>
 
-  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[C5]], SIGNED
-  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]], SIGNED
-  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LE, [[ARG0]], [[C5]], SIGNED
-  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare NE, [[ARG0]], [[C5]], SIGNED
+  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LE, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare NE, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
 
   // CHECK-NEXT: return [[C1]], [[C0]], [[C1]], [[C0]], [[R0]], [[R1]], [[R2]], [[R3]]
   return %0, %1, %2, %3, %4, %5, %6, %7 :
@@ -256,14 +256,42 @@ func.func @compare_unsigned_arg(%arg0: tensor<i32>)
   // CHECK-DAG:  [[C1:%.+]] = stablehlo.constant dense<true> : tensor<i1>
   // CHECK-DAG:  [[C5:%.+]] = stablehlo.constant dense<5> : tensor<i32>
 
-  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[C5]], UNSIGNED
-  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]], UNSIGNED
-  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LE, [[ARG0]], [[C5]], UNSIGNED
-  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare NE, [[ARG0]], [[C5]], UNSIGNED
+  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare EQ, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LE, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare NE, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
 
   // CHECK-NEXT: return [[C1]], [[C0]], [[C1]], [[C0]], [[R0]], [[R1]], [[R2]], [[R3]]
   return %0, %1, %2, %3, %4, %5, %6, %7 :
          tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
+
+// CHECK-LABEL: func.func @compare_int_no_compare_type
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<i32>, [[ARG1:%.+]]: tensor<ui32>)
+func.func @compare_int_no_compare_type(%arg0: tensor<i32>, %arg1: tensor<ui32>)
+  -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
+  %c5 = stablehlo.constant dense<5> : tensor<i32>
+  %cu5 = stablehlo.constant dense<5> : tensor<ui32>
+
+  %0 = stablehlo.compare EQ, %arg0, %arg0 : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %1 = stablehlo.compare LT, %arg1, %arg1 : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+  %2 = stablehlo.compare LT, %c5, %arg0 : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %3 = stablehlo.compare GE, %cu5, %arg1 : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+  %4 = stablehlo.compare LT, %arg0, %c5, SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  %5 = stablehlo.compare LT, %arg1, %cu5, UNSIGNED : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+
+  // CHECK-DAG:  [[C0:%.+]] = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-DAG:  [[C1:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK-DAG:  [[C5:%.+]] = stablehlo.constant dense<5> : tensor<i32>
+  // CHECK-DAG:  [[CU5:%.+]] = stablehlo.constant dense<5> : tensor<ui32>
+  // CHECK-DAG:  [[R0:%.+]] = stablehlo.compare GT, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R1:%.+]] = stablehlo.compare LE, [[ARG1]], [[CU5]] : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+  // CHECK-DAG:  [[R2:%.+]] = stablehlo.compare LT, [[ARG0]], [[C5]] : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  // CHECK-DAG:  [[R3:%.+]] = stablehlo.compare LT, [[ARG1]], [[CU5]] : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+
+  // CHECK-NEXT: return [[C1]], [[C0]], [[R0]], [[R1]], [[R2]], [[R3]]
+  return %0, %1, %2, %3, %4, %5 :
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
 }
 
 // CHECK-LABEL: func.func @compare_op_bool_simplify
@@ -272,8 +300,8 @@ func.func @compare_op_bool_simplify(%arg0: tensor<i1>) -> (tensor<i1>, tensor<i1
   %false = stablehlo.constant dense<false> : tensor<i1>
   %true = stablehlo.constant dense<true> : tensor<i1>
   // CHECK-NOT: stablehlo.compare
-  %0 = stablehlo.compare NE, %arg0, %false, UNSIGNED : (tensor<i1>, tensor<i1>) -> tensor<i1>
-  %1 = stablehlo.compare EQ, %arg0, %true, UNSIGNED : (tensor<i1>, tensor<i1>) -> tensor<i1>
+  %0 = stablehlo.compare NE, %arg0, %false : (tensor<i1>, tensor<i1>) -> tensor<i1>
+  %1 = stablehlo.compare EQ, %arg0, %true : (tensor<i1>, tensor<i1>) -> tensor<i1>
   // CHECK: return [[ARG0]], [[ARG0]]
   func.return %0, %1 : tensor<i1>, tensor<i1>
 }
@@ -669,6 +697,14 @@ func.func @dynamic_slice_constant_start(%arg0: tensor<4xi32>) -> tensor<2xi32> {
   func.return %0 : tensor<2xi32>
 }
 
+// CHECK-LABEL: dynamic_slice_constant_start_discardable_attrs
+func.func @dynamic_slice_constant_start_discardable_attrs(%arg0: tensor<4xi32>) -> tensor<2xi32> {
+  // CHECK: stablehlo.slice %arg0 [1:3] {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<4xi32>) -> tensor<2xi32>
+  %c = stablehlo.constant dense<1> : tensor<i64>
+  %0 = stablehlo.dynamic_slice %arg0, %c, sizes = [2] {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<4xi32>, tensor<i64>) -> tensor<2xi32>
+  func.return %0 : tensor<2xi32>
+}
+
 // CHECK-LABEL: dynamic_slice_constant_start_dynamic_shape
 func.func @dynamic_slice_constant_start_dynamic_shape(%arg0: tensor<?x4xi32>, %arg1: tensor<2xi64>) -> tensor<1x4xi32> {
   // CHECK: stablehlo.dynamic_slice
@@ -1025,6 +1061,16 @@ func.func @multiply_by_one_merge_attrs_conflict(%arg0: tensor<f32>) -> tensor<f3
   return %1 : tensor<f32>
 }
 
+// CHECK-LABEL: @multiply_by_one_merge_attrs_conflict_xla_metadata_payload
+func.func @multiply_by_one_merge_attrs_conflict_xla_metadata_payload(%arg0: tensor<f32>) -> tensor<f32> {
+  %cst = stablehlo.constant dense<1.0> : tensor<f32>
+  %0 = stablehlo.add %arg0, %arg0 {mhlo.frontend_attributes = {foo = "1", xla_metadata_payload = "0"}} : tensor<f32>
+  %1 = stablehlo.multiply %0, %cst {mhlo.frontend_attributes = {xla_metadata_payload = "1"}} : tensor<f32>
+  // CHECK: %[[ADD:.*]] = stablehlo.add %arg0, %arg0 {mhlo.frontend_attributes = {foo = "1", xla_metadata_payload = "0"}} : tensor<f32>
+  // CHECK: return %[[ADD]] : tensor<f32>
+  return %1 : tensor<f32>
+}
+
 // -----
 
 /////////
@@ -1151,6 +1197,32 @@ func.func @simplify_real_dynamic_slice_to_dynamic_slice(%arg0: tensor<?x4xf32>, 
   // CHECK-NEXT: [[START_INDEX_1_1D:%.*]] = stablehlo.slice %arg1 [1:2] : (tensor<2xi32>) -> tensor<1xi32>
   // CHECK-NEXT: [[START_INDEX_1_0D:%.*]] = stablehlo.reshape [[START_INDEX_1_1D]] : (tensor<1xi32>) -> tensor<i32>
   // CHECK-NEXT: [[RESULT:%.*]] = stablehlo.dynamic_slice %arg0, [[START_INDEX_0_0D]], [[START_INDEX_1_0D]], sizes = [1, 4] : (tensor<?x4xf32>, tensor<i32>, tensor<i32>) -> tensor<1x4xf32>
+  // CHECK-NEXT: return [[RESULT]] : tensor<1x4xf32>
+}
+
+// CHECK-LABEL: @simplify_real_dynamic_slice_to_slice_discardable_attrs
+func.func @simplify_real_dynamic_slice_to_slice_discardable_attrs(%arg0: tensor<?x4xf32>) -> tensor<1x4xf32> {
+  %0 = stablehlo.constant dense<[0, 0]> : tensor<2xi32>
+  %1 = stablehlo.constant dense<[1, 4]> : tensor<2xi32>
+  %2 = stablehlo.constant dense<[1, 1]> : tensor<2xi32>
+  %3 = stablehlo.real_dynamic_slice %arg0, %0, %1, %2 {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<?x4xf32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<1x4xf32>
+  // CHECK: %[[RESULT:.*]] =  stablehlo.slice %arg0 [0:1, 0:4] {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<?x4xf32>) -> tensor<1x4xf32>
+  // CHECK: return %[[RESULT]] : tensor<1x4xf32>
+  return %3 : tensor<1x4xf32>
+}
+
+// CHECK-LABEL: @simplify_real_dynamic_slice_to_dynamic_slice_discardable_attrs
+func.func @simplify_real_dynamic_slice_to_dynamic_slice_discardable_attrs(%arg0: tensor<?x4xf32>, %arg1: tensor<2xi32>) -> tensor<1x4xf32> {
+  %0 = stablehlo.constant dense<[1, 4]> : tensor<2xi32>
+  %1 = stablehlo.add %arg1, %0 : tensor<2xi32>
+  %2 = stablehlo.constant dense<[1, 1]> : tensor<2xi32>
+  %3 = stablehlo.real_dynamic_slice %arg0, %arg1, %1, %2 {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<?x4xf32>, tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<1x4xf32>
+  return %3 : tensor<1x4xf32>
+  //      CHECK: [[START_INDEX_0_1D:%.*]] = stablehlo.slice %arg1 [0:1] : (tensor<2xi32>) -> tensor<1xi32>
+  // CHECK-NEXT: [[START_INDEX_0_0D:%.*]] = stablehlo.reshape [[START_INDEX_0_1D]] : (tensor<1xi32>) -> tensor<i32>
+  // CHECK-NEXT: [[START_INDEX_1_1D:%.*]] = stablehlo.slice %arg1 [1:2] : (tensor<2xi32>) -> tensor<1xi32>
+  // CHECK-NEXT: [[START_INDEX_1_0D:%.*]] = stablehlo.reshape [[START_INDEX_1_1D]] : (tensor<1xi32>) -> tensor<i32>
+  // CHECK-NEXT: [[RESULT:%.*]] = stablehlo.dynamic_slice %arg0, [[START_INDEX_0_0D]], [[START_INDEX_1_0D]], sizes = [1, 4] {mhlo.frontend_attributes = {MUST_FUSE = "0"}} : (tensor<?x4xf32>, tensor<i32>, tensor<i32>) -> tensor<1x4xf32>
   // CHECK-NEXT: return [[RESULT]] : tensor<1x4xf32>
 }
 
@@ -1916,6 +1988,72 @@ func.func @slice_2D_noop(%arg0: tensor<2x2xi64>) -> tensor<2x2xi64> {
 
   // CHECK-NEXT: return [[ARG]]
   func.return %0 : tensor<2x2xi64>
+}
+
+// -----
+
+/////////
+// ScatterOp
+
+// CHECK-LABEL: @scatter_empty_indices
+func.func @scatter_empty_indices(%input: tensor<3x4xf32>, %updates: tensor<0x4xf32>) -> tensor<3x4xf32> {
+  %indices = stablehlo.constant dense<> : tensor<0xi32>
+  // CHECK-NOT: stablehlo.scatter
+  // CHECK: return %arg0
+  %0 = "stablehlo.scatter"(%input, %indices, %updates) ({
+    ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+      stablehlo.return %arg1 : tensor<f32>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [0],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<3x4xf32>, tensor<0xi32>, tensor<0x4xf32>) -> tensor<3x4xf32>
+  func.return %0 : tensor<3x4xf32>
+}
+
+// CHECK-LABEL: @scatter_zero_extent_updates
+func.func @scatter_zero_extent_updates(%input: tensor<3x4xf32>, %indices: tensor<3xi32>) -> tensor<3x4xf32> {
+  %updates = stablehlo.constant dense<> : tensor<3x0xf32>
+  // CHECK-NOT: stablehlo.scatter
+  // CHECK: return %arg0
+  %0 = "stablehlo.scatter"(%input, %indices, %updates) ({
+    ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+      stablehlo.return %arg1 : tensor<f32>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [0],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<3x4xf32>, tensor<3xi32>, tensor<3x0xf32>) -> tensor<3x4xf32>
+  func.return %0 : tensor<3x4xf32>
+}
+
+// CHECK-LABEL: @scatter_nonempty_not_simplified
+func.func @scatter_nonempty_not_simplified(%input: tensor<3x4xf32>, %indices: tensor<2xi32>, %updates: tensor<2x4xf32>) -> tensor<3x4xf32> {
+  // CHECK: stablehlo.scatter
+  %0 = "stablehlo.scatter"(%input, %indices, %updates) ({
+    ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+      stablehlo.return %arg1 : tensor<f32>
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0],
+      scatter_dims_to_operand_dims = [0],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<3x4xf32>, tensor<2xi32>, tensor<2x4xf32>) -> tensor<3x4xf32>
+  func.return %0 : tensor<3x4xf32>
 }
 
 // -----
