@@ -752,7 +752,13 @@ Element convert(Type type, APSInt value) {
   if (isSupportedIntegerType(type))
     return Element(type, value.extOrTrunc(type.getIntOrFloatBitWidth()));
   if (isSupportedFloatType(type)) {
-    APFloat floatValue(cast<FloatType>(type).getFloatSemantics());
+    const llvm::fltSemantics& semantics =
+        cast<FloatType>(type).getFloatSemantics();
+    if (value.isSigned() && value.isNegative() &&
+        !APFloat::semanticsHasSignedRepr(semantics)) {
+      return Element(type, APFloat::getNaN(semantics));
+    }
+    APFloat floatValue(semantics);
     floatValue.convertFromAPInt(value, value.isSigned(),
                                 APFloat::rmNearestTiesToEven);
     return Element(type, floatValue);
@@ -785,9 +791,16 @@ Element convert(Type type, APFloat value) {
     return Element(type, intValue);
   }
   if (isSupportedFloatType(type)) {
+    const llvm::fltSemantics& semantics =
+        cast<FloatType>(type).getFloatSemantics();
+    if (value.isNegative() && !APFloat::semanticsHasSignedRepr(semantics)) {
+      return Element(type,
+                     value.isNegZero() && APFloat::semanticsHasZero(semantics)
+                         ? APFloat::getZero(semantics)
+                         : APFloat::getNaN(semantics));
+    }
     bool roundingErr;
-    value.convert(cast<FloatType>(type).getFloatSemantics(),
-                  APFloat::rmNearestTiesToEven, &roundingErr);
+    value.convert(semantics, APFloat::rmNearestTiesToEven, &roundingErr);
     return Element(type, value);
   }
   if (isSupportedComplexType(type))
