@@ -12,8 +12,15 @@ The current version of StableHLO can be found in
 
 The minor version is bumped every time changes to the StableHLO opset or
 [the StableHLO serialization format](bytecode.md) are made, and the patch
-version is bumped every time we integrate StableHLO downstream, i.e. into the
-openxla/xla repository.
+version is bumped when a StableHLO release is cut, which happens weekly.
+
+Bumping the version supersedes the previous version: nothing can be added to a
+version once it has been superseded, so changes to the opset or the
+serialization format always need a new minor version. Every build of StableHLO
+from after a version was superseded can therefore deserialize anything that
+targets that version. This is what the `WEEK_4` and `WEEK_12` compatibility
+requirements below rely on: they target the newest version that was superseded
+on the `main` branch at least 4 or 12 weeks ago, respectively.
 
 ## Guarantees
 
