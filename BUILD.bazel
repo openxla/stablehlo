@@ -31,6 +31,15 @@ package(
 #     name = "license",
 #     package_name = "stablehlo",
 # )
+#
+# # `cut_release` edits these, so its tests check that it can still parse them.
+# exports_files(
+#     [
+#         "stablehlo/dialect/Version.cpp",
+#         "stablehlo/dialect/Version.h",
+#     ],
+#     visibility = ["//google:__pkg__"],
+# )
 # copybara:uncomment_end
 
 exports_files([
