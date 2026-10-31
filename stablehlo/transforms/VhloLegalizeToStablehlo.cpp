@@ -17,10 +17,9 @@ limitations under the License.
 #include <type_traits>
 #include <utility>
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/AllocatorBase.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -525,19 +524,23 @@ Attribute convertScatterDimensionNumbers(
 
 #undef RETURN_CONVERTED_ENUM_ATTR
 
-template <typename... StringTy>
-void eraseAttrs(SmallVector<NamedAttribute>& attrs, StringTy... names) {
-  StringSet<llvm::MallocAllocator> nameSet({names...});
+void eraseAttrsImpl(SmallVectorImpl<NamedAttribute>& attrs,
+                    ArrayRef<StringRef> names) {
   llvm::erase_if(attrs, [&](NamedAttribute attr) {
-    return nameSet.contains(attr.getName());
+    return llvm::is_contained(names, attr.getName().getValue());
   });
+}
+
+template <typename... StringTy>
+void eraseAttrs(SmallVectorImpl<NamedAttribute>& attrs, StringTy... names) {
+  eraseAttrsImpl(attrs, {names...});
 }
 
 template <typename VhloOpTy>
 LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                              VhloOpTy vhloOp,
-                             SmallVector<NamedAttribute>& vhloAttrs,
-                             SmallVector<NamedAttribute>& stablehloAttrs) {
+                             SmallVectorImpl<NamedAttribute>& vhloAttrs,
+                             SmallVectorImpl<NamedAttribute>& stablehloAttrs) {
   auto typeConverter =
       pattern.template getTypeConverter<vhlo::VhloTypeConverter>();
   if constexpr (std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value ||
@@ -609,9 +612,9 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
 }
 
 template <typename T, typename DenseArrayAttr>
-SpecialResult convertDenseArray(const vhlo::VhloTypeConverter* typeConverter,
-                                StringAttr vhloName, Attribute vhloAttr,
-                                SmallVector<NamedAttribute>& stablehloAttrs) {
+SpecialResult convertDenseArray(
+    const vhlo::VhloTypeConverter* typeConverter, StringAttr vhloName,
+    Attribute vhloAttr, SmallVectorImpl<NamedAttribute>& stablehloAttrs) {
   auto tensorAttr = dyn_cast<vhlo::TensorV1Attr>(vhloAttr);
   if (!tensorAttr) return specialFailure();
 
@@ -629,183 +632,171 @@ SpecialResult convertDenseArray(const vhlo::VhloTypeConverter* typeConverter,
 }
 
 SpecialResult convertDenseBoolArray(
-    const vhlo::VhloTypeConverter* typeConverter, StringAttr vhloName,
-    Attribute vhloAttr, SmallVector<NamedAttribute>& stablehloAttrs) {
-  return convertDenseArray<bool, DenseBoolArrayAttr>(typeConverter, vhloName,
-                                                     vhloAttr, stablehloAttrs);
+    const ConversionPattern& pattern, StringAttr vhloName, Attribute vhloAttr,
+    SmallVectorImpl<NamedAttribute>& stablehloAttrs) {
+  return convertDenseArray<bool, DenseBoolArrayAttr>(
+      pattern.getTypeConverter<vhlo::VhloTypeConverter>(), vhloName, vhloAttr,
+      stablehloAttrs);
 }
 
 SpecialResult convertDenseI64Array(
-    const vhlo::VhloTypeConverter* typeConverter, StringAttr vhloName,
-    Attribute vhloAttr, SmallVector<NamedAttribute>& stablehloAttrs) {
+    const ConversionPattern& pattern, StringAttr vhloName, Attribute vhloAttr,
+    SmallVectorImpl<NamedAttribute>& stablehloAttrs) {
   return convertDenseArray<int64_t, DenseI64ArrayAttr>(
-      typeConverter, vhloName, vhloAttr, stablehloAttrs);
+      pattern.getTypeConverter<vhlo::VhloTypeConverter>(), vhloName, vhloAttr,
+      stablehloAttrs);
 }
 
-template <typename VhloOpTy>
-SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
-                             StringAttr vhloName, Attribute vhloAttr,
-                             SmallVector<NamedAttribute>& stablehloAttrs) {
-  StringAttr stablehloName = vhloName;
-  Attribute stablehloAttr;
-  auto typeConverter =
-      pattern.template getTypeConverter<vhlo::VhloTypeConverter>();
+SpecialResult emplaceSpecialAttr(
+    StringAttr stablehloName, Attribute stablehloAttr,
+    SmallVectorImpl<NamedAttribute>& stablehloAttrs) {
+  if (!stablehloAttr) return specialFailure();
+  stablehloAttrs.emplace_back(stablehloName, stablehloAttr);
+  return specialSuccess();
+}
 
+using SpecialConverter = SpecialResult (*)(
+    const ConversionPattern& pattern, StringAttr vhloName, Attribute vhloAttr,
+    SmallVectorImpl<NamedAttribute>& stablehloAttrs);
+
+template <typename VhloOpTy>
+auto convertSpecial(const ConversionPattern& pattern, StringAttr vhloName,
+                    Attribute vhloAttr,
+                    SmallVectorImpl<NamedAttribute>& stablehloAttrs) {
   if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::AllReduceOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::AllToAllOpV2>::value ||
+                std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::CollectiveReduceOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value) {
-    if (vhloName == "channel_id") {
-      stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
-      stablehloAttr = convertChannelId(vhloAttr, typeConverter);
-      if (!stablehloAttr) return specialFailure();
-    }
-    if (vhloName == "use_global_device_ids") {
+    if (vhloName == "channel_id")
+      return emplaceSpecialAttr(
+          StringAttr::get(pattern.getContext(), "channel_handle"),
+          convertChannelId(vhloAttr,
+                           pattern.getTypeConverter<vhlo::VhloTypeConverter>()),
+          stablehloAttrs);
+    if (vhloName == "use_global_device_ids" || vhloName == "has_dynamic_root") {
       auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
       if (!vhloBooleanAttr) return specialFailure();
-      if (!vhloBooleanAttr.getValue()) return specialSuccess();
-      stablehloAttr = UnitAttr::get(pattern.getContext());
+      if (vhloBooleanAttr.getValue())
+        stablehloAttrs.emplace_back(vhloName,
+                                    UnitAttr::get(pattern.getContext()));
+      return specialSuccess();
     }
-  }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveBroadcastOpV2>::value) {
-    if (vhloName == "channel_id") {
-      stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
-      stablehloAttr = convertChannelId(vhloAttr, typeConverter);
-      if (!stablehloAttr) return specialFailure();
-    }
-    if (vhloName == "has_dynamic_root") {
-      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
-      if (!vhloBooleanAttr) return specialFailure();
-      if (!vhloBooleanAttr.getValue()) return specialSuccess();
-      stablehloAttr = UnitAttr::get(pattern.getContext());
-    }
-  }
-  if constexpr (std::is_same<VhloOpTy, vhlo::CollectiveReduceOpV1>::value) {
-    if (vhloName == "channel_id") {
-      stablehloName = StringAttr::get(pattern.getContext(), "channel_handle");
-      stablehloAttr = convertChannelId(vhloAttr, typeConverter);
-      if (!stablehloAttr) return specialFailure();
-    }
-    if (vhloName == "use_global_device_ids") {
-      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
-      if (!vhloBooleanAttr) return specialFailure();
-      if (!vhloBooleanAttr.getValue()) return specialSuccess();
-      stablehloAttr = UnitAttr::get(pattern.getContext());
-    }
-    if (vhloName == "has_dynamic_root") {
-      auto vhloBooleanAttr = dyn_cast<vhlo::BooleanV1Attr>(vhloAttr);
-      if (!vhloBooleanAttr) return specialFailure();
-      if (!vhloBooleanAttr.getValue()) return specialSuccess();
-      stablehloAttr = UnitAttr::get(pattern.getContext());
-    }
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV2>::value) {
-    if (vhloName == "called_computations") {
-      stablehloAttr =
-          convertCustomCallCalledComputations(vhloAttr, typeConverter);
-      if (!stablehloAttr) return specialFailure();
-    }
+    if (vhloName == "called_computations")
+      return emplaceSpecialAttr(
+          vhloName,
+          convertCustomCallCalledComputations(
+              vhloAttr, pattern.getTypeConverter<vhlo::VhloTypeConverter>()),
+          stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CompositeOpV2>::value) {
-    if (vhloName == "decomposition") {
-      stablehloAttr = convertSymbol(vhloAttr, typeConverter);
-      if (!stablehloAttr) return specialFailure();
-    }
+    if (vhloName == "decomposition")
+      return emplaceSpecialAttr(
+          vhloName,
+          convertSymbol(vhloAttr,
+                        pattern.getTypeConverter<vhlo::VhloTypeConverter>()),
+          stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CallOpV1>::value) {
-    if (vhloName == "callee") {
-      stablehloAttr = convertFuncCallee(vhloAttr, typeConverter);
-      if (!stablehloAttr) return specialFailure();
-    }
-  }
-  if (stablehloAttr) {
-    stablehloAttrs.emplace_back(stablehloName, stablehloAttr);
-    return specialSuccess();
+    if (vhloName == "callee")
+      return emplaceSpecialAttr(
+          vhloName,
+          convertFuncCallee(
+              vhloAttr, pattern.getTypeConverter<vhlo::VhloTypeConverter>()),
+          stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::FftOpV1>::value) {
     if (vhloName == "fft_length")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::BroadcastOpV1>::value) {
     if (vhloName == "broadcast_sizes")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::DynamicSliceOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::DynamicSliceOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::GatherOpV2>::value) {
     if (vhloName == "slice_sizes")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
-  if constexpr (std::is_same<VhloOpTy, vhlo::ReverseOpV1>::value) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::MapOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::ReduceOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::ReverseOpV1>::value) {
     if (vhloName == "dimensions")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::TransposeOpV1>::value) {
     if (vhloName == "permutation")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::PadOpV1>::value) {
     if (vhloName == "edge_padding_low" || vhloName == "edge_padding_high" ||
         vhloName == "interior_padding")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::SliceOpV1>::value) {
     if (vhloName == "start_indices" || vhloName == "limit_indices" ||
         vhloName == "strides")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::BroadcastInDimOpV1>::value) {
     if (vhloName == "broadcast_dimensions")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy,
                              vhlo::DynamicBroadcastInDimOpV1>::value) {
     if (vhloName == "broadcast_dimensions" ||
         vhloName == "known_expanding_dimensions" ||
         vhloName == "known_nonexpanding_dimensions")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::SelectAndScatterOpV1>::value) {
     if (vhloName == "window_dimensions" || vhloName == "window_strides")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::ReduceWindowOpV1>::value) {
     if (vhloName == "window_dimensions" || vhloName == "window_strides" ||
         vhloName == "base_dilations" || vhloName == "window_dilations")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
-  }
-  if constexpr (std::is_same<VhloOpTy, vhlo::MapOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::ReduceOpV1>::value) {
-    if (vhloName == "dimensions")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
-  }
-  if constexpr (std::is_same<VhloOpTy, vhlo::GatherOpV2>::value) {
-    if (vhloName == "slice_sizes")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::DynamicConvOpV2>::value) {
     if (vhloName == "lhs_dilation" || vhloName == "rhs_dilation" ||
         vhloName == "window_strides")
-      return convertDenseI64Array(typeConverter, vhloName, vhloAttr,
-                                  stablehloAttrs);
+      return convertDenseI64Array(pattern, vhloName, vhloAttr, stablehloAttrs);
     if (vhloName == "window_reversal")
-      return convertDenseBoolArray(typeConverter, vhloName, vhloAttr,
-                                   stablehloAttrs);
+      return convertDenseBoolArray(pattern, vhloName, vhloAttr, stablehloAttrs);
+    return notSpecial();
   }
-  return notSpecial();
+}
+
+template <typename VhloOpTy>
+constexpr SpecialConverter getSpecialConverter() {
+  // Ops with no matching branch in `convertSpecial` deduce a `void` return
+  // type, avoiding per-op converter instantiation and indirect calls.
+  if constexpr (std::is_same<decltype(&convertSpecial<VhloOpTy>),
+                             SpecialConverter>::value) {
+    return &convertSpecial<VhloOpTy>;
+  }
+  return nullptr;
 }
 
 //===----------------------------------------------------------------------===//
@@ -882,7 +873,7 @@ bool isString(Attribute vhloAttr, StringRef value) {
 template <typename VhloOpTy>
 LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
                              VhloOpTy vhloOp,
-                             SmallVector<NamedAttribute>& vhloAttrs) {
+                             SmallVectorImpl<NamedAttribute>& vhloAttrs) {
   if constexpr (std::is_same<VhloOpTy, vhlo::FuncOpV1>::value) {
     if (isString(vhloOp.getSymVisibilityAttr(), ""))
       eraseAttrs(vhloAttrs, "sym_visibility");
@@ -1066,6 +1057,54 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
 // VHLO --> StableHLO operations
 //===----------------------------------------------------------------------===//
 
+LogicalResult convertTypesAndAttrs(
+    const ConversionPattern& pattern, Operation* vhloOp,
+    ArrayRef<NamedAttribute> vhloAttrs, SmallVectorImpl<Type>& stablehloTypes,
+    SmallVectorImpl<NamedAttribute>& stablehloAttrs,
+    SpecialConverter convertSpecial) {
+  if (failed(pattern.getTypeConverter()->convertTypes(vhloOp->getResultTypes(),
+                                                      stablehloTypes)))
+    return failure();
+
+  // Convert VHLO attributes to StableHLO equivalents.
+  // There are two paths:
+  //   1) Generic path where default logic applies, and there is a 1:1
+  //      mapping from VHLO to StableHLO.
+  //   2) Special cases (currently, about a dozen) where there is not 1:1
+  //      mapping from VHLO to StableHLO.
+  if (vhloAttrs.empty()) return success();
+  stablehloAttrs.reserve(stablehloAttrs.size() + vhloAttrs.size());
+  const auto* typeConverter =
+      pattern.getTypeConverter<vhlo::VhloTypeConverter>();
+  for (NamedAttribute vhloAttr : vhloAttrs) {
+    if (convertSpecial) {
+      auto result = convertSpecial(pattern, vhloAttr.getName(),
+                                   vhloAttr.getValue(), stablehloAttrs);
+      if (result == SpecialResult::SPECIAL_SUCCESS) continue;
+      if (result == SpecialResult::SPECIAL_FAILURE) return failure();
+    }
+    auto stablehloAttr = convertGeneric(vhloAttr.getValue(), typeConverter);
+    if (!stablehloAttr) return failure();
+    vhloAttr.setValue(stablehloAttr);
+    stablehloAttrs.push_back(vhloAttr);
+  }
+  return success();
+}
+
+LogicalResult convertRegions(Operation* vhloOp, Operation* stablehloOp,
+                             ConversionPatternRewriter& rewriter,
+                             const TypeConverter& typeConverter) {
+  for (auto [vhloRegion, stablehloRegion] :
+       llvm::zip_equal(vhloOp->getRegions(), stablehloOp->getRegions())) {
+    rewriter.inlineRegionBefore(vhloRegion, stablehloRegion,
+                                stablehloRegion.end());
+    if (failed(rewriter.convertRegionTypes(&stablehloRegion, typeConverter,
+                                           /*entryConversion=*/nullptr)))
+      return failure();
+  }
+  return success();
+}
+
 template <typename VhloOpTy>
 class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
  public:
@@ -1074,42 +1113,18 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
       VhloOpTy vhloOp, typename VhloOpTy::Adaptor adaptor,
       ConversionPatternRewriter& rewriter) const final {
     SmallVector<Type> stablehloTypes;
-    if (failed(this->getTypeConverter()->convertTypes(vhloOp->getResultTypes(),
-                                                      stablehloTypes)))
+    auto vhloAttrs = llvm::to_vector<24>(vhloOp->getAttrs());
+    SmallVector<NamedAttribute, 8> stablehloAttrs;
+    if (failed(removeDefaults(*this, vhloOp, vhloAttrs)) ||
+        failed(implodeSpecial(*this, vhloOp, vhloAttrs, stablehloAttrs)) ||
+        failed(convertTypesAndAttrs(*this, vhloOp, vhloAttrs, stablehloTypes,
+                                    stablehloAttrs,
+                                    getSpecialConverter<VhloOpTy>())))
       return failure();
 
     // These operands have already been converted to StableHLO by
     // the dialect conversion infrastructure.
     ValueRange stablehloOperands = adaptor.getOperands();
-
-    // Convert VHLO attributes to StableHLO equivalents.
-    // There are two paths:
-    //   1) Generic path where default logic applies, and there is a 1:1
-    //      mapping from VHLO to StableHLO.
-    //   2) Special cases (currently, about a dozen) where there is not 1:1
-    //      mapping from VHLO to StableHLO.
-    SmallVector<NamedAttribute> vhloAttrs = to_vector(vhloOp->getAttrs());
-    SmallVector<NamedAttribute> stablehloAttrs;
-    if (failed(removeDefaults(*this, vhloOp, vhloAttrs))) return failure();
-    if (failed(implodeSpecial(*this, vhloOp, vhloAttrs, stablehloAttrs)))
-      return failure();
-    for (NamedAttribute vhloAttr : vhloAttrs) {
-      auto result = convertSpecial(*this, vhloAttr.getName(),
-                                   vhloAttr.getValue(), stablehloAttrs);
-      switch (result) {
-        case SpecialResult::SPECIAL_SUCCESS:
-          break;
-        case SpecialResult::SPECIAL_FAILURE:
-          return failure();
-        case SpecialResult::NOT_SPECIAL:
-          auto stablehloAttr = convertGeneric(
-              vhloAttr.getValue(),
-              this->template getTypeConverter<vhlo::VhloTypeConverter>());
-          if (!stablehloAttr) return failure();
-          stablehloAttrs.push_back({vhloAttr.getName(), stablehloAttr});
-          break;
-      }
-    }
 
     // Replace vhlo.return --> func.return if direct parent is a func op.
     if constexpr (std::is_same<VhloOpTy, vhlo::ReturnOpV1>::value) {
@@ -1136,13 +1151,9 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
           typename StablehloOpTy::Properties{}, stablehloAttrs);
     }
 
-    for (auto [vhloRegion, stablehloRegion] :
-         llvm::zip_equal(vhloOp->getRegions(), stablehloOp->getRegions())) {
-      rewriter.inlineRegionBefore(vhloRegion, stablehloRegion,
-                                  stablehloRegion.end());
-      if (failed(rewriter.convertRegionTypes(&stablehloRegion,
-                                             *this->getTypeConverter(),
-                                             /*entryConversion=*/nullptr)))
+    if constexpr (!VhloOpTy::template hasTrait<OpTrait::ZeroRegions>()) {
+      if (failed(convertRegions(vhloOp, stablehloOp, rewriter,
+                                *this->getTypeConverter())))
         return failure();
     }
 
@@ -1181,13 +1192,21 @@ struct ReconcileUnrealizedConversionCasts
   }
 };
 
+void addPattern(RewritePatternSet* patterns,
+                std::unique_ptr<RewritePattern> pattern) {
+  patterns->add(std::move(pattern));
+}
+
 template <typename... StablehloOpTypes>
 void populateVhloToStablehloPatterns(MLIRContext* context,
                                      RewritePatternSet* patterns,
                                      vhlo::VhloTypeConverter* converter) {
-  patterns
-      ->add<VhloToStablehloOpConverter<StablehloToVhloOp<StablehloOpTypes>>...>(
-          *converter, context);
+  (addPattern(
+       patterns,
+       std::make_unique<
+           VhloToStablehloOpConverter<StablehloToVhloOp<StablehloOpTypes>>>(
+           *converter, context)),
+   ...);
 }
 
 }  // namespace
