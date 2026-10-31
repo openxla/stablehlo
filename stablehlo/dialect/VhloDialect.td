@@ -63,6 +63,7 @@ def VHLO_Dialect : Dialect {
       1.22.0: Add WEAKORDER comparison type to compare op.
       1.23.0: Add `exp2` and `log2` ops.
       1.24.0: Add `fma` op.
+      1.25.0: Support f16 and bf16 element types in complex types.
   }];
 
   let useDefaultAttributePrinterParser = 0;
