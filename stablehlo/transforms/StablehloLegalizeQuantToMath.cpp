@@ -19,6 +19,7 @@ limitations under the License.
 #include <optional>
 #include <utility>
 
+#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
@@ -73,14 +74,15 @@ quant::UniformQuantizedPerAxisType getPerAxisType(Type type) {
 
 // Extracts scale and zero point info from input quant type info.
 void getQuantizationParams(OpBuilder& builder, Location loc,
-                           QuantType quantType, Value& scales,
+                           QuantType quantType, Type scaleType, Value& scales,
                            Value& zeroPoints, bool outputZeroPointInFp,
                            DenseI64ArrayAttr& broadcastDims) {
   // Get scales/zero points for per-tensor and per-axis quantization cases.
   if (auto quantPerTensorType =
           dyn_cast<quant::UniformQuantizedType>(quantType)) {
     scales = stablehlo::ConstantOp::create(
-        builder, loc, builder.getF32FloatAttr(quantPerTensorType.getScale()));
+        builder, loc,
+        builder.getFloatAttr(scaleType, quantPerTensorType.getScale()));
     if (outputZeroPointInFp) {
       zeroPoints = stablehlo::ConstantOp::create(
           builder, loc,
@@ -94,14 +96,15 @@ void getQuantizationParams(OpBuilder& builder, Location loc,
     }
   } else {
     auto quantPerAxisType = getPerAxisType(quantType);
-    SmallVector<float> scalesVec;
-    for (auto scale : quantPerAxisType.getScales()) scalesVec.push_back(scale);
+    SmallVector<APFloat> scalesVec;
+    for (auto scale : quantPerAxisType.getScales())
+      scalesVec.push_back(builder.getFloatAttr(scaleType, scale).getValue());
     scales = stablehlo::ConstantOp::create(
         builder, loc,
         DenseFPElementsAttr::get(
             RankedTensorType::get(
                 {static_cast<int64_t>(quantPerAxisType.getScales().size())},
-                builder.getF32Type()),
+                scaleType),
             scalesVec));
     if (outputZeroPointInFp) {
       SmallVector<float> zeroPointsVec;
@@ -336,7 +339,8 @@ class ConvertUniformQuantizeOp
       ConversionPatternRewriter& rewriter, QuantType quantType) const {
     Value scales, zeroPoints;
     DenseI64ArrayAttr broadcastDims;
-    getQuantizationParams(rewriter, op->getLoc(), quantType, scales, zeroPoints,
+    getQuantizationParams(rewriter, op->getLoc(), quantType,
+                          rewriter.getF32Type(), scales, zeroPoints,
                           /*outputZeroPointInFp=*/true, broadcastDims);
 
     Value quantizationMin, quantizationMax;
@@ -395,7 +399,9 @@ class ConvertUniformDequantizeOp
     }
     Value scales, zeroPoints;
     DenseI64ArrayAttr broadcastDims;
-    getQuantizationParams(rewriter, op->getLoc(), *quantType, scales,
+    auto resFloatTensorType = op.getResult().getType();
+    getQuantizationParams(rewriter, op->getLoc(), *quantType,
+                          resFloatTensorType.getElementType(), scales,
                           zeroPoints,
                           /*outputZeroPointInFp=*/false, broadcastDims);
 
@@ -408,8 +414,6 @@ class ConvertUniformDequantizeOp
     resInt32 =
         chlo::BroadcastSubOp::create(rewriter, op->getLoc(), resInt32TensorType,
                                      resInt32, zeroPoints, broadcastDims);
-    auto resFloatTensorType =
-        cast<TensorType>(resInt32.getType()).clone(rewriter.getF32Type());
     Value resFloat = stablehlo::ConvertOp::create(rewriter, op->getLoc(),
                                                   resFloatTensorType, resInt32);
     resFloat = rewriter.replaceOpWithNewOp<chlo::BroadcastMulOp>(
@@ -615,8 +619,8 @@ LogicalResult matchAndRewriteDotLikeHybridOp(
   // Get scales and zero points for rhs.
   Value rhsScale, rhsZeroPoint;
   DenseI64ArrayAttr broadcastDims;
-  getQuantizationParams(rewriter, op->getLoc(), *rhsElementQuantType, rhsScale,
-                        rhsZeroPoint,
+  getQuantizationParams(rewriter, op->getLoc(), *rhsElementQuantType,
+                        rewriter.getF32Type(), rhsScale, rhsZeroPoint,
                         /*outputZeroPointInFp=*/true, broadcastDims);
 
   // Dequantize rhs_float32_tensor.
