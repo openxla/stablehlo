@@ -286,6 +286,14 @@ LogicalResult foldConvert(PatternRewriter& rewriter, OpType op,
       return foldConvertHelper<FloatAttr, FloatAttr>(
           rewriter, op, elements, resultType,
           [&targetSemantics](const APFloat& operand, bool& castStatus) {
+            if (operand.isNegative() &&
+                !APFloat::semanticsHasSignedRepr(targetSemantics)) {
+              castStatus = true;
+              return operand.isNegZero() &&
+                             APFloat::semanticsHasZero(targetSemantics)
+                         ? APFloat::getZero(targetSemantics)
+                         : APFloat::getNaN(targetSemantics);
+            }
             bool losesInfo;
             APFloat newValue = operand;
             castStatus = APFloat::opInvalidOp !=
@@ -330,8 +338,12 @@ LogicalResult foldConvert(PatternRewriter& rewriter, OpType op,
         rewriter, op, elements, resultType,
         [&newFloatType, &isOldTypeUnsigned](const APInt& operand,
                                             bool& /*castStatus*/) {
-          APFloat apf(newFloatType.getFloatSemantics(),
-                      APInt::getZero(newFloatType.getWidth()));
+          const auto& targetSemantics = newFloatType.getFloatSemantics();
+          if (!isOldTypeUnsigned && operand.isNegative() &&
+              !APFloat::semanticsHasSignedRepr(targetSemantics)) {
+            return APFloat::getNaN(targetSemantics);
+          }
+          APFloat apf(targetSemantics, APInt::getZero(newFloatType.getWidth()));
           apf.convertFromAPInt(operand, !isOldTypeUnsigned,
                                APFloat::rmNearestTiesToEven);
           return apf;
