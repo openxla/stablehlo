@@ -171,3 +171,70 @@ module @mesh_axes_subaxis {
     func.return
   }
 }
+
+// -----
+
+// Four all_gather ops in a row share one process group and one channel, so they
+// all rendezvous on the same channel. Each process starts from a distinct power
+// of ten and every round adds process 7's running value, so no two rounds
+// contribute the same values and a process that picks up a contribution left
+// over from an earlier round reaches a different result.
+module @repeated_rendezvous_on_one_channel {
+  func.func @all_gather(%operand : tensor<1xi64>) -> tensor<1xi64> {
+    %gather0 = "stablehlo.all_gather"(%operand) {
+      all_gather_dim = 0 : i64,
+      replica_groups = dense<[[0, 1, 2, 3, 4, 5, 6, 7]]> : tensor<1x8xi64>
+    } : (tensor<1xi64>) -> tensor<8xi64>
+    %peer0 = stablehlo.slice %gather0 [7:8] : (tensor<8xi64>) -> tensor<1xi64>
+    %state0 = stablehlo.add %peer0, %operand : tensor<1xi64>
+
+    %gather1 = "stablehlo.all_gather"(%state0) {
+      all_gather_dim = 0 : i64,
+      replica_groups = dense<[[0, 1, 2, 3, 4, 5, 6, 7]]> : tensor<1x8xi64>
+    } : (tensor<1xi64>) -> tensor<8xi64>
+    %peer1 = stablehlo.slice %gather1 [7:8] : (tensor<8xi64>) -> tensor<1xi64>
+    %state1 = stablehlo.add %peer1, %operand : tensor<1xi64>
+
+    %gather2 = "stablehlo.all_gather"(%state1) {
+      all_gather_dim = 0 : i64,
+      replica_groups = dense<[[0, 1, 2, 3, 4, 5, 6, 7]]> : tensor<1x8xi64>
+    } : (tensor<1xi64>) -> tensor<8xi64>
+    %peer2 = stablehlo.slice %gather2 [7:8] : (tensor<8xi64>) -> tensor<1xi64>
+    %state2 = stablehlo.add %peer2, %operand : tensor<1xi64>
+
+    %gather3 = "stablehlo.all_gather"(%state2) {
+      all_gather_dim = 0 : i64,
+      replica_groups = dense<[[0, 1, 2, 3, 4, 5, 6, 7]]> : tensor<1x8xi64>
+    } : (tensor<1xi64>) -> tensor<8xi64>
+    %peer3 = stablehlo.slice %gather3 [7:8] : (tensor<8xi64>) -> tensor<1xi64>
+    %state3 = stablehlo.add %peer3, %operand : tensor<1xi64>
+
+    return %state3 : tensor<1xi64>
+  }
+  func.func @main() {
+    %p0 = stablehlo.constant dense<[1]> : tensor<1xi64>
+    %p1 = stablehlo.constant dense<[10]> : tensor<1xi64>
+    %p2 = stablehlo.constant dense<[100]> : tensor<1xi64>
+    %p3 = stablehlo.constant dense<[1000]> : tensor<1xi64>
+    %p4 = stablehlo.constant dense<[10000]> : tensor<1xi64>
+    %p5 = stablehlo.constant dense<[100000]> : tensor<1xi64>
+    %p6 = stablehlo.constant dense<[1000000]> : tensor<1xi64>
+    %p7 = stablehlo.constant dense<[10000000]> : tensor<1xi64>
+    %results:8 = "interpreter.run_parallel"(%p0, %p1, %p2, %p3, %p4, %p5, %p6, %p7) {
+      programs=[[@all_gather], [@all_gather], [@all_gather], [@all_gather],
+                [@all_gather], [@all_gather], [@all_gather], [@all_gather]]
+    } : (tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>,
+         tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) ->
+        (tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>,
+         tensor<1xi64>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>)
+    check.expect_eq_const %results#0, dense<[40000001]> : tensor<1xi64>
+    check.expect_eq_const %results#1, dense<[40000010]> : tensor<1xi64>
+    check.expect_eq_const %results#2, dense<[40000100]> : tensor<1xi64>
+    check.expect_eq_const %results#3, dense<[40001000]> : tensor<1xi64>
+    check.expect_eq_const %results#4, dense<[40010000]> : tensor<1xi64>
+    check.expect_eq_const %results#5, dense<[40100000]> : tensor<1xi64>
+    check.expect_eq_const %results#6, dense<[41000000]> : tensor<1xi64>
+    check.expect_eq_const %results#7, dense<[50000000]> : tensor<1xi64>
+    func.return
+  }
+}
