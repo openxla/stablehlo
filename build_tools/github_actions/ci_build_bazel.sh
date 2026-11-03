@@ -92,7 +92,12 @@ bazel-test-diff() {
   if [[ -s "$FILTERED_TARGETS_PATH" ]]; then
     echo "Building and Testing Impacted (Non-External) Targets..."
     bazel build --target_pattern_file="$FILTERED_TARGETS_PATH"
-    bazel test --target_pattern_file="$FILTERED_TARGETS_PATH"
+    bazel test --target_pattern_file="$FILTERED_TARGETS_PATH" || {
+      # Exit code 4 means that the build succeeded but none of the targets are
+      # tests, e.g. when a change only touches comments in a BUILD file.
+      status="$?"
+      [[ "$status" -eq 4 ]] || exit "$status"
+    }
   else
     echo "No non-external impacted targets to build and test."
   fi
