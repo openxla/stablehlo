@@ -83,6 +83,7 @@ jobs:
           CMAKE_BUILD_TYPE: Release
           STABLEHLO_ENABLE_BINDINGS_PYTHON: OFF
           STABLEHLO_ENABLE_SANITIZER: address
+          LIT_OPTS: -j 12
           # TODO: remove this once https://github.com/openxla/stablehlo/pull/2318 is fixed
           ASAN_OPTIONS: allow_user_poisoning=false
 

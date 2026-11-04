@@ -222,3 +222,39 @@ func.func @convert_op_test_c128_to_c128() {
   check.expect_almost_eq_const %result, dense<[(-1.0, 0.0), (0.0, 1.0), (1.0, 0.0)]> : tensor<3xcomplex<f64>>
   func.return
 }
+
+// -----
+
+func.func @convert_op_test_f32_to_f8e8m0fnu() {
+  %operand = stablehlo.constant dense<[0x80000001, -1.0, -0.0, 0.0, 1.0, 2.0, 0xFF800000, 0xFFC00000, 0x7F800000]> : tensor<9xf32>
+  %result = stablehlo.convert %operand : (tensor<9xf32>) -> tensor<9xf8E8M0FNU>
+  check.expect_almost_eq_const %result, dense<[0xFF, 0xFF, 0xFF, 5.877470e-39, 1.0, 2.0, 0xFF, 0xFF, 0xFF]> : tensor<9xf8E8M0FNU>
+  func.return
+}
+
+// -----
+
+func.func @convert_op_test_bf16_to_f8e8m0fnu() {
+  %operand = stablehlo.constant dense<[-1.0, -0.0, 0.0, 1.0, 0xFF80, 0xFFC0]> : tensor<6xbf16>
+  %result = stablehlo.convert %operand : (tensor<6xbf16>) -> tensor<6xf8E8M0FNU>
+  check.expect_almost_eq_const %result, dense<[0xFF, 0xFF, 5.877470e-39, 1.0, 0xFF, 0xFF]> : tensor<6xf8E8M0FNU>
+  func.return
+}
+
+// -----
+
+func.func @convert_op_test_si32_to_f8e8m0fnu() {
+  %operand = stablehlo.constant dense<[-2, -1, 0, 1, 2]> : tensor<5xi32>
+  %result = stablehlo.convert %operand : (tensor<5xi32>) -> tensor<5xf8E8M0FNU>
+  check.expect_almost_eq_const %result, dense<[0xFF, 0xFF, 5.877470e-39, 1.0, 2.0]> : tensor<5xf8E8M0FNU>
+  func.return
+}
+
+// -----
+
+func.func @convert_op_test_ui8_to_f8e8m0fnu() {
+  %operand = stablehlo.constant dense<[0, 1, 2, 128]> : tensor<4xui8>
+  %result = stablehlo.convert %operand : (tensor<4xui8>) -> tensor<4xf8E8M0FNU>
+  check.expect_almost_eq_const %result, dense<[5.877470e-39, 1.0, 2.0, 128.0]> : tensor<4xf8E8M0FNU>
+  func.return
+}

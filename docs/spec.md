@@ -2319,6 +2319,13 @@ represented in the destination type, the result value is that exact
 representation. Otherwise, the behavior is TBD
 ([#180](https://github.com/openxla/stablehlo/issues/180)).
 
+For conversions to an **unsigned floating-point** type (e.g. `f8E5M3FNU` or
+`f8E8M0FNU`), negative source values are handled as follows:
+
+* Finite negative values (`< 0`), `-inf` and `-nan` are converted to `nan`.
+* `-0.0` is converted to `+0.0` if the destination type can represent zero,
+  and to `nan` otherwise (for `f8E8M0FNU`).
+
 For conversions involving **floating-point-to-integer**, the fractional part is
 truncated. If the truncated value cannot be represented in the destination type,
 the behavior is TBD ([#180](https://github.com/openxla/stablehlo/issues/180)).
@@ -2766,7 +2773,10 @@ Performs element-wise division of dividend `lhs` and divisor `rhs` tensors and
 produces a `result` tensor. Depending on the element type, does the following:
 
 * For integers: integer division which produces the algebraic quotient with any
-  fractional part discarded.
+  fractional part discarded. If `rhs` is zero, or, for signed integer types,
+  `lhs` is the minimum representable value and `rhs` is `-1`, the
+  corresponding element of `result` is an implementation-defined value of the
+  element type of `result`.
 * For floats: `division` from IEEE-754.
 * For complex numbers: complex division.
 * For quantized types:
@@ -5560,7 +5570,10 @@ More formally, the sign of the result is taken from the dividend, and the
 absolute value of the result is always less than the divisor's absolute value.
 The remainder is calculated as `lhs - d * rhs`, where `d` is given by:
 
-* For integers: `stablehlo.divide(lhs, rhs)`.
+* For integers: `stablehlo.divide(lhs, rhs)`. If `rhs` is zero, or, for signed
+  integer types, `lhs` is the minimum representable value and `rhs` is `-1`,
+  the corresponding element of `result` is an implementation-defined value of
+  the element type of `result`.
 * For floats: `division(lhs, rhs)` from IEEE-754 with rounding attribute
   `roundTowardZero`.
 * For complex numbers: TBD
