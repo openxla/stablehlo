@@ -3,7 +3,7 @@
 Status: in review<br/>
 Initial version: 2026-10-21<br/>
 Last updated: 2026-10-21<br/>
-Discussion thread: https://github.com/openxla/stablehlo/pull/3050
+Discussion thread: [PR#3050](https://github.com/openxla/stablehlo/pull/3050)
 
 ## Summary
 
@@ -43,7 +43,7 @@ This matches the behavior implemented by `ml_dtypes`, and what is already
 implemented as a special case for `f8E8M0FNU` on GPU in
 `xla/codegen/emitters/transforms/expand_float_ops.cc`:
 
-```
+```cpp
   if (llvm::isa<mlir::Float8E8M0FNUType>(to_ty)) {
     // Converting a negative number to E8M0 results in NaN.
     input_is_nan = from_sign_bit | input_is_nan;

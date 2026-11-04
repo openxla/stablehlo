@@ -1016,6 +1016,26 @@ func.func @eval_convert_f64_precision_loss() -> (tensor<1xf32>, tensor<f32>) {
 
 // -----
 
+// CHECK-LABEL: func @eval_convert_to_unsigned_float
+func.func @eval_convert_to_unsigned_float() -> (tensor<9xf8E8M0FNU>, tensor<5xf8E8M0FNU>, tensor<4xf8E8M0FNU>, tensor<6xf8E8M0FNU>) {
+  // CHECK-DAG: [[R0:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 0xFF, 5.877470e-39, 1.000000e+00, 2.000000e+00, 0xFF, 0xFF, 0xFF]> : tensor<9xf8E8M0FNU>
+  // CHECK-DAG: [[R1:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 5.877470e-39, 1.000000e+00, 2.000000e+00]> : tensor<5xf8E8M0FNU>
+  // CHECK-DAG: [[R2:%.*]] = stablehlo.constant dense<[5.877470e-39, 1.000000e+00, 2.000000e+00, 1.280000e+02]> : tensor<4xf8E8M0FNU>
+  // CHECK-DAG: [[R3:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 5.877470e-39, 1.000000e+00, 0xFF, 0xFF]> : tensor<6xf8E8M0FNU>
+  // CHECK: return [[R0]], [[R1]], [[R2]], [[R3]]
+  %0 = stablehlo.constant dense<[0x80000001, -1.0, -0.0, 0.0, 1.0, 2.0, 0xFF800000, 0xFFC00000, 0x7F800000]> : tensor<9xf32>
+  %1 = stablehlo.constant dense<[-2, -1, 0, 1, 2]> : tensor<5xi32>
+  %2 = stablehlo.constant dense<[0, 1, 2, 128]> : tensor<4xui8>
+  %3 = stablehlo.constant dense<[-1.0, -0.0, 0.0, 1.0, 0xFF80, 0xFFC0]> : tensor<6xbf16>
+  %4 = stablehlo.convert %0 : (tensor<9xf32>) -> tensor<9xf8E8M0FNU>
+  %5 = stablehlo.convert %1 : (tensor<5xi32>) -> tensor<5xf8E8M0FNU>
+  %6 = stablehlo.convert %2 : (tensor<4xui8>) -> tensor<4xf8E8M0FNU>
+  %7 = stablehlo.convert %3 : (tensor<6xbf16>) -> tensor<6xf8E8M0FNU>
+  func.return %4, %5, %6, %7 : tensor<9xf8E8M0FNU>, tensor<5xf8E8M0FNU>, tensor<4xf8E8M0FNU>, tensor<6xf8E8M0FNU>
+}
+
+// -----
+
 ////////
 // AbsOp
 
