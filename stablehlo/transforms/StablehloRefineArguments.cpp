@@ -57,7 +57,7 @@ CustomCallOp makeShapeRefinementOperandWrapper(OpBuilder& builder,
       builder.getI64TensorAttr(refinedType.getShape()));
   return stablehlo::CustomCallOp::create(
       builder, operand.getLoc(), operand.getType(),
-      ValueRange{operand, constant},
+      ValueRange{operand, constant}, typename CustomCallOp::Properties{},
       llvm::SmallVector<NamedAttribute>{
           builder.getNamedAttr(
               "call_target_name",

@@ -1,5 +1,5 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file --stablehlo-compatibility-expander='target=1.0.0' --chlo-legalize-to-stablehlo | FileCheck %s --check-prefixes=CHECK
-// RUN: stablehlo-opt %s -verify-diagnostics -split-input-file --stablehlo-compatibility-expander='target=1.6.0' --chlo-legalize-to-stablehlo | FileCheck %s --check-prefixes=CHECK-NO-DOWNGRADE
+// RUN: stablehlo-opt %s -verify-diagnostics -split-input-file --stablehlo-compatibility-expander='target=1.23.0' --chlo-legalize-to-stablehlo | FileCheck %s --check-prefixes=CHECK-NO-DOWNGRADE
 
 // -----
 
@@ -582,4 +582,69 @@ func.func @all_reduce_mesh_axes_expansion(%arg0: tensor<4xf32>) -> tensor<4xf32>
   }) : (tensor<4xf32>) -> tensor<4xf32>
   return %0 : tensor<4xf32>
 }
+
+// -----
+
+// CHECK-LABEL: @exp2_op_non_complex
+// CHECK-DAG: %[[cst:.*]] = stablehlo.constant dense<0.69314718055994529> : tensor<4xf64>
+// CHECK-DAG: %[[mul:.*]] = stablehlo.multiply %arg0, %[[cst]] : tensor<4xf64>
+// CHECK: %[[exp:.*]] = stablehlo.exponential %[[mul]] : tensor<4xf64>
+// CHECK: return %[[exp]] : tensor<4xf64>
+func.func @exp2_op_non_complex(%arg0: tensor<4xf64>) -> tensor<4xf64> {
+  // CHECK-NO-DOWNGRADE: stablehlo.exp2 %arg0 : tensor<4xf64>
+  %0 = stablehlo.exp2 %arg0 : tensor<4xf64>
+  func.return %0 : tensor<4xf64>
+}
+
+// -----
+
+// CHECK-LABEL: @exp2_op_complex
+// CHECK-DAG: %[[cst:.*]] = stablehlo.constant dense<0.69314718055994529> : tensor<4xf64>
+// CHECK-DAG: %[[complex:.*]] = stablehlo.complex %arg0, %arg1 : tensor<4xcomplex<f64>>
+// CHECK: %[[real:.*]] = stablehlo.real %[[complex]] : (tensor<4xcomplex<f64>>) -> tensor<4xf64>
+// CHECK: %[[mul_real:.*]] = stablehlo.multiply %[[real]], %[[cst]] : tensor<4xf64>
+// CHECK: %[[imag:.*]] = stablehlo.imag %[[complex]] : (tensor<4xcomplex<f64>>) -> tensor<4xf64>
+// CHECK: %[[mul_imag:.*]] = stablehlo.multiply %[[imag]], %[[cst]] : tensor<4xf64>
+// CHECK: %[[scaled:.*]] = stablehlo.complex %[[mul_real]], %[[mul_imag]] : tensor<4xcomplex<f64>>
+// CHECK: %[[exp:.*]] = stablehlo.exponential %[[scaled]] : tensor<4xcomplex<f64>>
+// CHECK: return %[[exp]] : tensor<4xcomplex<f64>>
+func.func @exp2_op_complex(%arg0: tensor<4xf64>, %arg1: tensor<4xf64>) -> tensor<4xcomplex<f64>> {
+  %0 = stablehlo.complex %arg0, %arg1 : tensor<4xcomplex<f64>>
+  // CHECK-NO-DOWNGRADE: stablehlo.exp2 %0 : tensor<4xcomplex<f64>>
+  %1 = stablehlo.exp2 %0 : tensor<4xcomplex<f64>>
+  func.return %1 : tensor<4xcomplex<f64>>
+}
+
+// -----
+
+// CHECK-LABEL: @log2_op_non_complex
+// CHECK-DAG: %[[cst:.*]] = stablehlo.constant dense<0.69314718055994529> : tensor<4xf64>
+// CHECK-DAG: %[[log:.*]] = stablehlo.log %arg0 : tensor<4xf64>
+// CHECK: %[[div:.*]] = stablehlo.divide %[[log]], %[[cst]] : tensor<4xf64>
+// CHECK: return %[[div]] : tensor<4xf64>
+func.func @log2_op_non_complex(%arg0: tensor<4xf64>) -> tensor<4xf64> {
+  // CHECK-NO-DOWNGRADE: stablehlo.log2 %arg0 : tensor<4xf64>
+  %0 = stablehlo.log2 %arg0 : tensor<4xf64>
+  func.return %0 : tensor<4xf64>
+}
+
+// -----
+
+// CHECK-LABEL: @log2_op_complex
+// CHECK-DAG: %[[cst:.*]] = stablehlo.constant dense<0.69314718055994529> : tensor<4xf64>
+// CHECK-DAG: %[[complex:.*]] = stablehlo.complex %arg0, %arg1 : tensor<4xcomplex<f64>>
+// CHECK: %[[log:.*]] = stablehlo.log %[[complex]] : tensor<4xcomplex<f64>>
+// CHECK: %[[real:.*]] = stablehlo.real %[[log]] : (tensor<4xcomplex<f64>>) -> tensor<4xf64>
+// CHECK: %[[div_real:.*]] = stablehlo.divide %[[real]], %[[cst]] : tensor<4xf64>
+// CHECK: %[[imag:.*]] = stablehlo.imag %[[log]] : (tensor<4xcomplex<f64>>) -> tensor<4xf64>
+// CHECK: %[[div_imag:.*]] = stablehlo.divide %[[imag]], %[[cst]] : tensor<4xf64>
+// CHECK: %[[res:.*]] = stablehlo.complex %[[div_real]], %[[div_imag]] : tensor<4xcomplex<f64>>
+// CHECK: return %[[res]] : tensor<4xcomplex<f64>>
+func.func @log2_op_complex(%arg0: tensor<4xf64>, %arg1: tensor<4xf64>) -> tensor<4xcomplex<f64>> {
+  %0 = stablehlo.complex %arg0, %arg1 : tensor<4xcomplex<f64>>
+  // CHECK-NO-DOWNGRADE: stablehlo.log2 %0 : tensor<4xcomplex<f64>>
+  %1 = stablehlo.log2 %0 : tensor<4xcomplex<f64>>
+  func.return %1 : tensor<4xcomplex<f64>>
+}
+
 

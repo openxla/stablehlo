@@ -172,3 +172,43 @@ module @cross_replica_variaidic {
     func.return %results#0, %results#1, %results#2, %results#3 : tensor<4x2xi64>, tensor<6x2xi32>, tensor<4x2xi64>, tensor<6x2xi32>
   }
 }
+
+// -----
+
+module @mesh_axes_subaxis {
+  func.func @all_to_all(%operand : tensor<2x1xi64>) -> tensor<1x2xi64> {
+    %result = "stablehlo.all_to_all"(%operand) {
+      split_dimension = 0 : i64,
+      concat_dimension = 1 : i64,
+      split_count = 2 : i64,
+      replica_groups = #stablehlo.replica_group_mesh_axes<mesh = #stablehlo.mesh<axes = [#stablehlo.mesh_axis<name = "x", size = 2>, #stablehlo.mesh_axis<name = "y", size = 4>]>, axes = [#stablehlo.axis_ref<name = "y", sub_axis_info = (1)2>]>
+    } : (tensor<2x1xi64>) -> tensor<1x2xi64>
+    return %result : tensor<1x2xi64>
+  }
+  func.func @main() {
+    %p0 = stablehlo.constant dense<[[1], [2]]> : tensor<2x1xi64>
+    %p1 = stablehlo.constant dense<[[3], [4]]> : tensor<2x1xi64>
+    %p2 = stablehlo.constant dense<[[10], [20]]> : tensor<2x1xi64>
+    %p3 = stablehlo.constant dense<[[30], [40]]> : tensor<2x1xi64>
+    %p4 = stablehlo.constant dense<[[5], [6]]> : tensor<2x1xi64>
+    %p5 = stablehlo.constant dense<[[7], [8]]> : tensor<2x1xi64>
+    %p6 = stablehlo.constant dense<[[50], [60]]> : tensor<2x1xi64>
+    %p7 = stablehlo.constant dense<[[70], [80]]> : tensor<2x1xi64>
+    %results:8 = "interpreter.run_parallel"(%p0, %p1, %p2, %p3, %p4, %p5, %p6, %p7) {
+      programs=[[@all_to_all], [@all_to_all], [@all_to_all], [@all_to_all],
+                [@all_to_all], [@all_to_all], [@all_to_all], [@all_to_all]]
+    } : (tensor<2x1xi64>, tensor<2x1xi64>, tensor<2x1xi64>, tensor<2x1xi64>,
+         tensor<2x1xi64>, tensor<2x1xi64>, tensor<2x1xi64>, tensor<2x1xi64>) ->
+        (tensor<1x2xi64>, tensor<1x2xi64>, tensor<1x2xi64>, tensor<1x2xi64>,
+         tensor<1x2xi64>, tensor<1x2xi64>, tensor<1x2xi64>, tensor<1x2xi64>)
+    check.expect_eq_const %results#0, dense<[[1, 10]]> : tensor<1x2xi64>
+    check.expect_eq_const %results#1, dense<[[3, 30]]> : tensor<1x2xi64>
+    check.expect_eq_const %results#2, dense<[[2, 20]]> : tensor<1x2xi64>
+    check.expect_eq_const %results#3, dense<[[4, 40]]> : tensor<1x2xi64>
+    check.expect_eq_const %results#4, dense<[[5, 50]]> : tensor<1x2xi64>
+    check.expect_eq_const %results#5, dense<[[7, 70]]> : tensor<1x2xi64>
+    check.expect_eq_const %results#6, dense<[[6, 60]]> : tensor<1x2xi64>
+    check.expect_eq_const %results#7, dense<[[8, 80]]> : tensor<1x2xi64>
+    func.return
+  }
+}

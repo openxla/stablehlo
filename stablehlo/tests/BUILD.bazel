@@ -11,15 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 load("@bazel_skylib//rules:expand_template.bzl", "expand_template")
-load("@llvm-project//llvm:lit_test.bzl", "lit_test")
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("//build_tools:lit_test_suite.bzl", "lit_test_suite")
+load("//build_tools:utils.bzl", "get_compatible_with_portable")
 
 package(
-    default_visibility = ["//visibility:public"],
+    # copybara:uncomment default_applicable_licenses = ["//:license"],
+    default_visibility = [
+        "//visibility:public",  # copybara:comment
+        # copybara:uncomment "//:stablehlo_friends",
+    ],
     licenses = ["notice"],
 )
+
+# copybara:uncomment_begin
+# filegroup(
+#     name = "all_files",
+#     srcs = glob(["**"]),
+#     visibility = ["//:__subpackages__"],
+# )
+# copybara:uncomment_end
 
 cc_library(
     name = "check_ops",
@@ -29,6 +43,7 @@ cc_library(
     hdrs = [
         "CheckOps.h",
     ],
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     deps = [
         ":check_ops_inc_gen",
@@ -67,6 +82,7 @@ cc_test(
 
 gentbl_cc_library(
     name = "check_ops_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     tbl_outs = {
         "CheckOps.cpp.inc": ["-gen-op-defs"],
@@ -84,6 +100,7 @@ td_library(
     srcs = [
         "CheckOps.td",
     ],
+    compatible_with = get_compatible_with_portable(),
     includes = ["."],
     deps = [
         "//:base_td_files",
@@ -98,6 +115,7 @@ cc_library(
     hdrs = [
         "TestUtils.h",
     ],
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
     deps = [
         ":test_utils_inc_gen",
@@ -120,11 +138,14 @@ cc_library(
 
 gentbl_cc_library(
     name = "test_utils_inc_gen",
+    compatible_with = get_compatible_with_portable(),
     strip_include_prefix = ".",
-    tbl_outs = {"TestUtils.h.inc": [
-        "-gen-pass-decls",
-        "-name=HloTest",
-    ]},
+    tbl_outs = {
+        "TestUtils.h.inc": [
+            "-gen-pass-decls",
+            "-name=HloTest",
+        ],
+    },
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "TestUtils.td",
     deps = [
@@ -137,6 +158,7 @@ td_library(
     srcs = [
         "TestUtils.td",
     ],
+    compatible_with = get_compatible_with_portable(),
     includes = ["."],
     deps = [
         "@llvm-project//mlir:PassBaseTdFiles",
@@ -163,31 +185,27 @@ RUNFILES_DIR = LITE_CFG_PY.parents[2].absolute().as_posix()''',
     template = "lit.site.cfg.py.in",
 )
 
-# Equivalent of add_lit_testsuite from CMakeLists.txt.
-[
-    lit_test(
-        name = "%s.test" % src,
-        size = "small",
-        srcs = [src],
-        data = [
-            "lit.cfg.py",
-            "lit.site.cfg.py",
-            "//:stablehlo-opt",
-            "//:stablehlo-translate",
-            "@llvm-project//llvm:FileCheck",
-            "@llvm-project//llvm:not",
-            # Allow empty since not all `.mlir` tests have `.mlir.bc` test files.
-        ] + glob(
-            ["%s.bc" % src],
-            allow_empty = True,
-        ),
-        tags = ["stablehlo_tests"],
-        deps = ["@rules_python//python/runfiles"],
-    )
-    for src in glob(["**/*.mlir"])
-]
+lit_test_suite(
+    name = "stablehlo_tests",
+    srcs = glob([
+        "*.mlir",
+        "**/*.mlir",
+    ]),
+    data = [
+        "lit.cfg.py",
+        "lit.site.cfg.py",
+        "//:stablehlo-opt",
+        "//:stablehlo-translate",
+        "@llvm-project//llvm:FileCheck",
+        "@llvm-project//llvm:not",
+    ],
+    size_per_test = "small",
+    tags = ["stablehlo_tests"],
+)
 
 test_suite(
-    name = "stablehlo_tests",
-    tags = ["stablehlo_tests"],
+    name = "all_tests",  # alias for `:stablehlo_tests`
+    tests = [
+        "//stablehlo/tests:stablehlo_tests",
+    ],
 )

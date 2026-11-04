@@ -25,7 +25,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-Process::Process(ProcessId id, ProcessGrid *grid) : id_(id), grid_(grid) {}
+Process::Process(ProcessId id, ProcessGrid* grid) : id_(id), grid_(grid) {}
 
 ProcessGroups Process::crossPartition(
     SmallVector<SmallVector<uint32_t>> partitionGroups) {

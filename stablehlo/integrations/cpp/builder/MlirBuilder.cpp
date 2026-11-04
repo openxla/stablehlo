@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "MlirBuilder.h"
+#include "stablehlo/integrations/cpp/builder/MlirBuilder.h"
 
 #include "mlir/IR/Location.h"
 #include "mlir/IR/Value.h"

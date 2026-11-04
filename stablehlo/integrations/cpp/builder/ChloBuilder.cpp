@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "ChloBuilder.h"
+#include "stablehlo/integrations/cpp/builder/ChloBuilder.h"
 
 #include <cstdint>
 

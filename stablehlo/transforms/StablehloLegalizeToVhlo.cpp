@@ -969,8 +969,10 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
                 std::is_same<StablehloOpTy, stablehlo::CosineOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::ExpOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::Expm1Op>::value ||
+                std::is_same<StablehloOpTy, stablehlo::Exp2Op>::value ||
                 std::is_same<StablehloOpTy, stablehlo::LogOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::Log1pOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::Log2Op>::value ||
                 std::is_same<StablehloOpTy, stablehlo::LogisticOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::RsqrtOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::SineOp>::value ||
@@ -1131,15 +1133,17 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
     // This can almost be done in a generic fashion, except for
     // stablehlo.case that uses a variadic number of regions which means an
     // additional argument for the generic builder.
-    StablehloToVhloOp<StablehloOpTy> vhloOp;
+    using VhloOpTy = StablehloToVhloOp<StablehloOpTy>;
+    VhloOpTy vhloOp;
     if constexpr (StablehloOpTy::template hasTrait<
                       OpTrait::VariadicRegions>()) {
-      vhloOp = StablehloToVhloOp<StablehloOpTy>::create(
-          rewriter, stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs,
-          stablehloOp.getNumRegions());
+      vhloOp = VhloOpTy::create(rewriter, stablehloOp.getLoc(), vhloTypes,
+                                vhloOperands, typename VhloOpTy::Properties{},
+                                vhloAttrs, stablehloOp.getNumRegions());
     } else {
-      vhloOp = StablehloToVhloOp<StablehloOpTy>::create(
-          rewriter, stablehloOp.getLoc(), vhloTypes, vhloOperands, vhloAttrs);
+      vhloOp = VhloOpTy::create(rewriter, stablehloOp.getLoc(), vhloTypes,
+                                vhloOperands, typename VhloOpTy::Properties{},
+                                vhloAttrs);
     }
 
     for (auto [stablehloRegion, vhloRegion] :

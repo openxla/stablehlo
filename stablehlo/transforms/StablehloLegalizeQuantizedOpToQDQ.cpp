@@ -87,8 +87,9 @@ struct QuantizedStablehloOpConversion
         llvm::map_to_vector(origOp->getResultTypes(),
                             [](Type t) { return getQuantExpressedType(t); });
     auto origAttrs = origOp->getAttrs();
-    auto newOp = StablehloOpType::create(rewriter, op.getLoc(), newResultTypes,
-                                         dequantizedOperands, origAttrs)
+    auto newOp = StablehloOpType::create(
+                     rewriter, op.getLoc(), newResultTypes, dequantizedOperands,
+                     typename StablehloOpType::Properties{}, origAttrs)
                      .getOperation();
 
     SmallVector<Value> quantizedResults;

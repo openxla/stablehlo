@@ -2032,11 +2032,22 @@ LogicalResult inferClampOp(
 }
 
 LogicalResult inferCompareOp(
-    MLIRContext* context, std::optional<Location>, Value lhs,
+    MLIRContext* context, std::optional<Location> location, Value lhs,
+    std::optional<StringRef> compareType,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto argTy = cast<RankedTensorType>(lhs.getType());
+  // compare_c3
+  if (compareType && *compareType == "WEAKORDER" &&
+      !isa<FloatType>(argTy.getElementType())) {
+    return emitOptionalError(
+        location,
+        "WEAKORDER comparison type is only supported for floating-point "
+        "element types, got ",
+        argTy.getElementType());
+  }
+
   // compare_c1
   ShapedTypeComponents& components = inferredReturnShapes.emplace_back();
-  auto argTy = cast<RankedTensorType>(lhs.getType());
   auto resElementTy = IntegerType::get(context, /*width=*/1);
   // compare_c2
   components =

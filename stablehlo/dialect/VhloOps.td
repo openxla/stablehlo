@@ -512,7 +512,8 @@ def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general_v1", "0.9.0", "1.5.0"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_DotGeneralOpV2 : VHLO_Op<"dot_general_v2", "1.6.0", "current"> {
+def VHLO_DotGeneralOpV2 : VHLO_Op<"dot_general_v2", "1.6.0", "current",
+    [DeclareOpInterfaceMethods<VHLO_VersionedOpConstraintInterface>]> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
@@ -702,6 +703,13 @@ def VHLO_Expm1OpV2 : VHLO_Op<"exponential_minus_one_v2", "1.10.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
+def VHLO_Exp2OpV1 : VHLO_Op<"exp2_v1", "1.23.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
+  let results = (outs VHLO_AnyType:$result);
+}
+
 def VHLO_ExpOpV1 : VHLO_Op<"exponential_v1", "0.9.0", "1.8.0"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
@@ -725,6 +733,15 @@ def VHLO_FftOpV1 : VHLO_Op<"fft_v1", "0.9.0", "current"> {
 
 def VHLO_FloorOpV1 : VHLO_Op<"floor_v1", "0.9.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_FmaOpV1 : VHLO_Op<"fma_v1", "1.24.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$a,
+    VHLO_AnyType:$b,
+    VHLO_AnyType:$c
+  );
   let results = (outs VHLO_AnyType:$result);
 }
 
@@ -854,6 +871,13 @@ def VHLO_LogOpV1 : VHLO_Op<"log_v1", "0.9.0", "1.9.0"> {
 }
 
 def VHLO_LogOpV2 : VHLO_Op<"log_v2", "1.10.0", "current"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$result_accuracy);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_Log2OpV1 : VHLO_Op<"log2_v1", "1.23.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$result_accuracy);

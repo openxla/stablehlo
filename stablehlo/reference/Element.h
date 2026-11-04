@@ -237,8 +237,14 @@ Element exponential(const Element& el);
 /// Returns exponential_minus_one of Element object.
 Element exponentialMinusOne(const Element& el);
 
+/// Returns exp2 of Element object.
+Element exp2(const Element& el);
+
 /// Returns floor of Element object.
 Element floor(const Element& e);
+
+/// Returns fused multiply-add (a * b + c) of Element objects.
+Element fma(const Element& a, const Element& b, const Element& c);
 
 /// Returns the imaginary part extracted from the Element object with
 /// floating-point or complex type.
@@ -252,6 +258,9 @@ Element log(const Element& el);
 
 /// Returns log1p of Element object.
 Element logPlusOne(const Element& el);
+
+/// Returns log2 of Element object.
+Element log2(const Element& el);
 
 /// Returns logistic of Element object.
 Element logistic(const Element& el);
@@ -313,6 +322,12 @@ Element tan(const Element& e);
 
 /// Returns tanh of Element object.
 Element tanh(const Element& e);
+
+/// Returns weak-order equality of two floating-point Element objects.
+Element weakOrderEq(const Element& e1, const Element& e2);
+
+/// Returns weak-order less-than of two floating-point Element objects.
+Element weakOrderLt(const Element& e1, const Element& e2);
 
 /// Print utilities for Element objects.
 inline raw_ostream& operator<<(raw_ostream& os, Element element) {

@@ -41,7 +41,7 @@ struct ProcessId;
 class RendezvousResult {
  public:
   RendezvousResult() = default;
-  RendezvousResult(std::map<ProcessId, SmallVector<Tensor>> const &results);
+  RendezvousResult(std::map<ProcessId, SmallVector<Tensor>> const& results);
 
   /// Iterates through the (ProcessId, SmallVector<Tensor>) map entires and
   /// returns a vector of Tensors sorted by ProcessId--(replicaId, partitionId)
@@ -70,6 +70,10 @@ namespace detail {
 /// shared resource. Processes contribute their data to `values` concurrently.
 /// Once all processes have added their data, the data in `values` is moved to
 /// `result` that multiple processes can concurrently read from.
+///
+/// A process group may rendezvous on the same channel several times, so
+/// `values` only ever holds the contributions of the rendezvous in flight and
+/// `round` identifies which rendezvous that is.
 struct RendezvousState {
   /// Synchronization primitive used to manage concurrent access to this
   /// object.
@@ -79,8 +83,11 @@ struct RendezvousState {
   std::map<ProcessId, SmallVector<Tensor>> values;
 
   /// Internal state management counter which counts the number of processes
-  /// that contributed already.
-  size_t useCount;
+  /// that have yet to read `result`.
+  size_t useCount = 0;
+
+  /// Number of rendezvous that have completed on this channel.
+  uint64_t round = 0;
 
   /// Stores the result of `rendezvous`.
   RendezvousResult result;
@@ -104,7 +111,7 @@ template <typename K, typename V>
 class ThreadSafeMap {
  public:
   /// Returns a reference to the data associated with the `key`.
-  V &operator[](const K &key);
+  V& operator[](const K& key);
 
  private:
   /// Synchronization primitive used to manage concurrent access to the map.
@@ -143,7 +150,7 @@ class ThreadSafeQueue {
   /// \name Constructors
   /// @{
   ThreadSafeQueue() = default;
-  ThreadSafeQueue(const std::queue<T> &queue);
+  ThreadSafeQueue(const std::queue<T>& queue);
   /// @}
 
   /// Remove the first element of the queue and return it.
@@ -173,16 +180,16 @@ struct ProcessId {
   uint32_t partitionId;
 
   /// Overloaded inequality operator.
-  bool operator!=(const ProcessId &other) const;
+  bool operator!=(const ProcessId& other) const;
 
   /// The sort order for ProcessId is not defined in StableHLO, and it's
   /// internally used in ProcessGrid::rendezvous as part of a sorted key on the
   /// map. This operator is conveniently used to help define the ordering since
   /// ordering is defined for StableHLO process group.
-  bool operator<(const ProcessId &other) const;
+  bool operator<(const ProcessId& other) const;
 
   /// Overloaded equality operator.
-  bool operator==(const ProcessId &other) const;
+  bool operator==(const ProcessId& other) const;
 };
 
 /// StableHLO `process_group`.
@@ -190,9 +197,9 @@ class ProcessGroup : public SmallVector<ProcessId> {
  public:
   using SmallVector<ProcessId>::SmallVector;
 
-  bool operator<(const ProcessGroup &other) const {
-    return static_cast<const SmallVector &>(*this) <
-           static_cast<const SmallVector &>(other);
+  bool operator<(const ProcessGroup& other) const {
+    return static_cast<const SmallVector&>(*this) <
+           static_cast<const SmallVector&>(other);
   }
 };
 
@@ -211,7 +218,7 @@ class ProcessGrid {
   /// \name Constructors
   /// @{
   ProcessGrid(uint32_t numReplicas, uint32_t numPartitions,
-              std::queue<StringAttr> &infeed);
+              std::queue<StringAttr>& infeed);
   /// @}
 
   /// StableHLO `cross_partition` communication strategy.

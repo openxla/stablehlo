@@ -132,6 +132,14 @@ DenseElementsAttr getScalarOfType(Type ty, int64_t rawValue) {
   llvm::report_fatal_error("unsupported type");
 }
 
+void copyDiscardableAttrs(Operation* src, Operation* dst) {
+  dst->setDiscardableAttrs(src->getDiscardableAttrDictionary());
+}
+
+void copyDiscardableAttrs(Value src, Value dst) {
+  copyDiscardableAttrs(src.getDefiningOp(), dst.getDefiningOp());
+}
+
 #include "stablehlo/transforms/StablehloLegalizeDeprecatedOpsPatterns.h.inc"
 }  // namespace
 

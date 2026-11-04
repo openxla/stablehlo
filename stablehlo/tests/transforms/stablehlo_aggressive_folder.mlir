@@ -250,6 +250,27 @@ func.func @clamp_fold(%arg0: tensor<3xi32>) -> tensor<3xi32> {
 // -----
 
 ////////
+// FmaOp
+
+// CHECK-LABEL: func.func @fma_fold
+func.func @fma_fold() -> (tensor<3xf32>, tensor<2xf32>) {
+  %a = stablehlo.constant dense<[1.5, 2.0, -3.0]> : tensor<3xf32>
+  %b = stablehlo.constant dense<[2.0, 3.0, 4.0]> : tensor<3xf32>
+  %c = stablehlo.constant dense<[0.5, -1.0, 2.0]> : tensor<3xf32>
+  %sa = stablehlo.constant dense<2.0> : tensor<2xf32>
+  %sb = stablehlo.constant dense<3.0> : tensor<2xf32>
+  %sc = stablehlo.constant dense<4.0> : tensor<2xf32>
+  // CHECK-DAG: %[[CST0:.*]] = stablehlo.constant dense<[3.500000e+00, 5.000000e+00, -1.000000e+01]> : tensor<3xf32>
+  // CHECK-DAG: %[[CST1:.*]] = stablehlo.constant dense<1.000000e+01> : tensor<2xf32>
+  // CHECK: return %[[CST0]], %[[CST1]]
+  %0 = stablehlo.fma %a, %b, %c : tensor<3xf32>
+  %1 = stablehlo.fma %sa, %sb, %sc : tensor<2xf32>
+  func.return %0, %1 : tensor<3xf32>, tensor<2xf32>
+}
+
+// -----
+
+////////
 // CompareOp
 
 // CHECK-LABEL: func.func @compare_fold_int
@@ -556,6 +577,31 @@ func.func @compare_fold_float_edge_cases()
          tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
          tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>,
          tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @compare_fold_weakorder
+func.func @compare_fold_weakorder()
+  -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
+  %neg_zero = stablehlo.constant dense<-0.0> : tensor<f32>
+  %pos_zero = stablehlo.constant dense<0.0> : tensor<f32>
+  %pos_inf = stablehlo.constant dense<0x7F800000> : tensor<f32>
+  %neg_nan = stablehlo.constant dense<0xFFC00000> : tensor<f32>
+  %pos_nan = stablehlo.constant dense<0x7FC00000> : tensor<f32>
+
+  %0 = stablehlo.compare LT, %neg_zero, %pos_zero, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %1 = stablehlo.compare EQ, %neg_zero, %pos_zero, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %2 = stablehlo.compare EQ, %neg_nan, %pos_nan, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %3 = stablehlo.compare LT, %neg_nan, %pos_nan, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %4 = stablehlo.compare LT, %pos_inf, %neg_nan, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %5 = stablehlo.compare GT, %neg_nan, %pos_inf, WEAKORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+
+  // CHECK-DAG:  [[FALSE:%.+]] = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-DAG:  [[TRUE:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK-NEXT: return [[FALSE]], [[TRUE]], [[TRUE]], [[FALSE]], [[TRUE]], [[TRUE]]
+  return %0, %1, %2, %3, %4, %5 :
+         tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
 }
 
 // -----
@@ -966,6 +1012,26 @@ func.func @eval_convert_f64_precision_loss() -> (tensor<1xf32>, tensor<f32>) {
   %2 = stablehlo.convert %0 : (tensor<1xf64>) -> tensor<1xf32>
   %3 = stablehlo.convert %1 : (tensor<f64>) -> tensor<f32>
   func.return %2, %3 : tensor<1xf32>, tensor<f32>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_convert_to_unsigned_float
+func.func @eval_convert_to_unsigned_float() -> (tensor<9xf8E8M0FNU>, tensor<5xf8E8M0FNU>, tensor<4xf8E8M0FNU>, tensor<6xf8E8M0FNU>) {
+  // CHECK-DAG: [[R0:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 0xFF, 5.877470e-39, 1.000000e+00, 2.000000e+00, 0xFF, 0xFF, 0xFF]> : tensor<9xf8E8M0FNU>
+  // CHECK-DAG: [[R1:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 5.877470e-39, 1.000000e+00, 2.000000e+00]> : tensor<5xf8E8M0FNU>
+  // CHECK-DAG: [[R2:%.*]] = stablehlo.constant dense<[5.877470e-39, 1.000000e+00, 2.000000e+00, 1.280000e+02]> : tensor<4xf8E8M0FNU>
+  // CHECK-DAG: [[R3:%.*]] = stablehlo.constant dense<[0xFF, 0xFF, 5.877470e-39, 1.000000e+00, 0xFF, 0xFF]> : tensor<6xf8E8M0FNU>
+  // CHECK: return [[R0]], [[R1]], [[R2]], [[R3]]
+  %0 = stablehlo.constant dense<[0x80000001, -1.0, -0.0, 0.0, 1.0, 2.0, 0xFF800000, 0xFFC00000, 0x7F800000]> : tensor<9xf32>
+  %1 = stablehlo.constant dense<[-2, -1, 0, 1, 2]> : tensor<5xi32>
+  %2 = stablehlo.constant dense<[0, 1, 2, 128]> : tensor<4xui8>
+  %3 = stablehlo.constant dense<[-1.0, -0.0, 0.0, 1.0, 0xFF80, 0xFFC0]> : tensor<6xbf16>
+  %4 = stablehlo.convert %0 : (tensor<9xf32>) -> tensor<9xf8E8M0FNU>
+  %5 = stablehlo.convert %1 : (tensor<5xi32>) -> tensor<5xf8E8M0FNU>
+  %6 = stablehlo.convert %2 : (tensor<4xui8>) -> tensor<4xf8E8M0FNU>
+  %7 = stablehlo.convert %3 : (tensor<6xbf16>) -> tensor<6xf8E8M0FNU>
+  func.return %4, %5, %6, %7 : tensor<9xf8E8M0FNU>, tensor<5xf8E8M0FNU>, tensor<4xf8E8M0FNU>, tensor<6xf8E8M0FNU>
 }
 
 // -----
@@ -1494,7 +1560,7 @@ func.func @dce_while_false_condition() -> tensor<i64> {
   // CHECK-NOT: stablehlo.while
   %1 = stablehlo.while(%iterArg = %0) : tensor<i64>
     cond {
-    %2 = stablehlo.compare LT, %0, %0, SIGNED : (tensor<i64>, tensor<i64>) -> tensor<i1>
+    %2 = stablehlo.compare LT, %0, %0 : (tensor<i64>, tensor<i64>) -> tensor<i1>
     stablehlo.return %2 : tensor<i1>
   } do {
     %2 = stablehlo.custom_call @something(%iterArg) {has_side_effect = false} : (tensor<i64>) -> tensor<i64>

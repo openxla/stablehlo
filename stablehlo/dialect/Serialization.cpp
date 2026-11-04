@@ -15,10 +15,13 @@ limitations under the License.
 
 #include "stablehlo/dialect/Serialization.h"
 
+#include <memory>
+
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "mlir/Bytecode/BytecodeReader.h"
 #include "mlir/Bytecode/BytecodeWriter.h"
+#include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Location.h"
@@ -84,6 +87,8 @@ LogicalResult serializePortableArtifact(ModuleOp module,
       vhlo::Version::fromString(targetVersion)->getBytecodeVersion();
   if (failed(bytecodeVersion)) return failure();
   writerConfig.setDesiredBytecodeVersion(bytecodeVersion.value());
+  writerConfig.setDialectVersion<BuiltinDialect>(
+      std::make_unique<BuiltinDialectVersion>(/*version=*/0));
   return writeBytecodeToFile(module, os, writerConfig);
 }
 

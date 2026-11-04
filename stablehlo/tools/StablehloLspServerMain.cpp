@@ -19,7 +19,7 @@ limitations under the License.
 #include "mlir/Tools/mlir-lsp-server/MlirLspServerMain.h"
 #include "stablehlo/dialect/Register.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
   mlir::registerAllExtensions(registry);

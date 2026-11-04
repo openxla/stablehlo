@@ -72,7 +72,7 @@ llvm::ErrorOr<SerializedTensorMetadata> extractMetadata(StringRef line) {
 // Check Dialect Constructor
 //===----------------------------------------------------------------------===//
 
-CheckDialect::CheckDialect(MLIRContext *context)
+CheckDialect::CheckDialect(MLIRContext* context)
     : Dialect(getDialectNamespace(), context, TypeID::get<CheckDialect>()) {
   addOperations<
 #define GET_OP_LIST
@@ -80,13 +80,13 @@ CheckDialect::CheckDialect(MLIRContext *context)
       >();
 }
 
-llvm::Error evalExpectAlmostEqConstOp(const Tensor &lhs, ElementsAttr value,
+llvm::Error evalExpectAlmostEqConstOp(const Tensor& lhs, ElementsAttr value,
                                       APFloat tolerance) {
   auto rhs = makeTensor(cast<DenseElementsAttr>(value));
   return evalExpectAlmostEqOp(lhs, rhs, tolerance);
 }
 
-llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs,
+llvm::Error evalExpectAlmostEqOp(const Tensor& lhs, const Tensor& rhs,
                                  APFloat tolerance) {
   for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin();
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt)
@@ -101,12 +101,12 @@ llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs,
   return llvm::Error::success();
 }
 
-llvm::Error evalExpectEqConstOp(const Tensor &lhs, ElementsAttr value) {
+llvm::Error evalExpectEqConstOp(const Tensor& lhs, ElementsAttr value) {
   auto rhs = makeTensor(cast<DenseElementsAttr>(value));
   return evalExpectEqOp(lhs, rhs);
 }
 
-llvm::Error evalExpectEqOp(const Tensor &lhs, const Tensor &rhs) {
+llvm::Error evalExpectEqOp(const Tensor& lhs, const Tensor& rhs) {
   for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin();
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt)
     if ((lhs.get(*lhsIt) != rhs.get(*rhsIt)).getBooleanValue())
@@ -146,7 +146,7 @@ static llvm::ErrorOr<SerializedTensorMetadata> getSerializedTensorMetadata(
   return llvm::errc::bad_address;
 }
 
-llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
+llvm::Error evalExpectSerializedEqOp(const Tensor& expected, StringRef probeId,
                                      StringRef probeDir, uint32_t iteration) {
   auto serializedMetadata =
       getSerializedTensorMetadata(probeId, probeDir, iteration);
@@ -206,7 +206,7 @@ static uint64_t ULPDifference(APFloat f, APFloat g) {
   return std::numeric_limits<uint64_t>::max();
 }
 
-static uint64_t ULPDifference(const Element &e1, const Element &e2) {
+static uint64_t ULPDifference(const Element& e1, const Element& e2) {
   // caller is responsible for ensuring that e1, e2 have both the same
   // float or complex types
   if (isSupportedComplexType(e1.getType())) {
@@ -218,7 +218,7 @@ static uint64_t ULPDifference(const Element &e1, const Element &e2) {
   return ULPDifference(e1.getFloatValue(), e2.getFloatValue());
 }
 
-llvm::Error evalExpectCloseOp(const Tensor &actual, const Tensor &expected,
+llvm::Error evalExpectCloseOp(const Tensor& actual, const Tensor& expected,
                               uint64_t min_ulp_difference,
                               uint64_t max_ulp_difference) {
   auto type = actual.getElementType();

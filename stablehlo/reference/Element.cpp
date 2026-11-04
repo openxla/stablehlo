@@ -398,9 +398,14 @@ Element Element::operator/(const Element& other) const {
   if (isSupportedIntegerType(type)) {
     auto intLhs = lhs.getIntegerValue();
     auto intRhs = rhs.getIntegerValue();
-    return Element(type, isSupportedSignedIntegerType(type)
-                             ? intLhs.sdiv(intRhs)
-                             : intLhs.udiv(intRhs));
+    bool isSigned = isSupportedSignedIntegerType(type);
+    // Divide-by-zero and INT_MIN / -1 are implementation-defined; avoid
+    // APInt::sdiv/udiv asserting/trapping on them.
+    bool isSignedOverflow =
+        isSigned && intRhs.isAllOnes() && intLhs.isMinSignedValue();
+    if (intRhs.isZero() || isSignedOverflow)
+      return Element(type, APInt(intLhs.getBitWidth(), 0));
+    return Element(type, isSigned ? intLhs.sdiv(intRhs) : intLhs.udiv(intRhs));
   }
 
   if (isSupportedFloatType(type)) {
@@ -752,7 +757,13 @@ Element convert(Type type, APSInt value) {
   if (isSupportedIntegerType(type))
     return Element(type, value.extOrTrunc(type.getIntOrFloatBitWidth()));
   if (isSupportedFloatType(type)) {
-    APFloat floatValue(cast<FloatType>(type).getFloatSemantics());
+    const llvm::fltSemantics& semantics =
+        cast<FloatType>(type).getFloatSemantics();
+    if (value.isSigned() && value.isNegative() &&
+        !APFloat::semanticsHasSignedRepr(semantics)) {
+      return Element(type, APFloat::getNaN(semantics));
+    }
+    APFloat floatValue(semantics);
     floatValue.convertFromAPInt(value, value.isSigned(),
                                 APFloat::rmNearestTiesToEven);
     return Element(type, floatValue);
@@ -785,9 +796,16 @@ Element convert(Type type, APFloat value) {
     return Element(type, intValue);
   }
   if (isSupportedFloatType(type)) {
+    const llvm::fltSemantics& semantics =
+        cast<FloatType>(type).getFloatSemantics();
+    if (value.isNegative() && !APFloat::semanticsHasSignedRepr(semantics)) {
+      return Element(type,
+                     value.isNegZero() && APFloat::semanticsHasZero(semantics)
+                         ? APFloat::getZero(semantics)
+                         : APFloat::getNaN(semantics));
+    }
     bool roundingErr;
-    value.convert(cast<FloatType>(type).getFloatSemantics(),
-                  APFloat::rmNearestTiesToEven, &roundingErr);
+    value.convert(semantics, APFloat::rmNearestTiesToEven, &roundingErr);
     return Element(type, value);
   }
   if (isSupportedComplexType(type))
@@ -844,10 +862,28 @@ Element exponentialMinusOne(const Element& el) {
       });
 }
 
+Element exp2(const Element& el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::exp2(e); },
+      [](mlir::Complex<double> e) {
+        return std::pow(mlir::Complex<double>(2.0, 0.0), e);
+      });
+}
+
 Element floor(const Element& el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardNegative);
   return Element(el.getType(), val);
+}
+
+Element fma(const Element& a, const Element& b, const Element& c) {
+  if (!isSupportedFloatType(a.getType()))
+    report_fatal_error(invalidArgument("Unsupported element type for fma: %s",
+                                       debugString(a.getType()).c_str()));
+  APFloat val = a.getFloatValue();
+  val.fusedMultiplyAdd(b.getFloatValue(), c.getFloatValue(),
+                       APFloat::rmNearestTiesToEven);
+  return Element(a.getType(), val);
 }
 
 Element imag(const Element& el) {
@@ -888,6 +924,12 @@ Element logPlusOne(const Element& el) {
       [](mlir::Complex<double> e) {
         return std::log(e + mlir::Complex<double>(1.0));
       });
+}
+
+Element log2(const Element& el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::log2(e); },
+      [](mlir::Complex<double> e) { return std::log(e) / std::log(2.0); });
 }
 
 Element logistic(const Element& el) {
@@ -1043,8 +1085,14 @@ Element rem(const Element& e1, const Element& e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
-        return isSupportedSignedIntegerType(e1.getType()) ? lhs.srem(rhs)
-                                                          : lhs.urem(rhs);
+        bool isSigned = isSupportedSignedIntegerType(e1.getType());
+        // Remainder-by-zero and INT_MIN % -1 are implementation-defined;
+        // avoid APInt::srem/urem asserting/trapping on them.
+        bool isSignedOverflow =
+            isSigned && rhs.isAllOnes() && lhs.isMinSignedValue();
+        if (rhs.isZero() || isSignedOverflow)
+          return APInt(lhs.getBitWidth(), 0);
+        return isSigned ? lhs.srem(rhs) : lhs.urem(rhs);
       },
       [](bool lhs, bool rhs) -> bool {
         llvm::report_fatal_error("rem(bool, bool) is unsupported");
@@ -1157,6 +1205,40 @@ Element tanh(const Element& el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::tanh(e); },
       [](mlir::Complex<double> e) { return std::tanh(e); });
+}
+
+Element weakOrderEq(const Element& e1, const Element& e2) {
+  auto type = e1.getType();
+  auto i1Type = IntegerType::get(type.getContext(), 1);
+  if (type != e2.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type).c_str(),
+                                       debugString(e2.getType()).c_str()));
+  if (!isSupportedFloatType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  auto floatLhs = e1.getFloatValue();
+  auto floatRhs = e2.getFloatValue();
+  return Element(
+      i1Type, (floatLhs == floatRhs) || (floatLhs.isNaN() && floatRhs.isNaN()));
+}
+
+Element weakOrderLt(const Element& e1, const Element& e2) {
+  auto type = e1.getType();
+  auto i1Type = IntegerType::get(type.getContext(), 1);
+  if (type != e2.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type).c_str(),
+                                       debugString(e2.getType()).c_str()));
+  if (!isSupportedFloatType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  auto floatLhs = e1.getFloatValue();
+  auto floatRhs = e2.getFloatValue();
+  bool result =
+      (!floatLhs.isNaN() && floatRhs.isNaN()) ||
+      (!floatLhs.isNaN() && !floatRhs.isNaN() && (floatLhs < floatRhs));
+  return Element(i1Type, result);
 }
 
 void Element::print(raw_ostream& os, bool elideType) const {

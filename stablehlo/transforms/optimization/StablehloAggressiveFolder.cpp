@@ -286,6 +286,14 @@ LogicalResult foldConvert(PatternRewriter& rewriter, OpType op,
       return foldConvertHelper<FloatAttr, FloatAttr>(
           rewriter, op, elements, resultType,
           [&targetSemantics](const APFloat& operand, bool& castStatus) {
+            if (operand.isNegative() &&
+                !APFloat::semanticsHasSignedRepr(targetSemantics)) {
+              castStatus = true;
+              return operand.isNegZero() &&
+                             APFloat::semanticsHasZero(targetSemantics)
+                         ? APFloat::getZero(targetSemantics)
+                         : APFloat::getNaN(targetSemantics);
+            }
             bool losesInfo;
             APFloat newValue = operand;
             castStatus = APFloat::opInvalidOp !=
@@ -330,8 +338,12 @@ LogicalResult foldConvert(PatternRewriter& rewriter, OpType op,
         rewriter, op, elements, resultType,
         [&newFloatType, &isOldTypeUnsigned](const APInt& operand,
                                             bool& /*castStatus*/) {
-          APFloat apf(newFloatType.getFloatSemantics(),
-                      APInt::getZero(newFloatType.getWidth()));
+          const auto& targetSemantics = newFloatType.getFloatSemantics();
+          if (!isOldTypeUnsigned && operand.isNegative() &&
+              !APFloat::semanticsHasSignedRepr(targetSemantics)) {
+            return APFloat::getNaN(targetSemantics);
+          }
+          APFloat apf(targetSemantics, APInt::getZero(newFloatType.getWidth()));
           apf.convertFromAPInt(operand, !isOldTypeUnsigned,
                                APFloat::rmNearestTiesToEven);
           return apf;
@@ -743,6 +755,36 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
     ComparisonType kind;
 
     APInt operator()(APFloat lhs, APFloat rhs) {
+      if (kind == ComparisonType::WEAKORDER) {
+        bool eq = (lhs == rhs) || (lhs.isNaN() && rhs.isNaN());
+        auto lt = [](const APFloat& a, const APFloat& b) {
+          return (!a.isNaN() && b.isNaN()) ||
+                 (!a.isNaN() && !b.isNaN() && (a < b));
+        };
+        bool result = false;
+        switch (direction) {
+          case ComparisonDirection::EQ:
+            result = eq;
+            break;
+          case ComparisonDirection::NE:
+            result = !eq;
+            break;
+          case ComparisonDirection::GE:
+            result = lt(rhs, lhs) || eq;
+            break;
+          case ComparisonDirection::GT:
+            result = lt(rhs, lhs);
+            break;
+          case ComparisonDirection::LE:
+            result = lt(lhs, rhs) || eq;
+            break;
+          case ComparisonDirection::LT:
+            result = lt(lhs, rhs);
+            break;
+        }
+        return APInt(/*bitwidth=*/1, result);
+      }
+
       if (kind != ComparisonType::FLOAT && kind != ComparisonType::TOTALORDER)
         llvm::report_fatal_error("invalid float comparison");
 
@@ -1174,6 +1216,51 @@ struct FoldClampOpPattern : public ShapeOpRewritePattern<ClampOp> {
                                  FoldMin(isUnsignedInt));
     if (!res) return rewriter.notifyMatchFailure(op, "failed to fold clamp");
     rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, res);
+    return success();
+  }
+};
+
+struct FoldFmaOpPattern final : ShapeOpRewritePattern<mlir::stablehlo::FmaOp> {
+  using ShapeOpRewritePattern::ShapeOpRewritePattern;
+
+  LogicalResult matchAndRewrite(mlir::stablehlo::FmaOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getType();
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)) ||
+        failed(validateShapeFoldDtype(rewriter, op, resultType)))
+      return failure();
+
+    DenseFPElementsAttr aAttr, bAttr, cAttr;
+    matchPattern(op.getA(), m_Constant(&aAttr));
+    matchPattern(op.getB(), m_Constant(&bAttr));
+    matchPattern(op.getC(), m_Constant(&cAttr));
+    if (!aAttr || !bAttr || !cAttr)
+      return rewriter.notifyMatchFailure(op, "operands not constant");
+
+    if (aAttr.isSplat() && bAttr.isSplat() && cAttr.isSplat()) {
+      APFloat val = aAttr.getSplatValue<APFloat>();
+      val.fusedMultiplyAdd(bAttr.getSplatValue<APFloat>(),
+                           cAttr.getSplatValue<APFloat>(),
+                           APFloat::rmNearestTiesToEven);
+      rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
+          op, DenseElementsAttr::get(resultType, val));
+      return success();
+    }
+
+    if (failed(validateElementCountForFold(rewriter, op, resultType)))
+      return failure();
+
+    SmallVector<APFloat> result;
+    result.reserve(resultType.getNumElements());
+    for (auto [aEl, bEl, cEl] :
+         llvm::zip(aAttr.getValues<APFloat>(), bAttr.getValues<APFloat>(),
+                   cAttr.getValues<APFloat>())) {
+      APFloat val = aEl;
+      val.fusedMultiplyAdd(bEl, cEl, APFloat::rmNearestTiesToEven);
+      result.push_back(val);
+    }
+    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(
+        op, DenseElementsAttr::get(resultType, result));
     return success();
   }
 };
@@ -1661,12 +1748,31 @@ struct FoldExpOpPattern : public FoldUnaryOpPattern<FoldExpOpPattern, ExpOp> {
   }
 };
 
+struct FoldExp2OpPattern
+    : public FoldUnaryOpPattern<FoldExp2OpPattern, Exp2Op> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    return std::exp2(operand);
+  }
+};
+
 struct FoldLogOpPattern : public FoldUnaryOpPattern<FoldLogOpPattern, LogOp> {
   using FoldUnaryOpPattern::FoldUnaryOpPattern;
 
   static std::optional<double> EvaluateOp(double operand) {
     if (operand <= 0.0) return std::nullopt;
     return std::log(operand);
+  }
+};
+
+struct FoldLog2OpPattern
+    : public FoldUnaryOpPattern<FoldLog2OpPattern, Log2Op> {
+  using FoldUnaryOpPattern::FoldUnaryOpPattern;
+
+  static std::optional<double> EvaluateOp(double operand) {
+    if (operand <= 0.0) return std::nullopt;
+    return std::log2(operand);
   }
 };
 
@@ -2222,8 +2328,10 @@ void populateStablehloAggressiveFolderPatterns(
                 FoldCosineOpPattern,                  //
                 FoldErfOpPattern,                     //
                 FoldExpOpPattern,                     //
+                FoldExp2OpPattern,                    //
                 FoldIotaOpPattern,                    //
                 FoldLogOpPattern,                     //
+                FoldLog2OpPattern,                    //
                 FoldLogisticOpPattern,                //
                 FoldNegOpPattern,                     //
                 FoldNotOpPattern,                     //
@@ -2272,6 +2380,7 @@ void populateStablehloShapeFolderPatterns(
   patterns->add<FoldConvertOpPattern>(context, options, benefit);
   patterns->add<FoldDivOpPattern>(context, options, benefit);
   patterns->add<FoldDynamicSliceOpPattern>(context, options, benefit);
+  patterns->add<FoldFmaOpPattern>(context, options, benefit);
   patterns->add<FoldGetDimensionSizeOpPattern>(context, options, benefit);
   patterns->add<FoldMaxOpPattern>(context, options, benefit);
   patterns->add<FoldMinOpPattern>(context, options, benefit);

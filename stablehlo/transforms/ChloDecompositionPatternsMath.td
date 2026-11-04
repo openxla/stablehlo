@@ -404,23 +404,19 @@ def : Pat<(CHLO_AsinOp ComplexElementType:$z),
 
 // Arcus sine on real input:
 //
-//     arcsin(x) = 2 * arctan2(x, 1 + sqrt(1 - x * x))
+//     arcsin(x) = atan2(x, sqrt((1 - x) * (1 + x)))
 //
 //     To avoid cancellation errors at abs(x) close to 1, we'll use
 //
 //       1 - x * x == (1 - x) * (1 + x)
 //
 def : Pat<(CHLO_AsinOp NonComplexElementType:$x),
-  (StableHLO_AddOp
-    (StableHLO_Atan2Op:$ta
-      $x,
-      (StableHLO_AddOp
-        (StableHLO_ConstantLike<"1">:$one $x),
-        (StableHLO_SqrtOp
-          (StableHLO_MulOp
-            (StableHLO_SubtractOp $one, $x),
-            (StableHLO_AddOp $one, $x)), ConstDefaultResultAccuracyAttr))),
-    $ta)>;
+  (StableHLO_Atan2Op
+    $x,
+    (StableHLO_SqrtOp
+      (StableHLO_MulOp
+        (StableHLO_SubtractOp (StableHLO_ConstantLike<"1">:$one $x), $x),
+        (StableHLO_AddOp $one, $x)), ConstDefaultResultAccuracyAttr))>;
 
 // Arcus cosine on complex input
 //

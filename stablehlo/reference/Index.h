@@ -32,8 +32,8 @@ class IndexSpaceIterator;
 class Sizes : public SmallVector<int64_t> {
  public:
   Sizes() = default;
-  Sizes(const Sizes &other) = default;
-  Sizes &operator=(const Sizes &other) = default;
+  Sizes(const Sizes& other) = default;
+  Sizes& operator=(const Sizes& other) = default;
 
   Sizes(std::initializer_list<int64_t> list) : SmallVector(list) {}
   Sizes(iterator begin, iterator end) : SmallVector(begin, end) {}
@@ -49,66 +49,66 @@ class Sizes : public SmallVector<int64_t> {
 
   /// Checks if an element `e` at kth axis of `this` object follows
   /// `0 <= e <= bounds[k]`.
-  bool inBounds(const Sizes &bounds) const;
+  bool inBounds(const Sizes& bounds) const;
 
   /// Iterate over the index space of a Sizes object.
   IndexSpaceIterator index_begin() const;
   IndexSpaceIterator index_end() const;
 };
 
-raw_ostream &operator<<(raw_ostream &os, const Sizes &x);
+raw_ostream& operator<<(raw_ostream& os, const Sizes& x);
 
 /// Overloaded add operator to return `Sizes` object `z` such that
 /// `z[k] = x[k] + y[k]` for all axis k.
-Sizes operator+(const Sizes &x, const Sizes &y);
+Sizes operator+(const Sizes& x, const Sizes& y);
 
 /// Overloaded add operator to return `Sizes` object `z` such that
 /// `z[k] = x[k] + y` for all axis k.
-Sizes operator+(const Sizes &x, int64_t y);
+Sizes operator+(const Sizes& x, int64_t y);
 
 /// Overloaded add operator to return `Sizes` object `z` such that
 /// `z[k] = x + y[k]` for all axis k.
-Sizes operator+(int64_t x, const Sizes &y);
+Sizes operator+(int64_t x, const Sizes& y);
 
 /// Overloaded add operator to return `Sizes` object `z` such that
 /// `z[k] = x[k] - y[k]` for all axis k.
-Sizes operator-(const Sizes &x, const Sizes &y);
+Sizes operator-(const Sizes& x, const Sizes& y);
 
 /// Overloaded add operator to return `Sizes` object `z` such that
 /// `z[k] = x[k] - y` for all axis k.
-Sizes operator-(const Sizes &x, int64_t y);
+Sizes operator-(const Sizes& x, int64_t y);
 
 /// Overloaded add operator to return `Sizes` object `z` such that
 /// `z[k] = x - y[k]` for all axis k.
-Sizes operator-(int64_t x, const Sizes &y);
+Sizes operator-(int64_t x, const Sizes& y);
 
 /// Overloaded add operator to return `Sizes` object `z` such that
 /// `z[k] = x[k] * y[k]` for all axis k.
-Sizes operator*(const Sizes &x, const Sizes &y);
+Sizes operator*(const Sizes& x, const Sizes& y);
 
 /// Overloaded add operator to return `Sizes` object `z` such that
 /// `z[k] = x[k] * y` for all axis k.
-Sizes operator*(const Sizes &x, int64_t y);
+Sizes operator*(const Sizes& x, int64_t y);
 
 /// Overloaded add operator to return `Sizes` object `z` such that
 /// `z[k] = x * y[k]` for all axis k.
-Sizes operator*(int64_t x, const Sizes &y);
+Sizes operator*(int64_t x, const Sizes& y);
 
 /// Clamp operator to return `Sizes` object `z` such that
 /// `z[k] = std::min(std::max(x[k], min[k]), max[k])` for all axis k.
-Sizes clamp(const Sizes &min, const Sizes &x, const Sizes &max);
+Sizes clamp(const Sizes& min, const Sizes& x, const Sizes& max);
 
 /// Clamp operator to return `Sizes` object `z` such that
 /// `z[k] = std::min(std::max(x[k], min), max)` for all axis k.
-Sizes clamp(int64_t min, const Sizes &x, int64_t max);
+Sizes clamp(int64_t min, const Sizes& x, int64_t max);
 
 /// Clamp operator to return `Sizes` object `z` such that
 /// `z[k] = std::min(std::max(x[k], min), max[k])` for all axis k.
-Sizes clamp(int64_t min, const Sizes &x, const Sizes &max);
+Sizes clamp(int64_t min, const Sizes& x, const Sizes& max);
 
 /// Clamp operator to return `Sizes` object `z` such that
 /// `z[k] = std::min(std::max(x[k], min[k]), max)` for all axis k.
-Sizes clamp(const Sizes &min, const Sizes &x, int64_t max);
+Sizes clamp(const Sizes& min, const Sizes& x, int64_t max);
 
 /// Represents index of a tensor.
 using Index = Sizes;
@@ -132,23 +132,23 @@ class IndexSpaceIterator {
   /// At any point in time, the iterator can either reference an actual index
   /// or the past-the-end element in the index space.
   /// Dereferencing a past-the-end iterator will result in a fatal error.
-  const Index &operator*() const;
-  const Index *operator->() const;
+  const Index& operator*() const;
+  const Index* operator->() const;
 
   /// Compare the iterator to another iterator.
   /// Two iterators are equal if they have the same underlying shape and
   /// reference the same element in the index space.
-  bool operator==(const IndexSpaceIterator &it) {
+  bool operator==(const IndexSpaceIterator& it) {
     return shape_ == it.shape_ && index_ == it.index_;
   }
-  bool operator!=(const IndexSpaceIterator &it) { return !(*this == it); }
+  bool operator!=(const IndexSpaceIterator& it) { return !(*this == it); }
 
   /// Increment to the next index while iterating over the index space
   /// of a tensor in lexicographical order.
   /// Incrementing past the last index will result in a past-the-end iterator
   /// which cannot be dereferenced. Incrementing even further will result in
   /// a fatal error.
-  IndexSpaceIterator &operator++();
+  IndexSpaceIterator& operator++();
   IndexSpaceIterator operator++(int);
 
  private:

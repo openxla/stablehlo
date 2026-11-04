@@ -477,6 +477,13 @@ void populateStablehloCompatibilityExpanderPatterns(
   // StableHLO RGV3 (replica_group_mesh_axes) is introduced in v1.16.0 or later.
   if (targetVersion < vhlo::Version(1, 16, 0))
     patterns->add<ReplicaGroupMeshAxesExpander>(context);
+
+  // StableHLO Exp2Op and Log2Op are introduced in v1.23.0.
+  if (targetVersion < vhlo::Version(1, 23, 0))
+    patterns->add<Exp2Op_ComplexElementType_CompatibilityExpander,
+                  Exp2Op_CompatibilityExpander,
+                  Log2Op_ComplexElementType_CompatibilityExpander,
+                  Log2Op_CompatibilityExpander>(context);
 }
 
 }  // namespace stablehlo

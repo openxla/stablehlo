@@ -31,20 +31,20 @@ namespace vhlo {
 
 class VhloDialect : public Dialect {
  public:
-  explicit VhloDialect(MLIRContext *context);
+  explicit VhloDialect(MLIRContext* context);
   static StringRef getDialectNamespace() { return "vhlo"; }
 
   // Parses a type registered to this dialect.
-  Type parseType(DialectAsmParser &parser) const override;
+  Type parseType(DialectAsmParser& parser) const override;
 
   // Prints a type registered to this dialect.
-  void printType(Type type, DialectAsmPrinter &os) const override;
+  void printType(Type type, DialectAsmPrinter& os) const override;
 
   // Parses an attribute registered to this dialect.
-  Attribute parseAttribute(DialectAsmParser &parser, Type type) const override;
+  Attribute parseAttribute(DialectAsmParser& parser, Type type) const override;
 
   // Prints an attribute registered to this dialect.
-  void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
+  void printAttribute(Attribute attr, DialectAsmPrinter& os) const override;
 
  private:
   // Adds VHLO types to this dialect.

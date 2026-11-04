@@ -30,7 +30,7 @@ class InterpreterFallback {
  public:
   /// Custom op kernels for any user specified ops not found in the StableHLO
   /// op dialect or StableHLO interpreter dialect.
-  virtual llvm::Error operator()(Operation &op, Scope &scope, Process *process);
+  virtual llvm::Error operator()(Operation& op, Scope& scope, Process* process);
 
   virtual ~InterpreterFallback() = default;
 };

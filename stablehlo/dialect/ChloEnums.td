@@ -46,14 +46,17 @@ def CHLO_ComparisonDirection : I32EnumAttr<"ComparisonDirection",
   let cppNamespace = "::mlir::chlo";
 }
 
-def CHLO_ComparisonDirectionAttr : EnumAttr<CHLO_Dialect, CHLO_ComparisonDirection, "comparison_direction">;
+def CHLO_ComparisonDirectionAttr : EnumAttr<CHLO_Dialect, CHLO_ComparisonDirection, "comparison_direction"> {
+  let assemblyFormat = "$value";
+}
 
 def CHLO_DEFAULT_COMPARISON_TYPE : NativeCodeCall<"::mlir::chlo::ComparisonTypeAttr()">;
 def CHLO_COMPARISON_TYPE_NOTYPE : I32EnumAttrCase<"NOTYPE", 0>;
 def CHLO_COMPARISON_TYPE_FLOAT : I32EnumAttrCase<"FLOAT", 1>;
 def CHLO_COMPARISON_TYPE_FLOAT_TOTAL_ORDER : I32EnumAttrCase<"TOTALORDER", 2>;
-def CHLO_COMPARISON_TYPE_SIGNED : I32EnumAttrCase<"SIGNED", 3>;
-def CHLO_COMPARISON_TYPE_UNSIGNED : I32EnumAttrCase<"UNSIGNED", 4>;
+def CHLO_COMPARISON_TYPE_SIGNED : I32EnumAttrCase<"SIGNED", 3>;  // Deprecated
+def CHLO_COMPARISON_TYPE_UNSIGNED : I32EnumAttrCase<"UNSIGNED", 4>;  // Deprecated
+def CHLO_COMPARISON_TYPE_WEAK_ORDER : I32EnumAttrCase<"WEAKORDER", 5>;
 
 def CHLO_ComparisonType : I32EnumAttr<"ComparisonType",
     "Which comparison type to use.",
@@ -62,13 +65,16 @@ def CHLO_ComparisonType : I32EnumAttr<"ComparisonType",
       CHLO_COMPARISON_TYPE_FLOAT,
       CHLO_COMPARISON_TYPE_FLOAT_TOTAL_ORDER,
       CHLO_COMPARISON_TYPE_SIGNED,
-      CHLO_COMPARISON_TYPE_UNSIGNED
+      CHLO_COMPARISON_TYPE_UNSIGNED,
+      CHLO_COMPARISON_TYPE_WEAK_ORDER
     ]> {
   let genSpecializedAttr = 0;
   let cppNamespace = "::mlir::chlo";
 }
 
-def CHLO_ComparisonTypeAttr : EnumAttr<CHLO_Dialect, CHLO_ComparisonType, "comparison_type">;
+def CHLO_ComparisonTypeAttr : EnumAttr<CHLO_Dialect, CHLO_ComparisonType, "comparison_type"> {
+  let assemblyFormat = "$value";
+}
 
 //===----------------------------------------------------------------------===//
 // Ragged dot op definitions.
@@ -90,7 +96,9 @@ def CHLO_Precision : I32EnumAttr<"Precision",
   let cppNamespace = "::mlir::chlo";
 }
 
-def CHLO_PrecisionAttr : EnumAttr<CHLO_Dialect, CHLO_Precision, "precision">;
+def CHLO_PrecisionAttr : EnumAttr<CHLO_Dialect, CHLO_Precision, "precision"> {
+  let assemblyFormat = "$value";
+}
 
 def CHLO_PrecisionConfigAttr:
   TypedArrayAttrBase<CHLO_PrecisionAttr, "Precision Config attribute">;

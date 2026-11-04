@@ -48,7 +48,7 @@ func.func @while_op_with_outfeed_no_dce(%arg0: tensor<i64>) -> tensor<i64> {
   // CHECK: stablehlo.while
   %0 = stablehlo.while(%iterArg = %arg0) : tensor<i64>
     cond {
-    %1 = stablehlo.compare LT, %iterArg, %iterArg, SIGNED : (tensor<i64>, tensor<i64>) -> tensor<i1>
+    %1 = stablehlo.compare LT, %iterArg, %iterArg : (tensor<i64>, tensor<i64>) -> tensor<i1>
     stablehlo.return %1 : tensor<i1>
   } do {
     %1 = stablehlo.create_token : !stablehlo.token
@@ -63,7 +63,7 @@ func.func @while_op_dce_no_side_effect(%arg0: tensor<i64>) -> tensor<i64> {
   // CHECK-NOT: stablehlo.while
   %0 = stablehlo.while(%iterArg = %arg0) : tensor<i64>
     cond {
-    %1 = stablehlo.compare LT, %iterArg, %iterArg, SIGNED : (tensor<i64>, tensor<i64>) -> tensor<i1>
+    %1 = stablehlo.compare LT, %iterArg, %iterArg : (tensor<i64>, tensor<i64>) -> tensor<i1>
     stablehlo.return %1 : tensor<i1>
   } do {
     %1 = stablehlo.create_token : !stablehlo.token
@@ -77,7 +77,7 @@ func.func @dce_while_false_condition(%arg0: tensor<i64>) -> tensor<i64> {
   // CHECK-NOT: stablehlo.while
   %0 = stablehlo.while(%iterArg = %arg0) : tensor<i64>
     cond {
-    %1 = stablehlo.compare LT, %arg0, %arg0, SIGNED : (tensor<i64>, tensor<i64>) -> tensor<i1>
+    %1 = stablehlo.compare LT, %arg0, %arg0 : (tensor<i64>, tensor<i64>) -> tensor<i1>
     stablehlo.return %1 : tensor<i1>
   } do {
     %1 = stablehlo.custom_call @something(%iterArg) {has_side_effect = false} : (tensor<i64>) -> tensor<i64>

@@ -73,12 +73,12 @@ MlirStringRef chloComparisonTypeAttrGetValue(MlirAttribute attr) {
 
 MlirAttribute chloRaggedDotDimensionNumbersGet(
     MlirContext ctx, intptr_t nLhsBatchingDimensions,
-    const int64_t *lhsBatchingDimensions, intptr_t nRhsBatchingDimensions,
-    const int64_t *rhsBatchingDimensions, intptr_t nLhsContractingDimensions,
-    const int64_t *lhsContractingDimensions, intptr_t nRhsContractingDimensions,
-    const int64_t *rhsContractingDimensions, intptr_t nLhsRaggedDimensions,
-    const int64_t *lhsRaggedDimensions, intptr_t nRhsGroupDimensions,
-    const int64_t *rhsGroupDimensions) {
+    const int64_t* lhsBatchingDimensions, intptr_t nRhsBatchingDimensions,
+    const int64_t* rhsBatchingDimensions, intptr_t nLhsContractingDimensions,
+    const int64_t* lhsContractingDimensions, intptr_t nRhsContractingDimensions,
+    const int64_t* rhsContractingDimensions, intptr_t nLhsRaggedDimensions,
+    const int64_t* lhsRaggedDimensions, intptr_t nRhsGroupDimensions,
+    const int64_t* rhsGroupDimensions) {
   return wrap(mlir::chlo::RaggedDotDimensionNumbersAttr::get(
       unwrap(ctx),
       llvm::ArrayRef(lhsBatchingDimensions, nLhsBatchingDimensions),

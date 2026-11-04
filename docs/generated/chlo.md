@@ -459,8 +459,7 @@ operation ::= `chlo.broadcast_compare` $lhs `,` $rhs attr-dict `:`
 
 Compares `lhs` and `rhs` elementwise according to `comparison_direction`
 and `compare_type`. If unspecified, `compare_type` is FLOAT for float element
-types, SIGNED for signed element types and UNSIGNED for unsigned element
-types.
+types and NOTYPE for integer and boolean element types.
 
 See
 https://www.tensorflow.org/xla/operation_semantics#element-wise_comparison_operations.
@@ -2068,7 +2067,7 @@ Syntax:
 
 ```
 #chlo.comparison_type<
-  `NOTYPE` | `FLOAT` | `TOTALORDER` | `SIGNED` | `UNSIGNED`   # value
+  `NOTYPE` | `FLOAT` | `TOTALORDER` | `SIGNED` | `UNSIGNED` | `WEAKORDER`   # value
 >
 ```
 
@@ -2141,6 +2140,7 @@ _Which comparison type to use._
 | TOTALORDER | `2` | TOTALORDER |
 | SIGNED | `3` | SIGNED |
 | UNSIGNED | `4` | UNSIGNED |
+| WEAKORDER | `5` | WEAKORDER |
 
 ### Precision
 

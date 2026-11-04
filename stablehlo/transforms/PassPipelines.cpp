@@ -24,7 +24,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-void createStablehloDeserializePipeline(OpPassManager &pm) {
+void createStablehloDeserializePipeline(OpPassManager& pm) {
   // Convert VHLO(version x.y.z) --> VHLO(current).
   pm.addPass(stablehlo::createVhloToVersionPass(
       {vhlo::Version::getCurrentVersion().toString()}));
@@ -33,14 +33,14 @@ void createStablehloDeserializePipeline(OpPassManager &pm) {
   pm.addPass(stablehlo::createVhloLegalizeToStablehloPass());
 }
 
-void createChloPreSerializationPipeline(OpPassManager &pm) {
+void createChloPreSerializationPipeline(OpPassManager& pm) {
   // CHLO --> StableHLO+Shape --> StableHLO
   pm.addPass(stablehlo::createChloLegalizeToStablehloPass());
   pm.addPass(stablehlo::createShapeLegalizeToStablehloPass());
   pm.addPass(mlir::createReconcileUnrealizedCastsPass());
 }
 
-void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
+void createStablehloRemoveDynamismPipeline(OpPassManager& pm,
                                            TypeRange refinedTypes) {
   pm.addPass(stablehlo::createStablehloRefineArgumentsPass(refinedTypes));
   pm.addPass(stablehlo::createStablehloRefineShapesPass());
@@ -48,7 +48,7 @@ void createStablehloRemoveDynamismPipeline(OpPassManager &pm,
       stablehlo::createStablehloCanonicalizeDynamismPass());
 }
 
-void createStablehloLowerQuantPipeline(OpPassManager &pm) {
+void createStablehloLowerQuantPipeline(OpPassManager& pm) {
   pm.addNestedPass<mlir::func::FuncOp>(
       stablehlo::createStablehloLegalizeQuantToMathPass());
   pm.addNestedPass<mlir::func::FuncOp>(

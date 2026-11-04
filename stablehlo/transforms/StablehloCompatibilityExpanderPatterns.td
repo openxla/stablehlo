@@ -20,6 +20,10 @@ def ComplexElementType : Type<
   CPred<"isa<ComplexType>(cast<ShapedType>($_self).getElementType())">,
   "Complex element type">;
 
+def FloatElementType : Type<
+  CPred<"isa<FloatType>(cast<ShapedType>($_self).getElementType())">,
+  "Float element type">;
+
 def NonComplexElementType : Type<
   CPred<"!isa<ComplexType>(cast<ShapedType>($_self).getElementType())">,
   "Non-complex element type">;
@@ -49,3 +53,47 @@ def TanOp_ComplexElementType_CompatiblityExpander : Pat<(StableHLO_TanOp Complex
       (StableHLO_ConstantLike<"1.0"> $tan),
       (StableHLO_NegOp (StableHLO_MulOp $tan, $tanh)))
   )>;
+
+// Express `exp2` as
+//   exponential(x * ln(2))
+def Exp2Op_CompatibilityExpander : Pat<
+  (StableHLO_Exp2Op FloatElementType:$input, ConstDefaultResultAccuracyAttr),
+  (StableHLO_ExpOp
+    (StableHLO_MulOp
+      $input,
+      (StableHLO_ConstantLike<"llvm::numbers::ln2"> $input)),
+    ConstDefaultResultAccuracyAttr)>;
+
+// Express `exp2(a + bi)` as
+//   exponential((a * ln(2)) + i (b * ln(2)))
+def Exp2Op_ComplexElementType_CompatibilityExpander : Pat<
+  (StableHLO_Exp2Op ComplexElementType:$input, ConstDefaultResultAccuracyAttr),
+  (StableHLO_ExpOp
+    (StableHLO_ComplexOp
+      (StableHLO_MulOp
+        (StableHLO_RealOp:$real $input),
+        (StableHLO_ConstantLike<"llvm::numbers::ln2">:$ln2 $real)),
+      (StableHLO_MulOp
+        (StableHLO_ImagOp $input),
+        $ln2)),
+    ConstDefaultResultAccuracyAttr)>;
+
+// Express `log2` as
+//   log(x) / ln(2)
+def Log2Op_CompatibilityExpander : Pat<
+  (StableHLO_Log2Op FloatElementType:$input, ConstDefaultResultAccuracyAttr),
+  (StableHLO_DivOp
+    (StableHLO_LogOp $input, ConstDefaultResultAccuracyAttr),
+    (StableHLO_ConstantLike<"llvm::numbers::ln2"> $input))>;
+
+// Express `log2(a + bi)` as
+//   (real(log(a + bi)) / ln(2)) + i (imag(log(a + bi)) / ln(2))
+def Log2Op_ComplexElementType_CompatibilityExpander : Pat<
+  (StableHLO_Log2Op ComplexElementType:$input, ConstDefaultResultAccuracyAttr),
+  (StableHLO_ComplexOp
+    (StableHLO_DivOp
+      (StableHLO_RealOp:$real (StableHLO_LogOp:$log $input, ConstDefaultResultAccuracyAttr)),
+      (StableHLO_ConstantLike<"llvm::numbers::ln2">:$ln2 $real)),
+    (StableHLO_DivOp
+      (StableHLO_ImagOp $log),
+      $ln2))>;

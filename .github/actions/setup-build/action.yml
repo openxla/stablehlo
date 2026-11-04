@@ -44,6 +44,22 @@ runs:
       path: llvm-project
       fetch-depth: 1
 
+  # Apply the LLVM source patch that the Bazel build also applies (see
+  # third_party/llvm/workspace.bzl), so that both builds test the same LLVM.
+  # The other patches there only change Bazel files. The patch is made against
+  # the pinned LLVM commit, so skip it when building llvm-project@HEAD.
+  - name: Apply LLVM patch
+    if: inputs['llvm-version'] != 'main'
+    shell: bash
+    run: |
+      patch_file="$GITHUB_WORKSPACE/third_party/llvm/generated.patch"
+      # With no patches, the file holds only a header line, which `patch`
+      # would reject.
+      if grep -q '^diff ' "$patch_file"; then
+        patch -d "$GITHUB_WORKSPACE/llvm-project" -p1 --forward --fuzz=0 \
+          --batch -i "$patch_file"
+      fi
+
   # Setup C++ caching using ccache.
   # Cache key is a combination of OS arch and LLVM version.
   - name: Ccache for C++ compilation

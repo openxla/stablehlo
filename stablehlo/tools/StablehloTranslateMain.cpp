@@ -92,7 +92,7 @@ llvm::cl::opt<bool> interpreterPrintDense(
 
 namespace {
 
-stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
+stablehlo::Tensor makeBooleanTensor(MLIRContext* context, bool value) {
   auto builder = Builder(context);
   auto type = RankedTensorType::get({}, builder.getI1Type());
   auto res = DenseElementsAttr::get(type, builder.getBoolAttr(true));
@@ -104,7 +104,7 @@ stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
 //   --args=[dense<1> : tensor<2xi32>, ...], where each dense attribute is
 //   interpreted as a tensor.
 mlir::FailureOr<SmallVector<stablehlo::InterpreterValue>>
-parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
+parseInterpreterArguments(std::string argsStr, MLIRContext* context) {
   llvm::SmallVector<stablehlo::InterpreterValue> inputs;
   auto parseError = [&](llvm::StringRef msg) {
     std::string usage = "--args=[dense<1> : tensor<2xi32>, ...]";
@@ -129,7 +129,7 @@ parseInterpreterArguments(std::string argsStr, MLIRContext *context) {
 }
 
 llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
-                                  stablehlo::Scope &scope) {
+                                  stablehlo::Scope& scope) {
   if (op->getNumOperands() != 2)
     return stablehlo::invalidArgument("Unsupported op: %s",
                                       debugString(op).c_str());
@@ -157,10 +157,10 @@ class StablehloTranslateInterpreterFallback
     : public stablehlo::InterpreterFallback {
  public:
   StablehloTranslateInterpreterFallback(
-      const std::string &probeInstrumentationDir)
+      const std::string& probeInstrumentationDir)
       : probeInstrumentationDir(probeInstrumentationDir) {}
-  virtual llvm::Error operator()(Operation &op, stablehlo::Scope &scope,
-                                 stablehlo::Process *process) final {
+  virtual llvm::Error operator()(Operation& op, stablehlo::Scope& scope,
+                                 stablehlo::Process* process) final {
     llvm::StringRef funcName = op.getParentOfType<func::FuncOp>().getSymName();
     if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
       auto callTarget = customCall.getCallTargetName();
@@ -271,7 +271,7 @@ class StablehloTranslateInterpreterFallback
 
 TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
-    [](ModuleOp module, raw_ostream &os) -> LogicalResult {
+    [](ModuleOp module, raw_ostream& os) -> LogicalResult {
       stablehlo::InterpreterConfiguration config;
       config.probeInstrumentationDir = probeOutputDir.getValue();
       config.fallback = std::make_unique<StablehloTranslateInterpreterFallback>(
@@ -286,21 +286,21 @@ TranslateFromMLIRRegistration interpretRegistration(
 
       if (interpreterPrintDense.getValue()) {
         DenseElementsAttr denseResult;
-        for (auto &result : *results) {
+        for (auto& result : *results) {
           denseResult = makeDenseElementsAttr(result.getTensor());
           os << denseResult << '\n';
         }
         return success();
       }
 
-      for (auto &result : *results) {
+      for (auto& result : *results) {
         result.print(os);
         os << '\n';
       }
 
       return success();
     },
-    [](DialectRegistry &registry) {
+    [](DialectRegistry& registry) {
       registry.insert<func::FuncDialect>();
       registry.insert<quant::QuantDialect>();
       registry.insert<stablehlo::check::CheckDialect>();
@@ -310,7 +310,7 @@ TranslateFromMLIRRegistration interpretRegistration(
 
 TranslateFromMLIRRegistration serializeRegistration(
     "serialize", "Serialize StableHLO program into a portable artifact",
-    [](ModuleOp module, raw_ostream &os) -> LogicalResult {
+    [](ModuleOp module, raw_ostream& os) -> LogicalResult {
       std::string targetVersion = targetOption.getValue();
       if (targetVersion == "current")
         targetVersion = vhlo::Version::getCurrentVersion().toString();
@@ -325,14 +325,14 @@ TranslateFromMLIRRegistration serializeRegistration(
       return stablehlo::serializePortableArtifact(
           module, targetVersion, os, allowOtherDialectsOption.getValue());
     },
-    [](DialectRegistry &registry) {
+    [](DialectRegistry& registry) {
       mlir::registerAllDialects(registry);
       mlir::stablehlo::registerAllDialects(registry);
     });
 
 TranslateToMLIRRegistration deserializeRegistration(
     "deserialize", "Deserialize a portable artifact into a StableHLO program",
-    [](llvm::StringRef input, mlir::MLIRContext *context) {
+    [](llvm::StringRef input, mlir::MLIRContext* context) {
       if (printStablehloVersion.getValue()) {
         auto version = stablehlo::getPortableArtifactVersion(input);
         if (failed(version)) {
@@ -346,14 +346,14 @@ TranslateToMLIRRegistration deserializeRegistration(
       }
       return stablehlo::deserializePortableArtifact(input, context);
     },
-    [](DialectRegistry &registry) {
+    [](DialectRegistry& registry) {
       mlir::registerAllDialects(registry);
       mlir::stablehlo::registerAllDialects(registry);
     });
 
 }  //  namespace mlir
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   return failed(
       mlir::mlirTranslateMain(argc, argv, "StableHLO interpreter driver\n"));
 }

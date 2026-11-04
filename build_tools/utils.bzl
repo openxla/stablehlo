@@ -24,3 +24,6 @@ def is_bzlmod_enabled():
 def workspace_name():
     """Return the name of the workspace."""
     return "_main" if is_bzlmod_enabled() else "stablehlo"
+
+def get_compatible_with_portable():
+    return []

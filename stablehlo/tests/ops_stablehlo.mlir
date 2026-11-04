@@ -1,4 +1,5 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck %s
+// RUN: stablehlo-opt %s --hlo-test-create-sort -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck --check-prefix=CHECK-CREATE-SORT %s
 // RUN: %if asserts %{ stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect -emit-bytecode -debug-only=stablehlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
 
 // CHECK-WARN-NOT: Not Implemented
@@ -1547,6 +1548,29 @@ func.func @compare_compatible_operand_types(%arg0: tensor<3xi32>, %arg1: tensor<
 
 // -----
 
+// CHECK-LABEL: func @compare_weakorder_f32
+func.func @compare_weakorder_f32(%arg0: tensor<3xf32>, %arg1: tensor<3xf32>) -> tensor<3xi1> {
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction LT>,
+    compare_type = #stablehlo<comparison_type WEAKORDER>
+  } : (tensor<3xf32>, tensor<3xf32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
+func.func @compare_weakorder_invalid_i32(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{WEAKORDER comparison type is only supported for floating-point element types, got 'i32'}}
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction LT>,
+    compare_type = #stablehlo<comparison_type WEAKORDER>
+  } : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
 // CHECK-LABEL: func @collective_broadcast_c3
 func.func @collective_broadcast_c3(%operand: tensor<16x8xf32>) -> tensor<16x8xf32> {
   %0 = "stablehlo.collective_broadcast"(%operand) {
@@ -3091,6 +3115,30 @@ func.func @floor_invalid_i32_type(%arg0: tensor<4xi32>) -> tensor<4xi32> {
 
 // -----
 
+// CHECK-LABEL: func @fma
+func.func @fma(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>, %arg2: tensor<4xf32>) -> tensor<4xf32> {
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<4xf32>, tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
+func.func @fma_invalid_i32_type(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>, %arg2: tensor<4xi32>) -> tensor<4xi32> {
+  // expected-error-re@+1 {{must be ranked tensor of {{.*}}, but got 'tensor<4xi32>'}}
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<4xi32>, tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
+  func.return %0 : tensor<4xi32>
+}
+
+// -----
+
+func.func @fma_invalid_mismatched_types(%arg0: tensor<4xf32>, %arg1: tensor<4xf64>, %arg2: tensor<4xf32>) -> tensor<4xf32> {
+  // expected-error@+1 {{requires compatible types for all operands and results}}
+  %0 = "stablehlo.fma"(%arg0, %arg1, %arg2) : (tensor<4xf32>, tensor<4xf64>, tensor<4xf32>) -> tensor<4xf32>
+  func.return %0 : tensor<4xf32>
+}
+
+// -----
+
 // Verifiers HLO constant op custom printing and parsing.
 // CHECK-LABEL: func @constants
 func.func @constants() -> () {
@@ -3137,6 +3185,24 @@ func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
     "stablehlo.return"(%7) : (tensor<i1>) -> ()
   }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
   func.return
+}
+
+// -----
+
+// CHECK-CREATE-SORT-LABEL: func.func @create_sort_integer_key_float_payload
+// CHECK-CREATE-SORT: stablehlo.compare LT, %{{[^,]+}}, %{{[^, ]+}} : (tensor<i32>, tensor<i32>) -> tensor<i1>
+func.func @create_sort_integer_key_float_payload(%key: tensor<2xi32>, %payload: tensor<2xf32>) -> (tensor<2xi32>, tensor<2xf32>) {
+  %0:2 = "hlo_test_create_sort.build"(%key, %payload) : (tensor<2xi32>, tensor<2xf32>) -> (tensor<2xi32>, tensor<2xf32>)
+  func.return %0#0, %0#1 : tensor<2xi32>, tensor<2xf32>
+}
+
+// -----
+
+// CHECK-CREATE-SORT-LABEL: func.func @create_sort_float_key_integer_payload
+// CHECK-CREATE-SORT: stablehlo.compare LT, %{{[^,]+}}, %{{[^, ]+}}, TOTALORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+func.func @create_sort_float_key_integer_payload(%key: tensor<2xf32>, %payload: tensor<2xi32>) -> (tensor<2xf32>, tensor<2xi32>) {
+  %0:2 = "hlo_test_create_sort.build"(%key, %payload) : (tensor<2xf32>, tensor<2xi32>) -> (tensor<2xf32>, tensor<2xi32>)
+  func.return %0#0, %0#1 : tensor<2xf32>, tensor<2xi32>
 }
 
 // -----
@@ -6881,6 +6947,26 @@ func.func @custom_call_unpin_with_output_operand_alias(%arg0: memref<2xf32>) -> 
         operand_tuple_indices = []>]
   } : (memref<2xf32>) -> tensor<2xf32>
   func.return %0 : tensor<2xf32>
+}
+
+// -----
+
+func.func @custom_call_fan_out_single_output(%arg0: memref<2xf32>) -> memref<2xf32> {
+  // expected-error@+1 {{FanOut custom_call should have at least two outputs, but got 1}}
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "FanOut"
+  } : (memref<2xf32>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
+}
+
+// -----
+
+func.func @custom_call_fan_in_incompatible_stream_shape(%arg0: memref<2xf32>, %arg1: memref<4xf32>) -> memref<2xf32> {
+  // expected-error@+1 {{FanIn custom_call should have compatible input and output types, but got input 'memref<4xf32>' and output 'memref<2xf32>'}}
+  %0 = "stablehlo.custom_call"(%arg0, %arg1) {
+    call_target_name = "FanIn"
+  } : (memref<2xf32>, memref<4xf32>) -> memref<2xf32>
+  func.return %0 : memref<2xf32>
 }
 
 func.func @custom_call_buffer_operand_in_multiple_output_operand_aliases(%arg0: tensor<2xf32>, %arg1: memref<2xf32>) -> (memref<2xf32>, memref<2xf32>) {

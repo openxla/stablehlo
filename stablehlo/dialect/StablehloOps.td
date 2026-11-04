@@ -38,6 +38,7 @@ def StableHLO_Dialect : Dialect {
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
+  let useStrictPropertiesInAssemblyFormat = 0;
 }
 
 class StableHLO_Op<string mnemonic, list<Trait> traits = []> :
@@ -393,6 +394,33 @@ def StableHLO_Expm1Op: StableHLO_UnaryElementwiseOp<"exponential_minus_one",
   }];
 }
 
+def StableHLO_Exp2Op: StableHLO_UnaryElementwiseOp<"exp2",
+    [HLO_CompatibleOperandsAndResultType],
+    HLO_FpComplexOrQuantizedIntTensor> {
+  let summary = "Exp2 operation";
+  let description = [{
+    Performs element-wise base-2 exponential operation on `operand` tensor and
+    produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#exp2
+
+    Example:
+    ```mlir
+    %result = stablehlo.exp2 %operand : tensor<2x2xf64>
+    ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
+}
+
 def StableHLO_FloorOp: StableHLO_UnaryElementwiseOp<"floor",
     [HLO_CompatibleOperandsAndResultType], HLO_FpOrQuantizedIntTensor> {
   let summary = "Floor operation";
@@ -493,6 +521,33 @@ def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
     Example:
     ```mlir
     %result = stablehlo.log_plus_one %operand : tensor<5xf64>
+    ```
+  }];
+  let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
+                       DefaultValuedOptionalAttr<StableHLO_ResultAccuracyAttr,
+                       "::mlir::stablehlo::ResultAccuracyMode::DEFAULT">:$result_accuracy);
+  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
+}
+
+def StableHLO_Log2Op: StableHLO_UnaryElementwiseOp<"log2",
+    [HLO_CompatibleOperandsAndResultType],
+    HLO_FpComplexOrQuantizedIntTensor> {
+  let summary = "Log2 operation";
+  let description = [{
+    Performs element-wise base-2 logarithm operation on `operand` tensor and
+    produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#log2
+
+    Example:
+    ```mlir
+    %result = stablehlo.log2 %operand : tensor<2x2xf64>
     ```
   }];
   let arguments = (ins HLO_FpComplexOrQuantizedIntTensor:$operand,
@@ -2525,8 +2580,9 @@ def StableHLO_CompositeOp : StableHLO_Op<"composite", [DeclareOpInterfaceMethods
       "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,
       "::mlir::ArrayRef<::mlir::NamedAttribute>":$attributes
     ), [{
-      build($_builder, $_state, resultTypes, inputs, attributes,
-            /*regionsCount=*/0);
+      $_state.addOperands(inputs);
+      buildPropertiesAndDiscardableAttributes($_state, attributes);
+      $_state.addTypes(resultTypes);
     }]>,
     OpBuilder<(ins
       "::mlir::TypeRange":$resultTypes, "::mlir::ValueRange":$inputs,
@@ -2874,6 +2930,50 @@ def StableHLO_FftOp: StableHLO_Op<"fft",
   let extraClassDeclaration = commonClassDeclaration # [{
     /// Interface method for ConditionallySpeculatable.
     mlir::Speculation::Speculatability getSpeculatability();
+  }];
+}
+
+def StableHLO_FmaOp: StableHLO_Op<"fma",
+    [HLO_CompatibleOperandsAndResultType /*fma_c1*/,
+     InferShapedTypeOpInterface,
+     SameOperandsAndResultShape /*fma_c1*/,
+     Elementwise,
+     HLO_SpeculatableIfAllInputsStatic,
+     NoMemoryEffect]> {
+  let summary = "Fma operation";
+  let description = [{
+    Performs element-wise single-rounded IEEE-754 fused multiply-add of `a`,
+    `b`, and `c` tensors and produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#fma
+
+    Example:
+    ```mlir
+    %result = stablehlo.fma %a, %b, %c : tensor<3xf32>
+    ```
+  }];
+  let arguments = (ins
+    HLO_FpTensor:$a, /*fma_i1*/
+    HLO_FpTensor:$b, /*fma_i2*/
+    HLO_FpTensor:$c /*fma_i3*/
+  );
+
+  let results = (outs HLO_FpTensor:$result);
+
+  let extraClassDeclaration = commonClassDeclaration # [{
+    LogicalResult reifyReturnTypeShapes(
+        OpBuilder& builder, ValueRange operands,
+        SmallVectorImpl<Value>& reifiedReturnShapes) {
+      return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
+                                                 operands.front(),
+                                                 &reifiedReturnShapes);
+    }
+  }];
+
+  let assemblyFormat = [{
+    $a `,` $b `,` $c attr-dict
+      `:` custom<SameOperandsAndResultType>(type($a), type($b), type($c), type($result))
   }];
 }
 
