@@ -20,7 +20,7 @@ set(MLIR_BUILDER_TABLEGEN_EXE mlir_builder_tblgen CACHE STRING
      "The target name or path to the executable to use for mlir_builder_tblgen")
 
 function(mlir_builder_tblgen ofn)
-  tablegen(MLIR_BUILDER ${ARGV})
+  tablegen_internal(MLIR_BUILDER ${ARGV})
   set(TABLEGEN_OUTPUT ${TABLEGEN_OUTPUT} ${CMAKE_CURRENT_BINARY_DIR}/${ofn}
       PARENT_SCOPE)
 
