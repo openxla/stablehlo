@@ -652,6 +652,55 @@ struct BroadcastInDimOpToBroadcastConverter final
   }
 };
 
+// Unknown expansion behavior cannot be expressed by an affine indexing map.
+// Capture the operand instead and select its indices at runtime. Keep the
+// dimension checks outside the loop nest so they are evaluated only once.
+LogicalResult lowerDynamicBroadcastWithUnknownExpansion(
+    ConversionPatternRewriter& rewriter, DynamicBroadcastInDimOp op,
+    Value operand, RankedTensorType resultType, ValueRange operands,
+    ArrayRef<std::optional<bool>> expansionBehavior) {
+  Location loc = op.getLoc();
+  Value zero = arith::ConstantIndexOp::create(rewriter, loc, 0);
+  Value one = arith::ConstantIndexOp::create(rewriter, loc, 1);
+  SmallVector<Value> isExpanding(expansionBehavior.size());
+  for (auto [i, behavior] : llvm::enumerate(expansionBehavior)) {
+    if (behavior.has_value()) continue;
+    Value size = tensor::DimOp::create(rewriter, loc, operand, i);
+    isExpanding[i] = arith::CmpIOp::create(rewriter, loc,
+                                           arith::CmpIPredicate::eq, size, one);
+  }
+
+  Value emptyTensor =
+      getEmptyTensorFor(rewriter, loc, resultType, op, operands);
+  int64_t rank = resultType.getRank();
+  rewriter.replaceOpWithNewOp<linalg::GenericOp>(
+      op, TypeRange{resultType}, /*inputs=*/ValueRange{},
+      /*outputs=*/ValueRange{emptyTensor},
+      ArrayRef<AffineMap>{rewriter.getMultiDimIdentityMap(rank)},
+      getNParallelLoopsAttrs(rank),
+      [&](OpBuilder& builder, Location nestedLoc, ValueRange) {
+        SmallVector<Value> indices;
+        for (auto [i, behavior] : llvm::enumerate(expansionBehavior)) {
+          if (behavior.has_value() && *behavior) {
+            indices.push_back(zero);
+            continue;
+          }
+          Value index = linalg::IndexOp::create(builder, nestedLoc,
+                                                op.getBroadcastDimensions()[i]);
+          if (!behavior.has_value()) {
+            index = arith::SelectOp::create(builder, nestedLoc, isExpanding[i],
+                                            zero, index);
+          }
+          indices.push_back(index);
+        }
+        Value element =
+            tensor::ExtractOp::create(builder, nestedLoc, operand, indices);
+        linalg::YieldOp::create(builder, nestedLoc, element);
+      },
+      linalg::getPrunedAttributeList(op));
+  return success();
+}
+
 // If the input has a static shape we know exactly when the broadcast must
 // expand (the dimension is 1, which also trivially expands to 1) or will never
 // expand (the dimension is not 1). We can also source the information from the
@@ -675,8 +724,8 @@ struct HloDynamicBroadcastInDimConverter final
         getTypeConverter()->convertType<RankedTensorType>(op.getType());
 
     // Determine dimension expressions based on whether the dimension is
-    // expanding (0) or non-expanding (identity), and fail if we cannot decide
-    // this.
+    // expanding (0) or non-expanding (identity). Unknown dimensions require
+    // runtime indexing instead of an affine map.
     SmallVector<AffineExpr> dimExprs(operandType.getRank(), nullptr);
 
     // Use static type info.
@@ -701,9 +750,18 @@ struct HloDynamicBroadcastInDimConverter final
       }
     }
 
-    // Fail if unknown expansion behavior remains.
-    if (!llvm::all_of(dimExprs, [](AffineExpr expr) { return expr; }))
-      return failure();
+    // Fall back to runtime indexing if unknown expansion behavior remains.
+    if (!llvm::all_of(dimExprs, [](AffineExpr expr) { return expr; })) {
+      SmallVector<std::optional<bool>> expansionBehavior;
+      for (AffineExpr expr : dimExprs) {
+        expansionBehavior.push_back(
+            expr ? std::optional<bool>(isa<AffineConstantExpr>(expr))
+                 : std::nullopt);
+      }
+      return lowerDynamicBroadcastWithUnknownExpansion(
+          rewriter, op, operand, resultType, adaptor.getOperands(),
+          expansionBehavior);
+    }
 
     // Materialize `linalg.generic` op.
     Location loc = op.getLoc();
@@ -764,9 +822,11 @@ struct DynamicBroadcastInDimOpToBroadcastConverter final
       }
     }
 
-    // Fail if unknown expansion behavior remains.
+    // Fall back to runtime indexing if unknown expansion behavior remains.
     if (llvm::any_of(expansionBehavior, [](auto v) { return !v.has_value(); }))
-      return failure();
+      return lowerDynamicBroadcastWithUnknownExpansion(
+          rewriter, op, operand, resultTy, adaptor.getOperands(),
+          expansionBehavior);
 
     auto isExpandingDim = [&](int64_t i) {
       return expansionBehavior[i].value();
