@@ -5,6 +5,7 @@
 // RUN: stablehlo-translate --serialize --target=current %s | stablehlo-opt --pass-pipeline='builtin.module(stablehlo-deserialize)' > %t.0
 // RUN: stablehlo-opt %s > %t.1
 // RUN: diff %t.0 %t.1
+// RUN: not stablehlo-translate --serialize --target=1.24.0 %s 2> %t && grep -q "1.24.0" %t
 // RUN: %if asserts %{ stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
 // RUN: %if asserts %{ stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s %}
 
@@ -3452,6 +3453,59 @@ func.func @op_async_done(%arg0: tensor<4x4xf32>) -> tensor<4x4xf32> {
   %1 = "stablehlo.async_done"(%0) : (!stablehlo.future<tensor<4x4xf32>>) -> tensor<4x4xf32>
   func.return %1: tensor<4x4xf32>
 }
+
+// CHECK-LABEL: "complex_roundtrip_operand_result_f16"
+// CHECK: "vhlo.convert_v1"(%[[ARG0:.*]]) : (!vhlo.tensor_v1<4x!vhlo.f16_v1>) -> !vhlo.tensor_v1<4x!vhlo.complex_v1<!vhlo.f16_v1>>
+func.func @complex_roundtrip_operand_result_f16(%arg0: tensor<4xf16>) -> tensor<4xcomplex<f16>> {
+  %0 = "stablehlo.convert"(%arg0) : (tensor<4xf16>) -> tensor<4xcomplex<f16>>
+  func.return %0 : tensor<4xcomplex<f16>>
+}
+
+// CHECK-LABEL: "complex_roundtrip_tensor_element_f16"
+// CHECK: "vhlo.add_v1"(%[[ARG0:.*]], %[[ARG1:.*]]) : (!vhlo.tensor_v1<4x!vhlo.complex_v1<!vhlo.f16_v1>>, !vhlo.tensor_v1<4x!vhlo.complex_v1<!vhlo.f16_v1>>) -> !vhlo.tensor_v1<4x!vhlo.complex_v1<!vhlo.f16_v1>>
+func.func @complex_roundtrip_tensor_element_f16(%arg0: tensor<4xcomplex<f16>>, %arg1: tensor<4xcomplex<f16>>) -> tensor<4xcomplex<f16>> {
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<4xcomplex<f16>>, tensor<4xcomplex<f16>>) -> tensor<4xcomplex<f16>>
+  func.return %0 : tensor<4xcomplex<f16>>
+}
+
+// CHECK-LABEL: "complex_roundtrip_tensor_element_bf16"
+// CHECK: "vhlo.multiply_v1"(%[[ARG0:.*]], %[[ARG1:.*]]) : (!vhlo.tensor_v1<4x!vhlo.complex_v1<!vhlo.bf16_v1>>, !vhlo.tensor_v1<4x!vhlo.complex_v1<!vhlo.bf16_v1>>) -> !vhlo.tensor_v1<4x!vhlo.complex_v1<!vhlo.bf16_v1>>
+func.func @complex_roundtrip_tensor_element_bf16(%arg0: tensor<4xcomplex<bf16>>, %arg1: tensor<4xcomplex<bf16>>) -> tensor<4xcomplex<bf16>> {
+  %0 = "stablehlo.multiply"(%arg0, %arg1) : (tensor<4xcomplex<bf16>>, tensor<4xcomplex<bf16>>) -> tensor<4xcomplex<bf16>>
+  func.return %0 : tensor<4xcomplex<bf16>>
+}
+
+// CHECK-LABEL: "complex_roundtrip_tuple_element_f16"
+// CHECK: "vhlo.custom_call_v2"(%[[ARG0:.*]]) <{{.*}}> : (!vhlo.tensor_v1<2x!vhlo.f16_v1>) -> !vhlo.tuple_v1<!vhlo.tensor_v1<2x!vhlo.complex_v1<!vhlo.f16_v1>>>
+func.func @complex_roundtrip_tuple_element_f16(%arg0: tensor<2xf16>) -> tuple<tensor<2xcomplex<f16>>> {
+  %0 = "stablehlo.custom_call"(%arg0) { call_target_name = "foo" } : (tensor<2xf16>) -> tuple<tensor<2xcomplex<f16>>>
+  func.return %0 : tuple<tensor<2xcomplex<f16>>>
+}
+
+// CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.tensor_v1<2x!vhlo.complex_v1<!vhlo.f16_v1>>) -> !vhlo.tensor_v1<2x!vhlo.complex_v1<!vhlo.f16_v1>>>>
+// CHECK-LABEL: "complex_roundtrip_func_signature_f16"
+func.func private @complex_roundtrip_func_signature_f16(tensor<2xcomplex<f16>>) -> tensor<2xcomplex<f16>>
+
+// CHECK-LABEL: "complex_roundtrip_type_attr_f16"
+// CHECK: {stablehlo.attr = #vhlo.type_v1<!vhlo.complex_v1<!vhlo.f16_v1>>}
+func.func @complex_roundtrip_type_attr_f16() attributes { stablehlo.attr = complex<f16> } {
+  return
+}
+
+// CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(()) -> !vhlo.future_v1<!vhlo.tensor_v1<2x!vhlo.complex_v1<!vhlo.f16_v1>>>>>
+// CHECK-LABEL: "complex_roundtrip_future_element_f16"
+func.func private @complex_roundtrip_future_element_f16() -> !stablehlo.future<tensor<2xcomplex<f16>>>
+
+// CHECK-LABEL: "complex_roundtrip_buffer_element_f16"
+// CHECK: "vhlo.return_v1"(%[[ARG0:.*]]) : (!vhlo.buffer_v1<4x!vhlo.complex_v1<!vhlo.f16_v1>>) -> ()
+func.func @complex_roundtrip_buffer_element_f16(%arg0: memref<4xcomplex<f16>>) -> memref<4xcomplex<f16>> {
+  func.return %arg0 : memref<4xcomplex<f16>>
+}
+
+// CHECK: function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.unranked_tensor_v1<!vhlo.complex_v1<!vhlo.f16_v1>>) -> !vhlo.unranked_tensor_v1<!vhlo.complex_v1<!vhlo.f16_v1>>>>
+// CHECK-LABEL: "complex_roundtrip_unranked_element_f16"
+func.func private @complex_roundtrip_unranked_element_f16(tensor<*xcomplex<f16>>) -> tensor<*xcomplex<f16>>
+
 
 // ============ DEPENDENCIES  ============
 

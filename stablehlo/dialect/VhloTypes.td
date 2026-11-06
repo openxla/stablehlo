@@ -34,6 +34,17 @@ def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
   ];
 }
 
+def VHLO_VersionedTypeConstraintInterface : TypeInterface<"VersionedTypeConstraintInterface"> {
+  let cppNamespace = "::mlir::vhlo";
+  let methods = [
+    InterfaceMethod<
+      [{Validate versioned constraints on a versioned type.
+        Used if the spec'ed constraints of a type change over time.}],
+      "mlir::LogicalResult", "validateConstraint",
+      (ins "mlir::vhlo::Version":$targetVersion)>,
+  ];
+}
+
 class VHLO_TypeDef<string cppName, string name, string minVersion, string maxVersion, list<Trait> traits = []>
   : TypeDef<VHLO_Dialect, cppName, [VHLO_VersionedTypeInterface] # traits> {
   let mnemonic = name;
@@ -55,7 +66,8 @@ class VHLO_TypeDef<string cppName, string name, string minVersion, string maxVer
 def VHLO_BooleanV1 : VHLO_TypeDef<"BooleanV1", "bool_v1", "0.9.0", "current">;
 
 // Corresponds to ComplexType from the StableHLO spec.
-def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex_v1", "0.9.0", "current"> {
+def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex_v1", "0.9.0", "current",
+    [DeclareTypeInterfaceMethods<VHLO_VersionedTypeConstraintInterface>]> {
   let parameters = (ins "Type":$elementType);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -63,6 +75,15 @@ def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex_v1", "0.9.0", "current">
         llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type elementType) {
       if (!isFromVhlo(elementType)) return errFn() << "expected VHLO type";
       return success();
+    }
+    LogicalResult ComplexV1Type::validateConstraint(
+        mlir::vhlo::Version targetVersion) const {
+      mlir::Type elementType = getElementType();
+      if (mlir::isa<FloatF16V1Type, FloatBF16V1Type>(elementType))
+        return mlir::success(mlir::vhlo::Version(1, 25, 0) <= targetVersion);
+      if (mlir::isa<FloatF32V1Type, FloatF64V1Type>(elementType))
+        return mlir::success();
+      return mlir::failure();
     }
   }];
   let assemblyFormat = "`<` $elementType `>`";

@@ -2856,9 +2856,10 @@ LogicalResult inferFftOp(
   Type operandElementType = operandType.getElementType();
   // Check the input element type and infer return element type
   if (isFftTypeRfft) {
-    if (!operandElementType.isF32() && !operandElementType.isF64())
+    if (!isComplexElementType(operandElementType))
       return emitOptionalError(
-          location, "RFFT requires f32 or f64 input type, but is given ",
+          location,
+          "RFFT requires f16, bf16, f32 or f64 input type, but is given ",
           operandElementType, ".");
   } else {
     if (!isa<ComplexType>(operandElementType))

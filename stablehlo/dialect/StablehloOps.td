@@ -959,8 +959,8 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex",
     ```
   }];
   let arguments = (ins
-     HLO_Fp32Or64Tensor:$lhs /*complex_i1*/,
-     HLO_Fp32Or64Tensor:$rhs /*complex_i2*/
+     HLO_ComplexElementTypeTensor:$lhs /*complex_i1*/,
+     HLO_ComplexElementTypeTensor:$rhs /*complex_i2*/
   );
   let results = (outs
      HLO_ComplexTensor:$result
