@@ -142,6 +142,144 @@ func.func @dequantize_per_channel(
 
 // -----
 
+// CHECK-LABEL: func @dequantize_f16
+func.func @dequantize_f16(
+    %arg0: tensor<2x3x!quant.uniform<i8:f16, 5.000000e-01:3>>
+  ) -> tensor<2x3xf16> {
+  // CHECK-NOT: f32
+  // CHECK-DAG: %[[SCALES:.*]] = stablehlo.constant dense<5.000000e-01> : tensor<f16>
+  // CHECK-DAG: %[[ZPS:.*]] = stablehlo.constant dense<3> : tensor<i32>
+  // CHECK: %[[VAL0:.*]] = stablehlo.convert %arg0 : (tensor<2x3xi8>) -> tensor<2x3xi32>
+  // CHECK: %[[VAL1:.*]] = chlo.broadcast_subtract %[[VAL0]], %[[ZPS]] : (tensor<2x3xi32>, tensor<i32>) -> tensor<2x3xi32>
+  // CHECK: %[[VAL2:.*]] = stablehlo.convert %[[VAL1]] : (tensor<2x3xi32>) -> tensor<2x3xf16>
+  // CHECK: %[[VAL3:.*]] = chlo.broadcast_multiply %[[VAL2]], %[[SCALES]] : (tensor<2x3xf16>, tensor<f16>) -> tensor<2x3xf16>
+  // CHECK: return %[[VAL3]] : tensor<2x3xf16>
+  // CHECK-NOT: f32
+  %0 = stablehlo.uniform_dequantize %arg0 : (
+      tensor<2x3x!quant.uniform<i8:f16, 5.000000e-01:3>>
+    ) -> tensor<2x3xf16>
+  return %0 : tensor<2x3xf16>
+}
+
+// -----
+
+// CHECK-LABEL: func @dequantize_bf16
+func.func @dequantize_bf16(
+    %arg0: tensor<2x3x!quant.uniform<i8:bf16, 5.000000e-01:3>>
+  ) -> tensor<2x3xbf16> {
+  // CHECK-NOT: f32
+  // CHECK-DAG: %[[SCALES:.*]] = stablehlo.constant dense<5.000000e-01> : tensor<bf16>
+  // CHECK-DAG: %[[ZPS:.*]] = stablehlo.constant dense<3> : tensor<i32>
+  // CHECK: %[[VAL0:.*]] = stablehlo.convert %arg0 : (tensor<2x3xi8>) -> tensor<2x3xi32>
+  // CHECK: %[[VAL1:.*]] = chlo.broadcast_subtract %[[VAL0]], %[[ZPS]] : (tensor<2x3xi32>, tensor<i32>) -> tensor<2x3xi32>
+  // CHECK: %[[VAL2:.*]] = stablehlo.convert %[[VAL1]] : (tensor<2x3xi32>) -> tensor<2x3xbf16>
+  // CHECK: %[[VAL3:.*]] = chlo.broadcast_multiply %[[VAL2]], %[[SCALES]] : (tensor<2x3xbf16>, tensor<bf16>) -> tensor<2x3xbf16>
+  // CHECK: return %[[VAL3]] : tensor<2x3xbf16>
+  // CHECK-NOT: f32
+  %0 = stablehlo.uniform_dequantize %arg0 : (
+      tensor<2x3x!quant.uniform<i8:bf16, 5.000000e-01:3>>
+    ) -> tensor<2x3xbf16>
+  return %0 : tensor<2x3xbf16>
+}
+
+// -----
+
+// CHECK-LABEL: func @dequantize_f64
+func.func @dequantize_f64(
+    %arg0: tensor<2x3x!quant.uniform<i8:f64, 1.0000000000000002:3>>
+  ) -> tensor<2x3xf64> {
+  // CHECK-NOT: f32
+  // CHECK-DAG: %[[SCALES:.*]] = stablehlo.constant dense<1.0000000000000002> : tensor<f64>
+  // CHECK-DAG: %[[ZPS:.*]] = stablehlo.constant dense<3> : tensor<i32>
+  // CHECK: %[[VAL0:.*]] = stablehlo.convert %arg0 : (tensor<2x3xi8>) -> tensor<2x3xi32>
+  // CHECK: %[[VAL1:.*]] = chlo.broadcast_subtract %[[VAL0]], %[[ZPS]] : (tensor<2x3xi32>, tensor<i32>) -> tensor<2x3xi32>
+  // CHECK: %[[VAL2:.*]] = stablehlo.convert %[[VAL1]] : (tensor<2x3xi32>) -> tensor<2x3xf64>
+  // CHECK: %[[VAL3:.*]] = chlo.broadcast_multiply %[[VAL2]], %[[SCALES]] : (tensor<2x3xf64>, tensor<f64>) -> tensor<2x3xf64>
+  // CHECK: return %[[VAL3]] : tensor<2x3xf64>
+  // CHECK-NOT: f32
+  %0 = stablehlo.uniform_dequantize %arg0 : (
+      tensor<2x3x!quant.uniform<i8:f64, 1.0000000000000002:3>>
+    ) -> tensor<2x3xf64>
+  return %0 : tensor<2x3xf64>
+}
+
+// -----
+
+// CHECK-LABEL: func @dequantize_per_channel_f16
+func.func @dequantize_per_channel_f16(
+    %arg0: tensor<2x3x!quant.uniform<i8:f16:1, {5.000000e-01:1, 2.500000e-01:-1, 2.000000e+00:0}>>
+  ) -> tensor<2x3xf16> {
+  // CHECK-NOT: f32
+  // CHECK-DAG: %[[SCALES:.*]] = stablehlo.constant dense<[5.000000e-01, 2.500000e-01, 2.000000e+00]> : tensor<3xf16>
+  // CHECK-DAG: %[[ZPS:.*]] = stablehlo.constant dense<[1, -1, 0]> : tensor<3xi32>
+  // CHECK: %[[INPUT:.*]] = stablehlo.convert %arg0 : (tensor<2x3xi8>) -> tensor<2x3xi32>
+  // CHECK: %[[SUBTRACT:.*]] = chlo.broadcast_subtract %[[INPUT]], %[[ZPS]]
+  // CHECK-SAME: {broadcast_dimensions = array<i64: 1>}
+  // CHECK-SAME: (tensor<2x3xi32>, tensor<3xi32>) -> tensor<2x3xi32>
+  // CHECK: %[[FLOAT:.*]] = stablehlo.convert %[[SUBTRACT]] : (tensor<2x3xi32>) -> tensor<2x3xf16>
+  // CHECK: %[[RESULT:.*]] = chlo.broadcast_multiply %[[FLOAT]], %[[SCALES]]
+  // CHECK-SAME: {broadcast_dimensions = array<i64: 1>}
+  // CHECK-SAME: (tensor<2x3xf16>, tensor<3xf16>) -> tensor<2x3xf16>
+  // CHECK: return %[[RESULT]] : tensor<2x3xf16>
+  // CHECK-NOT: f32
+  %0 = stablehlo.uniform_dequantize %arg0 : (
+      tensor<2x3x!quant.uniform<i8:f16:1, {5.000000e-01:1, 2.500000e-01:-1, 2.000000e+00:0}>>
+    ) -> tensor<2x3xf16>
+  return %0 : tensor<2x3xf16>
+}
+
+// -----
+
+// CHECK-LABEL: func @dequantize_per_channel_bf16
+func.func @dequantize_per_channel_bf16(
+    %arg0: tensor<2x3x!quant.uniform<i8:bf16:1, {5.000000e-01:1, 2.500000e-01:-1, 2.000000e+00:0}>>
+  ) -> tensor<2x3xbf16> {
+  // CHECK-NOT: f32
+  // CHECK-DAG: %[[SCALES:.*]] = stablehlo.constant dense<[5.000000e-01, 2.500000e-01, 2.000000e+00]> : tensor<3xbf16>
+  // CHECK-DAG: %[[ZPS:.*]] = stablehlo.constant dense<[1, -1, 0]> : tensor<3xi32>
+  // CHECK: %[[INPUT:.*]] = stablehlo.convert %arg0 : (tensor<2x3xi8>) -> tensor<2x3xi32>
+  // CHECK: %[[SUBTRACT:.*]] = chlo.broadcast_subtract %[[INPUT]], %[[ZPS]]
+  // CHECK-SAME: {broadcast_dimensions = array<i64: 1>}
+  // CHECK-SAME: (tensor<2x3xi32>, tensor<3xi32>) -> tensor<2x3xi32>
+  // CHECK: %[[FLOAT:.*]] = stablehlo.convert %[[SUBTRACT]] : (tensor<2x3xi32>) -> tensor<2x3xbf16>
+  // CHECK: %[[RESULT:.*]] = chlo.broadcast_multiply %[[FLOAT]], %[[SCALES]]
+  // CHECK-SAME: {broadcast_dimensions = array<i64: 1>}
+  // CHECK-SAME: (tensor<2x3xbf16>, tensor<3xbf16>) -> tensor<2x3xbf16>
+  // CHECK: return %[[RESULT]] : tensor<2x3xbf16>
+  // CHECK-NOT: f32
+  %0 = stablehlo.uniform_dequantize %arg0 : (
+      tensor<2x3x!quant.uniform<i8:bf16:1, {5.000000e-01:1, 2.500000e-01:-1, 2.000000e+00:0}>>
+    ) -> tensor<2x3xbf16>
+  return %0 : tensor<2x3xbf16>
+}
+
+// -----
+
+// CHECK-LABEL: func @dequantize_per_channel_f64
+func.func @dequantize_per_channel_f64(
+    %arg0: tensor<2x3x!quant.uniform<i8:f64:1, {0.5000000000000001:1, 2.500000e-01:-1, 1.0000000000000002:0}>>
+  ) -> tensor<2x3xf64> {
+  // CHECK-NOT: f32
+  // CHECK-DAG: %[[SCALES:.*]] = stablehlo.constant dense<[0.50000000000000011, 2.500000e-01, 1.0000000000000002]> : tensor<3xf64>
+  // CHECK-DAG: %[[ZPS:.*]] = stablehlo.constant dense<[1, -1, 0]> : tensor<3xi32>
+  // CHECK: %[[INPUT:.*]] = stablehlo.convert %arg0 : (tensor<2x3xi8>) -> tensor<2x3xi32>
+  // CHECK: %[[SUBTRACT:.*]] = chlo.broadcast_subtract %[[INPUT]], %[[ZPS]]
+  // CHECK-SAME: {broadcast_dimensions = array<i64: 1>}
+  // CHECK-SAME: (tensor<2x3xi32>, tensor<3xi32>) -> tensor<2x3xi32>
+  // CHECK: %[[FLOAT:.*]] = stablehlo.convert %[[SUBTRACT]] : (tensor<2x3xi32>) -> tensor<2x3xf64>
+  // CHECK: %[[RESULT:.*]] = chlo.broadcast_multiply %[[FLOAT]], %[[SCALES]]
+  // CHECK-SAME: {broadcast_dimensions = array<i64: 1>}
+  // CHECK-SAME: (tensor<2x3xf64>, tensor<3xf64>) -> tensor<2x3xf64>
+  // CHECK: return %[[RESULT]] : tensor<2x3xf64>
+  // CHECK-NOT: f32
+  %0 = stablehlo.uniform_dequantize %arg0 : (
+      tensor<2x3x!quant.uniform<i8:f64:1, {0.5000000000000001:1, 2.500000e-01:-1, 1.0000000000000002:0}>>
+    ) -> tensor<2x3xf64>
+  return %0 : tensor<2x3xf64>
+}
+
+// -----
+
 // CHECK-LABEL: func @add
 func.func @add(
     %arg0: tensor<?x?x!quant.uniform<i8:f32, 1.000000e+00:3>>,
