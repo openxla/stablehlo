@@ -646,6 +646,8 @@ FailureOr<KnownDotAlgorithm> getKnownDotAlgorithm(
   // Only support single component for now.
   if (lhsComponentCount != 1 || rhsComponentCount != 1) return failure();
 
+  // Types that are supported for ANY_F8 dot algorithms. E8M0FNU and E5M3FNU
+  // are deliberately omitted from this list.
   auto isAnyF8 = [](Type t) {
     return llvm::isa<Float8E3M4Type, Float8E4M3Type, Float8E4M3FNType,
                      Float8E5M2Type, Float8E4M3FNUZType, Float8E4M3B11FNUZType,

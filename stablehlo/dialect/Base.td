@@ -58,7 +58,8 @@ def HLO_Int : AnyTypeOf<[HLO_SInt, HLO_UInt], "2/4/8/16/32/64-bit integer">;
 
 def HLO_Float : AnyTypeOf<[F4E2M1FN, F6E2M3FN, F6E3M2FN, F8E3M4, F8E4M3,
                            F8E4M3FN, F8E4M3FNUZ, F8E4M3B11FNUZ, F8E5M2,
-                           F8E5M2FNUZ, F8E8M0FNU, F16, F32, F64, BF16], "4/6/8/16/32/64-bit float">;
+                           F8E5M2FNUZ, F8E5M3FNU, F8E8M0FNU, F16, F32, F64,
+                           BF16], "4/6/8/16/32/64-bit float">;
 def HLO_Float32Or64 : AnyTypeOf<[F32, F64], "32/64-bit float">;
 
 def HLO_Complex : Complex<HLO_Float32Or64>;

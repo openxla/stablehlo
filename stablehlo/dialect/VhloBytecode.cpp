@@ -234,7 +234,7 @@ enum AttributeCode {
 /// location is updated.
 enum TypeCode {
   // TO ADD TYPE: Add an enum value with doc string for new type.
-  // Next available code: 43
+  // Next available code: 44
 
   ///   BooleanV1Type {
   ///   }
@@ -400,6 +400,10 @@ enum TypeCode {
   ///   FloatF8E5M2FNUZV1Type {
   ///   }
   kFloatF8E5M2FNUZV1Type = 28,
+
+  ///   FloatF8E5M3FNUV1Type {
+  ///   }
+  kFloatF8E5M3FNUV1Type = 43,
 
   ///   FloatF8E4M3B11FNUZV1Type {
   ///   }
@@ -826,6 +830,7 @@ const llvm::fltSemantics& getFloatSemantics(Type type) {
   if (isa<FloatF8E4M3FNV1Type>(type)) return APFloat::Float8E4M3FN();
   if (isa<FloatF8E4M3V1Type>(type)) return APFloat::Float8E4M3();
   if (isa<FloatF8E5M2FNUZV1Type>(type)) return APFloat::Float8E5M2FNUZ();
+  if (isa<FloatF8E5M3FNUV1Type>(type)) return APFloat::Float8E5M3FNU();
   if (isa<FloatF8E5M2V1Type>(type)) return APFloat::Float8E5M2();
   if (isa<FloatF8E8M0FNUV1Type>(type)) return APFloat::Float8E8M0FNU();
   if (isa<FloatTF32V1Type>(type)) return APFloat::FloatTF32();
@@ -1201,6 +1206,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader& reader) const {
       return FloatF8E4M3FNV1Type::get(getContext());
     case vhlo_encoding::kFloatF8E5M2FNUZV1Type:
       return FloatF8E5M2FNUZV1Type::get(getContext());
+    case vhlo_encoding::kFloatF8E5M3FNUV1Type:
+      return FloatF8E5M3FNUV1Type::get(getContext());
     case vhlo_encoding::kFloatF8E4M3FNUZV1Type:
       return FloatF8E4M3FNUZV1Type::get(getContext());
     case vhlo_encoding::kFloatF8E4M3B11FNUZV1Type:
@@ -1343,6 +1350,11 @@ LogicalResult VhloBytecodeInterface::writeType(
       .Case([&](FloatF8E5M2FNUZV1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kFloatF8E5M2FNUZV1Type),
+               success();
+      })
+      .Case([&](FloatF8E5M3FNUV1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloatF8E5M3FNUV1Type),
                success();
       })
       .Case([&](FloatF8E8M0FNUV1Type) {

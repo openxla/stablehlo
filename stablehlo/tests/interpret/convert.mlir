@@ -258,3 +258,48 @@ func.func @convert_op_test_ui8_to_f8e8m0fnu() {
   check.expect_almost_eq_const %result, dense<[5.877470e-39, 1.0, 2.0, 128.0]> : tensor<4xf8E8M0FNU>
   func.return
 }
+
+// -----
+
+func.func @convert_op_test_f32_to_f8e5m3fnu() {
+  %operand = stablehlo.constant dense<[0x80000001, -1.0, -0.0, 0.0, 1.0, 2.0, 3.1415, 7.62939e-06, 114688.0, 131072.0, 0xFF800000, 0xFFC00000, 0x7F800000]> : tensor<13xf32>
+  %result = stablehlo.convert %operand : (tensor<13xf32>) -> tensor<13xf8E5M3FNU>
+  check.expect_almost_eq_const %result, dense<[0xFF, 0xFF, 0.0, 0.0, 1.0, 2.0, 3.25, 7.62939e-06, 114688.0, 0xFF, 0xFF, 0xFF, 0xFF]> : tensor<13xf8E5M3FNU>
+  func.return
+}
+
+// -----
+
+func.func @convert_op_test_bf16_to_f8e5m3fnu() {
+  %operand = stablehlo.constant dense<[-1.0, -0.0, 0.0, 1.0, 0xFF80, 0xFFC0]> : tensor<6xbf16>
+  %result = stablehlo.convert %operand : (tensor<6xbf16>) -> tensor<6xf8E5M3FNU>
+  check.expect_almost_eq_const %result, dense<[0xFF, 0.0, 0.0, 1.0, 0xFF, 0xFF]> : tensor<6xf8E5M3FNU>
+  func.return
+}
+
+// -----
+
+func.func @convert_op_test_si32_to_f8e5m3fnu() {
+  %operand = stablehlo.constant dense<[-2, -1, 0, 1, 2]> : tensor<5xi32>
+  %result = stablehlo.convert %operand : (tensor<5xi32>) -> tensor<5xf8E5M3FNU>
+  check.expect_almost_eq_const %result, dense<[0xFF, 0xFF, 0.0, 1.0, 2.0]> : tensor<5xf8E5M3FNU>
+  func.return
+}
+
+// -----
+
+func.func @convert_op_test_ui8_to_f8e5m3fnu() {
+  %operand = stablehlo.constant dense<[0, 1, 2, 128]> : tensor<4xui8>
+  %result = stablehlo.convert %operand : (tensor<4xui8>) -> tensor<4xf8E5M3FNU>
+  check.expect_almost_eq_const %result, dense<[0.0, 1.0, 2.0, 128.0]> : tensor<4xf8E5M3FNU>
+  func.return
+}
+
+// -----
+
+func.func @convert_op_test_f8e5m3fnu_to_f32() {
+  %operand = stablehlo.constant dense<[0.0, 0x01, 0x08, 1.0, 0xFE, 0xFF]> : tensor<6xf8E5M3FNU>
+  %result = stablehlo.convert %operand : (tensor<6xf8E5M3FNU>) -> tensor<6xf32>
+  check.expect_almost_eq_const %result, dense<[0.0, 7.62939453125e-06, 6.103515625e-05, 1.0, 114688.0, 0x7FF00000]> : tensor<6xf32>
+  func.return
+}

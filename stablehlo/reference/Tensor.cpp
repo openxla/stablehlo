@@ -424,9 +424,9 @@ Tensor makeTensor(DenseElementsAttr attr) {
           return value.bitcastToAPInt().getZExtValue();
         });
 
-    // For f8E3M4, f8E4M3, f8E4M3FN, f8E4M3FNUZ, f8E4M3B11FNUZ, f8E5M2, and
-    // f8E5M2FNUZ, f8E8M0FNU floating-point types, we use uint8_t as their
-    // storage type because there are no builtin types for those.
+    // For f8E3M4, f8E4M3, f8E4M3FN, f8E4M3FNUZ, f8E4M3B11FNUZ, f8E5M2,
+    // f8E5M2FNUZ, f8E5M3FNU, and f8E8M0FNU floating-point types, we use uint8_t
+    // as their storage type because there are no builtin types for those.
     // For f4E2M1FN, f6E2M3FN, and f6E3M2FN floating-point types, we still use
     // uint8_t, even though the underlying types require less bits (similar
     // to how ui2/ui4 types are handled).

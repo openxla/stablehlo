@@ -99,6 +99,8 @@ Type getElementType(MLIRContext& ctx, ElementType elementType) {
       return Float8E5M2Type::get(&ctx);
     case ElementType::F8E5M2FNUZ:
       return Float8E5M2FNUZType::get(&ctx);
+    case ElementType::F8E5M3FNU:
+      return Float8E5M3FNUType::get(&ctx);
     case ElementType::F8E8M0FNU:
       return Float8E8M0FNUType::get(&ctx);
     case ElementType::COMPLEXF32:
@@ -166,6 +168,11 @@ namespace detail {
 APFloat toAPFloat(double val, FloatType floatType) {
   llvm::APFloat apf(val);
   const auto& fltSemantics = floatType.getFloatSemantics();
+  if (apf.isNegative() && !APFloat::semanticsHasSignedRepr(fltSemantics)) {
+    return apf.isNegZero() && APFloat::semanticsHasZero(fltSemantics)
+               ? APFloat::getZero(fltSemantics)
+               : APFloat::getNaN(fltSemantics);
+  }
   auto roundingMode = APFloat::rmNearestTiesToEven;
   bool losesInfo;
   apf.convert(fltSemantics, roundingMode, &losesInfo);

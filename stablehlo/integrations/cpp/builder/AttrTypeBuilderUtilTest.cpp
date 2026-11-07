@@ -59,6 +59,7 @@ TEST(AttrTypeBuilderUtilTest, TestMakeTensorType) {
           {{{}, ElementType::F8E4M3B11FNUZ}, "tensor<f8E4M3B11FNUZ>"},
           {{{}, ElementType::F8E5M2}, "tensor<f8E5M2>"},
           {{{}, ElementType::F8E5M2FNUZ}, "tensor<f8E5M2FNUZ>"},
+          {{{}, ElementType::F8E5M3FNU}, "tensor<f8E5M3FNU>"},
           {{{}, ElementType::F8E8M0FNU}, "tensor<f8E8M0FNU>"},
           {{{1}, ElementType::F64}, "tensor<1xf64>"},
           {{{1, 2, 3}, ElementType::F64}, "tensor<1x2x3xf64>"},

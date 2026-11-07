@@ -52,8 +52,9 @@ bool isSupportedFloatType(Type type) {
       mlir::Float4E2M1FNType, mlir::Float6E2M3FNType, mlir::Float6E3M2FNType,
       mlir::Float8E3M4Type, mlir::Float8E4M3B11FNUZType, mlir::Float8E4M3Type,
       mlir::Float8E4M3FNType, mlir::Float8E4M3FNUZType, mlir::Float8E5M2Type,
-      mlir::Float8E5M2FNUZType, mlir::Float8E8M0FNUType, mlir::Float16Type,
-      mlir::BFloat16Type, mlir::Float32Type, mlir::Float64Type>(type);
+      mlir::Float8E5M2FNUZType, mlir::Float8E5M3FNUType,
+      mlir::Float8E8M0FNUType, mlir::Float16Type, mlir::BFloat16Type,
+      mlir::Float32Type, mlir::Float64Type>(type);
 }
 
 bool isSupportedComplexType(Type type) {
