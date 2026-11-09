@@ -582,6 +582,21 @@ class RefineShapeState {
       }
     }
 
+    // If the callee's argument types already match the composite's operand
+    // types and all callee result types are already static, the callee was
+    // specialized in a previous pass. Reuse it directly to keep the pass
+    // idempotent.
+    bool calleeAlreadyRefined =
+        llvm::equal(callee.getArgumentTypes(), argumentTypes) &&
+        llvm::all_of(callee.getResultTypes(), [](Type t) {
+          auto shaped = dyn_cast<ShapedType>(t);
+          return !shaped || shaped.hasStaticShape();
+        });
+    if (calleeAlreadyRefined) {
+      specializations.push_back({argumentTypes, constants, callee});
+      return callee;
+    }
+
     // Preserve other composites and ordinary calls that use this function.
     auto savedTemplate = decompositionTemplates.find(original);
     if (savedTemplate != decompositionTemplates.end()) {
