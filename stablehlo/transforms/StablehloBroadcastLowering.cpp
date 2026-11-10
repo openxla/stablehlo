@@ -29,6 +29,7 @@ limitations under the License.
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
@@ -110,6 +111,24 @@ FailureOr<Dimensions> getNumpyBroadcastShapeWithBounds(Value op,
   LLVM_DEBUG(llvm::dbgs() << "[getNumpyBroadcastShapeWithBounds] result: "
                           << toString(result) << "\n");
   return result;
+}
+
+// Returns `input` with each bounded dimension made static at its bound, so its
+// padded data can be broadcast to a static shape.
+Value makeStaticAtBounds(OpBuilder& builder, Value input,
+                         const Dimensions& inputShape) {
+  auto loc = input.getLoc();
+  auto sizeType = RankedTensorType::get({}, builder.getI32Type());
+  for (auto [dim, dimInfo] : llvm::enumerate(inputShape)) {
+    if (!dimInfo.boundOp.has_value()) continue;
+    const int32_t boundSize = static_cast<int32_t>(dimInfo.size);
+    auto bound = stablehlo::ConstantOp::create(
+        builder, loc,
+        DenseElementsAttr::get(sizeType, llvm::ArrayRef<int32_t>(boundSize)));
+    input =
+        stablehlo::SetDimensionSizeOp::create(builder, loc, input, bound, dim);
+  }
+  return input;
 }
 
 }  // namespace
@@ -275,6 +294,8 @@ FailureOr<Value> broadcastIfNeeded(OpBuilder& builder, Value input,
   //  - If input has bounded dim, target shape must be bounded, use bounded dim.
   //  - If input is not bounded, but target shape is bounded, broadcast to
   //    the padded shape then call SetDimensionSize to make dynamic.
+  //  - If that leaves more than one bounded dim, broadcast the input made
+  //    static at its bounds to the padded shape instead.
   auto bcastShape = shape;
   llvm::SmallVector<bool> isMapped(outputRank, false);
 
@@ -310,6 +331,19 @@ FailureOr<Value> broadcastIfNeeded(OpBuilder& builder, Value input,
   // Broadcast to padded size for remaining unmapped dimensions.
   for (int64_t i = 0; i < outputRank; ++i) {
     if (!isMapped[i]) {
+      bcastShape[i] = DimensionInfo{shape[i].size};
+    }
+  }
+
+  // A broadcast_in_dim result can have at most one bounded dimension. If more
+  // bounded input dimensions are kept, make the input static at its bounds and
+  // broadcast to the fully padded shape instead. Each bounded result dimension
+  // is then made dynamic again below.
+  if (llvm::count_if(bcastShape, [](const DimensionInfo& dim) {
+        return dim.boundOp.has_value();
+      }) > 1) {
+    input = makeStaticAtBounds(builder, input, inputShape);
+    for (int64_t i = 0; i < outputRank; ++i) {
       bcastShape[i] = DimensionInfo{shape[i].size};
     }
   }

@@ -234,6 +234,32 @@ func.func @tensor_broadcast_b10_1_x_1_b10(
 
 // -----
 
+// A broadcast_in_dim result can have at most one bounded dimension, so an
+// input with several bounded dimensions is made static at its bounds,
+// broadcast to the padded shape, and then made dynamic again.
+// CHECK-LABEL: func @tensor_broadcast_1_1_b8_b8_x_1_2_b8_b8
+func.func @tensor_broadcast_1_1_b8_b8_x_1_2_b8_b8(
+  %arg0: tensor<1x1x?x?xf64, #stablehlo.bounds<?, ?, 8, 8>>,
+  %arg1: tensor<1x2x?x?xf64, #stablehlo.bounds<?, ?, 8, 8>>
+) -> !stablehlo.token {
+  // CHECK: %[[BOUND:.+]] = stablehlo.constant dense<8> : tensor<i32>
+  // CHECK: %[[STATIC2:.+]] = stablehlo.set_dimension_size %arg0, %[[BOUND]], dim = 2 : (tensor<1x1x?x?xf64, #stablehlo.bounds<?, ?, 8, 8>>, tensor<i32>) -> tensor<1x1x8x?xf64, #stablehlo.bounds<?, ?, ?, 8>>
+  // CHECK: %[[STATIC:.+]] = stablehlo.set_dimension_size %[[STATIC2]], %[[BOUND]], dim = 3 : (tensor<1x1x8x?xf64, #stablehlo.bounds<?, ?, ?, 8>>, tensor<i32>) -> tensor<1x1x8x8xf64>
+  // CHECK: %[[BCAST:.+]] = stablehlo.broadcast_in_dim %[[STATIC]], dims = [0, 1, 2, 3] : (tensor<1x1x8x8xf64>) -> tensor<1x2x8x8xf64>
+  // CHECK: %[[SIZE2:.+]] = stablehlo.get_dimension_size %arg0, dim = 2
+  // CHECK: %[[DYN2:.+]] = stablehlo.set_dimension_size %[[BCAST]], %[[SIZE2]], dim = 2
+  // CHECK: %[[SIZE3:.+]] = stablehlo.get_dimension_size %arg0, dim = 3
+  // CHECK: %[[DYN:.+]] = stablehlo.set_dimension_size %[[DYN2]], %[[SIZE3]], dim = 3 : (tensor<1x2x?x8xf64, #stablehlo.bounds<?, ?, 8, ?>>, tensor<i32>) -> tensor<1x2x?x?xf64, #stablehlo.bounds<?, ?, 8, 8>>
+  // CHECK-NEXT: stablehlo.custom_call @numpy_broadcasted(%[[DYN]], %arg1)
+  %0 = "hlo_test_broadcast.numpy_broadcast"(%arg0, %arg1) : (
+    tensor<1x1x?x?xf64, #stablehlo.bounds<?, ?, 8, 8>>,
+    tensor<1x2x?x?xf64, #stablehlo.bounds<?, ?, 8, 8>>
+  ) -> !stablehlo.token
+  return %0 : !stablehlo.token
+}
+
+// -----
+
 // [5] x [10, 1] => [10, 5]
 // CHECK-LABEL: func @tensor_broadcast_5_x_10_1
 func.func @tensor_broadcast_5_x_10_1(%arg0: tensor<5xf64>, %arg1: tensor<10x1xf64>) -> !stablehlo.token {
