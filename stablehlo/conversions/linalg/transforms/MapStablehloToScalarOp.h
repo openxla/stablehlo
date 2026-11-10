@@ -30,6 +30,7 @@ limitations under the License.
 #include "mlir/Dialect/Vector/IR/VectorOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/IR/Operation.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
@@ -1361,6 +1362,10 @@ inline Value mapStablehloOpToStdScalarOp<stablehlo::ShiftRightArithmeticOp>(
 
 struct StablehloOpToStdScalarOp {
   // Converts stablehlo 'op' to linalg and arith ops.
+  static Value mapOp(Operation* op, ArrayRef<Type> resultTypes, ValueRange args,
+                     OpBuilder* b);
+
+  // Converts stablehlo 'op' to linalg and arith ops.
   template <typename StablehloOpTy>
   static Value mapOp(StablehloOpTy op, ArrayRef<Type> resultTypes,
                      ValueRange args, OpBuilder* b) {
@@ -1375,11 +1380,9 @@ struct StablehloOpToStdScalarOp {
                                  ArrayRef<Type> argTypes, ValueRange args,
                                  OpBuilder* b) {
     static_assert(!std::is_same<StablehloOpTy, stablehlo::ConvertOp>::value);
-    return mapOpOfType<StablehloOpTy>(
-        op.getLoc(), resultTypes, argTypes,
-        typename StablehloOpTy::Adaptor(args, op->getAttrDictionary(),
-                                        op.getProperties()),
-        b);
+    return mapOpOfType<StablehloOpTy>(op.getLoc(), resultTypes, argTypes,
+                                      typename StablehloOpTy::Adaptor(args, op),
+                                      b);
   }
   // Overload for stablehlo::ConvertOp.
   static Value mapOpWithArgTypes(stablehlo::ConvertOp op,

@@ -24,6 +24,7 @@ limitations under the License.
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -45,6 +46,7 @@ limitations under the License.
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Support/LLVM.h"
+#include "stablehlo/conversions/linalg/transforms/MapStablehloToScalarOp.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
@@ -186,6 +188,23 @@ SmallVector<int64_t> extract1DVector(DenseIntElementsAttr elements) {
     ret.push_back(element.getLimitedValue());
   }
   return ret;
+}
+
+Value StablehloOpToStdScalarOp::mapOp(Operation* op, ArrayRef<Type> resultTypes,
+                                      ValueRange args, OpBuilder* b) {
+  auto argTypes = llvm::to_vector<4>(op->getOperandTypes());
+  return llvm::TypeSwitch<Operation*, Value>(op)
+      .Case<AbsOp, AddOp, AndOp, Atan2Op, BitcastConvertOp, CbrtOp, CeilOp,
+            ClampOp, ClzOp, CompareOp, ComplexOp, ConvertOp, CosineOp, DivOp,
+            ExpOp, Expm1Op, Exp2Op, FloorOp, FmaOp, ImagOp, IsFiniteOp, Log1pOp,
+            Log2Op, LogOp, LogisticOp, MaxOp, MinOp, MulOp, NegOp, NotOp, OrOp,
+            PopulationCountOp, PowOp, RealOp, ReducePrecisionOp, RemOp,
+            RoundNearestEvenOp, RoundOp, RsqrtOp, SelectOp, ShiftLeftOp,
+            ShiftRightArithmeticOp, ShiftRightLogicalOp, SignOp, SineOp, SqrtOp,
+            SubtractOp, TanOp, TanhOp, XorOp>([&](auto concreteOp) {
+        return mapOpWithArgTypes(concreteOp, resultTypes, argTypes, args, b);
+      })
+      .Default(nullptr);
 }
 
 }  // namespace mlir::stablehlo
