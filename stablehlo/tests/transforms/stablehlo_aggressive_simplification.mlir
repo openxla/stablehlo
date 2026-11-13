@@ -2193,8 +2193,8 @@ func.func @while_op_constant_capture(%arg0: tensor<10xf32>) -> (tensor<10xf32>) 
   %c_1 = stablehlo.constant dense<0> : tensor<i32>
   %cst = stablehlo.constant dense<0.000000e+00> : tensor<f32>
   %0 = stablehlo.broadcast_in_dim %cst, dims = [] : (tensor<f32>) -> tensor<10xf32>
-  // CHECK: stablehlo.while(%iterArg = %c_1, %iterArg_2 = %0) : tensor<i32>, tensor<10xf32> attributes {mhlo.frontend_attributes = {test_attr = "true"}}
-  %1:3 = stablehlo.while(%iterArg = %arg0, %iterArg_2 = %c_1, %iterArg_3 = %0) : tensor<10xf32>, tensor<i32>, tensor<10xf32> attributes {mhlo.frontend_attributes = {test_attr = "true"}}
+  // CHECK: stablehlo.while(%iterArg = %c_1, %iterArg_2 = %0) : tensor<i32>, tensor<10xf32> attributes {mhlo.frontend_attributes = {test_attr = "true"}, mhlo.sharding = "{{\{\{}}replicated}, {devices=[2]<=[2]}}"}
+  %1:3 = stablehlo.while(%iterArg = %arg0, %iterArg_2 = %c_1, %iterArg_3 = %0) : tensor<10xf32>, tensor<i32>, tensor<10xf32> attributes {mhlo.frontend_attributes = {test_attr = "true"}, mhlo.sharding = "{{maximal device=0}, {replicated}, {devices=[2]<=[2]}}"}
     cond {
     %2 = stablehlo.compare  LT, %iterArg_2, %c_0,  SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
     stablehlo.return %2 : tensor<i1>
