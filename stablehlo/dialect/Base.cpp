@@ -55,6 +55,10 @@ limitations under the License.
 namespace mlir {
 namespace hlo {
 
+bool isComplexElementType(Type type) {
+  return type.isF16() || type.isBF16() || type.isF32() || type.isF64();
+}
+
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
   if (failed(verifyCompatibleShape(type1, type2))) return failure();
 

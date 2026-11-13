@@ -183,6 +183,15 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
     return failure();
   }
 
+  // Check versioned type constraints (e.g. complex component types).
+  if (auto constraint = dyn_cast<VersionedTypeConstraintInterface>(type)) {
+    if (failed(constraint.validateConstraint(targetVersion))) {
+      LLVM_DEBUG(llvm::dbgs() << "failed to legalize type " << type
+                              << " to version " << targetVersion << '\n');
+      return failure();
+    }
+  }
+
   // Recursively check types if VHLO type is a container.
   if (auto complex = dyn_cast<ComplexV1Type>(type))
     return isLegalType(complex.getElementType(), targetVersion);
@@ -214,6 +223,14 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
   if (auto buffer = dyn_cast<RankedBufferV1Type>(type)) {
     return isLegalType(buffer.getElementType(), targetVersion);
   }
+  if (auto future = dyn_cast<FutureV1Type>(type))
+    return success(llvm::all_of(future.getTypes(), [&](Type ele) {
+      return succeeded(isLegalType(ele, targetVersion));
+    }));
+  if (auto quantPerAxis = dyn_cast<UniformQuantizedPerAxisV1Type>(type))
+    return success(
+        succeeded(isLegalType(quantPerAxis.getStorageType(), targetVersion)) &&
+        succeeded(isLegalType(quantPerAxis.getExpressedType(), targetVersion)));
 
   // Is VHLO and valid version, success.
   return success();
@@ -276,6 +293,11 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
       !llvm::all_of(op->getResultTypes(), isLegalTypeFn))
     return false;
   LLVM_DEBUG(llvm::dbgs() << "Legal op types for target. " << op << '\n');
+
+  // Validate region block argument types
+  for (auto& region : op->getRegions())
+    for (auto& block : region.getBlocks())
+      if (!llvm::all_of(block.getArgumentTypes(), isLegalTypeFn)) return false;
 
   // Validate location
   LLVM_DEBUG(
