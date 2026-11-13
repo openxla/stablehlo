@@ -20,6 +20,7 @@ limitations under the License.
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -30,6 +31,8 @@ limitations under the License.
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/OpDefinition.h"
+#include "mlir/IR/Operation.h"
+#include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
@@ -532,12 +535,10 @@ void eraseAttrs(SmallVectorImpl<NamedAttribute>& attrs, StringTy... names) {
 }
 
 template <typename VhloOpTy>
-LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
-                             VhloOpTy vhloOp,
-                             SmallVectorImpl<NamedAttribute>& vhloAttrs,
-                             SmallVectorImpl<NamedAttribute>& stablehloAttrs) {
-  auto typeConverter =
-      pattern.template getTypeConverter<vhlo::VhloTypeConverter>();
+auto implodeSpecial(const ConversionPattern& pattern, VhloOpTy vhloOp,
+                    SmallVectorImpl<NamedAttribute>& vhloAttrs,
+                    SmallVectorImpl<NamedAttribute>& stablehloAttrs) {
+  auto typeConverter = pattern.getTypeConverter<vhlo::VhloTypeConverter>();
   if constexpr (std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::DynamicConvOpV2>::value) {
     auto stablehloAttr = convertConvDimensionNumbers(vhloOp, typeConverter);
@@ -550,6 +551,7 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                "kernel_output_feature_dimension", "kernel_spatial_dimensions",
                "output_batch_dimension", "output_feature_dimension",
                "output_spatial_dimensions");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV2>::value) {
     // Dot Dimension Numbers
@@ -573,6 +575,7 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
                "accumulation_type", "lhs_component_count",
                "rhs_component_count", "num_primitive_operations",
                "allow_imprecise_accumulation");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::DynamicGatherOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::GatherOpV2>::value) {
@@ -584,6 +587,7 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
     eraseAttrs(vhloAttrs, "offset_dims", "collapsed_slice_dims",
                "operand_batching_dims", "start_indices_batching_dims",
                "start_index_map", "index_vector_dim");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV2>::value) {
     auto stablehloAttr = convertScatterDimensionNumbers(vhloOp, typeConverter);
@@ -594,6 +598,7 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
     eraseAttrs(vhloAttrs, "update_window_dims", "inserted_window_dims",
                "input_batching_dims", "scatter_indices_batching_dims",
                "scatter_dims_to_operand_dims", "index_vector_dim");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::SendOpV2>::value) {
@@ -602,8 +607,8 @@ LogicalResult implodeSpecial(const OpConversionPattern<VhloOpTy>& pattern,
     stablehloAttrs.emplace_back(
         StringAttr::get(pattern.getContext(), "channel_handle"), stablehloAttr);
     eraseAttrs(vhloAttrs, "channel_id", "channel_type");
+    return success();
   }
-  return success();
 }
 
 template <typename T, typename DenseArrayAttr>
@@ -839,9 +844,8 @@ bool isString(Attribute vhloAttr, StringRef value) {
 // Current logic assumes that these attributes are valid, but that might not
 // necessarily be the case because VHLO doesn't have verifiers.
 template <typename VhloOpTy>
-LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
-                             VhloOpTy vhloOp,
-                             SmallVectorImpl<NamedAttribute>& vhloAttrs) {
+auto removeDefaults(const ConversionPattern& pattern, VhloOpTy vhloOp,
+                    SmallVectorImpl<NamedAttribute>& vhloAttrs) {
   if constexpr (std::is_same<VhloOpTy, vhlo::FuncOpV1>::value) {
     if (isString(vhloOp.getSymVisibilityAttr(), ""))
       eraseAttrs(vhloAttrs, "sym_visibility");
@@ -849,6 +853,7 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       eraseAttrs(vhloAttrs, "arg_attrs");
     if (isEmptyArray(vhloOp.getResAttrsAttr()))
       eraseAttrs(vhloAttrs, "res_attrs");
+    return success();
   }
   if constexpr (llvm::is_one_of<
                     VhloOpTy, vhlo::AllGatherOpV2, vhlo::AllReduceOpV2,
@@ -870,15 +875,18 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       if (isBoolean(vhloOp.getHasDynamicRootAttr(), false))
         eraseAttrs(vhloAttrs, "has_dynamic_root");
     }
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CholeskyOpV1>::value) {
     if (isBoolean(vhloOp.getLowerAttr(), false)) eraseAttrs(vhloAttrs, "lower");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CompareOpV1>::value) {
     if (isEnum(vhloOp.getCompareTypeAttr(),
                vhlo::ComparisonTypeV1Attr::get(pattern.getContext(),
                                                vhlo::ComparisonTypeV1::NOTYPE)))
       eraseAttrs(vhloAttrs, "compare_type");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CompositeOpV2>::value) {
     if (isInteger(vhloOp.getVersionAttr(), 0)) {
@@ -887,6 +895,7 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     if (isEmptyDictionary(vhloOp.getCompositeAttributesAttr())) {
       eraseAttrs(vhloAttrs, "composite_attributes");
     }
+    return success();
   }
   if constexpr (llvm::is_one_of<VhloOpTy, vhlo::ConvolutionOpV1,
                                 vhlo::DynamicConvOpV2>::value) {
@@ -902,6 +911,11 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       eraseAttrs(vhloAttrs, "rhs_dilation");
     if (isSplatTensor(pattern, vhloOp.getWindowReversalAttr(), false))
       eraseAttrs(vhloAttrs, "window_reversal");
+    if (isSplatArray(vhloOp.getPrecisionConfigAttr(),
+                     vhlo::PrecisionV1Attr::get(pattern.getContext(),
+                                                vhlo::PrecisionV1::DEFAULT)))
+      eraseAttrs(vhloAttrs, "precision_config");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV2>::value) {
     if (isBoolean(vhloOp.getHasSideEffectAttr(), false))
@@ -925,14 +939,15 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       eraseAttrs(vhloAttrs, "output_operand_aliases");
     if (isEmptyArray(vhloOp.getResultTilings()))
       eraseAttrs(vhloAttrs, "result_tilings");
+    return success();
   }
-  if constexpr (llvm::is_one_of<VhloOpTy, vhlo::ConvolutionOpV1,
-                                vhlo::DynamicConvOpV2, vhlo::DotGeneralOpV2,
+  if constexpr (llvm::is_one_of<VhloOpTy, vhlo::DotGeneralOpV2,
                                 vhlo::DotOpV1>::value) {
     if (isSplatArray(vhloOp.getPrecisionConfigAttr(),
                      vhlo::PrecisionV1Attr::get(pattern.getContext(),
                                                 vhlo::PrecisionV1::DEFAULT)))
       eraseAttrs(vhloAttrs, "precision_config");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy,
                              vhlo::DynamicBroadcastInDimOpV1>::value) {
@@ -940,20 +955,28 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       eraseAttrs(vhloAttrs, "known_expanding_dimensions");
     if (isEmptyTensor(vhloOp.getKnownNonexpandingDimensionsAttr()))
       eraseAttrs(vhloAttrs, "known_nonexpanding_dimensions");
+    return success();
   }
   if constexpr (llvm::is_one_of<VhloOpTy, vhlo::DynamicGatherOpV2,
                                 vhlo::GatherOpV2, vhlo::ScatterOpV2>::value) {
     if (isBoolean(vhloOp.getIndicesAreSortedAttr(), false))
       eraseAttrs(vhloAttrs, "indices_are_sorted");
+    if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV2>::value) {
+      if (isBoolean(vhloOp.getUniqueIndicesAttr(), false))
+        eraseAttrs(vhloAttrs, "unique_indices");
+    }
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::InfeedOpV1>::value) {
     if (isEmptyString(vhloOp.getInfeedConfig()))
       eraseAttrs(vhloAttrs, "infeed_config");
     if (isEmptyArray(vhloOp.getLayout())) eraseAttrs(vhloAttrs, "layout");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::OutfeedOpV1>::value) {
     if (isEmptyString(vhloOp.getOutfeedConfig()))
       eraseAttrs(vhloAttrs, "outfeed_config");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV2>::value ||
                 std::is_same<VhloOpTy, vhlo::SendOpV2>::value) {
@@ -961,6 +984,7 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
       eraseAttrs(vhloAttrs, "is_host_transfer");
     if (isEmptyTensor(vhloOp.getSourceTargetPairs()))
       eraseAttrs(vhloAttrs, "source_target_pairs");
+    return success();
   }
   if constexpr (llvm::is_one_of<VhloOpTy, vhlo::ReduceWindowOpV1,
                                 vhlo::SelectAndScatterOpV1>::value) {
@@ -974,16 +998,14 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     }
     if (isSplatTensor(pattern, vhloOp.getPaddingAttr(), 0ll))
       eraseAttrs(vhloAttrs, "padding");
-  }
-  if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV2>::value) {
-    if (isBoolean(vhloOp.getUniqueIndicesAttr(), false))
-      eraseAttrs(vhloAttrs, "unique_indices");
+    return success();
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::SortOpV1>::value) {
     if (isInteger(vhloOp.getDimensionAttr(), -1))
       eraseAttrs(vhloAttrs, "dimension");
     if (isBoolean(vhloOp.getIsStableAttr(), false))
       eraseAttrs(vhloAttrs, "is_stable");
+    return success();
   }
   if constexpr (llvm::is_one_of<VhloOpTy, vhlo::CbrtOpV2, vhlo::CosineOpV2,
                                 vhlo::ExpOpV2, vhlo::Expm1OpV2, vhlo::Exp2OpV1,
@@ -994,8 +1016,43 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
     if (isDefaultResultAccuracyAttribute(vhloOp.getResultAccuracyAttr())) {
       eraseAttrs(vhloAttrs, "result_accuracy");
     }
+    return success();
   }
-  return success();
+}
+
+using AttrPreprocessor =
+    LogicalResult (*)(const ConversionPattern& pattern, Operation* op,
+                      SmallVectorImpl<NamedAttribute>& vhloAttrs,
+                      SmallVectorImpl<NamedAttribute>& stablehloAttrs);
+
+template <typename VhloOpTy>
+auto preprocessAttrs(const ConversionPattern& pattern, Operation* op,
+                     SmallVectorImpl<NamedAttribute>& vhloAttrs,
+                     SmallVectorImpl<NamedAttribute>& stablehloAttrs) {
+  constexpr bool kHasRemoveDefaults = !std::is_void<decltype(removeDefaults(
+      pattern, std::declval<VhloOpTy>(), vhloAttrs))>::value;
+  constexpr bool kHasImplodeSpecial = !std::is_void<decltype(implodeSpecial(
+      pattern, std::declval<VhloOpTy>(), vhloAttrs, stablehloAttrs))>::value;
+  if constexpr (kHasRemoveDefaults || kHasImplodeSpecial) {
+    auto vhloOp = cast<VhloOpTy>(op);
+    if constexpr (kHasRemoveDefaults) {
+      if (failed(removeDefaults(pattern, vhloOp, vhloAttrs))) return failure();
+    }
+    if constexpr (kHasImplodeSpecial) {
+      if (failed(implodeSpecial(pattern, vhloOp, vhloAttrs, stablehloAttrs)))
+        return failure();
+    }
+    return success();
+  }
+}
+
+template <typename VhloOpTy>
+constexpr AttrPreprocessor getAttrPreprocessor() {
+  if constexpr (std::is_same<decltype(&preprocessAttrs<VhloOpTy>),
+                             AttrPreprocessor>::value) {
+    return &preprocessAttrs<VhloOpTy>;
+  }
+  return nullptr;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1050,61 +1107,60 @@ LogicalResult convertRegions(Operation* vhloOp, Operation* stablehloOp,
   return success();
 }
 
-template <typename VhloOpTy>
-class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
+class VhloToStablehloOpConverter : public ConversionPattern {
  public:
-  using OpConversionPattern<VhloOpTy>::OpConversionPattern;
+  VhloToStablehloOpConverter(TypeConverter& converter, StringRef srcOpName,
+                             StringRef stablehloOpName,
+                             AttrPreprocessor preprocessAttrs,
+                             SpecialConverter convertSpecial,
+                             MLIRContext* context)
+      : ConversionPattern(converter, srcOpName, /*benefit=*/1, context),
+        stablehloOpName_(stablehloOpName),
+        preprocessAttrs_(preprocessAttrs),
+        convertSpecial_(convertSpecial) {}
+
   LogicalResult matchAndRewrite(
-      VhloOpTy vhloOp, typename VhloOpTy::Adaptor adaptor,
+      Operation* vhloOp, ArrayRef<Value> stablehloOperands,
       ConversionPatternRewriter& rewriter) const final {
     SmallVector<Type> stablehloTypes;
-    auto vhloAttrs = llvm::to_vector<24>(vhloOp->getAttrs());
     SmallVector<NamedAttribute, 8> stablehloAttrs;
-    if (failed(removeDefaults(*this, vhloOp, vhloAttrs)) ||
-        failed(implodeSpecial(*this, vhloOp, vhloAttrs, stablehloAttrs)) ||
-        failed(convertTypesAndAttrs(*this, vhloOp, vhloAttrs, stablehloTypes,
-                                    stablehloAttrs,
-                                    getSpecialConverter<VhloOpTy>())))
+    if (preprocessAttrs_) {
+      auto vhloAttrs = llvm::to_vector<24>(vhloOp->getAttrs());
+      if (failed(preprocessAttrs_(*this, vhloOp, vhloAttrs, stablehloAttrs)) ||
+          failed(convertTypesAndAttrs(*this, vhloOp, vhloAttrs, stablehloTypes,
+                                      stablehloAttrs, convertSpecial_)))
+        return failure();
+    } else if (failed(convertTypesAndAttrs(*this, vhloOp, vhloOp->getAttrs(),
+                                           stablehloTypes, stablehloAttrs,
+                                           convertSpecial_))) {
       return failure();
-
-    // These operands have already been converted to StableHLO by
-    // the dialect conversion infrastructure.
-    ValueRange stablehloOperands = adaptor.getOperands();
+    }
 
     // Replace vhlo.return --> func.return if direct parent is a func op.
-    if constexpr (std::is_same<VhloOpTy, vhlo::ReturnOpV1>::value) {
-      if (llvm::isa<vhlo::FuncOpV1, func::FuncOp>(vhloOp->getParentOp())) {
-        rewriter.replaceOpWithNewOp<func::ReturnOp>(
-            vhloOp, stablehloTypes, stablehloOperands, stablehloAttrs);
-        return success();
-      }
+    StringRef dstOpName = stablehloOpName_;
+    if (dstOpName == stablehlo::ReturnOp::getOperationName() &&
+        llvm::isa<vhlo::FuncOpV1, func::FuncOp>(vhloOp->getParentOp())) {
+      dstOpName = func::ReturnOp::getOperationName();
     }
 
-    // Convert the VHLO operation to a StableHLO equivalent. This can almost be
-    // done in a generic fashion, except for ops with a variadic number of
-    // regions which means an additional argument for the generic builder.
-    using StablehloOpTy = VhloToStablehloOp<VhloOpTy>;
-    StablehloOpTy stablehloOp;
-    if constexpr (VhloOpTy::template hasTrait<OpTrait::VariadicRegions>()) {
-      stablehloOp = StablehloOpTy::create(
-          rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
-          typename StablehloOpTy::Properties{}, stablehloAttrs,
-          vhloOp.getNumRegions());
-    } else {
-      stablehloOp = StablehloOpTy::create(
-          rewriter, vhloOp.getLoc(), stablehloTypes, stablehloOperands,
-          typename StablehloOpTy::Properties{}, stablehloAttrs);
-    }
+    Operation* stablehloOp = rewriter.insert(Operation::create(
+        vhloOp->getLoc(), OperationName(dstOpName, rewriter.getContext()),
+        stablehloTypes, stablehloOperands, NamedAttrList(stablehloAttrs),
+        PropertyRef(), /*successors=*/{}, vhloOp->getNumRegions()));
 
-    if constexpr (!VhloOpTy::template hasTrait<OpTrait::ZeroRegions>()) {
-      if (failed(convertRegions(vhloOp, stablehloOp, rewriter,
-                                *this->getTypeConverter())))
-        return failure();
-    }
+    if (vhloOp->getNumRegions() != 0 &&
+        failed(
+            convertRegions(vhloOp, stablehloOp, rewriter, *getTypeConverter())))
+      return failure();
 
     rewriter.replaceOp(vhloOp, stablehloOp);
     return success();
   }
+
+ private:
+  StringRef stablehloOpName_;
+  AttrPreprocessor preprocessAttrs_;
+  SpecialConverter convertSpecial_;
 };
 
 // Fold unnecessary unrealized conversion casts.
@@ -1148,9 +1204,12 @@ void populateVhloToStablehloPatterns(MLIRContext* context,
                                      vhlo::VhloTypeConverter* converter) {
   (addPattern(
        patterns,
-       std::make_unique<
-           VhloToStablehloOpConverter<StablehloToVhloOp<StablehloOpTypes>>>(
-           *converter, context)),
+       std::make_unique<VhloToStablehloOpConverter>(
+           *converter, StablehloToVhloOp<StablehloOpTypes>::getOperationName(),
+           StablehloOpTypes::getOperationName(),
+           getAttrPreprocessor<StablehloToVhloOp<StablehloOpTypes>>(),
+           getSpecialConverter<StablehloToVhloOp<StablehloOpTypes>>(),
+           context)),
    ...);
 }
 
