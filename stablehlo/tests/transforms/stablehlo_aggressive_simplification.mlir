@@ -161,6 +161,17 @@ func.func @broadcast_in_dim_bounded_no_reshape(%arg0: tensor<20xf32>, %arg1: ten
   return %1 : tensor<1x?xf32, #stablehlo.bounds<?, 20>>
 }
 
+// A static operand broadcast to a bounded result must not be rewritten to a
+// reshape: the result has no static number of elements to compare.
+// CHECK-LABEL: func.func @broadcast_in_dim_static_to_bounded_no_reshape
+// CHECK-SAME:   ([[ARG0:%.+]]: tensor<8xf32>)
+func.func @broadcast_in_dim_static_to_bounded_no_reshape(%arg0: tensor<8xf32>) -> tensor<?x8xf32, #stablehlo.bounds<4, ?>> {
+  // CHECK-NOT: stablehlo.reshape
+  // CHECK: stablehlo.broadcast_in_dim [[ARG0]], dims = [1] : (tensor<8xf32>) -> tensor<?x8xf32, #stablehlo.bounds<4, ?>>
+  %0 = stablehlo.broadcast_in_dim %arg0, dims = [1] : (tensor<8xf32>) -> tensor<?x8xf32, #stablehlo.bounds<4, ?>>
+  return %0 : tensor<?x8xf32, #stablehlo.bounds<4, ?>>
+}
+
 // CHECK-LABEL: func.func @broadcast_in_dim_prefer_nested_reshape
 // CHECK-SAME:   ([[ARG0:%[^ ]+]]: tensor<3x4xi32>)
 func.func @broadcast_in_dim_prefer_nested_reshape(%arg0: tensor<3x4xi32>) -> (tensor<2x3x4x3xi32>, tensor<2x3x4x3xi32>) {
