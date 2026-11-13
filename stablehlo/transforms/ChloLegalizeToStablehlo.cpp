@@ -70,12 +70,20 @@ namespace {
 // Helpers.
 //===----------------------------------------------------------------------===//
 
+// Copies the discardable attributes of `src` (e.g. frontend metadata such as
+// `mhlo.frontend_attributes`) onto `dst`, the op that replaces it.
+static void copyDiscardableAttrs(Operation* src, Operation* dst) {
+  dst->setDiscardableAttrs(src->getDiscardableAttrDictionary());
+}
+
 template <typename FromOpTy, typename ToOpTy>
 struct HloNaryElementwiseAdaptor {
   static ToOpTy createOp(FromOpTy fromOp, Type resultType,
                          ValueRange broadcastedOperands, OpBuilder& builder) {
-    return ToOpTy::create(builder, fromOp.getLoc(), resultType,
-                          broadcastedOperands);
+    auto op = ToOpTy::create(builder, fromOp.getLoc(), resultType,
+                             broadcastedOperands);
+    copyDiscardableAttrs(fromOp, op);
+    return op;
   }
 };
 
@@ -132,9 +140,11 @@ struct HloCompareAdaptor {
                            ? mlir::stablehlo::ComparisonTypeAttr::get(
                                  builder.getContext(), *hloType)
                            : nullptr;
-    return mlir::stablehlo::CompareOp::create(
+    auto op = mlir::stablehlo::CompareOp::create(
         builder, fromOp.getLoc(), resultType, broadcastedOperands[0],
         broadcastedOperands[1], *hloDirection, hloTypeAttr);
+    copyDiscardableAttrs(fromOp, op);
+    return op;
   }
 };
 
@@ -547,10 +557,11 @@ struct ConvertSelectOp final
         rewriter.getDenseI64ArrayAttr(onFalseBroadcastDimensions));
 
     // And generate the final non-broadcasted ternary op.
-    Value finalResult = mlir::stablehlo::SelectOp::create(
+    auto finalResult = mlir::stablehlo::SelectOp::create(
         rewriter, loc, resultType, broadcastedPred, broadcastedOnTrue,
         broadcastedOnFalse);
-    shape::AssumingYieldOp::create(rewriter, loc, finalResult);
+    copyDiscardableAttrs(op, finalResult);
+    shape::AssumingYieldOp::create(rewriter, loc, finalResult.getResult());
     rewriter.replaceOp(op, {assumingOp.getResult(0)});
     return success();
   }
@@ -566,7 +577,10 @@ struct ConvertConstantOp final : OpConversionPattern<mlir::chlo::ConstantOp> {
   LogicalResult matchAndRewrite(
       mlir::chlo::ConstantOp op, OpAdaptor adaptor,
       ConversionPatternRewriter& rewriter) const override {
-    rewriter.replaceOpWithNewOp<mlir::stablehlo::ConstantOp>(op, op.getValue());
+    auto constantOp = mlir::stablehlo::ConstantOp::create(rewriter, op.getLoc(),
+                                                          op.getValue());
+    copyDiscardableAttrs(op, constantOp);
+    rewriter.replaceOp(op, constantOp);
     return success();
   }
 };
@@ -2751,9 +2765,12 @@ LogicalResult handleRaggedDotMode3(mlir::chlo::RaggedDotOp op,
     attributes.push_back(
         rewriter.getNamedAttr("precision_config", precisionConfig.value()));
   }
-  rewriter.replaceOpWithNewOp<mlir::stablehlo::DotGeneralOp>(
-      op, op.getResult().getType(), ValueRange{op.getLhs(), op.getRhs()},
-      typename DotGeneralOp::Properties{}, attributes);
+  auto dotGeneralOp = mlir::stablehlo::DotGeneralOp::create(
+      rewriter, op.getLoc(), op.getResult().getType(),
+      ValueRange{op.getLhs(), op.getRhs()}, typename DotGeneralOp::Properties{},
+      attributes);
+  copyDiscardableAttrs(op, dotGeneralOp);
+  rewriter.replaceOp(op, dotGeneralOp);
   return success();
 }
 
