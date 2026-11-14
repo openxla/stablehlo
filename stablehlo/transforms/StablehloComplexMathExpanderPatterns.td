@@ -687,32 +687,58 @@ def LogOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_LogOp ComplexEl
 //     Notice that for `y != 0`, neither `cos(y)` nor `sin(y)` is never
 //     zero on the set of floating point numbers.
 //
+//     Finally, when `x` is infinite and `y` is infinite or nan, we'll
+//     use the special values from C99 Annex G
+//
+//       exp(-inf + I * y) = 0
+//       exp(inf + I * y) = inf + I * nan
+//
+//     that otherwise would evaluate to nan + I * nan.
+//
 
 def ExpOp_ComplexElementType_ComplexMathExpander: Pat<(StableHLO_ExpOp ComplexElementType:$z, ConstDefaultResultAccuracyAttr),
   (StableHLO_ComplexOp
     (StableHLO_SelectOp
-      (StableHLO_CompareOp:$eq_e_constant_posinf
-       (StableHLO_ExpOp:$e
-         (StableHLO_RealOp:$x $z), ConstDefaultResultAccuracyAttr),
-       (StableHLO_ConstantLikePosInfValue $x),
-        StableHLO_ComparisonDirectionValue<"EQ">,
-        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
-      (StableHLO_MulOp
+      (StableHLO_AndOp
+        (StableHLO_CompareOp
+         (StableHLO_AbsOp
+           (StableHLO_RealOp:$x $z)),
+         (StableHLO_ConstantLikePosInfValue:$posinf $x),
+          StableHLO_ComparisonDirectionValue<"EQ">,
+          (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+        (StableHLO_NotOp:$y_not_finite
+          (StableHLO_IsFiniteOp
+            (StableHLO_ImagOp:$y $z)))),
+      (StableHLO_ExpOp:$e $x, ConstDefaultResultAccuracyAttr),
+      (StableHLO_SelectOp
+        (StableHLO_CompareOp:$eq_e_constant_posinf
+         $e,
+         $posinf,
+          StableHLO_ComparisonDirectionValue<"EQ">,
+          (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
         (StableHLO_MulOp
-          (StableHLO_ExpOp:$e2
-            (StableHLO_MulOp
-              $x,
-              (StableHLO_ConstantLike<"0.5"> $x)), ConstDefaultResultAccuracyAttr),
-          (StableHLO_CosineOp:$cs
-            (StableHLO_ImagOp:$y $z), ConstDefaultResultAccuracyAttr)),
-        $e2),
-      (StableHLO_MulOp $e, $cs)),
+          (StableHLO_MulOp
+            (StableHLO_ExpOp:$e2
+              (StableHLO_MulOp
+                $x,
+                (StableHLO_ConstantLike<"0.5"> $x)), ConstDefaultResultAccuracyAttr),
+            (StableHLO_CosineOp:$cs $y, ConstDefaultResultAccuracyAttr)),
+          $e2),
+        (StableHLO_MulOp $e, $cs))),
     (StableHLO_SelectOp
-      (StableHLO_CompareOp
-       $y,
-       (StableHLO_ConstantLike<"0">:$zero $x),
-        StableHLO_ComparisonDirectionValue<"EQ">,
-        (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+      (StableHLO_OrOp
+        (StableHLO_CompareOp
+         $y,
+         (StableHLO_ConstantLike<"0">:$zero $x),
+          StableHLO_ComparisonDirectionValue<"EQ">,
+          (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+        (StableHLO_AndOp
+          (StableHLO_CompareOp
+           $x,
+           (StableHLO_NegOp $posinf),
+            StableHLO_ComparisonDirectionValue<"EQ">,
+            (STABLEHLO_DEFAULT_COMPARISON_TYPE)),
+          $y_not_finite)),
       $zero,
       (StableHLO_SelectOp
         $eq_e_constant_posinf,
