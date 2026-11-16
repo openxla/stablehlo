@@ -177,7 +177,8 @@ func.func @reduce_lexicographic_min_complex(%arg0: tensor<?x3x4xcomplex<f64>>,
 // CHECK: arith.cmpf
 // CHECK: complex.im
 // CHECK: complex.im
-// CHECK: arith.cmpf
+// CHECK: arith.select
+// CHECK: arith.select
 // CHECK: arith.cmpf
 // CHECK: arith.select
 
@@ -187,7 +188,8 @@ func.func @reduce_lexicographic_min_complex(%arg0: tensor<?x3x4xcomplex<f64>>,
 // CHECK-PRIMITIVE: arith.cmpf
 // CHECK-PRIMITIVE: complex.im
 // CHECK-PRIMITIVE: complex.im
-// CHECK-PRIMITIVE: arith.cmpf
+// CHECK-PRIMITIVE: arith.select
+// CHECK-PRIMITIVE: arith.select
 // CHECK-PRIMITIVE: arith.cmpf
 // CHECK-PRIMITIVE: arith.select
 

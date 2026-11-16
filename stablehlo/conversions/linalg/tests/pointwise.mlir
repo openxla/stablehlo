@@ -1190,10 +1190,9 @@ func.func @shift_right_arithmetic(%lhs: tensor<2x2xi32>,
 // CHECK: tensor.empty
 // CHECK: linalg.generic
 // CHECK-NEXT: ^bb0(%[[LHS:.*]]: i32, %[[RHS:.*]]: i32, %{{.*}}: i32):
-// CHECK-DAG:    %[[SHIFT:.*]] = arith.shrsi %[[LHS]], %[[RHS]] : i32
-// CHECK-DAG:    %[[MAX_SHIFTED:.*]] = arith.shrsi %[[LHS]], %[[MAX_SHIFT]] : i32
-// CHECK-DAG:    %[[NOT_SATURATING:.*]] = arith.cmpi ult, %[[RHS]], %[[BITS]]
-// CHECK-NEXT:   %[[RESULT:.*]] = arith.select %[[NOT_SATURATING]], %[[SHIFT]], %[[MAX_SHIFTED]]
+// CHECK-NEXT:   %[[NOT_SATURATING:.*]] = arith.cmpi ult, %[[RHS]], %[[BITS]]
+// CHECK-NEXT:   %[[SHIFT:.*]] = arith.select %[[NOT_SATURATING]], %[[RHS]], %[[MAX_SHIFT]]
+// CHECK-NEXT:   %[[RESULT:.*]] = arith.shrsi %[[LHS]], %[[SHIFT]] : i32
 // CHECK-NEXT:   linalg.yield %[[RESULT]] : i32
 
 // -----
