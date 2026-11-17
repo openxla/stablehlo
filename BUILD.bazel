@@ -131,6 +131,81 @@ cc_library(
     ],
 )
 
+CHECK_CAPI_SOURCES = [
+    "stablehlo/integrations/c/CheckDialect.cpp",
+]
+
+CHECK_CAPI_HEADERS = [
+    "stablehlo/integrations/c/CheckDialect.h",
+]
+
+cc_library(
+    name = "check_capi",
+    srcs = CHECK_CAPI_SOURCES,
+    hdrs = CHECK_CAPI_HEADERS,
+    strip_include_prefix = ".",  # copybara:comment
+    deps = [
+        "//stablehlo/tests:check_ops",
+        "@llvm-project//mlir:CAPIIR",
+    ],
+)
+
+# Header-only target, used when using the C API from a separate shared library.
+cc_library(
+    name = "check_capi_headers",
+    hdrs = CHECK_CAPI_HEADERS,
+    strip_include_prefix = ".",  # copybara:comment
+    # copybara:uncomment includes = ["."],
+    deps = [
+        "@llvm-project//mlir:CAPIIRHeaders",
+    ],
+)
+
+# Alwayslink target, used when exporting the C API from a shared library.
+cc_library(
+    name = "check_capi_objects",
+    srcs = CHECK_CAPI_SOURCES,
+    hdrs = CHECK_CAPI_HEADERS,
+    strip_include_prefix = ".",  # copybara:comment
+    deps = [
+        "//stablehlo/tests:check_ops",
+        "@llvm-project//mlir:CAPIIRObjects",
+    ],
+    alwayslink = True,
+)
+
+filegroup(
+    name = "check_ops_py_files",
+    srcs = [
+        "stablehlo/integrations/python/mlir/dialects/check.py",
+        ":check_ops_py_gen",
+    ],
+)
+
+gentbl_filegroup(
+    name = "check_ops_py_gen",
+    compatible_with = get_compatible_with_portable(),
+    tbl_outs = {
+        "stablehlo/integrations/python/mlir/dialects/_check_ops_gen.py": [
+            "-gen-python-op-bindings",
+            "-bind-dialect=check",
+        ],
+    },
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/integrations/python/mlir/dialects/CheckOps.td",
+    deps = [
+        "//stablehlo/tests:check_ops_td_files",
+        "@llvm-project//mlir:OpBaseTdFiles",
+    ],
+)
+
+filegroup(
+    name = "check_py_api_files",
+    srcs = [
+        "stablehlo/integrations/python/CheckModule.cpp",
+    ],
+)
+
 gentbl_cc_library(
     name = "chlo_attrs_inc_gen",
     compatible_with = get_compatible_with_portable(),
@@ -1167,6 +1242,16 @@ filegroup(
     ],
 )
 
+# Pure-Python modules that are packaged as `mlir.stablehlo.testdata_generator`.
+filegroup(
+    name = "stablehlo_testdata_generator_py_files",
+    srcs = [
+        "stablehlo/integrations/python/stablehlo/testdata_generator/testdata_execution_utils.py",
+        "stablehlo/integrations/python/stablehlo/testdata_generator/testdata_generator_lib.py",
+        "stablehlo/integrations/python/stablehlo/testdata_generator/testdata_processor.py",
+    ],
+)
+
 td_library(
     name = "stablehlo_ops_td_files",
     srcs = [
@@ -1768,6 +1853,13 @@ gentbl_filegroup(
     deps = [
         ":vhlo_ops_td_files",
         "@llvm-project//mlir:OpBaseTdFiles",
+    ],
+)
+
+filegroup(
+    name = "vhlo_py_api_files",
+    srcs = [
+        "stablehlo/integrations/python/VhloModule.cpp",
     ],
 )
 
