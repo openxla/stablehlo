@@ -44,9 +44,13 @@ def NotConstantOp : Constraint<
     CPred<"llvm::isa<BlockArgument>($0) || !llvm::isa<stablehlo::ConstantOp>($0.getDefiningOp())">,
     "is not a constant.">;
 
+// Only static shapes have a number of elements; `getNumElements` asserts on
+// dynamic ones (e.g. a static operand broadcast to a bounded result).
 def NumberOfElementsEqual : Constraint<
-    CPred<"llvm::cast<ShapedType>($0.getType()).getNumElements() == llvm::cast<ShapedType>($1.getType()).getNumElements()">,
-    "same number of elements">;
+    CPred<"llvm::cast<ShapedType>($0.getType()).hasStaticShape() && "
+          "llvm::cast<ShapedType>($1.getType()).hasStaticShape() && "
+          "llvm::cast<ShapedType>($0.getType()).getNumElements() == llvm::cast<ShapedType>($1.getType()).getNumElements()">,
+    "statically shaped with the same number of elements">;
 
 def BroadcastNotReducibleToReshape : Constraint<
     CPred<"!llvm::cast<ShapedType>($0.getType()).hasStaticShape() || "
