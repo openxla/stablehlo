@@ -580,6 +580,48 @@ struct CustomCallOpV2ToV1 : public OpRewritePattern<CustomCallOpV2> {
   }
 };
 
+struct DotGeneralOpV2ToV3 : public OpRewritePattern<DotGeneralOpV2> {
+  using OpRewritePattern<DotGeneralOpV2>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(DotGeneralOpV2 op,
+                                PatternRewriter& rewriter) const override {
+    auto newOp = rewriter.replaceOpWithNewOp<DotGeneralOpV3>(
+        op, op->getResultTypes(), op.getLhs(), op.getRhs(),
+        op.getLhsBatchingDimensions(), op.getRhsBatchingDimensions(),
+        op.getLhsContractingDimensions(), op.getRhsContractingDimensions(),
+        op.getPrecisionConfig(), op.getLhsPrecisionType(),
+        op.getRhsPrecisionType(), op.getAccumulationType(),
+        op.getLhsComponentCount(), op.getRhsComponentCount(),
+        op.getNumPrimitiveOperations(), op.getAllowImpreciseAccumulation(),
+        ValueRange{}, getNoneType(rewriter), getNoneType(rewriter));
+    copyDiscardableAttrs(op.getOperation(), newOp.getOperation());
+    return success();
+  }
+};
+
+struct DotGeneralOpV3ToV2 : public OpRewritePattern<DotGeneralOpV3> {
+  using OpRewritePattern<DotGeneralOpV3>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(DotGeneralOpV3 op,
+                                PatternRewriter& rewriter) const override {
+    if (!op.getExtOperands().empty() ||
+        !isNoneType(op.getBlockScalingConfig()) ||
+        !isNoneType(op.getSparsityConfig())) {
+      return rewriter.notifyMatchFailure(op, "block scaling or sparsity");
+    }
+    auto newOp = rewriter.replaceOpWithNewOp<DotGeneralOpV2>(
+        op, op->getResultTypes(), op.getLhs(), op.getRhs(),
+        op.getLhsBatchingDimensions(), op.getRhsBatchingDimensions(),
+        op.getLhsContractingDimensions(), op.getRhsContractingDimensions(),
+        op.getPrecisionConfig(), op.getLhsPrecisionType(),
+        op.getRhsPrecisionType(), op.getAccumulationType(),
+        op.getLhsComponentCount(), op.getRhsComponentCount(),
+        op.getNumPrimitiveOperations(), op.getAllowImpreciseAccumulation());
+    copyDiscardableAttrs(op.getOperation(), newOp.getOperation());
+    return success();
+  }
+};
+
 #include "stablehlo/transforms/VhloToVersionPatterns.h.inc"
 
 }  // namespace
@@ -590,6 +632,7 @@ void populateVhloToVersionPatterns(MLIRContext* context,
                                    RewritePatternSet* patterns,
                                    vhlo::VhloTypeConverter* converter) {
   vhlo::populateWithGenerated(*patterns);
+  patterns->add<vhlo::DotGeneralOpV2ToV3, vhlo::DotGeneralOpV3ToV2>(context);
   patterns->add<vhlo::ScatterOpV1ToV2, vhlo::ScatterOpV2ToV1>(context);
   patterns->add<vhlo::AllReduceOpV1ToV2, vhlo::AllReduceOpV2ToV1>(context);
   patterns->add<vhlo::CompositeOpV1ToV2, vhlo::CompositeOpV2ToV1>(context);

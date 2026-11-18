@@ -148,6 +148,9 @@ struct DotGeneralBatchMatMulOpConversion final
     if (op.getAlgorithm().has_value())
       return rewriter.notifyMatchFailure(
           op, "dot algorithms not yet supported in linalg conversion");
+    if (op.hasExtensions())
+      return rewriter.notifyMatchFailure(
+          op, "block scaling and sparsity not supported in linalg conversion");
 
     mlir::stablehlo::DotDimensionNumbersAttr dimNumbers =
         op.getDotDimensionNumbers();
@@ -202,6 +205,9 @@ struct DotGeneralOpConversion final
     if (op.getAlgorithm().has_value())
       return rewriter.notifyMatchFailure(
           op, "dot algorithms not yet supported in linalg conversion");
+    if (op.hasExtensions())
+      return rewriter.notifyMatchFailure(
+          op, "block scaling and sparsity not supported in linalg conversion");
 
     if (op.isSimpleDot()) {
       if (succeeded(lowerDotOp<DotGeneralOp, linalg::MatmulOp>(

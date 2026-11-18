@@ -229,13 +229,21 @@ LogicalResult inferDotOp(
     RankedTensorType rhsType, std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+struct DotSparsityDim {
+  int64_t dimension;
+  int64_t numNonZero;
+  int64_t blockSize;
+};
+
 LogicalResult checkDotGeneralConstraints(
     std::optional<Location> location, Type lhsType, Type rhsType,
     ArrayRef<int64_t> lhsBatchingDimensions,
     ArrayRef<int64_t> rhsBatchingDimensions,
     ArrayRef<int64_t> lhsContractingDimensions,
     ArrayRef<int64_t> rhsContractingDimensions,
-    std::optional<ArrayAttr> precisionConfig);
+    std::optional<ArrayAttr> precisionConfig,
+    std::optional<DotSparsityDim> lhsSparsity = std::nullopt,
+    std::optional<DotSparsityDim> rhsSparsity = std::nullopt);
 
 LogicalResult inferDotGeneralOp(
     std::optional<Location> location, Type lhsType, Type rhsType,
@@ -244,7 +252,9 @@ LogicalResult inferDotGeneralOp(
     ArrayRef<int64_t> lhsContractingDimensions,
     ArrayRef<int64_t> rhsContractingDimensions,
     std::optional<ArrayAttr> precisionConfig,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes,
+    std::optional<DotSparsityDim> lhsSparsity = std::nullopt,
+    std::optional<DotSparsityDim> rhsSparsity = std::nullopt);
 
 LogicalResult inferDynamicConvOp(
     std::optional<Location> location, Type lhsType, Type rhsType, Value padding,
@@ -484,15 +494,16 @@ LogicalResult verifyDotOp(std::optional<Location> location,
                           std::optional<ArrayAttr> precisionConfig,
                           Value result);
 
-LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
-                                 Value rhs,
-                                 ArrayRef<int64_t> lhsBatchingDimensions,
-                                 ArrayRef<int64_t> rhsBatchingDimensions,
-                                 ArrayRef<int64_t> lhsContractingDimensions,
-                                 ArrayRef<int64_t> rhsContractingDimensions,
-                                 std::optional<ArrayAttr> precisionConfig,
-                                 bool isDefaultPrecisionConfig,
-                                 bool hasAlgorithmSpecified, Value result);
+LogicalResult verifyDotGeneralOp(
+    std::optional<Location> location, Value lhs, Value rhs,
+    ArrayRef<int64_t> lhsBatchingDimensions,
+    ArrayRef<int64_t> rhsBatchingDimensions,
+    ArrayRef<int64_t> lhsContractingDimensions,
+    ArrayRef<int64_t> rhsContractingDimensions,
+    std::optional<ArrayAttr> precisionConfig, bool isDefaultPrecisionConfig,
+    bool hasAlgorithmSpecified, Value result,
+    std::optional<DotSparsityDim> lhsSparsity = {},
+    std::optional<DotSparsityDim> rhsSparsity = {});
 
 LogicalResult verifyDotAlgorithmAttr(
     ::llvm::function_ref<InFlightDiagnostic()> emitError, Type lhsPrecisionType,

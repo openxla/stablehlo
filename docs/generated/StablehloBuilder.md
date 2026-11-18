@@ -325,15 +325,6 @@ operation.
 MlirOp Div(MlirOp &lhs, MlirOp &rhs);
 ```
 
-### `stablehlo::DotGeneralOp`
-
-Creates a new [`stablehlo.dot_general`](https://openxla.org/stablehlo/spec#dot_general)
-operation.
-
-```c++
-MlirOp DotGeneral(Type resultType, MlirOp &lhs, MlirOp &rhs, ::mlir::stablehlo::DotDimensionNumbersAttr dot_dimension_numbers, /*optional*/::mlir::ArrayAttr precision_config = {}, /*optional*/::mlir::stablehlo::DotAlgorithmAttr algorithm = {});
-```
-
 ### `stablehlo::DotOp`
 
 Creates a new [`stablehlo.dot`](https://openxla.org/stablehlo/spec#dot)
@@ -1091,6 +1082,8 @@ Unable to generate builder for the following operations:
  - [`stablehlo.case`](https://openxla.org/stablehlo/spec#case)
 
  - [`stablehlo.composite`](https://openxla.org/stablehlo/spec#composite)
+
+ - [`stablehlo.dot_general`](https://openxla.org/stablehlo/spec#dot_general)
 
  - [`stablehlo.rng_bit_generator`](https://openxla.org/stablehlo/spec#rng_bit_generator)
 

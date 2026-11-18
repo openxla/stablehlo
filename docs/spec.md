@@ -2933,6 +2933,57 @@ See [`xla_data.proto > Algorithm`](https://github.com/openxla/xla/blob/e8a707554
 for some supported algorithm values. Ticket #2483 captures the plan to create a
 centralized doc on supported algorithms by backend.
 
+`ext_operands` holds the extra tensors that `block_scaling_config` and
+`sparsity_config` refer to: scale factors, zero points and sparsity indices. An
+operand index counts `lhs` as 0, `rhs` as 1 and `ext_operands[i]` as `i + 2`.
+When either config is present, `dot_general` is computed as above on
+`effective_lhs` and `effective_rhs` in place of `lhs` and `rhs`. An operand
+with no entry in either config is used as is.
+
+If `sparsity_config` has an entry for operand `x` with `num_non_zero = n`,
+`block_size = m`, `stride = s`, `dimension = d` and `idx = t_idx`, then `x`
+stores `n` of every `m` elements along `d`, and `t = operands[t_idx]` holds the
+position of each stored element within its group. Currently `n = 1`. A group
+takes `m` elements that are `s` apart, so `s` groups interleave in every
+`m * s` elements, and `s = 1` means contiguous groups.
+`effective_x = densify(x, t)` has `dim(effective_x, d) = dim(x, d) * m`. For
+every index `i` of `x`, `effective_x[j] = x[i]`, where `j` equals `i` except
+along `d`, and `effective_x` is zero everywhere else. With `c = i[d]`:
+
+<!-- markdownlint-disable line-length -->
+* If `s = 1`, stored element `c` is the only element kept from group `c`, which
+  covers `m` consecutive elements: `j[d] = c * m + t[i]`.
+* Otherwise, the `s` interleaved groups of a region of `m * s` elements each
+  keep one element. Stored element `c` lies in region `c // s` and belongs to
+  group `c % s` of that region, whose elements are `s` apart:
+  `j[d] = (c // s) * m * s + t[i] * s + c % s`. With `s = 1`, this reduces to
+  the formula above.
+<!-- markdownlint-enable line-length -->
+
+If `block_scaling_config` has an entry for operand `x` with
+`scale_idx = s_idx`, optional `zero_idx = z_idx`, `strides`, `steps` and
+`block_sizes`, then `scale = operands[s_idx]` holds one scale factor per block
+of `x`, and `zero = operands[z_idx]`, or 0 if `zero_idx` is absent, holds one
+zero point per block. The block size along dimension `j` is
+`b_j = block_sizes[j]` if `block_sizes` is not empty, and
+`b_j = dim(x, j) / dim(scale, j)` otherwise. Explicit block sizes allow padded
+scales. Element `i` of `x` belongs to block
+`blk(i) = [blk_0(i[0]), ..., blk_{rank(x)-1}(i[rank(x)-1])]`, where:
+
+<!-- markdownlint-disable line-length -->
+* If `strides` is empty or `strides[j] <= 1`, blocks are contiguous:
+  `blk_j(k) = k // b_j`.
+* Otherwise, with `p = steps[j]` and `q = strides[j]`, each block is split into
+  chunks of `p` adjacent elements, consecutive chunks of a block start `q`
+  elements apart, and the pattern repeats every superblock of
+  `u = (b_j / p) * q` elements: `blk_j(k) = (k // u) * (q / p) + (k % q) // p`.
+* `effective_x[i] = (x[i] - zero[blk(i)]) * scale[blk(i)]`.
+<!-- markdownlint-enable line-length -->
+
+If an operand is both sparse and block scaled, its scaling blocks are defined
+on the stored (compressed) operand, and pruned elements stay zero:
+`effective_x = densify((x - zero[blk]) * scale[blk], t)`.
+
 #### Inputs
 
 | Label | Name                           | Type                                                         | Constraints                                    |
@@ -2951,6 +3002,9 @@ centralized doc on supported algorithms by backend.
 | (I12) | `rhs_component_count`          | constant of type `si32`                                      | (C21), (C23)                                   |
 | (I13) | `num_primitive_operations`     | constant of type `si32`                                      | (C21), (C24)                                   |
 | (I14) | `allow_imprecise_accumulation` | constant of type `bool`                                      | (C21)                                          |
+| (I15) | `ext_operands`                 | variadic number of tensors                                   | (C25-C26)                                      |
+| (I16) | `block_scaling_config`         | optional block scaling of `lhs` and `rhs`                    | (C25), (C27-C34), (C40)                        |
+| (I17) | `sparsity_config`              | optional structured sparsity of `lhs` and `rhs`              | (C25), (C27), (C35-C39)                        |
 
 #### Outputs
 
@@ -2997,6 +3051,33 @@ centralized doc on supported algorithms by backend.
   * (C22) `0 < lhs_component_count`.
   * (C23) `0 < rhs_component_count`.
   * (C24) `0 < num_primitive_operations`.
+* (C25) Each `scale_idx`, `zero_idx` and `idx` is in
+  `[2, size(ext_operands) + 2)`, and no two of them are equal.
+* (C26) Every element of `ext_operands` is referred to by `block_scaling_config`
+  or `sparsity_config`.
+* (C27) `block_scaling_config` and `sparsity_config`, if present, each have an
+  `lhs` or an `rhs` entry.
+* For each block scaling entry of operand `x`:
+  * (C28) `rank(scale) = rank(x)`.
+  * (C29) If `block_sizes` is empty, `dim(x, j) % dim(scale, j) = 0` for every
+    `j` with `dim(scale, j) > 1`, and `dim(scale, j) > 0` for every `j` with
+    `dim(x, j) > 0`.
+  * (C30) If `zero_idx` is present, `shape(zero) = shape(scale)`.
+  * (C31) `strides` and `steps` are both empty or both of size `rank(x)`.
+  * (C40) `block_sizes` is empty, or has size `rank(x)`, `0 < block_sizes[j]`
+    and `dim(scale, j) * block_sizes[j] >= dim(x, j)` for every `j`.
+  * For every `j` with `strides[j] > 1`, where `b_j` is the block size above:
+    * (C32) `0 < steps[j]` and `b_j % steps[j] = 0`.
+    * (C33) `strides[j] % steps[j] = 0`.
+    * (C34) `dim(x, j) % ((b_j / steps[j]) * strides[j]) = 0`.
+* For each sparsity entry of operand `x`:
+  * (C35) `num_non_zero = 1`.
+  * (C36) `block_size > 1`.
+  * (C37) `stride >= 1`.
+  * (C38) `dimension` is one of the contracting dimensions of `x`.
+  * (C39) `dim(x, dimension) % stride = 0`.
+  * (C10) and (C12) apply to the dense shape of `x`, with
+    `dim(x, dimension) * block_size` in place of `dim(x, dimension)`.
 
 #### Examples
 

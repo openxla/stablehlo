@@ -49,7 +49,7 @@ def CopyDiscardableAttrs : NativeCodeCallVoid<"copyDiscardableAttrs($0, $1)">;
 
 def DotToDotGeneral : Pat<
   (StableHLO_DotOp:$src $lhs, $rhs, $precision_config),
-  (StableHLO_DotGeneralOp:$dst $lhs, $rhs, (GetDefaultDotDimensionNumbers $lhs), $precision_config, (NativeCodeCall<"Attribute{}">)),
+  (StableHLO_DotGeneralOp:$dst $lhs, $rhs, (GetDefaultDotDimensionNumbers $lhs), $precision_config, (NativeCodeCall<"Attribute{}">), (NativeCodeCall<"ValueRange{}">), (NativeCodeCall<"Attribute{}">), (NativeCodeCall<"Attribute{}">)),
   [], [(CopyDiscardableAttrs $src, $dst)]>;
 
 def UnaryEinsumToEinsum : Pat<

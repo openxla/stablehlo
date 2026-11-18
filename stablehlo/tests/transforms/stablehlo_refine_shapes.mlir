@@ -1118,6 +1118,18 @@ func.func @refine_dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>
 
 // -----
 
+// The compressed lhs contracting size (2) expands to 8 under 1:4 sparsity.
+// CHECK-LABEL: @refine_dot_general_sparse
+func.func @refine_dot_general_sparse(%arg0: tensor<3x2xf32>, %arg1: tensor<8x5xf32>, %arg2: tensor<3x2xi16>) -> tensor<?x?xf32> {
+  // CHECK: stablehlo.dot_general{{.*}} -> tensor<3x5xf32>
+  %0 = stablehlo.dot_general %arg0, %arg1, [%arg2], contracting_dims = [1] x [0] {
+    sparsity_config = #stablehlo.sparsity_config<lhs = <num_non_zero = 1, block_size = 4, dimension = 1, stride = 1, idx = 2>>
+  } : (tensor<3x2xf32>, tensor<8x5xf32>, tensor<3x2xi16>) -> tensor<?x?xf32>
+  func.return %0 : tensor<?x?xf32>
+}
+
+// -----
+
 // CHECK-LABEL: @refine_dot
 func.func @refine_dot(%arg0: tensor<3x4xf32>, %arg1: tensor<4x5xf32>) -> tensor<?x?xf32> {
   // CHECK: stablehlo.dot{{.*}} -> tensor<3x5xf32>

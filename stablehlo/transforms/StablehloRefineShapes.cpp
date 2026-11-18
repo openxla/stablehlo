@@ -794,13 +794,11 @@ struct RefineDotGeneralOpPattern : public OpRewritePattern<DotGeneralOp> {
   LogicalResult matchAndRewrite(DotGeneralOp op,
                                 PatternRewriter& rewriter) const override {
     SmallVector<ShapedTypeComponents> inferredReturnShapes;
-    if (failed(hlo::inferDotGeneralOp(
-            /*location=*/{}, op.getLhs().getType(), op.getRhs().getType(),
-            op.getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
-            op.getDotDimensionNumbersAttr().getRhsBatchingDimensions(),
-            op.getDotDimensionNumbersAttr().getLhsContractingDimensions(),
-            op.getDotDimensionNumbersAttr().getRhsContractingDimensions(),
-            op.getPrecisionConfig(), inferredReturnShapes)))
+    // The op's own inference accounts for compressed sparse operands.
+    if (failed(DotGeneralOp::inferReturnTypeComponents(
+            op.getContext(), /*location=*/{}, op->getOperands(),
+            op->getAttrDictionary(), op->getPropertiesStorage(),
+            op->getRegions(), inferredReturnShapes)))
       return rewriter.notifyMatchFailure(op, "inferDotGeneralOp failed");
     return refineReturnTypes(rewriter, op, inferredReturnShapes);
   }

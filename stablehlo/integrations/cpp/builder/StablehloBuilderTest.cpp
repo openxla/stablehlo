@@ -213,6 +213,35 @@ TEST(MlirBuilderTest, DotGeneralOp) {
   EXPECT_EQ(expected, debugString(*module));
 }
 
+TEST(MlirBuilderTest, DotGeneralOpExplicitResultType) {
+  std::string expected = R"mlir(module {
+  func.func @main(%arg0: tensor<2x3xi8>, %arg1: tensor<3x4xi8>) -> tensor<2x4xi32> {
+    %0 = stablehlo.dot_general %arg0, %arg1, contracting_dims = [1] x [0] : (tensor<2x3xi8>, tensor<3x4xi8>) -> tensor<2x4xi32>
+    return %0 : tensor<2x4xi32>
+  }
+})mlir";
+
+  StablehloModuleBuilder mb;
+  {  // Build Main Func
+    func::FunctionBuilder fb(mb.get(), "main");
+    auto& ctx = fb.getContext();
+    auto arg0 =
+        func::Argument(fb, makeTensorType(ctx, {2, 3}, ElementType::I8));
+    auto arg1 =
+        func::Argument(fb, makeTensorType(ctx, {3, 4}, ElementType::I8));
+    auto dotDimsAttr = DotDimensionNumbersAttr::get(
+        &ctx, /*lhsBatchingDimensions=*/{}, /*rhsBatchingDimensions=*/{},
+        /*lhsContractingDimensions=*/{1}, /*rhsContractingDimensions=*/{0});
+    auto resultType = makeTensorType(ctx, {2, 4}, ElementType::I32);
+    auto dot = stablehlo::DotGeneral(resultType, arg0, arg1, dotDimsAttr);
+    func::Return(fb, dot);
+  }
+
+  OwningOpRef<ModuleOp> module = mb->build();
+  EXPECT_TRUE(succeeded(mlir::verify(*module)));
+  EXPECT_EQ(expected, debugString(*module));
+}
+
 TEST(MlirBuilderTest, IotaLikeStatic) {
   std::string expected = R"mlir(module {
   func.func @main(%arg0: tensor<2x3xi64>) -> tensor<2x3xi64> {

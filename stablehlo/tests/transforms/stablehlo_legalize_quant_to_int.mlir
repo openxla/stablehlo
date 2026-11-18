@@ -2924,3 +2924,25 @@ func.func private @stablehlo.uniform_dequantize.impl(%arg0 : tensor<2x!quant.uni
   %0 = stablehlo.uniform_dequantize %arg0 : (tensor<2x!quant.uniform<i8:f32, 1.000000e-01>>) -> tensor<2xf32>
   return %0: tensor<2xf32>
 }
+
+// -----
+
+// The integer rewrite drops extra operands, so a block scaled dot falls back
+// to the dequantize, float dot, quantize path, which keeps the scaling.
+// CHECK-LABEL: func @dot_general_block_scaling
+// CHECK-SAME: %[[SCALE:[^:]+]]: tensor<2x1xf32>
+func.func @dot_general_block_scaling(
+    %arg0: tensor<2x4x!quant.uniform<i8:f32, 2.000000e+00:3>>,
+    %arg1: tensor<4x5x!quant.uniform<i8:f32, 1.000000e+00:0>>,
+    %scale: tensor<2x1xf32>
+  ) -> tensor<2x5x!quant.uniform<i32:f32, 2.000000e+00:0>> {
+  // CHECK: stablehlo.dot_general %{{.*}}, %{{.*}}, [%[[SCALE]]]
+  // CHECK-SAME: block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2>>
+  // CHECK-SAME: (tensor<2x4xf32>, tensor<4x5xf32>, tensor<2x1xf32>) -> tensor<2x5xf32>
+  %0 = stablehlo.dot_general %arg0, %arg1, [%scale], contracting_dims = [1] x [0] {
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2>>
+  } : (tensor<2x4x!quant.uniform<i8:f32, 2.000000e+00:3>>,
+       tensor<4x5x!quant.uniform<i8:f32, 1.000000e+00:0>>, tensor<2x1xf32>)
+    -> tensor<2x5x!quant.uniform<i32:f32, 2.000000e+00:0>>
+  return %0 : tensor<2x5x!quant.uniform<i32:f32, 2.000000e+00:0>>
+}
