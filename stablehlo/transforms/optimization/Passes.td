@@ -176,7 +176,6 @@ def StablehloAggressiveSimplificationPass
   }];
   let dependentDialects = [
     "mlir::stablehlo::StablehloDialect",
-    "mlir::arith::ArithDialect",
   ];
   let options = EnableStablehloOptimizationPassFlags<[
     "fold-op-element-limit",
