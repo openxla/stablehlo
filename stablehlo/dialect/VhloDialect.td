@@ -65,6 +65,7 @@ def VHLO_Dialect : Dialect {
       1.24.0: Add `fma` op.
       1.25.0: Introduce `f8E5M3FNU` type.
       1.26.0: Add `ext_operands`, `block_scaling_config`, and `sparsity_config` to `dot_general` op.
+      1.27.0: Support f16 and bf16 element types in complex types.
   }];
 
   let useDefaultAttributePrinterParser = 0;

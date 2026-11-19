@@ -290,6 +290,24 @@ func.func @complex_no_broadcast(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>) -> t
 
 // -----
 
+// CHECK-LABEL: @complex_no_broadcast_f16
+func.func @complex_no_broadcast_f16(%arg0: tensor<4xf16>, %arg1: tensor<4xf16>) -> tensor<4xcomplex<f16>> {
+  // CHECK: stablehlo.complex %arg0, %arg1 : tensor<4xcomplex<f16>>
+  %0 = chlo.broadcast_complex %arg0, %arg1 : (tensor<4xf16>, tensor<4xf16>) -> tensor<4xcomplex<f16>>
+  func.return %0 : tensor<4xcomplex<f16>>
+}
+
+// -----
+
+// CHECK-LABEL: @complex_no_broadcast_bf16
+func.func @complex_no_broadcast_bf16(%arg0: tensor<4xbf16>, %arg1: tensor<4xbf16>) -> tensor<4xcomplex<bf16>> {
+  // CHECK: stablehlo.complex %arg0, %arg1 : tensor<4xcomplex<bf16>>
+  %0 = chlo.broadcast_complex %arg0, %arg1 : (tensor<4xbf16>, tensor<4xbf16>) -> tensor<4xcomplex<bf16>>
+  func.return %0 : tensor<4xcomplex<bf16>>
+}
+
+// -----
+
 // CHECK-LABEL: @divide_no_broadcast
 func.func @divide_no_broadcast(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>) -> tensor<4xf32> {
   // CHECK: stablehlo.divide %arg0, %arg1
