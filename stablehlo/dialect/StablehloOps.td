@@ -2799,6 +2799,22 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
     Computes dot products between slices of `lhs` and slices of `rhs` and
     produces a `result` tensor.
 
+    Optionally accepts trailing `ext_operands` referenced by
+    `block_scaling_config` (`#stablehlo.block_scaling_config`) and
+    `sparsity_config` (`#stablehlo.sparsity_config`) using absolute operand
+    indices (where `lhs` is 0, `rhs` is 1, and `ext_operands[i]` is `i + 2`):
+    * `block_scaling_config`: `#stablehlo.block_scaling_config<lhs = #stablehlo.tensor_block_scaling_config<scale_idx = <i64>, zero_idx = <i64>, strides = [...], steps = [...]>, rhs = ...>`.
+      The referenced scale tensor must have the same rank as the operand and
+      each scale dimension size must evenly divide the corresponding operand
+      dimension size.
+    * `sparsity_config`: `#stablehlo.sparsity_config<lhs = #stablehlo.tensor_sparsity_config<num_non_zero = <i64>, block_size = <i64>, dimension = <i64>, stride = <i64>, idx = <i64>>, rhs = ...>`
+      describing structured sparsity along a contracting dimension
+      (`num_non_zero == 1`, `block_size > 1`, `stride >= 1`). Along the sparse
+      contracting dimension, the operand has compressed size
+      `K * num_non_zero / block_size` while its logical contracting size is `K`.
+      With `stride = 1` each sparsity block is `block_size` consecutive
+      elements; with `stride = k` its elements are `k` apart.
+
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#dot_general
 
@@ -2817,15 +2833,30 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
     HLO_TensorOrPerAxisQuantizedTensor:$rhs /*dot_general_i2*/,
     StableHLO_DotDimensionNumbers:$dot_dimension_numbers /*dot_general_i3, dot_general_i4, dot_general_i5, dot_general_i6*/,
     OptionalAttr<StableHLO_PrecisionConfigAttr>:$precision_config /*dot_general_i7*/,
-    OptionalAttr<StableHLO_DotAlgorithm>:$algorithm
+    OptionalAttr<StableHLO_DotAlgorithm>:$algorithm,
+    Variadic<HLO_Tensor>:$ext_operands,
+    OptionalAttr<StableHLO_BlockScalingConfig>:$block_scaling_config,
+    OptionalAttr<StableHLO_SparsityConfig>:$sparsity_config
   );
 
   let results = (outs HLO_TensorOrPerAxisQuantizedTensor);
   let hasVerifier = 1;
 
+  let builders = [
+    OpBuilder<(ins "::mlir::Type":$resultType, "::mlir::Value":$lhs,
+      "::mlir::Value":$rhs, "::mlir::Attribute":$dot_dimension_numbers,
+      CArg<"::mlir::Attribute", "{}">:$precision_config,
+      CArg<"::mlir::Attribute", "{}">:$algorithm), [{
+      build($_builder, $_state, resultType, lhs, rhs,
+            ::llvm::cast<DotDimensionNumbersAttr>(dot_dimension_numbers),
+            ::llvm::dyn_cast_or_null<::mlir::ArrayAttr>(precision_config),
+            ::llvm::dyn_cast_or_null<DotAlgorithmAttr>(algorithm), {}, {}, {});
+    }]>
+  ];
+
   // Use empty `` to prevent extra whitespace before precision config.
   let assemblyFormat = [{
-    $lhs `,` $rhs `,` custom<DotDimensionNumbers>($dot_dimension_numbers) ``
+    $lhs `,` $rhs `,` (`[` $ext_operands^ `]` `,`)? custom<DotDimensionNumbers>($dot_dimension_numbers) ``
     custom<PrecisionConfigAndAlgorithm>($precision_config, $algorithm) attr-dict
       `:` functional-type(operands, results)
   }];
@@ -2836,6 +2867,10 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
 
     /// Determines if this DotGeneral instance can be expressed as a DotOp.
     bool isSimpleDot();
+
+    /// Returns true if this dot has extra operands, block scaling or sparsity.
+    /// Passes that only understand plain dots must not rewrite such dots.
+    bool hasExtensions();
   }];
 }
 

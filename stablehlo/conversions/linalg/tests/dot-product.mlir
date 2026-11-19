@@ -381,3 +381,25 @@ func.func @dot_general_algorithm(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi
   }> : (tensor<2x2x2xi64>, tensor<2x2x2xi64>) -> tensor<2x2x2xi64>
   return %0 : tensor<2x2x2xi64>
 }
+
+// -----
+
+// CHECK-LABEL: func @dot_general_batch_block_scaling
+func.func @dot_general_batch_block_scaling(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x4x5xf32>, %scale: tensor<2x3x1xf32>) -> tensor<2x3x5xf32> {
+  // CHECK: stablehlo.dot_general
+  %0 = stablehlo.dot_general %arg0, %arg1, [%scale], batching_dims = [0] x [0], contracting_dims = [2] x [1] {
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2>>
+  } : (tensor<2x3x4xf32>, tensor<2x4x5xf32>, tensor<2x3x1xf32>) -> tensor<2x3x5xf32>
+  return %0 : tensor<2x3x5xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @dot_general_matmul_block_scaling
+func.func @dot_general_matmul_block_scaling(%arg0: tensor<3x4xf32>, %arg1: tensor<4x5xf32>, %scale: tensor<3x1xf32>) -> tensor<3x5xf32> {
+  // CHECK: stablehlo.dot_general
+  %0 = stablehlo.dot_general %arg0, %arg1, [%scale], contracting_dims = [1] x [0] {
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2>>
+  } : (tensor<3x4xf32>, tensor<4x5xf32>, tensor<3x1xf32>) -> tensor<3x5xf32>
+  return %0 : tensor<3x5xf32>
+}

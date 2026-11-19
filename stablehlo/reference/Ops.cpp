@@ -651,6 +651,9 @@ SmallVector<InterpreterValue> eval(Region& region,
     } else if (isa<DotOp>(operation)) {
       failOnDecomposableOp(operation);
     } else if (auto op = dyn_cast<DotGeneralOp>(operation)) {
+      if (op.hasExtensions())
+        report_fatal_error(invalidArgument(
+            "Block scaling and sparsity in dot_general are not supported"));
       LLVM_DEBUG({
         if (op.getAlgorithm().has_value())
           llvm::dbgs() << "ignoring dot algorithm constraints in interpreter";

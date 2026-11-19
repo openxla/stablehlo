@@ -78,6 +78,13 @@ MlirOp DotGeneral(
     ArrayAttr precisionConfig = ArrayAttr(),
     std::optional<ElementType> preferredElementType = std::nullopt);
 
+// DotGeneral with an explicit result type. Written by hand because the
+// generator skips DotGeneralOp, whose `ext_operands` follow attributes.
+MlirOp DotGeneral(Type resultType, MlirOp& lhs, MlirOp& rhs,
+                  DotDimensionNumbersAttr dot_dimension_numbers,
+                  ArrayAttr precision_config = {},
+                  DotAlgorithmAttr algorithm = {});
+
 MlirOp Reshape(MlirOp input, ArrayRef<int64_t> newShape);
 
 // Get all arguments for a given region of a while op

@@ -3388,6 +3388,36 @@ func.func @dot_general_algorithm_tf32(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x
 
 // -----
 
+// CHECK-LABEL: func @ext_dot_general
+func.func @ext_dot_general(%arg0: tensor<2x4x2xf32>, %arg1: tensor<2x8x4xf32>, %scale: tensor<2x4x1xf32>, %meta: tensor<2x4x1xi16>, %rhs_scale: tensor<2x2x4xf32>, %rhs_zp: tensor<2x2x4xf32>) -> tensor<2x4x4xf32> {
+  %0 = stablehlo.dot_general %arg0, %arg1, [%scale, %meta, %rhs_scale, %rhs_zp],
+    batching_dims = [0] x [0],
+    contracting_dims = [2] x [1] {
+    block_scaling_config = #stablehlo.block_scaling_config<
+      lhs = <scale_idx = 2>,
+      rhs = <scale_idx = 4, zero_idx = 5>
+    >,
+    sparsity_config = #stablehlo.sparsity_config<
+      lhs = <num_non_zero = 1, block_size = 4, dimension = 2, stride = 2, idx = 3>
+    >
+  } : (tensor<2x4x2xf32>, tensor<2x8x4xf32>, tensor<2x4x1xf32>, tensor<2x4x1xi16>, tensor<2x2x4xf32>, tensor<2x2x4xf32>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @dot_general_strided_block_scaling
+func.func @dot_general_strided_block_scaling(%arg0: tensor<8x1024xf32>, %arg1: tensor<1024x8xf32>, %scale: tensor<8x16xf32>) -> tensor<8x8xf32> {
+  // Blocks of 64 elements in chunks of 32 that start 256 apart.
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [0, 256], steps = [0, 32]>>
+  } : (tensor<8x1024xf32>, tensor<1024x8xf32>, tensor<8x16xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
 func.func @dot_general_c1(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{lhs and rhs should have the same number of batching dimensions}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
@@ -3651,6 +3681,319 @@ func.func @dot_general_c24(%arg0: tensor<2x2x2xi64>, %arg1: tensor<2x2x2xi64>) -
     dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
     algorithm = #stablehlo.dot_algorithm<lhs_precision_type = tf32, rhs_precision_type = tf32, accumulation_type = f32, lhs_component_count = 1, rhs_component_count = 1, num_primitive_operations = 0, allow_imprecise_accumulation = false>
   }> : (tensor<2x2x2xi64>, tensor<2x2x2xi64>) -> tensor<2x2x2xi64>  return %0 : tensor<2x2x2xi64>
+}
+
+// -----
+
+func.func @dot_general_c25_block_scaling(%arg0: tensor<2x4x4xf32>, %arg1: tensor<2x4x4xf32>, %scale0: tensor<2x4x1xf32>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{block_scaling_config for lhs must have distinct scale_idx/zero_idx referring to one of the 1 extra operands}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale0) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [1]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, zero_idx = 3>>
+  } : (tensor<2x4x4xf32>, tensor<2x4x4xf32>, tensor<2x4x1xf32>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c25_sparsity(%arg0: tensor<2x4x2xf32>, %arg1: tensor<2x8x4xf32>, %meta: tensor<2x4x1xi16>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{sparsity_config for lhs must have distinct idx referring to one of the 1 extra operands}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %meta) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    sparsity_config = #stablehlo.sparsity_config<lhs = <num_non_zero = 1, block_size = 4, dimension = 2, stride = 1, idx = 5>>
+  } : (tensor<2x4x2xf32>, tensor<2x8x4xf32>, tensor<2x4x1xi16>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c25_duplicate(%arg0: tensor<2x4x4xf32>, %arg1: tensor<2x4x4xf32>, %scale: tensor<2x4x1xf32>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{block_scaling_config for rhs must have distinct scale_idx/zero_idx referring to one of the 1 extra operands}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2>, rhs = <scale_idx = 2>>
+  } : (tensor<2x4x4xf32>, tensor<2x4x4xf32>, tensor<2x4x1xf32>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c26(%arg0: tensor<2x4x4xf32>, %arg1: tensor<2x4x4xf32>, %scale: tensor<2x4x1xf32>, %extra: tensor<2x4x1xf32>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{every operand in ext_operands must be referenced by block_scaling_config or sparsity_config}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale, %extra) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2>>
+  } : (tensor<2x4x4xf32>, tensor<2x4x4xf32>, tensor<2x4x1xf32>, tensor<2x4x1xf32>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c27_block_scaling(%arg0: tensor<2x4x4xf32>, %arg1: tensor<2x4x4xf32>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{block_scaling_config must specify lhs or rhs}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    block_scaling_config = #stablehlo.block_scaling_config<>
+  } : (tensor<2x4x4xf32>, tensor<2x4x4xf32>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c27_sparsity(%arg0: tensor<2x4x4xf32>, %arg1: tensor<2x4x4xf32>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{sparsity_config must specify lhs or rhs}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    sparsity_config = #stablehlo.sparsity_config<>
+  } : (tensor<2x4x4xf32>, tensor<2x4x4xf32>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c28(%arg0: tensor<2x4x4xf32>, %arg1: tensor<2x4x4xf32>, %scale: tensor<4x1xf32>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{scale_factor rank (2) for lhs must match operand rank (3)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2>>
+  } : (tensor<2x4x4xf32>, tensor<2x4x4xf32>, tensor<4x1xf32>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c29(%arg0: tensor<2x4x4xf32>, %arg1: tensor<2x4x4xf32>, %scale0: tensor<2x3x1xf32>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{scale_factor dimension at axis 1 for lhs must evenly divide operand dimension size (4 vs 3)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale0) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [1]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2>>
+  } : (tensor<2x4x4xf32>, tensor<2x4x4xf32>, tensor<2x3x1xf32>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c30(%arg0: tensor<2x4x4xf32>, %arg1: tensor<2x4x4xf32>, %scale: tensor<2x4x1xf32>, %zero: tensor<2x4x2xf32>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{zero_point shape for lhs must match scale_factor shape}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale, %zero) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, zero_idx = 3>>
+  } : (tensor<2x4x4xf32>, tensor<2x4x4xf32>, tensor<2x4x1xf32>, tensor<2x4x2xf32>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c31(%arg0: tensor<8x1024xf32>, %arg1: tensor<1024x8xf32>, %scale: tensor<8x16xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{block_scaling_config strides and steps for lhs must be given together}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [0, 256]>>
+  } : (tensor<8x1024xf32>, tensor<1024x8xf32>, tensor<8x16xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+func.func @dot_general_c31_rank(%arg0: tensor<8x1024xf32>, %arg1: tensor<1024x8xf32>, %scale: tensor<8x16xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{block_scaling_config strides for lhs must match operand rank (2)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [256], steps = [32]>>
+  } : (tensor<8x1024xf32>, tensor<1024x8xf32>, tensor<8x16xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+func.func @dot_general_c32(%arg0: tensor<8x1024xf32>, %arg1: tensor<1024x8xf32>, %scale: tensor<8x16xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{expected steps to divide the block size (64)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [0, 240], steps = [0, 48]>>
+  } : (tensor<8x1024xf32>, tensor<1024x8xf32>, tensor<8x16xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+func.func @dot_general_c33(%arg0: tensor<8x1024xf32>, %arg1: tensor<1024x8xf32>, %scale: tensor<8x16xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{strides to be a multiple of steps}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [0, 16], steps = [0, 32]>>
+  } : (tensor<8x1024xf32>, tensor<1024x8xf32>, tensor<8x16xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+func.func @dot_general_c34(%arg0: tensor<8x768xf32>, %arg1: tensor<768x8xf32>, %scale: tensor<8x12xf32>) -> tensor<8x8xf32> {
+  // Superblocks of 512 elements do not divide 768.
+  // expected-error @+1 {{block_scaling_config for lhs at axis 1: expected steps to divide the block size (64), strides to be a multiple of steps, and the operand size (768) to be a multiple of the superblock size, but got steps=32, strides=256}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [0, 256], steps = [0, 32]>>
+  } : (tensor<8x768xf32>, tensor<768x8xf32>, tensor<8x12xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+func.func @dot_general_c35(%arg0: tensor<2x4x2xf32>, %arg1: tensor<2x4x4xf32>, %meta: tensor<2x4x1xi16>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{StructuredSparsity invariants violated for lhs: expected n == 1, m > 1, stride >= 1 and valid dimension, but got n=2, m=4, stride=1, dimension=2}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %meta) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    sparsity_config = #stablehlo.sparsity_config<lhs = <num_non_zero = 2, block_size = 4, dimension = 2, stride = 1, idx = 2>>
+  } : (tensor<2x4x2xf32>, tensor<2x4x4xf32>, tensor<2x4x1xi16>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c36(%arg0: tensor<2x4x2xf32>, %arg1: tensor<2x2x4xf32>, %meta: tensor<2x4x2xi16>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{StructuredSparsity invariants violated for lhs: expected n == 1, m > 1, stride >= 1 and valid dimension, but got n=1, m=1, stride=1, dimension=2}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %meta) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    sparsity_config = #stablehlo.sparsity_config<lhs = <num_non_zero = 1, block_size = 1, dimension = 2, stride = 1, idx = 2>>
+  } : (tensor<2x4x2xf32>, tensor<2x2x4xf32>, tensor<2x4x2xi16>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c37(%arg0: tensor<2x4x2xf32>, %arg1: tensor<2x8x4xf32>, %meta: tensor<2x4x2xi16>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{StructuredSparsity invariants violated for lhs: expected n == 1, m > 1, stride >= 1 and valid dimension, but got n=1, m=4, stride=0, dimension=2}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %meta) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    sparsity_config = #stablehlo.sparsity_config<lhs = #stablehlo.tensor_sparsity_config<num_non_zero = 1, block_size = 4, dimension = 2, stride = 0, idx = 2>>
+  } : (tensor<2x4x2xf32>, tensor<2x8x4xf32>, tensor<2x4x2xi16>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c38(%arg0: tensor<2x4x2xf32>, %arg1: tensor<2x4x4xf32>, %meta: tensor<2x4x1xi16>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{sparsity dimension 1 for lhs must be a contracting dimension}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %meta) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    sparsity_config = #stablehlo.sparsity_config<lhs = #stablehlo.tensor_sparsity_config<num_non_zero = 1, block_size = 4, dimension = 1, stride = 1, idx = 2>>
+  } : (tensor<2x4x2xf32>, tensor<2x4x4xf32>, tensor<2x4x1xi16>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c39(%arg0: tensor<2x4x3xf32>, %arg1: tensor<2x12x4xf32>, %meta: tensor<2x4x3xi16>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{sparse operand dimension 2 size (3) for lhs must be divisible by stride (2)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %meta) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    sparsity_config = #stablehlo.sparsity_config<lhs = #stablehlo.tensor_sparsity_config<num_non_zero = 1, block_size = 4, dimension = 2, stride = 2, idx = 2>>
+  } : (tensor<2x4x3xf32>, tensor<2x12x4xf32>, tensor<2x4x3xi16>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+func.func @dot_general_c10_sparsity(%arg0: tensor<2x4x2xf32>, %arg1: tensor<2x4x4xf32>, %meta: tensor<2x4x1xi16>) -> tensor<2x4x4xf32> {
+  // expected-error @+1 {{contracting dimension sizes must match for lhs/rhs}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %meta) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>,
+    sparsity_config = #stablehlo.sparsity_config<lhs = #stablehlo.tensor_sparsity_config<num_non_zero = 1, block_size = 4, dimension = 2, stride = 1, idx = 2>>
+  } : (tensor<2x4x2xf32>, tensor<2x4x4xf32>, tensor<2x4x1xi16>) -> tensor<2x4x4xf32>
+  func.return %0 : tensor<2x4x4xf32>
+}
+
+// -----
+
+// Explicit block sizes allow padded scales: 5 scales of block size 32 cover 96 elements, with padded scales.
+// CHECK-LABEL: func @dot_general_c40_padded_scale
+func.func @dot_general_c40_padded_scale(%arg0: tensor<8x96xf32>, %arg1: tensor<96x8xf32>, %scale: tensor<8x5xf32>) -> tensor<8x8xf32> {
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, block_sizes = [1, 32]>>
+  } : (tensor<8x96xf32>, tensor<96x8xf32>, tensor<8x5xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+func.func @dot_general_c40_rank(%arg0: tensor<8x96xf32>, %arg1: tensor<96x8xf32>, %scale: tensor<8x4xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{block_scaling_config block_sizes for lhs must match operand rank (2)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, block_sizes = [32]>>
+  } : (tensor<8x96xf32>, tensor<96x8xf32>, tensor<8x4xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+func.func @dot_general_c40_positive(%arg0: tensor<8x96xf32>, %arg1: tensor<96x8xf32>, %scale: tensor<8x4xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{block_scaling_config block_sizes for lhs must be positive}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, block_sizes = [1, 0]>>
+  } : (tensor<8x96xf32>, tensor<96x8xf32>, tensor<8x4xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+func.func @dot_general_c40_strided(%arg0: tensor<8x1024xf32>, %arg1: tensor<1024x8xf32>, %scale: tensor<8x43xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{expected steps to divide the block size (24)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [0, 128], steps = [0, 16], block_sizes = [1, 24]>>
+  } : (tensor<8x1024xf32>, tensor<1024x8xf32>, tensor<8x43xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+// 2 scales of 32 cover only 64 of 96 elements.
+func.func @dot_general_c40_coverage(%arg0: tensor<8x96xf32>, %arg1: tensor<96x8xf32>, %scale: tensor<8x2xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{scale_factor dimension size (2) times block size (32) must cover the operand dimension size (96)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, block_sizes = [1, 32]>>
+  } : (tensor<8x96xf32>, tensor<96x8xf32>, tensor<8x2xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+func.func @dot_general_c40_empty_scale(%arg0: tensor<8x96xf32>, %arg1: tensor<96x8xf32>, %scale: tensor<8x0xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{scale_factor dimension size (0) times block size (32) must cover the operand dimension size (96)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, block_sizes = [1, 32]>>
+  } : (tensor<8x96xf32>, tensor<96x8xf32>, tensor<8x0xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+// Without block_sizes, an empty scale dimension cannot cover a non empty one.
+func.func @dot_general_c29_empty_scale(%arg0: tensor<8x96xf32>, %arg1: tensor<96x8xf32>, %scale: tensor<8x0xf32>) -> tensor<8x8xf32> {
+  // expected-error @+1 {{scale_factor dimension at axis 1 for lhs must evenly divide operand dimension size (96 vs 0)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [0, 128], steps = [0, 8]>>
+  } : (tensor<8x96xf32>, tensor<96x8xf32>, tensor<8x0xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
+}
+
+// -----
+
+// An empty contracting dimension has no blocks, so strides need no superblock.
+// CHECK-LABEL: func @dot_general_c34_empty_operand
+func.func @dot_general_c34_empty_operand(%arg0: tensor<8x0xf32>, %arg1: tensor<0x8xf32>, %scale: tensor<8x1xf32>) -> tensor<8x8xf32> {
+  %0 = "stablehlo.dot_general"(%arg0, %arg1, %scale) {
+    dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>,
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2, strides = [0, 128], steps = [0, 8]>>
+  } : (tensor<8x0xf32>, tensor<0x8xf32>, tensor<8x1xf32>) -> tensor<8x8xf32>
+  func.return %0 : tensor<8x8xf32>
 }
 
 // -----

@@ -200,6 +200,14 @@ MlirOp DotGeneral(MlirOp lhs, MlirOp rhs, DotDimensionNumbersAttr dotDimsAttr,
                                precisionConfig);
 }
 
+MlirOp DotGeneral(Type resultType, MlirOp& lhs, MlirOp& rhs,
+                  DotDimensionNumbersAttr dot_dimension_numbers,
+                  ArrayAttr precision_config, DotAlgorithmAttr algorithm) {
+  return lhs.getBuilder().create<DotGeneralOp>(
+      resultType, unwrap(lhs), unwrap(rhs), dot_dimension_numbers,
+      precision_config, algorithm);
+}
+
 MlirOp Reshape(MlirOp input, ArrayRef<int64_t> newShape) {
   auto type = mlir::dyn_cast<RankedTensorType>(input.getType());
   if (!type)

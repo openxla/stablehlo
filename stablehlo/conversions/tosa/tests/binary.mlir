@@ -124,6 +124,17 @@ func.func @dot_general_vector_vector(%arg0: tensor<3xf32>, %arg1: tensor<3xf32>)
   return %0 : tensor<f32>
 }
 
+// A block scaled dot is not a simple dot, so it is left alone.
+// CHECK-LABEL: @dot_general_block_scaling
+func.func @dot_general_block_scaling(%arg0: tensor<3xf32>, %arg1: tensor<3xf32>, %scale: tensor<1xf32>) -> tensor<f32> {
+  // CHECK-NOT: tosa.matmul
+  // CHECK: stablehlo.dot_general
+  %0 = stablehlo.dot_general %arg0, %arg1, [%scale], contracting_dims = [0] x [0] {
+    block_scaling_config = #stablehlo.block_scaling_config<lhs = <scale_idx = 2>>
+  } : (tensor<3xf32>, tensor<3xf32>, tensor<1xf32>) -> tensor<f32>
+  return %0 : tensor<f32>
+}
+
 // CHECK-LABEL: @dot_general_vector_matrix
 func.func @dot_general_vector_matrix(%arg0: tensor<2xf32>, %arg1: tensor<2x3xf32>) -> tensor<3xf32> {
   // CHECK-DAG: %[[VAR0:.*]] = tosa.const_shape values(dense<3> : tensor<1xindex>) : () -> !tosa.shape<1>

@@ -80,7 +80,7 @@ def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex_v1", "0.9.0", "current",
         mlir::vhlo::Version targetVersion) const {
       mlir::Type elementType = getElementType();
       if (mlir::isa<FloatF16V1Type, FloatBF16V1Type>(elementType))
-        return mlir::success(mlir::vhlo::Version(1, 26, 0) <= targetVersion);
+        return mlir::success(mlir::vhlo::Version(1, 27, 0) <= targetVersion);
       if (mlir::isa<FloatF32V1Type, FloatF64V1Type>(elementType))
         return mlir::success();
       return mlir::failure();

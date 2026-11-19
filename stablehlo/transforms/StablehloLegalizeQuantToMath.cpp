@@ -1108,6 +1108,11 @@ class ConvertUniformQuantizedDotGeneralOp
   LogicalResult matchAndRewrite(
       stablehlo::DotGeneralOp op, stablehlo::DotGeneralOpAdaptor adaptor,
       ConversionPatternRewriter& rewriter) const override {
+    // The rewrite below rebuilds the dot from lhs and rhs only.
+    if (op.hasExtensions()) {
+      return rewriter.notifyMatchFailure(
+          op, "block scaling and sparsity are not supported");
+    }
     auto isHybrid = isDotLikeOpHybrid(op, rewriter);
     if (failed(isHybrid)) {
       return failure();
