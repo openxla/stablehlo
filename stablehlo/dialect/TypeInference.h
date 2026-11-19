@@ -505,6 +505,38 @@ LogicalResult verifyDotGeneralOp(
     std::optional<DotSparsityDim> lhsSparsity = {},
     std::optional<DotSparsityDim> rhsSparsity = {});
 
+// Dialect independent view of a dot_general block scaling entry. Indices count
+// lhs as 0, rhs as 1 and ext_operands[i] as i + 2.
+struct DotBlockScaling {
+  int64_t scaleIdx;
+  std::optional<int64_t> zeroIdx;
+  ArrayRef<int64_t> strides;
+  ArrayRef<int64_t> steps;
+  ArrayRef<int64_t> blockSizes;
+};
+
+// Dialect independent view of a dot_general sparsity entry.
+struct DotSparsity {
+  int64_t numNonZero;
+  int64_t blockSize;
+  int64_t dimension;
+  int64_t stride;
+  int64_t idx;
+};
+
+// Verifies the block scaling and sparsity configs of a dot_general against its
+// operands (dot_general_c25 to dot_general_c40). `hasBlockScalingConfig` and
+// `hasSparsityConfig` say whether each config attribute is present, so that a
+// present config with neither side set is rejected (dot_general_c27).
+LogicalResult verifyDotGeneralExtensions(
+    std::optional<Location> location, Value lhs, Value rhs,
+    ValueRange extOperands, ArrayRef<int64_t> lhsContractingDimensions,
+    ArrayRef<int64_t> rhsContractingDimensions, bool hasBlockScalingConfig,
+    std::optional<DotBlockScaling> lhsBlockScaling,
+    std::optional<DotBlockScaling> rhsBlockScaling, bool hasSparsityConfig,
+    std::optional<DotSparsity> lhsSparsity,
+    std::optional<DotSparsity> rhsSparsity);
+
 LogicalResult verifyDotAlgorithmAttr(
     ::llvm::function_ref<InFlightDiagnostic()> emitError, Type lhsPrecisionType,
     Type rhsPrecisionType, Type accumulationType, int64_t lhsComponentCount,

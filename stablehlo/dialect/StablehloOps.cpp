@@ -965,210 +965,36 @@ std::optional<hlo::DotSparsityDim> getDotSparsityDim(
                              sp.getBlockSize()};
 }
 
-LogicalResult verifyDotGeneralBlockScalingConfig(DotGeneralOp op,
-                                                 llvm::SmallBitVector& seen) {
-  BlockScalingConfigAttr config = op.getBlockScalingConfigAttr();
-  if (!config) return success();
-  // dot_general_c27
-  if (!config.getLhs() && !config.getRhs()) {
-    return emitOptionalError(op.getLoc(),
-                             "block_scaling_config must specify lhs or rhs");
-  }
-  ValueRange extOperands = op.getExtOperands();
-  // dot_general_c25
-  auto claimIdx = [&](int64_t rawIdx, StringRef side) -> LogicalResult {
-    int64_t idx = rawIdx - 2;
-    if (idx < 0 || idx >= static_cast<int64_t>(extOperands.size()) ||
-        seen.test(idx)) {
-      return emitOptionalError(
-          op.getLoc(), "block_scaling_config for ", side,
-          " must have distinct scale_idx/zero_idx referring to one of the ",
-          extOperands.size(), " extra operands");
-    }
-    seen.set(idx);
-    return success();
-  };
-  for (auto [side, operand, scaling] :
-       {std::tuple{StringRef("lhs"), op.getLhs(), config.getLhs()},
-        std::tuple{StringRef("rhs"), op.getRhs(), config.getRhs()}}) {
-    if (!scaling) continue;
-    if (failed(claimIdx(scaling.getScaleIdx(), side)) ||
-        (scaling.getZeroIdx() &&
-         failed(claimIdx(*scaling.getZeroIdx(), side)))) {
-      return failure();
-    }
-    int64_t scaleIdx = scaling.getScaleIdx() - 2;
-    auto operandType = cast<ShapedType>(operand.getType());
-    auto scaleType = cast<ShapedType>(extOperands[scaleIdx].getType());
-    if (!scaleType.hasRank() || !operandType.hasRank()) continue;
-    // dot_general_c28
-    if (scaleType.getRank() != operandType.getRank()) {
-      return emitOptionalError(
-          op.getLoc(), "scale_factor rank (", scaleType.getRank(), ") for ",
-          side, " must match operand rank (", operandType.getRank(), ")");
-    }
-    // dot_general_c30
-    if (scaling.getZeroIdx()) {
-      auto zeroType =
-          cast<ShapedType>(extOperands[*scaling.getZeroIdx() - 2].getType());
-      if (zeroType.hasRank() && zeroType.getShape() != scaleType.getShape()) {
-        return emitOptionalError(op.getLoc(), "zero_point shape for ", side,
-                                 " must match scale_factor shape");
-      }
-    }
-    ArrayRef<int64_t> strides = scaling.getStrides();
-    ArrayRef<int64_t> steps = scaling.getSteps();
-    ArrayRef<int64_t> blockSizes = scaling.getBlockSizes();
-    // dot_general_c31, dot_general_c40
-    for (auto [name, vals] :
-         {std::pair{StringRef("strides"), strides},
-          std::pair{StringRef("steps"), steps},
-          std::pair{StringRef("block_sizes"), blockSizes}}) {
-      if (!vals.empty() &&
-          static_cast<int64_t>(vals.size()) != operandType.getRank()) {
-        return emitOptionalError(op.getLoc(), "block_scaling_config ", name,
-                                 " for ", side, " must match operand rank (",
-                                 operandType.getRank(), ")");
-      }
-    }
-    if (strides.empty() != steps.empty()) {
-      return emitOptionalError(op.getLoc(), "block_scaling_config strides and ",
-                               "steps for ", side, " must be given together");
-    }
-    // dot_general_c40
-    if (llvm::any_of(blockSizes, [](int64_t size) { return size < 1; })) {
-      return emitOptionalError(op.getLoc(), "block_scaling_config block_sizes ",
-                               "for ", side, " must be positive");
-    }
-    for (int64_t dim = 0; dim < operandType.getRank(); ++dim) {
-      int64_t operandSize = operandType.getDimSize(dim);
-      int64_t scaleSize = scaleType.getDimSize(dim);
-      if (ShapedType::isDynamic(operandSize) ||
-          ShapedType::isDynamic(scaleSize)) {
-        continue;
-      }
-      // Explicit block sizes allow padded scales, so they skip c29.
-      // dot_general_c29
-      if (blockSizes.empty() &&
-          (scaleSize == 0 ? operandSize != 0
-                          : scaleSize > 1 && operandSize % scaleSize != 0)) {
-        return emitOptionalError(op.getLoc(), "scale_factor dimension at axis ",
-                                 dim, " for ", side,
-                                 " must evenly divide operand dimension size (",
-                                 operandSize, " vs ", scaleSize, ")");
-      }
-      // dot_general_c40
-      if (!blockSizes.empty() && operandSize > 0 &&
-          (scaleSize == 0 ||
-           blockSizes[dim] < (operandSize + scaleSize - 1) / scaleSize)) {
-        return emitOptionalError(
-            op.getLoc(), "block_scaling_config for ", side, " at axis ", dim,
-            ": scale_factor dimension size (", scaleSize,
-            ") times block size (", blockSizes[dim],
-            ") must cover the operand dimension size (", operandSize, ")");
-      }
-      // A stride above 1 splits each block into chunks of `step` elements that
-      // start `stride` apart, repeating every superblock. An empty dimension
-      // has no blocks to check.
-      if (strides.empty() || strides[dim] <= 1 || operandSize == 0) continue;
-      int64_t stride = strides[dim];
-      int64_t step = steps[dim];
-      // c29, c40 and the empty dimension check above make blockSize positive.
-      int64_t blockSize =
-          blockSizes.empty() ? operandSize / scaleSize : blockSizes[dim];
-      // dot_general_c32, dot_general_c33, dot_general_c34
-      bool valid = step >= 1 && blockSize % step == 0 && stride % step == 0;
-      if (valid) {
-        int64_t superblock = blockSize / step * stride;
-        valid = superblock > 0 && operandSize % superblock == 0;
-      }
-      if (!valid) {
-        return emitOptionalError(
-            op.getLoc(), "block_scaling_config for ", side, " at axis ", dim,
-            ": expected steps to divide the block size (", blockSize,
-            "), strides to be a multiple of steps, and the operand size (",
-            operandSize, ") to be a multiple of the superblock size, but got ",
-            "steps=", step, ", strides=", stride);
-      }
-    }
-  }
-  return success();
+std::optional<hlo::DotBlockScaling> getDotBlockScaling(
+    TensorBlockScalingConfigAttr scaling) {
+  if (!scaling) return std::nullopt;
+  return hlo::DotBlockScaling{scaling.getScaleIdx(), scaling.getZeroIdx(),
+                              scaling.getStrides(), scaling.getSteps(),
+                              scaling.getBlockSizes()};
 }
 
-LogicalResult verifyDotGeneralSparsityConfig(DotGeneralOp op,
-                                             llvm::SmallBitVector& seen) {
-  SparsityConfigAttr config = op.getSparsityConfigAttr();
-  if (!config) return success();
-  // dot_general_c27
-  if (!config.getLhs() && !config.getRhs()) {
-    return emitOptionalError(op.getLoc(),
-                             "sparsity_config must specify lhs or rhs");
-  }
-  DotDimensionNumbersAttr dims = op.getDotDimensionNumbersAttr();
-  ValueRange extOperands = op.getExtOperands();
-  for (auto [side, operand, contractingDims, sparsity] :
-       {std::tuple{StringRef("lhs"), op.getLhs(),
-                   dims.getLhsContractingDimensions(), config.getLhs()},
-        std::tuple{StringRef("rhs"), op.getRhs(),
-                   dims.getRhsContractingDimensions(), config.getRhs()}}) {
-    if (!sparsity) continue;
-    // dot_general_c25
-    int64_t indicesIdx = sparsity.getIdx() - 2;
-    if (indicesIdx < 0 ||
-        indicesIdx >= static_cast<int64_t>(extOperands.size()) ||
-        seen.test(indicesIdx)) {
-      return emitOptionalError(
-          op.getLoc(), "sparsity_config for ", side,
-          " must have distinct idx referring to one of the ",
-          extOperands.size(), " extra operands");
-    }
-    seen.set(indicesIdx);
-    auto operandType = cast<ShapedType>(operand.getType());
-    int64_t n = sparsity.getNumNonZero();
-    int64_t m = sparsity.getBlockSize();
-    int64_t stride = sparsity.getStride();
-    int64_t dim = sparsity.getDimension();
-    // dot_general_c35, dot_general_c36, dot_general_c37
-    // Only 1:m sparsity is supported until the n > 1 layout is defined.
-    if (n != 1 || m <= 1 || stride < 1 || dim < 0 ||
-        (operandType.hasRank() && dim >= operandType.getRank())) {
-      return emitOptionalError(
-          op.getLoc(), "StructuredSparsity invariants violated for ", side,
-          ": expected n == 1, m > 1, stride >= 1 and valid dimension, but got "
-          "n=",
-          n, ", m=", m, ", stride=", stride, ", dimension=", dim);
-    }
-    // dot_general_c38
-    if (!llvm::is_contained(contractingDims, dim)) {
-      return emitOptionalError(op.getLoc(), "sparsity dimension ", dim, " for ",
-                               side, " must be a contracting dimension");
-    }
-    if (operandType.hasRank()) {
-      int64_t dimSize = operandType.getDimSize(dim);
-      // dot_general_c39
-      if (!ShapedType::isDynamic(dimSize) && dimSize % stride != 0) {
-        return emitOptionalError(op.getLoc(), "sparse operand dimension ", dim,
-                                 " size (", dimSize, ") for ", side,
-                                 " must be divisible by stride (", stride, ")");
-      }
-    }
-  }
-  return success();
+std::optional<hlo::DotSparsity> getDotSparsity(TensorSparsityConfigAttr sp) {
+  if (!sp) return std::nullopt;
+  return hlo::DotSparsity{sp.getNumNonZero(), sp.getBlockSize(),
+                          sp.getDimension(), sp.getStride(), sp.getIdx()};
 }
 
 }  // namespace
 
 LogicalResult DotGeneralOp::verify() {
-  llvm::SmallBitVector seen(getExtOperands().size());
-  if (failed(verifyDotGeneralBlockScalingConfig(*this, seen)) ||
-      failed(verifyDotGeneralSparsityConfig(*this, seen))) {
+  BlockScalingConfigAttr scaling = getBlockScalingConfigAttr();
+  SparsityConfigAttr sparsity = getSparsityConfigAttr();
+  DotDimensionNumbersAttr dims = getDotDimensionNumbersAttr();
+  if (failed(hlo::verifyDotGeneralExtensions(
+          getLoc(), getLhs(), getRhs(), getExtOperands(),
+          dims.getLhsContractingDimensions(),
+          dims.getRhsContractingDimensions(), static_cast<bool>(scaling),
+          scaling ? getDotBlockScaling(scaling.getLhs()) : std::nullopt,
+          scaling ? getDotBlockScaling(scaling.getRhs()) : std::nullopt,
+          static_cast<bool>(sparsity),
+          sparsity ? getDotSparsity(sparsity.getLhs()) : std::nullopt,
+          sparsity ? getDotSparsity(sparsity.getRhs()) : std::nullopt))) {
     return failure();
-  }
-  // dot_general_c26
-  if (!seen.all()) {
-    return emitOpError(
-        "every operand in ext_operands must be referenced by "
-        "block_scaling_config or sparsity_config");
   }
   bool isDefaultPrecisionConfig =
       !getPrecisionConfig().has_value() ||
@@ -1187,7 +1013,6 @@ LogicalResult DotGeneralOp::verify() {
       return failure();
   }
 
-  SparsityConfigAttr sp = getSparsityConfigAttr();
   return hlo::verifyDotGeneralOp(
       getLoc(), getLhs(), getRhs(),
       getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
@@ -1195,8 +1020,9 @@ LogicalResult DotGeneralOp::verify() {
       getDotDimensionNumbersAttr().getLhsContractingDimensions(),
       getDotDimensionNumbersAttr().getRhsContractingDimensions(),
       getPrecisionConfig(), isDefaultPrecisionConfig, hasAlgorithmSpecified,
-      getResult(), sp ? getDotSparsityDim(sp.getLhs()) : std::nullopt,
-      sp ? getDotSparsityDim(sp.getRhs()) : std::nullopt);
+      getResult(),
+      sparsity ? getDotSparsityDim(sparsity.getLhs()) : std::nullopt,
+      sparsity ? getDotSparsityDim(sparsity.getRhs()) : std::nullopt);
 }
 
 LogicalResult DotGeneralOp::inferReturnTypeComponents(
