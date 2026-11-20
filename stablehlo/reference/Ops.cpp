@@ -1620,6 +1620,7 @@ Tensor compareOp(const Tensor& lhs, const Tensor& rhs,
                  ShapedType resultType) {
   Tensor result(resultType);
   bool isWeakOrder = compareType == ComparisonType::WEAKORDER;
+  bool isTotalOrder = compareType == ComparisonType::TOTALORDER;
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     auto lhsElem = lhs.get(*it);
     auto rhsElem = rhs.get(*it);
@@ -1644,6 +1645,31 @@ Tensor compareOp(const Tensor& lhs, const Tensor& rhs,
           break;
         case ComparisonDirection::LT:
           result.set(*it, weakOrderLt(lhsElem, rhsElem));
+          break;
+      }
+      continue;
+    }
+    if (isTotalOrder) {
+      switch (comparisonDirection) {
+        case ComparisonDirection::EQ:
+          result.set(*it, totalOrderEq(lhsElem, rhsElem));
+          break;
+        case ComparisonDirection::NE:
+          result.set(*it, !totalOrderEq(lhsElem, rhsElem));
+          break;
+        case ComparisonDirection::GE:
+          result.set(*it, totalOrderLt(rhsElem, lhsElem) ||
+                              totalOrderEq(lhsElem, rhsElem));
+          break;
+        case ComparisonDirection::GT:
+          result.set(*it, totalOrderLt(rhsElem, lhsElem));
+          break;
+        case ComparisonDirection::LE:
+          result.set(*it, totalOrderLt(lhsElem, rhsElem) ||
+                              totalOrderEq(lhsElem, rhsElem));
+          break;
+        case ComparisonDirection::LT:
+          result.set(*it, totalOrderLt(lhsElem, rhsElem));
           break;
       }
       continue;

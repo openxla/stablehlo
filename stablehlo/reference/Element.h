@@ -323,6 +323,12 @@ Element tan(const Element& e);
 /// Returns tanh of Element object.
 Element tanh(const Element& e);
 
+/// Returns total-order equality of two floating-point Element objects.
+Element totalOrderEq(const Element& e1, const Element& e2);
+
+/// Returns total-order less-than of two floating-point Element objects.
+Element totalOrderLt(const Element& e1, const Element& e2);
+
 /// Returns weak-order equality of two floating-point Element objects.
 Element weakOrderEq(const Element& e1, const Element& e2);
 

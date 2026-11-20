@@ -1207,6 +1207,44 @@ Element tanh(const Element& el) {
       [](mlir::Complex<double> e) { return std::tanh(e); });
 }
 
+Element totalOrderEq(const Element& e1, const Element& e2) {
+  auto type = e1.getType();
+  auto i1Type = IntegerType::get(type.getContext(), 1);
+  if (type != e2.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type).c_str(),
+                                       debugString(e2.getType()).c_str()));
+  if (!isSupportedFloatType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  return Element(i1Type, e1.toBits() == e2.toBits());
+}
+
+Element totalOrderLt(const Element& e1, const Element& e2) {
+  auto type = e1.getType();
+  auto i1Type = IntegerType::get(type.getContext(), 1);
+  if (type != e2.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type).c_str(),
+                                       debugString(e2.getType()).c_str()));
+  if (!isSupportedFloatType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+
+  auto lhsBits = e1.toBits();
+  auto rhsBits = e2.toBits();
+  if (isa<Float8E8M0FNUType>(type))
+    return Element(i1Type, lhsBits.ult(rhsBits));
+
+  auto toTotalOrderKey = [](APInt bits) {
+    bool isNegative = bits.isNegative();
+    bits.clearBit(bits.getBitWidth() - 1);
+    return isNegative ? ~bits : bits;
+  };
+  return Element(i1Type,
+                 toTotalOrderKey(lhsBits).slt(toTotalOrderKey(rhsBits)));
+}
+
 Element weakOrderEq(const Element& e1, const Element& e2) {
   auto type = e1.getType();
   auto i1Type = IntegerType::get(type.getContext(), 1);
