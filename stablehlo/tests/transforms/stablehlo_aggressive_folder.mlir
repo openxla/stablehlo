@@ -905,6 +905,16 @@ func.func @dynamic_slice_fold(%arg0: tensor<i32>, %arg1: tensor<i32>) -> tensor<
 
 // -----
 
+// CHECK-LABEL: @slice_fold_zero_dim_overflow_suffix
+func.func @slice_fold_zero_dim_overflow_suffix() -> tensor<0x1x4xi32> {
+  %c = stablehlo.constant dense<> : tensor<0x4611686018427387905x4xi32>
+  %0 = stablehlo.slice %c [0:0, 0:1, 0:4] : (tensor<0x4611686018427387905x4xi32>) -> tensor<0x1x4xi32>
+  // CHECK: stablehlo.constant dense<> : tensor<0x1x4xi32>
+  return %0 : tensor<0x1x4xi32>
+}
+
+// -----
+
 ////////
 // ConvertOp
 
@@ -1584,6 +1594,17 @@ func.func @eval_transpose_splat() -> (tensor<10x3x1xi32>) {
 
 // -----
 
+// CHECK-LABEL: func @eval_transpose_zerodim_overflow_suffix
+func.func @eval_transpose_zerodim_overflow_suffix() -> tensor<4x0x4611686018427387905xi32> {
+  // CHECK: [[RESULT0:%.*]] = stablehlo.constant dense<> : tensor<4x0x4611686018427387905xi32>
+  // CHECK: return [[RESULT0]]
+  %0 = stablehlo.constant dense<> : tensor<0x4611686018427387905x4xi32>
+  %1 = stablehlo.transpose %0, dims = [2, 0, 1] : (tensor<0x4611686018427387905x4xi32>) -> tensor<4x0x4611686018427387905xi32>
+  func.return %1 : tensor<4x0x4611686018427387905xi32>
+}
+
+// -----
+
 ////////
 // WhileOp
 
@@ -1637,4 +1658,36 @@ func.func @xor_fold_boolean_cst() -> tensor<4xi1> {
   %operand_2 = stablehlo.constant dense<[false, true, true, false]> : tensor<4xi1>
   %result = stablehlo.xor %operand_1, %operand_2 : tensor<4xi1>
   return %result : tensor<4xi1>
+}
+
+// -----
+
+////////
+// Element Count Overflow Guards
+
+// CHECK-LABEL: @broadcast_splat_overflow_no_fold
+func.func @broadcast_splat_overflow_no_fold() -> tensor<4611686018427387905x4xi32> {
+  %0 = stablehlo.constant dense<1> : tensor<i32>
+  // CHECK: stablehlo.broadcast_in_dim
+  %1 = stablehlo.broadcast_in_dim %0, dims = [] : (tensor<i32>) -> tensor<4611686018427387905x4xi32>
+  return %1 : tensor<4611686018427387905x4xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @concat_splats_overflow_no_fold
+func.func @concat_splats_overflow_no_fold() -> tensor<6148914691236517204x2xi32> {
+  %0 = stablehlo.constant dense<1> : tensor<3074457345618258602x2xi32>
+  // CHECK: stablehlo.concatenate
+  %1 = stablehlo.concatenate %0, %0, dim = 0 : (tensor<3074457345618258602x2xi32>, tensor<3074457345618258602x2xi32>) -> tensor<6148914691236517204x2xi32>
+  return %1 : tensor<6148914691236517204x2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @iota_overflow_no_fold
+func.func @iota_overflow_no_fold() -> tensor<2305843009213693952x8xi32> {
+  // CHECK: stablehlo.iota
+  %0 = stablehlo.iota dim = 0 : tensor<2305843009213693952x8xi32>
+  return %0 : tensor<2305843009213693952x8xi32>
 }
