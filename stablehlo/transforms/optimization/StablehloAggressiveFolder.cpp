@@ -13,6 +13,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include <cassert>
+#include <climits>
 #include <cmath>
 #include <complex>
 #include <cstddef>
@@ -33,9 +34,11 @@ limitations under the License.
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/CheckedArithmetic.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LogicalResult.h"
+#include "llvm/Support/MathExtras.h"
 #include "mlir/Dialect/CommonFolders.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -154,6 +157,40 @@ LogicalResult validateStaticShapeResult(PatternRewriter& rewriter,
   if (!resultType.hasStaticShape())
     return rewriter.notifyMatchFailure(
         op, "unable to fold dynamically shaped result type to constant");
+  if (!resultType.tryGetNumElements().has_value())
+    return rewriter.notifyMatchFailure(
+        op, "result element count overflows int64_t");
+  return success();
+}
+
+bool hasValidElementCount(ShapedType type) {
+  return type && type.hasStaticShape() && type.tryGetNumElements().has_value();
+}
+
+// Validates that `attr` has a statically shaped type whose element count does
+// not overflow int64_t and, if non-splat, whose underlying buffer size matches
+// the full element count without bit-width multiplication wraparound.
+bool isValidDenseElementsBuffer(DenseElementsAttr attr) {
+  if (!attr || !hasValidElementCount(attr.getType())) return false;
+  if (attr.isSplat()) return true;
+  auto typedAttr = dyn_cast<DenseTypedElementsAttr>(attr);
+  if (!typedAttr) return false;
+  auto denseEltType = dyn_cast<DenseElementType>(attr.getElementType());
+  if (!denseEltType) return false;
+  uint64_t storageBytes = llvm::divideCeil<uint64_t>(
+      denseEltType.getDenseElementBitSize(), CHAR_BIT);
+  std::optional<uint64_t> expectedBytes = llvm::checkedMulUnsigned<uint64_t>(
+      storageBytes, static_cast<uint64_t>(attr.getType().getNumElements()));
+  return expectedBytes.has_value() &&
+         typedAttr.getRawData().size() == *expectedBytes;
+}
+
+LogicalResult validateDenseElementsBuffer(PatternRewriter& rewriter,
+                                          Operation* op,
+                                          DenseElementsAttr attr) {
+  if (!isValidDenseElementsBuffer(attr))
+    return rewriter.notifyMatchFailure(
+        op, "invalid dense elements attribute buffer or shape");
   return success();
 }
 
@@ -163,6 +200,12 @@ template <typename Fn, typename IntResultType = IntegerAttr,
           typename FloatResultType = FloatAttr>
 TypedAttr foldUnaryOpIntOrFloat(Type resultType, TypedAttr operand,
                                 Fn&& folder) {
+  if (auto denseOperand = dyn_cast<DenseElementsAttr>(operand))
+    if (!isValidDenseElementsBuffer(denseOperand)) return nullptr;
+  if (auto shapedResType = dyn_cast<ShapedType>(resultType))
+    if (shapedResType.hasStaticShape() &&
+        !shapedResType.tryGetNumElements().has_value())
+      return nullptr;
   Type elemTy = getElementTypeOrSelf(operand);
 
   Attribute res;
@@ -204,6 +247,14 @@ template <typename Fn, typename IntResultType = IntegerAttr,
           typename FloatResultType = FloatAttr>
 TypedAttr foldBinaryOpIntOrFloat(Type resultType, TypedAttr lhs, TypedAttr rhs,
                                  Fn&& folder) {
+  if (auto denseLhs = dyn_cast_or_null<DenseElementsAttr>(lhs))
+    if (!isValidDenseElementsBuffer(denseLhs)) return nullptr;
+  if (auto denseRhs = dyn_cast_or_null<DenseElementsAttr>(rhs))
+    if (!isValidDenseElementsBuffer(denseRhs)) return nullptr;
+  if (auto shapedResType = dyn_cast<ShapedType>(resultType))
+    if (shapedResType.hasStaticShape() &&
+        !shapedResType.tryGetNumElements().has_value())
+      return nullptr;
   Attribute operands[2] = {lhs, rhs};
   Type elemTy = getElementTypeOrSelf(lhs);
 
@@ -408,8 +459,10 @@ struct FoldOpRewritePattern : OpRewritePattern<OpType> {
   LogicalResult validateElementCountForFold(PatternRewriter& rewriter,
                                             Operation* op,
                                             ShapedType resultType) const {
-    size_t numElems = resultType.getNumElements();
-    if (numElems > static_cast<size_t>(options.foldOpElementLimit))
+    if (failed(validateStaticShapeResult(rewriter, op, resultType)))
+      return failure();
+    if (options.foldOpElementLimit < 0 ||
+        resultType.getNumElements() > options.foldOpElementLimit)
       return rewriter.notifyMatchFailure(
           op,
           "too many elements, fold "
@@ -930,7 +983,9 @@ struct FoldConcatenateOpPattern final
     OperandRange inputs = op.getInputs();
     SmallVector<DenseElementsAttr> constants(inputs.size());
     for (auto [input, constant] : llvm::zip_equal(inputs, constants)) {
-      if (!matchPattern(input, m_Constant(&constant))) return failure();
+      if (!matchPattern(input, m_Constant(&constant)) ||
+          failed(validateDenseElementsBuffer(rewriter, op, constant)))
+        return failure();
     }
 
     uint64_t dim = op.getDimension();
@@ -993,10 +1048,18 @@ struct FoldConcatenateAdjacentSplatsOpPattern final
         // Resize the splat and append it to the new operands.
         SmallVector<int64_t> newShape =
             llvm::to_vector(currSplat.getType().getShape());
-        newShape[op.getDimension()] *= nOccurrences;
+        std::optional<int64_t> newDimSize =
+            llvm::checkedMul(newShape[op.getDimension()], nOccurrences);
+        if (!newDimSize.has_value())
+          return rewriter.notifyMatchFailure(op, "shape dimension overflows");
+        newShape[op.getDimension()] = *newDimSize;
+        ShapedType newSplatType = currSplat.getType().clone(newShape);
+        if (!hasValidElementCount(currSplat.getType()) ||
+            !hasValidElementCount(newSplatType))
+          return rewriter.notifyMatchFailure(op,
+                                             "shape element count overflows");
         newOperands.push_back(ConstantOp::create(
-            rewriter, op.getLoc(),
-            currSplat.resizeSplat(currSplat.getType().clone(newShape))));
+            rewriter, op.getLoc(), currSplat.resizeSplat(newSplatType)));
 
         // Set `i` to j-1 so that next iteration processes the next operand.
         i = j - 1;
@@ -1037,6 +1100,8 @@ struct FoldConvertOpPattern : public ShapeOpRewritePattern<ConvertOp> {
     if (!matchPattern(operand, m_Constant(&elements)))
       return rewriter.notifyMatchFailure(
           op, "expected constant integer or float operand");
+    if (failed(validateDenseElementsBuffer(rewriter, op, elements)))
+      return failure();
 
     return foldConvert(rewriter, op, elements, resultType);
   }
@@ -1050,7 +1115,7 @@ static bool integerDivisorHasZeroElement(Operation* op) {
   TypedAttr rhsAttr;
   matchPattern(op->getOperand(1), m_Constant(&rhsAttr));
   auto denseRhs = dyn_cast_or_null<DenseIntElementsAttr>(rhsAttr);
-  if (!denseRhs) return false;
+  if (!denseRhs || !isValidDenseElementsBuffer(denseRhs)) return false;
   for (const APInt& value : denseRhs.getValues<APInt>())
     if (value.isZero()) return true;
   return false;
@@ -1236,6 +1301,10 @@ struct FoldFmaOpPattern final : ShapeOpRewritePattern<mlir::stablehlo::FmaOp> {
     matchPattern(op.getC(), m_Constant(&cAttr));
     if (!aAttr || !bAttr || !cAttr)
       return rewriter.notifyMatchFailure(op, "operands not constant");
+    if (failed(validateDenseElementsBuffer(rewriter, op, aAttr)) ||
+        failed(validateDenseElementsBuffer(rewriter, op, bAttr)) ||
+        failed(validateDenseElementsBuffer(rewriter, op, cAttr)))
+      return failure();
 
     if (aAttr.isSplat() && bAttr.isSplat() && cAttr.isSplat()) {
       APFloat val = aAttr.getSplatValue<APFloat>();
@@ -1374,6 +1443,8 @@ struct FoldReshapeOpPattern : public ShapeOpRewritePattern<ReshapeOp> {
     DenseElementsAttr attr;
     if (!matchPattern(op.getOperand(), m_Constant(&attr)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
+    if (failed(validateDenseElementsBuffer(rewriter, op, attr)))
+      return failure();
     rewriter.replaceOpWithNewOp<ConstantOp>(op, attr.reshape(resultType));
     return success();
   }
@@ -1479,6 +1550,8 @@ struct FoldReverseOpPattern : public ShapeOpRewritePattern<ReverseOp> {
     if (!matchPattern(input, m_Constant(&inputAttr))) {
       return rewriter.notifyMatchFailure(op, "expected constant operand");
     }
+    if (failed(validateDenseElementsBuffer(rewriter, op, inputAttr)))
+      return failure();
 
     // Handle trivial reverses in simplifier
     ArrayRef<int64_t> dims = op.getDimensions();
@@ -1522,6 +1595,10 @@ struct FoldSelectOpPattern : public ShapeOpRewritePattern<SelectOp> {
     matchPattern(op.getOnFalse(), m_Constant(&onFalseAttr));
     if (!predAttr || !onTrueAttr || !onFalseAttr)
       return rewriter.notifyMatchFailure(op, "expected constant operands");
+    if (failed(validateDenseElementsBuffer(rewriter, op, predAttr)) ||
+        failed(validateDenseElementsBuffer(rewriter, op, onTrueAttr)) ||
+        failed(validateDenseElementsBuffer(rewriter, op, onFalseAttr)))
+      return failure();
 
     // Optimization, handle splat predicate
     if (isa<SplatElementsAttr>(predAttr)) {
@@ -1653,12 +1730,26 @@ struct FoldSliceOpPattern : public ShapeOpRewritePattern<SliceOp> {
     if (!matchPattern(operand, m_Constant(&els)))
       return rewriter.notifyMatchFailure(
           op, "expected constant integer or float operand");
+    if (failed(validateDenseElementsBuffer(rewriter, op, els)))
+      return failure();
 
     // Short circuit on splat resizes
     if (els.isSplat()) {
       rewriter.replaceOpWithNewOp<ConstantOp>(op, els.resizeSplat(resultType));
       return success();
     }
+
+    if (resultType.getNumElements() == 0) {
+      rewriter.replaceOpWithNewOp<ConstantOp>(
+          op, DenseElementsAttr::get(resultType, ArrayRef<Attribute>{}));
+      return success();
+    }
+
+    if (failed(validateElementCountForFold(rewriter, op, resultType)))
+      return failure();
+    if (operandType.getNumElements() == 0 && resultType.getNumElements() != 0)
+      return rewriter.notifyMatchFailure(
+          op, "cannot slice non-empty result from empty operand");
 
     DenseElementsAttr resAttr;
     if (auto data = els.tryGetValues<APInt>(); succeeded(data))
@@ -1688,6 +1779,8 @@ struct FoldDynamicSliceOpPattern : public FoldOpRewritePattern<DynamicSliceOp> {
     if (!matchPattern(op.getOperand(), m_Constant(&inputSplatAttr)) ||
         !inputSplatAttr)
       return rewriter.notifyMatchFailure(op, "Input must be a splat constant.");
+    if (!hasValidElementCount(inputSplatAttr.getType()))
+      return rewriter.notifyMatchFailure(op, "operand element count overflows");
 
     rewriter.replaceOpWithNewOp<ConstantOp>(
         op, inputSplatAttr.resizeSplat(resultType));
@@ -1993,22 +2086,34 @@ struct FoldTransposeOpPattern : public FoldOpRewritePattern<TransposeOp> {
     if (failed(validateStaticShapeResult(rewriter, op, resultType)))
       return failure();
 
-    ElementsAttr els;
+    DenseElementsAttr els;
     if (!matchPattern(op.getOperand(), m_Constant(&els)))
       return rewriter.notifyMatchFailure(
           op, "expected constant integer or float operand");
+    if (failed(validateDenseElementsBuffer(rewriter, op, els)))
+      return failure();
 
     DenseElementsAttr resAttr;
-    if (auto splat = dyn_cast<SplatElementsAttr>(els))
+    if (auto splat = dyn_cast<SplatElementsAttr>(els)) {
       resAttr =
           DenseElementsAttr::get(resultType, splat.getSplatValue<Attribute>());
-    else if (auto data = els.tryGetValues<APInt>())
-      resAttr = transposeType(op, *data);
-    else if (auto data = els.tryGetValues<APFloat>())
-      resAttr = transposeType(op, *data);
-    else
-      return rewriter.notifyMatchFailure(op.getLoc(),
-                                         "unsupported element type");
+    } else if (resultType.getNumElements() == 0) {
+      resAttr = DenseElementsAttr::get(resultType, ArrayRef<Attribute>{});
+    } else {
+      if (failed(validateElementCountForFold(rewriter, op, resultType)))
+        return failure();
+      if (els.getType().getNumElements() == 0 &&
+          resultType.getNumElements() != 0)
+        return rewriter.notifyMatchFailure(
+            op, "cannot transpose empty operand into non-empty result");
+      if (auto data = els.tryGetValues<APInt>(); succeeded(data))
+        resAttr = transposeType(op, *data);
+      else if (auto data = els.tryGetValues<APFloat>(); succeeded(data))
+        resAttr = transposeType(op, *data);
+      else
+        return rewriter.notifyMatchFailure(op.getLoc(),
+                                           "unsupported element type");
+    }
 
     rewriter.replaceOpWithNewOp<ConstantOp>(op, resAttr);
     return success();
@@ -2043,6 +2148,8 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
       if (!bodyArgShapedType)
         return rewriter.notifyMatchFailure(
             op, "Could not get the shape of the body argument.");
+      if (failed(validateStaticShapeResult(rewriter, op, bodyArgShapedType)))
+        return failure();
 
       bodyArgConstantAttrs.push_back(DenseElementsAttr::get(
           bodyArgShapedType, constantSplatAttr.getSplatValue<Attribute>()));
@@ -2114,6 +2221,8 @@ struct FoldReduceOpToConstantInitializer
       if (!resultShapedType)
         return rewriter.notifyMatchFailure(
             op, "Could not get the shape of the reduce op's result.");
+      if (failed(validateStaticShapeResult(rewriter, op, resultShapedType)))
+        return failure();
 
       resultAttrs.push_back(DenseElementsAttr::get(
           resultShapedType, {constantAttr.getSplatValue<Attribute>()}));
