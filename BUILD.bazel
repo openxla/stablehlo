@@ -32,13 +32,20 @@ package(
 #     package_name = "stablehlo",
 # )
 #
-# # `cut_release` edits these, so its tests check that it can still parse them.
 # exports_files(
 #     [
+#         # For testing internal release-cutting script:
 #         "stablehlo/dialect/Version.cpp",
 #         "stablehlo/dialect/Version.h",
+#         # For testing Python bindings in internal builds:
+#         "examples/python/stablehlo_add.py",
+#         "stablehlo/integrations/python/tests/check.py",
+#         "stablehlo/integrations/python/tests/chlo.py",
+#         "stablehlo/integrations/python/tests/smoketest.py",
+#         "stablehlo/integrations/python/tests/stablehlo.py",
+#         "stablehlo/integrations/python/tests/vhlo.py",
 #     ],
-#     visibility = ["//google:__pkg__"],
+#     visibility = [":__subpackages__"],
 # )
 # copybara:uncomment_end
 
@@ -1239,16 +1246,6 @@ filegroup(
         "stablehlo/integrations/python/StablehloApi.cpp",
         "stablehlo/integrations/python/StablehloApi.h",
         "stablehlo/integrations/python/StablehloModule.cpp",
-    ],
-)
-
-# Pure-Python modules that are packaged as `mlir.stablehlo.testdata_generator`.
-filegroup(
-    name = "stablehlo_testdata_generator_py_files",
-    srcs = [
-        "stablehlo/integrations/python/stablehlo/testdata_generator/testdata_execution_utils.py",
-        "stablehlo/integrations/python/stablehlo/testdata_generator/testdata_generator_lib.py",
-        "stablehlo/integrations/python/stablehlo/testdata_generator/testdata_processor.py",
     ],
 )
 
