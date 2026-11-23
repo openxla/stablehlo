@@ -17,15 +17,19 @@ limitations under the License.
 
 #include <cstdint>
 #include <optional>
+#include <type_traits>
+#include <utility>
 
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Dialect/Quant/IR/Quant.h"
 #include "mlir/Dialect/Quant/IR/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/TypeSupport.h"
@@ -33,7 +37,6 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
-#include "stablehlo/dialect/VhloTypes.h"
 
 namespace mlir {
 namespace vhlo {
@@ -191,11 +194,19 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
 }
 
 void VhloTypeConverter::addVhloToBuiltinConversions() {
+  auto getCheckedType = [](MLIRContext* ctx, auto typeTag, auto&&... args) {
+    using TypeT = std::decay_t<decltype(typeTag)>;
+    return TypeT::getChecked(Location(UnknownLoc::get(ctx)),
+                             std::forward<decltype(args)>(args)...);
+  };
   addConversion([&](BooleanV1Type type) {
     return IntegerType::get(type.getContext(), 1);
   });
-  addConversion([&](ComplexV1Type type) {
-    return ComplexType::get(convertType(type.getElementType()));
+  addConversion([&](ComplexV1Type type) -> Type {
+    auto convertedElementType = convertType(type.getElementType());
+    if (!convertedElementType) return {};
+    return getCheckedType(type.getContext(), ComplexType(),
+                          convertedElementType);
   });
   addConversion([&](FloatBF16V1Type type) {
     return BFloat16Type::get(type.getContext());
@@ -298,8 +309,9 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
     auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
     auto convertedElementType = convertType(type.getElementType());
     if ((encoding && !convertedEncoding) || !convertedElementType) return {};
-    return RankedTensorType::get(type.getShape(), convertedElementType,
-                                 convertedEncoding);
+    return getCheckedType(type.getContext(), RankedTensorType(),
+                          type.getShape(), convertedElementType,
+                          convertedEncoding);
   });
   addConversion([&](TupleV1Type type) -> Type {
     SmallVector<Type> convertedTypes;
@@ -307,38 +319,45 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
     return TupleType::get(type.getContext(), convertedTypes);
   });
   addConversion([&](UniformQuantizedV1Type type) -> Type {
+    if (!type.getContext()->getLoadedDialect<quant::QuantDialect>()) return {};
     Type convertedStorageType = convertType(type.getStorageType());
     Type convertedExpressedType = convertType(type.getExpressedType());
     if (!convertedStorageType || !convertedExpressedType) return {};
-    return quant::UniformQuantizedType::get(
-        type.getFlags(), convertedStorageType, convertedExpressedType,
+    return getCheckedType(
+        type.getContext(), quant::UniformQuantizedType(), type.getFlags(),
+        convertedStorageType, convertedExpressedType,
         type.getScale().convertToDouble(), type.getZeroPoint(),
         type.getStorageTypeMin(), type.getStorageTypeMax());
   });
   addConversion([&](UniformQuantizedPerAxisV1Type type) -> Type {
+    if (!type.getContext()->getLoadedDialect<quant::QuantDialect>()) return {};
     Type convertedStorageType = convertType(type.getStorageType());
     Type convertedExpressedType = convertType(type.getExpressedType());
     if (!convertedStorageType || !convertedExpressedType) return {};
     auto scales = llvm::map_to_vector(
         type.getScales(),
         [](const APFloat& scale) { return scale.convertToDouble(); });
-    return quant::UniformQuantizedPerAxisType::get(
-        type.getFlags(), convertedStorageType, convertedExpressedType, scales,
-        type.getZeroPoints(), type.getQuantizedDimension(),
-        type.getStorageTypeMin(), type.getStorageTypeMax());
+    return getCheckedType(type.getContext(),
+                          quant::UniformQuantizedPerAxisType(), type.getFlags(),
+                          convertedStorageType, convertedExpressedType, scales,
+                          type.getZeroPoints(), type.getQuantizedDimension(),
+                          type.getStorageTypeMin(), type.getStorageTypeMax());
   });
   addConversion([&](UnrankedTensorV1Type type) -> Type {
     auto convertedElementType = convertType(type.getElementType());
     if (!convertedElementType) return {};
-    return UnrankedTensorType::get(convertedElementType);
+    return getCheckedType(type.getContext(), UnrankedTensorType(),
+                          convertedElementType);
   });
   addConversion([&](WitnessV1Type type) -> Type {
+    if (!type.getContext()->getLoadedDialect<shape::ShapeDialect>()) return {};
     return shape::WitnessType::get(type.getContext());
   });
   addConversion([&](RankedBufferV1Type type) -> Type {
     auto convertedElementType = convertType(type.getElementType());
     if (!convertedElementType) return {};
-    return MemRefType::get(type.getShape(), convertedElementType);
+    return getCheckedType(type.getContext(), MemRefType(), type.getShape(),
+                          convertedElementType);
   });
 }
 

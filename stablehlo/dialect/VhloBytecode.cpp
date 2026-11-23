@@ -16,14 +16,18 @@ limitations under the License.
 #include "stablehlo/dialect/VhloBytecode.h"
 
 #include <cassert>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <utility>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/CheckedArithmetic.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -31,6 +35,8 @@ limitations under the License.
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Dialect.h"
@@ -1010,14 +1016,14 @@ bool isBooleanType(Type type) {
 }
 
 static LogicalResult readVhloTensorV1Attr(DialectBytecodeReader& reader,
-                                          Type type,
+                                          RankedTensorV1Type type,
+                                          int64_t numElements,
                                           SmallVectorImpl<char>& rawData) {
   ArrayRef<char> blob;
   if (failed(reader.readBlob(blob))) return failure();
 
-  // If the type is not i1, just copy the blob.
-
-  if (!isBooleanType(type)) {
+  // If the type is not i1 or has no elements, copy the blob without unpacking.
+  if (!isBooleanType(type) || numElements == 0) {
     rawData.append(blob.begin(), blob.end());
     return success();
   }
@@ -1027,8 +1033,8 @@ static LogicalResult readVhloTensorV1Attr(DialectBytecodeReader& reader,
   // did have period where the unpacked was being serialized, this enables
   // consuming those still and the check for which case we are in is pretty
   // cheap.
-  size_t numElements = cast<RankedTensorV1Type>(type).getNumElements();
-  size_t packedSize = llvm::divideCeil(numElements, 8);
+  uint64_t elemCount = static_cast<uint64_t>(numElements);
+  uint64_t packedSize = llvm::divideCeil<uint64_t>(elemCount, 8);
 
   // Unpack splats to single element 0x01 to match unpacked splat format.
   if (blob.size() == 1 && blob[0] == (char)~0x00) {
@@ -1039,10 +1045,11 @@ static LogicalResult readVhloTensorV1Attr(DialectBytecodeReader& reader,
   // Unpack the blob if it's packed.
   // splat and blob.size() == packedSize for all N<=8 elements are ambiguous,
   // non 0xFF means not splat so must be unpacked.
-  if (blob.size() == packedSize && blob.size() != numElements) {
+  if (blob.size() == packedSize && blob.size() != elemCount) {
     // Unpack the blob.
-    rawData.resize(numElements);
-    for (size_t i = 0; i < numElements; ++i)
+    if (elemCount > rawData.max_size()) return failure();
+    rawData.resize(elemCount);
+    for (uint64_t i = 0; i < elemCount; ++i)
       rawData[i] = (blob[i / 8] & (1 << (i % 8))) ? 1 : 0;
     return success();
   }
@@ -1086,10 +1093,24 @@ TensorV1Attr VhloBytecodeInterface::readTensorV1Attr(
     DialectBytecodeReader& reader) const {
   LOG_READ_CALL;
   Type type;
-  SmallVector<char> blob;
-  if (failed(reader.readType(type)) ||
-      failed(readVhloTensorV1Attr(reader, type, blob)))
+  if (failed(reader.readType(type))) return TensorV1Attr();
+  auto vhloTensorType = dyn_cast_or_null<RankedTensorV1Type>(type);
+  if (!vhloTensorType) {
+    reader.emitError("expected RankedTensorV1Type in TensorV1Attr");
     return TensorV1Attr();
+  }
+
+  ArrayRef<int64_t> shape = vhloTensorType.getShape();
+  if (llvm::any_of(shape, [](int64_t dim) { return dim < 0; })) {
+    reader.emitError("expected statically shaped tensor type in TensorV1Attr");
+    return TensorV1Attr();
+  }
+  std::optional<int64_t> numElements = ShapedType::tryGetNumElements(shape);
+  if (!numElements.has_value()) {
+    reader.emitError("tensor shape element count overflows in TensorV1Attr");
+    return TensorV1Attr();
+  }
+
   struct VhloToBuiltinPrintConverter : VhloTypeConverter {
     VhloToBuiltinPrintConverter() : VhloTypeConverter() {
       addVhloToBuiltinConversions();
@@ -1098,11 +1119,34 @@ TensorV1Attr VhloBytecodeInterface::readTensorV1Attr(
   };
 
   VhloToBuiltinPrintConverter conv;
-  // The type is read from the (possibly crafted) bytecode and is not required
-  // to be shaped, so guard the cast: a non-shaped type (e.g. a scalar) would
-  // otherwise crash here / feed a non-shaped type to getFromRawBuffer.
-  auto builtinType = dyn_cast<ShapedType>(conv.convertType(type));
-  if (!builtinType) return TensorV1Attr();
+  auto builtinType =
+      dyn_cast_or_null<RankedTensorType>(conv.convertType(vhloTensorType));
+  if (!builtinType || !builtinType.hasStaticShape() ||
+      !isa<DenseElementType>(builtinType.getElementType())) {
+    reader.emitError("unsupported tensor type in TensorV1Attr");
+    return TensorV1Attr();
+  }
+  auto denseEltType = cast<DenseElementType>(builtinType.getElementType());
+
+  SmallVector<char> blob;
+  if (failed(readVhloTensorV1Attr(reader, vhloTensorType, *numElements, blob)))
+    return TensorV1Attr();
+
+  // MLIR stores dense elements (including i1) byte-aligned, not bit-packed.
+  uint64_t storageBytes = llvm::divideCeil<uint64_t>(
+      denseEltType.getDenseElementBitSize(), CHAR_BIT);
+  std::optional<uint64_t> expectedBytes = llvm::checkedMulUnsigned<uint64_t>(
+      storageBytes, static_cast<uint64_t>(*numElements));
+  bool isValidSplat = blob.size() == storageBytes;
+  bool isValidDense =
+      expectedBytes.has_value() && blob.size() == *expectedBytes;
+  if (!isValidSplat && !isValidDense) {
+    reader.emitError()
+        << "invalid dense tensor buffer size in TensorV1Attr: got "
+        << blob.size() << " bytes for type " << builtinType;
+    return TensorV1Attr();
+  }
+
   return TensorV1Attr::get(
       getContext(), type,
       DenseElementsAttr::getFromRawBuffer(builtinType, blob));
