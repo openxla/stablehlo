@@ -6,7 +6,8 @@ module @operand_types {
   // CHECK: func.func @main(%[[ARG:.*]]: tensor<4xf32>) -> tensor<4xf32>
   func.func @main(%arg0: tensor<4xf32>) -> tensor<?xf32> {
     %0 = stablehlo.bitcast_convert %arg0 : (tensor<4xf32>) -> tensor<?xf32>
-    // CHECK: stablehlo.composite "test.identity" %[[ARG]] {composite_attributes = {tag = "keep"}, decomposition = @identity, version = 7 : i32} : (tensor<4xf32>) -> tensor<4xf32>
+    // CHECK: %[[BC:.*]] = stablehlo.bitcast_convert %[[ARG]] : (tensor<4xf32>) -> tensor<4xf32>
+    // CHECK: stablehlo.composite "test.identity" %[[BC]] {composite_attributes = {tag = "keep"}, decomposition = @identity, version = 7 : i32} : (tensor<4xf32>) -> tensor<4xf32>
     %1 = stablehlo.composite "test.identity" %0 {composite_attributes = {tag = "keep"}, decomposition = @identity, version = 7 : i32} : (tensor<?xf32>) -> tensor<?xf32>
     return %1 : tensor<?xf32>
   }
