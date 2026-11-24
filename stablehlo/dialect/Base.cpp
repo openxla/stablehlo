@@ -401,12 +401,17 @@ FailureOr<ShapedType> inferTypeWithCustomFn(
   }
   SmallVector<int64_t> inferredSizes = to_vector(rankedTypes[0].getShape());
   SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamic);
-  ArrayRef<int64_t> bounds = encodingToBounds(rankedTypes[0].getEncoding());
+  Attribute encoding = rankedTypes[0].getEncoding();
+  ArrayRef<int64_t> bounds = encodingToBounds(encoding);
   if (!bounds.empty()) inferredBounds = to_vector(bounds);
   bool anyInputHaveBounds = !bounds.empty();
 
   for (unsigned i = 1; i < rankedTypes.size(); ++i) {
     bounds = encodingToBounds(rankedTypes[i].getEncoding());
+    if (!bounds.empty()) {
+      if (!anyInputHaveBounds) encoding = rankedTypes[i].getEncoding();
+      anyInputHaveBounds = true;
+    }
     for (int dim = 0; dim < rank; ++dim) {
       auto inferredDimAndBoundOrErr = inferDimAndBoundFn(
           location, dim,
@@ -423,7 +428,7 @@ FailureOr<ShapedType> inferTypeWithCustomFn(
   return {RankedTensorType::get(
       inferredSizes, rankedTypes[0].getElementType(),
       boundsToEncoding(
-          rankedTypes[0].getEncoding(),
+          encoding,
           // Empty array as argument is an indicator to boundsToEncoding() that
           // there are no bounds at all in inputs, thus sparsity attributes will
           // be included in the return type

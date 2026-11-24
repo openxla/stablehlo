@@ -2029,8 +2029,41 @@ LogicalResult inferClampOp(
         llvm::make_range(operandShape.begin(), operandShape.end()), "]");
 
   // clamp_c4
-  inferredReturnShapes.emplace_back<ShapedType>(operandType);
-  return success();
+  SmallVector<RankedTensorType, 3> rankedTypes = {operandType};
+  if (minType.getRank() != 0) rankedTypes.push_back(minType);
+  if (maxType.getRank() != 0) rankedTypes.push_back(maxType);
+
+  SmallVector<ArrayRef<int64_t>, 3> inputBounds;
+  for (RankedTensorType type : rankedTypes)
+    inputBounds.push_back(encodingToBounds(type.getEncoding()));
+
+  for (int64_t dim = 0; dim < operandType.getRank(); ++dim) {
+    std::optional<int64_t> staticSize;
+    std::optional<int64_t> boundSize;
+    for (auto [type, bounds] : llvm::zip_equal(rankedTypes, inputBounds)) {
+      int64_t dimSize = type.getDimSize(dim);
+      if (!isDynamicDimSize(dimSize)) {
+        if (!staticSize) staticSize = dimSize;
+        continue;
+      }
+      if (!bounds.empty() && !isDynamicDimSize(bounds[dim])) {
+        if (boundSize && *boundSize != bounds[dim])
+          return emitOptionalError(location, "mismatched dimension bounds ",
+                                   *boundSize, " and ", bounds[dim],
+                                   " in dimension ", dim);
+        boundSize = bounds[dim];
+      }
+    }
+    if (staticSize && boundSize)
+      return emitOptionalError(location, "cannot mix static dimension size ",
+                               *staticSize,
+                               " and bounded dynamic dimension with bound ",
+                               *boundSize, " in dimension ", dim);
+  }
+
+  SmallVector<Type, 3> inputTypes(rankedTypes.begin(), rankedTypes.end());
+  return inferMostSpecificTypeComponents(location, inputTypes,
+                                         inferredReturnShapes);
 }
 
 LogicalResult inferCompareOp(

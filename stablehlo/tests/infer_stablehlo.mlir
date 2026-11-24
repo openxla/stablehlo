@@ -467,6 +467,106 @@ func.func @clamp(%arg0: tensor<1xi32>) -> tensor<1xindex> {
 
 // -----
 
+// CHECK-LABEL: func @clamp_bounds
+func.func @clamp_bounds(
+  %min: tensor<i32>,
+  %operand: tensor<2x?xi32, #stablehlo.bounds<?, 5>>,
+  %max: tensor<2x?xi32, #stablehlo.bounds<?, 5>>) -> tensor<?x?xindex> {
+  %0 = "stablehlo.clamp"(%min, %operand, %max) : (
+    tensor<i32>,
+    tensor<2x?xi32, #stablehlo.bounds<?, 5>>,
+    tensor<2x?xi32, #stablehlo.bounds<?, 5>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<2x?xi32, #stablehlo.bounds<?, 5>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x?xi32>) -> tensor<?x?xindex>
+  func.return %1 : tensor<?x?xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @clamp_unbounded_and_bounded
+func.func @clamp_unbounded_and_bounded(
+  %min: tensor<i32>,
+  %operand: tensor<2x?xi32>,
+  %max: tensor<2x?xi32, #stablehlo.bounds<?, 5>>) -> tensor<?x?xindex> {
+  %0 = "stablehlo.clamp"(%min, %operand, %max) : (
+    tensor<i32>,
+    tensor<2x?xi32>,
+    tensor<2x?xi32, #stablehlo.bounds<?, 5>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<2x?xi32, #stablehlo.bounds<?, 5>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x?xi32>) -> tensor<?x?xindex>
+  func.return %1 : tensor<?x?xindex>
+}
+
+// -----
+
+func.func @clamp_bounds_mismatch(
+  %min: tensor<i32>,
+  %operand: tensor<?xi32, #stablehlo.bounds<5>>,
+  %max: tensor<?xi32, #stablehlo.bounds<4>>) -> tensor<?xindex> {
+  // expected-error@+2 {{op failed to infer returned types}}
+  // expected-error@+1 {{mismatched dimension bounds 5 and 4 in dimension 0}}
+  %0 = "stablehlo.clamp"(%min, %operand, %max) : (
+    tensor<i32>,
+    tensor<?xi32, #stablehlo.bounds<5>>,
+    tensor<?xi32, #stablehlo.bounds<4>>) -> tensor<?xi32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?xi32>) -> tensor<?xindex>
+  func.return %1 : tensor<?xindex>
+}
+
+// -----
+
+func.func @clamp_static_and_bounded_mismatch(
+  %min: tensor<2x4xi32>,
+  %operand: tensor<2x?xi32>,
+  %max: tensor<2x?xi32, #stablehlo.bounds<?, 5>>) -> tensor<?x?xindex> {
+  // expected-error@+2 {{op failed to infer returned types}}
+  // expected-error@+1 {{cannot mix static dimension size 4 and bounded dynamic dimension with bound 5 in dimension 1}}
+  %0 = "stablehlo.clamp"(%min, %operand, %max) : (
+    tensor<2x4xi32>,
+    tensor<2x?xi32>,
+    tensor<2x?xi32, #stablehlo.bounds<?, 5>>) -> tensor<?x?xi32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x?xi32>) -> tensor<?x?xindex>
+  func.return %1 : tensor<?x?xindex>
+}
+
+// -----
+
+func.func @clamp_min_max_dim_mismatch(
+  %min: tensor<2x4xi32>,
+  %operand: tensor<2x?xi32>,
+  %max: tensor<2x5xi32>) -> tensor<?x?xindex> {
+  // expected-error@+2 {{op failed to infer returned types}}
+  // expected-error@+1 {{Mismatched dimension sizes 4 and 5 in dimension 1}}
+  %0 = "stablehlo.clamp"(%min, %operand, %max) : (
+    tensor<2x4xi32>,
+    tensor<2x?xi32>,
+    tensor<2x5xi32>) -> tensor<?x?xi32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x?xi32>) -> tensor<?x?xindex>
+  func.return %1 : tensor<?x?xindex>
+}
+
+// -----
+
+#CSR = #sparse_tensor.encoding<{
+  map = (d0, d1) -> (d0 : dense, d1 : compressed)
+}>
+
+// CHECK-LABEL: func @clamp_bounds_with_sparse_operand
+func.func @clamp_bounds_with_sparse_operand(
+  %min: tensor<f32>,
+  %operand: tensor<2x?xf32, #CSR>,
+  %max: tensor<2x?xf32, #stablehlo.bounds<?, 5>>) -> tensor<?x?xindex> {
+  %0 = "stablehlo.clamp"(%min, %operand, %max) : (
+    tensor<f32>,
+    tensor<2x?xf32, #CSR>,
+    tensor<2x?xf32, #stablehlo.bounds<?, 5>>) -> tensor<?x?xf32>
+  // CHECK: types0 = tensor<2x?xf32, #stablehlo.bounds<?, 5>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x?xf32>) -> tensor<?x?xindex>
+  func.return %1 : tensor<?x?xindex>
+}
+
+// -----
+
 // CHECK: func @uniform_dequantize_c2
 func.func @uniform_dequantize_c2(%arg: tensor<16x16x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<16x16xindex> {
   %0 = stablehlo.uniform_dequantize %arg : (tensor<16x16x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<16x16xf32>
