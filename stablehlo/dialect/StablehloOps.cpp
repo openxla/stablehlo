@@ -3747,13 +3747,14 @@ static ParseResult parseDims(AsmParser& parser,
 ///   bar = something_parsed_by_different_custom_parser,
 ///   baz something_parsed_by_another_custom_parser
 /// >
-/// The optional argument `parse_equal` array can be used to denote if
+/// Fields listed in `required` must be present.
+/// The optional argument `parseEqual` array can be used to denote if
 /// '=' follows the keyword (see baz in the example above) for a field. If
 /// not provided, all fields must be followed by a '='.
 static ParseResult parseStruct(
     AsmParser& parser, ArrayRef<StringRef> keywords,
     ArrayRef<llvm::function_ref<ParseResult()>> parseFuncs,
-    ArrayRef<bool> parseEqual = {}) {
+    ArrayRef<StringRef> required = {}, ArrayRef<bool> parseEqual = {}) {
   assert(keywords.size() == parseFuncs.size());
   assert(parseEqual.empty() || parseEqual.size() == keywords.size());
   SmallVector<bool> seen(keywords.size(), false);
@@ -3770,9 +3771,9 @@ static ParseResult parseStruct(
         if (failed(parser.parseEqual())) return failure();
       }
       if (failed(parseFuncs[index]())) return failure();
-      if (failed(parser.parseOptionalComma())) return parser.parseGreater();
       seen[index] = true;
       foundOne = true;
+      break;
     }
     if (!foundOne) {
       auto parseError = parser.emitError(parser.getCurrentLocation())
@@ -3782,19 +3783,27 @@ static ParseResult parseStruct(
       });
       return parseError;
     }
+    if (failed(parser.parseOptionalComma())) {
+      if (failed(parser.parseGreater())) return failure();
+      break;
+    }
+  }
+  for (StringRef keyword : required) {
+    auto it = llvm::find(keywords, keyword);
+    assert(it != keywords.end());
+    if (!seen[it - keywords.begin()])
+      return parser.emitError(parser.getCurrentLocation())
+             << "missing required `" << keyword << "` entry";
   }
   return success();
 }
 
-// Helpers to print an optional array or integer field, to simplify writing
-// attribute printers.
+// Helpers to print array or integer fields, omitting empty arrays.
 template <typename T>
 static void printField(AsmPrinter& printer, StringRef name, T field,
                        StringRef& separator) {
-  if (field != 0) {
-    printer << separator << name << " = " << field;
-    separator = ", ";
-  }
+  printer << separator << name << " = " << field;
+  separator = ", ";
 }
 template <typename T>
 static void printField(AsmPrinter& printer, StringRef name, ArrayRef<T> field,
@@ -3839,7 +3848,7 @@ Attribute ScatterDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   SmallVector<int64_t> inputBatchingDims;
   SmallVector<int64_t> scatterIndicesBatchingDims;
   SmallVector<int64_t> scatterDimsToOperandDims;
-  int64_t indexVectorDim = 0;
+  int64_t indexVectorDim;
 
   if (failed(parseStruct(
           parser,
@@ -3851,7 +3860,8 @@ Attribute ScatterDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
            [&]() { return parseDims(parser, inputBatchingDims); },
            [&]() { return parseDims(parser, scatterIndicesBatchingDims); },
            [&]() { return parseDims(parser, scatterDimsToOperandDims); },
-           [&]() { return parser.parseInteger(indexVectorDim); }}))) {
+           [&]() { return parser.parseInteger(indexVectorDim); }},
+          {"index_vector_dim"}))) {
     parser.emitError(parser.getCurrentLocation())
         << "failed parsing scatter dimension numbers attribute";
     return {};
@@ -3882,7 +3892,7 @@ Attribute GatherDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   SmallVector<int64_t> operandBatchingDims;
   SmallVector<int64_t> startIndicesBatchingDims;
   SmallVector<int64_t> startIndexMap;
-  int64_t indexVectorDim = 0;
+  int64_t indexVectorDim;
 
   if (failed(parseStruct(
           parser,
@@ -3894,7 +3904,8 @@ Attribute GatherDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
            [&]() { return parseDims(parser, operandBatchingDims); },
            [&]() { return parseDims(parser, startIndicesBatchingDims); },
            [&]() { return parseDims(parser, startIndexMap); },
-           [&]() { return parser.parseInteger(indexVectorDim); }}))) {
+           [&]() { return parser.parseInteger(indexVectorDim); }},
+          {"index_vector_dim"}))) {
     parser.emitError(parser.getCurrentLocation())
         << "failed parsing gather dimension numbers attribute";
     return {};
@@ -4093,14 +4104,14 @@ void ConvDimensionNumbersAttr::print(AsmPrinter& printer) const {
 // covering impossible/invalid internal representation for the attribute.
 static ParseResult parseConvolutionDimensionsRaw(
     AsmParser& parser, ConvDimensionNumbersAttr& dimNums) {
-  int64_t inputBatchDimension = 0;
-  int64_t inputFeatureDimension = 0;
+  int64_t inputBatchDimension;
+  int64_t inputFeatureDimension;
   SmallVector<int64_t> inputSpatialDimensions;
-  int64_t kernelInputFeatureDimension = 0;
-  int64_t kernelOutputFeatureDimension = 0;
+  int64_t kernelInputFeatureDimension;
+  int64_t kernelOutputFeatureDimension;
   SmallVector<int64_t> kernelSpatialDimensions;
-  int64_t outBatchDimension = 0;
-  int64_t outputFeatureDimension = 0;
+  int64_t outBatchDimension;
+  int64_t outputFeatureDimension;
   SmallVector<int64_t> outputSpatialDimensions;
   if (failed(parseStruct(
           parser,
@@ -4123,9 +4134,12 @@ static ParseResult parseConvolutionDimensionsRaw(
               [&]() { return parser.parseInteger(outBatchDimension); },
               [&]() { return parser.parseInteger(outputFeatureDimension); },
               [&]() { return parseDims(parser, outputSpatialDimensions); },
-          }))) {
+          },
+          {"input_batch_dimension", "input_feature_dimension",
+           "kernel_input_feature_dimension", "kernel_output_feature_dimension",
+           "output_batch_dimension", "output_feature_dimension"}))) {
     parser.emitError(parser.getCurrentLocation())
-        << "failed parsing dot dimension numbers attribute";
+        << "failed parsing convolution dimension numbers attribute";
     return failure();
   }
   dimNums = ConvDimensionNumbersAttr::get(

@@ -5777,8 +5777,8 @@ func.func @custom_call_with_incompatible_backend_config() {
 // We really just need one op as holder, use module: this is the simplest top-level.
 
 // CHECK: module
-// CHECK-SAME: stablehlo.scatter = #stablehlo.scatter<>
-module attributes{stablehlo.scatter = #stablehlo.scatter<>} {}
+// CHECK-SAME: stablehlo.scatter = #stablehlo.scatter<index_vector_dim = 0>
+module attributes{stablehlo.scatter = #stablehlo.scatter<index_vector_dim = 0>} {}
 
 // -----
 
@@ -5795,11 +5795,12 @@ module attributes{
 // -----
 
 // CHECK: module
-// CHECK-SAME: stablehlo.scatter = #stablehlo.scatter<update_window_dims = [1], inserted_window_dims = [0, 1]>
+// CHECK-SAME: stablehlo.scatter = #stablehlo.scatter<update_window_dims = [1], inserted_window_dims = [0, 1], index_vector_dim = 0>
 module attributes{
  stablehlo.scatter = #stablehlo.scatter<
   inserted_window_dims = [0, 1],
-  update_window_dims = [1]
+  update_window_dims = [1],
+  index_vector_dim = 0
  >} {}
 
 // -----
@@ -5815,8 +5816,8 @@ module attributes{
 // -----
 
 // CHECK: module
-// CHECK-SAME: stablehlo.gather = #stablehlo.gather<>
-module attributes{stablehlo.gather = #stablehlo.gather<>} {}
+// CHECK-SAME: stablehlo.gather = #stablehlo.gather<index_vector_dim = 0>
+module attributes{stablehlo.gather = #stablehlo.gather<index_vector_dim = 0>} {}
 
 // -----
 
