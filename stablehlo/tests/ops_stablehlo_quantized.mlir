@@ -990,10 +990,10 @@ func.func @transpose_c1_mismatched_zps(%arg0: tensor<1x2x2x!quant.uniform<i8<-12
 
 // -----
 
-func.func @transpose_c4(%arg0: tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) {
+func.func @transpose_c4(%arg0: tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) {
   // expected-error@+1 {{operand quantization_dimension 0 is not same as permutation[1] = 2}}
   %transpose = "stablehlo.transpose"(%arg0) {permutation = array<i64: 0, 2, 1>
-  } : (tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30}>>) -> tensor<1x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
+  } : (tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) -> tensor<2x2x2x!quant.uniform<i8<-128:127>:f32:1, {0.1:-30, 0.5:-20}>>
   func.return
 }
 
@@ -1024,7 +1024,9 @@ func.func @dynamic_reshape_c1_reshape_c1_mismatch_zps(%arg0: tensor<1x2x2x!quant
 // -----
 
 func.func @dynamic_reshape_c3_reshape_c3_mismatch_qdim_size(%arg0: tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>){
-  // expected-error@+1 {{expect same quantization dimension size for operand and result}}
+  // With static quantization dimensions, a size mismatch also means a different
+  // number of scales, so this is rejected by the C1 check first.
+  // expected-error@+1 {{expect same quantization scales and zero_points}}
   %reshape = "stablehlo.reshape" (%arg0) : (tensor<1x2x3x4x5x!quant.uniform<i8:f32:0, {1.0:17}>>) -> tensor<2x3x20x!quant.uniform<i8:f32:1, {1.0:17, 1.0:17, 1.0:17}>>
   func.return
 }
