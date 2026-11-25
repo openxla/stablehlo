@@ -812,7 +812,7 @@ void VhloBytecodeInterface::write(FftTypeV1Attr attr,
 
 namespace {
 /// Returns the floating semantics for the given type.
-const llvm::fltSemantics *getFloatSemantics(Type type) {
+const llvm::fltSemantics* getFloatSemantics(Type type) {
   if (isa<FloatBF16V1Type>(type)) return &APFloat::BFloat();
   if (isa<FloatF16V1Type>(type)) return &APFloat::IEEEhalf();
   if (isa<FloatF32V1Type>(type)) return &APFloat::IEEEsingle();
@@ -839,10 +839,9 @@ FloatV1Attr VhloBytecodeInterface::readFloatV1Attr(
   Type type;
   if (failed(reader.readType(type))) return FloatV1Attr();
 
-  const llvm::fltSemantics *semantics = getFloatSemantics(type);
+  const llvm::fltSemantics* semantics = getFloatSemantics(type);
   if (!semantics) return FloatV1Attr();
-  FailureOr<APFloat> value =
-      reader.readAPFloatWithKnownSemantics(*semantics);
+  FailureOr<APFloat> value = reader.readAPFloatWithKnownSemantics(*semantics);
   if (failed(value)) return FloatV1Attr();
 
   return FloatV1Attr::get(getContext(), type, *value);
