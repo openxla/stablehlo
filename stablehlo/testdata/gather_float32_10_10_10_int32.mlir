@@ -72,7 +72,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %33 = stablehlo.and %31, %32 : tensor<1xi1>
     %c_14 = stablehlo.constant dense<true> : tensor<i1>
     %34 = stablehlo.reduce(%33 init: %c_14) applies stablehlo.and across dimensions = [0] : (tensor<1xi1>, tensor<i1>) -> tensor<i1>
-    %35 = "stablehlo.gather"(%arg0, %8) <{dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [2], start_index_map = [2]>, slice_sizes = array<i64: 10, 10, 1>}> : (tensor<10x10x10xf32>, tensor<1xi64>) -> tensor<10x10xf32>
+    %35 = "stablehlo.gather"(%arg0, %8) <{dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [2], start_index_map = [2], index_vector_dim = 0>, slice_sizes = array<i64: 10, 10, 1>}> : (tensor<10x10x10xf32>, tensor<1xi64>) -> tensor<10x10xf32>
     %36 = stablehlo.broadcast_in_dim %34, dims = [] : (tensor<i1>) -> tensor<10x10xi1>
     %cst = stablehlo.constant dense<0x7FC00000> : tensor<f32>
     %37 = stablehlo.broadcast_in_dim %cst, dims = [] : (tensor<f32>) -> tensor<10x10xf32>

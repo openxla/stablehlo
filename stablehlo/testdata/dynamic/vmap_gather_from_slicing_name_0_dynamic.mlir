@@ -12,7 +12,7 @@ module @jit_fun_flat_jax {
     %5 = stablehlo.constant dense<10> : tensor<1xi32>
     %6 = stablehlo.constant dense<10> : tensor<1xi32>
     %7 = stablehlo.concatenate %3, %4, %5, %6, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xi32>
-    %8 = "stablehlo.dynamic_gather"(%arg1, %1, %7) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 1, 2], collapsed_slice_dims = [1], start_index_map = [1]>, indices_are_sorted = true} : (tensor<?x10x10x10xf32>, tensor<1xi32>, tensor<4xi32>) -> tensor<?x10x10xf32>
+    %8 = "stablehlo.dynamic_gather"(%arg1, %1, %7) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 1, 2], collapsed_slice_dims = [1], start_index_map = [1], index_vector_dim = 0>, indices_are_sorted = true} : (tensor<?x10x10x10xf32>, tensor<1xi32>, tensor<4xi32>) -> tensor<?x10x10xf32>
     return %8 : tensor<?x10x10xf32>
   }
 }
