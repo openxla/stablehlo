@@ -27,13 +27,14 @@ PROJECT_DIR="$(realpath "$(dirname "$0")"/../../)"
 # Set the source directory and destination directory for the distribution
 SRC_DIR="${PROJECT_DIR}/stablehlo/integrations/python"
 OUT_DIR="${1:-$SRC_DIR/dist}"
+PYTHON_EXECUTABLE="${PYTHON_EXECUTABLE:-python3}"
 
 echo "Building python wheel. You will find it at ${OUT_DIR}"
-python3 -m build -w --outdir "${OUT_DIR}" "${SRC_DIR}"
+"${PYTHON_EXECUTABLE}" -m build -w --outdir "${OUT_DIR}" "${SRC_DIR}"
 
 echo "Testing that the python wheel works correctly"
 # Create a new virtual environment
-python3 -m venv venv
+"${PYTHON_EXECUTABLE}" -m venv venv
 # Activate the virtual environment
 # shellcheck disable=SC1091
 source venv/bin/activate

@@ -33,7 +33,7 @@ jobs:
   cmake-build-wheel:
     # Only run scheduled CI on main repo
     if: (github.repository == 'openxla/stablehlo' || github.event_name != 'schedule')
-    name: "cmake-build ${{ github.event_name == 'schedule' && '(llvm-project@HEAD)' || ''}}"
+    name: "cmake-build-wheel (Python ${{ matrix.python-version }})"
     env:
       LLVM_PROJECT_DIR: "llvm-project"
       LLVM_BUILD_DIR: "llvm-build"
@@ -49,16 +49,17 @@ jobs:
     steps:
     - name: Checkout StableHLO
       uses: actions/checkout@v4
-      # TODO(fzakaria): We need all the commits and the tags for the
-      # git describe` command to work to find the correct version.
-      # This can be removed if the version can be determmined in another way.
-      with:
-        fetch-depth: 0
+
     - name: Get LLVM Version
       id: llvm-version
       shell: bash
       run: |
-        echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
+        version="$(cat ./build_tools/llvm_version.txt)"
+        if [[ -z "${version}" ]]; then
+          echo "Error: build_tools/llvm_version.txt is empty." >&2
+          exit 1
+        fi
+        echo "version=${version}" >> "$GITHUB_OUTPUT"
 
     - name: Setup workspace
       uses: ./.github/actions/setup-build
@@ -71,7 +72,8 @@ jobs:
     # once and mark them as manylinux compatible.
     - name: Install build dependencies
       shell: bash
-      run: pip install build
+      run: |
+        "$PYTHON_EXECUTABLE" -m pip install build
 
     - name: Configure and Build LLVM
       shell: bash
@@ -84,8 +86,8 @@ jobs:
     - name: Build and Test StableHLO with Python
       shell: bash
       run: |
-        pip install tensorflow-cpu nanobind==2.4
-        pip install -r "$LLVM_PROJECT_DIR/mlir/python/requirements.txt"
+        "$PYTHON_EXECUTABLE" -m pip install tensorflow-cpu nanobind==2.9
+        "$PYTHON_EXECUTABLE" -m pip install -r "$LLVM_PROJECT_DIR/mlir/python/requirements.txt"
         ./build_tools/github_actions/ci_build_cmake.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
       env:
           CMAKE_BUILD_TYPE: Release
@@ -107,10 +109,6 @@ jobs:
   upload-tarballs:
     runs-on: 'ubuntu-24.04'
     needs: cmake-build-wheel
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ "3.10", "3.11", "3.12" ]
 
     steps:
       - name: Checkout
@@ -119,18 +117,33 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: build_artifact-${{ matrix.python-version }}
+          pattern: build_artifact-*
           path: ${{ github.sha }}
+          merge-multiple: true
+
+      - name: Get release version
+        id: release-version
+        shell: bash
+        run: |
+          version_h="stablehlo/dialect/Version.h"
+          version_str="$(grep -A1 'getCurrentVersion' "${version_h}" | grep -o 'Version(.*[0-9])' || true)"
+          regex='Version\(([0-9]+), ([0-9]+), ([0-9]+)\)'
+          if [[ "${version_str}" =~ ${regex} ]]; then
+            echo "tag=dev-wheels-v${BASH_REMATCH[1]}-${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Error: Could not find current version string in ${version_h}" >&2
+            exit 1
+          fi
 
       - name: Release current commit
         uses: ncipollo/release-action@v1.13.0
         with:
           artifacts: "${{ github.sha }}/*.whl"
+          artifactErrorsFailBuild: true
           token: "${{ secrets.PUBLISH_ACCESS_TOKEN }}"
-          # git describe in setup.py explicitly filters out this tag
-          tag: "dev-wheels"
-          name: "dev-wheels"
-          removeArtifacts: false
+          tag: "${{ steps.release-version.outputs.tag }}"
+          name: "${{ steps.release-version.outputs.tag }}"
+          removeArtifacts: true
           allowUpdates: true
           replacesArtifacts: true
           makeLatest: false

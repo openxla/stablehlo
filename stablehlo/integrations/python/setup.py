@@ -14,12 +14,22 @@
 # ==============================================================================
 """This setup.py builds a wheel file assuming that StableHLO is already built
 """
-from setuptools import find_namespace_packages, setup, Distribution
 import os
+import pathlib
+import re
 import subprocess
 import time
+import setuptools
 
-class BinaryDistribution(Distribution):
+_CURRENT_VERSION_RE = re.compile(
+    r"\bgetCurrentVersion\(\)\s*\{\s*return\s+Version\(\s*"
+    r"(?:/\*\s*\w+\s*=\s*\*/\s*)?(\d+)\s*,\s*"
+    r"(?:/\*\s*\w+\s*=\s*\*/\s*)?(\d+)\s*,\s*"
+    r"(?:/\*\s*\w+\s*=\s*\*/\s*)?(\d+)\s*\)"
+)
+
+
+class BinaryDistribution(setuptools.Distribution):
   """Force distribution which always forces a binary package"""
 
   def has_ext_modules(foo):
@@ -27,25 +37,33 @@ class BinaryDistribution(Distribution):
 
 
 def get_version():
-  # get the latest tag without the leading v
-  latest_tag = subprocess.check_output(
-      ["git", "describe", "--tags", "--abbrev=0", "--exclude", "dev-wheels"], text=True).strip('v').strip()
+  """Returns the PEP 440 dev wheel version from Version.h and HEAD."""
+  version_h = (
+      pathlib.Path(__file__).resolve().parents[2] / "dialect" / "Version.h"
+  )
+  match = _CURRENT_VERSION_RE.search(version_h.read_text(encoding="utf-8"))
+  if not match:
+    raise RuntimeError(f"Could not parse getCurrentVersion() from {version_h}")
+  base_version = ".".join(match.groups())
   latest_commit = subprocess.check_output(
-      ["git", "rev-parse", "--short", "HEAD"], text=True).strip()
+      ["git", "rev-parse", "--short", "HEAD"], cwd=version_h.parent, text=True
+  ).strip()
   # in order for the wheels to be ordered chronologically
   # include the epoch seconds as a portion of the version
-  return f"{latest_tag}.{int(time.time())}+{latest_commit}"
+  return f"{base_version}.{int(time.time())}+{latest_commit}"
 
 
 # TODO(fzakaria): The distribution (wheel) of this package is not manylinux
 # conformant. Consider also running auditwheel similar to
 # https://github.com/makslevental/mlir-wheels to make it a smoother installation
 # experience.
-setup(
+setuptools.setup(
     name='stablehlo',
     # TODO(fzakaria): The CMake build path is fixed here which kind of sucks.
     # Ideally it should be passed in or setup.py should do the build itself.
-    packages=find_namespace_packages(where=os.path.normpath("../../../build/python_packages/stablehlo")),
+    packages=setuptools.find_namespace_packages(
+        where=os.path.normpath("../../../build/python_packages/stablehlo")
+    ),
     package_dir={
         "": os.path.normpath("../../../build/python_packages/stablehlo")},
     package_data={'mlir': ['_mlir_libs/*.so']},
@@ -53,6 +71,5 @@ setup(
     distclass=BinaryDistribution,
     description='Backward compatible ML compute opset inspired by HLO/MHLO',
     url='https://github.com/openxla/stablehlo',
-    # TODO(fzakaria): Figure out how to get version same as code; os.environ ?
     version=get_version()
 )

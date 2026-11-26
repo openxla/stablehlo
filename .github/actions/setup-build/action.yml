@@ -28,9 +28,9 @@ inputs:
     default: '20'
   python-version:
     description: |
-      Python version to install.
+      Python major.minor version to use (e.g. '3.12').
     required: false
-    default: '3.11.13'
+    default: '3.12'
 runs:
   # This is a composite action - has a list of steps to execute.
   using: "composite"
@@ -68,7 +68,15 @@ runs:
       key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-version }}
       max-size: 4G
 
-  - name: Install MLIR python requirements
+  - name: Configure Python and install MLIR python requirements
     shell: bash
+    env:
+      PYTHON_VERSION: ${{ inputs.python-version }}
     run: |
-      python3 -m pip install -r $GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt
+      python_bin="$(command -v "python${PYTHON_VERSION}" || true)"
+      if [[ -z "${python_bin}" ]]; then
+        echo "Error: python${PYTHON_VERSION} not found in PATH." >&2
+        exit 1
+      fi
+      echo "PYTHON_EXECUTABLE=${python_bin}" >> "$GITHUB_ENV"
+      "${python_bin}" -m pip install -r "$GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt"
