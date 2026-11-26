@@ -7,7 +7,7 @@ module attributes {jax.uses_shape_polymorphism = true} {
     %cst_0 = stablehlo.constant dense<0.999876201> : tensor<10x10xf32>
     %0 = stablehlo.uniform_quantize %cst : (tensor<10x10x10xf32>) -> tensor<10x10x10x!quant.uniform<i8:f32, 0.0039215482917486456:-128>>
     %1 = stablehlo.reshape %c : (tensor<i32>) -> tensor<1xi32>
-    %2 = "stablehlo.gather"(%0, %1) <{dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [1], start_index_map = [1]>, indices_are_sorted = true, slice_sizes = array<i64: 10, 1, 10>}> : (tensor<10x10x10x!quant.uniform<i8:f32, 0.0039215482917486456:-128>>, tensor<1xi32>) -> tensor<10x10x!quant.uniform<i8:f32, 0.0039215482917486456:-128>>
+    %2 = "stablehlo.gather"(%0, %1) <{dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [1], start_index_map = [1], index_vector_dim = 0>, indices_are_sorted = true, slice_sizes = array<i64: 10, 1, 10>}> : (tensor<10x10x10x!quant.uniform<i8:f32, 0.0039215482917486456:-128>>, tensor<1xi32>) -> tensor<10x10x!quant.uniform<i8:f32, 0.0039215482917486456:-128>>
     %3 = stablehlo.uniform_quantize %2 : (tensor<10x10x!quant.uniform<i8:f32, 0.0039215482917486456:-128>>) -> tensor<10x10x!quant.uniform<i8:f32, 0.0039210833755193974:-128>>
     %4 = stablehlo.uniform_dequantize %3 : (tensor<10x10x!quant.uniform<i8:f32, 0.0039210833755193974:-128>>) -> tensor<10x10xf32>
     %5 = stablehlo.custom_call @check.eq(%cst_0, %4) : (tensor<10x10xf32>, tensor<10x10xf32>) -> tensor<i1>

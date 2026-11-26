@@ -391,8 +391,8 @@ func.func @scatter_c7() ->  tensor<512x1x6400x6400xf32> {
     indices_are_sorted = true,
     scatter_dimension_numbers = #stablehlo.scatter<
       update_window_dims = [0, 1, 3, 2],
-      scatter_dims_to_operand_dims = [3]>,
-      index_vector_dim = 0,
+      scatter_dims_to_operand_dims = [3],
+      index_vector_dim = 0>,
       unique_indices = true} :
     (tensor<512x1x6400x6400xf32>, tensor<1xi32>, tensor<512x1x6400x6400xf32>) ->
       tensor<512x1x6400x6400xf32>
@@ -413,8 +413,8 @@ func.func @scatter_c7() ->  tensor<512x1x6400x6400xf32> {
     indices_are_sorted = true,
     scatter_dimension_numbers = #stablehlo.scatter<
       update_window_dims = [0, 1, 2, 2],
-      scatter_dims_to_operand_dims = [3]>,
-      index_vector_dim = 0,
+      scatter_dims_to_operand_dims = [3],
+      index_vector_dim = 0>,
       unique_indices = true} :
     (tensor<512x1x6400x6400xf32>, tensor<1xi32>, tensor<512x1x6400x6400xf32>) ->
       tensor<512x1x6400x6400xf32>
@@ -435,8 +435,8 @@ func.func @scatter_c8() ->  tensor<512x1x6400x6400xf32> {
     indices_are_sorted = true,
     scatter_dimension_numbers = #stablehlo.scatter<
       update_window_dims = [-1, 0, 1, 2],
-      scatter_dims_to_operand_dims = [3]>,
-      index_vector_dim = 0,
+      scatter_dims_to_operand_dims = [3],
+      index_vector_dim = 0>,
       unique_indices = true} :
     (tensor<512x1x6400x6400xf32>, tensor<1xi32>, tensor<512x1x6400x6400xf32>) ->
       tensor<512x1x6400x6400xf32>
@@ -457,8 +457,8 @@ func.func @scatter_c8() ->  tensor<512x1x6400x6400xf32> {
     indices_are_sorted = true,
     scatter_dimension_numbers = #stablehlo.scatter<
       update_window_dims = [0, 1, 2, 4],
-      scatter_dims_to_operand_dims = [3]>,
-      index_vector_dim = 0,
+      scatter_dims_to_operand_dims = [3],
+      index_vector_dim = 0>,
       unique_indices = true} :
     (tensor<512x1x6400x6400xf32>, tensor<1xi32>, tensor<512x1x6400x6400xf32>) ->
       tensor<512x1x6400x6400xf32>

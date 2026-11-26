@@ -2151,7 +2151,8 @@ func.func @dynamic_gather(%arg0: tensor<?x4xf32>, %arg1: tensor<1xi64>) -> tenso
   %1 = "stablehlo.dynamic_gather"(%arg0, %arg1, %0) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [0, 1],
-      start_index_map = [1]
+      start_index_map = [1],
+      index_vector_dim = 0
     >,
     indices_are_sorted = true
   } : (tensor<?x4xf32>, tensor<1xi64>, tensor<2xi32>) -> tensor<?x?xf32>

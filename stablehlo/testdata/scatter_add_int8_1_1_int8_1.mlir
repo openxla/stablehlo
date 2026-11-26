@@ -8,7 +8,7 @@ module @jit_main attributes {mhlo.num_partitions = 1 : i32, mhlo.num_replicas = 
     %c = stablehlo.constant dense<0> : tensor<1xi64>
     %0:2 = call @inputs() : () -> (tensor<1x1xi8>, tensor<1xi8>)
     %1 = call @expected() : () -> tensor<1x1xi8>
-    %2 = "stablehlo.scatter"(%0#0, %c, %0#1) <{scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [0], inserted_window_dims = [0], scatter_dims_to_operand_dims = [0]>, unique_indices = true}> ({
+    %2 = "stablehlo.scatter"(%0#0, %c, %0#1) <{scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [0], inserted_window_dims = [0], scatter_dims_to_operand_dims = [0], index_vector_dim = 0>, unique_indices = true}> ({
     ^bb0(%arg0: tensor<i8>, %arg1: tensor<i8>):
       %3 = stablehlo.add %arg0, %arg1 : tensor<i8>
       stablehlo.return %3 : tensor<i8>
