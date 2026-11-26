@@ -85,6 +85,34 @@ func.func @bitcast_convert_contract(%input: tensor<7x4xi8>) -> tensor<7xi32> {
 
 // -----
 
+// stablehlo.bitcast_convert accepts quantized element types, which have no bit
+// width in the sense of getIntOrFloatBitWidth. The op must be left unconverted
+// rather than tripping the assert inside that method.
+
+// CHECK-LABEL: func @bitcast_convert_quantized_same_rank
+// CHECK: stablehlo.bitcast_convert
+// CHECK-PRIMITIVE-LABEL: func @bitcast_convert_quantized_same_rank
+// CHECK-PRIMITIVE: stablehlo.bitcast_convert
+func.func @bitcast_convert_quantized_same_rank(
+    %input: tensor<2x2x!quant.uniform<i8:f32, 1.000000e+00>>) -> tensor<2x2xi8> {
+  %result = "stablehlo.bitcast_convert"(%input) : (tensor<2x2x!quant.uniform<i8:f32, 1.000000e+00>>) -> tensor<2x2xi8>
+  func.return %result : tensor<2x2xi8>
+}
+
+// -----
+
+// CHECK-LABEL: func @bitcast_convert_quantized_expand
+// CHECK: stablehlo.bitcast_convert
+// CHECK-PRIMITIVE-LABEL: func @bitcast_convert_quantized_expand
+// CHECK-PRIMITIVE: stablehlo.bitcast_convert
+func.func @bitcast_convert_quantized_expand(
+    %input: tensor<2x!quant.uniform<i32:f32, 1.000000e+00>>) -> tensor<2x4xi8> {
+  %result = "stablehlo.bitcast_convert"(%input) : (tensor<2x!quant.uniform<i32:f32, 1.000000e+00>>) -> tensor<2x4xi8>
+  func.return %result : tensor<2x4xi8>
+}
+
+// -----
+
 // CHECK-LABEL:   func @concatenate(
 // CHECK-SAME:   %[[VAL_0:[a-zA-Z0-9_]*]]
 // CHECK-SAME:   %[[VAL_1:[a-zA-Z0-9_]*]]

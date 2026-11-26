@@ -202,16 +202,21 @@ struct PointwiseToLinalgPattern final : ConversionPattern {
     }
 
     if (enablePrimitiveOps) {
+      bool failed = false;
       Operation* mapOp = linalg::MapOp::create(
           rewriter, loc, mappedInputs, emptyTensor,
           [&](OpBuilder& b, Location blockLoc, ValueRange args) {
             Value innerResult = StablehloOpToStdScalarOp::mapOp(
                 op, getElementTypeOrSelf(emptyTensor),
                 interleaveScalarAndBlockArgs(scalarInputs, args), &b);
-
+            if (!innerResult) {
+              failed = true;
+              return;
+            }
             linalg::YieldOp::create(b, blockLoc, innerResult);
           },
           getPointwisePrunedAttrs(op, elidedAttrs));
+      if (failed) return failure();
       rewriter.replaceOp(op, mapOp->getResults());
       return success();
     }
