@@ -1685,7 +1685,10 @@ Value materializeDigamma(OpBuilder& rewriter, Location loc, ValueRange args) {
                                               reflection, digamma);
 
   // Digamma has poles at negative integers and zero; return nan for
-  // negative integers, and -inf for zero.
+  // negative integers. At zero the limit is -inf from the right and +inf from
+  // the left, so the sign of the zero picks the side. The sign comes from the
+  // sign bit because, with FTZ, a negative subnormal also compares equal to
+  // zero.
   Value isZero = mlir::stablehlo::CompareOp::create(
       rewriter, loc, x, zero, mlir::stablehlo::ComparisonDirection::EQ);
   Value isLtZero = mlir::stablehlo::CompareOp::create(
@@ -1700,11 +1703,22 @@ Value materializeDigamma(OpBuilder& rewriter, Location loc, ValueRange args) {
       getConstantLike(rewriter, loc, std::numeric_limits<double>::quiet_NaN(),
                       x),
       digamma);
-  return mlir::stablehlo::SelectOp::create(
-      rewriter, loc, isZero,
-      getConstantLike(rewriter, loc, -std::numeric_limits<double>::infinity(),
+  auto xTy = cast<ShapedType>(x.getType());
+  Type intTy = xTy.clone(
+      rewriter.getIntegerType(xTy.getElementType().getIntOrFloatBitWidth()));
+  Value xAsInt = mlir::stablehlo::BitcastConvertOp::create(rewriter, loc,
+                                                           intTy, x);
+  Value signBitIsSet = mlir::stablehlo::CompareOp::create(
+      rewriter, loc, xAsInt, getConstantLike(rewriter, loc, 0, xAsInt),
+      mlir::stablehlo::ComparisonDirection::LT);
+  Value infAtZero = mlir::stablehlo::SelectOp::create(
+      rewriter, loc, signBitIsSet,
+      getConstantLike(rewriter, loc, std::numeric_limits<double>::infinity(),
                       x),
-      resultWithNan);
+      getConstantLike(rewriter, loc, -std::numeric_limits<double>::infinity(),
+                      x));
+  return mlir::stablehlo::SelectOp::create(rewriter, loc, isZero, infAtZero,
+                                           resultWithNan);
 }
 
 namespace {
