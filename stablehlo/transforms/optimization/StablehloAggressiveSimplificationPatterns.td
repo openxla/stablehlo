@@ -132,6 +132,9 @@ def ZeroExtent : AttrConstraint<
     CPred<"cast<DenseElementsAttr>($_self).getNumElements() == 0">,
     "is zero extent">;
 
+def FitsInI64Array : Constraint<
+    CPred<"canConvertToI64Array($0)">, "fits in signed 64-bit array">;
+
 def AnyStaticShapeIntTensor : StaticShapeTensorOf<[HLO_Int]>;
 
 ///////////
@@ -389,7 +392,8 @@ def DynamicGatherOp_ReplaceWithGather
             $start_indices,
             $dimension_numbers,
             (ConvertToI64Array $slice_sizes),
-            $indices_are_sorted), [],
+            $indices_are_sorted),
+        [(FitsInI64Array $slice_sizes)],
         [(MergeDiscardableAttributes $op, $new_op)]>;
 
 ////////
@@ -409,7 +413,10 @@ def DynamicPadOp_ReplaceWithPad
             $padding_value,
             (ConvertToI64Array $edge_padding_low),
             (ConvertToI64Array $edge_padding_high),
-            (ConvertToI64Array $interior_padding)), [],
+            (ConvertToI64Array $interior_padding)),
+        [(FitsInI64Array $edge_padding_low),
+         (FitsInI64Array $edge_padding_high),
+         (FitsInI64Array $interior_padding)],
         [(MergeDiscardableAttributes $op, $new_op)]>;
 
 ////////
@@ -564,7 +571,8 @@ def RealDynamicSliceOp_ReplaceWithSlice
             (ConvertToI64Array $start_indices),
             (ConvertToI64Array $limit_indices),
             (ConvertToI64Array $strides)),
-        [],
+        [(FitsInI64Array $start_indices), (FitsInI64Array $limit_indices),
+         (FitsInI64Array $strides)],
         [(MergeDiscardableAttributes $op, $new_op)]>;
 
 ////////
