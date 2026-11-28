@@ -772,6 +772,16 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
     if (comparisonType == ComparisonType::NOTYPE)
       return rewriter.notifyMatchFailure(
           op, "Could not determine comparison type.");
+    if (auto fltType =
+            dyn_cast<FloatType>(op.getLhs().getType().getElementType());
+        fltType && comparisonType == ComparisonType::TOTALORDER) {
+      const auto& sem = fltType.getFloatSemantics();
+      if (&sem == &APFloat::PPCDoubleDouble() ||
+          &sem == &APFloat::PPCDoubleDoubleLegacy() ||
+          &sem == &APFloat::x87DoubleExtended())
+        return rewriter.notifyMatchFailure(
+            op, "Unsupported float semantics for TOTALORDER comparison.");
+    }
 
     LLVM_DEBUG(llvm::dbgs() << "comparisonType: " << comparisonType << "\n");
 
@@ -838,7 +848,37 @@ struct FoldCompareOpPattern : public ShapeOpRewritePattern<CompareOp> {
         return APInt(/*bitwidth=*/1, result);
       }
 
-      if (kind != ComparisonType::FLOAT && kind != ComparisonType::TOTALORDER)
+      if (kind == ComparisonType::TOTALORDER) {
+        auto totalOrderCmp = [](const APFloat& a, const APFloat& b) -> int {
+          APInt aBits = a.bitcastToAPInt(), bBits = b.bitcastToAPInt();
+          if (aBits == bBits) return 0;
+          if (!APFloat::semanticsHasSignedRepr(a.getSemantics()))
+            return aBits.ult(bBits) ? -1 : 1;
+          if (a.isNegative() != b.isNegative()) return a.isNegative() ? -1 : 1;
+          if (a.isNaN() != b.isNaN())
+            return (a.isNaN() == a.isNegative()) ? -1 : 1;
+          return (a.isNegative() ? bBits.ult(aBits) : aBits.ult(bBits)) ? -1
+                                                                        : 1;
+        };
+        int cmp = totalOrderCmp(lhs, rhs);
+        switch (direction) {
+          case ComparisonDirection::EQ:
+            return APInt(1, cmp == 0);
+          case ComparisonDirection::NE:
+            return APInt(1, cmp != 0);
+          case ComparisonDirection::GE:
+            return APInt(1, cmp >= 0);
+          case ComparisonDirection::GT:
+            return APInt(1, cmp > 0);
+          case ComparisonDirection::LE:
+            return APInt(1, cmp <= 0);
+          case ComparisonDirection::LT:
+            return APInt(1, cmp < 0);
+        }
+        llvm_unreachable("invalid comparison direction");
+      }
+
+      if (kind != ComparisonType::FLOAT)
         llvm::report_fatal_error("invalid float comparison");
 
       bool result = false;
@@ -1168,9 +1208,17 @@ struct FoldGetDimensionSizeOpPattern
     if (operandType.isDynamicDim(op.getDimension()))
       return rewriter.notifyMatchFailure(op, "expected static dimension");
 
-    auto result = operandType.getDimSize(op.getDimension());
+    int64_t result = operandType.getDimSize(op.getDimension());
+    auto elemTy = dyn_cast<IntegerType>(resultType.getElementType());
+    if (!elemTy || result < 0) return failure();
+    unsigned width = elemTy.getWidth();
+    if (width < 64 && !(elemTy.isUnsigned() ? llvm::isUIntN(width, result)
+                                            : llvm::isIntN(width, result)))
+      return rewriter.notifyMatchFailure(
+          op, "dimension size does not fit in result element type");
     rewriter.replaceOpWithNewOp<ConstantOp>(
-        op, DenseIntElementsAttr::get<int32_t>(resultType, result));
+        op, DenseElementsAttr::get(resultType,
+                                   rewriter.getIntegerAttr(elemTy, result)));
     return success();
   }
 };
@@ -1274,9 +1322,11 @@ struct FoldClampOpPattern : public ShapeOpRewritePattern<ClampOp> {
     // Fold clamp using:
     //   res = max(min, operand)
     //   res = min(max, res)
-    bool isUnsignedInt = resultType.getElementType().isUnsignedInteger();
+    bool isUnsignedInt = resultType.getElementType().isUnsignedInteger() ||
+                         resultType.getElementType().isInteger(/*width=*/1);
     auto res = foldBinaryOpIntOrFloat(resultType, minAttr, operandAttr,
                                       FoldMax(isUnsignedInt));
+    if (!res) return rewriter.notifyMatchFailure(op, "failed to fold clamp");
     res = foldBinaryOpIntOrFloat(resultType, maxAttr, res,
                                  FoldMin(isUnsignedInt));
     if (!res) return rewriter.notifyMatchFailure(op, "failed to fold clamp");
@@ -1665,8 +1715,12 @@ struct FoldSetDimensionSizeOpPattern
     // We can't fold and change shapes, but we do want to fold meaningless
     // set_dim_size ops that use a constant to set a static dimension size
     // like `set_dim_size(X, 2, dim=0) : (tensor<2xf32>) -> tensor<2xf32>`
-    if (cstSplatAttr.getSplatValue<APInt>() !=
-        resultType.getDimSize(op.getDimension()))
+    int64_t dimSize = resultType.getDimSize(op.getDimension());
+    APInt sizeVal = cstSplatAttr.getSplatValue<APInt>();
+    bool isUnsigned = cstSplatAttr.getElementType().isUnsignedInteger();
+    if (resultType.isDynamicDim(op.getDimension()) || dimSize < 0 ||
+        (!isUnsigned && sizeVal.isNegative()) ||
+        sizeVal != static_cast<uint64_t>(dimSize))
       return rewriter.notifyMatchFailure(op,
                                          "dim size does not match result type");
 
@@ -1933,7 +1987,7 @@ struct FoldSignOpPattern
 
   static std::optional<APFloat> EvaluateOp(APFloat operand) {
     if (operand.isNaN()) return std::nullopt;
-    if (operand.isZero()) return APFloat::getZero(operand.getSemantics());
+    if (operand.isZero()) return operand;
     return APFloat::getOne(operand.getSemantics(),
                            /*Negative=*/operand.isNegative());
   }
@@ -2120,6 +2174,15 @@ struct FoldTransposeOpPattern : public FoldOpRewritePattern<TransposeOp> {
   }
 };
 
+bool hasPositiveStaticReducedDims(ReduceOp op) {
+  ArrayRef<int64_t> dims = op.getDimensions();
+  if (dims.empty() || op.getInputs().empty()) return false;
+  auto inputType = cast<RankedTensorType>(op.getInputs().front().getType());
+  return llvm::all_of(dims, [&](int64_t d) {
+    return !inputType.isDynamicDim(d) && inputType.getDimSize(d) > 0;
+  });
+}
+
 // TODO: Consider moving this into aggressive simplifications.
 struct LowerBoolSplatConstantsIntoReduceOpRegion
     : public FoldOpRewritePattern<ReduceOp> {
@@ -2127,17 +2190,46 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
+    if (!hasPositiveStaticReducedDims(op))
+      return rewriter.notifyMatchFailure(
+          op, "Requires non-empty positive static reduced dimensions.");
     Block& body = op.getBody().front();
 
     if (body.getOperations().size() != 2)
       return rewriter.notifyMatchFailure(op, "Incompatible op count in body.");
-    if (!isa<AndOp, OrOp>(body.front()))
+    Operation& binOp = body.front();
+    auto returnOp = dyn_cast<ReturnOp>(body.back());
+    if (!isa<AndOp, OrOp>(binOp) || !returnOp)
       return rewriter.notifyMatchFailure(op, "Only match AND and OR ops.");
+    if (llvm::all_of(body.getArguments(),
+                     [](BlockArgument arg) { return arg.use_empty(); }))
+      return rewriter.notifyMatchFailure(op, "No block arguments used.");
 
-    SmallVector<DenseElementsAttr, 4> bodyArgConstantAttrs;
+    size_t numInputs = op.getInputs().size();
+    if (body.getNumArguments() != 2 * numInputs ||
+        returnOp.getNumOperands() != numInputs)
+      return failure();
+    auto inputType = cast<RankedTensorType>(op.getInputs().front().getType());
+    if (llvm::any_of(op.getDimensions(),
+                     [&](int64_t d) { return inputType.getDimSize(d) > 1; })) {
+      for (size_t i = 0; i < numInputs; ++i) {
+        Value acc = body.getArgument(i), elem = body.getArgument(i + numInputs);
+        auto isIthArg = [&](Value v) { return v == acc || v == elem; };
+        Value ret = returnOp.getOperand(i);
+        if (!isIthArg(ret) && ret.getParentRegion() == &op.getBody() &&
+            (ret.getDefiningOp() != &binOp ||
+             !llvm::all_of(binOp.getOperands(), isIthArg)))
+          return rewriter.notifyMatchFailure(
+              op, "Multi-step recurrence is not invariant after one step.");
+      }
+    }
 
-    for (auto [inputValue, bodyArg] :
-         llvm::zip_equal(op.getOperands(), body.getArguments())) {
+    SmallVector<DenseElementsAttr, 4> bodyArgConstantAttrs(2 * numInputs);
+    for (BlockArgument bodyArg : body.getArguments()) {
+      if (bodyArg.use_empty()) continue;
+      size_t idx = bodyArg.getArgNumber();
+      Value inputValue = idx < numInputs ? op.getInitValues()[idx]
+                                         : op.getInputs()[idx - numInputs];
       SplatElementsAttr constantSplatAttr;
       if (!matchPattern(inputValue, m_Constant(&constantSplatAttr)) ||
           !constantSplatAttr)
@@ -2145,20 +2237,22 @@ struct LowerBoolSplatConstantsIntoReduceOpRegion
                                            "Input must be a splat constant.");
 
       auto bodyArgShapedType = dyn_cast<ShapedType>(bodyArg.getType());
-      if (!bodyArgShapedType)
+      if (!bodyArgShapedType || bodyArgShapedType.getElementType() !=
+                                    constantSplatAttr.getElementType())
         return rewriter.notifyMatchFailure(
-            op, "Could not get the shape of the body argument.");
+            op, "Body argument type does not match constant operand.");
       if (failed(validateStaticShapeResult(rewriter, op, bodyArgShapedType)))
         return failure();
 
-      bodyArgConstantAttrs.push_back(DenseElementsAttr::get(
-          bodyArgShapedType, constantSplatAttr.getSplatValue<Attribute>()));
+      bodyArgConstantAttrs[idx] = DenseElementsAttr::get(
+          bodyArgShapedType, constantSplatAttr.getSplatValue<Attribute>());
     }
 
     for (BlockArgument bodyArg : body.getArguments()) {
+      if (bodyArg.use_empty()) continue;
       rewriter.replaceAllUsesWith(
           bodyArg,
-          ConstantOp::create(rewriter, body.front().getLoc(), bodyArg.getType(),
+          ConstantOp::create(rewriter, binOp.getLoc(), bodyArg.getType(),
                              bodyArgConstantAttrs[bodyArg.getArgNumber()]));
     }
 
@@ -2194,6 +2288,9 @@ struct FoldReduceOpToConstantInitializer
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
+    if (!hasPositiveStaticReducedDims(op))
+      return rewriter.notifyMatchFailure(
+          op, "Requires non-empty positive static reduced dimensions.");
     Block& body = op.getBody().front();
     if (body.getOperations().size() != 1)
       return rewriter.notifyMatchFailure(op,
@@ -2213,7 +2310,8 @@ struct FoldReduceOpToConstantInitializer
                                            "Body result must be a constant.");
 
       DenseElementsAttr constantAttr;
-      if (!matchPattern(sourceOfBlockResult, m_Constant(&constantAttr)))
+      if (!matchPattern(sourceOfBlockResult, m_Constant(&constantAttr)) ||
+          !constantAttr.isSplat())
         return rewriter.notifyMatchFailure(
             op, "Could not extract constant attribute from body result.");
 
@@ -2245,6 +2343,9 @@ struct FoldReduceOpWithRedundantResults
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
+    if (!hasPositiveStaticReducedDims(op))
+      return rewriter.notifyMatchFailure(
+          op, "Requires non-empty positive static reduced dimensions.");
     Block& body = op.getBody().front();
     auto returnOp = dyn_cast<ReturnOp>(body.back());
     if (!returnOp)

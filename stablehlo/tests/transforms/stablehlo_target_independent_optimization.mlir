@@ -116,3 +116,43 @@ func.func @do_not_assume_non_nan(%arg0: tensor<f32>) -> tensor<f32> {
   %result = stablehlo.add %one, %arg_times_zero : tensor<f32>
   return %result : tensor<f32>
 }
+
+// -----
+
+// CHECK-LABEL: @dynamic_gather_unsigned_slice_sizes_post_fold
+func.func @dynamic_gather_unsigned_slice_sizes_post_fold(
+    %arg0: tensor<300xf32>, %idx: tensor<2x1xi32>) -> tensor<2x200xf32> {
+  // CHECK: "stablehlo.gather"(%arg0, %arg1)
+  // CHECK-SAME: slice_sizes = array<i64: 200>
+  %c100 = stablehlo.constant dense<[100]> : tensor<1xui8>
+  %sz = stablehlo.add %c100, %c100 : tensor<1xui8>
+  %0 = "stablehlo.dynamic_gather"(%arg0, %idx, %sz) <{
+    dimension_numbers = #stablehlo.gather<offset_dims = [1], start_index_map = [0], index_vector_dim = 1>,
+    indices_are_sorted = false
+  }> : (tensor<300xf32>, tensor<2x1xi32>, tensor<1xui8>) -> tensor<2x200xf32>
+  return %0 : tensor<2x200xf32>
+}
+
+// CHECK-LABEL: @totalorder_sign_clamp_and_empty_reduce_pipeline
+func.func @totalorder_sign_clamp_and_empty_reduce_pipeline(%empty: tensor<0xi32>)
+    -> (tensor<i1>, tensor<f32>, tensor<i1>, tensor<i32>) {
+  // CHECK-DAG: [[T:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK-DAG: [[NZ:%.+]] = stablehlo.constant dense<-0.000000e+00> : tensor<f32>
+  // CHECK-DAG: [[F:%.+]] = stablehlo.constant dense<false> : tensor<i1>
+  // CHECK-DAG: [[C42:%.+]] = stablehlo.constant dense<42> : tensor<i32>
+  // CHECK: return [[T]], [[NZ]], [[F]], [[C42]]
+  %nz = stablehlo.constant dense<-0.0> : tensor<f32>
+  %pz = stablehlo.constant dense<0.0> : tensor<f32>
+  %cmp = stablehlo.compare LT, %nz, %pz, TOTALORDER : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  %sgn = stablehlo.sign %nz : tensor<f32>
+  %f = stablehlo.constant dense<false> : tensor<i1>
+  %t = stablehlo.constant dense<true> : tensor<i1>
+  %clp = stablehlo.clamp %f, %f, %t : tensor<i1>
+  %c42 = stablehlo.constant dense<42> : tensor<i32>
+  %c99 = stablehlo.constant dense<99> : tensor<i32>
+  %red = stablehlo.reduce(%empty init: %c42) across dimensions = [0] : (tensor<0xi32>, tensor<i32>) -> tensor<i32>
+    reducer(%a: tensor<i32>, %b: tensor<i32>) {
+      stablehlo.return %c99 : tensor<i32>
+    }
+  return %cmp, %sgn, %clp, %red : tensor<i1>, tensor<f32>, tensor<i1>, tensor<i32>
+}

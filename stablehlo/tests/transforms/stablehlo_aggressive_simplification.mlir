@@ -2860,3 +2860,138 @@ func.func @transpose_of_transpose_merge_sharding(%arg0: tensor<3x4x5xi32>) -> te
   // CHECK: stablehlo.transpose %arg0, dims = [2, 1, 0] {mhlo.sharding = "{replicated}"} : (tensor<3x4x5xi32>) -> tensor<5x4x3xi32>
   return %1 : tensor<5x4x3xi32>
 }
+
+// -----
+
+// CHECK-LABEL: func.func @reduce_noop_ranked_zero_extent_and_dynamic
+func.func @reduce_noop_ranked_zero_extent_and_dynamic(
+    %ranked: tensor<4x8xi32>, %empty: tensor<0xi32>, %dyn: tensor<?xi32>,
+    %init: tensor<i32>, %outer: tensor<i32>)
+    -> (tensor<4xi32>, tensor<i32>, tensor<i32>) {
+  // CHECK-DAG: [[BCAST:%.+]] = stablehlo.broadcast_in_dim %arg4, dims = [] : (tensor<i32>) -> tensor<4xi32>
+  // CHECK-DAG: [[DYN:%.+]] = stablehlo.reduce(%arg2 init: %arg3) across dimensions = [0]
+  // CHECK: return [[BCAST]], %arg3, [[DYN]]
+  %0 = stablehlo.reduce(%ranked init: %init) across dimensions = [1] : (tensor<4x8xi32>, tensor<i32>) -> tensor<4xi32>
+    reducer(%a: tensor<i32>, %b: tensor<i32>) {
+      stablehlo.return %outer : tensor<i32>
+    }
+  %1 = stablehlo.reduce(%empty init: %init) across dimensions = [0] : (tensor<0xi32>, tensor<i32>) -> tensor<i32>
+    reducer(%a: tensor<i32>, %b: tensor<i32>) {
+      stablehlo.return %outer : tensor<i32>
+    }
+  %2 = stablehlo.reduce(%dyn init: %init) across dimensions = [0] : (tensor<?xi32>, tensor<i32>) -> tensor<i32>
+    reducer(%a: tensor<i32>, %b: tensor<i32>) {
+      stablehlo.return %outer : tensor<i32>
+    }
+  return %0, %1, %2 : tensor<4xi32>, tensor<i32>, tensor<i32>
+}
+
+// CHECK-LABEL: func.func @get_dimension_size_canon_i32_overflow
+func.func @get_dimension_size_canon_i32_overflow(
+    %ok: tensor<2147483647xi8>, %over: tensor<2147483648xi8>,
+    %wrap: tensor<4294967296xi8>) -> (tensor<i32>, tensor<i32>, tensor<i32>) {
+  // CHECK-DAG: [[MAX:%.+]] = stablehlo.constant dense<2147483647> : tensor<i32>
+  // CHECK-DAG: [[O1:%.+]] = stablehlo.get_dimension_size %arg1, dim = 0 : (tensor<2147483648xi8>) -> tensor<i32>
+  // CHECK-DAG: [[O2:%.+]] = stablehlo.get_dimension_size %arg2, dim = 0 : (tensor<4294967296xi8>) -> tensor<i32>
+  // CHECK: return [[MAX]], [[O1]], [[O2]]
+  %0 = stablehlo.get_dimension_size %ok, dim = 0 : (tensor<2147483647xi8>) -> tensor<i32>
+  %1 = stablehlo.get_dimension_size %over, dim = 0 : (tensor<2147483648xi8>) -> tensor<i32>
+  %2 = stablehlo.get_dimension_size %wrap, dim = 0 : (tensor<4294967296xi8>) -> tensor<i32>
+  return %0, %1, %2 : tensor<i32>, tensor<i32>, tensor<i32>
+}
+
+// -----
+
+// CHECK-LABEL: func.func @dynamic_slice_unsigned_and_dynamic_result
+func.func @dynamic_slice_unsigned_and_dynamic_result(
+    %big: tensor<300xf32>, %small: tensor<10xf32>)
+    -> (tensor<10xf32>, tensor<4xf32>, tensor<?xf32>) {
+  // CHECK-DAG: [[S0:%.+]] = stablehlo.slice %arg0 [200:210] : (tensor<300xf32>) -> tensor<10xf32>
+  // CHECK-DAG: [[S1:%.+]] = stablehlo.slice %arg1 [6:10] : (tensor<10xf32>) -> tensor<4xf32>
+  // CHECK-DAG: [[S2:%.+]] = stablehlo.slice %arg1 [7:10] : (tensor<10xf32>) -> tensor<3xf32>
+  // CHECK-DAG: [[C2:%.+]] = stablehlo.convert [[S2]] : (tensor<3xf32>) -> tensor<?xf32>
+  // CHECK: return [[S0]], [[S1]], [[C2]]
+  %u8 = stablehlo.constant dense<200> : tensor<ui8>
+  %u64 = stablehlo.constant dense<9223372036854775808> : tensor<ui64>
+  %0 = stablehlo.dynamic_slice %big, %u8, sizes = [10] : (tensor<300xf32>, tensor<ui8>) -> tensor<10xf32>
+  %1 = stablehlo.dynamic_slice %small, %u64, sizes = [4] : (tensor<10xf32>, tensor<ui64>) -> tensor<4xf32>
+  %2 = stablehlo.dynamic_slice %small, %u8, sizes = [3] : (tensor<10xf32>, tensor<ui8>) -> tensor<?xf32>
+  return %0, %1, %2 : tensor<10xf32>, tensor<4xf32>, tensor<?xf32>
+}
+
+// CHECK-LABEL: func.func @gather_unsigned_and_dynamic_bounded_result
+func.func @gather_unsigned_and_dynamic_bounded_result(
+    %big: tensor<300xf32>, %small: tensor<10xf32>)
+    -> (tensor<10xf32>, tensor<?xf32>, tensor<?xf32, #stablehlo.bounds<4>>) {
+  // CHECK-DAG: [[G0:%.+]] = stablehlo.slice %arg0 [200:210] : (tensor<300xf32>) -> tensor<10xf32>
+  // CHECK-DAG: [[G1:%.+]] = stablehlo.slice %arg1 [6:10] : (tensor<10xf32>) -> tensor<4xf32>
+  // CHECK-DAG: [[C1:%.+]] = stablehlo.convert [[G1]] : (tensor<4xf32>) -> tensor<?xf32>
+  // CHECK-DAG: [[G2:%.+]] = stablehlo.slice %arg1 [2:6] : (tensor<10xf32>) -> tensor<4xf32>
+  // CHECK-DAG: [[C2:%.+]] = stablehlo.convert [[G2]] : (tensor<4xf32>) -> tensor<?xf32, #stablehlo.bounds<4>>
+  // CHECK: return [[G0]], [[C1]], [[C2]]
+  %u8 = stablehlo.constant dense<[200]> : tensor<1xui8>
+  %u64 = stablehlo.constant dense<[9223372036854775808]> : tensor<1xui64>
+  %i32 = stablehlo.constant dense<[2]> : tensor<1xi32>
+  %0 = "stablehlo.gather"(%big, %u8) <{dimension_numbers = #stablehlo.gather<offset_dims = [0], start_index_map = [0], index_vector_dim = 0>, indices_are_sorted = false, slice_sizes = array<i64: 10>}> : (tensor<300xf32>, tensor<1xui8>) -> tensor<10xf32>
+  %1 = "stablehlo.gather"(%small, %u64) <{dimension_numbers = #stablehlo.gather<offset_dims = [0], start_index_map = [0], index_vector_dim = 0>, indices_are_sorted = false, slice_sizes = array<i64: 4>}> : (tensor<10xf32>, tensor<1xui64>) -> tensor<?xf32>
+  %2 = "stablehlo.gather"(%small, %i32) <{dimension_numbers = #stablehlo.gather<offset_dims = [0], start_index_map = [0], index_vector_dim = 0>, indices_are_sorted = false, slice_sizes = array<i64: 4>}> : (tensor<10xf32>, tensor<1xi32>) -> tensor<?xf32, #stablehlo.bounds<4>>
+  return %0, %1, %2 : tensor<10xf32>, tensor<?xf32>, tensor<?xf32, #stablehlo.bounds<4>>
+}
+
+// CHECK-LABEL: func.func @dynamic_pad_unsigned_and_ui64_overflow
+func.func @dynamic_pad_unsigned_and_ui64_overflow(%arg0: tensor<100xf32>, %pv: tensor<f32>)
+    -> (tensor<?xf32>, tensor<?xf32>) {
+  // CHECK-DAG: [[PAD:%.+]] = stablehlo.pad %arg0, %arg1, low = [200], high = [0], interior = [0] : (tensor<100xf32>, tensor<f32>) -> tensor<?xf32>
+  // CHECK-DAG: [[DPAD:%.+]] = stablehlo.dynamic_pad %arg0, %arg1
+  // CHECK: return [[PAD]], [[DPAD]]
+  %low = stablehlo.constant dense<[200]> : tensor<1xui8>
+  %zero = stablehlo.constant dense<[0]> : tensor<1xui8>
+  %p = stablehlo.dynamic_pad %arg0, %pv, %low, %zero, %zero
+      : (tensor<100xf32>, tensor<f32>, tensor<1xui8>, tensor<1xui8>, tensor<1xui8>) -> tensor<?xf32>
+  %huge = stablehlo.constant dense<[18446744073709551615]> : tensor<1xui64>
+  %z64 = stablehlo.constant dense<[0]> : tensor<1xui64>
+  %p2 = stablehlo.dynamic_pad %arg0, %pv, %huge, %z64, %z64
+      : (tensor<100xf32>, tensor<f32>, tensor<1xui64>, tensor<1xui64>, tensor<1xui64>) -> tensor<?xf32>
+  return %p, %p2 : tensor<?xf32>, tensor<?xf32>
+}
+
+// CHECK-LABEL: func.func @real_dynamic_slice_unsigned_dynamic_and_bounds
+func.func @real_dynamic_slice_unsigned_dynamic_and_bounds(
+    %big: tensor<300xf32>, %u8_start: tensor<1xui8>,
+    %small: tensor<10xf32>, %i32_start: tensor<1xi32>)
+    -> (tensor<10xf32>, tensor<200xf32>, tensor<?xf32>, tensor<?xf32>, tensor<?xf32>) {
+  // CHECK-DAG: [[SL:%.+]] = stablehlo.slice %arg0 [200:210] : (tensor<300xf32>) -> tensor<10xf32>
+  // CHECK-DAG: [[DS0:%.+]] = stablehlo.dynamic_slice %arg0, {{.+}}, sizes = [200] : (tensor<300xf32>, tensor<ui8>) -> tensor<200xf32>
+  // CHECK-DAG: [[DS1:%.+]] = stablehlo.dynamic_slice %arg2, {{.+}}, sizes = [2] : (tensor<10xf32>, tensor<i32>) -> tensor<?xf32>
+  // CHECK-DAG: [[NEG:%.+]] = stablehlo.real_dynamic_slice %arg2, %arg3
+  // CHECK-DAG: [[BIG:%.+]] = stablehlo.real_dynamic_slice %arg2, %arg3
+  // CHECK: return [[SL]], [[DS0]], [[DS1]], [[NEG]], [[BIG]]
+  %cs = stablehlo.constant dense<[200]> : tensor<1xui8>
+  %cl = stablehlo.constant dense<[210]> : tensor<1xui8>
+  %u1 = stablehlo.constant dense<[1]> : tensor<1xui8>
+  %0 = stablehlo.real_dynamic_slice %big, %cs, %cl, %u1
+      : (tensor<300xf32>, tensor<1xui8>, tensor<1xui8>, tensor<1xui8>) -> tensor<10xf32>
+
+  %u200 = stablehlo.constant dense<[200]> : tensor<1xui8>
+  %ulim = stablehlo.add %u8_start, %u200 : tensor<1xui8>
+  %1 = stablehlo.real_dynamic_slice %big, %u8_start, %ulim, %u1
+      : (tensor<300xf32>, tensor<1xui8>, tensor<1xui8>, tensor<1xui8>) -> tensor<200xf32>
+
+  %i1 = stablehlo.constant dense<[1]> : tensor<1xi32>
+  %i2 = stablehlo.constant dense<[2]> : tensor<1xi32>
+  %ilim = stablehlo.add %i32_start, %i2 : tensor<1xi32>
+  %2 = stablehlo.real_dynamic_slice %small, %i32_start, %ilim, %i1
+      : (tensor<10xf32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf32>
+
+  %ineg = stablehlo.constant dense<[-1]> : tensor<1xi32>
+  %nlim = stablehlo.add %i32_start, %ineg : tensor<1xi32>
+  %3 = stablehlo.real_dynamic_slice %small, %i32_start, %nlim, %i1
+      : (tensor<10xf32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf32>
+
+  %iover = stablehlo.constant dense<[20]> : tensor<1xi32>
+  %olim = stablehlo.add %i32_start, %iover : tensor<1xi32>
+  %4 = stablehlo.real_dynamic_slice %small, %i32_start, %olim, %i1
+      : (tensor<10xf32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<?xf32>
+
+  return %0, %1, %2, %3, %4 : tensor<10xf32>, tensor<200xf32>, tensor<?xf32>, tensor<?xf32>, tensor<?xf32>
+}

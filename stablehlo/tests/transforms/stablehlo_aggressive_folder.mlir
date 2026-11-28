@@ -1691,3 +1691,164 @@ func.func @iota_overflow_no_fold() -> tensor<2305843009213693952x8xi32> {
   %0 = stablehlo.iota dim = 0 : tensor<2305843009213693952x8xi32>
   return %0 : tensor<2305843009213693952x8xi32>
 }
+
+// -----
+
+// CHECK-LABEL: func @compare_fold_totalorder_f32
+func.func @compare_fold_totalorder_f32()
+  -> (tensor<13xi1>, tensor<13xi1>, tensor<13xi1>, tensor<13xi1>, tensor<13xi1>, tensor<13xi1>) {
+  // Strictly ascending IEEE 754 totalOrder ladder:
+  // -qNaN(max) < -qNaN < -sNaN < -inf < -1 < -subnorm < -0 < +0 < +subnorm < +1 < +inf < +sNaN < +qNaN < +qNaN(max)
+  %lhs = stablehlo.constant dense<[0xFFFFFFFF, 0xFFC00000, 0xFF800001, 0xFF800000, -1.0, 0x80000001, -0.0, 0.0, 0x00000001, 1.0, 0x7F800000, 0x7F800001, 0x7FC00000]> : tensor<13xf32>
+  %rhs = stablehlo.constant dense<[0xFFC00000, 0xFF800001, 0xFF800000, -1.0, 0x80000001, -0.0, 0.0, 0x00000001, 1.0, 0x7F800000, 0x7F800001, 0x7FC00000, 0x7FFFFFFF]> : tensor<13xf32>
+  %lt = stablehlo.compare LT, %lhs, %rhs, TOTALORDER : (tensor<13xf32>, tensor<13xf32>) -> tensor<13xi1>
+  %le = stablehlo.compare LE, %lhs, %rhs, TOTALORDER : (tensor<13xf32>, tensor<13xf32>) -> tensor<13xi1>
+  %gt = stablehlo.compare GT, %rhs, %lhs, TOTALORDER : (tensor<13xf32>, tensor<13xf32>) -> tensor<13xi1>
+  %ge = stablehlo.compare GE, %lhs, %rhs, TOTALORDER : (tensor<13xf32>, tensor<13xf32>) -> tensor<13xi1>
+  %eq = stablehlo.compare EQ, %lhs, %lhs, TOTALORDER : (tensor<13xf32>, tensor<13xf32>) -> tensor<13xi1>
+  %ne = stablehlo.compare NE, %lhs, %rhs, TOTALORDER : (tensor<13xf32>, tensor<13xf32>) -> tensor<13xi1>
+  // CHECK-DAG: [[T:%.+]] = stablehlo.constant dense<true> : tensor<13xi1>
+  // CHECK-DAG: [[F:%.+]] = stablehlo.constant dense<false> : tensor<13xi1>
+  // CHECK: return [[T]], [[T]], [[T]], [[F]], [[T]], [[T]]
+  return %lt, %le, %gt, %ge, %eq, %ne : tensor<13xi1>, tensor<13xi1>, tensor<13xi1>, tensor<13xi1>, tensor<13xi1>, tensor<13xi1>
+}
+
+// CHECK-LABEL: func @compare_fold_totalorder_fp8_fnuz_and_unsigned
+func.func @compare_fold_totalorder_fp8_fnuz_and_unsigned()
+  -> (tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
+  %fnuz_nan = stablehlo.constant dense<0x80> : tensor<f8E4M3FNUZ>
+  %fnuz_nmax = stablehlo.constant dense<-240.0> : tensor<f8E4M3FNUZ>
+  %e8m0_max = stablehlo.constant dense<0xFE> : tensor<f8E8M0FNU>
+  %e8m0_nan = stablehlo.constant dense<0xFF> : tensor<f8E8M0FNU>
+  %e5m3_max = stablehlo.constant dense<0xFE> : tensor<f8E5M3FNU>
+  %e5m3_nan = stablehlo.constant dense<0xFF> : tensor<f8E5M3FNU>
+  %0 = stablehlo.compare LT, %fnuz_nan, %fnuz_nmax, TOTALORDER : (tensor<f8E4M3FNUZ>, tensor<f8E4M3FNUZ>) -> tensor<i1>
+  %1 = stablehlo.compare EQ, %fnuz_nan, %fnuz_nan, TOTALORDER : (tensor<f8E4M3FNUZ>, tensor<f8E4M3FNUZ>) -> tensor<i1>
+  %2 = stablehlo.compare LT, %e8m0_max, %e8m0_nan, TOTALORDER : (tensor<f8E8M0FNU>, tensor<f8E8M0FNU>) -> tensor<i1>
+  %3 = stablehlo.compare EQ, %e8m0_nan, %e8m0_nan, TOTALORDER : (tensor<f8E8M0FNU>, tensor<f8E8M0FNU>) -> tensor<i1>
+  %4 = stablehlo.compare LT, %e5m3_max, %e5m3_nan, TOTALORDER : (tensor<f8E5M3FNU>, tensor<f8E5M3FNU>) -> tensor<i1>
+  %5 = stablehlo.compare EQ, %e5m3_nan, %e5m3_nan, TOTALORDER : (tensor<f8E5M3FNU>, tensor<f8E5M3FNU>) -> tensor<i1>
+  // CHECK: [[T:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK: return [[T]], [[T]], [[T]], [[T]], [[T]], [[T]]
+  return %0, %1, %2, %3, %4, %5 : tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
+
+// -----
+
+// CHECK-LABEL: func @fold_sign_preserves_negative_zero
+func.func @fold_sign_preserves_negative_zero() -> (tensor<f32>, tensor<2xbf16>, tensor<f8E5M2>) {
+  // CHECK-DAG: [[F32:%.+]] = stablehlo.constant dense<-0.000000e+00> : tensor<f32>
+  // CHECK-DAG: [[BF16:%.+]] = stablehlo.constant dense<[-0.000000e+00, 0.000000e+00]> : tensor<2xbf16>
+  // CHECK-DAG: [[F8:%.+]] = stablehlo.constant dense<-0.000000e+00> : tensor<f8E5M2>
+  // CHECK: return [[F32]], [[BF16]], [[F8]]
+  %0 = stablehlo.constant dense<-0.0> : tensor<f32>
+  %1 = stablehlo.constant dense<[-0.0, 0.0]> : tensor<2xbf16>
+  %2 = stablehlo.constant dense<-0.0> : tensor<f8E5M2>
+  %3 = stablehlo.sign %0 : tensor<f32>
+  %4 = stablehlo.sign %1 : tensor<2xbf16>
+  %5 = stablehlo.sign %2 : tensor<f8E5M2>
+  return %3, %4, %5 : tensor<f32>, tensor<2xbf16>, tensor<f8E5M2>
+}
+
+// CHECK-LABEL: func @clamp_fold_i1
+func.func @clamp_fold_i1() -> tensor<8xi1> {
+  // CHECK: [[RES:%.+]] = stablehlo.constant dense<[false, false, false, true, false, true, false, true]> : tensor<8xi1>
+  // CHECK: return [[RES]]
+  %min = stablehlo.constant dense<[false, false, false, false, true, true, true, true]> : tensor<8xi1>
+  %arg = stablehlo.constant dense<[false, false, true, true, false, false, true, true]> : tensor<8xi1>
+  %max = stablehlo.constant dense<[false, true, false, true, false, true, false, true]> : tensor<8xi1>
+  %0 = stablehlo.clamp %min, %arg, %max : tensor<8xi1>
+  return %0 : tensor<8xi1>
+}
+
+// -----
+
+// CHECK-LABEL: func @reduce_fold_zero_extent_dynamic_and_bool_splat
+func.func @reduce_fold_zero_extent_dynamic_and_bool_splat(
+    %empty: tensor<0xi32>, %dyn: tensor<?xi32>, %outer: tensor<i32>)
+    -> (tensor<i32>, tensor<i32>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>) {
+  %c42 = stablehlo.constant dense<42> : tensor<i32>
+  %c99 = stablehlo.constant dense<99> : tensor<i32>
+  %false4 = stablehlo.constant dense<false> : tensor<4xi1>
+  %false0 = stablehlo.constant dense<false> : tensor<0xi1>
+  %false2 = stablehlo.constant dense<false> : tensor<2xi1>
+  %true2 = stablehlo.constant dense<true> : tensor<2xi1>
+  %f = stablehlo.constant dense<false> : tensor<i1>
+  %t = stablehlo.constant dense<true> : tensor<i1>
+
+  // Zero-extent and dynamic reduced dimensions must not fold to body value.
+  // CHECK: [[R0:%.+]] = stablehlo.reduce(%arg0 init:
+  %r0 = stablehlo.reduce(%empty init: %c42) across dimensions = [0] : (tensor<0xi32>, tensor<i32>) -> tensor<i32>
+    reducer(%acc: tensor<i32>, %elem: tensor<i32>) {
+      stablehlo.return %c99 : tensor<i32>
+    }
+  // CHECK: [[R1:%.+]] = stablehlo.reduce(%arg1 init:
+  %r1 = stablehlo.reduce(%dyn init: %c42) across dimensions = [0] : (tensor<?xi32>, tensor<i32>) -> tensor<i32>
+    reducer(%acc: tensor<i32>, %elem: tensor<i32>) {
+      stablehlo.return %outer : tensor<i32>
+    }
+  // Block arg 0 is accumulator (init = true), not input (false).
+  %r2 = stablehlo.reduce(%false4 init: %t) across dimensions = [0] : (tensor<4xi1>, tensor<i1>) -> tensor<i1>
+    reducer(%acc: tensor<i1>, %elem: tensor<i1>) {
+      %a = stablehlo.and %acc, %acc : tensor<i1>
+      stablehlo.return %a : tensor<i1>
+    }
+  // Zero-extent bool splat reduce must not lower constants into body.
+  // CHECK: [[R3:%.+]] = stablehlo.reduce({{.*}}) applies stablehlo.and across dimensions = [0] : (tensor<0xi1>, tensor<i1>) -> tensor<i1>
+  %r3 = stablehlo.reduce(%false0 init: %t) applies stablehlo.and across dimensions = [0] : (tensor<0xi1>, tensor<i1>) -> tensor<i1>
+  // Cross-argument multi-step variadic recurrence must not fold after step 1.
+  // CHECK: [[R4:%.+]]:2 = stablehlo.reduce(
+  %r4:2 = stablehlo.reduce(%false2 init: %f), (%true2 init: %t) across dimensions = [0]
+      : (tensor<2xi1>, tensor<2xi1>, tensor<i1>, tensor<i1>) -> (tensor<i1>, tensor<i1>)
+    reducer(%acc0: tensor<i1>, %e0: tensor<i1>) (%acc1: tensor<i1>, %e1: tensor<i1>) {
+      %a = stablehlo.and %acc1, %acc1 : tensor<i1>
+      stablehlo.return %a, %e0 : tensor<i1>, tensor<i1>
+    }
+  // CHECK: return [[R0]], [[R1]], %{{.+}}, [[R3]], [[R4]]#0, [[R4]]#1
+  return %r0, %r1, %r2, %r3, %r4#0, %r4#1 : tensor<i32>, tensor<i32>, tensor<i1>, tensor<i1>, tensor<i1>, tensor<i1>
+}
+
+// CHECK-LABEL: func @reduce_bool_splat_init_order_value
+func.func @reduce_bool_splat_init_order_value() -> tensor<i1> {
+  // CHECK: [[TRUE:%.+]] = stablehlo.constant dense<true> : tensor<i1>
+  // CHECK-NEXT: return [[TRUE]]
+  %false4 = stablehlo.constant dense<false> : tensor<4xi1>
+  %t = stablehlo.constant dense<true> : tensor<i1>
+  %r = stablehlo.reduce(%false4 init: %t) across dimensions = [0] : (tensor<4xi1>, tensor<i1>) -> tensor<i1>
+    reducer(%acc: tensor<i1>, %elem: tensor<i1>) {
+      %a = stablehlo.and %acc, %acc : tensor<i1>
+      stablehlo.return %a : tensor<i1>
+    }
+  return %r : tensor<i1>
+}
+
+// CHECK-LABEL: func @reduce_empty_dims_preserves_input
+func.func @reduce_empty_dims_preserves_input(%arg0: tensor<4xi32>) -> tensor<4xi32> {
+  // CHECK-NOT: dense<99>
+  // CHECK: return %arg0 : tensor<4xi32>
+  %c42 = stablehlo.constant dense<42> : tensor<i32>
+  %c99 = stablehlo.constant dense<99> : tensor<i32>
+  %0 = stablehlo.reduce(%arg0 init: %c42) across dimensions = [] : (tensor<4xi32>, tensor<i32>) -> tensor<4xi32>
+    reducer(%acc: tensor<i32>, %elem: tensor<i32>) {
+      stablehlo.return %c99 : tensor<i32>
+    }
+  return %0 : tensor<4xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func @dimension_size_overflow_and_negative_set
+func.func @dimension_size_overflow_and_negative_set(
+    %max_i32: tensor<2147483647xi8>, %over_i32: tensor<2147483648xi8>,
+    %u32_max: tensor<4294967295xi8>)
+    -> (tensor<i32>, tensor<i32>, tensor<4294967295xi8>) {
+  // CHECK-DAG: [[MAX:%.+]] = stablehlo.constant dense<2147483647> : tensor<i32>
+  // CHECK-DAG: [[GDS:%.+]] = stablehlo.get_dimension_size %arg1, dim = 0 : (tensor<2147483648xi8>) -> tensor<i32>
+  // CHECK-DAG: [[SDS:%.+]] = stablehlo.set_dimension_size %arg2, %{{.+}}, dim = 0 : (tensor<4294967295xi8>, tensor<i32>) -> tensor<4294967295xi8>
+  // CHECK: return [[MAX]], [[GDS]], [[SDS]]
+  %neg1 = stablehlo.constant dense<-1> : tensor<i32>
+  %0 = stablehlo.get_dimension_size %max_i32, dim = 0 : (tensor<2147483647xi8>) -> tensor<i32>
+  %1 = stablehlo.get_dimension_size %over_i32, dim = 0 : (tensor<2147483648xi8>) -> tensor<i32>
+  %2 = stablehlo.set_dimension_size %u32_max, %neg1, dim = 0 : (tensor<4294967295xi8>, tensor<i32>) -> tensor<4294967295xi8>
+  return %0, %1, %2 : tensor<i32>, tensor<i32>, tensor<4294967295xi8>
+}

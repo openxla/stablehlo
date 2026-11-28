@@ -24,6 +24,7 @@
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/MathExtras.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
@@ -481,13 +482,39 @@ struct DynamicBroadcastInDimOpNotActuallyDynamic final
 // DynamicGatherOp
 /////////////////////////////////
 
+std::optional<int64_t> tryExtractI64(const APInt& val, bool isUnsigned) {
+  if (isUnsigned) {
+    if (val.ugt(static_cast<uint64_t>(llvm::maxIntN(64)))) return std::nullopt;
+    return static_cast<int64_t>(val.getZExtValue());
+  }
+  if (!val.isSignedIntN(64)) return std::nullopt;
+  return val.getSExtValue();
+}
+
+bool canConvertToI64Array(Attribute attr) {
+  auto denseAttr = dyn_cast<ElementsAttr>(attr);
+  if (!denseAttr || !isa<IntegerType, IndexType>(denseAttr.getElementType()))
+    return false;
+  bool isUnsigned = denseAttr.getElementType().isUnsignedInteger();
+  return llvm::all_of(denseAttr.getValues<APInt>(), [&](const APInt& elem) {
+    return tryExtractI64(elem, isUnsigned).has_value();
+  });
+}
+
 DenseI64ArrayAttr convertToI64Array(OpBuilder& b, Attribute attr) {
   auto denseAttr = cast<ElementsAttr>(attr);
+  bool isUnsigned = denseAttr.getElementType().isUnsignedInteger();
   SmallVector<int64_t> result;
   result.reserve(denseAttr.getNumElements());
-  for (auto elem : denseAttr.getValues<APInt>())
-    result.push_back(elem.getSExtValue());
+  for (const APInt& elem : denseAttr.getValues<APInt>())
+    result.push_back(*tryExtractI64(elem, isUnsigned));
   return b.getDenseI64ArrayAttr(result);
+}
+
+int64_t clampStartIndex(const APInt& val, bool isUnsigned, int64_t maxStart) {
+  if (!isUnsigned && val.isNegative()) return 0;
+  if (val.uge(static_cast<uint64_t>(maxStart))) return maxStart;
+  return static_cast<int64_t>(val.getZExtValue());
 }
 
 //////////////////////////////////
@@ -628,23 +655,29 @@ struct DynamicSliceOpToSlice : public SimplifyOpRewritePattern<DynamicSliceOp> {
       return rewriter.notifyMatchFailure(dynamicSlice,
                                          "dynamic slice input not static");
 
+    RankedTensorType resultType = dynamicSlice.getType();
     auto sliceSizes = dynamicSlice.getSliceSizes();
+    if (!resultType.hasStaticShape() &&
+        (!isa<FloatType, IntegerType, ComplexType>(
+             resultType.getElementType()) ||
+         !hlo::isCompatibleForHloTypeInference(sliceSizes, resultType)))
+      return rewriter.notifyMatchFailure(
+          dynamicSlice, "dynamic result incompatible with static slice");
     SmallVector<int64_t, 4> tempStartIndices;
-    for (const auto& indexAndSliceStart :
+    for (const auto& [index, start] :
          llvm::enumerate(dynamicSlice.getStartIndices())) {
       APInt val;
-      Value start = indexAndSliceStart.value();
-      int64_t index = indexAndSliceStart.index();
       if (!matchPattern(start, m_ConstantInt(&val)))
         return rewriter.notifyMatchFailure(dynamicSlice,
                                            "dynamic slice input not constant");
 
       // Clamp the indices within bounds to faithfully mirror dynamic slice
       // semantics.
-      int64_t clampedStart =
-          std::clamp(val.getSExtValue(), static_cast<int64_t>(0),
-                     inputType.getDimSize(index) - sliceSizes[index]);
-      tempStartIndices.push_back(clampedStart);
+      int64_t maxStart = inputType.getDimSize(index) - sliceSizes[index];
+      if (maxStart < 0) return failure();
+      bool isUnsigned =
+          getElementTypeOrSelf(start.getType()).isUnsignedInteger();
+      tempStartIndices.push_back(clampStartIndex(val, isUnsigned, maxStart));
     }
 
     // At this point we've determined that the start indices are all constants;
@@ -664,7 +697,11 @@ struct DynamicSliceOpToSlice : public SimplifyOpRewritePattern<DynamicSliceOp> {
                         sliceStartIndices, sliceLimits, sliceStrides);
     mergeDiscardableAttributes(dynamicSlice.getOperation(),
                                sliceOp.getOperation());
-    rewriter.replaceOp(dynamicSlice, sliceOp);
+    Value result = sliceOp;
+    if (result.getType() != resultType)
+      result = ConvertOp::create(rewriter, dynamicSlice.getLoc(), resultType,
+                                 result);
+    rewriter.replaceOp(dynamicSlice, result);
     return success();
   }
 };
@@ -682,13 +719,24 @@ struct RealDynamicSliceOpToDynamicSlice
 
   LogicalResult matchAndRewrite(RealDynamicSliceOp op,
                                 PatternRewriter& rewriter) const override {
+    auto operandType = cast<RankedTensorType>(op.getOperand().getType());
+    auto startType = cast<RankedTensorType>(op.getStartIndices().getType());
+    auto startElemType = dyn_cast<IntegerType>(startType.getElementType());
+    if (!startElemType || startElemType.isInteger(1) ||
+        !startType.hasStaticShape() || startType.getRank() != 1 ||
+        startType.getDimSize(0) != operandType.getRank())
+      return rewriter.notifyMatchFailure(
+          op, "requires static 1D integer start indices matching operand rank");
+
     // This rewrite only works for unit strides because DynamicSliceOp
     // doesn't support strides (i.e. it implicitly has unit strides).
     DenseIntElementsAttr stridesAttr;
     if (!matchPattern(op.getStrides(), m_Constant(&stridesAttr)))
       return rewriter.notifyMatchFailure(op, "requires constant strides");
-    if (!llvm::all_of(stridesAttr.getValues<APInt>(),
-                      [&](APInt stride) { return stride == 1; }))
+    bool strideUnsigned = stridesAttr.getElementType().isUnsignedInteger();
+    if (!llvm::all_of(stridesAttr.getValues<APInt>(), [&](const APInt& stride) {
+          return tryExtractI64(stride, strideUnsigned) == 1;
+        }))
       return rewriter.notifyMatchFailure(op, "requires unit strides");
 
     // Check that slice sizes are fully static (DynamicSliceOp style).
@@ -708,10 +756,22 @@ struct RealDynamicSliceOpToDynamicSlice
     // RealDynamicSliceOp can take tensors of integer or index element types.
     // DynamicSliceOp::slice_sizes only supports i64 element type.
     // Adapt accordingly in order to be compatible with DynamicSliceOp.
+    bool sizeUnsigned = sliceSizesAttr.getElementType().isUnsignedInteger();
     SmallVector<int64_t> sliceSizes;
-    for (auto element : sliceSizesAttr.getValues<APInt>()) {
-      sliceSizes.push_back(element.getSExtValue());
+    for (auto [idx, element] :
+         llvm::enumerate(sliceSizesAttr.getValues<APInt>())) {
+      std::optional<int64_t> size = tryExtractI64(element, sizeUnsigned);
+      if (!size || *size < 0 ||
+          (static_cast<int64_t>(idx) < operandType.getRank() &&
+           !operandType.isDynamicDim(idx) &&
+           *size > operandType.getDimSize(idx)))
+        return rewriter.notifyMatchFailure(op, "invalid slice size");
+      sliceSizes.push_back(*size);
     }
+    if (static_cast<int64_t>(sliceSizes.size()) != operandType.getRank() ||
+        !hlo::isCompatibleForHloTypeInference(sliceSizes, op.getType()))
+      return rewriter.notifyMatchFailure(
+          op, "slice sizes incompatible with result type");
 
     // RealDynamicSliceOp::start_indices is a 1-dimensional tensor.
     // DynamicSliceOp::start_indices is a vararg of 0-dimensional tensors.
@@ -723,16 +783,14 @@ struct RealDynamicSliceOpToDynamicSlice
                           rewriter.getDenseI64ArrayAttr(i),
                           rewriter.getDenseI64ArrayAttr(i + 1),
                           rewriter.getDenseI64ArrayAttr(1));
-      auto startIndex0DType = RankedTensorType::get(
-          {},
-          cast<ShapedType>(op.getStartIndices().getType()).getElementType());
+      auto startIndex0DType = RankedTensorType::get({}, startElemType);
       auto startIndex0D = ReshapeOp::create(rewriter, op.getLoc(),
                                             startIndex0DType, startIndex1D);
       startIndices.push_back(startIndex0D);
     }
 
     auto dynamicSliceOp = DynamicSliceOp::create(
-        rewriter, op.getLoc(), op.getOperand(), startIndices,
+        rewriter, op.getLoc(), op.getType(), op.getOperand(), startIndices,
         rewriter.getDenseI64ArrayAttr(sliceSizes));
     mergeDiscardableAttributes(op.getOperation(),
                                dynamicSliceOp.getOperation());
@@ -751,20 +809,39 @@ struct ReduceOpNoopVariableReturn final : SimplifyOpRewritePattern<ReduceOp> {
 
   LogicalResult matchAndRewrite(ReduceOp op,
                                 PatternRewriter& rewriter) const override {
-    // If all returned values in the ReduceOp region exists outside the
-    // region, replace the ReduceOp with those values.
-    if (auto retOp = dyn_cast<ReturnOp>(op.getBody().front().getTerminator())) {
-      Region* retRegion = retOp->getParentRegion();
-      if (llvm::any_of(retOp.getResults(), [retRegion](Value result) {
-            return result.getParentRegion() == retRegion;
-          }))
-        return failure();
+    ArrayRef<int64_t> dims = op.getDimensions();
+    if (dims.empty() || op.getInputs().empty()) return failure();
+    auto inputType = cast<RankedTensorType>(op.getInputs().front().getType());
+    if (llvm::any_of(dims, [&](int64_t d) {
+          return inputType.isDynamicDim(d) || inputType.getDimSize(d) <= 0;
+        }))
+      return failure();
 
-      rewriter.replaceOp(op, retOp.getResults());
-      return success();
+    auto retOp = dyn_cast<ReturnOp>(op.getBody().front().getTerminator());
+    if (!retOp) return failure();
+    Region* retRegion = retOp->getParentRegion();
+    for (auto [retVal, opRes] :
+         llvm::zip_equal(retOp.getResults(), op.getResults())) {
+      if (retVal.getParentRegion() == retRegion) return failure();
+      if (retVal.getType() == opRes.getType()) continue;
+      auto srcTy = dyn_cast<RankedTensorType>(retVal.getType());
+      auto dstTy = dyn_cast<RankedTensorType>(opRes.getType());
+      if (!srcTy || !dstTy || srcTy.getRank() != 0 || !dstTy.hasStaticShape() ||
+          srcTy.getElementType() != dstTy.getElementType())
+        return failure();
     }
 
-    return failure();
+    SmallVector<Value> replacements;
+    for (auto [retVal, opRes] :
+         llvm::zip_equal(retOp.getResults(), op.getResults()))
+      replacements.push_back(
+          retVal.getType() == opRes.getType()
+              ? retVal
+              : BroadcastInDimOp::create(rewriter, op.getLoc(), opRes.getType(),
+                                         retVal,
+                                         rewriter.getDenseI64ArrayAttr({})));
+    rewriter.replaceOp(op, replacements);
+    return success();
   }
 };
 
@@ -938,6 +1015,10 @@ struct GetDimensionSizeOpCanon final
     if (dimSize < 0) return failure();
 
     auto elemTy = cast<IntegerType>(op.getType().getElementType());
+    unsigned width = elemTy.getWidth();
+    if (width < 64 && !(elemTy.isUnsigned() ? llvm::isUIntN(width, dimSize)
+                                            : llvm::isIntN(width, dimSize)))
+      return failure();
     IntegerAttr elemVal = rewriter.getIntegerAttr(elemTy, dimSize);
     rewriter.replaceOpWithNewOp<ConstantOp>(
         op, DenseElementsAttr::get(op.getType(), elemVal));
@@ -977,12 +1058,13 @@ struct GatherOpCanon final : SimplifyOpRewritePattern<GatherOp> {
 
     auto sliceEnd = llvm::to_vector(gather.getSliceSizes());
     SmallVector<int64_t> sliceStart(sliceEnd.size(), 0);
+    bool isUnsigned = index.getElementType().isUnsignedInteger();
     for (auto [mapIndex, value] :
          llvm::zip_equal(dnums.getStartIndexMap(), index.getValues<APInt>())) {
       // Clamp the indices within bounds to faithfully mirror gather semantics.
-      int64_t offset =
-          std::clamp(value.getSExtValue(), static_cast<int64_t>(0),
-                     operandType.getDimSize(mapIndex) - sliceEnd[mapIndex]);
+      int64_t maxStart = operandType.getDimSize(mapIndex) - sliceEnd[mapIndex];
+      if (maxStart < 0) return failure();
+      int64_t offset = clampStartIndex(value, isUnsigned, maxStart);
       sliceStart[mapIndex] += offset;
       sliceEnd[mapIndex] += offset;
     }
@@ -994,27 +1076,31 @@ struct GatherOpCanon final : SimplifyOpRewritePattern<GatherOp> {
       shapeElem = endElem - startElem;
     }
 
-    Type elementType = gather.getType().getElementType();
+    RankedTensorType resultType = gather.getType();
+    Type elementType = resultType.getElementType();
+    ArrayRef<int64_t> collapsedSliceDims = dnums.getCollapsedSliceDims();
+    llvm::SmallVector<int64_t> resultShape;
+    for (auto [idx, dim] : llvm::enumerate(sliceShape))
+      if (!llvm::is_contained(collapsedSliceDims, idx))
+        resultShape.push_back(dim);
+    if (!resultType.hasStaticShape() &&
+        (!isa<FloatType, IntegerType, ComplexType>(elementType) ||
+         !hlo::isCompatibleForHloTypeInference(resultShape, resultType)))
+      return failure();
+
     auto sliceType = RankedTensorType::get(sliceShape, elementType);
     Value result = SliceOp::create(rewriter, gather.getLoc(), sliceType,
                                    gather.getOperand(),
                                    rewriter.getDenseI64ArrayAttr(sliceStart),
                                    rewriter.getDenseI64ArrayAttr(sliceEnd),
                                    rewriter.getDenseI64ArrayAttr(sliceStride));
-
-    ArrayRef<int64_t> collapsedSliceDims = dnums.getCollapsedSliceDims();
     if (!collapsedSliceDims.empty()) {
-      llvm::SmallVector<int64_t> reshapeShape;
-      for (auto [idx, dim] : llvm::enumerate(sliceShape)) {
-        if (!llvm::is_contained(collapsedSliceDims, idx))
-          reshapeShape.push_back(dim);
-      }
-      auto reshapeType = RankedTensorType::get(reshapeShape, elementType);
+      auto reshapeType = RankedTensorType::get(resultShape, elementType);
       result =
           ReshapeOp::create(rewriter, gather.getLoc(), reshapeType, result);
     }
-
-    result.setType(gather.getType());
+    if (result.getType() != resultType)
+      result = ConvertOp::create(rewriter, gather.getLoc(), resultType, result);
     rewriter.replaceOp(gather, result);
     return success();
   }
